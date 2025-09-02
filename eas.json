@@ -58,7 +58,8 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "EXPO_USE_FAST_RESOLVER": "1"
       },
       "channel": "preview"
     },
@@ -72,8 +73,7 @@
       },
       "env": {
         "NODE_ENV": "production",
-        "EXPO_USE_FAST_RESOLVER": "1",
-        "EAS_BUILD_DISABLE_BUNDLE_JAVASCRIPT_STEP": "1"
+        "EXPO_USE_FAST_RESOLVER": "1"
       },
       "channel": "production"
     },
@@ -88,8 +88,7 @@
       },
       "env": {
         "NODE_ENV": "production",
-        "EXPO_USE_FAST_RESOLVER": "1",
-        "EAS_BUILD_DISABLE_BUNDLE_JAVASCRIPT_STEP": "1"
+        "EXPO_USE_FAST_RESOLVER": "1"
       },
       "channel": "production"
     }
