@@ -35,3 +35,14 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Credentials and secrets
+credentials/*.p8
+credentials/*.json
+credentials/*.env
+!credentials/README.md
+!credentials/.gitkeep
+.env.production
+.env.staging
+service-account*.json
+AuthKey_*.p8

@@ -1,0 +1,740 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { JobService } from '../services/JobService';
+import { UserService, ContractorStats } from '../services/UserService';
+import { theme } from '../theme';
+import { SkeletonDashboard } from '../components/SkeletonLoader';
+import { useHaptics } from '../utils/haptics';
+import { logger } from '../utils/logger';
+
+
+const HomeScreen: React.FC = () => {
+  const { user } = useAuth();
+  const navigation = useNavigation<any>();
+  const haptics = useHaptics();
+  const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadContractorData();
+  }, [user]);
+
+  const loadContractorData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      
+      if (user.role === 'contractor') {
+        const stats = await UserService.getContractorStats(user.id);
+        setContractorStats(stats);
+      }
+    } catch (error) {
+      logger.error('Error loading contractor data:', error);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadContractorData();
+    setRefreshing(false);
+  };
+
+  // Loading state for contractor dashboard with skeleton
+  if (loading && user?.role === 'contractor') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.contractorBanner}>
+          <View style={styles.bannerContent}>
+            <Text style={styles.contractorGreeting}>Good morning!</Text>
+            <Text style={styles.contractorName}>{user?.firstName}</Text>
+            <View style={styles.contractorBadge}>
+              <Ionicons name="checkmark-circle" size={16} color={theme.colors.secondary} />
+              <Text style={styles.contractorBadgeText}>Verified Contractor</Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.profileIcon}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            accessibilityHint="Double tap to view and edit your profile"
+          >
+            <Ionicons name="person-circle" size={48} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.content}>
+          <SkeletonDashboard />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error && user?.role === 'contractor') {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="warning-outline" size={50} color="#FF3B30" />
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton} 
+          onPress={loadContractorData}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading dashboard"
+          accessibilityHint="Double tap to retry loading your dashboard data"
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const renderHomeownerDashboard = () => (
+    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Welcome Banner */}
+      <View style={styles.welcomeBanner}>
+        <View style={styles.welcomeContent}>
+          <Text style={styles.welcomeGreeting}>Welcome back!</Text>
+          <Text style={styles.welcomeName}>{user?.firstName}</Text>
+          <Text style={styles.welcomeSubtitle}>Ready to start your next project?</Text>
+        </View>
+        <View style={styles.profileBadge}>
+          <Ionicons name="person-circle" size={50} color={theme.colors.textTertiary} />
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>Homeowner</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Main CTA Section */}
+      <View style={styles.ctaSection}>
+        <TouchableOpacity 
+          style={styles.primaryCTA}
+          onPress={() => {
+            haptics.buttonPress();
+            navigation.navigate('ServiceRequest');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Post your first request"
+          accessibilityHint="Double tap to create a new service request for contractors"
+        >
+          <Ionicons name="add-circle" size={24} color="#fff" style={styles.ctaIcon} />
+          <Text style={styles.primaryCTAText}>Post Your First Request</Text>
+          <Text style={styles.primaryCTASubtext}>Describe what you need help with</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.secondaryCTA}
+          onPress={() => {
+            haptics.buttonPress();
+            navigation.navigate('FindContractors');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Find contractors"
+          accessibilityHint="Double tap to browse and find contractors for your project"
+        >
+          <Ionicons name="search" size={20} color="#fff" style={styles.ctaIcon} />
+          <Text style={styles.secondaryCTAText}>Find Contractors</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Quick Actions Grid */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity 
+            style={styles.quickActionCard} 
+            onPress={() => {
+              haptics.buttonPress();
+              navigation.navigate('Jobs');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="My jobs"
+            accessibilityHint="Double tap to view your posted jobs and requests"
+          >
+            <Ionicons name="list" size={24} color={theme.colors.primary} />
+            <Text style={styles.quickActionText}>My Jobs</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickActionCard} 
+            onPress={() => {
+              haptics.buttonPress();
+              navigation.navigate('Messaging');
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Messages"
+            accessibilityHint="Double tap to view your conversations with contractors"
+          >
+            <Ionicons name="chatbubbles" size={24} color={theme.colors.secondary} />
+            <Text style={styles.quickActionText}>Messages</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  const renderContractorDashboard = () => (
+    <ScrollView 
+      style={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
+      {/* Header Banner with Greeting and Profile */}
+      <View style={styles.contractorBanner}>
+        <View style={styles.bannerContent}>
+          <Text style={styles.contractorGreeting}>Good morning!</Text>
+          <Text style={styles.contractorName}>{user?.firstName}</Text>
+          <View style={styles.contractorBadge}>
+            <Ionicons name="checkmark-circle" size={16} color={theme.colors.secondary} />
+            <Text style={styles.contractorBadgeText}>Verified Contractor</Text>
+          </View>
+        </View>
+        <TouchableOpacity 
+          style={styles.profileIcon}
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          accessibilityHint="Double tap to view and edit your profile"
+        >
+          <Ionicons name="person-circle" size={48} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Stats Cards Grid */}
+      <View style={styles.statsSection}>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{contractorStats?.activeJobs || 0}</Text>
+            <Text style={styles.statLabel}>Active Jobs</Text>
+            <Ionicons name="hammer" size={20} color={theme.colors.warning} style={styles.statIcon} />
+          </View>
+          
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>${contractorStats?.monthlyEarnings?.toLocaleString() || '0'}</Text>
+            <Text style={styles.statLabel}>Monthly Earnings</Text>
+            <Ionicons name="trending-up" size={20} color={theme.colors.secondary} style={styles.statIcon} />
+          </View>
+          
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{contractorStats?.rating?.toFixed(1) || '0.0'}</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+            <Ionicons name="star" size={20} color="#FFD700" style={styles.statIcon} />
+          </View>
+          
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{contractorStats?.completedJobs || 0}</Text>
+            <Text style={styles.statLabel}>Completed Jobs</Text>
+            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} style={styles.statIcon} />
+          </View>
+        </View>
+      </View>
+
+      {/* Today's Schedule Card */}
+      <View style={styles.scheduleSection}>
+        <Text style={styles.sectionTitle}>Today's Schedule</Text>
+        <View style={styles.scheduleCard}>
+          <View style={styles.scheduleHeader}>
+            <View style={styles.todayBadge}>
+              <Ionicons name="calendar" size={16} color={theme.colors.primary} />
+              <Text style={styles.todayText}>Today</Text>
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.viewAllLink}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {contractorStats?.todaysAppointments ? (
+            <View style={styles.appointmentsList}>
+              <View style={styles.appointmentItem}>
+                <View style={styles.appointmentTime}>
+                  <Text style={styles.timeText}>9:00 AM</Text>
+                </View>
+                <View style={styles.appointmentDetails}>
+                  <Text style={styles.clientName}>Kitchen Repair - John Smith</Text>
+                  <Text style={styles.appointmentLocation}>📍 123 Oak Street</Text>
+                </View>
+                <TouchableOpacity style={styles.appointmentAction}>
+                  <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.noAppointments}>
+              <Ionicons name="checkmark-circle" size={32} color={theme.colors.secondary} />
+              <Text style={styles.noAppointmentsText}>No appointments today</Text>
+              <Text style={styles.noAppointmentsSubtext}>Enjoy your free schedule!</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Quick Actions Grid */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity 
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('Jobs')}
+          >
+            <View style={styles.actionIcon}>
+              <Ionicons name="search" size={20} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.actionText}>Browse Jobs</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.quickActionCard} onPress={() => navigation.navigate('Messaging')}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="chatbubbles" size={20} color={theme.colors.secondary} />
+            </View>
+            <Text style={styles.actionText}>Inbox</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Recent Activity */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.activityCard}>
+          <View style={styles.activityItem}>
+            <View style={[styles.activityIcon, { backgroundColor: '#E8F5E8' }]}>
+              <Ionicons name="checkmark-circle" size={16} color={theme.colors.secondary} />
+            </View>
+            <View style={styles.activityContent}>
+              <Text style={styles.activityTitle}>Job Completed</Text>
+              <Text style={styles.activityDescription}>Kitchen faucet repair for Mike Chen</Text>
+              <Text style={styles.activityTime}>2 hours ago</Text>
+            </View>
+          </View>
+          
+          <View style={styles.activityItem}>
+            <View style={[styles.activityIcon, { backgroundColor: '#EEF2FF' }]}>
+              <Ionicons name="person-add" size={16} color={theme.colors.primary} />
+            </View>
+            <View style={styles.activityContent}>
+              <Text style={styles.activityTitle}>New Job Assigned</Text>
+              <Text style={styles.activityDescription}>Bathroom plumbing emergency</Text>
+              <Text style={styles.activityTime}>4 hours ago</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  return (
+    <View style={styles.container}>
+      {user?.role === 'homeowner' ? renderHomeownerDashboard() : renderContractorDashboard()}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background, // Pure white background
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    padding: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Homeowner Dashboard Styles
+  welcomeBanner: {
+    backgroundColor: theme.colors.primary, // Dark blue header
+    paddingTop: 60,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  welcomeContent: {
+    flex: 1,
+  },
+  welcomeGreeting: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  welcomeName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  profileBadge: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+  roleBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  roleBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  ctaSection: {
+    marginTop: -16, // Overlap with header
+    marginBottom: 32,
+  },
+  primaryCTA: {
+    backgroundColor: theme.colors.secondary, // Green accent
+    padding: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginBottom: 16,
+    flexDirection: 'row',
+    ...theme.shadows.lg,
+  },
+  ctaIcon: {
+    marginRight: 12,
+  },
+  primaryCTAText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    flex: 1,
+  },
+  primaryCTASubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 4,
+  },
+  secondaryCTA: {
+    backgroundColor: theme.colors.secondary, // Green button
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryCTAText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 16,
+  },
+  // Contractor Dashboard Styles
+  contractorBanner: {
+    backgroundColor: theme.colors.primary, // Dark blue header
+    paddingTop: 60,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  contractorGreeting: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  contractorName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  contractorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  contractorBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  profileIcon: {
+    padding: 4,
+  },
+  
+  // Stats Section
+  statsSection: {
+    marginTop: -16,
+    marginBottom: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    backgroundColor: '#fff',
+    width: '48%',
+    padding: 20,
+    borderRadius: 20, // Rounded cards
+    marginBottom: 12,
+    ...theme.shadows.base,
+    position: 'relative',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  statIcon: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  scheduleSection: {
+    marginBottom: 32,
+  },
+  scheduleCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 20, // Rounded cards
+    ...theme.shadows.base,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  todayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  todayText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    marginLeft: 4,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  appointmentsList: {
+    marginTop: 16,
+  },
+  appointmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  appointmentTime: {
+    width: 70,
+  },
+  timeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  appointmentDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  appointmentLocation: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  appointmentAction: {
+    padding: 8,
+  },
+  noAppointments: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  noAppointmentsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginTop: 12,
+  },
+  noAppointmentsSubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  quickActionCard: {
+    backgroundColor: '#fff',
+    flex: 1,
+    padding: 20,
+    borderRadius: 20, // Rounded cards
+    alignItems: 'center',
+    ...theme.shadows.base,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
+  activityCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20, // Rounded cards
+    padding: 16,
+    ...theme.shadows.base,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  activityDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+  },
+  emptyState: {
+    backgroundColor: '#fff',
+    padding: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    ...theme.shadows.base,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+});
+
+// Real contractor dashboard with live data from Supabase
+
+export default HomeScreen;

@@ -1,0 +1,62 @@
+{
+  "budgets": [
+    {
+      "type": "bundle",
+      "name": "main-bundle",
+      "maximumWarning": "2MB",
+      "maximumError": "5MB"
+    },
+    {
+      "type": "bundle", 
+      "name": "vendor-bundle",
+      "maximumWarning": "1MB",
+      "maximumError": "2MB"
+    },
+    {
+      "type": "initial",
+      "maximumWarning": "500kb",
+      "maximumError": "1MB"
+    }
+  ],
+  "performance": {
+    "memory": {
+      "warning": "150MB",
+      "error": "300MB"
+    },
+    "startup": {
+      "warning": "3000ms",
+      "error": "5000ms"
+    },
+    "navigation": {
+      "warning": "500ms", 
+      "error": "1000ms"
+    },
+    "api_response": {
+      "warning": "2000ms",
+      "error": "5000ms"
+    }
+  },
+  "metrics": {
+    "fps": {
+      "minimum": 55,
+      "target": 60
+    },
+    "bundle_analysis": {
+      "enabled": true,
+      "threshold_kb": 100
+    },
+    "image_optimization": {
+      "max_size_kb": 500,
+      "formats": ["webp", "jpg", "png"]
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "report_interval": "weekly",
+    "alerts": {
+      "bundle_size": true,
+      "memory_usage": true,
+      "performance_regression": true
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "cli": {
+    "version": ">= 16.17.4",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Debug"
+      },
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "channel": "development"
+    },
+    "stable": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "development",
+        "EXPO_USE_FAST_RESOLVER": "1"
+      },
+      "channel": "stable"
+    },
+    "staging": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "staging"
+      },
+      "channel": "staging"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_USE_FAST_RESOLVER": "1",
+        "EAS_BUILD_DISABLE_BUNDLE_JAVASCRIPT_STEP": "1"
+      },
+      "channel": "production"
+    },
+    "production-store": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_USE_FAST_RESOLVER": "1",
+        "EAS_BUILD_DISABLE_BUNDLE_JAVASCRIPT_STEP": "1"
+      },
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./credentials/play-store-service-account.json",
+        "track": "production",
+        "releaseStatus": "draft"
+      },
+      "ios": {
+        "appleId": "YOUR_APPLE_ID_EMAIL_HERE",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID_HERE",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID_HERE"
+      }
+    }
+  }
+}
