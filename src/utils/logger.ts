@@ -8,7 +8,7 @@ let sentryFunctions = {
 // Function to set Sentry functions after initialization
 export const setSentryFunctions = (functions: {
   captureMessage: any;
-  captureException: any; 
+  captureException: any;
   addBreadcrumb: any;
 }) => {
   sentryFunctions = functions;
@@ -42,7 +42,11 @@ class Logger {
     }
   }
 
-  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+  private formatMessage(
+    level: LogLevel,
+    message: string,
+    context?: LogContext
+  ): string {
     const timestamp = new Date().toISOString();
     const contextStr = context ? ` | ${this.safeStringify(context)}` : '';
     return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}`;
@@ -50,7 +54,8 @@ class Logger {
 
   private toContext(input: unknown): LogContext | undefined {
     if (input == null) return undefined;
-    if (typeof input === 'object') return this.sanitizeContext(input as LogContext);
+    if (typeof input === 'object')
+      return this.sanitizeContext(input as LogContext);
     try {
       return { value: String(input) };
     } catch (_) {
@@ -60,9 +65,11 @@ class Logger {
 
   debug(message: string, context?: LogContext | unknown): void {
     if (this.isDevelopment) {
-      console.log(this.formatMessage('debug', message, this.toContext(context)));
+      console.log(
+        this.formatMessage('debug', message, this.toContext(context))
+      );
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Debug: ${message}`,
       category: 'debug',
@@ -73,9 +80,11 @@ class Logger {
 
   info(message: string, context?: LogContext | unknown): void {
     if (this.isDevelopment) {
-      console.info(this.formatMessage('info', message, this.toContext(context)));
+      console.info(
+        this.formatMessage('info', message, this.toContext(context))
+      );
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Info: ${message}`,
       category: 'info',
@@ -87,9 +96,11 @@ class Logger {
 
   warn(message: string, context?: LogContext | unknown): void {
     if (this.isDevelopment) {
-      console.warn(this.formatMessage('warn', message, this.toContext(context)));
+      console.warn(
+        this.formatMessage('warn', message, this.toContext(context))
+      );
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Warning: ${message}`,
       category: 'warning',
@@ -101,7 +112,7 @@ class Logger {
 
   private sanitizeContext(context?: LogContext): LogContext | undefined {
     if (!context) return undefined;
-    
+
     try {
       // Create a safe copy without circular references
       const sanitized: LogContext = {};
@@ -123,37 +134,49 @@ class Logger {
 
   error(message: string, errorOrContext?: unknown, context?: LogContext): void {
     const isErr = errorOrContext instanceof Error;
-    const err: Error | undefined = isErr ? (errorOrContext as Error) : undefined;
-    const ctx = isErr ? context : (this.toContext(errorOrContext));
+    const err: Error | undefined = isErr
+      ? (errorOrContext as Error)
+      : undefined;
+    const ctx = isErr ? context : this.toContext(errorOrContext);
     const sanitizedContext = this.sanitizeContext(ctx);
-    const formattedMessage = this.formatMessage('error', message, sanitizedContext);
-    
+    const formattedMessage = this.formatMessage(
+      'error',
+      message,
+      sanitizedContext
+    );
+
     if (this.isDevelopment) {
       console.error(formattedMessage, err);
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Error: ${message}`,
       category: 'error',
       level: 'error',
       data: { ...sanitizedContext, error: err?.message },
     });
-    
+
     if (err) {
-      sentryFunctions.captureException(err, { contexts: { logContext: sanitizedContext } });
+      sentryFunctions.captureException(err, {
+        contexts: { logContext: sanitizedContext },
+      });
     } else {
       sentryFunctions.captureMessage(message, 'error');
     }
   }
 
   // Performance logging
-  performance(operation: string, duration: number, context?: LogContext | unknown): void {
+  performance(
+    operation: string,
+    duration: number,
+    context?: LogContext | unknown
+  ): void {
     const message = `${operation} completed in ${duration}ms`;
-    
+
     if (this.isDevelopment) {
       console.log(this.formatMessage('info', message, this.toContext(context)));
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Performance: ${message}`,
       category: 'performance',
@@ -167,15 +190,28 @@ class Logger {
   }
 
   // Network request logging
-  network(method: string, url: string, status: number, duration: number, context?: LogContext | unknown): void {
+  network(
+    method: string,
+    url: string,
+    status: number,
+    duration: number,
+    context?: LogContext | unknown
+  ): void {
     const message = `${method.toUpperCase()} ${url} - ${status} (${duration}ms)`;
     const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info';
-    
+
     if (this.isDevelopment) {
-      const logMethod = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
-      logMethod(this.formatMessage(level as LogLevel, message, this.toContext(context)));
+      const logMethod =
+        level === 'error'
+          ? console.error
+          : level === 'warn'
+            ? console.warn
+            : console.log;
+      logMethod(
+        this.formatMessage(level as LogLevel, message, this.toContext(context))
+      );
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message: `Network: ${message}`,
       category: 'http',
@@ -188,7 +224,7 @@ class Logger {
         ...(this.toContext(context) || {}),
       },
     });
-    
+
     if (status >= 400) {
       sentryFunctions.captureMessage(`Network Error: ${message}`, 'error');
     }
@@ -197,11 +233,11 @@ class Logger {
   // User action logging
   userAction(action: string, context?: LogContext | unknown): void {
     const message = `User action: ${action}`;
-    
+
     if (this.isDevelopment) {
       console.log(this.formatMessage('info', message, this.toContext(context)));
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message,
       category: 'user',
@@ -213,11 +249,11 @@ class Logger {
   // Navigation logging
   navigation(from: string, to: string, context?: LogContext | unknown): void {
     const message = `Navigation: ${from} -> ${to}`;
-    
+
     if (this.isDevelopment) {
       console.log(this.formatMessage('info', message, this.toContext(context)));
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message,
       category: 'navigation',
@@ -230,21 +266,24 @@ class Logger {
   auth(action: string, success: boolean, context?: LogContext | unknown): void {
     const message = `Auth ${action}: ${success ? 'success' : 'failed'}`;
     const level = success ? 'info' : 'warn';
-    
+
     if (this.isDevelopment) {
       const logMethod = success ? console.log : console.warn;
       logMethod(this.formatMessage(level, message, this.toContext(context)));
     }
-    
+
     sentryFunctions.addBreadcrumb({
       message,
       category: 'auth',
       level: success ? 'info' : 'warning',
       data: { action, success, ...(this.toContext(context) || {}) },
     });
-    
+
     if (!success) {
-      sentryFunctions.captureMessage(`Authentication failed: ${action}`, 'warning');
+      sentryFunctions.captureMessage(
+        `Authentication failed: ${action}`,
+        'warning'
+      );
     }
   }
 }
@@ -254,17 +293,32 @@ export const logger = new Logger();
 
 // Convenience methods for backward compatibility
 export const log = {
-  debug: (message: string, context?: LogContext | unknown) => logger.debug(message, context),
-  info: (message: string, context?: LogContext | unknown) => logger.info(message, context),
-  warn: (message: string, context?: LogContext | unknown) => logger.warn(message, context),
-  error: (message: string, errorOrContext?: unknown, context?: LogContext) => logger.error(message, errorOrContext, context),
-  performance: (operation: string, duration: number, context?: LogContext | unknown) => 
-    logger.performance(operation, duration, context),
-  network: (method: string, url: string, status: number, duration: number, context?: LogContext | unknown) => 
-    logger.network(method, url, status, duration, context),
-  userAction: (action: string, context?: LogContext | unknown) => logger.userAction(action, context),
-  navigation: (from: string, to: string, context?: LogContext | unknown) => logger.navigation(from, to, context),
-  auth: (action: string, success: boolean, context?: LogContext | unknown) => logger.auth(action, success, context),
+  debug: (message: string, context?: LogContext | unknown) =>
+    logger.debug(message, context),
+  info: (message: string, context?: LogContext | unknown) =>
+    logger.info(message, context),
+  warn: (message: string, context?: LogContext | unknown) =>
+    logger.warn(message, context),
+  error: (message: string, errorOrContext?: unknown, context?: LogContext) =>
+    logger.error(message, errorOrContext, context),
+  performance: (
+    operation: string,
+    duration: number,
+    context?: LogContext | unknown
+  ) => logger.performance(operation, duration, context),
+  network: (
+    method: string,
+    url: string,
+    status: number,
+    duration: number,
+    context?: LogContext | unknown
+  ) => logger.network(method, url, status, duration, context),
+  userAction: (action: string, context?: LogContext | unknown) =>
+    logger.userAction(action, context),
+  navigation: (from: string, to: string, context?: LogContext | unknown) =>
+    logger.navigation(from, to, context),
+  auth: (action: string, success: boolean, context?: LogContext | unknown) =>
+    logger.auth(action, success, context),
 };
 
 export default logger;

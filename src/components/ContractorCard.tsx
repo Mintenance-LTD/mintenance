@@ -31,20 +31,35 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={i}
+          name='star'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key='half'
+          name='star-half'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={`empty-${i}`}
+          name='star-outline'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
@@ -66,25 +81,30 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
                 />
               ) : (
                 <View style={[styles.profileImage, styles.placeholderImage]}>
-                  <Ionicons name="person" size={50} color={theme.colors.textSecondary} />
+                  <Ionicons
+                    name='person'
+                    size={50}
+                    color={theme.colors.textSecondary}
+                  />
                 </View>
               )}
             </View>
-            
+
             <View style={styles.profileInfo}>
               <Text style={styles.contractorName}>
                 {contractor.firstName} {contractor.lastName}
               </Text>
-              
+
               <View style={styles.ratingContainer}>
                 <View style={styles.starsContainer}>
                   {renderStars(contractor.rating || 0)}
                 </View>
                 <Text style={styles.ratingText}>
-                  {(contractor.rating || 0).toFixed(1)} ({contractor.totalJobsCompleted} jobs)
+                  {(contractor.rating || 0).toFixed(1)} (
+                  {contractor.totalJobsCompleted} jobs)
                 </Text>
               </View>
-              
+
               {contractor.distance && (
                 <Text style={styles.distanceText}>
                   📍 {contractor.distance.toFixed(1)} km away
@@ -110,7 +130,9 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
                 ))}
                 {contractor.skills.length > 4 && (
                   <View style={styles.skillTag}>
-                    <Text style={styles.skillText}>+{contractor.skills.length - 4} more</Text>
+                    <Text style={styles.skillText}>
+                      +{contractor.skills.length - 4} more
+                    </Text>
                   </View>
                 )}
               </View>
@@ -119,7 +141,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
 
           {contractor.address && (
             <View style={styles.locationSection}>
-              <Ionicons name="location-outline" size={16} color="#666" />
+              <Ionicons name='location-outline' size={16} color='#666' />
               <Text style={styles.locationText}>{contractor.address}</Text>
             </View>
           )}
@@ -131,35 +153,39 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
             <Text style={styles.detailsButtonText}>
               {showDetails ? 'Show Less' : 'View Reviews'}
             </Text>
-            <Ionicons 
-              name={showDetails ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color={theme.colors.info} 
+            <Ionicons
+              name={showDetails ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={theme.colors.info}
             />
           </TouchableOpacity>
 
-          {showDetails && contractor.reviews && contractor.reviews.length > 0 && (
-            <View style={styles.reviewsSection}>
-              <Text style={styles.reviewsTitle}>Recent Reviews</Text>
-              <ScrollView style={styles.reviewsContainer} nestedScrollEnabled>
-                {contractor.reviews.slice(0, 3).map((review, index) => (
-                  <View key={index} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                      <View style={styles.starsContainer}>
-                        {renderStars(review.rating)}
+          {showDetails &&
+            contractor.reviews &&
+            contractor.reviews.length > 0 && (
+              <View style={styles.reviewsSection}>
+                <Text style={styles.reviewsTitle}>Recent Reviews</Text>
+                <ScrollView style={styles.reviewsContainer} nestedScrollEnabled>
+                  {contractor.reviews.slice(0, 3).map((review, index) => (
+                    <View key={index} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.starsContainer}>
+                          {renderStars(review.rating)}
+                        </View>
+                        <Text style={styles.reviewDate}>
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </Text>
                       </View>
-                      <Text style={styles.reviewDate}>
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </Text>
+                      {review.comment && (
+                        <Text style={styles.reviewComment}>
+                          {review.comment}
+                        </Text>
+                      )}
                     </View>
-                    {review.comment && (
-                      <Text style={styles.reviewComment}>{review.comment}</Text>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                  ))}
+                </ScrollView>
+              </View>
+            )}
         </View>
       ),
     },
@@ -170,7 +196,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
       <Swiper
         cards={cards}
         cardIndex={0}
-        backgroundColor="transparent"
+        backgroundColor='transparent'
         stackSize={1}
         stackSeparation={0}
         animateOverlayLabelsOpacity
@@ -221,21 +247,17 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
             },
           },
         }}
-        renderCard={(card) => (
-          <View style={styles.card}>
-            {card?.content}
-          </View>
-        )}
+        renderCard={(card) => <View style={styles.card}>{card?.content}</View>}
         cardStyle={styles.cardStyle}
       />
 
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.passButton} onPress={onPass}>
-          <Ionicons name="close" size={30} color="#FF3B30" />
+          <Ionicons name='close' size={30} color='#FF3B30' />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.likeButton} onPress={onLike}>
-          <Ionicons name="leaf" size={30} color="#4CD964" />
+          <Ionicons name='leaf' size={30} color='#4CD964' />
         </TouchableOpacity>
       </View>
     </View>

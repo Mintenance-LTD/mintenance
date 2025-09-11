@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 
 // Services Mock Factory
 export class ServicesMockFactory {
-
   // Logger Mock
   static createLoggerMock() {
     return {
@@ -33,12 +32,14 @@ export class ServicesMockFactory {
       setTag: jest.fn(),
       setLevel: jest.fn(),
       setFingerprint: jest.fn(),
-      withScope: jest.fn((callback) => callback({
-        setTag: jest.fn(),
-        setLevel: jest.fn(),
-        setContext: jest.fn(),
-        setFingerprint: jest.fn(),
-      })),
+      withScope: jest.fn((callback) =>
+        callback({
+          setTag: jest.fn(),
+          setLevel: jest.fn(),
+          setContext: jest.fn(),
+          setFingerprint: jest.fn(),
+        })
+      ),
       configureScope: jest.fn(),
       Hub: jest.fn(),
       getCurrentHub: jest.fn(() => ({
@@ -53,42 +54,54 @@ export class ServicesMockFactory {
   // HTTP Client Mock (for API calls)
   static createHttpClientMock() {
     return {
-      get: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 200, 
-        statusText: 'OK',
-        headers: {},
-      })),
-      post: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 201, 
-        statusText: 'Created',
-        headers: {},
-      })),
-      put: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 200, 
-        statusText: 'OK',
-        headers: {},
-      })),
-      patch: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 200, 
-        statusText: 'OK',
-        headers: {},
-      })),
-      delete: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 204, 
-        statusText: 'No Content',
-        headers: {},
-      })),
-      request: jest.fn(() => Promise.resolve({ 
-        data: {}, 
-        status: 200, 
-        statusText: 'OK',
-        headers: {},
-      })),
+      get: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+        })
+      ),
+      post: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 201,
+          statusText: 'Created',
+          headers: {},
+        })
+      ),
+      put: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+        })
+      ),
+      patch: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+        })
+      ),
+      delete: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 204,
+          statusText: 'No Content',
+          headers: {},
+        })
+      ),
+      request: jest.fn(() =>
+        Promise.resolve({
+          data: {},
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+        })
+      ),
     };
   }
 
@@ -105,14 +118,23 @@ export class ServicesMockFactory {
 
     return {
       getCurrentUser: jest.fn(() => Promise.resolve(mockUser)),
-      signIn: jest.fn(() => Promise.resolve({ user: mockUser, session: { access_token: 'mock-token' } })),
+      signIn: jest.fn(() =>
+        Promise.resolve({
+          user: mockUser,
+          session: { access_token: 'mock-token' },
+        })
+      ),
       signUp: jest.fn(() => Promise.resolve({ user: mockUser, session: null })),
       signOut: jest.fn(() => Promise.resolve()),
       resetPassword: jest.fn(() => Promise.resolve()),
       updateProfile: jest.fn(() => Promise.resolve(mockUser)),
-      refreshToken: jest.fn(() => Promise.resolve({ access_token: 'new-mock-token' })),
+      refreshToken: jest.fn(() =>
+        Promise.resolve({ access_token: 'new-mock-token' })
+      ),
       isAuthenticated: jest.fn(() => Promise.resolve(true)),
-      getSession: jest.fn(() => Promise.resolve({ access_token: 'mock-token' })),
+      getSession: jest.fn(() =>
+        Promise.resolve({ access_token: 'mock-token' })
+      ),
       onAuthStateChange: jest.fn(() => ({ unsubscribe: jest.fn() })),
     };
   }
@@ -137,7 +159,7 @@ export class ServicesMockFactory {
       }),
       getAllKeys: jest.fn(() => Promise.resolve(Array.from(storage.keys()))),
       multiGet: jest.fn((keys: string[]) => {
-        const result = keys.map(key => [key, storage.get(key) || null]);
+        const result = keys.map((key) => [key, storage.get(key) || null]);
         return Promise.resolve(result);
       }),
       multiSet: jest.fn((pairs: [string, string][]) => {
@@ -200,38 +222,52 @@ export class ServicesMockFactory {
       })),
       getPermissions: jest.fn(() => Promise.resolve({ status: 'granted' })),
       requestPermissions: jest.fn(() => Promise.resolve({ status: 'granted' })),
-      geocode: jest.fn(() => Promise.resolve([{
-        latitude: 37.7749,
-        longitude: -122.4194,
-        address: '123 Test St, San Francisco, CA 94103',
-      }])),
-      reverseGeocode: jest.fn(() => Promise.resolve([{
-        street: '123 Test St',
-        city: 'San Francisco',
-        region: 'CA',
-        postalCode: '94103',
-        country: 'US',
-      }])),
+      geocode: jest.fn(() =>
+        Promise.resolve([
+          {
+            latitude: 37.7749,
+            longitude: -122.4194,
+            address: '123 Test St, San Francisco, CA 94103',
+          },
+        ])
+      ),
+      reverseGeocode: jest.fn(() =>
+        Promise.resolve([
+          {
+            street: '123 Test St',
+            city: 'San Francisco',
+            region: 'CA',
+            postalCode: '94103',
+            country: 'US',
+          },
+        ])
+      ),
     };
   }
 
   // File Upload Service Mock
   static createFileUploadServiceMock() {
     return {
-      uploadImage: jest.fn(() => Promise.resolve({
-        url: 'https://example.com/image.jpg',
-        publicId: 'mock-public-id',
-        size: 1024,
-        format: 'jpg',
-      })),
-      uploadFile: jest.fn(() => Promise.resolve({
-        url: 'https://example.com/file.pdf',
-        publicId: 'mock-file-id',
-        size: 2048,
-        format: 'pdf',
-      })),
+      uploadImage: jest.fn(() =>
+        Promise.resolve({
+          url: 'https://example.com/image.jpg',
+          publicId: 'mock-public-id',
+          size: 1024,
+          format: 'jpg',
+        })
+      ),
+      uploadFile: jest.fn(() =>
+        Promise.resolve({
+          url: 'https://example.com/file.pdf',
+          publicId: 'mock-file-id',
+          size: 2048,
+          format: 'pdf',
+        })
+      ),
       deleteFile: jest.fn(() => Promise.resolve()),
-      getSignedUrl: jest.fn(() => Promise.resolve('https://example.com/signed-url')),
+      getSignedUrl: jest.fn(() =>
+        Promise.resolve('https://example.com/signed-url')
+      ),
     };
   }
 
@@ -282,7 +318,7 @@ export class ServicesMockFactory {
       emit: jest.fn((event: string, ...args: any[]) => {
         const eventListeners = listeners.get(event);
         if (eventListeners) {
-          eventListeners.forEach(listener => listener(...args));
+          eventListeners.forEach((listener) => listener(...args));
         }
       }),
       removeAllListeners: jest.fn((event?: string) => {
@@ -326,5 +362,7 @@ export class ServicesMockFactory {
 export const mockLogger = ServicesMockFactory.createLoggerMock();
 export const mockSentry = ServicesMockFactory.createSentryMock();
 export const mockAuthService = ServicesMockFactory.createAuthServiceMock();
-export const mockStorageService = ServicesMockFactory.createStorageServiceMock();
-export const mockLocationService = ServicesMockFactory.createLocationServiceMock();
+export const mockStorageService =
+  ServicesMockFactory.createStorageServiceMock();
+export const mockLocationService =
+  ServicesMockFactory.createLocationServiceMock();

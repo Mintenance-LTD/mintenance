@@ -65,7 +65,11 @@ const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
 const mockJobService = JobService as jest.Mocked<typeof JobService>;
 
 // Mock Job Posting Screen Component
-const MockJobPostingScreen = ({ onJobPosted }: { onJobPosted?: (job: any) => void }) => {
+const MockJobPostingScreen = ({
+  onJobPosted,
+}: {
+  onJobPosted?: (job: any) => void;
+}) => {
   const { user } = useAuth();
   const [jobData, setJobData] = React.useState({
     title: '',
@@ -94,62 +98,71 @@ const MockJobPostingScreen = ({ onJobPosted }: { onJobPosted?: (job: any) => voi
   };
 
   return (
-    <View testID="job-posting-screen">
+    <View testID='job-posting-screen'>
       <Text>Post a Job</Text>
       <TextInput
-        testID="job-title-input"
-        placeholder="Job Title"
+        testID='job-title-input'
+        placeholder='Job Title'
         value={jobData.title}
-        onChangeText={(text) => setJobData(prev => ({ ...prev, title: text }))}
+        onChangeText={(text) =>
+          setJobData((prev) => ({ ...prev, title: text }))
+        }
       />
       <TextInput
-        testID="job-description-input"
-        placeholder="Job Description"
+        testID='job-description-input'
+        placeholder='Job Description'
         value={jobData.description}
-        onChangeText={(text) => setJobData(prev => ({ ...prev, description: text }))}
+        onChangeText={(text) =>
+          setJobData((prev) => ({ ...prev, description: text }))
+        }
         multiline
       />
       <TextInput
-        testID="job-location-input"
-        placeholder="Location"
+        testID='job-location-input'
+        placeholder='Location'
         value={jobData.location}
-        onChangeText={(text) => setJobData(prev => ({ ...prev, location: text }))}
+        onChangeText={(text) =>
+          setJobData((prev) => ({ ...prev, location: text }))
+        }
       />
       <TextInput
-        testID="job-budget-input"
-        placeholder="Budget ($)"
+        testID='job-budget-input'
+        placeholder='Budget ($)'
         value={jobData.budget}
-        onChangeText={(text) => setJobData(prev => ({ ...prev, budget: text }))}
-        keyboardType="numeric"
+        onChangeText={(text) =>
+          setJobData((prev) => ({ ...prev, budget: text }))
+        }
+        keyboardType='numeric'
       />
       <TouchableOpacity
-        testID="category-plumbing"
-        onPress={() => setJobData(prev => ({ ...prev, category: 'Plumbing' }))}
+        testID='category-plumbing'
+        onPress={() =>
+          setJobData((prev) => ({ ...prev, category: 'Plumbing' }))
+        }
       >
         <Text>Plumbing</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="category-electrical"
-        onPress={() => setJobData(prev => ({ ...prev, category: 'Electrical' }))}
+        testID='category-electrical'
+        onPress={() =>
+          setJobData((prev) => ({ ...prev, category: 'Electrical' }))
+        }
       >
         <Text>Electrical</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="priority-low"
-        onPress={() => setJobData(prev => ({ ...prev, priority: 'low' }))}
+        testID='priority-low'
+        onPress={() => setJobData((prev) => ({ ...prev, priority: 'low' }))}
       >
         <Text>Low Priority</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="priority-high"
-        onPress={() => setJobData(prev => ({ ...prev, priority: 'high' }))}
+        testID='priority-high'
+        onPress={() => setJobData((prev) => ({ ...prev, priority: 'high' }))}
       >
         <Text>High Priority</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        testID="post-job-button"
-        onPress={handlePostJob}
-      >
+      <TouchableOpacity testID='post-job-button' onPress={handlePostJob}>
         <Text>Post Job</Text>
       </TouchableOpacity>
     </View>
@@ -157,7 +170,13 @@ const MockJobPostingScreen = ({ onJobPosted }: { onJobPosted?: (job: any) => voi
 };
 
 // Mock Jobs List Screen Component
-const MockJobsListScreen = ({ userRole, jobs }: { userRole: 'homeowner' | 'contractor'; jobs?: any[] }) => {
+const MockJobsListScreen = ({
+  userRole,
+  jobs,
+}: {
+  userRole: 'homeowner' | 'contractor';
+  jobs?: any[];
+}) => {
   const [jobsList, setJobsList] = React.useState(jobs || []);
 
   React.useEffect(() => {
@@ -179,8 +198,8 @@ const MockJobsListScreen = ({ userRole, jobs }: { userRole: 'homeowner' | 'contr
   }, [userRole]);
 
   return (
-    <View testID="jobs-list-screen">
-      <Text testID="jobs-list-title">
+    <View testID='jobs-list-screen'>
+      <Text testID='jobs-list-title'>
         {userRole === 'homeowner' ? 'My Jobs' : 'Available Jobs'}
       </Text>
       {jobsList.map((job, index) => (
@@ -196,8 +215,10 @@ const MockJobsListScreen = ({ userRole, jobs }: { userRole: 'homeowner' | 'contr
         </View>
       ))}
       {jobsList.length === 0 && (
-        <Text testID="no-jobs-message">
-          {userRole === 'homeowner' ? 'No jobs posted yet' : 'No jobs available'}
+        <Text testID='no-jobs-message'>
+          {userRole === 'homeowner'
+            ? 'No jobs posted yet'
+            : 'No jobs available'}
         </Text>
       )}
     </View>
@@ -205,7 +226,13 @@ const MockJobsListScreen = ({ userRole, jobs }: { userRole: 'homeowner' | 'contr
 };
 
 // Mock Job Details Screen Component
-const MockJobDetailsScreen = ({ job, userRole }: { job: any; userRole: 'homeowner' | 'contractor' }) => {
+const MockJobDetailsScreen = ({
+  job,
+  userRole,
+}: {
+  job: any;
+  userRole: 'homeowner' | 'contractor';
+}) => {
   const [bids, setBids] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -245,28 +272,28 @@ const MockJobDetailsScreen = ({ job, userRole }: { job: any; userRole: 'homeowne
   };
 
   return (
-    <View testID="job-details-screen">
-      <Text testID="job-details-title">{job.title}</Text>
-      <Text testID="job-details-description">{job.description}</Text>
-      <Text testID="job-details-budget">${job.budget}</Text>
-      <Text testID="job-details-location">{job.location}</Text>
-      <Text testID="job-details-status">{job.status}</Text>
+    <View testID='job-details-screen'>
+      <Text testID='job-details-title'>{job.title}</Text>
+      <Text testID='job-details-description'>{job.description}</Text>
+      <Text testID='job-details-budget'>${job.budget}</Text>
+      <Text testID='job-details-location'>{job.location}</Text>
+      <Text testID='job-details-status'>{job.status}</Text>
 
       {userRole === 'contractor' && job.status === 'posted' && (
-        <TouchableOpacity testID="submit-bid-button" onPress={handleSubmitBid}>
+        <TouchableOpacity testID='submit-bid-button' onPress={handleSubmitBid}>
           <Text>Submit Bid</Text>
         </TouchableOpacity>
       )}
 
       {userRole === 'homeowner' && bids.length > 0 && (
-        <View testID="bids-section">
-          <Text testID="bids-title">Received Bids</Text>
+        <View testID='bids-section'>
+          <Text testID='bids-title'>Received Bids</Text>
           {bids.map((bid, index) => (
             <View key={bid.id || index} testID={`bid-item-${index}`}>
               <Text testID={`bid-amount-${index}`}>${bid.amount}</Text>
               <Text testID={`bid-description-${index}`}>{bid.description}</Text>
               {bid.status === 'pending' && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   testID={`accept-bid-button-${index}`}
                   onPress={() => handleAcceptBid(bid.id)}
                 >
@@ -282,14 +309,14 @@ const MockJobDetailsScreen = ({ job, userRole }: { job: any; userRole: 'homeowne
 };
 
 // Test Navigator Component
-const TestNavigator = ({ 
-  screen, 
-  userRole, 
-  job, 
-  jobs, 
-  onJobPosted 
-}: { 
-  screen: 'posting' | 'list' | 'details'; 
+const TestNavigator = ({
+  screen,
+  userRole,
+  job,
+  jobs,
+  onJobPosted,
+}: {
+  screen: 'posting' | 'list' | 'details';
   userRole: 'homeowner' | 'contractor';
   job?: any;
   jobs?: any[];
@@ -298,11 +325,11 @@ const TestNavigator = ({
   if (screen === 'posting') {
     return <MockJobPostingScreen onJobPosted={onJobPosted} />;
   }
-  
+
   if (screen === 'details' && job) {
     return <MockJobDetailsScreen job={job} userRole={userRole} />;
   }
-  
+
   return <MockJobsListScreen userRole={userRole} jobs={jobs} />;
 };
 
@@ -354,10 +381,12 @@ describe('Job Posting and Discovery Workflow Integration', () => {
 
       let postedJob: any;
       const { getByTestId } = render(
-        <TestWrapper 
-          screen="posting" 
-          userRole="homeowner"
-          onJobPosted={(job: any) => { postedJob = job; }}
+        <TestWrapper
+          screen='posting'
+          userRole='homeowner'
+          onJobPosted={(job: any) => {
+            postedJob = job;
+          }}
         />
       );
 
@@ -372,7 +401,10 @@ describe('Job Posting and Discovery Workflow Integration', () => {
 
       await act(async () => {
         fireEvent.changeText(titleInput, 'Kitchen Faucet Repair');
-        fireEvent.changeText(descriptionInput, 'My kitchen faucet is leaking and needs repair');
+        fireEvent.changeText(
+          descriptionInput,
+          'My kitchen faucet is leaking and needs repair'
+        );
         fireEvent.changeText(locationInput, '123 Main St, Anytown, USA');
         fireEvent.changeText(budgetInput, '200');
       });
@@ -408,10 +440,12 @@ describe('Job Posting and Discovery Workflow Integration', () => {
     });
 
     it('should handle job posting validation errors', async () => {
-      mockJobService.createJob.mockRejectedValue(new Error('Title is required'));
+      mockJobService.createJob.mockRejectedValue(
+        new Error('Title is required')
+      );
 
       const { getByTestId } = render(
-        <TestWrapper screen="posting" userRole="homeowner" />
+        <TestWrapper screen='posting' userRole='homeowner' />
       );
 
       // Try to post job without required fields
@@ -447,7 +481,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       mockJobService.getAvailableJobs.mockResolvedValue(mockJobs);
 
       const { getByTestId } = render(
-        <TestWrapper screen="list" userRole="contractor" />
+        <TestWrapper screen='list' userRole='contractor' />
       );
 
       // Should show jobs list
@@ -484,7 +518,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       mockJobService.getAvailableJobs.mockResolvedValue([]);
 
       const { getByTestId } = render(
-        <TestWrapper screen="list" userRole="contractor" />
+        <TestWrapper screen='list' userRole='contractor' />
       );
 
       await waitFor(() => {
@@ -518,7 +552,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       mockJobService.getUserJobs.mockResolvedValue(mockJobs);
 
       const { getByTestId } = render(
-        <TestWrapper screen="list" userRole="homeowner" />
+        <TestWrapper screen='list' userRole='homeowner' />
       );
 
       // Should show jobs list
@@ -575,12 +609,14 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       mockJobService.getBidsByJob.mockResolvedValue([]);
 
       const { getByTestId } = render(
-        <TestWrapper screen="details" userRole="contractor" job={mockJob} />
+        <TestWrapper screen='details' userRole='contractor' job={mockJob} />
       );
 
       // Should show job details
       expect(getByTestId('job-details-screen')).toBeTruthy();
-      expect(getByTestId('job-details-title').props.children).toBe('Kitchen Faucet Repair');
+      expect(getByTestId('job-details-title').props.children).toBe(
+        'Kitchen Faucet Repair'
+      );
 
       // Should show submit bid button for posted jobs
       const submitBidButton = getByTestId('submit-bid-button');
@@ -636,7 +672,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       mockJobService.acceptBid.mockResolvedValue(undefined);
 
       const { getByTestId } = render(
-        <TestWrapper screen="details" userRole="homeowner" job={mockJob} />
+        <TestWrapper screen='details' userRole='homeowner' job={mockJob} />
       );
 
       // Should load and display bids

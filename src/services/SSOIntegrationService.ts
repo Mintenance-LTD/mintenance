@@ -4,7 +4,21 @@ import { Database } from '../types/database';
 export interface SSOProvider {
   id: string;
   provider_name: string;
-  provider_type: 'google' | 'microsoft' | 'apple' | 'facebook' | 'github' | 'linkedin' | 'twitter' | 'okta' | 'auth0' | 'azure_ad' | 'saml' | 'ldap' | 'custom_oauth2' | 'custom_saml';
+  provider_type:
+    | 'google'
+    | 'microsoft'
+    | 'apple'
+    | 'facebook'
+    | 'github'
+    | 'linkedin'
+    | 'twitter'
+    | 'okta'
+    | 'auth0'
+    | 'azure_ad'
+    | 'saml'
+    | 'ldap'
+    | 'custom_oauth2'
+    | 'custom_saml';
   protocol: 'oauth2' | 'openid_connect' | 'saml2' | 'ldap' | 'custom';
   status: 'draft' | 'testing' | 'active' | 'inactive' | 'error' | 'deprecated';
   is_enabled: boolean;
@@ -220,8 +234,10 @@ export class SSOIntegrationService {
       // Encrypt sensitive data if provided
       let clientSecretEncrypted: string | undefined;
       if (providerData.client_secret) {
-        const { data: encrypted } = await supabase
-          .rpc('encrypt_sensitive_data', { data: providerData.client_secret });
+        const { data: encrypted } = await supabase.rpc(
+          'encrypt_sensitive_data',
+          { data: providerData.client_secret }
+        );
         clientSecretEncrypted = encrypted;
       }
 
@@ -245,7 +261,8 @@ export class SSOIntegrationService {
           logo_url: providerData.logo_url,
           button_color: providerData.button_color || '#007bff',
           button_text_color: providerData.button_text_color || '#ffffff',
-          enforce_email_verification: providerData.enforce_email_verification ?? true,
+          enforce_email_verification:
+            providerData.enforce_email_verification ?? true,
           auto_create_users: providerData.auto_create_users ?? true,
           auto_link_accounts: providerData.auto_link_accounts ?? false,
           require_matching_email: providerData.require_matching_email ?? true,
@@ -253,7 +270,7 @@ export class SSOIntegrationService {
           refresh_token_enabled: providerData.refresh_token_enabled ?? true,
           created_by: createdBy,
           status: 'draft',
-          is_enabled: false
+          is_enabled: false,
         })
         .select()
         .single();
@@ -266,10 +283,12 @@ export class SSOIntegrationService {
     }
   }
 
-  static async getSSOProviders(includeInactive: boolean = false): Promise<SSOProvider[]> {
+  static async getSSOProviders(
+    includeInactive: boolean = false
+  ): Promise<SSOProvider[]> {
     try {
       let query = supabase.from('sso_providers').select('*');
-      
+
       if (!includeInactive) {
         query = query.eq('is_enabled', true).eq('status', 'active');
       }
@@ -305,12 +324,14 @@ export class SSOIntegrationService {
     providerData: Partial<CreateSSOProviderData>
   ): Promise<SSOProvider> {
     try {
-      let updateData: any = { ...providerData };
+      const updateData: any = { ...providerData };
 
       // Handle client secret encryption if provided
       if (providerData.client_secret) {
-        const { data: encrypted } = await supabase
-          .rpc('encrypt_sensitive_data', { data: providerData.client_secret });
+        const { data: encrypted } = await supabase.rpc(
+          'encrypt_sensitive_data',
+          { data: providerData.client_secret }
+        );
         updateData.client_secret_encrypted = encrypted;
         delete updateData.client_secret;
       }
@@ -339,7 +360,7 @@ export class SSOIntegrationService {
         .update({
           is_enabled: true,
           status: 'active',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', providerId)
         .select()
@@ -360,7 +381,7 @@ export class SSOIntegrationService {
         .update({
           is_enabled: false,
           status: 'inactive',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', providerId)
         .select()
@@ -374,7 +395,9 @@ export class SSOIntegrationService {
     }
   }
 
-  static async testSSOProvider(providerId: string): Promise<{ success: boolean; error?: string; details?: any }> {
+  static async testSSOProvider(
+    providerId: string
+  ): Promise<{ success: boolean; error?: string; details?: any }> {
     try {
       const provider = await this.getSSOProvider(providerId);
       if (!provider) {
@@ -386,7 +409,7 @@ export class SSOIntegrationService {
         .from('sso_providers')
         .update({
           last_tested_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', providerId);
 
@@ -395,16 +418,23 @@ export class SSOIntegrationService {
         configuration_valid: true,
         endpoints_reachable: false,
         certificate_valid: false,
-        test_timestamp: new Date().toISOString()
+        test_timestamp: new Date().toISOString(),
       };
 
-      if (provider.protocol === 'oauth2' || provider.protocol === 'openid_connect') {
+      if (
+        provider.protocol === 'oauth2' ||
+        provider.protocol === 'openid_connect'
+      ) {
         // Test OAuth2/OIDC endpoints
-        if (!provider.client_id || !provider.authorization_url || !provider.token_url) {
+        if (
+          !provider.client_id ||
+          !provider.authorization_url ||
+          !provider.token_url
+        ) {
           testResults.configuration_valid = false;
           testResults.errors = ['Missing required OAuth2 configuration'];
         }
-        
+
         // In a real implementation, you would test endpoint reachability
         testResults.endpoints_reachable = true; // Placeholder
       }
@@ -414,17 +444,17 @@ export class SSOIntegrationService {
         .from('sso_providers')
         .update({
           test_results: testResults,
-          status: testResults.configuration_valid ? 'testing' : 'error'
+          status: testResults.configuration_valid ? 'testing' : 'error',
         })
         .eq('id', providerId);
 
       return {
         success: testResults.configuration_valid,
-        details: testResults
+        details: testResults,
       };
     } catch (error) {
       console.error('Error testing SSO provider:', error);
-      
+
       // Update provider with error status
       await supabase
         .from('sso_providers')
@@ -432,14 +462,14 @@ export class SSOIntegrationService {
           status: 'error',
           test_results: {
             error: error instanceof Error ? error.message : 'Unknown error',
-            test_timestamp: new Date().toISOString()
-          }
+            test_timestamp: new Date().toISOString(),
+          },
         })
         .eq('id', providerId);
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -463,7 +493,7 @@ export class SSOIntegrationService {
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: provider.requested_scopes?.join(' ') || 'openid profile email',
-      state: state || this.generateRandomString(32)
+      state: state || this.generateRandomString(32),
     });
 
     if (nonce) {
@@ -486,16 +516,17 @@ export class SSOIntegrationService {
     // Decrypt client secret
     let clientSecret: string | undefined;
     if (provider.client_secret_encrypted) {
-      const { data: decrypted } = await supabase
-        .rpc('decrypt_sensitive_data', { encrypted_data: provider.client_secret_encrypted });
+      const { data: decrypted } = await supabase.rpc('decrypt_sensitive_data', {
+        encrypted_data: provider.client_secret_encrypted,
+      });
       clientSecret = decrypted;
     }
 
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
-      code: code,
+      code,
       redirect_uri: redirectUri,
-      client_id: provider.client_id
+      client_id: provider.client_id,
     });
 
     if (clientSecret) {
@@ -511,13 +542,15 @@ export class SSOIntegrationService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+          Accept: 'application/json',
         },
-        body: tokenParams.toString()
+        body: tokenParams.toString(),
       });
 
       if (!response.ok) {
-        throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Token exchange failed: ${response.status} ${response.statusText}`
+        );
       }
 
       const tokenResponse: OAuth2TokenResponse = await response.json();
@@ -528,7 +561,10 @@ export class SSOIntegrationService {
     }
   }
 
-  static async getUserInfo(provider: SSOProvider, accessToken: string): Promise<SSOUserInfo> {
+  static async getUserInfo(
+    provider: SSOProvider,
+    accessToken: string
+  ): Promise<SSOUserInfo> {
     if (!provider.userinfo_url) {
       throw new Error('Provider not configured for user info retrieval');
     }
@@ -536,13 +572,15 @@ export class SSOIntegrationService {
     try {
       const response = await fetch(provider.userinfo_url, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        }
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`User info request failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `User info request failed: ${response.status} ${response.statusText}`
+        );
       }
 
       const userInfo: SSOUserInfo = await response.json();
@@ -577,31 +615,36 @@ export class SSOIntegrationService {
       let idTokenEncrypted: string | undefined;
 
       if (tokens?.accessToken) {
-        const { data: encrypted } = await supabase
-          .rpc('encrypt_sensitive_data', { data: tokens.accessToken });
+        const { data: encrypted } = await supabase.rpc(
+          'encrypt_sensitive_data',
+          { data: tokens.accessToken }
+        );
         accessTokenEncrypted = encrypted;
       }
 
       if (tokens?.refreshToken) {
-        const { data: encrypted } = await supabase
-          .rpc('encrypt_sensitive_data', { data: tokens.refreshToken });
+        const { data: encrypted } = await supabase.rpc(
+          'encrypt_sensitive_data',
+          { data: tokens.refreshToken }
+        );
         refreshTokenEncrypted = encrypted;
       }
 
       if (tokens?.idToken) {
-        const { data: encrypted } = await supabase
-          .rpc('encrypt_sensitive_data', { data: tokens.idToken });
+        const { data: encrypted } = await supabase.rpc(
+          'encrypt_sensitive_data',
+          { data: tokens.idToken }
+        );
         idTokenEncrypted = encrypted;
       }
 
-      const { data: accountId } = await supabase
-        .rpc('link_sso_account', {
-          p_user_id: userId,
-          p_provider_id: providerId,
-          p_external_user_id: externalUserId,
-          p_external_email: externalEmail,
-          p_profile_data: profileData
-        });
+      const { data: accountId } = await supabase.rpc('link_sso_account', {
+        p_user_id: userId,
+        p_provider_id: providerId,
+        p_external_user_id: externalUserId,
+        p_external_email: externalEmail,
+        p_profile_data: profileData,
+      });
 
       // Update with tokens if provided
       if (tokens && accountId) {
@@ -616,7 +659,7 @@ export class SSOIntegrationService {
             refresh_token_encrypted: refreshTokenEncrypted,
             id_token_encrypted: idTokenEncrypted,
             token_expires_at: tokenExpiresAt,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', accountId);
       }
@@ -653,14 +696,17 @@ export class SSOIntegrationService {
     }
   }
 
-  static async unlinkUserSSOAccount(userId: string, providerId: string): Promise<void> {
+  static async unlinkUserSSOAccount(
+    userId: string,
+    providerId: string
+  ): Promise<void> {
     try {
       const { error } = await supabase
         .from('user_sso_accounts')
         .update({
           linking_status: 'revoked',
           unlinked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
         .eq('provider_id', providerId);
@@ -684,14 +730,13 @@ export class SSOIntegrationService {
     deviceInfo: any = {}
   ): Promise<{ sessionId: string; sessionToken: string }> {
     try {
-      const { data } = await supabase
-        .rpc('create_sso_session', {
-          p_user_id: userId,
-          p_provider_id: providerId,
-          p_session_type: sessionType,
-          p_expires_in: expiresIn,
-          p_device_info: deviceInfo
-        });
+      const { data } = await supabase.rpc('create_sso_session', {
+        p_user_id: userId,
+        p_provider_id: providerId,
+        p_session_type: sessionType,
+        p_expires_in: expiresIn,
+        p_device_info: deviceInfo,
+      });
 
       if (!data || data.length === 0) {
         throw new Error('Failed to create session');
@@ -699,7 +744,7 @@ export class SSOIntegrationService {
 
       return {
         sessionId: data[0].session_id,
-        sessionToken: data[0].session_token
+        sessionToken: data[0].session_token,
       };
     } catch (error) {
       console.error('Error creating SSO session:', error);
@@ -714,8 +759,9 @@ export class SSOIntegrationService {
     sessionData?: any;
   }> {
     try {
-      const { data } = await supabase
-        .rpc('validate_sso_session', { p_session_token: sessionToken });
+      const { data } = await supabase.rpc('validate_sso_session', {
+        p_session_token: sessionToken,
+      });
 
       if (!data || data.length === 0) {
         return { isValid: false };
@@ -726,7 +772,7 @@ export class SSOIntegrationService {
         isValid: result.is_valid,
         userId: result.user_id,
         providerId: result.provider_id,
-        sessionData: result.session_data
+        sessionData: result.session_data,
       };
     } catch (error) {
       console.error('Error validating SSO session:', error);
@@ -734,14 +780,17 @@ export class SSOIntegrationService {
     }
   }
 
-  static async logoutSSOSession(sessionToken: string, reason: string = 'user_logout'): Promise<void> {
+  static async logoutSSOSession(
+    sessionToken: string,
+    reason: string = 'user_logout'
+  ): Promise<void> {
     try {
       const { error } = await supabase
         .from('sso_sessions')
         .update({
           is_active: false,
           logout_reason: reason,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('session_token', sessionToken);
 
@@ -769,19 +818,18 @@ export class SSOIntegrationService {
     processingTimeMs?: number
   ): Promise<string> {
     try {
-      const { data } = await supabase
-        .rpc('log_sso_auth', {
-          p_provider_id: providerId,
-          p_user_id: userId,
-          p_auth_type: authType,
-          p_external_user_id: externalUserId,
-          p_success: success,
-          p_error_code: errorCode,
-          p_error_message: errorMessage,
-          p_request_data: requestData,
-          p_response_data: responseData,
-          p_processing_time_ms: processingTimeMs
-        });
+      const { data } = await supabase.rpc('log_sso_auth', {
+        p_provider_id: providerId,
+        p_user_id: userId,
+        p_auth_type: authType,
+        p_external_user_id: externalUserId,
+        p_success: success,
+        p_error_code: errorCode,
+        p_error_message: errorMessage,
+        p_request_data: requestData,
+        p_response_data: responseData,
+        p_processing_time_ms: processingTimeMs,
+      });
 
       return data;
     } catch (error) {
@@ -807,7 +855,9 @@ export class SSOIntegrationService {
           .lte('date_recorded', dateRange.end);
       }
 
-      const { data, error } = await query.order('date_recorded', { ascending: false });
+      const { data, error } = await query.order('date_recorded', {
+        ascending: false,
+      });
 
       if (error) throw error;
       return data || [];
@@ -845,7 +895,7 @@ export class SSOIntegrationService {
         .from('organization_sso_settings')
         .upsert({
           ...settings,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -863,10 +913,13 @@ export class SSOIntegrationService {
   // =============================================
 
   static generateRandomString(length: number): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
     for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
     }
     return result;
   }
@@ -874,7 +927,10 @@ export class SSOIntegrationService {
   static generateCodeChallenge(codeVerifier: string): string {
     // In a real implementation, use crypto.subtle.digest or similar
     // This is a simplified version for demonstration
-    return btoa(codeVerifier).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(codeVerifier)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/[=]+$/, '');
   }
 
   static async cleanupExpiredSessions(): Promise<number> {
@@ -889,27 +945,30 @@ export class SSOIntegrationService {
 
   static validateEmailDomain(email: string, allowedDomains: string[]): boolean {
     if (allowedDomains.length === 0) return true;
-    
+
     const domain = email.split('@')[1]?.toLowerCase();
     if (!domain) return false;
-    
-    return allowedDomains.some(allowedDomain => 
-      domain === allowedDomain.toLowerCase() || 
-      domain.endsWith('.' + allowedDomain.toLowerCase())
+
+    return allowedDomains.some(
+      (allowedDomain) =>
+        domain === allowedDomain.toLowerCase() ||
+        domain.endsWith(`.${allowedDomain.toLowerCase()}`)
     );
   }
 
   static mapUserAttributes(userInfo: SSOUserInfo, attributeMapping: any): any {
     if (!attributeMapping) return userInfo;
-    
+
     const mappedData: any = {};
-    
-    for (const [localAttribute, remoteAttribute] of Object.entries(attributeMapping)) {
+
+    for (const [localAttribute, remoteAttribute] of Object.entries(
+      attributeMapping
+    )) {
       if (typeof remoteAttribute === 'string') {
         mappedData[localAttribute] = userInfo[remoteAttribute];
       }
     }
-    
+
     return mappedData;
   }
 }

@@ -49,7 +49,11 @@ export interface ServiceStats {
 }
 
 export interface ActivitySummary {
-  type: 'job_completed' | 'contractor_joined' | 'review_posted' | 'referral_made';
+  type:
+    | 'job_completed'
+    | 'contractor_joined'
+    | 'review_posted'
+    | 'referral_made';
   count: number;
   timeframe: '24h' | '7d' | '30d';
 }
@@ -103,18 +107,25 @@ export interface CommunityChampion {
   user_id: string;
   user_name: string;
   avatar?: string;
-  champion_type: 'referral_master' | 'review_hero' | 'quality_advocate' | 'helpful_neighbor';
+  champion_type:
+    | 'referral_master'
+    | 'review_hero'
+    | 'quality_advocate'
+    | 'helpful_neighbor';
   score: number;
   badge_level: 'bronze' | 'silver' | 'gold' | 'platinum';
 }
 
 class NeighborhoodService {
-  
   // Get or create neighborhood based on postcode
-  async getOrCreateNeighborhood(postcode: string, latitude: number, longitude: number): Promise<Neighborhood> {
+  async getOrCreateNeighborhood(
+    postcode: string,
+    latitude: number,
+    longitude: number
+  ): Promise<Neighborhood> {
     try {
       const postcodePrefix = this.extractPostcodePrefix(postcode);
-      
+
       // Try to find existing neighborhood
       const { data: existing, error: findError } = await supabase
         .from('neighborhoods')
@@ -127,8 +138,12 @@ class NeighborhoodService {
       }
 
       // Create new neighborhood
-      const neighborhoodName = await this.generateNeighborhoodName(postcode, latitude, longitude);
-      
+      const neighborhoodName = await this.generateNeighborhoodName(
+        postcode,
+        latitude,
+        longitude
+      );
+
       const { data: newNeighborhood, error: createError } = await supabase
         .from('neighborhoods')
         .insert({
@@ -140,18 +155,18 @@ class NeighborhoodService {
           member_count: 1,
           active_jobs_count: 0,
           completed_jobs_count: 0,
-          average_rating: 0.0
+          average_rating: 0.0,
         })
         .select()
         .single();
 
       if (createError) throw createError;
-      
-      logger.info('Created new neighborhood', { 
-        name: neighborhoodName, 
-        postcode: postcodePrefix 
+
+      logger.info('Created new neighborhood', {
+        name: neighborhoodName,
+        postcode: postcodePrefix,
       });
-      
+
       return newNeighborhood;
     } catch (error) {
       logger.error('Failed to get/create neighborhood', error);
@@ -160,22 +175,25 @@ class NeighborhoodService {
   }
 
   // Get neighborhood leaderboard
-  async getNeighborhoodLeaderboard(neighborhoodId: string): Promise<NeighborhoodLeaderboard> {
+  async getNeighborhoodLeaderboard(
+    neighborhoodId: string
+  ): Promise<NeighborhoodLeaderboard> {
     try {
-      const [neighborhood, contractors, successes, champions, services] = await Promise.all([
-        this.getNeighborhoodById(neighborhoodId),
-        this.getTopContractors(neighborhoodId),
-        this.getRecentJobSuccesses(neighborhoodId),
-        this.getCommunityChampions(neighborhoodId),
-        this.getTrendingServices(neighborhoodId)
-      ]);
+      const [neighborhood, contractors, successes, champions, services] =
+        await Promise.all([
+          this.getNeighborhoodById(neighborhoodId),
+          this.getTopContractors(neighborhoodId),
+          this.getRecentJobSuccesses(neighborhoodId),
+          this.getCommunityChampions(neighborhoodId),
+          this.getTrendingServices(neighborhoodId),
+        ]);
 
       return {
         neighborhood,
         topContractors: contractors,
         recentSuccesses: successes,
         communityChampions: champions,
-        trendinServices: services
+        trendinServices: services,
       };
     } catch (error) {
       logger.error('Failed to get neighborhood leaderboard', error);
@@ -184,11 +202,15 @@ class NeighborhoodService {
   }
 
   // Get top contractors in neighborhood
-  async getTopContractors(neighborhoodId: string, limit: number = 10): Promise<ContractorRanking[]> {
+  async getTopContractors(
+    neighborhoodId: string,
+    limit: number = 10
+  ): Promise<ContractorRanking[]> {
     try {
       const { data, error } = await supabase
         .from('contractor_neighborhood_rankings')
-        .select(`
+        .select(
+          `
           contractor_id,
           contractor_name,
           contractor_avatar,
@@ -198,7 +220,8 @@ class NeighborhoodService {
           response_time_avg,
           community_endorsements,
           rank_position
-        `)
+        `
+        )
         .eq('neighborhood_id', neighborhoodId)
         .order('rank_position', { ascending: true })
         .limit(limit);
@@ -213,8 +236,8 @@ class NeighborhoodService {
 
   // Create neighbor referral
   async createNeighborReferral(
-    referrerId: string, 
-    contractorId: string, 
+    referrerId: string,
+    contractorId: string,
     jobId: string,
     refereeContact: string
   ): Promise<NeighborReferral> {
@@ -234,23 +257,25 @@ class NeighborhoodService {
           neighborhood_id: referrer.neighborhood_id,
           referee_contact: refereeContact,
           reward_points: this.calculateReferralReward(contractorId),
-          status: 'pending'
+          status: 'pending',
         })
-        .select(`
+        .select(
+          `
           *,
           referrer:users!referrer_id(first_name, last_name),
           contractor:users!contractor_id(first_name, last_name)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
-      
-      logger.info('Created neighbor referral', { 
-        referrerId, 
-        contractorId, 
-        jobId 
+
+      logger.info('Created neighbor referral', {
+        referrerId,
+        contractorId,
+        jobId,
       });
-      
+
       return data;
     } catch (error) {
       logger.error('Failed to create neighbor referral', error);
@@ -282,7 +307,7 @@ class NeighborhoodService {
           neighborhood_id: endorser.neighborhood_id,
           skill,
           message,
-          weight
+          weight,
         })
         .select()
         .single();
@@ -290,14 +315,17 @@ class NeighborhoodService {
       if (error) throw error;
 
       // Update contractor's community endorsement count
-      await this.updateContractorEndorsementCount(contractorId, endorser.neighborhood_id);
-      
-      logger.info('Added community endorsement', { 
-        endorserId, 
-        contractorId, 
-        skill 
+      await this.updateContractorEndorsementCount(
+        contractorId,
+        endorser.neighborhood_id
+      );
+
+      logger.info('Added community endorsement', {
+        endorserId,
+        contractorId,
+        skill,
       });
-      
+
       return data;
     } catch (error) {
       logger.error('Failed to add community endorsement', error);
@@ -306,7 +334,9 @@ class NeighborhoodService {
   }
 
   // Get neighborhood recommendations for user
-  async getNeighborhoodRecommendations(userId: string): Promise<ContractorRanking[]> {
+  async getNeighborhoodRecommendations(
+    userId: string
+  ): Promise<ContractorRanking[]> {
     try {
       const userNeighborhood = await this.getUserNeighborhood(userId);
       if (!userNeighborhood) {
@@ -316,10 +346,12 @@ class NeighborhoodService {
       // Get contractors with community endorsements
       const { data, error } = await supabase
         .from('contractor_neighborhood_rankings')
-        .select(`
+        .select(
+          `
           *,
           endorsements:community_endorsements(count)
-        `)
+        `
+        )
         .eq('neighborhood_id', userNeighborhood.neighborhood_id)
         .gte('community_endorsements', 1)
         .order('community_endorsements', { ascending: false })
@@ -334,16 +366,21 @@ class NeighborhoodService {
   }
 
   // Get neighborhood activity feed
-  async getNeighborhoodActivity(neighborhoodId: string, limit: number = 20): Promise<any[]> {
+  async getNeighborhoodActivity(
+    neighborhoodId: string,
+    limit: number = 20
+  ): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('neighborhood_activity_feed')
-        .select(`
+        .select(
+          `
           *,
           user:users!user_id(first_name, last_name, profileImageUrl),
           job:jobs!job_id(title),
           contractor:users!contractor_id(first_name, last_name)
-        `)
+        `
+        )
         .eq('neighborhood_id', neighborhoodId)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -360,24 +397,27 @@ class NeighborhoodService {
   async calculateCommunityScore(neighborhoodId: string): Promise<number> {
     try {
       const stats = await this.getNeighborhoodStats(neighborhoodId);
-      
+
       // Factors for community score (0-100)
       const factors = {
         activity: Math.min(stats.completed_jobs_count / 50, 1) * 30, // Max 30 points
-        satisfaction: stats.average_rating / 5 * 25, // Max 25 points
+        satisfaction: (stats.average_rating / 5) * 25, // Max 25 points
         engagement: Math.min(stats.community_endorsements / 20, 1) * 20, // Max 20 points
-        response: Math.max(0, (1 - stats.average_response_time / 120)) * 15, // Max 15 points
-        diversity: Math.min(stats.active_contractors / 10, 1) * 10 // Max 10 points
+        response: Math.max(0, 1 - stats.average_response_time / 120) * 15, // Max 15 points
+        diversity: Math.min(stats.active_contractors / 10, 1) * 10, // Max 10 points
       };
 
-      const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
-      
-      logger.debug('Calculated community score', { 
-        neighborhoodId, 
-        factors, 
-        totalScore 
+      const totalScore = Object.values(factors).reduce(
+        (sum, score) => sum + score,
+        0
+      );
+
+      logger.debug('Calculated community score', {
+        neighborhoodId,
+        factors,
+        totalScore,
       });
-      
+
       return Math.round(totalScore);
     } catch (error) {
       logger.error('Failed to calculate community score', error);
@@ -393,25 +433,29 @@ class NeighborhoodService {
     return match ? match[1] : cleaned.substring(0, 3);
   }
 
-  private async generateNeighborhoodName(postcode: string, lat: number, lng: number): Promise<string> {
+  private async generateNeighborhoodName(
+    postcode: string,
+    lat: number,
+    lng: number
+  ): Promise<string> {
     // In a real implementation, you might use reverse geocoding
     // For now, generate based on postcode
     const prefix = this.extractPostcodePrefix(postcode);
     const areaNames: Record<string, string> = {
-      'SW1': 'Westminster',
-      'SW3': 'Chelsea', 
-      'SW7': 'South Kensington',
-      'W1': 'West End',
-      'WC1': 'Bloomsbury',
-      'WC2': 'Covent Garden',
-      'E1': 'Whitechapel',
-      'E14': 'Canary Wharf',
-      'N1': 'Islington',
-      'SE1': 'South Bank',
-      'M1': 'Manchester City Centre',
-      'M4': 'Rusholme',
-      'B1': 'Birmingham City Centre',
-      'LS1': 'Leeds City Centre'
+      SW1: 'Westminster',
+      SW3: 'Chelsea',
+      SW7: 'South Kensington',
+      W1: 'West End',
+      WC1: 'Bloomsbury',
+      WC2: 'Covent Garden',
+      E1: 'Whitechapel',
+      E14: 'Canary Wharf',
+      N1: 'Islington',
+      SE1: 'South Bank',
+      M1: 'Manchester City Centre',
+      M4: 'Rusholme',
+      B1: 'Birmingham City Centre',
+      LS1: 'Leeds City Centre',
     };
 
     return areaNames[prefix] || `${prefix} Area`;
@@ -420,7 +464,9 @@ class NeighborhoodService {
   private calculateRadius(postcodePrefix: string): number {
     // London areas are smaller, other cities larger
     const londonPrefixes = ['SW', 'SE', 'NW', 'NE', 'W', 'E', 'WC', 'EC', 'N'];
-    const isLondon = londonPrefixes.some(prefix => postcodePrefix.startsWith(prefix));
+    const isLondon = londonPrefixes.some((prefix) =>
+      postcodePrefix.startsWith(prefix)
+    );
     return isLondon ? 1.5 : 3.0; // km
   }
 
@@ -430,7 +476,9 @@ class NeighborhoodService {
     return 50;
   }
 
-  private async calculateEndorsementWeight(endorserId: string): Promise<number> {
+  private async calculateEndorsementWeight(
+    endorserId: string
+  ): Promise<number> {
     // Weight based on user's reputation in the community
     // More active, higher-rated users have higher weight
     try {
@@ -444,17 +492,22 @@ class NeighborhoodService {
 
       const baseWeight = 1.0;
       const experienceBonus = Math.min(data.jobs_completed / 10, 0.5);
-      const ratingBonus = (data.average_rating - 3) / 2 * 0.3;
+      const ratingBonus = ((data.average_rating - 3) / 2) * 0.3;
       const activityBonus = Math.min(data.endorsements_given / 5, 0.2);
 
-      return Math.max(0.5, baseWeight + experienceBonus + ratingBonus + activityBonus);
+      return Math.max(
+        0.5,
+        baseWeight + experienceBonus + ratingBonus + activityBonus
+      );
     } catch (error) {
       logger.warn('Failed to calculate endorsement weight', error);
       return 1.0;
     }
   }
 
-  private async getNeighborhoodById(neighborhoodId: string): Promise<Neighborhood> {
+  private async getNeighborhoodById(
+    neighborhoodId: string
+  ): Promise<Neighborhood> {
     const { data, error } = await supabase
       .from('neighborhoods')
       .select('*')
@@ -465,10 +518,13 @@ class NeighborhoodService {
     return data;
   }
 
-  private async getRecentJobSuccesses(neighborhoodId: string): Promise<JobSuccess[]> {
+  private async getRecentJobSuccesses(
+    neighborhoodId: string
+  ): Promise<JobSuccess[]> {
     const { data, error } = await supabase
       .from('neighborhood_job_successes')
-      .select(`
+      .select(
+        `
         job_title,
         contractor_name,
         homeowner_name,
@@ -476,7 +532,8 @@ class NeighborhoodService {
         rating,
         before_photo,
         after_photo
-      `)
+      `
+      )
       .eq('neighborhood_id', neighborhoodId)
       .order('completion_date', { ascending: false })
       .limit(10);
@@ -485,7 +542,9 @@ class NeighborhoodService {
     return data || [];
   }
 
-  private async getCommunityChampions(neighborhoodId: string): Promise<CommunityChampion[]> {
+  private async getCommunityChampions(
+    neighborhoodId: string
+  ): Promise<CommunityChampion[]> {
     const { data, error } = await supabase
       .from('community_champions')
       .select('*')
@@ -497,7 +556,9 @@ class NeighborhoodService {
     return data || [];
   }
 
-  private async getTrendingServices(neighborhoodId: string): Promise<ServiceStats[]> {
+  private async getTrendingServices(
+    neighborhoodId: string
+  ): Promise<ServiceStats[]> {
     const { data, error } = await supabase
       .from('neighborhood_service_stats')
       .select('*')
@@ -509,7 +570,9 @@ class NeighborhoodService {
     return data || [];
   }
 
-  private async getUserNeighborhood(userId: string): Promise<{neighborhood_id: string} | null> {
+  private async getUserNeighborhood(
+    userId: string
+  ): Promise<{ neighborhood_id: string } | null> {
     const { data, error } = await supabase
       .from('user_neighborhoods')
       .select('neighborhood_id')
@@ -527,14 +590,17 @@ class NeighborhoodService {
       average_rating: 4.6,
       community_endorsements: 15,
       average_response_time: 35,
-      active_contractors: 12
+      active_contractors: 12,
     };
   }
 
-  private async updateContractorEndorsementCount(contractorId: string, neighborhoodId: string): Promise<void> {
+  private async updateContractorEndorsementCount(
+    contractorId: string,
+    neighborhoodId: string
+  ): Promise<void> {
     const { error } = await supabase.rpc('increment_contractor_endorsements', {
       contractor_id: contractorId,
-      neighborhood_id: neighborhoodId
+      neighborhood_id: neighborhoodId,
     });
 
     if (error) {

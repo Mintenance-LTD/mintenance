@@ -21,7 +21,7 @@ const mockDevice = {
 jest.mock('expo-notifications', () => mockNotifications);
 jest.mock('expo-device', () => mockDevice);
 
-// Mock Supabase with comprehensive chain support  
+// Mock Supabase with comprehensive chain support
 const createMockChain = (): any => {
   const chain = {
     eq: jest.fn(() => chain),
@@ -153,7 +153,9 @@ describe('NotificationService', () => {
       // Mock notification save to database
       const saveChain = createMockChain();
       saveChain.insert.mockResolvedValueOnce({ data: null, error: null });
-      mockSupabase.from.mockReturnValueOnce(mockChain).mockReturnValueOnce(saveChain);
+      mockSupabase.from
+        .mockReturnValueOnce(mockChain)
+        .mockReturnValueOnce(saveChain);
 
       await NotificationService.sendNotificationToUser(
         'user-1',
@@ -209,7 +211,9 @@ describe('NotificationService', () => {
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          data: [{ status: 'error', details: { error: 'DeviceNotRegistered' } }],
+          data: [
+            { status: 'error', details: { error: 'DeviceNotRegistered' } },
+          ],
         }),
       });
 
@@ -306,7 +310,7 @@ describe('NotificationService', () => {
 
     it('should handle Date trigger', async () => {
       const futureDate = new Date(Date.now() + 3600000); // 1 hour from now
-      
+
       mockNotifications.scheduleNotificationAsync.mockResolvedValueOnce(
         'notification-id'
       );
@@ -349,7 +353,11 @@ describe('NotificationService', () => {
         error: null,
       });
 
-      const result = await NotificationService.getUserNotifications('user-1', 20, 0);
+      const result = await NotificationService.getUserNotifications(
+        'user-1',
+        20,
+        0
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].title).toBe('Job Update');
@@ -377,18 +385,24 @@ describe('NotificationService', () => {
         error: null,
       });
 
-      const count = await NotificationService.getUnreadNotificationCount('user-1');
+      const count =
+        await NotificationService.getUnreadNotificationCount('user-1');
 
       expect(count).toBe(7);
     });
 
     it('should return 0 on error', async () => {
-      mockSupabase.from().select().eq().eq.mockResolvedValueOnce({
-        count: null,
-        error: { message: 'Database error' },
-      });
+      mockSupabase
+        .from()
+        .select()
+        .eq()
+        .eq.mockResolvedValueOnce({
+          count: null,
+          error: { message: 'Database error' },
+        });
 
-      const count = await NotificationService.getUnreadNotificationCount('user-1');
+      const count =
+        await NotificationService.getUnreadNotificationCount('user-1');
 
       expect(count).toBe(0);
     });
@@ -406,7 +420,11 @@ describe('NotificationService', () => {
     it('should provide quick notification methods', async () => {
       const mockUser = {
         push_token: 'token',
-        notification_settings: { jobUpdates: true, payments: true, messages: true },
+        notification_settings: {
+          jobUpdates: true,
+          payments: true,
+          messages: true,
+        },
       };
 
       mockSupabase.from().select().eq().single.mockResolvedValue({
@@ -420,13 +438,21 @@ describe('NotificationService', () => {
       });
 
       // Test job update notification
-      await NotificationService.notifyJobUpdate('contractor-1', 'Kitchen Repair', 'in_progress');
+      await NotificationService.notifyJobUpdate(
+        'contractor-1',
+        'Kitchen Repair',
+        'in_progress'
+      );
 
       // Test new message notification
-      await NotificationService.notifyNewMessage('user-1', 'John Contractor', 'Kitchen Repair');
+      await NotificationService.notifyNewMessage(
+        'user-1',
+        'John Contractor',
+        'Kitchen Repair'
+      );
 
       // Test payment notification
-      await NotificationService.notifyPaymentReceived('contractor-1', 150.00);
+      await NotificationService.notifyPaymentReceived('contractor-1', 150.0);
 
       expect(fetch).toHaveBeenCalledTimes(3);
     });
@@ -458,7 +484,12 @@ describe('NotificationService', () => {
 
       // Should not throw
       await expect(
-        NotificationService.sendNotificationToUser('user-1', 'Test', 'Message', 'job')
+        NotificationService.sendNotificationToUser(
+          'user-1',
+          'Test',
+          'Message',
+          'job'
+        )
       ).resolves.toBeUndefined();
     });
   });

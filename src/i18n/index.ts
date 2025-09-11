@@ -4,7 +4,6 @@ import * as RNLocalize from 'react-native-localize';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 
-
 // Import translations
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -44,14 +43,14 @@ export type Language = keyof typeof availableLanguages;
 // Detect device language
 const getDeviceLanguage = (): Language => {
   const locales = RNLocalize.getLocales();
-  
+
   for (const locale of locales) {
     const languageCode = locale.languageCode as Language;
     if (availableLanguages[languageCode]) {
       return languageCode;
     }
   }
-  
+
   // Fallback to English if no supported language is found
   return 'en';
 };
@@ -89,7 +88,7 @@ const languageDetector = {
         callback(savedLanguage);
         return;
       }
-      
+
       // Fall back to device language
       const deviceLanguage = getDeviceLanguage();
       callback(deviceLanguage);
@@ -111,13 +110,13 @@ i18n
   .init({
     // Debug mode in development
     debug: __DEV__,
-    
+
     // Default language
     fallbackLng: 'en',
-    
+
     // Supported languages
     supportedLngs: Object.keys(availableLanguages) as Language[],
-    
+
     // Language resources
     resources: {
       en: { translation: en },
@@ -135,17 +134,17 @@ i18n
       ar: { translation: ar },
       hi: { translation: hi },
     },
-    
+
     // Interpolation settings
     interpolation: {
       escapeValue: false, // React already escapes values
     },
-    
+
     // React settings
     react: {
       useSuspense: false, // Important for React Native
     },
-    
+
     // Cache settings
     cache: {
       enabled: true,
@@ -158,7 +157,7 @@ i18n
 export const changeLanguage = async (language: Language) => {
   await i18n.changeLanguage(language);
   await saveLanguagePreference(language);
-  
+
   // Force app to re-render with new language
   // This can trigger a haptic feedback
   const HapticService = require('../utils/haptics').default;
@@ -174,9 +173,13 @@ export const isRTL = (language?: Language): boolean => {
   return availableLanguages[lang]?.isRTL || false;
 };
 
-export const formatCurrency = (amount: number, currency = 'USD', language?: Language): string => {
+export const formatCurrency = (
+  amount: number,
+  currency = 'USD',
+  language?: Language
+): string => {
   const lang = language || getCurrentLanguage();
-  
+
   try {
     return new Intl.NumberFormat(lang === 'en' ? 'en-US' : lang, {
       style: 'currency',
@@ -192,7 +195,7 @@ export const formatCurrency = (amount: number, currency = 'USD', language?: Lang
 
 export const formatDate = (date: Date, language?: Language): string => {
   const lang = language || getCurrentLanguage();
-  
+
   try {
     return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : lang, {
       year: 'numeric',
@@ -209,10 +212,12 @@ export const formatRelativeTime = (date: Date, language?: Language): string => {
   const lang = language || getCurrentLanguage();
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   try {
-    const rtf = new Intl.RelativeTimeFormat(lang === 'en' ? 'en-US' : lang, { numeric: 'auto' });
-    
+    const rtf = new Intl.RelativeTimeFormat(lang === 'en' ? 'en-US' : lang, {
+      numeric: 'auto',
+    });
+
     if (diffInSeconds < 60) {
       return rtf.format(-diffInSeconds, 'second');
     } else if (diffInSeconds < 3600) {
@@ -226,7 +231,8 @@ export const formatRelativeTime = (date: Date, language?: Language): string => {
     // Fallback to simple formatting
     if (diffInSeconds < 60) return 'just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   }
 };

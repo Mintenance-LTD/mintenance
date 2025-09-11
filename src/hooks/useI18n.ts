@@ -1,22 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { I18nManager } from 'react-native';
-import { 
-  changeLanguage, 
-  getCurrentLanguage, 
-  isRTL, 
-  formatCurrency, 
-  formatDate, 
+import {
+  changeLanguage,
+  getCurrentLanguage,
+  isRTL,
+  formatCurrency,
+  formatDate,
   formatRelativeTime,
   availableLanguages,
-  Language 
+  Language,
 } from '../i18n';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';
 
 export const useI18n = () => {
   const { t, i18n } = useTranslation();
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(getCurrentLanguage());
+  const [currentLanguage, setCurrentLanguage] =
+    useState<Language>(getCurrentLanguage());
   const [isRTLLayout, setIsRTLLayout] = useState(isRTL());
   const haptics = useHaptics();
 
@@ -25,7 +26,7 @@ export const useI18n = () => {
       const lang = language as Language;
       setCurrentLanguage(lang);
       setIsRTLLayout(isRTL(lang));
-      
+
       // Handle RTL layout changes
       if (isRTL(lang) !== I18nManager.isRTL) {
         I18nManager.allowRTL(isRTL(lang));
@@ -36,7 +37,7 @@ export const useI18n = () => {
     };
 
     i18n.on('languageChanged', handleLanguageChange);
-    
+
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
@@ -71,16 +72,24 @@ export const useI18n = () => {
   };
 
   // Context-aware translations
-  const translateWithContext = (key: string, context: string, options?: any) => {
+  const translateWithContext = (
+    key: string,
+    context: string,
+    options?: any
+  ) => {
     const contextKey = `${key}_${context}`;
     const translation = t(contextKey, { defaultValue: '', ...options });
-    
+
     // Fallback to base key if context-specific translation doesn't exist
     return translation || t(key, options);
   };
 
   // Helper for getting localized strings with interpolation
-  const getString = (namespace: string, key: string, values?: Record<string, any>) => {
+  const getString = (
+    namespace: string,
+    key: string,
+    values?: Record<string, any>
+  ) => {
     const fullKey = `${namespace}.${key}`;
     return translate(fullKey, values);
   };
@@ -123,23 +132,23 @@ export const useI18n = () => {
   // Accessibility helpers
   const accessibility = {
     button: () => translate('accessibility.button'),
-    doubleTabTo: (action: string) => translate('accessibility.doubleTabTo', { action }),
+    doubleTabTo: (action: string) =>
+      translate('accessibility.doubleTabTo', { action }),
     selected: () => translate('accessibility.selected'),
     loading: () => translate('accessibility.loading'),
   };
 
   // Format helpers that respect current locale
   const formatters = {
-    currency: (amount: number, currency = 'USD') => 
+    currency: (amount: number, currency = 'USD') =>
       formatCurrency(amount, currency, currentLanguage),
-    date: (date: Date) => 
-      formatDate(date, currentLanguage),
-    relativeTime: (date: Date) => 
-      formatRelativeTime(date, currentLanguage),
+    date: (date: Date) => formatDate(date, currentLanguage),
+    relativeTime: (date: Date) => formatRelativeTime(date, currentLanguage),
     number: (num: number) => {
       try {
-        return new Intl.NumberFormat(currentLanguage === 'en' ? 'en-US' : currentLanguage)
-          .format(num);
+        return new Intl.NumberFormat(
+          currentLanguage === 'en' ? 'en-US' : currentLanguage
+        ).format(num);
       } catch {
         return num.toString();
       }
@@ -150,12 +159,12 @@ export const useI18n = () => {
   const getErrorMessage = (errorCode: string, fallback?: string) => {
     const errorKey = `errors.${errorCode}`;
     const translation = translate(errorKey);
-    
+
     // If translation is the same as key, it means translation is missing
     if (translation === errorKey) {
       return fallback || translate('errors.somethingWentWrong');
     }
-    
+
     return translation;
   };
 
@@ -163,11 +172,11 @@ export const useI18n = () => {
   const getSuccessMessage = (actionCode: string, fallback?: string) => {
     const successKey = `success.${actionCode}`;
     const translation = translate(successKey);
-    
+
     if (translation === successKey) {
       return fallback || translate('success.actionCompleted');
     }
-    
+
     return translation;
   };
 
@@ -190,26 +199,26 @@ export const useI18n = () => {
     translatePlural,
     translateWithContext,
     getString,
-    
+
     // Language management
     switchLanguage,
     currentLanguage,
     languageInfo,
     isRTL: isRTLLayout,
-    
+
     // Predefined translation helpers
     common,
     auth,
     navigation,
     accessibility,
-    
+
     // Formatting helpers
     formatters,
-    
+
     // Error and success helpers
     getErrorMessage,
     getSuccessMessage,
-    
+
     // Raw i18n instance for advanced usage
     i18n,
   };
@@ -221,11 +230,11 @@ export const useRTLStyles = <T extends Record<string, any>>(
   rtlStyles?: Partial<T>
 ) => {
   const { isRTL } = useI18n();
-  
+
   if (!isRTL || !rtlStyles) {
     return ltrStyles;
   }
-  
+
   return {
     ...ltrStyles,
     ...rtlStyles,

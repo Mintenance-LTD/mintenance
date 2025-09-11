@@ -18,11 +18,13 @@ const mockNavigate = jest.fn();
 describe('RegisterScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    jest.mocked(require('@react-navigation/native').useNavigation).mockReturnValue({
-      navigate: mockNavigate,
-      goBack: jest.fn(),
-    });
+
+    jest
+      .mocked(require('@react-navigation/native').useNavigation)
+      .mockReturnValue({
+        navigate: mockNavigate,
+        goBack: jest.fn(),
+      });
 
     mockUseAuth.mockReturnValue({
       user: null,
@@ -92,7 +94,10 @@ describe('RegisterScreen', () => {
     fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
     fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
     fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(getByTestId('confirm-password-input'), 'differentpassword');
+    fireEvent.changeText(
+      getByTestId('confirm-password-input'),
+      'differentpassword'
+    );
     fireEvent.press(getByText('Create Account'));
 
     await waitFor(() => {
@@ -166,7 +171,9 @@ describe('RegisterScreen', () => {
   });
 
   it('displays error message on registration failure', async () => {
-    const mockSignUp = jest.fn().mockRejectedValue(new Error('Email already exists'));
+    const mockSignUp = jest
+      .fn()
+      .mockRejectedValue(new Error('Email already exists'));
     mockUseAuth.mockReturnValue({
       user: null,
       session: null,

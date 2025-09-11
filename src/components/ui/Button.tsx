@@ -1,5 +1,13 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, View } from 'react-native';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+  View,
+} from 'react-native';
 import { theme } from '../../theme';
 
 type ButtonVariant = keyof typeof theme.components.button | 'tertiary';
@@ -45,28 +53,45 @@ export const Button: React.FC<ButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      accessibilityRole="button"
+      accessibilityRole='button'
       accessibilityLabel={accessibilityLabel || title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={[
         styles.base,
         size === 'sm' ? styles.sm : styles.md,
         iconOnly && styles.iconOnly,
-        { backgroundColor, borderColor, width: fullWidth ? '100%' as const : undefined },
+        {
+          backgroundColor,
+          borderColor,
+          width: fullWidth ? ('100%' as const) : undefined,
+        },
         disabled ? styles.disabled : null,
-        (backgroundColor === 'transparent') && styles.noShadow,
+        backgroundColor === 'transparent' && styles.noShadow,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={theme.colors.textInverse} size="small" />
+        <ActivityIndicator color={theme.colors.textInverse} size='small' />
       ) : iconOnly ? (
         <View>{icon}</View>
       ) : (
         <View style={styles.contentRow}>
-          {icon && iconPosition === 'left' ? <View style={styles.iconLeft}>{icon}</View> : null}
-          <Text style={[styles.text, { color }, isTertiary && styles.linkText, textStyle]}>{title}</Text>
-          {icon && iconPosition === 'right' ? <View style={styles.iconRight}>{icon}</View> : null}
+          {icon && iconPosition === 'left' ? (
+            <View style={styles.iconLeft}>{icon}</View>
+          ) : null}
+          <Text
+            style={[
+              styles.text,
+              { color },
+              isTertiary && styles.linkText,
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+          {icon && iconPosition === 'right' ? (
+            <View style={styles.iconRight}>{icon}</View>
+          ) : null}
         </View>
       )}
     </TouchableOpacity>

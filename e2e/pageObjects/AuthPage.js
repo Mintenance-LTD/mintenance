@@ -5,41 +5,85 @@
 
 class AuthPage {
   // Welcome screen elements
-  get welcomeScreen() { return element(by.id('welcome-screen')); }
-  get signInButton() { return element(by.id('sign-in-button')); }
-  get signUpButton() { return element(by.id('sign-up-button')); }
-  get skipButton() { return element(by.id('skip-button')); }
+  get welcomeScreen() {
+    return element(by.id('welcome-screen'));
+  }
+  get signInButton() {
+    return element(by.id('sign-in-button'));
+  }
+  get signUpButton() {
+    return element(by.id('sign-up-button'));
+  }
+  get skipButton() {
+    return element(by.id('skip-button'));
+  }
 
   // Sign in form elements
-  get signInScreen() { return element(by.id('sign-in-screen')); }
-  get emailInput() { return element(by.id('email-input')); }
-  get passwordInput() { return element(by.id('password-input')); }
-  get signInSubmitButton() { return element(by.id('sign-in-submit-button')); }
-  get forgotPasswordLink() { return element(by.id('forgot-password-link')); }
-  get showPasswordToggle() { return element(by.id('show-password-toggle')); }
+  get signInScreen() {
+    return element(by.id('sign-in-screen'));
+  }
+  get emailInput() {
+    return element(by.id('email-input'));
+  }
+  get passwordInput() {
+    return element(by.id('password-input'));
+  }
+  get signInSubmitButton() {
+    return element(by.id('sign-in-submit-button'));
+  }
+  get forgotPasswordLink() {
+    return element(by.id('forgot-password-link'));
+  }
+  get showPasswordToggle() {
+    return element(by.id('show-password-toggle'));
+  }
 
   // Sign up form elements
-  get signUpScreen() { return element(by.id('sign-up-screen')); }
-  get firstNameInput() { return element(by.id('first-name-input')); }
-  get lastNameInput() { return element(by.id('last-name-input')); }
-  get confirmPasswordInput() { return element(by.id('confirm-password-input')); }
-  get roleHomeowner() { return element(by.id('role-homeowner')); }
-  get roleContractor() { return element(by.id('role-contractor')); }
-  get createAccountButton() { return element(by.id('create-account-button')); }
-  get termsCheckbox() { return element(by.id('terms-checkbox')); }
-  get privacyPolicyLink() { return element(by.id('privacy-policy-link')); }
+  get signUpScreen() {
+    return element(by.id('sign-up-screen'));
+  }
+  get firstNameInput() {
+    return element(by.id('first-name-input'));
+  }
+  get lastNameInput() {
+    return element(by.id('last-name-input'));
+  }
+  get confirmPasswordInput() {
+    return element(by.id('confirm-password-input'));
+  }
+  get roleHomeowner() {
+    return element(by.id('role-homeowner'));
+  }
+  get roleContractor() {
+    return element(by.id('role-contractor'));
+  }
+  get createAccountButton() {
+    return element(by.id('create-account-button'));
+  }
+  get termsCheckbox() {
+    return element(by.id('terms-checkbox'));
+  }
+  get privacyPolicyLink() {
+    return element(by.id('privacy-policy-link'));
+  }
 
   // Common elements
-  get backButton() { return element(by.id('back-button')); }
-  get loadingSpinner() { return element(by.id('loading-spinner')); }
-  get errorMessage() { return element(by.id('error-message')); }
-  get successMessage() { return element(by.id('success-message')); }
+  get backButton() {
+    return element(by.id('back-button'));
+  }
+  get loadingSpinner() {
+    return element(by.id('loading-spinner'));
+  }
+  get errorMessage() {
+    return element(by.id('error-message'));
+  }
+  get successMessage() {
+    return element(by.id('success-message'));
+  }
 
   // Actions
   async waitForWelcomeScreen() {
-    await waitFor(this.welcomeScreen)
-      .toBeVisible()
-      .withTimeout(10000);
+    await waitFor(this.welcomeScreen).toBeVisible().withTimeout(10000);
   }
 
   async navigateToSignIn() {
@@ -81,13 +125,13 @@ class AuthPage {
     await this.confirmPasswordInput.replaceText(userData.password);
     await this.firstNameInput.replaceText(userData.firstName);
     await this.lastNameInput.replaceText(userData.lastName);
-    
+
     if (userData.role === 'homeowner') {
       await this.roleHomeowner.tap();
     } else if (userData.role === 'contractor') {
       await this.roleContractor.tap();
     }
-    
+
     await this.termsCheckbox.tap();
   }
 

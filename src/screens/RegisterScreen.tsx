@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +18,10 @@ import { AuthStackParamList } from '../navigation/AppNavigator';
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
 
-type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
+type RegisterScreenNavigationProp = StackNavigationProp<
+  AuthStackParamList,
+  'Register'
+>;
 
 interface Props {
   navigation: RegisterScreenNavigationProp;
@@ -58,59 +72,74 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-
   return (
     <View style={styles.container}>
       {/* Dark Blue Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Image 
-            source={require('../../assets/icon.png')} 
+          <Image
+            source={require('../../assets/icon.png')}
             style={styles.headerLogo}
-            resizeMode="contain"
+            resizeMode='contain'
           />
           <Text style={styles.headerTitle}>Mintenance</Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
         >
           <View style={styles.formContainer}>
             {/* Role Selection Toggle */}
-            <View 
+            <View
               style={styles.roleSelectionContainer}
-              accessibilityRole="radiogroup"
-              accessibilityLabel="Account type selection"
+              accessibilityRole='radiogroup'
+              accessibilityLabel='Account type selection'
             >
               <TouchableOpacity
-                style={[styles.roleToggle, role === 'homeowner' && styles.roleToggleActive]}
+                style={[
+                  styles.roleToggle,
+                  role === 'homeowner' && styles.roleToggleActive,
+                ]}
                 onPress={() => setRole('homeowner')}
-                accessibilityRole="radio"
-                accessibilityLabel="Homeowner account"
-                accessibilityHint="Select homeowner account type to find and hire contractors"
+                accessibilityRole='radio'
+                accessibilityLabel='Homeowner account'
+                accessibilityHint='Select homeowner account type to find and hire contractors'
                 accessibilityState={{ selected: role === 'homeowner' }}
               >
-                <Text style={[styles.roleToggleText, role === 'homeowner' && styles.roleToggleTextActive]}>
+                <Text
+                  style={[
+                    styles.roleToggleText,
+                    role === 'homeowner' && styles.roleToggleTextActive,
+                  ]}
+                >
                   Homeowner
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                style={[styles.roleToggle, role === 'contractor' && styles.roleToggleActive]}
+                style={[
+                  styles.roleToggle,
+                  role === 'contractor' && styles.roleToggleActive,
+                ]}
                 onPress={() => setRole('contractor')}
-                accessibilityRole="radio"
-                accessibilityLabel="Contractor account"
-                accessibilityHint="Select contractor account type to offer services to homeowners"
+                accessibilityRole='radio'
+                accessibilityLabel='Contractor account'
+                accessibilityHint='Select contractor account type to offer services to homeowners'
                 accessibilityState={{ selected: role === 'contractor' }}
               >
-                <Text style={[styles.roleToggleText, role === 'contractor' && styles.roleToggleTextActive]}>
+                <Text
+                  style={[
+                    styles.roleToggleText,
+                    role === 'contractor' && styles.roleToggleTextActive,
+                  ]}
+                >
                   Contractor
                 </Text>
               </TouchableOpacity>
@@ -118,138 +147,140 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Full Name Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="person-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='person-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Full Name"
+                placeholder='Full Name'
                 value={fullName}
                 onChangeText={setFullName}
-                autoCapitalize="words"
+                autoCapitalize='words'
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Full name"
-                accessibilityHint="Enter your first and last name"
-                accessibilityRole="none"
-                textContentType="name"
-                autoComplete="name"
+                accessibilityLabel='Full name'
+                accessibilityHint='Enter your first and last name'
+                accessibilityRole='none'
+                textContentType='name'
+                autoComplete='name'
               />
             </View>
-            
+
             {/* Email Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="mail-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='mail-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Email"
+                placeholder='Email'
                 value={email}
                 onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                keyboardType='email-address'
+                autoCapitalize='none'
                 autoCorrect={false}
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Email address"
-                accessibilityHint="Enter your email address for account creation"
-                accessibilityRole="none"
-                textContentType="emailAddress"
-                autoComplete="email"
+                accessibilityLabel='Email address'
+                accessibilityHint='Enter your email address for account creation'
+                accessibilityRole='none'
+                textContentType='emailAddress'
+                autoComplete='email'
               />
             </View>
 
             {/* Phone Number Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="call-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='call-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Phone Number"
+                placeholder='Phone Number'
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
+                keyboardType='phone-pad'
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Phone number"
-                accessibilityHint="Enter your phone number for account verification"
-                accessibilityRole="none"
-                textContentType="telephoneNumber"
-                autoComplete="tel"
+                accessibilityLabel='Phone number'
+                accessibilityHint='Enter your phone number for account verification'
+                accessibilityRole='none'
+                textContentType='telephoneNumber'
+                autoComplete='tel'
               />
             </View>
-            
+
             {/* Password Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="lock-closed-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='lock-closed-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Password"
+                placeholder='Password'
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Password"
-                accessibilityHint="Create a secure password with at least 8 characters"
-                accessibilityRole="none"
-                textContentType="newPassword"
-                autoComplete="password-new"
+                accessibilityLabel='Password'
+                accessibilityHint='Create a secure password with at least 8 characters'
+                accessibilityRole='none'
+                textContentType='newPassword'
+                autoComplete='password-new'
               />
             </View>
 
             {/* Confirm Password Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="lock-closed-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='lock-closed-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Confirm Password"
+                placeholder='Confirm Password'
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Confirm password"
-                accessibilityHint="Re-enter your password to confirm it matches"
-                accessibilityRole="none"
-                textContentType="newPassword"
-                autoComplete="password-new"
+                accessibilityLabel='Confirm password'
+                accessibilityHint='Re-enter your password to confirm it matches'
+                accessibilityRole='none'
+                textContentType='newPassword'
+                autoComplete='password-new'
               />
             </View>
-            
+
             {/* Green Create Account Button */}
             <Button
-              variant="success"
+              variant='success'
               title={loading ? 'Creating Account...' : 'Create Account'}
               onPress={handleRegister}
               disabled={loading}
               loading={loading}
-              accessibilityLabel={loading ? 'Creating account' : 'Create account'}
+              accessibilityLabel={
+                loading ? 'Creating account' : 'Create account'
+              }
               fullWidth
               style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 24 }}
             />
-            
+
             {/* Terms & Privacy Note */}
             <Text style={styles.termsText}>
               By signing up, you agree to our{' '}

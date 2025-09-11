@@ -12,7 +12,6 @@ import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
 import { AuthService } from '../../services/AuthService';
 import { logger } from '../../utils/logger';
 
-
 // Mock all external services
 jest.mock('../../config/supabase');
 jest.mock('expo-notifications');
@@ -43,11 +42,11 @@ describe('End-to-End User Journeys', () => {
   describe('Complete Job Workflow', () => {
     it('should complete full homeowner-to-contractor job workflow', async () => {
       const testJobId = 'test-job-' + Date.now();
-      const testAmount = 150.00;
+      const testAmount = 150.0;
 
       // Step 1: Homeowner posts a job
       logger.debug('🏠 Step 1: Homeowner posts job');
-      
+
       const jobData = {
         title: 'Kitchen Faucet Repair',
         description: 'Leaky kitchen faucet needs professional repair',
@@ -74,44 +73,50 @@ describe('End-to-End User Journeys', () => {
 
       // Step 2: AI analyzes the job
       logger.debug('🤖 Step 2: AI analyzes job');
-      
+
       RealAIAnalysisService.analyzeJobPhotos = jest.fn().mockResolvedValueOnce({
         confidence: 85,
         detectedItems: ['Kitchen Faucet', 'Sink'],
-        safetyConcerns: [{
-          concern: 'Water damage risk',
-          severity: 'Medium',
-          description: 'Turn off water supply before starting work'
-        }],
+        safetyConcerns: [
+          {
+            concern: 'Water damage risk',
+            severity: 'Medium',
+            description: 'Turn off water supply before starting work',
+          },
+        ],
         recommendedActions: [
           'Turn off water supply',
           'Remove old faucet',
           'Install new faucet',
-          'Test for leaks'
+          'Test for leaks',
         ],
         estimatedComplexity: 'Medium',
-        suggestedTools: ['Adjustable wrench', 'Plumber\'s tape', 'Pipe wrench'],
+        suggestedTools: ['Adjustable wrench', "Plumber's tape", 'Pipe wrench'],
         estimatedDuration: '2-3 hours',
-        detectedEquipment: [{
-          name: 'Kitchen Faucet',
-          confidence: 90,
-          location: 'Above sink'
-        }]
+        detectedEquipment: [
+          {
+            name: 'Kitchen Faucet',
+            confidence: 90,
+            location: 'Above sink',
+          },
+        ],
       });
 
-      const aiAnalysis = await RealAIAnalysisService.analyzeJobPhotos(createdJob);
+      const aiAnalysis =
+        await RealAIAnalysisService.analyzeJobPhotos(createdJob);
       expect(aiAnalysis!.confidence).toBe(85);
       expect(aiAnalysis!.detectedItems).toContain('Kitchen Faucet');
 
       // Step 3: Contractor views and bids on job
       logger.debug('🔨 Step 3: Contractor submits bid');
-      
+
       JobService.submitBid = jest.fn().mockResolvedValueOnce({
         id: 'bid-789',
         jobId: testJobId,
         contractorId: mockContractor.id,
         amount: testAmount,
-        description: 'I can fix your faucet today. 5 years experience with kitchen plumbing.',
+        description:
+          'I can fix your faucet today. 5 years experience with kitchen plumbing.',
         status: 'pending',
         createdAt: new Date().toISOString(),
       });
@@ -120,7 +125,8 @@ describe('End-to-End User Journeys', () => {
         jobId: testJobId,
         contractorId: mockContractor.id,
         amount: testAmount,
-        description: 'I can fix your faucet today. 5 years experience with kitchen plumbing.',
+        description:
+          'I can fix your faucet today. 5 years experience with kitchen plumbing.',
       });
 
       expect(bid.jobId).toBe(testJobId);
@@ -128,16 +134,20 @@ describe('End-to-End User Journeys', () => {
 
       // Step 4: Homeowner accepts bid
       logger.debug('✅ Step 4: Homeowner accepts bid');
-      
+
       JobService.acceptBid = jest.fn().mockResolvedValueOnce(undefined);
       JobService.updateJobStatus = jest.fn().mockResolvedValueOnce(undefined);
 
       await JobService.acceptBid(bid.id);
-      await JobService.updateJobStatus(testJobId, 'assigned', mockContractor.id);
+      await JobService.updateJobStatus(
+        testJobId,
+        'assigned',
+        mockContractor.id
+      );
 
       // Step 5: Payment setup (escrow)
       logger.debug('💳 Step 5: Payment setup');
-      
+
       PaymentService.createJobPayment = jest.fn().mockResolvedValueOnce({
         id: 'pi_test_payment',
         amount: testAmount * 100,
@@ -157,7 +167,10 @@ describe('End-to-End User Journeys', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const paymentIntent = await PaymentService.createJobPayment(testJobId, testAmount);
+      const paymentIntent = await PaymentService.createJobPayment(
+        testJobId,
+        testAmount
+      );
       const escrowTransaction = await PaymentService.createEscrowTransaction(
         testJobId,
         mockHomeowner.id,
@@ -170,7 +183,7 @@ describe('End-to-End User Journeys', () => {
 
       // Step 6: Real-time messaging
       logger.debug('💬 Step 6: Real-time messaging');
-      
+
       MessagingService.sendMessage = jest.fn().mockResolvedValueOnce({
         id: 'msg-1',
         jobId: testJobId,
@@ -210,12 +223,16 @@ describe('End-to-End User Journeys', () => {
       );
 
       expect(message1.messageText).toBe('Hi! When can you start the repair?');
-      expect(message2.messageText).toBe('I can start tomorrow at 9 AM. Will that work?');
+      expect(message2.messageText).toBe(
+        'I can start tomorrow at 9 AM. Will that work?'
+      );
 
       // Step 7: Push notifications
       logger.debug('🔔 Step 7: Push notifications');
-      
-      NotificationService.sendNotificationToUser = jest.fn().mockResolvedValueOnce(undefined);
+
+      NotificationService.sendNotificationToUser = jest
+        .fn()
+        .mockResolvedValueOnce(undefined);
 
       await NotificationService.sendNotificationToUser(
         mockContractor.id,
@@ -231,21 +248,28 @@ describe('End-to-End User Journeys', () => {
         'message'
       );
 
-      expect(NotificationService.sendNotificationToUser).toHaveBeenCalledTimes(2);
+      expect(NotificationService.sendNotificationToUser).toHaveBeenCalledTimes(
+        2
+      );
 
       // Step 8: Job completion and payment release
       logger.debug('🏁 Step 8: Job completion');
-      
+
       JobService.completeJob = jest.fn().mockResolvedValueOnce(undefined);
-      PaymentService.releaseEscrowPayment = jest.fn().mockResolvedValueOnce(undefined);
+      PaymentService.releaseEscrowPayment = jest
+        .fn()
+        .mockResolvedValueOnce(undefined);
 
       await JobService.completeJob(testJobId);
       await PaymentService.releaseEscrowPayment(escrowTransaction.id);
 
       // Step 9: Final notification
       logger.debug('🎉 Step 9: Completion notification');
-      
-      await NotificationService.notifyPaymentReceived(mockContractor.id, testAmount);
+
+      await NotificationService.notifyPaymentReceived(
+        mockContractor.id,
+        testAmount
+      );
 
       // Verify the entire workflow completed successfully
       expect(JobService.createJob).toHaveBeenCalled();
@@ -255,7 +279,7 @@ describe('End-to-End User Journeys', () => {
       expect(MessagingService.sendMessage).toHaveBeenCalledTimes(2);
       expect(JobService.completeJob).toHaveBeenCalled();
       expect(PaymentService.releaseEscrowPayment).toHaveBeenCalled();
-      
+
       logger.debug('✅ Complete job workflow test passed!');
     }, 10000); // 10 second timeout for complex test
   });
@@ -263,12 +287,12 @@ describe('End-to-End User Journeys', () => {
   describe('Error Handling Scenarios', () => {
     it('should handle payment failure gracefully', async () => {
       const testJobId = 'failed-payment-job';
-      const testAmount = 200.00;
+      const testAmount = 200.0;
 
       // Simulate payment failure
-      PaymentService.createJobPayment = jest.fn().mockRejectedValueOnce(
-        new Error('Payment method declined')
-      );
+      PaymentService.createJobPayment = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Payment method declined'));
 
       try {
         await PaymentService.createJobPayment(testJobId, testAmount);
@@ -283,9 +307,9 @@ describe('End-to-End User Journeys', () => {
     });
 
     it('should handle messaging service outage', async () => {
-      MessagingService.sendMessage = jest.fn().mockRejectedValueOnce(
-        new Error('Database connection failed')
-      );
+      MessagingService.sendMessage = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Database connection failed'));
 
       try {
         await MessagingService.sendMessage(
@@ -301,8 +325,10 @@ describe('End-to-End User Journeys', () => {
     });
 
     it('should handle notification delivery failure', async () => {
-      NotificationService.sendNotificationToUser = jest.fn().mockResolvedValueOnce(undefined);
-      
+      NotificationService.sendNotificationToUser = jest
+        .fn()
+        .mockResolvedValueOnce(undefined);
+
       // Should not throw even if notification fails internally
       await expect(
         NotificationService.sendNotificationToUser(
@@ -319,22 +345,28 @@ describe('End-to-End User Journeys', () => {
     it('should handle complete sign-up and onboarding flow', async () => {
       // Mock sign-up
       AuthService.signUp = jest.fn().mockResolvedValueOnce(undefined);
-      AuthService.getCurrentUser = jest.fn().mockResolvedValueOnce(mockHomeowner);
+      AuthService.getCurrentUser = jest
+        .fn()
+        .mockResolvedValueOnce(mockHomeowner);
 
       await AuthService.signUp({
         email: 'newuser@test.com',
         password: 'securepassword123',
         firstName: 'Test',
         lastName: 'User',
-        role: 'homeowner'
+        role: 'homeowner',
       });
 
       const currentUser = await AuthService.getCurrentUser();
       expect(currentUser!.email).toBe('homeowner@test.com');
 
       // Mock push notification setup
-      NotificationService.initialize = jest.fn().mockResolvedValueOnce('push-token-123');
-      NotificationService.savePushToken = jest.fn().mockResolvedValueOnce(undefined);
+      NotificationService.initialize = jest
+        .fn()
+        .mockResolvedValueOnce('push-token-123');
+      NotificationService.savePushToken = jest
+        .fn()
+        .mockResolvedValueOnce(undefined);
 
       const pushToken = await NotificationService.initialize();
       await NotificationService.savePushToken(currentUser!.id, pushToken!);
@@ -351,8 +383,9 @@ describe('End-to-End User Journeys', () => {
       const messageCount = 100;
       const messages: Promise<any>[] = [];
 
-      MessagingService.sendMessage = jest.fn().mockImplementation(
-        (jobId, receiverId, text, senderId) =>
+      MessagingService.sendMessage = jest
+        .fn()
+        .mockImplementation((jobId, receiverId, text, senderId) =>
           Promise.resolve({
             id: `msg-${Math.random()}`,
             jobId,
@@ -364,7 +397,7 @@ describe('End-to-End User Journeys', () => {
             createdAt: new Date().toISOString(),
             senderName: 'Test User',
           })
-      );
+        );
 
       // Send multiple messages concurrently
       for (let i = 0; i < messageCount; i++) {
@@ -386,7 +419,9 @@ describe('End-to-End User Journeys', () => {
     it('should handle batch notifications efficiently', async () => {
       const userIds = Array.from({ length: 50 }, (_, i) => `user-${i}`);
 
-      NotificationService.sendNotificationToUsers = jest.fn().mockResolvedValueOnce(undefined);
+      NotificationService.sendNotificationToUsers = jest
+        .fn()
+        .mockResolvedValueOnce(undefined);
 
       await NotificationService.sendNotificationToUsers(
         userIds,
@@ -396,14 +431,16 @@ describe('End-to-End User Journeys', () => {
       );
 
       // Should call batch API once, not individual calls
-      expect(NotificationService.sendNotificationToUsers).toHaveBeenCalledTimes(1);
+      expect(NotificationService.sendNotificationToUsers).toHaveBeenCalledTimes(
+        1
+      );
     });
   });
 
   describe('Data Consistency Tests', () => {
     it('should maintain data consistency across services', async () => {
       const testJobId = 'consistency-test-job';
-      
+
       // Create job
       JobService.createJob = jest.fn().mockResolvedValueOnce({
         id: testJobId,
@@ -450,9 +487,9 @@ describe('End-to-End User Journeys', () => {
 
   describe('Integration Resilience', () => {
     it('should continue functioning when AI service is unavailable', async () => {
-      RealAIAnalysisService.analyzeJobPhotos = jest.fn().mockRejectedValueOnce(
-        new Error('AI service unavailable')
-      );
+      RealAIAnalysisService.analyzeJobPhotos = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('AI service unavailable'));
 
       // Should fall back to rule-based analysis
       const mockJob = {
@@ -478,9 +515,9 @@ describe('End-to-End User Journeys', () => {
         messageText: 'Test message',
       });
 
-      NotificationService.sendNotificationToUser = jest.fn().mockRejectedValueOnce(
-        new Error('Notification service down')
-      );
+      NotificationService.sendNotificationToUser = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Notification service down'));
 
       // Message should still be sent
       const message = await MessagingService.sendMessage(

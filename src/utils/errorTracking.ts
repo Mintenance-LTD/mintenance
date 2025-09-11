@@ -1,7 +1,7 @@
 /**
  * COMPREHENSIVE ERROR TRACKING WITH SENTRY
  * Production-grade error monitoring and alerting
- * 
+ *
  * Features:
  * - Real-time error tracking and alerting
  * - Performance monitoring
@@ -12,6 +12,8 @@
  */
 
 // Sentry import with Expo integration
+import { logger } from './logger';
+
 let Sentry: any = null;
 try {
   Sentry = require('sentry-expo');
@@ -26,8 +28,6 @@ try {
   }
 }
 
-import { logger } from './logger';
-
 // Initialize Sentry configuration
 const SENTRY_CONFIG = {
   dsn: process.env.SENTRY_DSN || 'https://your-sentry-dsn@sentry.io/project-id',
@@ -39,43 +39,43 @@ const SENTRY_CONFIG = {
   enableOutOfMemoryTracking: true,
   enableNativeCrashHandling: true,
   attachStackTrace: true,
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
 };
 
 // Error severity levels
 export enum ErrorSeverity {
   FATAL = 'fatal',
-  ERROR = 'error', 
+  ERROR = 'error',
   WARNING = 'warning',
   INFO = 'info',
-  DEBUG = 'debug'
+  DEBUG = 'debug',
 }
 
 // Error categories for better organization
 export enum ErrorCategory {
   // Technical Errors
   NETWORK = 'network',
-  DATABASE = 'database', 
+  DATABASE = 'database',
   AUTHENTICATION = 'authentication',
   PAYMENT = 'payment',
   ML_INFERENCE = 'ml_inference',
   FILE_STORAGE = 'file_storage',
-  
+
   // Business Logic Errors
   JOB_PROCESSING = 'job_processing',
   CONTRACTOR_MATCHING = 'contractor_matching',
   PRICING_CALCULATION = 'pricing_calculation',
   NOTIFICATION_DELIVERY = 'notification_delivery',
-  
+
   // User Experience Errors
   UI_RENDERING = 'ui_rendering',
   NAVIGATION = 'navigation',
   FORM_VALIDATION = 'form_validation',
-  
+
   // System Errors
   PERFORMANCE = 'performance',
   MEMORY = 'memory',
-  STARTUP = 'startup'
+  STARTUP = 'startup',
 }
 
 // Business context interface
@@ -106,7 +106,7 @@ export class ErrorTracker {
    */
   static initialize(): void {
     const tracker = new ErrorTracker();
-    
+
     if (tracker.initialized) {
       return;
     }
@@ -123,19 +123,21 @@ export class ErrorTracker {
                 return null;
               }
             }
-            
+
             // Add custom processing
             return tracker.processEvent(event);
           },
           beforeBreadcrumb(breadcrumb: any) {
             // Filter sensitive information from breadcrumbs
-            if (breadcrumb.message?.includes('password') || 
-                breadcrumb.message?.includes('token')) {
+            if (
+              breadcrumb.message?.includes('password') ||
+              breadcrumb.message?.includes('token')
+            ) {
               return null;
             }
-            
+
             return breadcrumb;
-          }
+          },
         });
 
         // Set up performance monitoring
@@ -143,12 +145,13 @@ export class ErrorTracker {
         logger.info('Error tracking with Sentry initialized successfully');
       } else {
         // Fallback error tracking without Sentry
-        logger.info('Error tracking initialized with fallback system (Sentry not available)');
+        logger.info(
+          'Error tracking initialized with fallback system (Sentry not available)'
+        );
         tracker.setupFallbackErrorTracking();
       }
-      
+
       tracker.initialized = true;
-      
     } catch (error) {
       console.error('Failed to initialize error tracking:', error);
     }
@@ -158,7 +161,7 @@ export class ErrorTracker {
    * Track application errors with rich context
    */
   static captureError(
-    error: Error, 
+    error: Error,
     category: ErrorCategory,
     severity: ErrorSeverity = ErrorSeverity.ERROR,
     context?: BusinessContext,
@@ -181,7 +184,7 @@ export class ErrorTracker {
           severity,
           feature: context?.feature,
           userJourney: context?.userJourney,
-          experiment: context?.experimentVariant
+          experiment: context?.experimentVariant,
         });
 
         // Set additional context
@@ -189,7 +192,7 @@ export class ErrorTracker {
           jobId: context?.jobId,
           contractorId: context?.contractorId,
           timestamp: new Date().toISOString(),
-          ...extra
+          ...extra,
         });
 
         // Capture the error
@@ -197,8 +200,8 @@ export class ErrorTracker {
           level: severity,
           tags: {
             category,
-            severity
-          }
+            severity,
+          },
         });
 
         logger.error('Error tracked with Sentry', {
@@ -206,14 +209,14 @@ export class ErrorTracker {
           category,
           severity,
           error: error.message,
-          context
+          context,
         });
 
         return eventId;
       } else {
         // Fallback error tracking
         const fallbackEventId = `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         logger.error('Error tracked (fallback)', {
           eventId: fallbackEventId,
           category,
@@ -221,12 +224,11 @@ export class ErrorTracker {
           error: error.message,
           stack: error.stack,
           context,
-          extra
+          extra,
         });
 
         return fallbackEventId;
       }
-      
     } catch (trackingError) {
       console.error('Failed to track error:', trackingError);
       return '';
@@ -252,17 +254,23 @@ export class ErrorTracker {
     const error = new Error(errorMessage);
     error.name = 'BusinessLogicError';
 
-    return this.captureError(error, category, ErrorSeverity.ERROR, {
-      userId: businessData.userId,
-      jobId: businessData.jobId,
-      contractorId: businessData.contractorId,
-      feature: businessData.operation
-    }, {
-      operation: businessData.operation,
-      input: businessData.input,
-      expected: businessData.expected,
-      actual: businessData.actual
-    });
+    return this.captureError(
+      error,
+      category,
+      ErrorSeverity.ERROR,
+      {
+        userId: businessData.userId,
+        jobId: businessData.jobId,
+        contractorId: businessData.contractorId,
+        feature: businessData.operation,
+      },
+      {
+        operation: businessData.operation,
+        input: businessData.input,
+        expected: businessData.expected,
+        actual: businessData.actual,
+      }
+    );
   }
 
   /**
@@ -275,15 +283,23 @@ export class ErrorTracker {
     context?: BusinessContext
   ): void {
     if (duration > threshold) {
-      const error = new Error(`Performance threshold exceeded: ${operation} took ${duration}ms (threshold: ${threshold}ms)`);
+      const error = new Error(
+        `Performance threshold exceeded: ${operation} took ${duration}ms (threshold: ${threshold}ms)`
+      );
       error.name = 'PerformanceIssue';
 
-      this.captureError(error, ErrorCategory.PERFORMANCE, ErrorSeverity.WARNING, context, {
-        operation,
-        duration,
-        threshold,
-        performanceRatio: duration / threshold
-      });
+      this.captureError(
+        error,
+        ErrorCategory.PERFORMANCE,
+        ErrorSeverity.WARNING,
+        context,
+        {
+          operation,
+          duration,
+          threshold,
+          performanceRatio: duration / threshold,
+        }
+      );
     }
   }
 
@@ -301,7 +317,7 @@ export class ErrorTracker {
       category,
       level,
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -318,7 +334,7 @@ export class ErrorTracker {
       id: user.id,
       email: user.email,
       username: user.role,
-      segment: user.segment
+      segment: user.segment,
     });
   }
 
@@ -353,8 +369,9 @@ export class ErrorTracker {
     if (event.exception?.values?.[0]) {
       const error = event.exception.values[0];
       const errorType = error.type || 'UnknownError';
-      const errorLocation = error.stacktrace?.frames?.[0]?.filename || 'unknown';
-      
+      const errorLocation =
+        error.stacktrace?.frames?.[0]?.filename || 'unknown';
+
       event.fingerprint = [errorType, errorLocation];
     }
 
@@ -364,7 +381,7 @@ export class ErrorTracker {
       ...event.contexts.app,
       name: 'Mintenance',
       version: SENTRY_CONFIG.release,
-      build: SENTRY_CONFIG.dist
+      build: SENTRY_CONFIG.dist,
     };
 
     return event;
@@ -381,13 +398,13 @@ export class ErrorTracker {
           message: event.error?.message,
           filename: event.filename,
           lineno: event.lineno,
-          colno: event.colno
+          colno: event.colno,
         });
       });
 
       window.addEventListener('unhandledrejection', (event) => {
         logger.error('Unhandled promise rejection (fallback):', {
-          reason: event.reason
+          reason: event.reason,
         });
       });
     }
@@ -401,7 +418,7 @@ export class ErrorTracker {
       // Monitor app startup time with Sentry
       const startupTransaction = Sentry.startTransaction({
         name: 'app_startup',
-        op: 'app.startup'
+        op: 'app.startup',
       });
 
       // Monitor critical operations
@@ -422,20 +439,20 @@ export class ErrorTracker {
     // These would be integrated with your business services
     const criticalOperations = [
       'job_posting',
-      'contractor_matching', 
+      'contractor_matching',
       'payment_processing',
       'ml_pricing_calculation',
-      'notification_delivery'
+      'notification_delivery',
     ];
 
-    criticalOperations.forEach(operation => {
+    criticalOperations.forEach((operation) => {
       Sentry.addGlobalEventProcessor((event: any) => {
         if (event.tags?.operation === operation) {
           event.level = 'error';
           event.contexts = event.contexts || {};
           event.contexts.critical_operation = {
             name: operation,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         }
         return event;
@@ -456,7 +473,7 @@ export class ErrorTracker {
       initialized: ErrorTracker.instance?.initialized || false,
       lastEventId: Sentry.lastEventId(),
       environment: SENTRY_CONFIG.environment,
-      release: SENTRY_CONFIG.release
+      release: SENTRY_CONFIG.release,
     };
   }
 }
@@ -473,14 +490,20 @@ export const trackAPIError = (
   statusCode?: number,
   responseTime?: number
 ): string => {
-  return ErrorTracker.captureError(error, ErrorCategory.NETWORK, ErrorSeverity.ERROR, {
-    feature: `api_${endpoint}`
-  }, {
-    endpoint,
-    method,
-    statusCode,
-    responseTime
-  });
+  return ErrorTracker.captureError(
+    error,
+    ErrorCategory.NETWORK,
+    ErrorSeverity.ERROR,
+    {
+      feature: `api_${endpoint}`,
+    },
+    {
+      endpoint,
+      method,
+      statusCode,
+      responseTime,
+    }
+  );
 };
 
 /**
@@ -492,13 +515,19 @@ export const trackMLError = (
   inputData: any,
   inference?: any
 ): string => {
-  return ErrorTracker.captureError(error, ErrorCategory.ML_INFERENCE, ErrorSeverity.ERROR, {
-    feature: `ml_${modelName}`
-  }, {
-    modelName,
-    inputDataSize: JSON.stringify(inputData).length,
-    hasInference: !!inference
-  });
+  return ErrorTracker.captureError(
+    error,
+    ErrorCategory.ML_INFERENCE,
+    ErrorSeverity.ERROR,
+    {
+      feature: `ml_${modelName}`,
+    },
+    {
+      modelName,
+      inputDataSize: JSON.stringify(inputData).length,
+      hasInference: !!inference,
+    }
+  );
 };
 
 /**
@@ -510,14 +539,20 @@ export const trackPaymentError = (
   amount: number,
   customerId: string
 ): string => {
-  return ErrorTracker.captureError(error, ErrorCategory.PAYMENT, ErrorSeverity.FATAL, {
-    userId: customerId,
-    feature: 'payment_processing'
-  }, {
-    paymentIntentId,
-    amount,
-    customerId
-  });
+  return ErrorTracker.captureError(
+    error,
+    ErrorCategory.PAYMENT,
+    ErrorSeverity.FATAL,
+    {
+      userId: customerId,
+      feature: 'payment_processing',
+    },
+    {
+      paymentIntentId,
+      amount,
+      customerId,
+    }
+  );
 };
 
 /**
@@ -529,20 +564,26 @@ export const trackJobError = (
   operation: string,
   userId?: string
 ): string => {
-  return ErrorTracker.captureError(error, ErrorCategory.JOB_PROCESSING, ErrorSeverity.ERROR, {
-    userId,
-    jobId,
-    feature: `job_${operation}`
-  }, {
-    operation,
-    jobId
-  });
+  return ErrorTracker.captureError(
+    error,
+    ErrorCategory.JOB_PROCESSING,
+    ErrorSeverity.ERROR,
+    {
+      userId,
+      jobId,
+      feature: `job_${operation}`,
+    },
+    {
+      operation,
+      jobId,
+    }
+  );
 };
 
 // Initialize error tracking
 export const initializeErrorTracking = (): void => {
   ErrorTracker.initialize();
-  
+
   // Set up global error handlers
   if (typeof window !== 'undefined') {
     window.addEventListener('unhandledrejection', (event) => {

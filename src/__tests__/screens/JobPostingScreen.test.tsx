@@ -37,7 +37,10 @@ const mockUser = {
 describe('JobPostingScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (nav.useNavigation as jest.Mock).mockReturnValue({ navigate: mockNavigate, goBack: mockGoBack });
+    (nav.useNavigation as jest.Mock).mockReturnValue({
+      navigate: mockNavigate,
+      goBack: mockGoBack,
+    });
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
@@ -76,7 +79,10 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = render(<JobPostingScreen />);
 
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky faucet needs repair');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky faucet needs repair'
+    );
     fireEvent.changeText(getByTestId('job-location-input'), '123 Main St');
     fireEvent.changeText(getByTestId('job-budget-input'), '-50');
     fireEvent.press(getByText('Post Job'));
@@ -94,7 +100,9 @@ describe('JobPostingScreen', () => {
     fireEvent.press(getByText('Post Job'));
 
     await waitFor(() => {
-      expect(getByText('Description must be at least 20 characters')).toBeTruthy();
+      expect(
+        getByText('Description must be at least 20 characters')
+      ).toBeTruthy();
     });
   });
 
@@ -196,8 +204,14 @@ describe('JobPostingScreen', () => {
 
     // Fill form
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky kitchen faucet needs professional repair');
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street, Anytown, USA');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky kitchen faucet needs professional repair'
+    );
+    fireEvent.changeText(
+      getByTestId('job-location-input'),
+      '123 Main Street, Anytown, USA'
+    );
     fireEvent.changeText(getByTestId('job-budget-input'), '150');
 
     // Select category and priority
@@ -241,7 +255,10 @@ describe('JobPostingScreen', () => {
 
     // Fill minimum required fields
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky kitchen faucet needs professional repair');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky kitchen faucet needs professional repair'
+    );
     fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
     fireEvent.changeText(getByTestId('job-budget-input'), '150');
 
@@ -249,18 +266,25 @@ describe('JobPostingScreen', () => {
 
     await waitFor(() => {
       expect(getByText('Job posted successfully!')).toBeTruthy();
-      expect(mockNavigate).toHaveBeenCalledWith('JobDetails', { jobId: 'job-1' });
+      expect(mockNavigate).toHaveBeenCalledWith('JobDetails', {
+        jobId: 'job-1',
+      });
     });
   });
 
   it('shows error message on job creation failure', async () => {
-    mockJobService.createJob.mockRejectedValue(new Error('Failed to create job'));
+    mockJobService.createJob.mockRejectedValue(
+      new Error('Failed to create job')
+    );
 
     const { getByTestId, getByText } = render(<JobPostingScreen />);
 
     // Fill form
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky kitchen faucet needs professional repair');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky kitchen faucet needs professional repair'
+    );
     fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
     fireEvent.changeText(getByTestId('job-budget-input'), '150');
 
@@ -276,7 +300,10 @@ describe('JobPostingScreen', () => {
 
     // Fill form
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky kitchen faucet needs professional repair');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky kitchen faucet needs professional repair'
+    );
     fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
     fireEvent.changeText(getByTestId('job-budget-input'), '150');
 
@@ -293,7 +320,10 @@ describe('JobPostingScreen', () => {
 
     // Fill form
     fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Leaky kitchen faucet needs professional repair');
+    fireEvent.changeText(
+      getByTestId('job-description-input'),
+      'Leaky kitchen faucet needs professional repair'
+    );
     fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
     fireEvent.changeText(getByTestId('job-budget-input'), '150');
 

@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { ServiceArea } from '../services/ServiceAreasService';
@@ -22,25 +17,35 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
   onPress,
   onEdit,
   onToggleActive,
-  onDelete
+  onDelete,
 }) => {
   const getAreaTypeIcon = (type: string) => {
     switch (type) {
-      case 'radius': return 'radio-button-on';
-      case 'polygon': return 'shapes';
-      case 'postal_codes': return 'mail';
-      case 'cities': return 'location';
-      default: return 'map';
+      case 'radius':
+        return 'radio-button-on';
+      case 'polygon':
+        return 'shapes';
+      case 'postal_codes':
+        return 'mail';
+      case 'cities':
+        return 'location';
+      default:
+        return 'map';
     }
   };
 
   const getAreaTypeLabel = (type: string) => {
     switch (type) {
-      case 'radius': return 'Radius Coverage';
-      case 'polygon': return 'Custom Boundary';
-      case 'postal_codes': return 'Postal Codes';
-      case 'cities': return 'City Coverage';
-      default: return type;
+      case 'radius':
+        return 'Radius Coverage';
+      case 'polygon':
+        return 'Custom Boundary';
+      case 'postal_codes':
+        return 'Postal Codes';
+      case 'cities':
+        return 'City Coverage';
+      default:
+        return type;
     }
   };
 
@@ -69,16 +74,28 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
             <Text style={styles.description}>{serviceArea.description}</Text>
           )}
         </View>
-        
+
         <View style={styles.statusContainer}>
-          <View style={[
-            styles.statusIndicator,
-            { backgroundColor: serviceArea.is_active ? theme.colors.success : theme.colors.textSecondary }
-          ]} />
-          <Text style={[
-            styles.statusText,
-            { color: serviceArea.is_active ? theme.colors.success : theme.colors.textSecondary }
-          ]}>
+          <View
+            style={[
+              styles.statusIndicator,
+              {
+                backgroundColor: serviceArea.is_active
+                  ? theme.colors.success
+                  : theme.colors.textSecondary,
+              },
+            ]}
+          />
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color: serviceArea.is_active
+                  ? theme.colors.success
+                  : theme.colors.textSecondary,
+              },
+            ]}
+          >
             {serviceArea.is_active ? 'Active' : 'Inactive'}
           </Text>
         </View>
@@ -86,19 +103,21 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.detailsRow}>
         <View style={styles.areaType}>
-          <Ionicons 
-            name={getAreaTypeIcon(serviceArea.area_type) as any} 
-            size={16} 
-            color={theme.colors.primary} 
+          <Ionicons
+            name={getAreaTypeIcon(serviceArea.area_type) as any}
+            size={16}
+            color={theme.colors.primary}
           />
           <Text style={styles.areaTypeText}>
             {getAreaTypeLabel(serviceArea.area_type)}
           </Text>
         </View>
-        
+
         <View style={styles.priority}>
-          <Ionicons name="flag" size={14} color={theme.colors.warning} />
-          <Text style={styles.priorityText}>Priority {serviceArea.priority_level}</Text>
+          <Ionicons name='flag' size={14} color={theme.colors.warning} />
+          <Text style={styles.priorityText}>
+            Priority {serviceArea.priority_level}
+          </Text>
         </View>
       </View>
 
@@ -106,18 +125,19 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
         <View style={styles.radiusInfo}>
           <Text style={styles.radiusText}>
             Coverage: {formatDistance(serviceArea.radius_km)} radius
-            {serviceArea.max_distance_km && ` • Max: ${formatDistance(serviceArea.max_distance_km)}`}
+            {serviceArea.max_distance_km &&
+              ` • Max: ${formatDistance(serviceArea.max_distance_km)}`}
           </Text>
         </View>
       )}
 
-      {(serviceArea.area_type === 'postal_codes' || serviceArea.area_type === 'cities') && (
+      {(serviceArea.area_type === 'postal_codes' ||
+        serviceArea.area_type === 'cities') && (
         <View style={styles.listInfo}>
           <Text style={styles.listText}>
-            {serviceArea.area_type === 'postal_codes' 
+            {serviceArea.area_type === 'postal_codes'
               ? `${serviceArea.postal_codes?.length || 0} postal codes`
-              : `${serviceArea.cities?.length || 0} cities`
-            }
+              : `${serviceArea.cities?.length || 0} cities`}
           </Text>
         </View>
       )}
@@ -129,21 +149,21 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
             {formatCurrency(serviceArea.base_travel_charge)}
           </Text>
         </View>
-        
+
         <View style={styles.pricingItem}>
           <Text style={styles.pricingLabel}>Per KM</Text>
           <Text style={styles.pricingValue}>
             {formatCurrency(serviceArea.per_km_rate)}
           </Text>
         </View>
-        
+
         <View style={styles.pricingItem}>
           <Text style={styles.pricingLabel}>Min Job</Text>
           <Text style={styles.pricingValue}>
             {formatCurrency(serviceArea.minimum_job_value)}
           </Text>
         </View>
-        
+
         <View style={styles.pricingItem}>
           <Text style={styles.pricingLabel}>Response</Text>
           <Text style={styles.pricingValue}>
@@ -152,7 +172,9 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
         </View>
       </View>
 
-      {(serviceArea.weekend_surcharge > 0 || serviceArea.evening_surcharge > 0 || serviceArea.emergency_available) && (
+      {(serviceArea.weekend_surcharge > 0 ||
+        serviceArea.evening_surcharge > 0 ||
+        serviceArea.emergency_available) && (
         <View style={styles.surchargesRow}>
           {serviceArea.weekend_surcharge > 0 && (
             <View style={styles.surchargeChip}>
@@ -180,19 +202,26 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name="pencil" size={16} color={theme.colors.primary} />
+          <Ionicons name='pencil' size={16} color={theme.colors.primary} />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.actionButton} onPress={onToggleActive}>
-          <Ionicons 
-            name={serviceArea.is_active ? 'pause' : 'play'} 
-            size={16} 
-            color={serviceArea.is_active ? theme.colors.warning : theme.colors.success} 
+          <Ionicons
+            name={serviceArea.is_active ? 'pause' : 'play'}
+            size={16}
+            color={
+              serviceArea.is_active
+                ? theme.colors.warning
+                : theme.colors.success
+            }
           />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={onDelete}>
-          <Ionicons name="trash" size={16} color={theme.colors.error} />
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={onDelete}
+        >
+          <Ionicons name='trash' size={16} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

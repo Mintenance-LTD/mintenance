@@ -40,12 +40,17 @@ describe('LocationService', () => {
 
     it('should return false and log error when permission request fails', async () => {
       const error = new Error('Permission request failed');
-      mockLocation.requestForegroundPermissionsAsync.mockRejectedValueOnce(error);
+      mockLocation.requestForegroundPermissionsAsync.mockRejectedValueOnce(
+        error
+      );
 
       const result = await LocationService.requestLocationPermission();
 
       expect(result).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalledWith('Error requesting location permission:', error);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error requesting location permission:',
+        error
+      );
     });
 
     it('should handle undefined status gracefully', async () => {
@@ -135,7 +140,9 @@ describe('LocationService', () => {
       });
 
       // Mock reverse geocoding failure
-      mockLocation.reverseGeocodeAsync.mockRejectedValueOnce(new Error('Geocoding failed'));
+      mockLocation.reverseGeocodeAsync.mockRejectedValueOnce(
+        new Error('Geocoding failed')
+      );
 
       const result = await LocationService.getCurrentLocation();
 
@@ -247,7 +254,7 @@ describe('LocationService', () => {
         },
       ]);
 
-      const result = await LocationService.reverseGeocode(37.8715, -122.2730);
+      const result = await LocationService.reverseGeocode(37.8715, -122.273);
 
       expect(result).toEqual({
         address: '456 Oak Ave',
@@ -258,7 +265,7 @@ describe('LocationService', () => {
 
       expect(mockLocation.reverseGeocodeAsync).toHaveBeenCalledWith({
         latitude: 37.8715,
-        longitude: -122.2730,
+        longitude: -122.273,
       });
     });
 
@@ -277,7 +284,10 @@ describe('LocationService', () => {
       const result = await LocationService.reverseGeocode(37.7749, -122.4194);
 
       expect(result).toEqual({});
-      expect(mockLogger.error).toHaveBeenCalledWith('Error reverse geocoding:', error);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error reverse geocoding:',
+        error
+      );
     });
 
     it('should handle null results gracefully', async () => {
@@ -293,8 +303,10 @@ describe('LocationService', () => {
     it('should calculate distance between two points correctly', () => {
       // Distance between San Francisco and Berkeley (approximately 13.5 km)
       const distance = LocationService.calculateDistance(
-        37.7749, -122.4194, // San Francisco
-        37.8715, -122.2730  // Berkeley
+        37.7749,
+        -122.4194, // San Francisco
+        37.8715,
+        -122.273 // Berkeley
       );
 
       expect(distance).toBeCloseTo(16.8, 0); // Within 1 km accuracy
@@ -302,8 +314,10 @@ describe('LocationService', () => {
 
     it('should return 0 for identical coordinates', () => {
       const distance = LocationService.calculateDistance(
-        37.7749, -122.4194,
-        37.7749, -122.4194
+        37.7749,
+        -122.4194,
+        37.7749,
+        -122.4194
       );
 
       expect(distance).toBeCloseTo(0, 3);
@@ -312,8 +326,10 @@ describe('LocationService', () => {
     it('should handle coordinates on opposite sides of the world', () => {
       // Distance between San Francisco and Sydney (approximately 11,935 km)
       const distance = LocationService.calculateDistance(
-        37.7749, -122.4194, // San Francisco
-        -33.8688, 151.2093  // Sydney
+        37.7749,
+        -122.4194, // San Francisco
+        -33.8688,
+        151.2093 // Sydney
       );
 
       expect(distance).toBeCloseTo(11935, -2); // Within 100 km accuracy for long distances
@@ -355,24 +371,25 @@ describe('LocationService', () => {
   describe('error handling and edge cases', () => {
     it('should handle negative coordinates correctly', () => {
       const distance = LocationService.calculateDistance(
-        -37.7749, -122.4194,
-        -37.8715, -122.2730
+        -37.7749,
+        -122.4194,
+        -37.8715,
+        -122.273
       );
       expect(distance).toBeGreaterThan(0);
     });
 
     it('should handle coordinates at the international date line', () => {
-      const distance = LocationService.calculateDistance(
-        0, 179,
-        0, -179
-      );
+      const distance = LocationService.calculateDistance(0, 179, 0, -179);
       expect(distance).toBeCloseTo(222, 0); // Approximately 222 km across date line
     });
 
     it('should handle very small distances accurately', () => {
       const distance = LocationService.calculateDistance(
-        37.7749, -122.4194,
-        37.7750, -122.4195
+        37.7749,
+        -122.4194,
+        37.775,
+        -122.4195
       );
       expect(distance).toBeLessThan(0.1); // Very small distance
     });
@@ -412,17 +429,18 @@ describe('LocationService', () => {
       ]);
 
       const location = await LocationService.getCurrentLocation();
-      
+
       expect(location).toBeTruthy();
       if (location) {
         const distance = LocationService.calculateDistance(
           location.latitude,
           location.longitude,
-          37.8715, -122.2730 // Berkeley
+          37.8715,
+          -122.273 // Berkeley
         );
-        
+
         const formattedDistance = LocationService.formatDistance(distance);
-        
+
         expect(distance).toBeGreaterThan(0);
         expect(formattedDistance).toContain('away');
         expect(location.address).toBe('100 Market St');

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
-
 
 const BiometricSettings: React.FC = () => {
   const { enableBiometric, disableBiometric, user } = useAuth();
@@ -22,13 +28,15 @@ const BiometricSettings: React.FC = () => {
     try {
       const available = await BiometricService.isAvailable();
       const enabled = await BiometricService.isBiometricEnabled();
-      
+
       setIsAvailable(available);
       setIsEnabled(enabled);
 
       if (available) {
         const types = await BiometricService.getSupportedTypes();
-        const typeNames = types.map(type => BiometricService.getTypeDisplayName(type));
+        const typeNames = types.map((type) =>
+          BiometricService.getTypeDisplayName(type)
+        );
         setBiometricTypes(typeNames);
       }
     } catch (error) {
@@ -85,8 +93,14 @@ const BiometricSettings: React.FC = () => {
       Alert.alert('Success', 'Biometric authentication test successful!');
     } catch (error) {
       const errorMessage = (error as Error).message;
-      if (!errorMessage.includes('cancelled') && !errorMessage.includes('canceled')) {
-        Alert.alert('Test Failed', 'Biometric authentication test failed. Please check your device settings.');
+      if (
+        !errorMessage.includes('cancelled') &&
+        !errorMessage.includes('canceled')
+      ) {
+        Alert.alert(
+          'Test Failed',
+          'Biometric authentication test failed. Please check your device settings.'
+        );
       }
     } finally {
       setLoading(false);
@@ -98,9 +112,14 @@ const BiometricSettings: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.unavailableContainer}>
-          <Ionicons name="information-circle-outline" size={24} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='information-circle-outline'
+            size={24}
+            color={theme.colors.textTertiary}
+          />
           <Text style={styles.unavailableText}>
-            Biometric authentication is not available on this device or no biometrics are enrolled.
+            Biometric authentication is not available on this device or no
+            biometrics are enrolled.
           </Text>
         </View>
       </View>
@@ -110,10 +129,10 @@ const BiometricSettings: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="finger-print" size={24} color={theme.colors.primary} />
+        <Ionicons name='finger-print' size={24} color={theme.colors.primary} />
         <Text style={styles.title}>Biometric Authentication</Text>
       </View>
-      
+
       <Text style={styles.subtitle}>
         Available: {biometricTypes.join(', ')}
       </Text>
@@ -133,7 +152,9 @@ const BiometricSettings: React.FC = () => {
             false: theme.colors.border,
             true: theme.colors.secondary,
           }}
-          thumbColor={isEnabled ? theme.colors.surface : theme.colors.textTertiary}
+          thumbColor={
+            isEnabled ? theme.colors.surface : theme.colors.textTertiary
+          }
         />
       </View>
 
@@ -143,15 +164,26 @@ const BiometricSettings: React.FC = () => {
           onPress={testBiometric}
           disabled={loading}
         >
-          <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.primary} />
-          <Text style={styles.testButtonText}>Test Biometric Authentication</Text>
+          <Ionicons
+            name='checkmark-circle-outline'
+            size={20}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.testButtonText}>
+            Test Biometric Authentication
+          </Text>
         </TouchableOpacity>
       )}
 
       <View style={styles.infoBox}>
-        <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.info} />
+        <Ionicons
+          name='shield-checkmark-outline'
+          size={16}
+          color={theme.colors.info}
+        />
         <Text style={styles.infoText}>
-          Your biometric data is stored securely on your device and never shared with our servers.
+          Your biometric data is stored securely on your device and never shared
+          with our servers.
         </Text>
       </View>
     </View>

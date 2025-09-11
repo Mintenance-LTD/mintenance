@@ -124,7 +124,8 @@ export const useCreateJob = () => {
     },
     entity: 'job',
     actionType: 'CREATE',
-    getQueryKey: (variables) => queryKeys.jobs.list(`homeowner:${variables.homeownerId}`),
+    getQueryKey: (variables) =>
+      queryKeys.jobs.list(`homeowner:${variables.homeownerId}`),
     optimisticUpdate: (variables) => ({
       id: `temp_job_${Date.now()}`,
       title: variables.title.trim(),
@@ -147,7 +148,11 @@ export const useCreateJob = () => {
 
 export const useUpdateJobStatus = () => {
   return useOfflineMutation({
-    mutationFn: ({ jobId, status, contractorId }: {
+    mutationFn: ({
+      jobId,
+      status,
+      contractorId,
+    }: {
       jobId: string;
       status: Job['status'];
       contractorId?: string;

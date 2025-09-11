@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, TextInput, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  ScrollView,
+  TextInput,
+  Image,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
@@ -9,40 +19,41 @@ import { theme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 
-
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
 
 const STATUS_LABELS = {
   all: 'All Jobs',
   posted: 'Open',
-  assigned: 'Assigned', 
+  assigned: 'Assigned',
   in_progress: 'In Progress',
   completed: 'Completed',
 };
 
 // Fallback AI analysis data - replace with real AI service in production
-const getAIAnalysisFallback = (job: Job): {
+const getAIAnalysisFallback = (
+  job: Job
+): {
   confidence: number;
   detectedItems: string[];
-  safetyConcerns: Array<string | { concern: string }>;
+  safetyConcerns: (string | { concern: string })[];
   estimatedComplexity: string;
   tools: string[];
 } => {
   // Basic analysis based on job category and description
   const category = job.category?.toLowerCase();
   const description = job.description?.toLowerCase() || '';
-  
+
   let detectedItems: string[] = [];
-  let safetyConcerns: Array<string | { concern: string }> = [];
+  let safetyConcerns: (string | { concern: string })[] = [];
   let complexity = 'Medium';
   let tools: string[] = [];
-  
+
   // Category-based analysis
   switch (category) {
     case 'plumbing':
       detectedItems = ['Pipe', 'Water fixture', 'Drainage system'];
       safetyConcerns = ['Water damage risk', 'Mold potential'];
-      tools = ['Pipe wrench', 'Plumber\'s tape', 'Drain snake'];
+      tools = ['Pipe wrench', "Plumber's tape", 'Drain snake'];
       complexity = description.includes('emergency') ? 'High' : 'Medium';
       break;
     case 'electrical':
@@ -62,7 +73,7 @@ const getAIAnalysisFallback = (job: Job): {
       safetyConcerns = ['Standard precautions needed'];
       tools = ['Basic toolkit', 'Safety equipment'];
   }
-  
+
   return {
     confidence: Math.floor(Math.random() * 15) + 85, // 85-99%
     detectedItems,
@@ -95,7 +106,9 @@ const JobsScreen: React.FC = () => {
     in_progress: 0,
     completed: 0,
   });
-  const [homeownerData, setHomeownerData] = useState<{[key: string]: any}>({});
+  const [homeownerData, setHomeownerData] = useState<{ [key: string]: any }>(
+    {}
+  );
 
   useEffect(() => {
     loadJobs();
@@ -103,17 +116,17 @@ const JobsScreen: React.FC = () => {
 
   const loadJobs = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       let jobsData: Job[];
-      
+
       if (user.role === 'homeowner') {
         jobsData = await JobService.getJobsByHomeowner(user.id);
       } else {
         jobsData = await JobService.getAvailableJobs();
       }
-      
+
       setAllJobs(jobsData);
       filterJobs(jobsData, selectedFilter);
       calculateJobStats(jobsData);
@@ -126,31 +139,32 @@ const JobsScreen: React.FC = () => {
 
   const filterJobs = (jobs: Job[], filter: FilterStatus) => {
     let filtered = jobs;
-    
+
     // Status filter
     if (filter !== 'all') {
-      filtered = filtered.filter(job => job.status === filter);
+      filtered = filtered.filter((job) => job.status === filter);
     }
-    
+
     // Search filter
     if (searchQuery.trim()) {
-      filtered = filtered.filter(job => 
-        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (job) =>
+          job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          job.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          job.location.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // Photo jobs only filter
     if (showPhotoJobsOnly) {
-      filtered = filtered.filter(job => job.photos && job.photos.length > 0);
+      filtered = filtered.filter((job) => job.photos && job.photos.length > 0);
     }
-    
+
     // AI analyzed jobs only filter - check if job has photos for analysis
     if (showAIAnalyzedOnly) {
-      filtered = filtered.filter(job => job.photos && job.photos.length > 0);
+      filtered = filtered.filter((job) => job.photos && job.photos.length > 0);
     }
-    
+
     setFilteredJobs(filtered);
   };
 
@@ -172,10 +186,10 @@ const JobsScreen: React.FC = () => {
   const calculateJobStats = (jobs: Job[]) => {
     const stats = {
       total: jobs.length,
-      posted: jobs.filter(job => job.status === 'posted').length,
-      assigned: jobs.filter(job => job.status === 'assigned').length,
-      in_progress: jobs.filter(job => job.status === 'in_progress').length,
-      completed: jobs.filter(job => job.status === 'completed').length,
+      posted: jobs.filter((job) => job.status === 'posted').length,
+      assigned: jobs.filter((job) => job.status === 'assigned').length,
+      in_progress: jobs.filter((job) => job.status === 'in_progress').length,
+      completed: jobs.filter((job) => job.status === 'completed').length,
     };
     setJobStats(stats);
   };
@@ -187,10 +201,14 @@ const JobsScreen: React.FC = () => {
 
   const getPriorityColor = (priority?: string) => {
     switch (priority?.toLowerCase()) {
-      case 'high': return '#FF3B30';
-      case 'medium': return '#FF9500';
-      case 'low': return '#34C759';
-      default: return '#8E8E93';
+      case 'high':
+        return '#FF3B30';
+      case 'medium':
+        return '#FF9500';
+      case 'low':
+        return '#34C759';
+      default:
+        return '#8E8E93';
     }
   };
 
@@ -209,14 +227,31 @@ const JobsScreen: React.FC = () => {
     const isContractor = user?.role === 'contractor';
     const statusColor = getStatusColor(item.status);
     const statusIcon = getStatusIcon(item.status);
-    const daysAgo = Math.floor((new Date().getTime() - new Date((item as any).createdAt || (item as any).created_at || new Date().toISOString()).getTime()) / (1000 * 3600 * 24));
+    const daysAgo = Math.floor(
+      (new Date().getTime() -
+        new Date(
+          (item as any).createdAt ||
+            (item as any).created_at ||
+            new Date().toISOString()
+        ).getTime()) /
+        (1000 * 3600 * 24)
+    );
     const aiAnalysis = getAIAnalysisFallback(item);
     const hasPhotos = item.photos && item.photos.length > 0;
-    const homeowner = homeownerData[(item as any).homeownerId || (item as any).homeowner_id || ''];
+    const homeowner =
+      homeownerData[
+        (item as any).homeownerId || (item as any).homeowner_id || ''
+      ];
 
     // Load homeowner data if not cached
     useEffect(() => {
-      if (isContractor && item.homeownerId && !homeownerData[(item as any).homeownerId || (item as any).homeowner_id || '']) {
+      if (
+        isContractor &&
+        item.homeownerId &&
+        !homeownerData[
+          (item as any).homeownerId || (item as any).homeowner_id || ''
+        ]
+      ) {
         loadHomeownerData(item.homeownerId);
       }
     }, [item.homeownerId, isContractor]);
@@ -225,30 +260,39 @@ const JobsScreen: React.FC = () => {
       try {
         const data = await UserService.getHomeownerForJob(homeownerId);
         if (data) {
-          setHomeownerData(prev => ({
+          setHomeownerData((prev) => ({
             ...prev,
-            [homeownerId]: data
+            [homeownerId]: data,
           }));
         }
       } catch (error) {
         logger.error('Error loading homeowner data:', error);
       }
     };
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.jobCard}
         onPress={() => navigation.navigate('JobDetails', { jobId: item.id })}
       >
         <View style={styles.jobCardHeader}>
           <View style={styles.jobTitleSection}>
             <View style={styles.titlePriorityRow}>
-              <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
-              <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
-                <Text style={styles.priorityText}>{getPriorityText(item.priority)}</Text>
+              <Text style={styles.jobTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <View
+                style={[
+                  styles.priorityBadge,
+                  { backgroundColor: getPriorityColor(item.priority) },
+                ]}
+              >
+                <Text style={styles.priorityText}>
+                  {getPriorityText(item.priority)}
+                </Text>
               </View>
             </View>
-            
+
             {isContractor && (
               <View style={styles.clientInfo}>
                 <Text style={styles.clientName}>
@@ -257,59 +301,80 @@ const JobsScreen: React.FC = () => {
                 <View style={styles.clientMeta}>
                   {homeowner?.rating > 0 && (
                     <View style={styles.clientRating}>
-                      <Ionicons name="star" size={12} color="#FFD700" />
-                      <Text style={styles.clientRatingText}>{homeowner.rating.toFixed(1)}</Text>
+                      <Ionicons name='star' size={12} color='#FFD700' />
+                      <Text style={styles.clientRatingText}>
+                        {homeowner.rating.toFixed(1)}
+                      </Text>
                     </View>
                   )}
                   <Text style={styles.clientDistance}>
                     {homeowner?.rating > 0 ? '• ' : ''}
-                    {homeowner?.reviewCount || 0} reviews • {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
+                    {homeowner?.reviewCount || 0} reviews •{' '}
+                    {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
                   </Text>
                 </View>
               </View>
             )}
-            
+
             {isHomeowner && (
               <Text style={styles.jobTimeAgo}>
-                {daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`}
+                {daysAgo === 0
+                  ? 'Today'
+                  : daysAgo === 1
+                    ? '1 day ago'
+                    : `${daysAgo} days ago`}
               </Text>
             )}
           </View>
-          
+
           <Text style={styles.jobBudget}>${item.budget.toLocaleString()}</Text>
         </View>
-        
+
         {/* Problem Photos Section */}
         {isContractor && hasPhotos && (
           <View style={styles.photosSection}>
             <View style={styles.photosSectionHeader}>
-              <Ionicons name="camera" size={16} color="#007AFF" />
-              <Text style={styles.photosTitle}>Problem Photos ({item.photos?.length || 0})</Text>
+              <Ionicons name='camera' size={16} color='#007AFF' />
+              <Text style={styles.photosTitle}>
+                Problem Photos ({item.photos?.length || 0})
+              </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.photosScroll}
+            >
               {item.photos?.slice(0, 3).map((photo, index) => (
-                <Image key={index} source={{ uri: photo }} style={styles.problemPhoto} />
+                <Image
+                  key={index}
+                  source={{ uri: photo }}
+                  style={styles.problemPhoto}
+                />
               ))}
               {(item.photos?.length || 0) > 3 && (
                 <View style={styles.morePhotosIndicator}>
-                  <Text style={styles.morePhotosText}>+{(item.photos?.length || 0) - 3}</Text>
+                  <Text style={styles.morePhotosText}>
+                    +{(item.photos?.length || 0) - 3}
+                  </Text>
                 </View>
               )}
             </ScrollView>
           </View>
         )}
-        
+
         {/* AI Analysis Section */}
         {isContractor && (
           <View style={styles.aiAnalysisSection}>
             <View style={styles.aiAnalysisHeader}>
-              <Ionicons name="bulb" size={16} color="#FF9500" />
+              <Ionicons name='bulb' size={16} color='#FF9500' />
               <Text style={styles.aiAnalysisTitle}>AI Analysis Summary</Text>
               <View style={styles.confidenceBadge}>
-                <Text style={styles.confidenceText}>{aiAnalysis.confidence}% confidence</Text>
+                <Text style={styles.confidenceText}>
+                  {aiAnalysis.confidence}% confidence
+                </Text>
               </View>
             </View>
-            
+
             <View style={styles.detectedItemsContainer}>
               <Text style={styles.detectedItemsLabel}>Detected: </Text>
               {aiAnalysis.detectedItems.slice(0, 3).map((item, index) => (
@@ -318,49 +383,59 @@ const JobsScreen: React.FC = () => {
                 </View>
               ))}
               {aiAnalysis.detectedItems.length > 3 && (
-                <Text style={styles.moreItemsText}>+{aiAnalysis.detectedItems.length - 3} more</Text>
+                <Text style={styles.moreItemsText}>
+                  +{aiAnalysis.detectedItems.length - 3} more
+                </Text>
               )}
             </View>
-            
-            {aiAnalysis?.safetyConcerns && aiAnalysis.safetyConcerns.length > 0 && (
-              <View style={styles.safetyConcernsContainer}>
-                <Ionicons name="warning" size={14} color="#FF3B30" />
-                <Text style={styles.safetyConcernText}>
-                  {typeof aiAnalysis.safetyConcerns[0] === 'string' 
-                    ? aiAnalysis.safetyConcerns[0]
-                    : aiAnalysis.safetyConcerns[0].concern}
-                </Text>
-              </View>
-            )}
+
+            {aiAnalysis?.safetyConcerns &&
+              aiAnalysis.safetyConcerns.length > 0 && (
+                <View style={styles.safetyConcernsContainer}>
+                  <Ionicons name='warning' size={14} color='#FF3B30' />
+                  <Text style={styles.safetyConcernText}>
+                    {typeof aiAnalysis.safetyConcerns[0] === 'string'
+                      ? aiAnalysis.safetyConcerns[0]
+                      : aiAnalysis.safetyConcerns[0].concern}
+                  </Text>
+                </View>
+              )}
           </View>
         )}
-        
-        <Text style={styles.jobDescription} numberOfLines={2}>{item.description}</Text>
-        
+
+        <Text style={styles.jobDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+
         <View style={styles.jobMeta}>
           <View style={styles.locationContainer}>
-            <Ionicons name="location-outline" size={14} color="#666" />
+            <Ionicons name='location-outline' size={14} color='#666' />
             <Text style={styles.jobLocation}>{item.location}</Text>
           </View>
-          
+
           {item.category && (
             <View style={styles.categoryContainer}>
-              <Ionicons name="pricetag-outline" size={14} color="#666" />
+              <Ionicons name='pricetag-outline' size={14} color='#666' />
               <Text style={styles.categoryText}>{item.category}</Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.jobFooter}>
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-            <Ionicons name={statusIcon} size={12} color="#fff" style={styles.statusIcon} />
+            <Ionicons
+              name={statusIcon}
+              size={12}
+              color='#fff'
+              style={styles.statusIcon}
+            />
             <Text style={styles.statusText}>{formatStatus(item.status)}</Text>
           </View>
-          
+
           {isHomeowner && item.status === 'posted' && (
             <Text style={styles.bidCount}>0 bids received</Text>
           )}
-          
+
           {isContractor && item.status === 'posted' && (
             <View style={styles.contractorActions}>
               <TouchableOpacity style={styles.detailsButton}>
@@ -378,31 +453,46 @@ const JobsScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'posted': return '#007AFF';
-      case 'assigned': return '#5856D6';
-      case 'in_progress': return '#FF9500';
-      case 'completed': return '#34C759';
-      default: return '#8E8E93';
+      case 'posted':
+        return '#007AFF';
+      case 'assigned':
+        return '#5856D6';
+      case 'in_progress':
+        return '#FF9500';
+      case 'completed':
+        return '#34C759';
+      default:
+        return '#8E8E93';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'posted': return 'radio-button-on';
-      case 'assigned': return 'person-add';
-      case 'in_progress': return 'hammer';
-      case 'completed': return 'checkmark-circle';
-      default: return 'help-circle';
+      case 'posted':
+        return 'radio-button-on';
+      case 'assigned':
+        return 'person-add';
+      case 'in_progress':
+        return 'hammer';
+      case 'completed':
+        return 'checkmark-circle';
+      default:
+        return 'help-circle';
     }
   };
 
   const formatStatus = (status: string) => {
     switch (status) {
-      case 'posted': return 'Open';
-      case 'assigned': return 'Assigned';
-      case 'in_progress': return 'In Progress';
-      case 'completed': return 'Completed';
-      default: return status;
+      case 'posted':
+        return 'Open';
+      case 'assigned':
+        return 'Assigned';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
     }
   };
 
@@ -412,10 +502,9 @@ const JobsScreen: React.FC = () => {
         {user?.role === 'homeowner' ? 'No Jobs Posted' : 'No Available Jobs'}
       </Text>
       <Text style={styles.emptyDescription}>
-        {user?.role === 'homeowner' 
+        {user?.role === 'homeowner'
           ? 'Start by posting your first maintenance job'
-          : 'Check back later for new opportunities'
-        }
+          : 'Check back later for new opportunities'}
       </Text>
     </View>
   );
@@ -426,22 +515,23 @@ const JobsScreen: React.FC = () => {
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>
-              {user?.role === 'homeowner' ? 'Maintenance Hub' : 'Job Marketplace'}
+              {user?.role === 'homeowner'
+                ? 'Maintenance Hub'
+                : 'Job Marketplace'}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {user?.role === 'homeowner' 
-                ? `${jobStats.total} total jobs • ${jobStats.in_progress} active` 
-                : `${filteredJobs.length} available opportunities`
-              }
+              {user?.role === 'homeowner'
+                ? `${jobStats.total} total jobs • ${jobStats.in_progress} active`
+                : `${filteredJobs.length} available opportunities`}
             </Text>
           </View>
-          
+
           {user?.role === 'homeowner' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addButton}
               onPress={() => navigation.navigate('ServiceRequest')}
             >
-              <Ionicons name="add" size={20} color="#fff" />
+              <Ionicons name='add' size={20} color='#fff' />
               <Text style={styles.addButtonText}>New Request</Text>
             </TouchableOpacity>
           )}
@@ -451,34 +541,63 @@ const JobsScreen: React.FC = () => {
         {user?.role === 'contractor' && (
           <View style={styles.searchSection}>
             <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+              <Ionicons
+                name='search'
+                size={20}
+                color='#666'
+                style={styles.searchIcon}
+              />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search jobs..."
-                placeholderTextColor="#999"
+                placeholder='Search jobs...'
+                placeholderTextColor='#999'
                 value={searchQuery}
                 onChangeText={handleSearchChange}
               />
             </View>
-            
+
             {/* Filters */}
             <View style={styles.filtersContainer}>
-              <TouchableOpacity 
-                style={[styles.filterChip, showPhotoJobsOnly && styles.filterChipActive]}
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  showPhotoJobsOnly && styles.filterChipActive,
+                ]}
                 onPress={togglePhotoJobsFilter}
               >
-                <Ionicons name="camera" size={14} color={showPhotoJobsOnly ? '#fff' : '#007AFF'} />
-                <Text style={[styles.filterChipText, showPhotoJobsOnly && styles.filterChipTextActive]}>
+                <Ionicons
+                  name='camera'
+                  size={14}
+                  color={showPhotoJobsOnly ? '#fff' : '#007AFF'}
+                />
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    showPhotoJobsOnly && styles.filterChipTextActive,
+                  ]}
+                >
                   Photo Jobs Only
                 </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.filterChip, showAIAnalyzedOnly && styles.filterChipActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  showAIAnalyzedOnly && styles.filterChipActive,
+                ]}
                 onPress={toggleAIAnalyzedFilter}
               >
-                <Ionicons name="bulb" size={14} color={showAIAnalyzedOnly ? '#fff' : '#FF9500'} />
-                <Text style={[styles.filterChipText, showAIAnalyzedOnly && styles.filterChipTextActive]}>
+                <Ionicons
+                  name='bulb'
+                  size={14}
+                  color={showAIAnalyzedOnly ? '#fff' : '#FF9500'}
+                />
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    showAIAnalyzedOnly && styles.filterChipTextActive,
+                  ]}
+                >
                   AI-Analyzed Jobs
                 </Text>
               </TouchableOpacity>
@@ -487,76 +606,168 @@ const JobsScreen: React.FC = () => {
         )}
 
         {/* Job Status Tabs */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.statsContainer}
           contentContainerStyle={styles.statsContent}
         >
           {user?.role === 'homeowner' ? (
             <>
-              <TouchableOpacity 
-                style={[styles.statCard, selectedFilter === 'all' && styles.statCardActive]}
+              <TouchableOpacity
+                style={[
+                  styles.statCard,
+                  selectedFilter === 'all' && styles.statCardActive,
+                ]}
                 onPress={() => handleFilterChange('all')}
               >
-                <Text style={[styles.statNumber, selectedFilter === 'all' && styles.statNumberActive]}>
+                <Text
+                  style={[
+                    styles.statNumber,
+                    selectedFilter === 'all' && styles.statNumberActive,
+                  ]}
+                >
                   {jobStats.total}
                 </Text>
-                <Text style={[styles.statLabel, selectedFilter === 'all' && styles.statLabelActive]}>All Jobs</Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    selectedFilter === 'all' && styles.statLabelActive,
+                  ]}
+                >
+                  All Jobs
+                </Text>
               </TouchableOpacity>
-            
-              <TouchableOpacity 
-                style={[styles.statCard, selectedFilter === 'posted' && styles.statCardActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.statCard,
+                  selectedFilter === 'posted' && styles.statCardActive,
+                ]}
                 onPress={() => handleFilterChange('posted')}
               >
-                <Text style={[styles.statNumber, selectedFilter === 'posted' && styles.statNumberActive]}>
+                <Text
+                  style={[
+                    styles.statNumber,
+                    selectedFilter === 'posted' && styles.statNumberActive,
+                  ]}
+                >
                   {jobStats.posted}
                 </Text>
-                <Text style={[styles.statLabel, selectedFilter === 'posted' && styles.statLabelActive]}>Open</Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    selectedFilter === 'posted' && styles.statLabelActive,
+                  ]}
+                >
+                  Open
+                </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.statCard, selectedFilter === 'in_progress' && styles.statCardActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.statCard,
+                  selectedFilter === 'in_progress' && styles.statCardActive,
+                ]}
                 onPress={() => handleFilterChange('in_progress')}
               >
-                <Text style={[styles.statNumber, selectedFilter === 'in_progress' && styles.statNumberActive]}>
+                <Text
+                  style={[
+                    styles.statNumber,
+                    selectedFilter === 'in_progress' && styles.statNumberActive,
+                  ]}
+                >
                   {jobStats.in_progress}
                 </Text>
-                <Text style={[styles.statLabel, selectedFilter === 'in_progress' && styles.statLabelActive]}>In Progress</Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    selectedFilter === 'in_progress' && styles.statLabelActive,
+                  ]}
+                >
+                  In Progress
+                </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.statCard, selectedFilter === 'completed' && styles.statCardActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.statCard,
+                  selectedFilter === 'completed' && styles.statCardActive,
+                ]}
                 onPress={() => handleFilterChange('completed')}
               >
-                <Text style={[styles.statNumber, selectedFilter === 'completed' && styles.statNumberActive]}>
+                <Text
+                  style={[
+                    styles.statNumber,
+                    selectedFilter === 'completed' && styles.statNumberActive,
+                  ]}
+                >
                   {jobStats.completed}
                 </Text>
-                <Text style={[styles.statLabel, selectedFilter === 'completed' && styles.statLabelActive]}>Completed</Text>
+                <Text
+                  style={[
+                    styles.statLabel,
+                    selectedFilter === 'completed' && styles.statLabelActive,
+                  ]}
+                >
+                  Completed
+                </Text>
               </TouchableOpacity>
             </>
           ) : (
             /* Contractor Status Tabs */
             <>
-              <TouchableOpacity 
-                style={[styles.statusTab, selectedFilter === 'posted' && styles.statusTabActive]}
+              <TouchableOpacity
+                style={[
+                  styles.statusTab,
+                  selectedFilter === 'posted' && styles.statusTabActive,
+                ]}
                 onPress={() => handleFilterChange('posted')}
               >
-                <Text style={[styles.statusTabText, selectedFilter === 'posted' && styles.statusTabTextActive]}>Open</Text>
+                <Text
+                  style={[
+                    styles.statusTabText,
+                    selectedFilter === 'posted' && styles.statusTabTextActive,
+                  ]}
+                >
+                  Open
+                </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.statusTab, selectedFilter === 'in_progress' && styles.statusTabActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.statusTab,
+                  selectedFilter === 'in_progress' && styles.statusTabActive,
+                ]}
                 onPress={() => handleFilterChange('in_progress')}
               >
-                <Text style={[styles.statusTabText, selectedFilter === 'in_progress' && styles.statusTabTextActive]}>In Progress</Text>
+                <Text
+                  style={[
+                    styles.statusTabText,
+                    selectedFilter === 'in_progress' &&
+                      styles.statusTabTextActive,
+                  ]}
+                >
+                  In Progress
+                </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.statusTab, selectedFilter === 'completed' && styles.statusTabActive]}
+
+              <TouchableOpacity
+                style={[
+                  styles.statusTab,
+                  selectedFilter === 'completed' && styles.statusTabActive,
+                ]}
                 onPress={() => handleFilterChange('completed')}
               >
-                <Text style={[styles.statusTabText, selectedFilter === 'completed' && styles.statusTabTextActive]}>Completed</Text>
+                <Text
+                  style={[
+                    styles.statusTabText,
+                    selectedFilter === 'completed' &&
+                      styles.statusTabTextActive,
+                  ]}
+                >
+                  Completed
+                </Text>
               </TouchableOpacity>
             </>
           )}

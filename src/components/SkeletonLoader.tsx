@@ -9,11 +9,11 @@ interface SkeletonProps {
   style?: ViewStyle;
 }
 
-const Skeleton: React.FC<SkeletonProps> = ({ 
-  width = '100%', 
-  height = 20, 
+const Skeleton: React.FC<SkeletonProps> = ({
+  width = '100%',
+  height = 20,
   borderRadius = 8,
-  style 
+  style,
 }) => {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;
 
@@ -89,8 +89,8 @@ export const SkeletonCard: React.FC = () => (
     <View style={styles.cardHeader}>
       <SkeletonAvatar size={48} />
       <View style={styles.cardHeaderText}>
-        <Skeleton height={16} width="60%" style={{ marginBottom: 4 }} />
-        <Skeleton height={12} width="40%" />
+        <Skeleton height={16} width='60%' style={{ marginBottom: 4 }} />
+        <Skeleton height={12} width='40%' />
       </View>
     </View>
     <SkeletonText lines={3} />
@@ -108,21 +108,31 @@ export const SkeletonPostCard: React.FC = () => (
     <View style={styles.postHeader}>
       <SkeletonAvatar size={48} />
       <View style={styles.postHeaderInfo}>
-        <Skeleton height={16} width="70%" style={{ marginBottom: 4 }} />
-        <Skeleton height={12} width="40%" />
+        <Skeleton height={16} width='70%' style={{ marginBottom: 4 }} />
+        <Skeleton height={12} width='40%' />
       </View>
     </View>
-    
+
     {/* Post Content */}
     <SkeletonText lines={2} />
-    
+
     {/* Hashtags */}
     <View style={styles.hashtags}>
-      <Skeleton height={24} width={60} borderRadius={12} style={{ marginRight: 8 }} />
-      <Skeleton height={24} width={80} borderRadius={12} style={{ marginRight: 8 }} />
+      <Skeleton
+        height={24}
+        width={60}
+        borderRadius={12}
+        style={{ marginRight: 8 }}
+      />
+      <Skeleton
+        height={24}
+        width={80}
+        borderRadius={12}
+        style={{ marginRight: 8 }}
+      />
       <Skeleton height={24} width={70} borderRadius={12} />
     </View>
-    
+
     {/* Engagement Row */}
     <View style={styles.engagementRow}>
       <Skeleton height={20} width={40} />
@@ -138,19 +148,19 @@ export const SkeletonMessageCard: React.FC = () => (
     <SkeletonAvatar size={50} />
     <View style={styles.messageContent}>
       <View style={styles.messageHeader}>
-        <Skeleton height={16} width="50%" />
-        <Skeleton height={12} width="30%" />
+        <Skeleton height={16} width='50%' />
+        <Skeleton height={12} width='30%' />
       </View>
-      <Skeleton height={14} width="40%" style={{ marginBottom: 4 }} />
-      <Skeleton height={14} width="70%" />
+      <Skeleton height={14} width='40%' style={{ marginBottom: 4 }} />
+      <Skeleton height={14} width='70%' />
     </View>
   </View>
 );
 
 export const SkeletonStatCard: React.FC = () => (
   <View style={styles.statCard}>
-    <Skeleton height={24} width="60%" style={{ marginBottom: 8 }} />
-    <Skeleton height={14} width="80%" style={{ marginBottom: 8 }} />
+    <Skeleton height={24} width='60%' style={{ marginBottom: 8 }} />
+    <Skeleton height={14} width='80%' style={{ marginBottom: 8 }} />
     <SkeletonAvatar size={20} />
   </View>
 );
@@ -164,10 +174,10 @@ export const SkeletonDashboard: React.FC = () => (
       <SkeletonStatCard />
       <SkeletonStatCard />
     </View>
-    
+
     {/* Schedule Section */}
     <View style={styles.section}>
-      <Skeleton height={20} width="40%" style={{ marginBottom: 16 }} />
+      <Skeleton height={20} width='40%' style={{ marginBottom: 16 }} />
       <View style={styles.scheduleCard}>
         <SkeletonText lines={2} />
       </View>

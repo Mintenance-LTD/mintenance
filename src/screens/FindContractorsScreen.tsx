@@ -29,7 +29,7 @@ const FindContractorsScreen: React.FC = () => {
   const [currentContractorIndex, setCurrentContractorIndex] = useState(0);
   const [region, setRegion] = useState<Region>({
     latitude: 40.7128,
-    longitude: -74.0060,
+    longitude: -74.006,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
@@ -41,7 +41,7 @@ const FindContractorsScreen: React.FC = () => {
   const initializeLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -94,7 +94,7 @@ const FindContractorsScreen: React.FC = () => {
     if (!user || currentContractorIndex >= contractors.length) return;
 
     const contractor = contractors[currentContractorIndex];
-    
+
     try {
       await ContractorService.recordContractorMatch(
         user.id,
@@ -117,7 +117,7 @@ const FindContractorsScreen: React.FC = () => {
         // No more contractors
         Alert.alert(
           'All Done!',
-          'You\'ve reviewed all available contractors in your area. Check back later for new contractors.',
+          "You've reviewed all available contractors in your area. Check back later for new contractors.",
           [{ text: 'OK' }]
         );
       }
@@ -128,13 +128,13 @@ const FindContractorsScreen: React.FC = () => {
   };
 
   const getCurrentContractor = (): ContractorProfile | null => {
-    return currentContractorIndex < contractors.length 
-      ? contractors[currentContractorIndex] 
+    return currentContractorIndex < contractors.length
+      ? contractors[currentContractorIndex]
       : null;
   };
 
   const handleMapMarkerPress = (contractorId: string) => {
-    const contractorIndex = contractors.findIndex(c => c.id === contractorId);
+    const contractorIndex = contractors.findIndex((c) => c.id === contractorId);
     if (contractorIndex !== -1) {
       setCurrentContractorIndex(contractorIndex);
     }
@@ -143,7 +143,7 @@ const FindContractorsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.info} />
+        <ActivityIndicator size='large' color={theme.colors.info} />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -153,7 +153,10 @@ const FindContractorsScreen: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Unable to access your location</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={initializeLocation}
+        >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -167,10 +170,9 @@ const FindContractorsScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Find Contractors</Text>
         <Text style={styles.headerSubtitle}>
-          {contractors.length > 0 
+          {contractors.length > 0
             ? `${currentContractorIndex + 1} of ${contractors.length}`
-            : 'No contractors available'
-          }
+            : 'No contractors available'}
         </Text>
       </View>
 
@@ -186,11 +188,11 @@ const FindContractorsScreen: React.FC = () => {
                 latitude: userLocation.latitude,
                 longitude: userLocation.longitude,
               }}
-              title="Your Location"
-              pinColor="blue"
+              title='Your Location'
+              pinColor='blue'
             />
           )}
-          
+
           {contractors.map((contractor) => (
             <Marker
               key={contractor.id}
@@ -200,7 +202,9 @@ const FindContractorsScreen: React.FC = () => {
               }}
               title={`${contractor.firstName} ${contractor.lastName}`}
               description={contractor.bio || 'Contractor'}
-              pinColor={contractor.id === currentContractor?.id ? "red" : "orange"}
+              pinColor={
+                contractor.id === currentContractor?.id ? 'red' : 'orange'
+              }
               onPress={() => handleMapMarkerPress(contractor.id)}
             />
           ))}
@@ -218,12 +222,14 @@ const FindContractorsScreen: React.FC = () => {
           <View style={styles.noContractorsContainer}>
             <Text style={styles.noContractorsTitle}>All Done!</Text>
             <Text style={styles.noContractorsText}>
-              You've reviewed all available contractors in your area.
-              Check back later for new contractors.
+              You've reviewed all available contractors in your area. Check back
+              later for new contractors.
             </Text>
             <TouchableOpacity
               style={styles.refreshButton}
-              onPress={() => userLocation && loadNearbyContractors(userLocation)}
+              onPress={() =>
+                userLocation && loadNearbyContractors(userLocation)
+              }
             >
               <Text style={styles.refreshButtonText}>Refresh</Text>
             </TouchableOpacity>

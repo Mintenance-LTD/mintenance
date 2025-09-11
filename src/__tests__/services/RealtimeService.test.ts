@@ -7,7 +7,7 @@ enum JobStatus {
   POSTED = 'posted',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 // Mock dependencies
@@ -17,16 +17,16 @@ jest.mock('../../config/supabase', () => ({
       on: jest.fn(() => ({
         on: jest.fn(() => ({
           on: jest.fn(() => ({
-            subscribe: jest.fn()
-          }))
-        }))
+            subscribe: jest.fn(),
+          })),
+        })),
       })),
       unsubscribe: jest.fn(),
-      send: jest.fn()
+      send: jest.fn(),
     })),
     removeChannel: jest.fn(),
-    getChannels: jest.fn(() => [])
-  }
+    getChannels: jest.fn(() => []),
+  },
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -34,8 +34,8 @@ jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 describe('RealtimeService', () => {
@@ -46,7 +46,7 @@ describe('RealtimeService', () => {
     receiverId: 'user-2',
     jobId: 'job-1',
     createdAt: '2024-01-01T00:00:00Z',
-    isRead: false
+    isRead: false,
   };
 
   const mockJob: Job = {
@@ -59,7 +59,7 @@ describe('RealtimeService', () => {
     budget: 200,
     homeownerId: 'user-1',
     createdAt: '2024-01-01T00:00:00Z',
-    photos: []
+    photos: [],
   };
 
   const mockBid: Bid = {
@@ -69,27 +69,27 @@ describe('RealtimeService', () => {
     amount: 150,
     description: 'I can complete this work',
     status: 'pending' as any,
-    createdAt: '2024-01-01T00:00:00Z'
+    createdAt: '2024-01-01T00:00:00Z',
   };
 
   let mockChannel: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockChannel = {
       on: jest.fn(() => mockChannel),
       unsubscribe: jest.fn(),
-      send: jest.fn()
+      send: jest.fn(),
     };
-    
+
     (supabase.channel as jest.Mock).mockReturnValue(mockChannel);
   });
 
   describe('subscribeToMessages', () => {
     it('should subscribe to messages for a job', () => {
       const callback = jest.fn();
-      
+
       RealtimeService.subscribeToMessages('job-1', callback);
 
       expect(supabase.channel).toHaveBeenCalledWith('messages:job-1');
@@ -99,7 +99,7 @@ describe('RealtimeService', () => {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: 'job_id=eq.job-1'
+          filter: 'job_id=eq.job-1',
         },
         expect.any(Function)
       );
@@ -128,8 +128,8 @@ describe('RealtimeService', () => {
           receiver_id: 'user-2',
           job_id: 'job-1',
           created_at: '2024-01-01T00:00:00Z',
-          is_read: false
-        }
+          is_read: false,
+        },
       };
 
       messageHandler!(payload);
@@ -141,7 +141,7 @@ describe('RealtimeService', () => {
         receiverId: 'user-2',
         jobId: 'job-1',
         createdAt: '2024-01-01T00:00:00Z',
-        isRead: false
+        isRead: false,
       });
     });
 
@@ -173,7 +173,7 @@ describe('RealtimeService', () => {
   describe('subscribeToJobUpdates', () => {
     it('should subscribe to job updates', () => {
       const callback = jest.fn();
-      
+
       RealtimeService.subscribeToJobUpdates('job-1', callback);
 
       expect(supabase.channel).toHaveBeenCalledWith('jobs:job-1');
@@ -183,7 +183,7 @@ describe('RealtimeService', () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'jobs',
-          filter: 'id=eq.job-1'
+          filter: 'id=eq.job-1',
         },
         expect.any(Function)
       );
@@ -208,14 +208,14 @@ describe('RealtimeService', () => {
           id: 'job-1',
           title: 'Updated Job',
           status: 'in_progress',
-          contractor_id: 'contractor-1'
+          contractor_id: 'contractor-1',
         },
         old: {
           id: 'job-1',
           title: 'Old Job',
           status: 'posted',
-          contractor_id: null
-        }
+          contractor_id: null,
+        },
       };
 
       updateHandler!(payload);
@@ -225,12 +225,12 @@ describe('RealtimeService', () => {
           id: 'job-1',
           title: 'Updated Job',
           status: 'in_progress',
-          contractorId: 'contractor-1'
+          contractorId: 'contractor-1',
         }),
         expect.objectContaining({
           id: 'job-1',
           title: 'Old Job',
-          status: 'posted'
+          status: 'posted',
         })
       );
     });
@@ -239,7 +239,7 @@ describe('RealtimeService', () => {
   describe('subscribeToJobBids', () => {
     it('should subscribe to new bids for a job', () => {
       const callback = jest.fn();
-      
+
       RealtimeService.subscribeToJobBids('job-1', callback);
 
       expect(supabase.channel).toHaveBeenCalledWith('bids:job-1');
@@ -249,7 +249,7 @@ describe('RealtimeService', () => {
           event: 'INSERT',
           schema: 'public',
           table: 'bids',
-          filter: 'job_id=eq.job-1'
+          filter: 'job_id=eq.job-1',
         },
         expect.any(Function)
       );
@@ -277,8 +277,8 @@ describe('RealtimeService', () => {
           amount: 150,
           description: 'I can do this work',
           status: 'pending',
-          created_at: '2024-01-01T00:00:00Z'
-        }
+          created_at: '2024-01-01T00:00:00Z',
+        },
       };
 
       bidHandler!(payload);
@@ -290,7 +290,7 @@ describe('RealtimeService', () => {
         amount: 150,
         description: 'I can do this work',
         status: 'pending',
-        createdAt: '2024-01-01T00:00:00Z'
+        createdAt: '2024-01-01T00:00:00Z',
       });
     });
   });
@@ -298,7 +298,7 @@ describe('RealtimeService', () => {
   describe('subscribeToUserUpdates', () => {
     it('should subscribe to user profile updates', () => {
       const callback = jest.fn();
-      
+
       RealtimeService.subscribeToUserUpdates('user-1', callback);
 
       expect(supabase.channel).toHaveBeenCalledWith('users:user-1');
@@ -308,7 +308,7 @@ describe('RealtimeService', () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'users',
-          filter: 'id=eq.user-1'
+          filter: 'id=eq.user-1',
         },
         expect.any(Function)
       );
@@ -333,8 +333,8 @@ describe('RealtimeService', () => {
           id: 'user-1',
           first_name: 'Updated',
           last_name: 'Name',
-          is_available: false
-        }
+          is_available: false,
+        },
       };
 
       updateHandler!(payload);
@@ -344,7 +344,7 @@ describe('RealtimeService', () => {
           id: 'user-1',
           firstName: 'Updated',
           lastName: 'Name',
-          isAvailable: false
+          isAvailable: false,
         })
       );
     });
@@ -358,15 +358,16 @@ describe('RealtimeService', () => {
       expect(mockChannel.send).toHaveBeenCalledWith({
         type: 'broadcast',
         event: 'message',
-        payload: mockMessage
+        payload: mockMessage,
       });
     });
 
     it('should handle send message errors', async () => {
       mockChannel.send = jest.fn().mockRejectedValue(new Error('Send failed'));
 
-      await expect(RealtimeService.sendMessage('job-1', mockMessage))
-        .rejects.toThrow('Send failed');
+      await expect(
+        RealtimeService.sendMessage('job-1', mockMessage)
+      ).rejects.toThrow('Send failed');
 
       expect(logger.error).toHaveBeenCalledWith(
         'Error sending realtime message:',
@@ -383,7 +384,7 @@ describe('RealtimeService', () => {
       expect(mockChannel.send).toHaveBeenCalledWith({
         type: 'broadcast',
         event: 'job_update',
-        payload: mockJob
+        payload: mockJob,
       });
     });
   });
@@ -396,7 +397,7 @@ describe('RealtimeService', () => {
       expect(mockChannel.send).toHaveBeenCalledWith({
         type: 'broadcast',
         event: 'bid_update',
-        payload: mockBid
+        payload: mockBid,
       });
     });
   });
@@ -445,7 +446,7 @@ describe('RealtimeService', () => {
     it('should return channel status information', () => {
       (supabase.getChannels as jest.Mock).mockReturnValue([
         { topic: 'messages:job-1', state: 'joined' },
-        { topic: 'jobs:job-1', state: 'joined' }
+        { topic: 'jobs:job-1', state: 'joined' },
       ]);
 
       const status = RealtimeService.getChannelStatus();
@@ -453,10 +454,10 @@ describe('RealtimeService', () => {
       expect(status).toEqual({
         channels: [
           { topic: 'messages:job-1', state: 'joined' },
-          { topic: 'jobs:job-1', state: 'joined' }
+          { topic: 'jobs:job-1', state: 'joined' },
         ],
         totalChannels: 2,
-        activeChannels: 2
+        activeChannels: 2,
       });
     });
 
@@ -468,7 +469,7 @@ describe('RealtimeService', () => {
       expect(status).toEqual({
         channels: [],
         totalChannels: 0,
-        activeChannels: 0
+        activeChannels: 0,
       });
     });
   });
@@ -477,21 +478,24 @@ describe('RealtimeService', () => {
     it('should cleanup all channels', () => {
       const mockChannels = [
         { topic: 'messages:job-1', unsubscribe: jest.fn() },
-        { topic: 'jobs:job-1', unsubscribe: jest.fn() }
+        { topic: 'jobs:job-1', unsubscribe: jest.fn() },
       ];
 
       (supabase.getChannels as jest.Mock).mockReturnValue(mockChannels);
 
       RealtimeService.cleanup();
 
-      mockChannels.forEach(channel => {
+      mockChannels.forEach((channel) => {
         expect(channel.unsubscribe).toHaveBeenCalled();
       });
     });
 
     it('should handle cleanup errors gracefully', () => {
       const mockChannels = [
-        { topic: 'messages:job-1', unsubscribe: jest.fn().mockRejectedValue(new Error('Cleanup error')) }
+        {
+          topic: 'messages:job-1',
+          unsubscribe: jest.fn().mockRejectedValue(new Error('Cleanup error')),
+        },
       ];
 
       (supabase.getChannels as jest.Mock).mockReturnValue(mockChannels);
@@ -520,13 +524,20 @@ describe('RealtimeService', () => {
 
       // Simulate connection states
       statusHandler('SUBSCRIBED');
-      expect(logger.debug).toHaveBeenCalledWith('Realtime subscription active for messages:job-1');
+      expect(logger.debug).toHaveBeenCalledWith(
+        'Realtime subscription active for messages:job-1'
+      );
 
       statusHandler('CHANNEL_ERROR', 'Connection lost');
-      expect(logger.error).toHaveBeenCalledWith('Error subscribing to messages:', 'Connection lost');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error subscribing to messages:',
+        'Connection lost'
+      );
 
       statusHandler('TIMED_OUT');
-      expect(logger.warn).toHaveBeenCalledWith('Realtime subscription timed out for messages:job-1');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Realtime subscription timed out for messages:job-1'
+      );
     });
 
     it('should handle multiple subscriptions to same channel', () => {
@@ -563,8 +574,8 @@ describe('RealtimeService', () => {
           receiver_id: 'user-2',
           created_at: '2024-01-01T00:00:00Z',
           is_read: false,
-          content: 'Test message'
-        }
+          content: 'Test message',
+        },
       };
 
       messageHandler!(payload);
@@ -576,7 +587,7 @@ describe('RealtimeService', () => {
         receiverId: 'user-2',
         createdAt: '2024-01-01T00:00:00Z',
         isRead: false,
-        content: 'Test message'
+        content: 'Test message',
       });
     });
 
@@ -596,9 +607,9 @@ describe('RealtimeService', () => {
       const payload = {
         new: {
           id: 'msg-1',
-          content: 'Partial message'
+          content: 'Partial message',
           // Missing other required fields
-        }
+        },
       };
 
       messageHandler!(payload);
@@ -610,7 +621,7 @@ describe('RealtimeService', () => {
         senderId: undefined,
         receiverId: undefined,
         createdAt: undefined,
-        isRead: undefined
+        isRead: undefined,
       });
     });
   });

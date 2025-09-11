@@ -15,7 +15,7 @@ import Button from '../components/ui/Button';
 
 const NotificationSettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-  
+
   // Notification settings state
   const [settings, setSettings] = useState({
     // Push Notifications
@@ -25,26 +25,26 @@ const NotificationSettingsScreen: React.FC = () => {
     newMessages: true,
     jobUpdates: true,
     paymentUpdates: true,
-    
+
     // Email Notifications
     emailEnabled: true,
     weeklyDigest: true,
     promotionalEmails: false,
     securityAlerts: true,
-    
+
     // In-App Settings
     soundEnabled: true,
     vibrationEnabled: true,
-    
+
     // Marketing
     marketingEmails: false,
     productUpdates: true,
   });
 
   const updateSetting = (key: keyof typeof settings) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: !prev[key],
     }));
   };
 
@@ -54,20 +54,26 @@ const NotificationSettingsScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  const Section = ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: React.ReactNode;
+  }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
   );
 
-  const SettingRow = ({ 
-    icon, 
-    title, 
-    description, 
-    value, 
+  const SettingRow = ({
+    icon,
+    title,
+    description,
+    value,
     onToggle,
-    disabled = false 
+    disabled = false,
   }: {
     icon: string;
     title: string;
@@ -79,10 +85,10 @@ const NotificationSettingsScreen: React.FC = () => {
     <View style={[styles.settingRow, disabled && styles.disabledRow]}>
       <View style={styles.settingLeft}>
         <View style={styles.iconContainer}>
-          <Ionicons 
-            name={icon as any} 
-            size={20} 
-            color={disabled ? '#C7C7CC' : theme.colors.primary} 
+          <Ionicons
+            name={icon as any}
+            size={20}
+            color={disabled ? '#C7C7CC' : theme.colors.primary}
           />
         </View>
         <View style={styles.settingInfo}>
@@ -98,9 +104,9 @@ const NotificationSettingsScreen: React.FC = () => {
         value={value}
         onValueChange={onToggle}
         disabled={disabled}
-        trackColor={{ 
-          false: theme.colors.borderLight, 
-          true: disabled ? theme.colors.textTertiary : theme.colors.success 
+        trackColor={{
+          false: theme.colors.borderLight,
+          true: disabled ? theme.colors.textTertiary : theme.colors.success,
         }}
         thumbColor={theme.colors.textInverse}
       />
@@ -110,67 +116,76 @@ const NotificationSettingsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <Button variant="secondary" title="Save" onPress={handleSave} style={{ paddingHorizontal: 16, borderRadius: 16 }} />
+        <Button
+          variant='secondary'
+          title='Save'
+          onPress={handleSave}
+          style={{ paddingHorizontal: 16, borderRadius: 16 }}
+        />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Push Notifications */}
-        <Section title="Push Notifications">
+        <Section title='Push Notifications'>
           <SettingRow
-            icon="notifications"
-            title="Push Notifications"
-            description="Allow Mintenance to send you push notifications"
+            icon='notifications'
+            title='Push Notifications'
+            description='Allow Mintenance to send you push notifications'
             value={settings.pushEnabled}
             onToggle={() => updateSetting('pushEnabled')}
           />
-          
+
           <SettingRow
-            icon="briefcase"
-            title="New Jobs"
-            description="Get notified when new jobs matching your skills are posted"
+            icon='briefcase'
+            title='New Jobs'
+            description='Get notified when new jobs matching your skills are posted'
             value={settings.newJobs}
             onToggle={() => updateSetting('newJobs')}
             disabled={!settings.pushEnabled}
           />
-          
+
           <SettingRow
-            icon="pricetag"
-            title="New Bids"
-            description="Receive notifications when contractors bid on your jobs"
+            icon='pricetag'
+            title='New Bids'
+            description='Receive notifications when contractors bid on your jobs'
             value={settings.newBids}
             onToggle={() => updateSetting('newBids')}
             disabled={!settings.pushEnabled}
           />
-          
+
           <SettingRow
-            icon="chatbubble"
-            title="New Messages"
-            description="Get notified about new messages and conversations"
+            icon='chatbubble'
+            title='New Messages'
+            description='Get notified about new messages and conversations'
             value={settings.newMessages}
             onToggle={() => updateSetting('newMessages')}
             disabled={!settings.pushEnabled}
           />
-          
+
           <SettingRow
-            icon="refresh"
-            title="Job Updates"
-            description="Notifications about job status changes and completions"
+            icon='refresh'
+            title='Job Updates'
+            description='Notifications about job status changes and completions'
             value={settings.jobUpdates}
             onToggle={() => updateSetting('jobUpdates')}
             disabled={!settings.pushEnabled}
           />
-          
+
           <SettingRow
-            icon="card"
-            title="Payment Updates"
-            description="Alerts about payments, invoices, and transactions"
+            icon='card'
+            title='Payment Updates'
+            description='Alerts about payments, invoices, and transactions'
             value={settings.paymentUpdates}
             onToggle={() => updateSetting('paymentUpdates')}
             disabled={!settings.pushEnabled}
@@ -178,28 +193,28 @@ const NotificationSettingsScreen: React.FC = () => {
         </Section>
 
         {/* Email Notifications */}
-        <Section title="Email Notifications">
+        <Section title='Email Notifications'>
           <SettingRow
-            icon="mail"
-            title="Email Notifications"
-            description="Receive important updates via email"
+            icon='mail'
+            title='Email Notifications'
+            description='Receive important updates via email'
             value={settings.emailEnabled}
             onToggle={() => updateSetting('emailEnabled')}
           />
-          
+
           <SettingRow
-            icon="calendar"
-            title="Weekly Digest"
-            description="Get a weekly summary of your activity and opportunities"
+            icon='calendar'
+            title='Weekly Digest'
+            description='Get a weekly summary of your activity and opportunities'
             value={settings.weeklyDigest}
             onToggle={() => updateSetting('weeklyDigest')}
             disabled={!settings.emailEnabled}
           />
-          
+
           <SettingRow
-            icon="shield-checkmark"
-            title="Security Alerts"
-            description="Important security and account notifications"
+            icon='shield-checkmark'
+            title='Security Alerts'
+            description='Important security and account notifications'
             value={settings.securityAlerts}
             onToggle={() => updateSetting('securityAlerts')}
             disabled={!settings.emailEnabled}
@@ -207,38 +222,38 @@ const NotificationSettingsScreen: React.FC = () => {
         </Section>
 
         {/* Sound & Vibration */}
-        <Section title="Sound & Vibration">
+        <Section title='Sound & Vibration'>
           <SettingRow
-            icon="volume-high"
-            title="Sound"
-            description="Play notification sounds"
+            icon='volume-high'
+            title='Sound'
+            description='Play notification sounds'
             value={settings.soundEnabled}
             onToggle={() => updateSetting('soundEnabled')}
           />
-          
+
           <SettingRow
-            icon="phone-portrait"
-            title="Vibration"
-            description="Vibrate for notifications"
+            icon='phone-portrait'
+            title='Vibration'
+            description='Vibrate for notifications'
             value={settings.vibrationEnabled}
             onToggle={() => updateSetting('vibrationEnabled')}
           />
         </Section>
 
         {/* Marketing & Updates */}
-        <Section title="Marketing & Updates">
+        <Section title='Marketing & Updates'>
           <SettingRow
-            icon="megaphone"
-            title="Promotional Emails"
-            description="Special offers and promotional content"
+            icon='megaphone'
+            title='Promotional Emails'
+            description='Special offers and promotional content'
             value={settings.promotionalEmails}
             onToggle={() => updateSetting('promotionalEmails')}
           />
-          
+
           <SettingRow
-            icon="information-circle"
-            title="Product Updates"
-            description="Learn about new features and improvements"
+            icon='information-circle'
+            title='Product Updates'
+            description='Learn about new features and improvements'
             value={settings.productUpdates}
             onToggle={() => updateSetting('productUpdates')}
           />
@@ -247,29 +262,49 @@ const NotificationSettingsScreen: React.FC = () => {
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <View style={styles.actionLeft}>
-              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Ionicons
+                name='checkmark-circle'
+                size={20}
+                color={theme.colors.success}
+              />
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <View style={styles.actionLeft}>
-              <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+              <Ionicons
+                name='close-circle'
+                size={20}
+                color={theme.colors.error}
+              />
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionButton}>
             <View style={styles.actionLeft}>
-              <Ionicons name="refresh" size={20} color={theme.colors.primary} />
+              <Ionicons name='refresh' size={20} color={theme.colors.primary} />
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
 

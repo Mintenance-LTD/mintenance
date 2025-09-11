@@ -3,7 +3,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { queryClient, persistQueryClient, restoreQueryClient } from '../lib/queryClient';
+import {
+  queryClient,
+  persistQueryClient,
+  restoreQueryClient,
+} from '../lib/queryClient';
 import { OfflineManager } from '../services/OfflineManager';
 import { logger } from '../utils/logger';
 
@@ -12,7 +16,6 @@ interface QueryProviderProps {
 }
 
 const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
-
   // Restore cache on app start
   useEffect(() => {
     restoreQueryClient();
@@ -26,7 +29,10 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
     return () => subscription?.remove();
   }, []);
 
@@ -39,7 +45,7 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
           if (state.isConnected && state.isInternetReachable) {
             // Refetch all queries when app becomes active and online
             queryClient.refetchQueries();
-            
+
             // Try to sync offline queue
             OfflineManager.syncQueue();
           }
@@ -47,7 +53,10 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
     return () => subscription?.remove();
   }, []);
 
@@ -56,13 +65,13 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (state.isConnected && state.isInternetReachable) {
         logger.info('Network connection restored, attempting sync');
-        
+
         // Retry failed queries
         queryClient.refetchQueries({
           type: 'all',
           stale: true,
         });
-        
+
         // Sync offline queue
         OfflineManager.syncQueue();
       } else {
@@ -82,7 +91,7 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
       {__DEV__ && (
         <ReactQueryDevtools
           initialIsOpen={false}
-          buttonPosition="bottom-right"
+          buttonPosition='bottom-right'
         />
       )}
     </QueryClientProvider>

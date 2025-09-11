@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { neighborhoodService, Neighborhood, NeighborhoodLeaderboard, ContractorRanking, NeighborReferral, CommunityEndorsement } from '../services/NeighborhoodService';
+import {
+  neighborhoodService,
+  Neighborhood,
+  NeighborhoodLeaderboard,
+  ContractorRanking,
+  NeighborReferral,
+  CommunityEndorsement,
+} from '../services/NeighborhoodService';
 import { logger } from '../utils/logger';
 
 // Query Keys
@@ -9,17 +16,27 @@ export const NEIGHBORHOOD_KEYS = {
   leaderboard: (id: string) => ['neighborhoods', id, 'leaderboard'] as const,
   contractors: (id: string) => ['neighborhoods', id, 'contractors'] as const,
   activity: (id: string) => ['neighborhoods', id, 'activity'] as const,
-  recommendations: (userId: string) => ['neighborhoods', 'recommendations', userId] as const,
-  userNeighborhood: (userId: string) => ['neighborhoods', 'user', userId] as const,
+  recommendations: (userId: string) =>
+    ['neighborhoods', 'recommendations', userId] as const,
+  userNeighborhood: (userId: string) =>
+    ['neighborhoods', 'user', userId] as const,
 };
 
 // Hook for getting or creating user's neighborhood
-export const useUserNeighborhood = (postcode?: string, latitude?: number, longitude?: number) => {
+export const useUserNeighborhood = (
+  postcode?: string,
+  latitude?: number,
+  longitude?: number
+) => {
   return useQuery({
     queryKey: NEIGHBORHOOD_KEYS.userNeighborhood(postcode || ''),
     queryFn: async () => {
       if (!postcode || !latitude || !longitude) return null;
-      return await neighborhoodService.getOrCreateNeighborhood(postcode, latitude, longitude);
+      return await neighborhoodService.getOrCreateNeighborhood(
+        postcode,
+        latitude,
+        longitude
+      );
     },
     enabled: Boolean(postcode && latitude && longitude),
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -30,27 +47,36 @@ export const useUserNeighborhood = (postcode?: string, latitude?: number, longit
 export const useNeighborhoodLeaderboard = (neighborhoodId: string) => {
   return useQuery({
     queryKey: NEIGHBORHOOD_KEYS.leaderboard(neighborhoodId),
-    queryFn: async () => await neighborhoodService.getNeighborhoodLeaderboard(neighborhoodId),
+    queryFn: async () =>
+      await neighborhoodService.getNeighborhoodLeaderboard(neighborhoodId),
     enabled: Boolean(neighborhoodId),
     staleTime: 2 * 60 * 1000, // 2 minutes - leaderboards change frequently
   });
 };
 
 // Hook for top contractors in neighborhood
-export const useTopContractors = (neighborhoodId: string, limit: number = 10) => {
+export const useTopContractors = (
+  neighborhoodId: string,
+  limit: number = 10
+) => {
   return useQuery({
     queryKey: [...NEIGHBORHOOD_KEYS.contractors(neighborhoodId), limit],
-    queryFn: async () => await neighborhoodService.getTopContractors(neighborhoodId, limit),
+    queryFn: async () =>
+      await neighborhoodService.getTopContractors(neighborhoodId, limit),
     enabled: Boolean(neighborhoodId),
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
 };
 
 // Hook for neighborhood activity feed
-export const useNeighborhoodActivity = (neighborhoodId: string, limit: number = 20) => {
+export const useNeighborhoodActivity = (
+  neighborhoodId: string,
+  limit: number = 20
+) => {
   return useQuery({
     queryKey: [...NEIGHBORHOOD_KEYS.activity(neighborhoodId), limit],
-    queryFn: async () => await neighborhoodService.getNeighborhoodActivity(neighborhoodId, limit),
+    queryFn: async () =>
+      await neighborhoodService.getNeighborhoodActivity(neighborhoodId, limit),
     enabled: Boolean(neighborhoodId),
     staleTime: 1 * 60 * 1000, // 1 minute - activity updates frequently
   });
@@ -60,7 +86,8 @@ export const useNeighborhoodActivity = (neighborhoodId: string, limit: number = 
 export const useNeighborhoodRecommendations = (userId: string) => {
   return useQuery({
     queryKey: NEIGHBORHOOD_KEYS.recommendations(userId),
-    queryFn: async () => await neighborhoodService.getNeighborhoodRecommendations(userId),
+    queryFn: async () =>
+      await neighborhoodService.getNeighborhoodRecommendations(userId),
     enabled: Boolean(userId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -75,7 +102,7 @@ export const useCreateReferral = () => {
       referrerId,
       contractorId,
       jobId,
-      refereeContact
+      refereeContact,
     }: {
       referrerId: string;
       contractorId: string;
@@ -91,20 +118,20 @@ export const useCreateReferral = () => {
     },
     onSuccess: (data) => {
       // Invalidate activity feeds and recommendations
-      queryClient.invalidateQueries({ 
-        queryKey: NEIGHBORHOOD_KEYS.activity(data.neighborhood_id) 
+      queryClient.invalidateQueries({
+        queryKey: NEIGHBORHOOD_KEYS.activity(data.neighborhood_id),
       });
-      queryClient.invalidateQueries({ 
-        queryKey: NEIGHBORHOOD_KEYS.recommendations(data.referrer_id) 
+      queryClient.invalidateQueries({
+        queryKey: NEIGHBORHOOD_KEYS.recommendations(data.referrer_id),
       });
-      
-      logger.info('Neighbor referral created successfully', { 
-        referralId: data.id 
+
+      logger.info('Neighbor referral created successfully', {
+        referralId: data.id,
       });
     },
     onError: (error) => {
       logger.error('Failed to create neighbor referral', error);
-    }
+    },
   });
 };
 
@@ -117,7 +144,7 @@ export const useAddEndorsement = () => {
       endorserId,
       contractorId,
       skill,
-      message
+      message,
     }: {
       endorserId: string;
       contractorId: string;
@@ -133,23 +160,23 @@ export const useAddEndorsement = () => {
     },
     onSuccess: (data) => {
       // Invalidate contractor rankings and activity feeds
-      queryClient.invalidateQueries({ 
-        queryKey: NEIGHBORHOOD_KEYS.contractors(data.neighborhood_id) 
+      queryClient.invalidateQueries({
+        queryKey: NEIGHBORHOOD_KEYS.contractors(data.neighborhood_id),
       });
-      queryClient.invalidateQueries({ 
-        queryKey: NEIGHBORHOOD_KEYS.leaderboard(data.neighborhood_id) 
+      queryClient.invalidateQueries({
+        queryKey: NEIGHBORHOOD_KEYS.leaderboard(data.neighborhood_id),
       });
-      queryClient.invalidateQueries({ 
-        queryKey: NEIGHBORHOOD_KEYS.activity(data.neighborhood_id) 
+      queryClient.invalidateQueries({
+        queryKey: NEIGHBORHOOD_KEYS.activity(data.neighborhood_id),
       });
-      
-      logger.info('Community endorsement added successfully', { 
-        endorsementId: data.id 
+
+      logger.info('Community endorsement added successfully', {
+        endorsementId: data.id,
       });
     },
     onError: (error) => {
       logger.error('Failed to add community endorsement', error);
-    }
+    },
   });
 };
 
@@ -157,7 +184,8 @@ export const useAddEndorsement = () => {
 export const useCommunityScore = (neighborhoodId: string) => {
   return useQuery({
     queryKey: ['neighborhoods', neighborhoodId, 'community-score'],
-    queryFn: async () => await neighborhoodService.calculateCommunityScore(neighborhoodId),
+    queryFn: async () =>
+      await neighborhoodService.calculateCommunityScore(neighborhoodId),
     enabled: Boolean(neighborhoodId),
     staleTime: 10 * 60 * 1000, // 10 minutes - scores don't change rapidly
   });
@@ -176,7 +204,9 @@ export const useNeighborhoodFormatters = () => {
     return `${(meters / 1000).toFixed(1)}km`;
   };
 
-  const formatCommunityScore = (score: number): {
+  const formatCommunityScore = (
+    score: number
+  ): {
     score: number;
     level: 'Poor' | 'Fair' | 'Good' | 'Excellent' | 'Outstanding';
     color: string;
@@ -213,29 +243,44 @@ export const useNeighborhoodFormatters = () => {
   };
 
   const formatRankPosition = (position: number): string => {
-    const suffix = position === 1 ? 'st' : 
-                  position === 2 ? 'nd' : 
-                  position === 3 ? 'rd' : 'th';
+    const suffix =
+      position === 1
+        ? 'st'
+        : position === 2
+          ? 'nd'
+          : position === 3
+            ? 'rd'
+            : 'th';
     return `${position}${suffix}`;
   };
 
   const getChampionBadgeEmoji = (championType: string): string => {
     switch (championType) {
-      case 'referral_master': return '🤝';
-      case 'review_hero': return '⭐';
-      case 'quality_advocate': return '🏆';
-      case 'helpful_neighbor': return '💪';
-      default: return '🏅';
+      case 'referral_master':
+        return '🤝';
+      case 'review_hero':
+        return '⭐';
+      case 'quality_advocate':
+        return '🏆';
+      case 'helpful_neighbor':
+        return '💪';
+      default:
+        return '🏅';
     }
   };
 
   const getBadgeLevelColor = (level: string): string => {
     switch (level) {
-      case 'bronze': return '#CD7F32';
-      case 'silver': return '#C0C0C0';
-      case 'gold': return '#FFD700';
-      case 'platinum': return '#E5E4E2';
-      default: return '#8B8B8B';
+      case 'bronze':
+        return '#CD7F32';
+      case 'silver':
+        return '#C0C0C0';
+      case 'gold':
+        return '#FFD700';
+      case 'platinum':
+        return '#E5E4E2';
+      default:
+        return '#8B8B8B';
     }
   };
 
@@ -246,27 +291,36 @@ export const useNeighborhoodFormatters = () => {
     formatResponseTime,
     formatRankPosition,
     getChampionBadgeEmoji,
-    getBadgeLevelColor
+    getBadgeLevelColor,
   };
 };
 
 // Custom error types for neighborhood operations
 export class NeighborhoodError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string
+  ) {
     super(message);
     this.name = 'NeighborhoodError';
   }
 }
 
 export class EndorsementError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string
+  ) {
     super(message);
     this.name = 'EndorsementError';
   }
 }
 
 export class ReferralError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string
+  ) {
     super(message);
     this.name = 'ReferralError';
   }
@@ -288,19 +342,24 @@ export const neighborhoodUtils = {
   isLondonPostcode: (postcode: string): boolean => {
     const area = neighborhoodUtils.extractPostcodeArea(postcode);
     const londonPrefixes = ['E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC'];
-    return londonPrefixes.some(prefix => area.startsWith(prefix));
+    return londonPrefixes.some((prefix) => area.startsWith(prefix));
   },
 
-  calculateDistance: (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  calculateDistance: (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
     const R = 6371000; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // Distance in meters
@@ -317,8 +376,8 @@ export const neighborhoodUtils = {
       roofing: '🏠',
       heating: '🔥',
       flooring: '📐',
-      handyman: '🛠️'
+      handyman: '🛠️',
     };
     return icons[specialty.toLowerCase()] || '🔧';
-  }
+  },
 };

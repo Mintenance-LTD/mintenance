@@ -1,7 +1,7 @@
 /**
  * MARKET RATE CALCULATOR
  * Specialized module for calculating market-based pricing adjustments
- * 
+ *
  * Extracted from AIPricingEngine.ts for better modularity
  * Handles location-based pricing, seasonal factors, and demand analysis
  */
@@ -41,7 +41,7 @@ export class MarketRateCalculator {
     ['liverpool', 0.8],
     ['bristol', 0.9],
     ['edinburgh', 0.85],
-    ['default', 0.7]
+    ['default', 0.7],
   ]);
 
   private baseRates: Map<string, number> = new Map([
@@ -58,52 +58,58 @@ export class MarketRateCalculator {
     ['handyman', 30],
     ['kitchen', 55],
     ['bathroom', 50],
-    ['general', 35]
+    ['general', 35],
   ]);
 
   private seasonalFactors: Map<number, number> = new Map([
-    [0, 0.9],  // January
+    [0, 0.9], // January
     [1, 0.85], // February
-    [2, 1.0],  // March
-    [3, 1.1],  // April
-    [4, 1.2],  // May
+    [2, 1.0], // March
+    [3, 1.1], // April
+    [4, 1.2], // May
     [5, 1.15], // June
     [6, 1.05], // July
-    [7, 1.0],  // August
-    [8, 1.1],  // September
+    [7, 1.0], // August
+    [8, 1.1], // September
     [9, 1.15], // October
     [10, 1.05], // November
-    [11, 0.95]  // December
+    [11, 0.95], // December
   ]);
 
   /**
    * Analyze market conditions for a job
    */
-  public async analyzeMarketConditions(input: MarketPricingInput): Promise<MarketAnalysisResult> {
+  public async analyzeMarketConditions(
+    input: MarketPricingInput
+  ): Promise<MarketAnalysisResult> {
     try {
       logger.info('Analyzing market conditions', {
         category: input.category,
-        location: input.location
+        location: input.location,
       });
 
       const context = await this.getMarketContext(input);
-      const adjustmentFactor = this.calculateMarketAdjustmentFactor(context, input);
+      const adjustmentFactor = this.calculateMarketAdjustmentFactor(
+        context,
+        input
+      );
       const regionalInsights = this.generateRegionalInsights(context, input);
 
       return {
         context,
         adjustmentFactor,
-        regionalInsights
+        regionalInsights,
       };
-
     } catch (error) {
       logger.error('Market analysis failed', error);
-      
+
       // Return safe defaults
       return {
         context: this.getDefaultMarketContext(),
         adjustmentFactor: 1.0,
-        regionalInsights: ['Using default market conditions due to analysis error']
+        regionalInsights: [
+          'Using default market conditions due to analysis error',
+        ],
       };
     }
   }
@@ -111,14 +117,17 @@ export class MarketRateCalculator {
   /**
    * Get comprehensive market context for a job
    */
-  private async getMarketContext(input: MarketPricingInput): Promise<MarketContext> {
+  private async getMarketContext(
+    input: MarketPricingInput
+  ): Promise<MarketContext> {
     // In a real implementation, this would query historical pricing data,
     // current contractor availability, and real-time demand metrics
-    
+
     const baseRate = this.baseRates.get(input.category) || 35;
     const locationKey = this.getLocationKey(input.location);
     const locationMultiplier = this.locationMultipliers.get(locationKey) || 1.0;
-    const seasonalFactor = this.seasonalFactors.get(new Date().getMonth()) || 1.0;
+    const seasonalFactor =
+      this.seasonalFactors.get(new Date().getMonth()) || 1.0;
 
     // Simulate realistic market conditions
     const averagePrice = baseRate * locationMultiplier;
@@ -128,12 +137,15 @@ export class MarketRateCalculator {
       averagePrice,
       priceRange: [
         Math.round(averagePrice - priceVariation),
-        Math.round(averagePrice + priceVariation)
+        Math.round(averagePrice + priceVariation),
       ],
       demandLevel: this.getDemandLevel(input.category),
       seasonalFactor,
       locationMultiplier,
-      contractorAvailability: this.calculateContractorAvailability(input.category, locationKey)
+      contractorAvailability: this.calculateContractorAvailability(
+        input.category,
+        locationKey
+      ),
     };
 
     logger.debug('Market context calculated', {
@@ -141,7 +153,7 @@ export class MarketRateCalculator {
       locationKey,
       locationMultiplier,
       seasonalFactor,
-      context
+      context,
     });
 
     return context;
@@ -150,7 +162,10 @@ export class MarketRateCalculator {
   /**
    * Calculate overall market adjustment factor
    */
-  private calculateMarketAdjustmentFactor(context: MarketContext, input: MarketPricingInput): number {
+  private calculateMarketAdjustmentFactor(
+    context: MarketContext,
+    input: MarketPricingInput
+  ): number {
     let factor = 1.0;
 
     // Location adjustment
@@ -164,7 +179,9 @@ export class MarketRateCalculator {
     factor *= demandMultiplier;
 
     // Contractor availability adjustment
-    const availabilityMultiplier = this.getAvailabilityMultiplier(context.contractorAvailability);
+    const availabilityMultiplier = this.getAvailabilityMultiplier(
+      context.contractorAvailability
+    );
     factor *= availabilityMultiplier;
 
     // Urgency adjustment
@@ -178,38 +195,56 @@ export class MarketRateCalculator {
   /**
    * Generate insights about regional market conditions
    */
-  private generateRegionalInsights(context: MarketContext, input: MarketPricingInput): string[] {
+  private generateRegionalInsights(
+    context: MarketContext,
+    input: MarketPricingInput
+  ): string[] {
     const insights: string[] = [];
 
     // Location insights
     if (context.locationMultiplier > 1.3) {
-      insights.push(`${input.location} is a premium market area with rates 30%+ above national average`);
+      insights.push(
+        `${input.location} is a premium market area with rates 30%+ above national average`
+      );
     } else if (context.locationMultiplier < 0.8) {
-      insights.push(`${input.location} has competitive rates below the national average`);
+      insights.push(
+        `${input.location} has competitive rates below the national average`
+      );
     }
 
     // Demand insights
     if (context.demandLevel === 'high') {
       insights.push(`High demand for ${input.category} services in this area`);
     } else if (context.demandLevel === 'low') {
-      insights.push(`Lower competition for ${input.category} services - good opportunity`);
+      insights.push(
+        `Lower competition for ${input.category} services - good opportunity`
+      );
     }
 
     // Seasonal insights
     const month = new Date().getMonth();
-    if (month >= 3 && month <= 5) { // Spring
-      insights.push('Spring season typically sees increased demand for home maintenance');
-    } else if (month >= 9 && month <= 10) { // Autumn
+    if (month >= 3 && month <= 5) {
+      // Spring
+      insights.push(
+        'Spring season typically sees increased demand for home maintenance'
+      );
+    } else if (month >= 9 && month <= 10) {
+      // Autumn
       insights.push('Autumn preparation work often commands premium pricing');
-    } else if (month === 0 || month === 1) { // Winter
-      insights.push('Winter months typically see reduced activity and competitive pricing');
+    } else if (month === 0 || month === 1) {
+      // Winter
+      insights.push(
+        'Winter months typically see reduced activity and competitive pricing'
+      );
     }
 
     // Availability insights
     if (context.contractorAvailability < 0.4) {
       insights.push('Limited contractor availability may drive prices higher');
     } else if (context.contractorAvailability > 0.8) {
-      insights.push('Good contractor availability should keep prices competitive');
+      insights.push(
+        'Good contractor availability should keep prices competitive'
+      );
     }
 
     return insights;
@@ -220,25 +255,36 @@ export class MarketRateCalculator {
    */
   private getLocationKey(location: string): string {
     const locationLower = location.toLowerCase();
-    
+
     // London zones
-    if (locationLower.includes('central london') || locationLower.includes('zone 1')) {
+    if (
+      locationLower.includes('central london') ||
+      locationLower.includes('zone 1')
+    ) {
       return 'central_london';
     }
-    if (locationLower.includes('inner london') || locationLower.includes('zone 2')) {
+    if (
+      locationLower.includes('inner london') ||
+      locationLower.includes('zone 2')
+    ) {
       return 'inner_london';
     }
     if (locationLower.includes('london')) {
       return 'outer_london';
     }
-    
+
     // Major UK cities
     const cities = [
-      'manchester', 'birmingham', 'leeds', 'glasgow', 
-      'liverpool', 'bristol', 'edinburgh'
+      'manchester',
+      'birmingham',
+      'leeds',
+      'glasgow',
+      'liverpool',
+      'bristol',
+      'edinburgh',
     ];
-    const matchedCity = cities.find(city => locationLower.includes(city));
-    
+    const matchedCity = cities.find((city) => locationLower.includes(city));
+
     return matchedCity || 'default';
   }
 
@@ -246,9 +292,14 @@ export class MarketRateCalculator {
    * Determine demand level for a service category
    */
   private getDemandLevel(category: string): 'low' | 'medium' | 'high' {
-    const highDemandCategories = ['plumbing', 'electrical', 'heating', 'roofing'];
+    const highDemandCategories = [
+      'plumbing',
+      'electrical',
+      'heating',
+      'roofing',
+    ];
     const lowDemandCategories = ['painting', 'gardening', 'cleaning'];
-    
+
     if (highDemandCategories.includes(category)) return 'high';
     if (lowDemandCategories.includes(category)) return 'low';
     return 'medium';
@@ -259,16 +310,22 @@ export class MarketRateCalculator {
    */
   private getDemandMultiplier(demandLevel: 'low' | 'medium' | 'high'): number {
     switch (demandLevel) {
-      case 'high': return 1.15;  // 15% premium
-      case 'low': return 0.9;    // 10% discount
-      default: return 1.0;       // No adjustment
+      case 'high':
+        return 1.15; // 15% premium
+      case 'low':
+        return 0.9; // 10% discount
+      default:
+        return 1.0; // No adjustment
     }
   }
 
   /**
    * Calculate contractor availability in the area
    */
-  private calculateContractorAvailability(category: string, locationKey: string): number {
+  private calculateContractorAvailability(
+    category: string,
+    locationKey: string
+  ): number {
     // Simulate availability based on category and location
     let baseAvailability = 0.7; // 70% base availability
 
@@ -284,7 +341,7 @@ export class MarketRateCalculator {
 
     // Add some realistic variation
     const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
-    
+
     return Math.max(0.2, Math.min(1.0, baseAvailability + variation));
   }
 
@@ -310,7 +367,7 @@ export class MarketRateCalculator {
       demandLevel: 'medium',
       seasonalFactor: 1.0,
       locationMultiplier: 1.0,
-      contractorAvailability: 0.7
+      contractorAvailability: 0.7,
     };
   }
 
@@ -318,8 +375,8 @@ export class MarketRateCalculator {
    * Apply market adjustments to a base price
    */
   public applyMarketAdjustments(
-    basePrice: number, 
-    marketContext: MarketContext, 
+    basePrice: number,
+    marketContext: MarketContext,
     input: MarketPricingInput
   ): number {
     let adjustedPrice = basePrice;
@@ -334,7 +391,9 @@ export class MarketRateCalculator {
     adjustedPrice *= this.getDemandMultiplier(marketContext.demandLevel);
 
     // Apply availability adjustment
-    adjustedPrice *= this.getAvailabilityMultiplier(marketContext.contractorAvailability);
+    adjustedPrice *= this.getAvailabilityMultiplier(
+      marketContext.contractorAvailability
+    );
 
     // Apply urgency premium
     if (input.urgency === 'high') {
@@ -347,7 +406,7 @@ export class MarketRateCalculator {
       locationMultiplier: marketContext.locationMultiplier,
       seasonalFactor: marketContext.seasonalFactor,
       demandLevel: marketContext.demandLevel,
-      urgency: input.urgency
+      urgency: input.urgency,
     });
 
     return Math.round(adjustedPrice * 100) / 100; // Round to 2 decimal places
@@ -356,7 +415,10 @@ export class MarketRateCalculator {
   /**
    * Get market rate information for a specific service category and location
    */
-  public async getMarketRateInfo(category: string, location: string): Promise<{
+  public async getMarketRateInfo(
+    category: string,
+    location: string
+  ): Promise<{
     baseRate: number;
     locationMultiplier: number;
     adjustedRate: number;
@@ -370,14 +432,14 @@ export class MarketRateCalculator {
     const marketInsights = [
       `Base rate for ${category}: £${baseRate}/hour`,
       `Location adjustment for ${location}: ${locationMultiplier}x`,
-      `Adjusted market rate: £${adjustedRate}/hour`
+      `Adjusted market rate: £${adjustedRate}/hour`,
     ];
 
     return {
       baseRate,
       locationMultiplier,
       adjustedRate,
-      marketInsights
+      marketInsights,
     };
   }
 }

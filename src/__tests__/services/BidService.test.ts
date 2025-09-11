@@ -8,9 +8,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     from: jest.fn(),
     functions: {
-      invoke: jest.fn()
-    }
-  }
+      invoke: jest.fn(),
+    },
+  },
 }));
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
@@ -21,7 +21,7 @@ const mockBidData: BidData = {
   amount: 140,
   message: 'I can complete this job today with 5+ years experience',
   estimated_duration: 'Same day',
-  availability: '2024-01-15'
+  availability: '2024-01-15',
 };
 
 const mockBid: Bid = {
@@ -37,14 +37,14 @@ const mockBid: Bid = {
     email: 'jane@example.com',
     rating: 4.8,
     reviews_count: 25,
-    profile_picture: 'avatar.jpg'
-  }
+    profile_picture: 'avatar.jpg',
+  },
 };
 
 describe('BidService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     mockSupabase.from.mockReturnValue({
       insert: jest.fn().mockReturnThis(),
@@ -74,19 +74,25 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: null, error }),
       } as any);
 
-      await expect(BidService.createBid(mockBidData)).rejects.toThrow('Job not found');
+      await expect(BidService.createBid(mockBidData)).rejects.toThrow(
+        'Job not found'
+      );
     });
 
     it('validates bid amount', async () => {
       const invalidBidData = { ...mockBidData, amount: 0 };
-      
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow('Bid amount must be greater than 0');
+
+      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
+        'Bid amount must be greater than 0'
+      );
     });
 
     it('validates bid message', async () => {
       const invalidBidData = { ...mockBidData, message: '' };
-      
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow('Bid message is required');
+
+      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
+        'Bid message is required'
+      );
     });
 
     it('prevents duplicate bids from same contractor', async () => {
@@ -97,29 +103,38 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: null, error }),
       } as any);
 
-      await expect(BidService.createBid(mockBidData)).rejects.toThrow('You have already placed a bid on this job');
+      await expect(BidService.createBid(mockBidData)).rejects.toThrow(
+        'You have already placed a bid on this job'
+      );
     });
 
     it('validates availability date format', async () => {
       const invalidBidData = { ...mockBidData, availability: 'tomorrow' };
-      
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow('Invalid availability date format');
+
+      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
+        'Invalid availability date format'
+      );
     });
 
     it('prevents bidding on own jobs', async () => {
       // Mock checking if contractor is also homeowner of the job
-      const contractorOwnedJob = { ...mockBidData, contractor_id: 'homeowner-1' };
-      
+      const contractorOwnedJob = {
+        ...mockBidData,
+        contractor_id: 'homeowner-1',
+      };
+
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ 
-          data: { homeowner_id: 'homeowner-1' }, 
-          error: null 
+        single: jest.fn().mockResolvedValue({
+          data: { homeowner_id: 'homeowner-1' },
+          error: null,
         }),
       } as any);
 
-      await expect(BidService.createBid(contractorOwnedJob)).rejects.toThrow('Cannot bid on your own job');
+      await expect(BidService.createBid(contractorOwnedJob)).rejects.toThrow(
+        'Cannot bid on your own job'
+      );
     });
   });
 
@@ -158,7 +173,10 @@ describe('BidService', () => {
     it('orders bids by creation time', async () => {
       await BidService.getBidsByJob('job-1');
 
-      expect(mockSupabase.from().select().eq().order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockSupabase.from().select().eq().order).toHaveBeenCalledWith(
+        'created_at',
+        { ascending: false }
+      );
     });
 
     it('filters by bid status', async () => {
@@ -266,14 +284,15 @@ describe('BidService', () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ 
-          data: { job: { homeowner_id: 'other-homeowner' } }, 
-          error: null 
+        single: jest.fn().mockResolvedValue({
+          data: { job: { homeowner_id: 'other-homeowner' } },
+          error: null,
         }),
       } as any);
 
-      await expect(BidService.acceptBid('bid-1', 'homeowner-1'))
-        .rejects.toThrow('Not authorized to accept this bid');
+      await expect(
+        BidService.acceptBid('bid-1', 'homeowner-1')
+      ).rejects.toThrow('Not authorized to accept this bid');
     });
 
     it('prevents accepting already accepted bids', async () => {
@@ -284,8 +303,9 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
       } as any);
 
-      await expect(BidService.acceptBid('bid-1', 'homeowner-1'))
-        .rejects.toThrow('Bid has already been accepted');
+      await expect(
+        BidService.acceptBid('bid-1', 'homeowner-1')
+      ).rejects.toThrow('Bid has already been accepted');
     });
   });
 
@@ -305,7 +325,11 @@ describe('BidService', () => {
     });
 
     it('allows providing rejection reason', async () => {
-      const rejectedBid = { ...mockBid, status: 'rejected', rejection_reason: 'Budget too high' };
+      const rejectedBid = {
+        ...mockBid,
+        status: 'rejected',
+        rejection_reason: 'Budget too high',
+      };
       mockSupabase.from.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -313,7 +337,11 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: rejectedBid, error: null }),
       } as any);
 
-      const result = await BidService.rejectBid('bid-1', 'homeowner-1', 'Budget too high');
+      const result = await BidService.rejectBid(
+        'bid-1',
+        'homeowner-1',
+        'Budget too high'
+      );
 
       expect(result.rejection_reason).toBe('Budget too high');
     });
@@ -336,14 +364,15 @@ describe('BidService', () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ 
-          data: { contractor_id: 'other-contractor' }, 
-          error: null 
+        single: jest.fn().mockResolvedValue({
+          data: { contractor_id: 'other-contractor' },
+          error: null,
         }),
       } as any);
 
-      await expect(BidService.withdrawBid('bid-1', 'contractor-1'))
-        .rejects.toThrow('Not authorized to withdraw this bid');
+      await expect(
+        BidService.withdrawBid('bid-1', 'contractor-1')
+      ).rejects.toThrow('Not authorized to withdraw this bid');
     });
 
     it('prevents withdrawal of accepted bids', async () => {
@@ -354,16 +383,20 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
       } as any);
 
-      await expect(BidService.withdrawBid('bid-1', 'contractor-1'))
-        .rejects.toThrow('Cannot withdraw an accepted bid');
+      await expect(
+        BidService.withdrawBid('bid-1', 'contractor-1')
+      ).rejects.toThrow('Cannot withdraw an accepted bid');
     });
   });
 
   describe('updateBid', () => {
     it('updates bid amount and message', async () => {
-      const updates = { amount: 160, message: 'Updated pricing based on materials' };
+      const updates = {
+        amount: 160,
+        message: 'Updated pricing based on materials',
+      };
       const updatedBid = { ...mockBid, ...updates };
-      
+
       mockSupabase.from.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -371,7 +404,11 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: updatedBid, error: null }),
       } as any);
 
-      const result = await BidService.updateBid('bid-1', 'contractor-1', updates);
+      const result = await BidService.updateBid(
+        'bid-1',
+        'contractor-1',
+        updates
+      );
 
       expect(result.amount).toBe(160);
       expect(result.message).toBe('Updated pricing based on materials');
@@ -381,14 +418,15 @@ describe('BidService', () => {
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ 
-          data: { contractor_id: 'other-contractor', status: 'pending' }, 
-          error: null 
+        single: jest.fn().mockResolvedValue({
+          data: { contractor_id: 'other-contractor', status: 'pending' },
+          error: null,
         }),
       } as any);
 
-      await expect(BidService.updateBid('bid-1', 'contractor-1', { amount: 160 }))
-        .rejects.toThrow('Not authorized to update this bid');
+      await expect(
+        BidService.updateBid('bid-1', 'contractor-1', { amount: 160 })
+      ).rejects.toThrow('Not authorized to update this bid');
     });
 
     it('prevents updates to non-pending bids', async () => {
@@ -399,8 +437,9 @@ describe('BidService', () => {
         single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
       } as any);
 
-      await expect(BidService.updateBid('bid-1', 'contractor-1', { amount: 160 }))
-        .rejects.toThrow('Cannot update a bid that is not pending');
+      await expect(
+        BidService.updateBid('bid-1', 'contractor-1', { amount: 160 })
+      ).rejects.toThrow('Cannot update a bid that is not pending');
     });
   });
 
@@ -413,31 +452,35 @@ describe('BidService', () => {
         highest_bid: 180,
         pending_bids: 3,
         accepted_bids: 1,
-        rejected_bids: 1
+        rejected_bids: 1,
       };
 
       mockSupabase.functions.invoke.mockResolvedValue({
         data: mockStats,
-        error: null
+        error: null,
       });
 
       const result = await BidService.getBidStatistics('job-1');
 
       expect(result).toEqual(mockStats);
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('get-bid-statistics', {
-        body: { jobId: 'job-1' }
-      });
+      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
+        'get-bid-statistics',
+        {
+          body: { jobId: 'job-1' },
+        }
+      );
     });
 
     it('handles statistics calculation errors', async () => {
       const error = { message: 'Job not found' };
       mockSupabase.functions.invoke.mockResolvedValue({
         data: null,
-        error
+        error,
       });
 
-      await expect(BidService.getBidStatistics('job-1'))
-        .rejects.toThrow('Job not found');
+      await expect(BidService.getBidStatistics('job-1')).rejects.toThrow(
+        'Job not found'
+      );
     });
   });
 });

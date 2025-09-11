@@ -26,7 +26,7 @@ describe('Security Vulnerability Tests', () => {
         "' OR '1'='1",
         "'; UPDATE jobs SET budget=0; --",
         "' UNION SELECT * FROM users --",
-        "'; DELETE FROM jobs WHERE '1'='1'; --"
+        "'; DELETE FROM jobs WHERE '1'='1'; --",
       ];
 
       (JobService.searchJobs as jest.Mock) = jest.fn().mockResolvedValue([]);
@@ -38,7 +38,9 @@ describe('Security Vulnerability Tests', () => {
       }
 
       // Verify the service was called but didn't execute malicious SQL
-      expect(JobService.searchJobs).toHaveBeenCalledTimes(maliciousInputs.length);
+      expect(JobService.searchJobs).toHaveBeenCalledTimes(
+        maliciousInputs.length
+      );
     });
 
     it('should sanitize user input in job creation', async () => {
@@ -47,14 +49,14 @@ describe('Security Vulnerability Tests', () => {
         description: "' OR '1'='1' --",
         location: "'; UPDATE users SET role='admin'; --",
         budget: 150,
-        homeownerId: "user-1",
-        category: "plumbing"
+        homeownerId: 'user-1',
+        category: 'plumbing',
       };
 
       JobService.createJob = jest.fn().mockResolvedValue({
         id: 'job-1',
         ...maliciousJobData,
-        status: 'posted'
+        status: 'posted',
       });
 
       await expect(
@@ -66,7 +68,7 @@ describe('Security Vulnerability Tests', () => {
 
     it('should prevent SQL injection in message search', async () => {
       const maliciousMsgSearch = "'; DROP TABLE messages; --";
-      
+
       MessagingService.searchJobMessages = jest.fn().mockResolvedValue([]);
 
       await expect(
@@ -82,7 +84,7 @@ describe('Security Vulnerability Tests', () => {
         "<img src=x onerror=alert('XSS')>",
         "javascript:alert('XSS')",
         "<svg onload=alert('XSS')>",
-        "<iframe src='javascript:alert(`XSS`)'></iframe>"
+        "<iframe src='javascript:alert(`XSS`)'></iframe>",
       ];
 
       JobService.createJob = jest.fn().mockImplementation((jobData) => {
@@ -90,11 +92,11 @@ describe('Security Vulnerability Tests', () => {
         expect(jobData.description).not.toMatch(/<script>/);
         expect(jobData.description).not.toMatch(/javascript:/);
         expect(jobData.description).not.toMatch(/onerror=/);
-        
+
         return Promise.resolve({
           id: 'job-1',
           ...jobData,
-          status: 'posted'
+          status: 'posted',
         });
       });
 
@@ -108,24 +110,26 @@ describe('Security Vulnerability Tests', () => {
           location: 'Test Location',
           budget: 100,
           homeownerId: 'user-1',
-          category: 'plumbing'
+          category: 'plumbing',
         });
       }
     });
 
     it('should sanitize message content', async () => {
       const xssMessage = "<script>alert('XSS in message')</script>";
-      
-      MessagingService.sendMessage = jest.fn().mockImplementation((jobId, receiverId, messageText, senderId) => {
-        // Verify message content is sanitized
-        expect(messageText).not.toMatch(/<script>/);
-        return Promise.resolve({
-          id: 'msg-1',
-          messageText,
-          senderId,
-          receiverId
+
+      MessagingService.sendMessage = jest
+        .fn()
+        .mockImplementation((jobId, receiverId, messageText, senderId) => {
+          // Verify message content is sanitized
+          expect(messageText).not.toMatch(/<script>/);
+          return Promise.resolve({
+            id: 'msg-1',
+            messageText,
+            senderId,
+            receiverId,
+          });
         });
-      });
 
       const { sanitizeText } = require('../../utils/sanitize');
       const cleanMsg = sanitizeText(xssMessage);
@@ -137,7 +141,7 @@ describe('Security Vulnerability Tests', () => {
     it('should prevent brute force attacks', async () => {
       const maxAttempts = 5;
       const attempts = Array(maxAttempts + 1).fill(null);
-      
+
       AuthService.signIn = jest.fn().mockImplementation((email, password) => {
         // Simulate failed login attempts
         if (password === 'wrong-password') {
@@ -159,13 +163,7 @@ describe('Security Vulnerability Tests', () => {
     });
 
     it('should validate password strength', () => {
-      const weakPasswords = [
-        '123',
-        'password',
-        '12345678',
-        'qwerty',
-        'admin'
-      ];
+      const weakPasswords = ['123', 'password', '12345678', 'qwerty', 'admin'];
 
       const strongPassword = 'StrongP@ssw0rd123!';
 
@@ -177,14 +175,16 @@ describe('Security Vulnerability Tests', () => {
         const hasNumbers = /\d/.test(password);
         const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-        return password.length >= minLength && 
-               hasUppercase && 
-               hasLowercase && 
-               hasNumbers && 
-               hasSpecialChars;
+        return (
+          password.length >= minLength &&
+          hasUppercase &&
+          hasLowercase &&
+          hasNumbers &&
+          hasSpecialChars
+        );
       };
 
-      weakPasswords.forEach(password => {
+      weakPasswords.forEach((password) => {
         expect(validatePasswordStrength(password)).toBe(false);
       });
 
@@ -197,7 +197,7 @@ describe('Security Vulnerability Tests', () => {
         'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.invalid',
         '',
         'expired-token',
-        'tampered-token'
+        'tampered-token',
       ];
 
       AuthService.validateToken = jest.fn().mockImplementation((token) => {
@@ -208,9 +208,7 @@ describe('Security Vulnerability Tests', () => {
       });
 
       for (const token of invalidTokens) {
-        await expect(
-          AuthService.validateToken(token)
-        ).rejects.toThrow();
+        await expect(AuthService.validateToken(token)).rejects.toThrow();
       }
 
       // Valid token should pass
@@ -231,25 +229,25 @@ describe('Security Vulnerability Tests', () => {
       });
 
       // Unauthorized user should not access restricted job
-      await expect(
-        JobService.getJob('restricted-job')
-      ).rejects.toThrow('Unauthorized access');
+      await expect(JobService.getJob('restricted-job')).rejects.toThrow(
+        'Unauthorized access'
+      );
 
       // Authorized user should access the job
-      await expect(
-        JobService.getJob('job-1')
-      ).resolves.toBeDefined();
+      await expect(JobService.getJob('job-1')).resolves.toBeDefined();
     });
 
     it('should prevent message access by unauthorized users', async () => {
-      MessagingService.getJobMessages = jest.fn().mockImplementation((jobId, userId) => {
-        // Only job participants should access messages
-        const authorizedUsers = ['homeowner-1', 'contractor-1'];
-        if (!authorizedUsers.includes(userId)) {
-          return Promise.reject(new Error('Access denied'));
-        }
-        return Promise.resolve([]);
-      });
+      MessagingService.getJobMessages = jest
+        .fn()
+        .mockImplementation((jobId, userId) => {
+          // Only job participants should access messages
+          const authorizedUsers = ['homeowner-1', 'contractor-1'];
+          if (!authorizedUsers.includes(userId)) {
+            return Promise.reject(new Error('Access denied'));
+          }
+          return Promise.resolve([]);
+        });
 
       await expect(
         MessagingService.getJobMessages('job-1', 'unauthorized-user')
@@ -264,14 +262,16 @@ describe('Security Vulnerability Tests', () => {
   describe('Payment Security', () => {
     it('should validate payment amounts server-side', async () => {
       const invalidAmounts = [-100, 0, 999999, NaN, Infinity];
-      
-      PaymentService.createJobPayment = jest.fn().mockImplementation((jobId, amount) => {
-        // Server-side amount validation
-        if (amount <= 0 || amount > 10000 || !Number.isFinite(amount)) {
-          return Promise.reject(new Error('Invalid payment amount'));
-        }
-        return Promise.resolve({ id: 'pi_test', amount: amount * 100 });
-      });
+
+      PaymentService.createJobPayment = jest
+        .fn()
+        .mockImplementation((jobId, amount) => {
+          // Server-side amount validation
+          if (amount <= 0 || amount > 10000 || !Number.isFinite(amount)) {
+            return Promise.reject(new Error('Invalid payment amount'));
+          }
+          return Promise.resolve({ id: 'pi_test', amount: amount * 100 });
+        });
 
       for (const amount of invalidAmounts) {
         await expect(
@@ -288,14 +288,16 @@ describe('Security Vulnerability Tests', () => {
     it('should prevent payment manipulation', async () => {
       const originalAmount = 100;
       const manipulatedAmount = 1; // Attacker tries to pay $1 instead of $100
-      
-      PaymentService.createJobPayment = jest.fn().mockImplementation((jobId, amount) => {
-        // Should verify amount matches job budget
-        if (amount !== originalAmount) {
-          return Promise.reject(new Error('Payment amount mismatch'));
-        }
-        return Promise.resolve({ id: 'pi_test', amount: amount * 100 });
-      });
+
+      PaymentService.createJobPayment = jest
+        .fn()
+        .mockImplementation((jobId, amount) => {
+          // Should verify amount matches job budget
+          if (amount !== originalAmount) {
+            return Promise.reject(new Error('Payment amount mismatch'));
+          }
+          return Promise.resolve({ id: 'pi_test', amount: amount * 100 });
+        });
 
       await expect(
         PaymentService.createJobPayment('job-1', manipulatedAmount)
@@ -305,18 +307,28 @@ describe('Security Vulnerability Tests', () => {
     it('should implement idempotency for payments', async () => {
       const idempotencyKey = 'unique-payment-key-123';
       let paymentCreated = false;
-      
-      PaymentService.createJobPayment = jest.fn().mockImplementation((jobId, amount, key) => {
-        if (key === idempotencyKey && paymentCreated) {
-          // Return existing payment instead of creating new one
-          return Promise.resolve({ id: 'pi_existing', amount: amount * 100 });
-        }
-        paymentCreated = true;
-        return Promise.resolve({ id: 'pi_new', amount: amount * 100 });
-      });
 
-      const payment1 = await PaymentService.createJobPayment('job-1', 100, idempotencyKey);
-      const payment2 = await PaymentService.createJobPayment('job-1', 100, idempotencyKey);
+      PaymentService.createJobPayment = jest
+        .fn()
+        .mockImplementation((jobId, amount, key) => {
+          if (key === idempotencyKey && paymentCreated) {
+            // Return existing payment instead of creating new one
+            return Promise.resolve({ id: 'pi_existing', amount: amount * 100 });
+          }
+          paymentCreated = true;
+          return Promise.resolve({ id: 'pi_new', amount: amount * 100 });
+        });
+
+      const payment1 = await PaymentService.createJobPayment(
+        'job-1',
+        100,
+        idempotencyKey
+      );
+      const payment2 = await PaymentService.createJobPayment(
+        'job-1',
+        100,
+        idempotencyKey
+      );
 
       expect(payment1.id).toBe('pi_new');
       expect(payment2.id).toBe('pi_existing');
@@ -330,18 +342,20 @@ describe('Security Vulnerability Tests', () => {
         { name: 'script.js', type: 'application/javascript' },
         { name: 'malware.exe', type: 'application/exe' },
         { name: 'shell.php', type: 'application/php' },
-        { name: 'virus.bat', type: 'application/batch' }
+        { name: 'virus.bat', type: 'application/batch' },
       ];
 
       const validateFileType = (file: { name: string; type: string }) => {
         return allowedTypes.includes(file.type);
       };
 
-      maliciousFiles.forEach(file => {
+      maliciousFiles.forEach((file) => {
         expect(validateFileType(file)).toBe(false);
       });
 
-      expect(validateFileType({ name: 'photo.jpg', type: 'image/jpeg' })).toBe(true);
+      expect(validateFileType({ name: 'photo.jpg', type: 'image/jpeg' })).toBe(
+        true
+      );
     });
 
     it('should validate input lengths', () => {
@@ -349,7 +363,7 @@ describe('Security Vulnerability Tests', () => {
         const maxLengths = {
           title: 100,
           description: 1000,
-          location: 200
+          location: 200,
         };
 
         for (const [field, maxLength] of Object.entries(maxLengths)) {
@@ -363,13 +377,13 @@ describe('Security Vulnerability Tests', () => {
       const validData = {
         title: 'Kitchen Repair',
         description: 'Fix leaky faucet',
-        location: '123 Main St'
+        location: '123 Main St',
       };
 
       const invalidData = {
         title: 'A'.repeat(101), // Exceeds max length
         description: 'Valid description',
-        location: 'Valid location'
+        location: 'Valid location',
       };
 
       expect(() => validateInputLengths(validData)).not.toThrow();
@@ -381,7 +395,7 @@ describe('Security Vulnerability Tests', () => {
     it('should enforce API rate limits', async () => {
       const maxRequestsPerMinute = 60;
       let requestCount = 0;
-      
+
       const makeRequest = async () => {
         requestCount++;
         if (requestCount > maxRequestsPerMinute) {
@@ -404,13 +418,13 @@ describe('Security Vulnerability Tests', () => {
     it('should handle session timeout', () => {
       const sessionDuration = 15 * 60 * 1000; // 15 minutes
       const now = Date.now();
-      
+
       const isSessionValid = (sessionStart: number) => {
-        return (now - sessionStart) < sessionDuration;
+        return now - sessionStart < sessionDuration;
       };
 
-      const validSession = now - (10 * 60 * 1000); // 10 minutes ago
-      const expiredSession = now - (20 * 60 * 1000); // 20 minutes ago
+      const validSession = now - 10 * 60 * 1000; // 10 minutes ago
+      const expiredSession = now - 20 * 60 * 1000; // 20 minutes ago
 
       expect(isSessionValid(validSession)).toBe(true);
       expect(isSessionValid(expiredSession)).toBe(false);
@@ -423,7 +437,7 @@ describe('Security Vulnerability Tests', () => {
         email: 'user@example.com',
         phone: '+1234567890',
         creditCard: '4111111111111111',
-        ssn: '123-45-6789'
+        ssn: '123-45-6789',
       };
 
       const maskSensitiveData = (data: any) => {
@@ -432,19 +446,28 @@ describe('Security Vulnerability Tests', () => {
           masked.email = masked.email.replace(/(.{2}).*@(.*)/, '$1***@$2');
         }
         if (masked.phone) {
-          masked.phone = masked.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1***$3');
+          masked.phone = masked.phone.replace(
+            /(\d{3})(\d{3})(\d{4})/,
+            '$1***$3'
+          );
         }
         if (masked.creditCard) {
-          masked.creditCard = masked.creditCard.replace(/(\d{4})(\d{8})(\d{4})/, '$1********$3');
+          masked.creditCard = masked.creditCard.replace(
+            /(\d{4})(\d{8})(\d{4})/,
+            '$1********$3'
+          );
         }
         if (masked.ssn) {
-          masked.ssn = masked.ssn.replace(/(\d{3})-(\d{2})-(\d{4})/, '$1-**-$3');
+          masked.ssn = masked.ssn.replace(
+            /(\d{3})-(\d{2})-(\d{4})/,
+            '$1-**-$3'
+          );
         }
         return masked;
       };
 
       const masked = maskSensitiveData(sensitiveData);
-      
+
       expect(masked.email).toBe('us***@example.com');
       expect(masked.phone).toBe('+123***7890');
       expect(masked.creditCard).toBe('4111********1111');

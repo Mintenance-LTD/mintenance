@@ -42,12 +42,15 @@ export class BidService {
     if (bidData.amount <= 0) {
       throw new Error('Bid amount must be greater than 0');
     }
-    
+
     if (!bidData.message.trim()) {
       throw new Error('Bid message is required');
     }
 
-    if (bidData.availability && !/^\d{4}-\d{2}-\d{2}$/.test(bidData.availability)) {
+    if (
+      bidData.availability &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(bidData.availability)
+    ) {
       throw new Error('Invalid availability date format');
     }
 
@@ -64,11 +67,14 @@ export class BidService {
 
     const { data, error } = await supabase
       .from('bids')
-      .insert([{
-        ...bidData,
-        status: 'pending'
-      }])
-      .select(`
+      .insert([
+        {
+          ...bidData,
+          status: 'pending',
+        },
+      ])
+      .select(
+        `
         *,
         contractor:contractor_id (
           id,
@@ -79,7 +85,8 @@ export class BidService {
           reviews_count,
           profile_picture
         )
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
@@ -89,7 +96,8 @@ export class BidService {
   static async getBidsByJob(jobId: string, status?: string): Promise<Bid[]> {
     let query = supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         contractor:contractor_id (
           id,
@@ -100,14 +108,17 @@ export class BidService {
           reviews_count,
           profile_picture
         )
-      `)
+      `
+      )
       .eq('job_id', jobId);
 
     if (status) {
       query = query.eq('status', status);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error) throw error;
     return data || [];
@@ -116,7 +127,8 @@ export class BidService {
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
     const { data, error } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         job:job_id (
           id,
@@ -128,7 +140,8 @@ export class BidService {
           location,
           created_at
         )
-      `)
+      `
+      )
       .eq('contractor_id', contractorId)
       .order('created_at', { ascending: false });
 
@@ -140,15 +153,17 @@ export class BidService {
     // Verify authorization and bid status
     const { data: bid, error: fetchError } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         job:job_id (homeowner_id)
-      `)
+      `
+      )
       .eq('id', bidId)
       .single();
 
     if (fetchError) throw fetchError;
-    
+
     if (bid.job.homeowner_id !== homeownerId) {
       throw new Error('Not authorized to accept this bid');
     }
@@ -177,23 +192,29 @@ export class BidService {
     // Update job status to assigned
     await supabase
       .from('jobs')
-      .update({ 
+      .update({
         status: 'assigned',
-        contractor_id: bid.contractor_id
+        contractor_id: bid.contractor_id,
       })
       .eq('id', bid.job_id);
 
     return data;
   }
 
-  static async rejectBid(bidId: string, homeownerId: string, reason?: string): Promise<Bid> {
+  static async rejectBid(
+    bidId: string,
+    homeownerId: string,
+    reason?: string
+  ): Promise<Bid> {
     // Verify authorization
     const { data: bid } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         job:job_id (homeowner_id)
-      `)
+      `
+      )
       .eq('id', bidId)
       .single();
 
@@ -203,9 +224,9 @@ export class BidService {
 
     const { data, error } = await supabase
       .from('bids')
-      .update({ 
+      .update({
         status: 'rejected',
-        rejection_reason: reason
+        rejection_reason: reason,
       })
       .eq('id', bidId)
       .select()
@@ -231,18 +252,20 @@ export class BidService {
       throw new Error('Cannot withdraw an accepted bid');
     }
 
-    const { error } = await supabase
-      .from('bids')
-      .delete()
-      .eq('id', bidId);
+    const { error } = await supabase.from('bids').delete().eq('id', bidId);
 
     if (error) throw error;
   }
 
   static async updateBid(
-    bidId: string, 
-    contractorId: string, 
-    updates: Partial<Pick<BidData, 'amount' | 'message' | 'estimated_duration' | 'availability'>>
+    bidId: string,
+    contractorId: string,
+    updates: Partial<
+      Pick<
+        BidData,
+        'amount' | 'message' | 'estimated_duration' | 'availability'
+      >
+    >
   ): Promise<Bid> {
     // Verify authorization
     const { data: bid } = await supabase
@@ -270,10 +293,13 @@ export class BidService {
     return data;
   }
 
-  static async getBidStatistics(jobId: string) : Promise<void> {
-    const { data, error } = await supabase.functions.invoke('get-bid-statistics', {
-      body: { jobId }
-    });
+  static async getBidStatistics(jobId: string): Promise<void> {
+    const { data, error } = await supabase.functions.invoke(
+      'get-bid-statistics',
+      {
+        body: { jobId },
+      }
+    );
 
     if (error) throw error;
     return data;

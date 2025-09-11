@@ -36,7 +36,12 @@ export interface BundleChunk {
 }
 
 export interface OptimizationRecommendation {
-  type: 'code-splitting' | 'lazy-loading' | 'tree-shaking' | 'compression' | 'caching';
+  type:
+    | 'code-splitting'
+    | 'lazy-loading'
+    | 'tree-shaking'
+    | 'compression'
+    | 'caching';
   priority: 'high' | 'medium' | 'low';
   description: string;
   estimatedSavings: number; // in KB
@@ -65,9 +70,9 @@ export class BundleAnalyzer {
       await this.storeBundleMetrics(metrics);
 
       const analysisTime = performance.now() - startTime;
-      logger.performance('Bundle analysis', analysisTime, { 
+      logger.performance('Bundle analysis', analysisTime, {
         totalSize: metrics.totalSize,
-        recommendations: recommendations.length
+        recommendations: recommendations.length,
       });
 
       return { metrics, recommendations };
@@ -93,7 +98,7 @@ export class BundleAnalyzer {
           compressedSize: 2.5 * 1024 * 1024,
           type: 'js',
           loadTime: 1200,
-          critical: true
+          critical: true,
         },
         {
           name: 'vendor.bundle.js',
@@ -101,7 +106,7 @@ export class BundleAnalyzer {
           compressedSize: 1.5 * 1024 * 1024,
           type: 'js',
           loadTime: 800,
-          critical: true
+          critical: true,
         },
         {
           name: 'assets.bundle',
@@ -109,8 +114,8 @@ export class BundleAnalyzer {
           compressedSize: 1 * 1024 * 1024,
           type: 'image',
           loadTime: 500,
-          critical: false
-        }
+          critical: false,
+        },
       ],
       chunks: [
         {
@@ -118,21 +123,24 @@ export class BundleAnalyzer {
           size: 8 * 1024 * 1024,
           modules: ['App.tsx', 'screens/*', 'components/*'],
           loadOrder: 1,
-          lazy: false
+          lazy: false,
         },
         {
           name: 'vendor',
           size: 4 * 1024 * 1024,
           modules: ['react-native', 'react', '@expo/*'],
           loadOrder: 0,
-          lazy: false
-        }
+          lazy: false,
+        },
       ],
       largestAssets: [],
       duplicateModules: ['lodash', 'moment'],
-      unusedExports: ['utils/oldHelper.ts', 'components/DeprecatedComponent.tsx'],
+      unusedExports: [
+        'utils/oldHelper.ts',
+        'components/DeprecatedComponent.tsx',
+      ],
       treeShakingOpportunities: ['@expo/vector-icons', 'react-native-svg'],
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Sort largest assets
@@ -146,29 +154,36 @@ export class BundleAnalyzer {
   /**
    * Generate optimization recommendations based on bundle analysis
    */
-  private static generateRecommendations(metrics: BundleMetrics): OptimizationRecommendation[] {
+  private static generateRecommendations(
+    metrics: BundleMetrics
+  ): OptimizationRecommendation[] {
     const recommendations: OptimizationRecommendation[] = [];
 
     // Check bundle size
-    if (metrics.totalSize > 20 * 1024 * 1024) { // 20MB
+    if (metrics.totalSize > 20 * 1024 * 1024) {
+      // 20MB
       recommendations.push({
         type: 'code-splitting',
         priority: 'high',
-        description: 'Bundle size exceeds 20MB. Implement code splitting for non-critical screens.',
+        description:
+          'Bundle size exceeds 20MB. Implement code splitting for non-critical screens.',
         estimatedSavings: 5 * 1024, // 5MB
-        implementation: 'Use React.lazy() for screen components and implement route-based splitting'
+        implementation:
+          'Use React.lazy() for screen components and implement route-based splitting',
       });
     }
 
     // Check for large assets
-    const largeAssets = metrics.assets.filter(asset => asset.size > 1024 * 1024); // 1MB
+    const largeAssets = metrics.assets.filter(
+      (asset) => asset.size > 1024 * 1024
+    ); // 1MB
     if (largeAssets.length > 0) {
       recommendations.push({
         type: 'lazy-loading',
         priority: 'medium',
         description: `Found ${largeAssets.length} assets larger than 1MB. Implement lazy loading.`,
         estimatedSavings: 2 * 1024, // 2MB
-        implementation: 'Use dynamic imports and lazy loading for large assets'
+        implementation: 'Use dynamic imports and lazy loading for large assets',
       });
     }
 
@@ -179,7 +194,7 @@ export class BundleAnalyzer {
         priority: 'high',
         description: `Found ${metrics.duplicateModules.length} duplicate modules: ${metrics.duplicateModules.join(', ')}`,
         estimatedSavings: 1.5 * 1024, // 1.5MB
-        implementation: 'Review dependencies and eliminate duplicate imports'
+        implementation: 'Review dependencies and eliminate duplicate imports',
       });
     }
 
@@ -190,19 +205,22 @@ export class BundleAnalyzer {
         priority: 'medium',
         description: `Found ${metrics.unusedExports.length} unused exports that can be removed`,
         estimatedSavings: 500, // 500KB
-        implementation: 'Remove unused exports and enable tree shaking'
+        implementation: 'Remove unused exports and enable tree shaking',
       });
     }
 
     // Check compression opportunities
     const compressionRatio = metrics.compressedSize / metrics.totalSize;
-    if (compressionRatio > 0.7) { // Poor compression
+    if (compressionRatio > 0.7) {
+      // Poor compression
       recommendations.push({
         type: 'compression',
         priority: 'medium',
-        description: 'Bundle compression ratio is poor. Optimize assets and enable better compression.',
+        description:
+          'Bundle compression ratio is poor. Optimize assets and enable better compression.',
         estimatedSavings: 3 * 1024, // 3MB
-        implementation: 'Optimize images, enable Gzip compression, minify JavaScript'
+        implementation:
+          'Optimize images, enable Gzip compression, minify JavaScript',
       });
     }
 
@@ -215,11 +233,15 @@ export class BundleAnalyzer {
   /**
    * Store bundle metrics for trend analysis
    */
-  private static async storeBundleMetrics(metrics: BundleMetrics): Promise<void> {
+  private static async storeBundleMetrics(
+    metrics: BundleMetrics
+  ): Promise<void> {
     try {
       const existingData = await AsyncStorage.getItem(this.STORAGE_KEY);
-      const history: BundleMetrics[] = existingData ? JSON.parse(existingData) : [];
-      
+      const history: BundleMetrics[] = existingData
+        ? JSON.parse(existingData)
+        : [];
+
       // Keep only last 30 entries
       history.push(metrics);
       if (history.length > 30) {
@@ -255,7 +277,7 @@ export class BundleAnalyzer {
 
       const lastAnalysis = history[history.length - 1];
       const timeSinceLastAnalysis = Date.now() - lastAnalysis.timestamp;
-      
+
       return timeSinceLastAnalysis > this.ANALYSIS_INTERVAL;
     } catch {
       return true;
@@ -277,7 +299,7 @@ export class BundleAnalyzer {
         currentSize: 0,
         sizeChange: 0,
         trend: 'stable',
-        recommendations: ['Insufficient data for trend analysis']
+        recommendations: ['Insufficient data for trend analysis'],
       };
     }
 
@@ -297,17 +319,22 @@ export class BundleAnalyzer {
 
     const recommendations: string[] = [];
     if (trend === 'increasing' && changePercentage > 10) {
-      recommendations.push('Bundle size increased significantly. Review recent changes.');
+      recommendations.push(
+        'Bundle size increased significantly. Review recent changes.'
+      );
     }
-    if (current.totalSize > 25 * 1024 * 1024) { // 25MB
-      recommendations.push('Bundle size is very large. Implement aggressive code splitting.');
+    if (current.totalSize > 25 * 1024 * 1024) {
+      // 25MB
+      recommendations.push(
+        'Bundle size is very large. Implement aggressive code splitting.'
+      );
     }
 
     return {
       currentSize: current.totalSize,
       sizeChange,
       trend,
-      recommendations
+      recommendations,
     };
   }
 }

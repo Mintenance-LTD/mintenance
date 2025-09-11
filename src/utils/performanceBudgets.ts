@@ -1,7 +1,7 @@
 /**
  * PERFORMANCE BUDGETS & MONITORING
  * Production-grade performance monitoring and enforcement
- * 
+ *
  * Features:
  * - Service-specific performance budgets
  * - Real-time performance tracking
@@ -19,16 +19,16 @@ import { codeSplittingManager } from './codeSplitting';
 export interface PerformanceBudget {
   serviceName: string;
   budgets: {
-    responseTime: number;      // Maximum response time in ms
-    memoryUsage: number;       // Maximum memory usage in MB
-    cpuUsage: number;          // Maximum CPU usage percentage
-    apiCalls: number;          // Maximum API calls per minute
-    errorRate: number;         // Maximum error rate percentage
-    downloadSize: number;      // Maximum download size in KB
+    responseTime: number; // Maximum response time in ms
+    memoryUsage: number; // Maximum memory usage in MB
+    cpuUsage: number; // Maximum CPU usage percentage
+    apiCalls: number; // Maximum API calls per minute
+    errorRate: number; // Maximum error rate percentage
+    downloadSize: number; // Maximum download size in KB
   };
   alertThresholds: {
-    warning: number;           // Warning at X% of budget
-    critical: number;          // Critical at X% of budget
+    warning: number; // Warning at X% of budget
+    critical: number; // Critical at X% of budget
   };
 }
 
@@ -74,102 +74,102 @@ export class PerformanceBudgetManager {
     this.setBudget({
       serviceName: 'ml_service',
       budgets: {
-        responseTime: 500,    // 500ms for ML inference
-        memoryUsage: 200,     // 200MB for model loading
-        cpuUsage: 70,         // 70% max CPU usage
-        apiCalls: 1000,       // 1000 calls per minute
-        errorRate: 5,         // 5% max error rate
-        downloadSize: 50      // 50KB max response
+        responseTime: 500, // 500ms for ML inference
+        memoryUsage: 200, // 200MB for model loading
+        cpuUsage: 70, // 70% max CPU usage
+        apiCalls: 1000, // 1000 calls per minute
+        errorRate: 5, // 5% max error rate
+        downloadSize: 50, // 50KB max response
       },
       alertThresholds: {
-        warning: 80,          // Alert at 80% of budget
-        critical: 95          // Critical at 95% of budget
-      }
+        warning: 80, // Alert at 80% of budget
+        critical: 95, // Critical at 95% of budget
+      },
     });
 
     // Payment Service Budget
     this.setBudget({
       serviceName: 'payment',
       budgets: {
-        responseTime: 2000,   // 2s for payment processing
-        memoryUsage: 100,     // 100MB memory limit
-        cpuUsage: 50,         // 50% max CPU usage
-        apiCalls: 500,        // 500 calls per minute
-        errorRate: 1,         // 1% max error rate (critical)
-        downloadSize: 20      // 20KB max response
+        responseTime: 2000, // 2s for payment processing
+        memoryUsage: 100, // 100MB memory limit
+        cpuUsage: 50, // 50% max CPU usage
+        apiCalls: 500, // 500 calls per minute
+        errorRate: 1, // 1% max error rate (critical)
+        downloadSize: 20, // 20KB max response
       },
       alertThresholds: {
         warning: 70,
-        critical: 90
-      }
+        critical: 90,
+      },
     });
 
     // Database Service Budget
     this.setBudget({
       serviceName: 'database',
       budgets: {
-        responseTime: 100,    // 100ms for DB queries
-        memoryUsage: 500,     // 500MB for caching
-        cpuUsage: 80,         // 80% max CPU usage
-        apiCalls: 5000,       // 5000 queries per minute
-        errorRate: 2,         // 2% max error rate
-        downloadSize: 100     // 100KB max query result
+        responseTime: 100, // 100ms for DB queries
+        memoryUsage: 500, // 500MB for caching
+        cpuUsage: 80, // 80% max CPU usage
+        apiCalls: 5000, // 5000 queries per minute
+        errorRate: 2, // 2% max error rate
+        downloadSize: 100, // 100KB max query result
       },
       alertThresholds: {
         warning: 85,
-        critical: 95
-      }
+        critical: 95,
+      },
     });
 
     // API Gateway Budget
     this.setBudget({
       serviceName: 'api_gateway',
       budgets: {
-        responseTime: 200,    // 200ms for API responses
-        memoryUsage: 150,     // 150MB memory limit
-        cpuUsage: 60,         // 60% max CPU usage
-        apiCalls: 10000,      // 10k requests per minute
-        errorRate: 3,         // 3% max error rate
-        downloadSize: 500     // 500KB max response
+        responseTime: 200, // 200ms for API responses
+        memoryUsage: 150, // 150MB memory limit
+        cpuUsage: 60, // 60% max CPU usage
+        apiCalls: 10000, // 10k requests per minute
+        errorRate: 3, // 3% max error rate
+        downloadSize: 500, // 500KB max response
       },
       alertThresholds: {
         warning: 75,
-        critical: 90
-      }
+        critical: 90,
+      },
     });
 
     // File Storage Budget
     this.setBudget({
       serviceName: 'storage',
       budgets: {
-        responseTime: 1000,   // 1s for file operations
-        memoryUsage: 300,     // 300MB for file processing
-        cpuUsage: 40,         // 40% max CPU usage
-        apiCalls: 2000,       // 2000 operations per minute
-        errorRate: 2,         // 2% max error rate
-        downloadSize: 5000    // 5MB max file size
+        responseTime: 1000, // 1s for file operations
+        memoryUsage: 300, // 300MB for file processing
+        cpuUsage: 40, // 40% max CPU usage
+        apiCalls: 2000, // 2000 operations per minute
+        errorRate: 2, // 2% max error rate
+        downloadSize: 5000, // 5MB max file size
       },
       alertThresholds: {
         warning: 80,
-        critical: 95
-      }
+        critical: 95,
+      },
     });
 
     // Notification Service Budget
     this.setBudget({
       serviceName: 'notification',
       budgets: {
-        responseTime: 300,    // 300ms for notifications
-        memoryUsage: 80,      // 80MB memory limit
-        cpuUsage: 30,         // 30% max CPU usage
-        apiCalls: 3000,       // 3000 notifications per minute
-        errorRate: 5,         // 5% max error rate
-        downloadSize: 10      // 10KB max notification
+        responseTime: 300, // 300ms for notifications
+        memoryUsage: 80, // 80MB memory limit
+        cpuUsage: 30, // 30% max CPU usage
+        apiCalls: 3000, // 3000 notifications per minute
+        errorRate: 5, // 5% max error rate
+        downloadSize: 10, // 10KB max notification
       },
       alertThresholds: {
         warning: 75,
-        critical: 90
-      }
+        critical: 90,
+      },
     });
 
     logger.info('Performance budgets initialized for all services');
@@ -180,7 +180,10 @@ export class PerformanceBudgetManager {
    */
   setBudget(budget: PerformanceBudget): void {
     this.budgets.set(budget.serviceName, budget);
-    logger.info(`Performance budget set for ${budget.serviceName}`, budget.budgets);
+    logger.info(
+      `Performance budget set for ${budget.serviceName}`,
+      budget.budgets
+    );
   }
 
   /**
@@ -210,7 +213,7 @@ export class PerformanceBudgetManager {
       apiCallsPerMinute: apiCallsPerMinute || 0,
       errorRate: errorRate || 0,
       downloadSize: downloadSize || 0,
-      budgetViolations: []
+      budgetViolations: [],
     };
 
     // Check for budget violations
@@ -220,10 +223,10 @@ export class PerformanceBudgetManager {
     if (!this.metrics.has(serviceName)) {
       this.metrics.set(serviceName, []);
     }
-    
+
     const serviceMetrics = this.metrics.get(serviceName)!;
     serviceMetrics.push(metrics);
-    
+
     // Keep only last 100 metrics per service
     if (serviceMetrics.length > 100) {
       serviceMetrics.shift();
@@ -242,32 +245,56 @@ export class PerformanceBudgetManager {
    * Check for budget violations
    */
   private checkBudgetViolations(
-    metrics: PerformanceMetrics, 
+    metrics: PerformanceMetrics,
     budget: PerformanceBudget
   ): BudgetViolation[] {
     const violations: BudgetViolation[] = [];
 
     // Check each metric against its budget
     const checks = [
-      { metric: 'responseTime', actual: metrics.responseTime, budget: budget.budgets.responseTime },
-      { metric: 'memoryUsage', actual: metrics.memoryUsage, budget: budget.budgets.memoryUsage },
-      { metric: 'cpuUsage', actual: metrics.cpuUsage, budget: budget.budgets.cpuUsage },
-      { metric: 'apiCalls', actual: metrics.apiCallsPerMinute, budget: budget.budgets.apiCalls },
-      { metric: 'errorRate', actual: metrics.errorRate, budget: budget.budgets.errorRate },
-      { metric: 'downloadSize', actual: metrics.downloadSize, budget: budget.budgets.downloadSize }
+      {
+        metric: 'responseTime',
+        actual: metrics.responseTime,
+        budget: budget.budgets.responseTime,
+      },
+      {
+        metric: 'memoryUsage',
+        actual: metrics.memoryUsage,
+        budget: budget.budgets.memoryUsage,
+      },
+      {
+        metric: 'cpuUsage',
+        actual: metrics.cpuUsage,
+        budget: budget.budgets.cpuUsage,
+      },
+      {
+        metric: 'apiCalls',
+        actual: metrics.apiCallsPerMinute,
+        budget: budget.budgets.apiCalls,
+      },
+      {
+        metric: 'errorRate',
+        actual: metrics.errorRate,
+        budget: budget.budgets.errorRate,
+      },
+      {
+        metric: 'downloadSize',
+        actual: metrics.downloadSize,
+        budget: budget.budgets.downloadSize,
+      },
     ];
 
-    checks.forEach(check => {
+    checks.forEach((check) => {
       if (check.actual > 0 && check.budget > 0) {
         const violationPercentage = (check.actual / check.budget) * 100;
-        
+
         if (violationPercentage >= budget.alertThresholds.critical) {
           violations.push({
             metric: check.metric,
             actual: check.actual,
             budget: check.budget,
             severity: 'critical',
-            violationPercentage
+            violationPercentage,
           });
         } else if (violationPercentage >= budget.alertThresholds.warning) {
           violations.push({
@@ -275,7 +302,7 @@ export class PerformanceBudgetManager {
             actual: check.actual,
             budget: check.budget,
             severity: 'warning',
-            violationPercentage
+            violationPercentage,
           });
         }
       }
@@ -288,13 +315,19 @@ export class PerformanceBudgetManager {
    * Handle budget violations
    */
   private handleBudgetViolations(metrics: PerformanceMetrics): void {
-    const criticalViolations = metrics.budgetViolations.filter(v => v.severity === 'critical');
-    const warningViolations = metrics.budgetViolations.filter(v => v.severity === 'warning');
+    const criticalViolations = metrics.budgetViolations.filter(
+      (v) => v.severity === 'critical'
+    );
+    const warningViolations = metrics.budgetViolations.filter(
+      (v) => v.severity === 'warning'
+    );
 
     // Handle critical violations
     if (criticalViolations.length > 0) {
-      const error = new Error(`Critical performance budget violations in ${metrics.serviceName}`);
-      
+      const error = new Error(
+        `Critical performance budget violations in ${metrics.serviceName}`
+      );
+
       // Report to error monitoring system
       errorMonitoring.reportError(error, {
         type: 'performance',
@@ -307,27 +340,34 @@ export class PerformanceBudgetManager {
               responseTime: metrics.responseTime,
               memoryUsage: metrics.memoryUsage,
               cpuUsage: metrics.cpuUsage,
-              errorRate: metrics.errorRate
-            }
-          }
-        }
+              errorRate: metrics.errorRate,
+            },
+          },
+        },
       });
 
-      logger.error(`🚨 CRITICAL: Performance budget violated for ${metrics.serviceName}`, {
-        violations: criticalViolations,
-        timestamp: new Date(metrics.timestamp).toISOString()
-      });
+      logger.error(
+        `🚨 CRITICAL: Performance budget violated for ${metrics.serviceName}`,
+        {
+          violations: criticalViolations,
+          timestamp: new Date(metrics.timestamp).toISOString(),
+        }
+      );
 
       // Trigger memory cleanup for memory violations
-      const memoryViolations = criticalViolations.filter(v => v.metric === 'memoryUsage');
+      const memoryViolations = criticalViolations.filter(
+        (v) => v.metric === 'memoryUsage'
+      );
       if (memoryViolations.length > 0) {
-        logger.warn('Triggering aggressive memory cleanup due to memory budget violation');
+        logger.warn(
+          'Triggering aggressive memory cleanup due to memory budget violation'
+        );
         memoryManager.performCleanup({ aggressive: true });
       }
 
       // Clear chunk cache for performance violations
-      const performanceViolations = criticalViolations.filter(v => 
-        v.metric === 'responseTime' || v.metric === 'cpuUsage'
+      const performanceViolations = criticalViolations.filter(
+        (v) => v.metric === 'responseTime' || v.metric === 'cpuUsage'
       );
       if (performanceViolations.length > 0) {
         logger.warn('Clearing chunk cache due to performance budget violation');
@@ -337,10 +377,13 @@ export class PerformanceBudgetManager {
 
     // Handle warning violations
     if (warningViolations.length > 0) {
-      logger.warn(`⚠️  WARNING: Performance budget approaching limits for ${metrics.serviceName}`, {
-        violations: warningViolations,
-        timestamp: new Date(metrics.timestamp).toISOString()
-      });
+      logger.warn(
+        `⚠️  WARNING: Performance budget approaching limits for ${metrics.serviceName}`,
+        {
+          violations: warningViolations,
+          timestamp: new Date(metrics.timestamp).toISOString(),
+        }
+      );
     }
   }
 
@@ -354,7 +397,7 @@ export class PerformanceBudgetManager {
       cpuUsage: `${metrics.cpuUsage}%`,
       errorRate: `${metrics.errorRate}%`,
       violations: metrics.budgetViolations.length,
-      timestamp: new Date(metrics.timestamp).toISOString()
+      timestamp: new Date(metrics.timestamp).toISOString(),
     });
   }
 
@@ -375,23 +418,42 @@ export class PerformanceBudgetManager {
     // Calculate averages
     const averageMetrics: Partial<PerformanceMetrics> = {};
     if (last10Metrics.length > 0) {
-      averageMetrics.responseTime = last10Metrics.reduce((sum, m) => sum + m.responseTime, 0) / last10Metrics.length;
-      averageMetrics.memoryUsage = last10Metrics.reduce((sum, m) => sum + m.memoryUsage, 0) / last10Metrics.length;
-      averageMetrics.cpuUsage = last10Metrics.reduce((sum, m) => sum + m.cpuUsage, 0) / last10Metrics.length;
-      averageMetrics.errorRate = last10Metrics.reduce((sum, m) => sum + m.errorRate, 0) / last10Metrics.length;
+      averageMetrics.responseTime =
+        last10Metrics.reduce((sum, m) => sum + m.responseTime, 0) /
+        last10Metrics.length;
+      averageMetrics.memoryUsage =
+        last10Metrics.reduce((sum, m) => sum + m.memoryUsage, 0) /
+        last10Metrics.length;
+      averageMetrics.cpuUsage =
+        last10Metrics.reduce((sum, m) => sum + m.cpuUsage, 0) /
+        last10Metrics.length;
+      averageMetrics.errorRate =
+        last10Metrics.reduce((sum, m) => sum + m.errorRate, 0) /
+        last10Metrics.length;
     }
 
     // Count violations
-    const violationCount = recentMetrics.reduce((count, m) => count + m.budgetViolations.length, 0);
+    const violationCount = recentMetrics.reduce(
+      (count, m) => count + m.budgetViolations.length,
+      0
+    );
 
     // Calculate health score (0-100)
     let healthScore = 100;
     if (budget && averageMetrics.responseTime) {
-      const responseScore = Math.max(0, 100 - ((averageMetrics.responseTime / budget.budgets.responseTime) * 100));
-      const errorScore = Math.max(0, 100 - (averageMetrics.errorRate || 0) * 10);
+      const responseScore = Math.max(
+        0,
+        100 - (averageMetrics.responseTime / budget.budgets.responseTime) * 100
+      );
+      const errorScore = Math.max(
+        0,
+        100 - (averageMetrics.errorRate || 0) * 10
+      );
       const violationPenalty = Math.min(50, violationCount * 5);
-      
-      healthScore = Math.round((responseScore + errorScore) / 2 - violationPenalty);
+
+      healthScore = Math.round(
+        (responseScore + errorScore) / 2 - violationPenalty
+      );
     }
 
     return {
@@ -399,7 +461,7 @@ export class PerformanceBudgetManager {
       recentMetrics: last10Metrics,
       averageMetrics,
       violationCount,
-      healthScore: Math.max(0, healthScore)
+      healthScore: Math.max(0, healthScore),
     };
   }
 
@@ -429,25 +491,32 @@ export class PerformanceBudgetManager {
       }
     }
 
-    const overallScore = serviceCount > 0 ? Math.round(totalScore / serviceCount) : 100;
+    const overallScore =
+      serviceCount > 0 ? Math.round(totalScore / serviceCount) : 100;
 
     // Generate recommendations
     const recommendedActions: string[] = [];
     if (overallScore < 70) {
-      recommendedActions.push('Investigate performance issues across multiple services');
+      recommendedActions.push(
+        'Investigate performance issues across multiple services'
+      );
     }
     if (criticalServices.length > 0) {
-      recommendedActions.push(`Focus on critical services: ${criticalServices.join(', ')}`);
+      recommendedActions.push(
+        `Focus on critical services: ${criticalServices.join(', ')}`
+      );
     }
     if (overallScore < 50) {
-      recommendedActions.push('Consider implementing circuit breakers and rate limiting');
+      recommendedActions.push(
+        'Consider implementing circuit breakers and rate limiting'
+      );
     }
 
     return {
       overallScore,
       servicesHealth,
       criticalServices,
-      recommendedActions
+      recommendedActions,
     };
   }
 
@@ -476,7 +545,7 @@ export class PerformanceBudgetManager {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = undefined;
     }
-    
+
     this.monitoring = false;
     logger.info('Performance monitoring stopped');
   }
@@ -486,17 +555,19 @@ export class PerformanceBudgetManager {
    */
   private performHealthCheck(): void {
     const systemHealth = this.getSystemHealth();
-    
+
     logger.info('System performance health check', {
       overallScore: systemHealth.overallScore,
       criticalServices: systemHealth.criticalServices,
-      recommendations: systemHealth.recommendedActions
+      recommendations: systemHealth.recommendedActions,
     });
 
     // Alert if overall health is poor
     if (systemHealth.overallScore < 60) {
-      const error = new Error(`System performance health degraded: ${systemHealth.overallScore}/100`);
-      
+      const error = new Error(
+        `System performance health degraded: ${systemHealth.overallScore}/100`
+      );
+
       errorMonitoring.reportError(error, {
         type: 'performance',
         severity: systemHealth.overallScore < 30 ? 'critical' : 'medium',
@@ -505,14 +576,16 @@ export class PerformanceBudgetManager {
           state: {
             overallScore: systemHealth.overallScore,
             criticalServices: systemHealth.criticalServices,
-            servicesHealth: systemHealth.servicesHealth
-          }
-        }
+            servicesHealth: systemHealth.servicesHealth,
+          },
+        },
       });
 
       // Trigger system-wide cleanup if health is very poor
       if (systemHealth.overallScore < 30) {
-        logger.warn('System performance critically degraded, triggering comprehensive cleanup');
+        logger.warn(
+          'System performance critically degraded, triggering comprehensive cleanup'
+        );
         memoryManager.performCleanup({ aggressive: true });
         codeSplittingManager.clearChunkCache();
       }
@@ -534,7 +607,7 @@ export class PerformanceBudgetManager {
     for (const [name, budget] of this.budgets) {
       budgets[name] = budget;
     }
-    
+
     for (const [name, serviceMetrics] of this.metrics) {
       metrics[name] = serviceMetrics;
     }
@@ -542,7 +615,7 @@ export class PerformanceBudgetManager {
     return {
       budgets,
       metrics,
-      systemHealth: this.getSystemHealth()
+      systemHealth: this.getSystemHealth(),
     };
   }
 }
@@ -606,7 +679,7 @@ export interface ReactNativePerformanceConfig {
 class ReactNativePerformanceEnforcer {
   private config: ReactNativePerformanceConfig;
   private bundleCheckInterval?: NodeJS.Timeout;
-  
+
   constructor(config: ReactNativePerformanceConfig = {}) {
     this.config = {
       enableBundleAnalysis: true,
@@ -615,7 +688,7 @@ class ReactNativePerformanceEnforcer {
       maxBundleSize: 20 * 1024, // 20MB
       memoryWarningThreshold: 150, // 150MB
       chunkLoadTimeout: 10000, // 10 seconds
-      ...config
+      ...config,
     };
   }
 
@@ -623,16 +696,22 @@ class ReactNativePerformanceEnforcer {
    * Initialize React Native performance enforcement
    */
   async initialize(): Promise<void> {
-    logger.info('Initializing React Native performance enforcement', this.config);
+    logger.info(
+      'Initializing React Native performance enforcement',
+      this.config
+    );
 
     // Bundle analysis
     if (this.config.enableBundleAnalysis) {
       await this.checkBundleSize();
-      
+
       // Check bundle size periodically
-      this.bundleCheckInterval = setInterval(async () => {
-        await this.checkBundleSize();
-      }, 5 * 60 * 1000); // Every 5 minutes
+      this.bundleCheckInterval = setInterval(
+        async () => {
+          await this.checkBundleSize();
+        },
+        5 * 60 * 1000
+      ); // Every 5 minutes
     }
 
     // Memory tracking
@@ -645,7 +724,9 @@ class ReactNativePerformanceEnforcer {
       this.setupChunkPreloading();
     }
 
-    logger.info('React Native performance enforcement initialized successfully');
+    logger.info(
+      'React Native performance enforcement initialized successfully'
+    );
   }
 
   /**
@@ -658,10 +739,13 @@ class ReactNativePerformanceEnforcer {
       const simulatedBundleSize = 15 * 1024; // 15MB
 
       if (simulatedBundleSize > this.config.maxBundleSize!) {
-        const violation = (simulatedBundleSize / this.config.maxBundleSize!) * 100 - 100;
-        
+        const violation =
+          (simulatedBundleSize / this.config.maxBundleSize!) * 100 - 100;
+
         errorMonitoring.reportError(
-          new Error(`Bundle size exceeds limit: ${simulatedBundleSize}KB > ${this.config.maxBundleSize}KB`),
+          new Error(
+            `Bundle size exceeds limit: ${simulatedBundleSize}KB > ${this.config.maxBundleSize}KB`
+          ),
           {
             type: 'performance',
             severity: violation > 50 ? 'critical' : 'high',
@@ -670,9 +754,9 @@ class ReactNativePerformanceEnforcer {
               state: {
                 currentSize: simulatedBundleSize,
                 maxSize: this.config.maxBundleSize,
-                violation: `${violation.toFixed(1)}%`
-              }
-            }
+                violation: `${violation.toFixed(1)}%`,
+              },
+            },
           }
         );
 
@@ -684,8 +768,8 @@ class ReactNativePerformanceEnforcer {
             'Implement code splitting for large screens',
             'Use lazy loading for non-critical features',
             'Remove unused dependencies',
-            'Optimize asset compression'
-          ]
+            'Optimize asset compression',
+          ],
         });
       }
     } catch (error) {
@@ -703,7 +787,7 @@ class ReactNativePerformanceEnforcer {
         logger.warn('Memory usage exceeding threshold', {
           current: `${Math.round(usage.used / (1024 * 1024))}MB`,
           threshold: `${this.config.memoryWarningThreshold}MB`,
-          percentage: `${usage.percentage.toFixed(1)}%`
+          percentage: `${usage.percentage.toFixed(1)}%`,
         });
 
         // Report as performance issue
@@ -714,7 +798,7 @@ class ReactNativePerformanceEnforcer {
           0, // no CPU data
           0, // no API calls
           0, // no error rate
-          0  // no download size
+          0 // no download size
         );
       }
     });
@@ -731,15 +815,15 @@ class ReactNativePerformanceEnforcer {
   private setupChunkPreloading(): void {
     // This would analyze navigation patterns and preload likely next screens
     logger.debug('Chunk preloading setup completed');
-    
+
     // Example: Preload common screens during app idle time
     setTimeout(() => {
       const commonChunks = [
         'screen-home',
         'screen-profile',
-        'feature-messaging'
+        'feature-messaging',
       ];
-      
+
       codeSplittingManager.preloadChunks(commonChunks);
     }, 2000); // Wait 2 seconds after app start
   }
@@ -752,7 +836,7 @@ class ReactNativePerformanceEnforcer {
       clearInterval(this.bundleCheckInterval);
       this.bundleCheckInterval = undefined;
     }
-    
+
     logger.debug('React Native performance enforcer cleanup completed');
   }
 
@@ -767,15 +851,15 @@ class ReactNativePerformanceEnforcer {
     recommendations: string[];
   } {
     const recommendations: string[] = [];
-    
+
     if (!this.config.enableBundleAnalysis) {
       recommendations.push('Enable bundle analysis for better optimization');
     }
-    
+
     if (!this.config.enableMemoryTracking) {
       recommendations.push('Enable memory tracking for leak detection');
     }
-    
+
     if (!this.config.enableChunkPreloading) {
       recommendations.push('Enable chunk preloading for better UX');
     }
@@ -783,13 +867,14 @@ class ReactNativePerformanceEnforcer {
     return {
       config: this.config,
       monitoring: !!this.bundleCheckInterval,
-      recommendations
+      recommendations,
     };
   }
 }
 
 // Export React Native performance enforcer
-export const reactNativePerformanceEnforcer = new ReactNativePerformanceEnforcer();
+export const reactNativePerformanceEnforcer =
+  new ReactNativePerformanceEnforcer();
 
 // Utility to enforce performance in React components
 export const withPerformanceEnforcement = <P extends object>(
@@ -797,27 +882,38 @@ export const withPerformanceEnforcement = <P extends object>(
   componentName?: string,
   performanceBudget?: Partial<PerformanceBudget['budgets']>
 ) => {
-  const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
-  
+  const name =
+    componentName ||
+    WrappedComponent.displayName ||
+    WrappedComponent.name ||
+    'Unknown';
+
   return React.forwardRef<any, P>((props, ref) => {
     React.useEffect(() => {
       const startTime = Date.now();
-      
+
       return () => {
         const renderTime = Date.now() - startTime;
         const budget = performanceBudget?.responseTime || 100; // Default 100ms budget
-        
+
         if (renderTime > budget) {
           performanceBudgetManager.recordMetrics(
             `component_${name}`,
             renderTime,
-            0, 0, 0, 0, 0
+            0,
+            0,
+            0,
+            0,
+            0
           );
         }
       };
     }, []);
-    
-    return React.createElement(WrappedComponent as any, { ...(props as any), ref } as any);
+
+    return React.createElement(
+      WrappedComponent as any,
+      { ...(props as any), ref } as any
+    );
   });
 };
 
@@ -828,26 +924,26 @@ export const usePerformanceMonitoring = (
 ) => {
   const [renderCount, setRenderCount] = React.useState(0);
   const mountTime = React.useRef(Date.now());
-  
+
   React.useEffect(() => {
-    setRenderCount(prev => prev + 1);
+    setRenderCount((prev) => prev + 1);
   });
-  
+
   React.useEffect(() => {
     const budget = performanceBudget || 16; // 16ms for 60fps
     const renderTime = Date.now() - mountTime.current;
-    
+
     if (renderTime > budget) {
       logger.warn(`Component ${componentName} render time exceeded budget`, {
         renderTime,
         budget,
-        renderCount
+        renderCount,
       });
     }
   }, [componentName, performanceBudget, renderCount]);
-  
+
   return {
     renderCount,
-    renderTime: Date.now() - mountTime.current
+    renderTime: Date.now() - mountTime.current,
   };
 };

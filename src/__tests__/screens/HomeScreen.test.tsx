@@ -26,7 +26,7 @@ const mockUser = {
   last_name: 'Doe',
   role: 'homeowner' as const,
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
+  updated_at: new Date().toISOString(),
 };
 
 const mockJobs = [
@@ -40,7 +40,7 @@ const mockJobs = [
     category: 'Plumbing',
     homeowner_id: 'user-1',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   },
   {
     id: 'job-2',
@@ -52,8 +52,8 @@ const mockJobs = [
     category: 'Electrical',
     homeowner_id: 'user-1',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 describe('HomeScreen', () => {
@@ -66,7 +66,7 @@ describe('HomeScreen', () => {
       signIn: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
-      updateProfile: jest.fn()
+      updateProfile: jest.fn(),
     });
   });
 
@@ -117,10 +117,12 @@ describe('HomeScreen', () => {
 
     it('handles post job button press', async () => {
       const mockNavigate = jest.fn();
-      jest.mocked(require('@react-navigation/native').useNavigation).mockReturnValue({
-        navigate: mockNavigate,
-        goBack: jest.fn(),
-      });
+      jest
+        .mocked(require('@react-navigation/native').useNavigation)
+        .mockReturnValue({
+          navigate: mockNavigate,
+          goBack: jest.fn(),
+        });
 
       mockJobService.getJobsByHomeowner.mockResolvedValue([]);
 
@@ -142,7 +144,7 @@ describe('HomeScreen', () => {
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
-        updateProfile: jest.fn()
+        updateProfile: jest.fn(),
       });
     });
 
@@ -188,7 +190,7 @@ describe('HomeScreen', () => {
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
-        updateProfile: jest.fn()
+        updateProfile: jest.fn(),
       });
 
       const { getByTestId } = render(<HomeScreen />);
@@ -199,7 +201,7 @@ describe('HomeScreen', () => {
     it('shows skeleton loading for jobs', async () => {
       // Mock delayed response
       mockJobService.getJobsByHomeowner.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve([]), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve([]), 100))
       );
 
       const { getByTestId } = render(<HomeScreen />);
@@ -215,7 +217,9 @@ describe('HomeScreen', () => {
   describe('Error Handling', () => {
     it('handles job loading errors gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockJobService.getJobsByHomeowner.mockRejectedValue(new Error('Network error'));
+      mockJobService.getJobsByHomeowner.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const { getByText } = renderWithProviders(<HomeScreen />, render);
 
@@ -227,7 +231,9 @@ describe('HomeScreen', () => {
     });
 
     it('shows retry button on error', async () => {
-      mockJobService.getJobsByHomeowner.mockRejectedValue(new Error('Network error'));
+      mockJobService.getJobsByHomeowner.mockRejectedValue(
+        new Error('Network error')
+      );
 
       const { getByText } = render(<HomeScreen />);
 
@@ -276,7 +282,9 @@ describe('HomeScreen', () => {
 
       await waitFor(() => {
         expect(getByText('No jobs posted yet')).toBeTruthy();
-        expect(getByText('Get started by posting your first maintenance job!')).toBeTruthy();
+        expect(
+          getByText('Get started by posting your first maintenance job!')
+        ).toBeTruthy();
       });
     });
 
@@ -288,7 +296,7 @@ describe('HomeScreen', () => {
         signIn: jest.fn(),
         signUp: jest.fn(),
         signOut: jest.fn(),
-        updateProfile: jest.fn()
+        updateProfile: jest.fn(),
       });
 
       mockJobService.getJobs.mockResolvedValue([]);
@@ -297,7 +305,9 @@ describe('HomeScreen', () => {
 
       await waitFor(() => {
         expect(getByText('No jobs available')).toBeTruthy();
-        expect(getByText('Check back later for new opportunities!')).toBeTruthy();
+        expect(
+          getByText('Check back later for new opportunities!')
+        ).toBeTruthy();
       });
     });
   });

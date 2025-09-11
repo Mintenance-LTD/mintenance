@@ -25,7 +25,13 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
   onJobPress,
   showCreateButton = false,
 }) => {
-  const { data: jobs = [], isLoading, isError, error, refetch } = useAvailableJobs();
+  const {
+    data: jobs = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useAvailableJobs();
   const { isOnline, connectionQuality } = useNetworkState();
   const createJobMutation = useCreateJob();
 
@@ -48,7 +54,8 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
     try {
       await createJobMutation.mutateAsync({
         title: 'Sample Job',
-        description: 'This is a sample job created while testing offline functionality',
+        description:
+          'This is a sample job created while testing offline functionality',
         location: 'Test Location',
         budget: 1000,
         homeownerId: 'current-user-id',
@@ -56,16 +63,24 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
         priority: 'medium' as const,
       });
 
-      logger.userAction('job_created', { 
-        isOnline, 
-        connectionQuality 
+      logger.userAction('job_created', {
+        isOnline,
+        connectionQuality,
       });
 
-      Alert.alert('Success', isOnline ? 'Job created successfully!' : 'Job queued for creation when online');
+      Alert.alert(
+        'Success',
+        isOnline
+          ? 'Job created successfully!'
+          : 'Job queued for creation when online'
+      );
     } catch (error) {
       const message = (error as Error).message;
       if (message.includes('queued')) {
-        Alert.alert('Offline Mode', 'Job has been queued and will be created when you reconnect to the internet.');
+        Alert.alert(
+          'Offline Mode',
+          'Job has been queued and will be created when you reconnect to the internet.'
+        );
       } else {
         Alert.alert('Error', 'Failed to create job. Please try again.');
       }
@@ -81,7 +96,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       );
       return;
     }
-    
+
     await refetch();
   };
 
@@ -98,25 +113,35 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
         <View style={styles.jobPriority}>
           <Ionicons
             name={
-              job.priority === 'high' ? 'alert-circle' :
-              job.priority === 'medium' ? 'warning' : 'information-circle'
+              job.priority === 'high'
+                ? 'alert-circle'
+                : job.priority === 'medium'
+                  ? 'warning'
+                  : 'information-circle'
             }
             size={16}
             color={
-              job.priority === 'high' ? theme.colors.error :
-              job.priority === 'medium' ? theme.colors.warning : theme.colors.info
+              job.priority === 'high'
+                ? theme.colors.error
+                : job.priority === 'medium'
+                  ? theme.colors.warning
+                  : theme.colors.info
             }
           />
         </View>
       </View>
-      
+
       <Text style={styles.jobDescription} numberOfLines={3}>
         {job.description}
       </Text>
-      
+
       <View style={styles.jobFooter}>
         <View style={styles.jobLocation}>
-          <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='location-outline'
+            size={14}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.jobLocationText}>{job.location}</Text>
         </View>
         <Text style={styles.jobBudget}>${job.budget.toLocaleString()}</Text>
@@ -137,12 +162,15 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
       <Text style={styles.emptyStateMessage}>
         {isOnline
           ? 'Check back later for new opportunities'
-          : 'Connect to the internet to see the latest jobs'
-        }
+          : 'Connect to the internet to see the latest jobs'}
       </Text>
       {!isOnline && (
         <View style={styles.offlineIndicator}>
-          <Ionicons name="information-circle-outline" size={16} color={theme.colors.warning} />
+          <Ionicons
+            name='information-circle-outline'
+            size={16}
+            color={theme.colors.warning}
+          />
           <Text style={styles.offlineText}>You are currently offline</Text>
         </View>
       )}
@@ -151,13 +179,16 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
 
   const renderError = () => (
     <View style={styles.errorState}>
-      <Ionicons name="alert-circle-outline" size={64} color={theme.colors.error} />
+      <Ionicons
+        name='alert-circle-outline'
+        size={64}
+        color={theme.colors.error}
+      />
       <Text style={styles.errorTitle}>Failed to Load Jobs</Text>
       <Text style={styles.errorMessage}>
-        {isOnline 
+        {isOnline
           ? 'Please check your connection and try again'
-          : 'You are offline. Showing cached data if available.'
-        }
+          : 'You are offline. Showing cached data if available.'}
       </Text>
       {isOnline && (
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
@@ -170,13 +201,17 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
   return (
     <View style={styles.container}>
       <OfflineSyncStatus showWhenOnline={false} />
-      
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Available Jobs</Text>
         <View style={styles.headerRight}>
           {connectionQuality === 'poor' && (
             <View style={styles.connectionWarning}>
-              <Ionicons name="cellular" size={16} color={theme.colors.warning} />
+              <Ionicons
+                name='cellular'
+                size={16}
+                color={theme.colors.warning}
+              />
               <Text style={styles.connectionText}>Slow</Text>
             </View>
           )}
@@ -187,7 +222,7 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
               disabled={createJobMutation.isPending}
             >
               <Ionicons
-                name="add-circle-outline"
+                name='add-circle-outline'
                 size={24}
                 color={theme.colors.primary}
               />
@@ -196,7 +231,9 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
         </View>
       </View>
 
-      {isError ? renderError() : (
+      {isError ? (
+        renderError()
+      ) : (
         <FlatList
           data={jobs}
           renderItem={renderJob}
@@ -211,7 +248,9 @@ const JobListOffline: React.FC<JobListOfflineProps> = ({
           }
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={jobs.length === 0 ? styles.emptyContainer : undefined}
+          contentContainerStyle={
+            jobs.length === 0 ? styles.emptyContainer : undefined
+          }
         />
       )}
 

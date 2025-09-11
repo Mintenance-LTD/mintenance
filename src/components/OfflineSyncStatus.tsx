@@ -29,7 +29,7 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
   const [pendingCount, setPendingCount] = useState(0);
   const [visible, setVisible] = useState(false);
-  
+
   const slideAnim = new Animated.Value(position === 'top' ? -100 : 100);
   const pulseAnim = new Animated.Value(1);
 
@@ -47,13 +47,16 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
   }, []);
 
   useEffect(() => {
-    const shouldShow = !isOnline || (showWhenOnline && pendingCount > 0) || syncStatus === 'syncing';
-    
+    const shouldShow =
+      !isOnline ||
+      (showWhenOnline && pendingCount > 0) ||
+      syncStatus === 'syncing';
+
     if (shouldShow !== visible) {
       setVisible(shouldShow);
-      
+
       Animated.timing(slideAnim, {
-        toValue: shouldShow ? 0 : (position === 'top' ? -100 : 100),
+        toValue: shouldShow ? 0 : position === 'top' ? -100 : 100,
         duration: 300,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
@@ -123,7 +126,10 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
         icon: 'cloud-offline-outline' as const,
         color: theme.colors.warning,
         text: 'Offline',
-        description: pendingCount > 0 ? `${pendingCount} changes pending` : 'Working offline',
+        description:
+          pendingCount > 0
+            ? `${pendingCount} changes pending`
+            : 'Working offline',
         backgroundColor: theme.colors.warningLight,
       };
     }
@@ -230,18 +236,24 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
               style={[styles.actionButton, { borderColor: statusConfig.color }]}
               onPress={handleSyncNow}
             >
-              <Text style={[styles.actionButtonText, { color: statusConfig.color }]}>
+              <Text
+                style={[styles.actionButtonText, { color: statusConfig.color }]}
+              >
                 Sync Now
               </Text>
             </TouchableOpacity>
           )}
-          
+
           {pendingCount > 0 && (
             <TouchableOpacity
               style={styles.clearButton}
               onPress={handleClearQueue}
             >
-              <Ionicons name="trash-outline" size={16} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='trash-outline'
+                size={16}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           )}
         </View>

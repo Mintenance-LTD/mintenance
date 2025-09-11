@@ -6,15 +6,15 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Animated
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { 
-  useContractorESGScore, 
-  useSustainabilityFormatters, 
+import {
+  useContractorESGScore,
+  useSustainabilityFormatters,
   useSustainabilityGamification,
-  sustainabilityUtils
+  sustainabilityUtils,
 } from '../hooks/useSustainability';
 import { ESGScore } from '../services/SustainabilityEngine';
 
@@ -26,42 +26,37 @@ interface SustainabilityScoreWidgetProps {
   variant?: 'compact' | 'detailed' | 'gamified';
 }
 
-export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps> = ({
+export const SustainabilityScoreWidget: React.FC<
+  SustainabilityScoreWidgetProps
+> = ({
   contractorId,
   jobAnalysis,
   showDetails = true,
   onScorePress,
-  variant = 'detailed'
+  variant = 'detailed',
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'score' | 'progress' | 'tips'>('score');
+  const [activeTab, setActiveTab] = useState<'score' | 'progress' | 'tips'>(
+    'score'
+  );
 
-  const { 
-    esgScore, 
-    isLoading, 
-    error, 
-    recalculate, 
-    isRecalculating 
-  } = useContractorESGScore(contractorId || '', Boolean(contractorId));
+  const { esgScore, isLoading, error, recalculate, isRecalculating } =
+    useContractorESGScore(contractorId || '', Boolean(contractorId));
 
-  const { 
-    formatESGScore, 
-    getSustainabilityInsights,
-    formatCarbonFootprint 
-  } = useSustainabilityFormatters();
+  const { formatESGScore, getSustainabilityInsights, formatCarbonFootprint } =
+    useSustainabilityFormatters();
 
-  const { 
-    calculateLevel, 
-    getNextMilestone, 
-    achievements 
-  } = useSustainabilityGamification(contractorId || '');
+  const { calculateLevel, getNextMilestone, achievements } =
+    useSustainabilityGamification(contractorId || '');
 
   if (isLoading && !esgScore) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Calculating sustainability score...</Text>
+          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <Text style={styles.loadingText}>
+            Calculating sustainability score...
+          </Text>
         </View>
       </View>
     );
@@ -71,28 +66,39 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="leaf-outline" size={32} color={theme.colors.error} />
-          <Text style={styles.errorText}>Unable to load sustainability data</Text>
+          <Ionicons name='leaf-outline' size={32} color={theme.colors.error} />
+          <Text style={styles.errorText}>
+            Unable to load sustainability data
+          </Text>
         </View>
       </View>
     );
   }
 
   // Use job analysis if no contractor score available
-  const scoreData = esgScore || (jobAnalysis ? {
-    overall_score: jobAnalysis.sustainability_score,
-    environmental_score: jobAnalysis.sustainability_score,
-    social_score: 75,
-    governance_score: 70,
-    certification_level: jobAnalysis.sustainability_score >= 80 ? 'gold' : 'silver',
-    last_calculated: new Date().toISOString()
-  } as ESGScore : null);
+  const scoreData =
+    esgScore ||
+    (jobAnalysis
+      ? ({
+          overall_score: jobAnalysis.sustainability_score,
+          environmental_score: jobAnalysis.sustainability_score,
+          social_score: 75,
+          governance_score: 70,
+          certification_level:
+            jobAnalysis.sustainability_score >= 80 ? 'gold' : 'silver',
+          last_calculated: new Date().toISOString(),
+        } as ESGScore)
+      : null);
 
   if (!scoreData) {
     return (
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Ionicons name="leaf-outline" size={32} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='leaf-outline'
+            size={32}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.emptyText}>No sustainability data available</Text>
         </View>
       </View>
@@ -106,10 +112,7 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
 
   if (variant === 'compact') {
     return (
-      <TouchableOpacity 
-        style={styles.compactContainer}
-        onPress={onScorePress}
-      >
+      <TouchableOpacity style={styles.compactContainer} onPress={onScorePress}>
         <View style={styles.compactScoreContainer}>
           <Text style={styles.compactScoreText}>{scoreData.overall_score}</Text>
           <Text style={styles.compactScoreLabel}>ESG</Text>
@@ -130,22 +133,22 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
   return (
     <View style={styles.container}>
       {/* Header */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.header}
         onPress={() => setExpanded(!expanded)}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="leaf" size={24} color={theme.colors.success} />
+          <Ionicons name='leaf' size={24} color={theme.colors.success} />
           <Text style={styles.headerTitle}>Sustainability Score</Text>
         </View>
         <View style={styles.headerRight}>
           <Text style={[styles.scoreText, { color: formatted.overallColor }]}>
             {scoreData.overall_score}
           </Text>
-          <Ionicons 
-            name={expanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color={theme.colors.textSecondary} 
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={theme.colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -153,16 +156,27 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
       {/* Main Score Display */}
       <View style={styles.scoreContainer}>
         <View style={styles.mainScore}>
-          <View style={[styles.scoreCircle, { borderColor: formatted.overallColor }]}>
-            <Text style={[styles.scoreValue, { color: formatted.overallColor }]}>
+          <View
+            style={[
+              styles.scoreCircle,
+              { borderColor: formatted.overallColor },
+            ]}
+          >
+            <Text
+              style={[styles.scoreValue, { color: formatted.overallColor }]}
+            >
               {scoreData.overall_score}
             </Text>
             <Text style={styles.scoreGrade}>{formatted.overallGrade}</Text>
           </View>
-          
+
           <View style={styles.certificationType}>
-            <Text style={styles.certificationIcon}>{formatted.certificationIcon}</Text>
-            <Text style={styles.certificationText}>{formatted.certificationLabel}</Text>
+            <Text style={styles.certificationIcon}>
+              {formatted.certificationIcon}
+            </Text>
+            <Text style={styles.certificationText}>
+              {formatted.certificationLabel}
+            </Text>
           </View>
         </View>
 
@@ -171,30 +185,49 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Environmental</Text>
             <View style={styles.breakdownScore}>
-              <Text style={[styles.breakdownValue, { color: formatted.overallColor }]}>
+              <Text
+                style={[
+                  styles.breakdownValue,
+                  { color: formatted.overallColor },
+                ]}
+              >
                 {scoreData.environmental_score}
               </Text>
-              <Text style={styles.breakdownGrade}>{formatted.environmentalGrade}</Text>
+              <Text style={styles.breakdownGrade}>
+                {formatted.environmentalGrade}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Social</Text>
             <View style={styles.breakdownScore}>
-              <Text style={[styles.breakdownValue, { color: formatted.overallColor }]}>
+              <Text
+                style={[
+                  styles.breakdownValue,
+                  { color: formatted.overallColor },
+                ]}
+              >
                 {scoreData.social_score}
               </Text>
               <Text style={styles.breakdownGrade}>{formatted.socialGrade}</Text>
             </View>
           </View>
-          
+
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Governance</Text>
             <View style={styles.breakdownScore}>
-              <Text style={[styles.breakdownValue, { color: formatted.overallColor }]}>
+              <Text
+                style={[
+                  styles.breakdownValue,
+                  { color: formatted.overallColor },
+                ]}
+              >
                 {scoreData.governance_score}
               </Text>
-              <Text style={styles.breakdownGrade}>{formatted.governanceGrade}</Text>
+              <Text style={styles.breakdownGrade}>
+                {formatted.governanceGrade}
+              </Text>
             </View>
           </View>
         </View>
@@ -205,22 +238,23 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
         <View style={styles.gamificationContainer}>
           <View style={styles.levelContainer}>
             <Text style={styles.currentLevel}>
-              Current Level: {currentLevel.icon} {currentLevel.level.toUpperCase()}
+              Current Level: {currentLevel.icon}{' '}
+              {currentLevel.level.toUpperCase()}
             </Text>
             <Text style={styles.nextMilestone}>
-              Next: {nextMilestone.icon} {nextMilestone.level.toUpperCase()} 
-              ({nextMilestone.pointsNeeded} points to go)
+              Next: {nextMilestone.icon} {nextMilestone.level.toUpperCase()}(
+              {nextMilestone.pointsNeeded} points to go)
             </Text>
           </View>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
-                { 
+                styles.progressFill,
+                {
                   width: `${nextMilestone.progress}%`,
-                  backgroundColor: currentLevel.color 
-                }
-              ]} 
+                  backgroundColor: currentLevel.color,
+                },
+              ]}
             />
           </View>
         </View>
@@ -229,22 +263,27 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
       {/* Insights */}
       {insights.length > 0 && (
         <View style={styles.insightsContainer}>
-          {insights.slice(0, expanded ? insights.length : 2).map((insight, index) => (
-            <View 
-              key={index} 
-              style={[
-                styles.insightItem, 
-                { borderLeftColor: 
-                  insight.type === 'success' ? theme.colors.success :
-                  insight.type === 'warning' ? theme.colors.warning :
-                  theme.colors.info 
-                }
-              ]}
-            >
-              <Text style={styles.insightIcon}>{insight.icon}</Text>
-              <Text style={styles.insightText}>{insight.message}</Text>
-            </View>
-          ))}
+          {insights
+            .slice(0, expanded ? insights.length : 2)
+            .map((insight, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.insightItem,
+                  {
+                    borderLeftColor:
+                      insight.type === 'success'
+                        ? theme.colors.success
+                        : insight.type === 'warning'
+                          ? theme.colors.warning
+                          : theme.colors.info,
+                  },
+                ]}
+              >
+                <Text style={styles.insightIcon}>{insight.icon}</Text>
+                <Text style={styles.insightText}>{insight.message}</Text>
+              </View>
+            ))}
         </View>
       )}
 
@@ -257,23 +296,30 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
               style={[styles.tab, activeTab === 'score' && styles.activeTab]}
               onPress={() => setActiveTab('score')}
             >
-              <Text style={[
-                styles.tabText,
-                activeTab === 'score' && styles.activeTabText
-              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'score' && styles.activeTabText,
+                ]}
+              >
                 Details
               </Text>
             </TouchableOpacity>
 
             {contractorId && (
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'progress' && styles.activeTab]}
+                style={[
+                  styles.tab,
+                  activeTab === 'progress' && styles.activeTab,
+                ]}
                 onPress={() => setActiveTab('progress')}
               >
-                <Text style={[
-                  styles.tabText,
-                  activeTab === 'progress' && styles.activeTabText
-                ]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'progress' && styles.activeTabText,
+                  ]}
+                >
                   Progress
                 </Text>
               </TouchableOpacity>
@@ -283,10 +329,12 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
               style={[styles.tab, activeTab === 'tips' && styles.activeTab]}
               onPress={() => setActiveTab('tips')}
             >
-              <Text style={[
-                styles.tabText,
-                activeTab === 'tips' && styles.activeTabText
-              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'tips' && styles.activeTabText,
+                ]}
+              >
                 Tips
               </Text>
             </TouchableOpacity>
@@ -299,21 +347,24 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailTitle}>Environmental Impact</Text>
                   <Text style={styles.detailText}>
-                    Measures carbon footprint, waste reduction, renewable energy usage, and sustainable material choices.
+                    Measures carbon footprint, waste reduction, renewable energy
+                    usage, and sustainable material choices.
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailTitle}>Social Responsibility</Text>
                   <Text style={styles.detailText}>
-                    Evaluates community impact, fair employment practices, client education, and local job creation.
+                    Evaluates community impact, fair employment practices,
+                    client education, and local job creation.
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailTitle}>Governance Standards</Text>
                   <Text style={styles.detailText}>
-                    Assesses certification compliance, transparency, ethical practices, and stakeholder engagement.
+                    Assesses certification compliance, transparency, ethical
+                    practices, and stakeholder engagement.
                   </Text>
                 </View>
 
@@ -321,7 +372,9 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
                   <View style={styles.detailSection}>
                     <Text style={styles.detailTitle}>Carbon Footprint</Text>
                     <Text style={styles.detailValue}>
-                      {formatCarbonFootprint(jobAnalysis.predicted_impact.carbon_footprint_kg)}
+                      {formatCarbonFootprint(
+                        jobAnalysis.predicted_impact.carbon_footprint_kg
+                      )}
                     </Text>
                     <Text style={styles.detailSubtext}>
                       Estimated for this job
@@ -345,32 +398,33 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
             {activeTab === 'tips' && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.tipSection}>
-                  <Text style={styles.tipTitle}>🌱 Reduce Environmental Impact</Text>
+                  <Text style={styles.tipTitle}>
+                    🌱 Reduce Environmental Impact
+                  </Text>
                   <Text style={styles.tipText}>
-                    • Use eco-friendly materials when possible{'\n'}
-                    • Minimize packaging and waste{'\n'}
-                    • Choose energy-efficient tools{'\n'}
-                    • Plan efficient travel routes
+                    • Use eco-friendly materials when possible{'\n'}• Minimize
+                    packaging and waste{'\n'}• Choose energy-efficient tools
+                    {'\n'}• Plan efficient travel routes
                   </Text>
                 </View>
 
                 <View style={styles.tipSection}>
-                  <Text style={styles.tipTitle}>🤝 Strengthen Social Impact</Text>
+                  <Text style={styles.tipTitle}>
+                    🤝 Strengthen Social Impact
+                  </Text>
                   <Text style={styles.tipText}>
-                    • Support local suppliers{'\n'}
-                    • Educate clients about sustainable options{'\n'}
-                    • Participate in community projects{'\n'}
-                    • Maintain fair employment practices
+                    • Support local suppliers{'\n'}• Educate clients about
+                    sustainable options{'\n'}• Participate in community projects
+                    {'\n'}• Maintain fair employment practices
                   </Text>
                 </View>
 
                 <View style={styles.tipSection}>
                   <Text style={styles.tipTitle}>📊 Improve Governance</Text>
                   <Text style={styles.tipText}>
-                    • Pursue relevant certifications{'\n'}
-                    • Maintain transparent reporting{'\n'}
-                    • Follow ethical business practices{'\n'}
-                    • Engage with stakeholders regularly
+                    • Pursue relevant certifications{'\n'}• Maintain transparent
+                    reporting{'\n'}• Follow ethical business practices{'\n'}•
+                    Engage with stakeholders regularly
                   </Text>
                 </View>
               </ScrollView>
@@ -388,9 +442,9 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
             disabled={isRecalculating}
           >
             {isRecalculating ? (
-              <ActivityIndicator color={theme.colors.primary} size="small" />
+              <ActivityIndicator color={theme.colors.primary} size='small' />
             ) : (
-              <Ionicons name="refresh" size={16} color={theme.colors.primary} />
+              <Ionicons name='refresh' size={16} color={theme.colors.primary} />
             )}
             <Text style={styles.recalculateText}>
               {isRecalculating ? 'Updating...' : 'Recalculate'}
@@ -399,7 +453,8 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
         )}
 
         <Text style={styles.lastUpdated}>
-          Last updated: {new Date(scoreData.last_calculated).toLocaleDateString()}
+          Last updated:{' '}
+          {new Date(scoreData.last_calculated).toLocaleDateString()}
         </Text>
       </View>
     </View>

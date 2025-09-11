@@ -1,7 +1,12 @@
 import { supabase } from '../config/supabase';
-import { ContractorProfile, ContractorMatch, ContractorSkill, Review, LocationData } from '../types';
+import {
+  ContractorProfile,
+  ContractorMatch,
+  ContractorSkill,
+  Review,
+  LocationData,
+} from '../types';
 import { logger } from '../utils/logger';
-
 
 export class ContractorService {
   static async getNearbyContractors(
@@ -11,7 +16,8 @@ export class ContractorService {
     try {
       const { data: contractors, error } = await supabase
         .from('users')
-        .select(`
+        .select(
+          `
           *,
           contractor_skills (
             id,
@@ -28,7 +34,8 @@ export class ContractorService {
               last_name
             )
           )
-        `)
+        `
+        )
         .eq('role', 'contractor')
         .eq('is_available', true)
         .not('latitude', 'is', null)
@@ -47,7 +54,7 @@ export class ContractorService {
 
           return {
             ...this.mapUserToContractorProfile(contractor),
-            distance
+            distance,
           };
         })
         .filter((contractor: any) => contractor.distance <= radiusKm)
@@ -60,7 +67,10 @@ export class ContractorService {
     }
   }
 
-  static async getUnmatchedContractors(homeownerId: string, location: LocationData): Promise<ContractorProfile[]> {
+  static async getUnmatchedContractors(
+    homeownerId: string,
+    location: LocationData
+  ): Promise<ContractorProfile[]> {
     try {
       const { data: matches, error: matchError } = await supabase
         .from('contractor_matches')
@@ -69,11 +79,13 @@ export class ContractorService {
 
       if (matchError) throw matchError;
 
-      const matchedContractorIds = matches?.map((m: any) => m.contractor_id) || [];
+      const matchedContractorIds =
+        matches?.map((m: any) => m.contractor_id) || [];
 
       const { data: contractors, error } = await supabase
         .from('users')
-        .select(`
+        .select(
+          `
           *,
           contractor_skills (
             id,
@@ -86,7 +98,8 @@ export class ContractorService {
             comment,
             created_at
           )
-        `)
+        `
+        )
         .eq('role', 'contractor')
         .eq('is_available', true)
         .not('latitude', 'is', null)
@@ -103,7 +116,7 @@ export class ContractorService {
             location.longitude,
             contractor.latitude,
             contractor.longitude
-          )
+          ),
         }))
         .filter((contractor: any) => contractor.distance <= 25)
         .sort((a: any, b: any) => a.distance - b.distance);
@@ -126,7 +139,7 @@ export class ContractorService {
         .upsert({
           homeowner_id: homeownerId,
           contractor_id: contractorId,
-          action
+          action,
         })
         .select()
         .single();
@@ -138,7 +151,7 @@ export class ContractorService {
         homeownerId: data.homeowner_id,
         contractorId: data.contractor_id,
         action: data.action,
-        createdAt: data.created_at
+        createdAt: data.created_at,
       };
     } catch (error) {
       logger.error('Error recording contractor match:', error);
@@ -146,11 +159,14 @@ export class ContractorService {
     }
   }
 
-  static async getLikedContractors(homeownerId: string): Promise<ContractorProfile[]> {
+  static async getLikedContractors(
+    homeownerId: string
+  ): Promise<ContractorProfile[]> {
     try {
       const { data: matches, error } = await supabase
         .from('contractor_matches')
-        .select(`
+        .select(
+          `
           contractor_id,
           contractor:contractor_id (
             *,
@@ -166,26 +182,34 @@ export class ContractorService {
               created_at
             )
           )
-        `)
+        `
+        )
         .eq('homeowner_id', homeownerId)
         .eq('action', 'like');
 
       if (error) throw error;
 
-      return matches?.map((match: any) => this.mapUserToContractorProfile(match.contractor)) || [];
+      return (
+        matches?.map((match: any) =>
+          this.mapUserToContractorProfile(match.contractor)
+        ) || []
+      );
     } catch (error) {
       logger.error('Error fetching liked contractors:', error);
       throw error;
     }
   }
 
-  static async addContractorSkill(contractorId: string, skillName: string): Promise<ContractorSkill> {
+  static async addContractorSkill(
+    contractorId: string,
+    skillName: string
+  ): Promise<ContractorSkill> {
     try {
       const { data, error } = await supabase
         .from('contractor_skills')
         .insert({
           contractor_id: contractorId,
-          skill_name: skillName
+          skill_name: skillName,
         })
         .select()
         .single();
@@ -196,7 +220,7 @@ export class ContractorService {
         id: data.id,
         contractorId: data.contractor_id,
         skillName: data.skill_name,
-        createdAt: data.created_at
+        createdAt: data.created_at,
       };
     } catch (error) {
       logger.error('Error adding contractor skill:', error);
@@ -214,7 +238,7 @@ export class ContractorService {
         .update({
           latitude: location.latitude,
           longitude: location.longitude,
-          address: location.address
+          address: location.address,
         })
         .eq('id', contractorId);
 
@@ -269,21 +293,23 @@ export class ContractorService {
       rating: user.rating || 0,
       totalJobsCompleted: user.total_jobs_completed || 0,
       isAvailable: user.is_available,
-      skills: user.contractor_skills?.map((skill: any) => ({
-        id: skill.id,
-        contractorId: user.id,
-        skillName: skill.skill_name,
-        createdAt: skill.created_at
-      })) || [],
-      reviews: user.reviews?.map((review: any) => ({
-        id: review.id,
-        jobId: '',
-        reviewerId: '',
-        reviewedId: user.id,
-        rating: review.rating,
-        comment: review.comment,
-        createdAt: review.created_at
-      })) || []
+      skills:
+        user.contractor_skills?.map((skill: any) => ({
+          id: skill.id,
+          contractorId: user.id,
+          skillName: skill.skill_name,
+          createdAt: skill.created_at,
+        })) || [],
+      reviews:
+        user.reviews?.map((review: any) => ({
+          id: review.id,
+          jobId: '',
+          reviewerId: '',
+          reviewedId: user.id,
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.created_at,
+        })) || [],
     };
   }
 }

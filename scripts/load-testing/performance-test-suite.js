@@ -17,8 +17,8 @@ const CONFIG = {
   thresholds: {
     responseTime: 500, // ms
     errorRate: 0.01, // 1%
-    throughput: 100 // requests per second
-  }
+    throughput: 100, // requests per second
+  },
 };
 
 // Performance Metrics Collector
@@ -31,7 +31,7 @@ class MetricsCollector {
       throughput: 0,
       concurrentUsers: 0,
       memoryUsage: [],
-      dbConnections: []
+      dbConnections: [],
     };
   }
 
@@ -41,20 +41,20 @@ class MetricsCollector {
       responseTime,
       success,
       statusCode,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     if (!success) {
       this.metrics.errors.push({
         endpoint,
         statusCode,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }
 
   calculateMetrics() {
-    const responseTimes = this.metrics.requests.map(r => r.responseTime);
+    const responseTimes = this.metrics.requests.map((r) => r.responseTime);
     const errors = this.metrics.errors.length;
     const totalRequests = this.metrics.requests.length;
 
@@ -62,13 +62,14 @@ class MetricsCollector {
       totalRequests,
       totalErrors: errors,
       errorRate: totalRequests > 0 ? errors / totalRequests : 0,
-      avgResponseTime: responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
+      avgResponseTime:
+        responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
       p95ResponseTime: this.calculatePercentile(responseTimes, 95),
       p99ResponseTime: this.calculatePercentile(responseTimes, 99),
       maxResponseTime: Math.max(...responseTimes),
       minResponseTime: Math.min(...responseTimes),
       throughput: this.calculateThroughput(),
-      memoryPeakUsage: Math.max(...this.metrics.memoryUsage)
+      memoryPeakUsage: Math.max(...this.metrics.memoryUsage),
     };
   }
 
@@ -79,9 +80,10 @@ class MetricsCollector {
   }
 
   calculateThroughput() {
-    const timeSpan = Math.max(...this.metrics.requests.map(r => r.timestamp)) - 
-                    Math.min(...this.metrics.requests.map(r => r.timestamp));
-    return (this.metrics.requests.length / (timeSpan / 1000)); // requests per second
+    const timeSpan =
+      Math.max(...this.metrics.requests.map((r) => r.timestamp)) -
+      Math.min(...this.metrics.requests.map((r) => r.timestamp));
+    return this.metrics.requests.length / (timeSpan / 1000); // requests per second
   }
 }
 
@@ -96,25 +98,33 @@ class LoadTestScenarios {
   // Scenario 1: User Registration and Authentication Flow
   async testUserRegistration(userId) {
     const startTime = performance.now();
-    
+
     try {
       // Register new user
-      const registerResponse = await axios.post(`${this.baseUrl}/api/auth/register`, {
-        email: `loadtest${userId}@example.com`,
-        password: 'LoadTest123!',
-        firstName: 'Load',
-        lastName: `Test${userId}`,
-        userType: Math.random() > 0.5 ? 'homeowner' : 'contractor'
-      });
+      const registerResponse = await axios.post(
+        `${this.baseUrl}/api/auth/register`,
+        {
+          email: `loadtest${userId}@example.com`,
+          password: 'LoadTest123!',
+          firstName: 'Load',
+          lastName: `Test${userId}`,
+          userType: Math.random() > 0.5 ? 'homeowner' : 'contractor',
+        }
+      );
 
       const registrationTime = performance.now() - startTime;
-      this.metrics.recordRequest('/api/auth/register', registrationTime, true, 201);
+      this.metrics.recordRequest(
+        '/api/auth/register',
+        registrationTime,
+        true,
+        201
+      );
 
       // Login user
       const loginStart = performance.now();
       const loginResponse = await axios.post(`${this.baseUrl}/api/auth/login`, {
         email: `loadtest${userId}@example.com`,
-        password: 'LoadTest123!'
+        password: 'LoadTest123!',
       });
 
       const loginTime = performance.now() - loginStart;
@@ -126,7 +136,12 @@ class LoadTestScenarios {
       return true;
     } catch (error) {
       const totalTime = performance.now() - startTime;
-      this.metrics.recordRequest('/api/auth/register', totalTime, false, error.response?.status || 500);
+      this.metrics.recordRequest(
+        '/api/auth/register',
+        totalTime,
+        false,
+        error.response?.status || 500
+      );
       return false;
     }
   }
@@ -142,14 +157,15 @@ class LoadTestScenarios {
       // Create job with AI pricing analysis
       const jobData = {
         title: `Load Test Job ${userId}`,
-        description: 'Testing job creation under load with AI pricing analysis. Need plumbing repair for kitchen sink.',
+        description:
+          'Testing job creation under load with AI pricing analysis. Need plumbing repair for kitchen sink.',
         category: 'plumbing',
         location: 'Central London',
-        urgency: 'medium'
+        urgency: 'medium',
       };
 
       const response = await axios.post(`${this.baseUrl}/api/jobs`, jobData, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const responseTime = performance.now() - startTime;
@@ -157,17 +173,31 @@ class LoadTestScenarios {
 
       // Test AI pricing endpoint
       const pricingStart = performance.now();
-      const pricingResponse = await axios.post(`${this.baseUrl}/api/ai/pricing/analyze`, jobData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const pricingResponse = await axios.post(
+        `${this.baseUrl}/api/ai/pricing/analyze`,
+        jobData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const pricingTime = performance.now() - pricingStart;
-      this.metrics.recordRequest('/api/ai/pricing/analyze', pricingTime, true, 200);
+      this.metrics.recordRequest(
+        '/api/ai/pricing/analyze',
+        pricingTime,
+        true,
+        200
+      );
 
       return true;
     } catch (error) {
       const totalTime = performance.now() - startTime;
-      this.metrics.recordRequest('/api/jobs', totalTime, false, error.response?.status || 500);
+      this.metrics.recordRequest(
+        '/api/jobs',
+        totalTime,
+        false,
+        error.response?.status || 500
+      );
       return false;
     }
   }
@@ -187,7 +217,12 @@ class LoadTestScenarios {
       );
 
       const metricsTime = performance.now() - startTime;
-      this.metrics.recordRequest('/api/business/metrics', metricsTime, true, 200);
+      this.metrics.recordRequest(
+        '/api/business/metrics',
+        metricsTime,
+        true,
+        200
+      );
 
       // Test sustainability scoring
       const esgStart = performance.now();
@@ -197,12 +232,22 @@ class LoadTestScenarios {
       );
 
       const esgTime = performance.now() - esgStart;
-      this.metrics.recordRequest('/api/sustainability/esg-score', esgTime, true, 200);
+      this.metrics.recordRequest(
+        '/api/sustainability/esg-score',
+        esgTime,
+        true,
+        200
+      );
 
       return true;
     } catch (error) {
       const totalTime = performance.now() - startTime;
-      this.metrics.recordRequest('/api/business/metrics', totalTime, false, error.response?.status || 500);
+      this.metrics.recordRequest(
+        '/api/business/metrics',
+        totalTime,
+        false,
+        error.response?.status || 500
+      );
       return false;
     }
   }
@@ -215,11 +260,13 @@ class LoadTestScenarios {
 
       ws.on('open', () => {
         // Send job update
-        ws.send(JSON.stringify({
-          type: 'job_update',
-          jobId: `test-job-${userId}`,
-          status: 'in_progress'
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'job_update',
+            jobId: `test-job-${userId}`,
+            status: 'in_progress',
+          })
+        );
       });
 
       ws.on('message', (data) => {
@@ -253,26 +300,33 @@ class LoadTestScenarios {
       '/api/contractors/rankings',
       '/api/jobs/search?category=plumbing&location=london',
       '/api/sustainability/materials/alternatives',
-      '/api/business/financial-summary'
+      '/api/business/financial-summary',
     ];
 
-    const results = await Promise.all(queries.map(async (endpoint) => {
-      const startTime = performance.now();
-      try {
-        await axios.get(`${this.baseUrl}${endpoint}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const responseTime = performance.now() - startTime;
-        this.metrics.recordRequest(endpoint, responseTime, true, 200);
-        return true;
-      } catch (error) {
-        const responseTime = performance.now() - startTime;
-        this.metrics.recordRequest(endpoint, responseTime, false, error.response?.status || 500);
-        return false;
-      }
-    }));
+    const results = await Promise.all(
+      queries.map(async (endpoint) => {
+        const startTime = performance.now();
+        try {
+          await axios.get(`${this.baseUrl}${endpoint}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const responseTime = performance.now() - startTime;
+          this.metrics.recordRequest(endpoint, responseTime, true, 200);
+          return true;
+        } catch (error) {
+          const responseTime = performance.now() - startTime;
+          this.metrics.recordRequest(
+            endpoint,
+            responseTime,
+            false,
+            error.response?.status || 500
+          );
+          return false;
+        }
+      })
+    );
 
-    return results.every(r => r);
+    return results.every((r) => r);
   }
 }
 
@@ -310,7 +364,7 @@ class LoadTestRunner {
     }
 
     // Wait for test duration
-    await new Promise(resolve => 
+    await new Promise((resolve) =>
       setTimeout(resolve, CONFIG.testDurationMinutes * 60 * 1000)
     );
 
@@ -349,7 +403,6 @@ class LoadTestRunner {
         await this.randomDelay(5000, 10000);
         await this.scenarios.testJobPostingWithAIPricing(userId);
       }
-
     } catch (error) {
       console.error(`User ${userId} failed:`, error.message);
     } finally {
@@ -359,7 +412,7 @@ class LoadTestRunner {
 
   randomDelay(min, max) {
     const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-    return new Promise(resolve => setTimeout(resolve, delay));
+    return new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   collectSystemMetrics() {
@@ -370,7 +423,7 @@ class LoadTestRunner {
 
     // Update concurrent users
     this.metrics.metrics.concurrentUsers = Math.max(
-      this.metrics.metrics.concurrentUsers, 
+      this.metrics.metrics.concurrentUsers,
       this.activeUsers
     );
   }
@@ -386,12 +439,18 @@ class LoadTestRunner {
     console.log(`❌ Total Errors: ${results.totalErrors}`);
     console.log(`📉 Error Rate: ${(results.errorRate * 100).toFixed(2)}%`);
     console.log(`⚡ Throughput: ${results.throughput.toFixed(2)} req/s`);
-    console.log(`👥 Peak Concurrent Users: ${this.metrics.metrics.concurrentUsers}`);
+    console.log(
+      `👥 Peak Concurrent Users: ${this.metrics.metrics.concurrentUsers}`
+    );
     console.log('');
     console.log('Response Times:');
     console.log(`  📊 Average: ${results.avgResponseTime.toFixed(2)}ms`);
-    console.log(`  📊 95th Percentile: ${results.p95ResponseTime.toFixed(2)}ms`);
-    console.log(`  📊 99th Percentile: ${results.p99ResponseTime.toFixed(2)}ms`);
+    console.log(
+      `  📊 95th Percentile: ${results.p95ResponseTime.toFixed(2)}ms`
+    );
+    console.log(
+      `  📊 99th Percentile: ${results.p99ResponseTime.toFixed(2)}ms`
+    );
     console.log(`  📊 Max: ${results.maxResponseTime.toFixed(2)}ms`);
     console.log('');
 
@@ -411,30 +470,42 @@ class LoadTestRunner {
 
     // Check response time threshold
     if (results.p95ResponseTime > CONFIG.thresholds.responseTime) {
-      issues.push(`⚠️  95th percentile response time (${results.p95ResponseTime.toFixed(2)}ms) exceeds threshold (${CONFIG.thresholds.responseTime}ms)`);
-      recommendations.push('📝 Consider database query optimization and caching');
+      issues.push(
+        `⚠️  95th percentile response time (${results.p95ResponseTime.toFixed(2)}ms) exceeds threshold (${CONFIG.thresholds.responseTime}ms)`
+      );
+      recommendations.push(
+        '📝 Consider database query optimization and caching'
+      );
     }
 
     // Check error rate threshold
     if (results.errorRate > CONFIG.thresholds.errorRate) {
-      issues.push(`⚠️  Error rate (${(results.errorRate * 100).toFixed(2)}%) exceeds threshold (${(CONFIG.thresholds.errorRate * 100).toFixed(2)}%)`);
-      recommendations.push('📝 Investigate error patterns and implement better error handling');
+      issues.push(
+        `⚠️  Error rate (${(results.errorRate * 100).toFixed(2)}%) exceeds threshold (${(CONFIG.thresholds.errorRate * 100).toFixed(2)}%)`
+      );
+      recommendations.push(
+        '📝 Investigate error patterns and implement better error handling'
+      );
     }
 
     // Check throughput threshold
     if (results.throughput < CONFIG.thresholds.throughput) {
-      issues.push(`⚠️  Throughput (${results.throughput.toFixed(2)} req/s) below target (${CONFIG.thresholds.throughput} req/s)`);
-      recommendations.push('📝 Scale application servers or optimize resource usage');
+      issues.push(
+        `⚠️  Throughput (${results.throughput.toFixed(2)} req/s) below target (${CONFIG.thresholds.throughput} req/s)`
+      );
+      recommendations.push(
+        '📝 Scale application servers or optimize resource usage'
+      );
     }
 
     if (issues.length === 0) {
       console.log('✅ All performance thresholds met!');
     } else {
       console.log('Issues Found:');
-      issues.forEach(issue => console.log(issue));
+      issues.forEach((issue) => console.log(issue));
       console.log('');
       console.log('Recommendations:');
-      recommendations.forEach(rec => console.log(rec));
+      recommendations.forEach((rec) => console.log(rec));
     }
 
     console.log('');
@@ -449,21 +520,21 @@ class LoadTestRunner {
       detailedMetrics: {
         requestBreakdown: this.getRequestBreakdown(),
         errorBreakdown: this.getErrorBreakdown(),
-        performanceByEndpoint: this.getPerformanceByEndpoint()
-      }
+        performanceByEndpoint: this.getPerformanceByEndpoint(),
+      },
     };
 
     // Save to file
     const fs = require('fs');
     const filename = `load-test-report-${Date.now()}.json`;
     fs.writeFileSync(filename, JSON.stringify(report, null, 2));
-    
+
     console.log(`📄 Detailed report saved: ${filename}`);
   }
 
   getRequestBreakdown() {
     const breakdown = {};
-    this.metrics.metrics.requests.forEach(req => {
+    this.metrics.metrics.requests.forEach((req) => {
       if (!breakdown[req.endpoint]) {
         breakdown[req.endpoint] = { count: 0, totalTime: 0, errors: 0 };
       }
@@ -473,7 +544,7 @@ class LoadTestRunner {
     });
 
     // Calculate averages
-    Object.keys(breakdown).forEach(endpoint => {
+    Object.keys(breakdown).forEach((endpoint) => {
       const data = breakdown[endpoint];
       data.avgResponseTime = data.totalTime / data.count;
       data.errorRate = data.errors / data.count;
@@ -484,7 +555,7 @@ class LoadTestRunner {
 
   getErrorBreakdown() {
     const breakdown = {};
-    this.metrics.metrics.errors.forEach(error => {
+    this.metrics.metrics.errors.forEach((error) => {
       const key = `${error.endpoint}-${error.statusCode}`;
       breakdown[key] = (breakdown[key] || 0) + 1;
     });
@@ -493,7 +564,7 @@ class LoadTestRunner {
 
   getPerformanceByEndpoint() {
     const performance = {};
-    this.metrics.metrics.requests.forEach(req => {
+    this.metrics.metrics.requests.forEach((req) => {
       if (!performance[req.endpoint]) {
         performance[req.endpoint] = [];
       }
@@ -501,7 +572,7 @@ class LoadTestRunner {
     });
 
     // Calculate statistics for each endpoint
-    Object.keys(performance).forEach(endpoint => {
+    Object.keys(performance).forEach((endpoint) => {
       const times = performance[endpoint];
       performance[endpoint] = {
         count: times.length,
@@ -509,7 +580,7 @@ class LoadTestRunner {
         min: Math.min(...times),
         max: Math.max(...times),
         p95: this.metrics.calculatePercentile(times, 95),
-        p99: this.metrics.calculatePercentile(times, 99)
+        p99: this.metrics.calculatePercentile(times, 99),
       };
     });
 

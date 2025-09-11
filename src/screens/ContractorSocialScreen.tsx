@@ -47,7 +47,8 @@ const ContractorSocialScreen: React.FC = () => {
       role: 'Plumber',
       verified: true,
       timestamp: '2h ago',
-      content: 'Just finished a challenging bathroom renovation! The old pipes were completely corroded but we managed to replace everything without damaging the tiles. Sometimes patience pays off! 💪',
+      content:
+        'Just finished a challenging bathroom renovation! The old pipes were completely corroded but we managed to replace everything without damaging the tiles. Sometimes patience pays off! 💪',
       hashtags: ['#plumbing', '#renovation', '#craftsmanship'],
       likes: 24,
       comments: 5,
@@ -61,7 +62,8 @@ const ContractorSocialScreen: React.FC = () => {
       role: 'Electrician',
       verified: true,
       timestamp: '4h ago',
-      content: 'Pro tip: Always check your voltage before starting any electrical work. Safety first! Here\'s a quick guide for homeowners on identifying electrical hazards.',
+      content:
+        "Pro tip: Always check your voltage before starting any electrical work. Safety first! Here's a quick guide for homeowners on identifying electrical hazards.",
       hashtags: ['#electrical', '#safety', '#tips'],
       likes: 18,
       comments: 3,
@@ -75,7 +77,8 @@ const ContractorSocialScreen: React.FC = () => {
       role: 'General Contractor',
       verified: false,
       timestamp: '6h ago',
-      content: 'Looking for a reliable HVAC specialist in downtown area. Have a commercial project that needs immediate attention. DM if interested!',
+      content:
+        'Looking for a reliable HVAC specialist in downtown area. Have a commercial project that needs immediate attention. DM if interested!',
       hashtags: ['#hvac', '#commercial', '#urgent'],
       likes: 12,
       comments: 7,
@@ -88,9 +91,9 @@ const ContractorSocialScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
-  const [selectedPostType, setSelectedPostType] = useState<ContractorPostType>('project_showcase');
+  const [selectedPostType, setSelectedPostType] =
+    useState<ContractorPostType>('project_showcase');
   const [isCreatingPost, setIsCreatingPost] = useState(false);
-
 
   useEffect(() => {
     // loadPosts();
@@ -113,27 +116,36 @@ const ContractorSocialScreen: React.FC = () => {
 
   const toggleLike = (postId: string) => {
     haptics.likePost();
-    
+
     // Create animated scale value for the specific post
     const scaleValue = new Animated.Value(1);
-    
+
     // Animate the like action
-    AnimationUtils.createLikeAnimation(scaleValue, new Animated.Value(0)).start();
-    
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
+    AnimationUtils.createLikeAnimation(
+      scaleValue,
+      new Animated.Value(0)
+    ).start();
+
+    setPosts(
+      posts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              liked: !post.liked,
+              likes: post.liked ? post.likes - 1 : post.likes + 1,
+            }
+          : post
+      )
+    );
   };
 
   const toggleSave = (postId: string) => {
     haptics.savePost();
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, saved: !post.saved }
-        : post
-    ));
+    setPosts(
+      posts.map((post) =>
+        post.id === postId ? { ...post, saved: !post.saved } : post
+      )
+    );
   };
 
   const handleComment = (postId: string) => {
@@ -147,16 +159,12 @@ const ContractorSocialScreen: React.FC = () => {
 
   const handleShare = (postId: string) => {
     haptics.buttonPress();
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, shares: post.shares + 1 }
-        : post
-    ));
-    Alert.alert(
-      'Shared!',
-      'Post shared to your network!',
-      [{ text: 'OK' }]
+    setPosts(
+      posts.map((post) =>
+        post.id === postId ? { ...post, shares: post.shares + 1 } : post
+      )
     );
+    Alert.alert('Shared!', 'Post shared to your network!', [{ text: 'OK' }]);
   };
 
   const handleCreatePost = () => {
@@ -205,10 +213,10 @@ const ContractorSocialScreen: React.FC = () => {
         saved: false,
       };
 
-      setPosts(prev => [mappedPost, ...prev]);
+      setPosts((prev) => [mappedPost, ...prev]);
       setShowCreateModal(false);
       setNewPostContent('');
-      
+
       Alert.alert(
         'Success!',
         'Your post has been shared with the contractor community.',
@@ -216,11 +224,9 @@ const ContractorSocialScreen: React.FC = () => {
       );
     } catch (error) {
       console.error('Error creating post:', error);
-      Alert.alert(
-        'Error',
-        'Failed to create your post. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to create your post. Please try again.', [
+        { text: 'OK' },
+      ]);
     } finally {
       setIsCreatingPost(false);
     }
@@ -228,31 +234,43 @@ const ContractorSocialScreen: React.FC = () => {
 
   const extractHashtags = (content: string): string[] => {
     const hashtags = content.match(/#[a-zA-Z0-9_]+/g) || [];
-    return hashtags.map(tag => tag.toLowerCase());
+    return hashtags.map((tag) => tag.toLowerCase());
   };
 
   const getPostTypeDisplayName = (type: ContractorPostType): string => {
     switch (type) {
-      case 'project_showcase': return 'Project Showcase';
-      case 'tip': return 'Pro Tip';
-      case 'before_after': return 'Before/After';
-      case 'milestone': return 'Milestone';
-      default: return 'Update';
+      case 'project_showcase':
+        return 'Project Showcase';
+      case 'tip':
+        return 'Pro Tip';
+      case 'before_after':
+        return 'Before/After';
+      case 'milestone':
+        return 'Milestone';
+      default:
+        return 'Update';
     }
   };
-
 
   const renderPost = ({ item }: { item: FeedPost }) => (
     <View style={styles.postCard}>
       {/* Post Header */}
       <View style={styles.postHeader}>
         <View style={styles.contractorInfo}>
-          <Ionicons name="person-circle" size={48} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='person-circle'
+            size={48}
+            color={theme.colors.textTertiary}
+          />
           <View style={styles.contractorDetails}>
             <View style={styles.contractorNameRow}>
               <Text style={styles.contractorName}>{item.contractorName}</Text>
               {item.verified && (
-                <Ionicons name="checkmark-circle" size={16} color={theme.colors.secondary} />
+                <Ionicons
+                  name='checkmark-circle'
+                  size={16}
+                  color={theme.colors.secondary}
+                />
               )}
             </View>
             <View style={styles.roleRow}>
@@ -262,7 +280,11 @@ const ContractorSocialScreen: React.FC = () => {
           </View>
         </View>
         <TouchableOpacity>
-          <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textTertiary} />
+          <Ionicons
+            name='ellipsis-horizontal'
+            size={20}
+            color={theme.colors.textTertiary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -272,10 +294,10 @@ const ContractorSocialScreen: React.FC = () => {
       {/* Hashtags */}
       <View style={styles.hashtagsContainer}>
         {item.hashtags.map((hashtag, index) => (
-          <TouchableOpacity 
-            key={index} 
+          <TouchableOpacity
+            key={index}
             style={styles.hashtag}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={`Hashtag ${hashtag}`}
             accessibilityHint={`Double tap to view posts with ${hashtag} hashtag`}
           >
@@ -286,56 +308,74 @@ const ContractorSocialScreen: React.FC = () => {
 
       {/* Engagement Actions */}
       <View style={styles.engagementRow}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.engagementButton}
           onPress={() => toggleLike(item.id)}
-          accessibilityRole="button"
-          accessibilityLabel={item.liked ? "Unlike post" : "Like post"}
-          accessibilityHint={item.liked ? "Double tap to unlike this post" : "Double tap to like this post"}
+          accessibilityRole='button'
+          accessibilityLabel={item.liked ? 'Unlike post' : 'Like post'}
+          accessibilityHint={
+            item.liked
+              ? 'Double tap to unlike this post'
+              : 'Double tap to like this post'
+          }
           accessibilityState={{ selected: item.liked }}
         >
-          <Ionicons 
-            name={item.liked ? "heart" : "heart-outline"} 
-            size={20} 
-            color={item.liked ? "#FF3B30" : theme.colors.textSecondary} 
+          <Ionicons
+            name={item.liked ? 'heart' : 'heart-outline'}
+            size={20}
+            color={item.liked ? '#FF3B30' : theme.colors.textSecondary}
           />
           <Text style={styles.engagementText}>{item.likes}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.engagementButton}
           onPress={() => handleComment(item.id)}
-          accessibilityRole="button"
-          accessibilityLabel="View comments"
+          accessibilityRole='button'
+          accessibilityLabel='View comments'
           accessibilityHint={`Double tap to view ${item.comments} comments on this post`}
         >
-          <Ionicons name="chatbubble-outline" size={20} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='chatbubble-outline'
+            size={20}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.engagementText}>{item.comments}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.engagementButton}
           onPress={() => handleShare(item.id)}
-          accessibilityRole="button"
-          accessibilityLabel="Share post"
-          accessibilityHint="Double tap to share this post with others"
+          accessibilityRole='button'
+          accessibilityLabel='Share post'
+          accessibilityHint='Double tap to share this post with others'
         >
-          <Ionicons name="share-outline" size={20} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='share-outline'
+            size={20}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.engagementText}>{item.shares}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.engagementButton, styles.saveButton]}
           onPress={() => toggleSave(item.id)}
-          accessibilityRole="button"
-          accessibilityLabel={item.saved ? "Remove from saved" : "Save post"}
-          accessibilityHint={item.saved ? "Double tap to remove this post from saved" : "Double tap to save this post for later"}
+          accessibilityRole='button'
+          accessibilityLabel={item.saved ? 'Remove from saved' : 'Save post'}
+          accessibilityHint={
+            item.saved
+              ? 'Double tap to remove this post from saved'
+              : 'Double tap to save this post for later'
+          }
           accessibilityState={{ selected: item.saved }}
         >
-          <Ionicons 
-            name={item.saved ? "bookmark" : "bookmark-outline"} 
-            size={20} 
-            color={item.saved ? theme.colors.primary : theme.colors.textSecondary} 
+          <Ionicons
+            name={item.saved ? 'bookmark' : 'bookmark-outline'}
+            size={20}
+            color={
+              item.saved ? theme.colors.primary : theme.colors.textSecondary
+            }
           />
         </TouchableOpacity>
       </View>
@@ -347,13 +387,13 @@ const ContractorSocialScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Community Feed</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.searchButton}
-          accessibilityRole="button"
-          accessibilityLabel="Search community posts"
-          accessibilityHint="Double tap to search posts in the community feed"
+          accessibilityRole='button'
+          accessibilityLabel='Search community posts'
+          accessibilityHint='Double tap to search posts in the community feed'
         >
-          <Ionicons name="search" size={24} color="#fff" />
+          <Ionicons name='search' size={24} color='#fff' />
         </TouchableOpacity>
       </View>
 
@@ -363,8 +403,8 @@ const ContractorSocialScreen: React.FC = () => {
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={theme.colors.primary} // iOS spinner color
             colors={[theme.colors.primary]} // Android spinner colors
@@ -377,7 +417,7 @@ const ContractorSocialScreen: React.FC = () => {
         ListEmptyComponent={
           loading ? null : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={50} color="#ccc" />
+              <Ionicons name='people-outline' size={50} color='#ccc' />
               <Text style={styles.emptyTitle}>No posts yet</Text>
               <Text style={styles.emptyText}>
                 Be the first to share with the contractor community!
@@ -399,26 +439,29 @@ const ContractorSocialScreen: React.FC = () => {
       {/* Create Post Modal */}
       <Modal
         visible={showCreateModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType='slide'
+        presentationStyle='pageSheet'
         onRequestClose={() => setShowCreateModal(false)}
       >
         <View style={styles.createPostContainer}>
           <View style={styles.createPostHeader}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowCreateModal(false)}
               style={styles.modalCloseButton}
             >
               <Text style={styles.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.createPostTitle}>Create Post</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={submitPost}
-              style={[styles.modalSubmitButton, { opacity: isCreatingPost ? 0.6 : 1 }]}
+              style={[
+                styles.modalSubmitButton,
+                { opacity: isCreatingPost ? 0.6 : 1 },
+              ]}
               disabled={isCreatingPost}
             >
               {isCreatingPost ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size='small' color='#fff' />
               ) : (
                 <Text style={styles.modalSubmitText}>Share</Text>
               )}
@@ -428,20 +471,33 @@ const ContractorSocialScreen: React.FC = () => {
           <ScrollView style={styles.createPostContent}>
             {/* Post Type Selection */}
             <Text style={styles.sectionLabel}>Post Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postTypeContainer}>
-              {(['project_showcase', 'tip', 'before_after', 'milestone'] as ContractorPostType[]).map((type) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.postTypeContainer}
+            >
+              {(
+                [
+                  'project_showcase',
+                  'tip',
+                  'before_after',
+                  'milestone',
+                ] as ContractorPostType[]
+              ).map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.postTypeOption,
-                    selectedPostType === type && styles.postTypeSelected
+                    selectedPostType === type && styles.postTypeSelected,
                   ]}
                   onPress={() => setSelectedPostType(type)}
                 >
-                  <Text style={[
-                    styles.postTypeText,
-                    selectedPostType === type && styles.postTypeTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.postTypeText,
+                      selectedPostType === type && styles.postTypeTextSelected,
+                    ]}
+                  >
                     {getPostTypeDisplayName(type)}
                   </Text>
                 </TouchableOpacity>
@@ -449,26 +505,38 @@ const ContractorSocialScreen: React.FC = () => {
             </ScrollView>
 
             {/* Content Input */}
-            <Text style={styles.sectionLabel}>What's happening in your work?</Text>
+            <Text style={styles.sectionLabel}>
+              What's happening in your work?
+            </Text>
             <TextInput
               style={styles.postContentInput}
               multiline
-              placeholder="Share your project updates, tips, or achievements with the contractor community..."
+              placeholder='Share your project updates, tips, or achievements with the contractor community...'
               placeholderTextColor={theme.colors.textTertiary}
               value={newPostContent}
               onChangeText={setNewPostContent}
               maxLength={500}
               autoFocus
             />
-            <Text style={styles.characterCount}>{newPostContent.length}/500</Text>
+            <Text style={styles.characterCount}>
+              {newPostContent.length}/500
+            </Text>
 
             {/* Tips */}
             <View style={styles.tipsContainer}>
               <Text style={styles.tipsTitle}>💡 Tips for great posts:</Text>
-              <Text style={styles.tipText}>• Use hashtags like #plumbing #electrical #hvac</Text>
-              <Text style={styles.tipText}>• Share your expertise and help other contractors</Text>
-              <Text style={styles.tipText}>• Show before/after photos of your work</Text>
-              <Text style={styles.tipText}>• Celebrate your achievements and milestones</Text>
+              <Text style={styles.tipText}>
+                • Use hashtags like #plumbing #electrical #hvac
+              </Text>
+              <Text style={styles.tipText}>
+                • Share your expertise and help other contractors
+              </Text>
+              <Text style={styles.tipText}>
+                • Show before/after photos of your work
+              </Text>
+              <Text style={styles.tipText}>
+                • Celebrate your achievements and milestones
+              </Text>
             </View>
           </ScrollView>
         </View>
@@ -476,17 +544,16 @@ const ContractorSocialScreen: React.FC = () => {
 
       {/* Floating Action Button */}
       {user?.role === 'contractor' && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.fab}
           onPress={handleCreatePost}
-          accessibilityRole="button"
-          accessibilityLabel="Create new post"
-          accessibilityHint="Double tap to create a new post in the community feed"
+          accessibilityRole='button'
+          accessibilityLabel='Create new post'
+          accessibilityHint='Double tap to create a new post in the community feed'
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name='add' size={24} color='#fff' />
         </TouchableOpacity>
       )}
-
     </View>
   );
 };

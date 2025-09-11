@@ -10,32 +10,32 @@ interface JobCardProps {
   showBidButton?: boolean;
 }
 
-export const JobCard: React.FC<JobCardProps> = ({ 
-  job, 
-  onPress, 
-  onBid, 
-  showBidButton = false 
+export const JobCard: React.FC<JobCardProps> = ({
+  job,
+  onPress,
+  onBid,
+  showBidButton = false,
 }) => {
   const formatBudget = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
   const statusColor = getStatusColor(job.status);
-  const priorityColor = job.priority ? getPriorityColor(job.priority) : theme.colors.textSecondary;
+  const priorityColor = job.priority
+    ? getPriorityColor(job.priority)
+    : theme.colors.textSecondary;
 
   return (
-    <TouchableOpacity 
-      style={styles.card} 
+    <TouchableOpacity
+      style={styles.card}
       onPress={() => onPress(job)}
-      testID="job-card"
+      testID='job-card'
     >
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>
           {job.title}
         </Text>
-        <Text style={styles.budget}>
-          {formatBudget(job.budget)}
-        </Text>
+        <Text style={styles.budget}>{formatBudget(job.budget)}</Text>
       </View>
 
       <Text style={styles.description} numberOfLines={3}>
@@ -43,34 +43,27 @@ export const JobCard: React.FC<JobCardProps> = ({
       </Text>
 
       <View style={styles.details}>
-        {job.category && (
-          <Text style={styles.category}>{job.category}</Text>
-        )}
-        
+        {job.category && <Text style={styles.category}>{job.category}</Text>}
+
         {job.priority && (
           <Text style={[styles.priority, { color: priorityColor }]}>
             {job.priority.toUpperCase()} PRIORITY
           </Text>
         )}
-        
+
         <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-          <Text style={styles.statusText}>
-            {job.status.toUpperCase()}
-          </Text>
+          <Text style={styles.statusText}>{job.status.toUpperCase()}</Text>
         </View>
       </View>
 
       {job.photos && job.photos.length > 0 && (
-        <View style={styles.photoIndicator} testID="photo-indicator">
+        <View style={styles.photoIndicator} testID='photo-indicator'>
           <Text style={styles.photoCount}>📷 {job.photos.length}</Text>
         </View>
       )}
 
       {showBidButton && onBid && (
-        <TouchableOpacity 
-          style={styles.bidButton} 
-          onPress={() => onBid(job)}
-        >
+        <TouchableOpacity style={styles.bidButton} onPress={() => onBid(job)}>
           <Text style={styles.bidButtonText}>Place Bid</Text>
         </TouchableOpacity>
       )}
@@ -108,7 +101,8 @@ const styles = StyleSheet.create({
   description: {
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
-    lineHeight: theme.typography.fontSize.base * theme.typography.lineHeight.normal,
+    lineHeight:
+      theme.typography.fontSize.base * theme.typography.lineHeight.normal,
     marginBottom: theme.spacing[3],
   },
   details: {

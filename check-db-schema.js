@@ -3,12 +3,16 @@ const { createClient } = require('@supabase/supabase-js');
 async function checkDatabaseSchema() {
   console.log('Checking Supabase Database Schema\n');
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     console.log('Supabase credentials not configured.');
-    console.log('Set SUPABASE_URL and SUPABASE_ANON_KEY (or EXPO_PUBLIC_* equivalents) and retry.');
+    console.log(
+      'Set SUPABASE_URL and SUPABASE_ANON_KEY (or EXPO_PUBLIC_* equivalents) and retry.'
+    );
     return;
   }
 
@@ -25,7 +29,10 @@ async function checkDatabaseSchema() {
       try {
         const { error } = await supabase.from(tableName).select('*').limit(1);
         if (error) {
-          if (error.message.includes('relation') && error.message.includes('does not exist')) {
+          if (
+            error.message.includes('relation') &&
+            error.message.includes('does not exist')
+          ) {
             console.log(`Table '${tableName}' does not exist`);
           } else if (error.message.includes('permission denied')) {
             console.log(`Table '${tableName}' exists (RLS enabled)`);
@@ -53,4 +60,3 @@ async function checkDatabaseSchema() {
 }
 
 checkDatabaseSchema();
-

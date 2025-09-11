@@ -12,7 +12,11 @@ beforeAll(() => {
   jest.doMock('../../utils/logger', () => ({
     logger: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
   }));
-  ({ ErrorHandler, handleError, safeAsync } = require('../../utils/errorHandler'));
+  ({
+    ErrorHandler,
+    handleError,
+    safeAsync,
+  } = require('../../utils/errorHandler'));
   Alert = require('react-native').Alert;
   logger = require('../../utils/logger').logger;
 });
@@ -27,69 +31,98 @@ describe('ErrorHandler', () => {
 
   describe('handle', () => {
     it('should display user-friendly error message', () => {
-      const error = { message: 'Network error', userMessage: 'Please check your connection' };
-      
+      const error = {
+        message: 'Network error',
+        userMessage: 'Please check your connection',
+      };
+
       ErrorHandler.handle(error, 'test context');
-      
-      expect(mockAlert()).toHaveBeenCalledWith('Error', 'Please check your connection');
-      expect(logger.error).toHaveBeenCalledWith('Error in test context:', error);
+
+      expect(mockAlert()).toHaveBeenCalledWith(
+        'Error',
+        'Please check your connection'
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error in test context:',
+        error
+      );
     });
 
     it('should handle database duplicate key errors', () => {
       const error = { message: 'duplicate key violation' };
-      
+
       ErrorHandler.handle(error);
-      
-      expect(mockAlert()).toHaveBeenCalledWith('Error', 'This record already exists.');
+
+      expect(mockAlert()).toHaveBeenCalledWith(
+        'Error',
+        'This record already exists.'
+      );
     });
 
     it('should handle permission denied errors', () => {
       const error = { code: '42501' };
-      
+
       ErrorHandler.handle(error);
-      
-      expect(mockAlert()).toHaveBeenCalledWith('Error', 'You do not have permission to perform this action.');
+
+      expect(mockAlert()).toHaveBeenCalledWith(
+        'Error',
+        'You do not have permission to perform this action.'
+      );
     });
 
     it('should handle HTTP status code errors', () => {
       const error = { statusCode: 404 };
-      
+
       ErrorHandler.handle(error);
-      
-      expect(mockAlert()).toHaveBeenCalledWith('Error', 'The requested item was not found.');
+
+      expect(mockAlert()).toHaveBeenCalledWith(
+        'Error',
+        'The requested item was not found.'
+      );
     });
 
     it('should provide generic fallback message', () => {
       const error = { message: 'Unknown error' };
-      
+
       ErrorHandler.handle(error);
-      
-      expect(mockAlert()).toHaveBeenCalledWith('Error', 'An unexpected error occurred. Please try again.');
+
+      expect(mockAlert()).toHaveBeenCalledWith(
+        'Error',
+        'An unexpected error occurred. Please try again.'
+      );
     });
   });
 
   describe('getUserMessage', () => {
     it('should return custom user message when provided', () => {
       const error = { userMessage: 'Custom error message' };
-      
+
       const message = ErrorHandler.getUserMessage(error);
-      
+
       expect(message).toBe('Custom error message');
     });
 
     it('should handle network errors', () => {
       const error = { code: 'NETWORK_ERROR' };
-      
+
       const message = ErrorHandler.getUserMessage(error);
-      
-      expect(message).toBe('Please check your internet connection and try again.');
+
+      expect(message).toBe(
+        'Please check your internet connection and try again.'
+      );
     });
 
     it('should handle various HTTP status codes', () => {
       const testCases = [
-        { statusCode: 400, expected: 'Invalid request. Please check your input and try again.' },
+        {
+          statusCode: 400,
+          expected: 'Invalid request. Please check your input and try again.',
+        },
         { statusCode: 401, expected: 'Please log in to continue.' },
-        { statusCode: 403, expected: 'You do not have permission to perform this action.' },
+        {
+          statusCode: 403,
+          expected: 'You do not have permission to perform this action.',
+        },
         { statusCode: 500, expected: 'Server error. Please try again later.' },
       ];
 
@@ -122,7 +155,7 @@ describe('ErrorHandler', () => {
         { message: 'Network request failed' },
       ];
 
-      networkErrors.forEach(error => {
+      networkErrors.forEach((error) => {
         expect(ErrorHandler.isNetworkError(error)).toBe(true);
       });
     });
@@ -136,9 +169,9 @@ describe('ErrorHandler', () => {
   describe('safeAsync', () => {
     it('should return result on success', async () => {
       const mockPromise = Promise.resolve('success');
-      
+
       const [result, error] = await safeAsync(mockPromise);
-      
+
       expect(result).toBe('success');
       expect(error).toBeNull();
     });
@@ -146,9 +179,9 @@ describe('ErrorHandler', () => {
     it('should return error on failure', async () => {
       const mockError = new Error('Test error');
       const mockPromise = Promise.reject(mockError);
-      
+
       const [result, error] = await safeAsync(mockPromise);
-      
+
       expect(result).toBeNull();
       expect(error).toEqual(mockError);
     });

@@ -20,7 +20,10 @@ async function testAuth() {
   // Test 1: Check connection
   console.log('1. Testing connection...');
   try {
-    const { data, error } = await supabase.from('users').select('count').limit(1);
+    const { data, error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
     if (error) throw error;
     console.log('✅ Connection successful');
   } catch (error) {
@@ -35,7 +38,7 @@ async function testAuth() {
     password: 'password123',
     first_name: 'Test',
     last_name: 'User',
-    role: 'homeowner'
+    role: 'homeowner',
   };
 
   try {
@@ -46,18 +49,18 @@ async function testAuth() {
         data: {
           first_name: testUser.first_name,
           last_name: testUser.last_name,
-          role: testUser.role
-        }
-      }
+          role: testUser.role,
+        },
+      },
     });
 
     if (error) throw error;
     console.log('✅ User registration successful');
     console.log('📧 User ID:', data.user?.id);
-    
+
     // Wait a moment for the trigger to process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Check if profile was created
     if (data.user) {
       const { data: profile, error: profileError } = await supabase
@@ -65,7 +68,7 @@ async function testAuth() {
         .select('*')
         .eq('id', data.user.id)
         .single();
-      
+
       if (profileError) {
         console.log('❌ Profile creation failed:', profileError.message);
       } else {
@@ -73,7 +76,6 @@ async function testAuth() {
         console.log('👤 Profile:', JSON.stringify(profile, null, 2));
       }
     }
-
   } catch (error) {
     console.log('❌ Registration failed:', error.message);
   }

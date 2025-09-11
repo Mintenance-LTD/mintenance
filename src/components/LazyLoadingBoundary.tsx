@@ -32,17 +32,18 @@ interface LazyLoadingBoundaryState {
 /**
  * Default fallback component for lazy loading
  */
-const DefaultLazyFallback: React.FC<LazyLoadingFallbackProps> = ({ 
-  chunkName, 
-  loadingMessage 
+const DefaultLazyFallback: React.FC<LazyLoadingFallbackProps> = ({
+  chunkName,
+  loadingMessage,
 }) => {
-  const message = loadingMessage || (chunkName ? `Loading ${chunkName}...` : 'Loading...');
-  
+  const message =
+    loadingMessage || (chunkName ? `Loading ${chunkName}...` : 'Loading...');
+
   return (
     <View style={styles.fallbackContainer}>
-      <LoadingSpinner 
+      <LoadingSpinner
         message={message}
-        size="large"
+        size='large'
         {...({ testID: 'lazy-loading-spinner' } as any)}
       />
     </View>
@@ -63,9 +64,7 @@ const LazyErrorFallback: React.FC<{
     <Text style={styles.errorMessage}>
       {chunkName ? `Failed to load ${chunkName}` : 'Component failed to load'}
     </Text>
-    <Text style={styles.errorDetails}>
-      {error.message}
-    </Text>
+    <Text style={styles.errorDetails}>{error.message}</Text>
     {retryCount < 3 && (
       <Text style={styles.retryButton} onPress={onRetry}>
         Retry ({retryCount}/3)
@@ -88,25 +87,31 @@ export class LazyLoadingBoundary extends React.Component<
     this.state = {
       hasError: false,
       retryCount: 0,
-      loadingStartTime: Date.now()
+      loadingStartTime: Date.now(),
     };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<LazyLoadingBoundaryState> {
+  static getDerivedStateFromError(
+    error: Error
+  ): Partial<LazyLoadingBoundaryState> {
     return {
       hasError: true,
-      error
+      error,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     const { chunkName, onError, enableMetrics = true } = this.props;
-    
+
     // Log the error
-    logger.error(`Lazy loading error${chunkName ? ` for ${chunkName}` : ''}:`, error, {
-      componentStack: errorInfo.componentStack,
-      retryCount: this.state.retryCount
-    });
+    logger.error(
+      `Lazy loading error${chunkName ? ` for ${chunkName}` : ''}:`,
+      error,
+      {
+        componentStack: errorInfo.componentStack,
+        retryCount: this.state.retryCount,
+      }
+    );
 
     // Track metrics if enabled
     if (enableMetrics && chunkName) {
@@ -114,7 +119,7 @@ export class LazyLoadingBoundary extends React.Component<
       logger.performance(`Lazy load failed`, 0, {
         chunkName,
         retryCount: this.state.retryCount,
-        error: error.message
+        error: error.message,
       });
     }
 
@@ -145,10 +150,13 @@ export class LazyLoadingBoundary extends React.Component<
 
     // Set a timeout to detect slow loading chunks
     this.loadingTimeout = setTimeout(() => {
-      logger.warn(`Slow lazy loading detected${chunkName ? ` for ${chunkName}` : ''}`, {
-        loadingTime: Date.now() - startTime,
-        threshold: 5000
-      });
+      logger.warn(
+        `Slow lazy loading detected${chunkName ? ` for ${chunkName}` : ''}`,
+        {
+          loadingTime: Date.now() - startTime,
+          threshold: 5000,
+        }
+      );
     }, 5000); // 5 second threshold
   };
 
@@ -157,11 +165,11 @@ export class LazyLoadingBoundary extends React.Component<
    */
   private handleRetry = (): void => {
     if (this.state.retryCount < 3) {
-      this.setState(prevState => ({
+      this.setState((prevState) => ({
         hasError: false,
         error: undefined,
         retryCount: prevState.retryCount + 1,
-        loadingStartTime: Date.now()
+        loadingStartTime: Date.now(),
       }));
 
       // Clear any existing timeout
@@ -174,7 +182,9 @@ export class LazyLoadingBoundary extends React.Component<
         this.startLoadingTimer();
       }
 
-      logger.debug(`Retrying lazy load${this.props.chunkName ? ` for ${this.props.chunkName}` : ''} (attempt ${this.state.retryCount + 1})`);
+      logger.debug(
+        `Retrying lazy load${this.props.chunkName ? ` for ${this.props.chunkName}` : ''} (attempt ${this.state.retryCount + 1})`
+      );
     }
   };
 
@@ -196,11 +206,11 @@ export class LazyLoadingBoundary extends React.Component<
 
     // Render with Suspense and fallback
     const FallbackComponent = CustomFallback || DefaultLazyFallback;
-    
+
     return (
       <Suspense
         fallback={
-          <FallbackComponent 
+          <FallbackComponent
             chunkName={chunkName}
             loadingMessage={chunkName ? `Loading ${chunkName}...` : undefined}
           />
@@ -232,21 +242,24 @@ export const useLazyComponent = <P extends object>(
       chunkName,
       preload: options?.preload,
       timeout: options?.timeout,
-      retryAttempts: options?.retryAttempts
+      retryAttempts: options?.retryAttempts,
     });
   }, [importFn, chunkName, options]);
 
-  const LazyBoundary: React.ComponentType<{ children: React.ReactNode }> = React.useMemo(() => 
-    ({ children }) => (
-      <LazyLoadingBoundary chunkName={chunkName} enableMetrics>
-        {children}
-      </LazyLoadingBoundary>
-    ), [chunkName]
-  );
+  const LazyBoundary: React.ComponentType<{ children: React.ReactNode }> =
+    React.useMemo(
+      () =>
+        ({ children }) => (
+          <LazyLoadingBoundary chunkName={chunkName} enableMetrics>
+            {children}
+          </LazyLoadingBoundary>
+        ),
+      [chunkName]
+    );
 
   return {
     Component: LazyComponent,
-    LazyBoundary
+    LazyBoundary,
   };
 };
 
@@ -256,42 +269,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5'
+    backgroundColor: '#f5f5f5',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#d32f2f',
     marginBottom: 10,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   errorMessage: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   errorDetails: {
     fontSize: 12,
     color: '#999',
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily: 'monospace'
+    fontFamily: 'monospace',
   },
   retryButton: {
     fontSize: 16,
     color: '#1976d2',
     fontWeight: '500',
     padding: 10,
-    textDecorationLine: 'underline'
-  }
+    textDecorationLine: 'underline',
+  },
 });
 
 export { DefaultLazyFallback, LazyErrorFallback };

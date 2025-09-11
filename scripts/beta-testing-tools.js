@@ -19,7 +19,7 @@ if (!fs.existsSync(BETA_DATA_DIR)) {
 const PHASES = {
   1: { name: 'Internal Testing', duration: 7, targetUsers: 10 },
   2: { name: 'Closed Beta', duration: 14, targetUsers: 20 },
-  3: { name: 'Open Beta', duration: 7, targetUsers: 100 }
+  3: { name: 'Open Beta', duration: 7, targetUsers: 100 },
 };
 
 class BetaTestingManager {
@@ -66,7 +66,7 @@ class BetaTestingManager {
       addedDate: new Date().toISOString(),
       status: 'invited', // 'invited', 'active', 'completed', 'dropped'
       notes,
-      testingSessions: []
+      testingSessions: [],
     };
 
     this.testers[`phase${phase}`].push(tester);
@@ -79,11 +79,13 @@ class BetaTestingManager {
   listTesters(phase) {
     const phaseTesters = this.testers[`phase${phase}`] || [];
     console.log(`\n📋 Phase ${phase} Testers (${phaseTesters.length} total):`);
-    
+
     phaseTesters.forEach((tester, index) => {
       console.log(`${index + 1}. ${tester.name} (${tester.email})`);
       console.log(`   Role: ${tester.role} | Status: ${tester.status}`);
-      console.log(`   Added: ${new Date(tester.addedDate).toLocaleDateString()}`);
+      console.log(
+        `   Added: ${new Date(tester.addedDate).toLocaleDateString()}`
+      );
       if (tester.notes) console.log(`   Notes: ${tester.notes}`);
       console.log('');
     });
@@ -93,7 +95,7 @@ class BetaTestingManager {
   updateTesterStatus(email, status) {
     let found = false;
     for (const phase in this.testers) {
-      const tester = this.testers[phase].find(t => t.email === email);
+      const tester = this.testers[phase].find((t) => t.email === email);
       if (tester) {
         tester.status = status;
         tester.lastUpdated = new Date().toISOString();
@@ -102,18 +104,24 @@ class BetaTestingManager {
         break;
       }
     }
-    
+
     if (!found) {
       console.log(`❌ Tester not found: ${email}`);
       return false;
     }
-    
+
     this.saveTesters();
     return true;
   }
 
   // Add feedback entry
-  addFeedback(testerEmail, rating, comments, category = 'general', bugReports = []) {
+  addFeedback(
+    testerEmail,
+    rating,
+    comments,
+    category = 'general',
+    bugReports = []
+  ) {
     const feedback = {
       id: Date.now().toString(),
       testerEmail,
@@ -123,7 +131,7 @@ class BetaTestingManager {
       bugReports, // Array of bug descriptions
       timestamp: new Date().toISOString(),
       phase: this.currentPhase,
-      processed: false
+      processed: false,
     };
 
     this.feedback.push(feedback);
@@ -136,24 +144,32 @@ class BetaTestingManager {
   generateStatusReport() {
     console.log('\n📊 BETA TESTING STATUS REPORT');
     console.log('=====================================');
-    console.log(`Current Phase: ${this.currentPhase} - ${PHASES[this.currentPhase].name}`);
+    console.log(
+      `Current Phase: ${this.currentPhase} - ${PHASES[this.currentPhase].name}`
+    );
     console.log(`Date: ${new Date().toLocaleDateString()}\n`);
 
     // Tester statistics
     for (let phase = 1; phase <= 3; phase++) {
       const phaseTesters = this.testers[`phase${phase}`] || [];
-      const active = phaseTesters.filter(t => t.status === 'active').length;
-      const completed = phaseTesters.filter(t => t.status === 'completed').length;
-      const dropped = phaseTesters.filter(t => t.status === 'dropped').length;
-      
+      const active = phaseTesters.filter((t) => t.status === 'active').length;
+      const completed = phaseTesters.filter(
+        (t) => t.status === 'completed'
+      ).length;
+      const dropped = phaseTesters.filter((t) => t.status === 'dropped').length;
+
       console.log(`Phase ${phase} (${PHASES[phase].name}):`);
-      console.log(`  Total: ${phaseTesters.length}/${PHASES[phase].targetUsers} target`);
-      console.log(`  Active: ${active} | Completed: ${completed} | Dropped: ${dropped}`);
+      console.log(
+        `  Total: ${phaseTesters.length}/${PHASES[phase].targetUsers} target`
+      );
+      console.log(
+        `  Active: ${active} | Completed: ${completed} | Dropped: ${dropped}`
+      );
       console.log('');
     }
 
     // Feedback summary
-    const recentFeedback = this.feedback.filter(f => {
+    const recentFeedback = this.feedback.filter((f) => {
       const feedbackDate = new Date(f.timestamp);
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       return feedbackDate > weekAgo;
@@ -161,30 +177,40 @@ class BetaTestingManager {
 
     console.log(`📝 Feedback Summary (Last 7 days):`);
     console.log(`  Total feedback entries: ${recentFeedback.length}`);
-    
+
     if (recentFeedback.length > 0) {
-      const avgRating = recentFeedback.reduce((sum, f) => sum + f.rating, 0) / recentFeedback.length;
+      const avgRating =
+        recentFeedback.reduce((sum, f) => sum + f.rating, 0) /
+        recentFeedback.length;
       console.log(`  Average rating: ${avgRating.toFixed(1)}/5 stars`);
-      
-      const bugReports = recentFeedback.filter(f => f.bugReports.length > 0).length;
+
+      const bugReports = recentFeedback.filter(
+        (f) => f.bugReports.length > 0
+      ).length;
       console.log(`  Bug reports: ${bugReports}`);
-      
+
       const categories = {};
-      recentFeedback.forEach(f => {
+      recentFeedback.forEach((f) => {
         categories[f.category] = (categories[f.category] || 0) + 1;
       });
-      
+
       console.log(`  Feedback categories:`, categories);
     }
 
     console.log('\n🎯 Next Actions:');
-    console.log(`  [ ] Review ${recentFeedback.filter(f => !f.processed).length} unprocessed feedback entries`);
-    console.log(`  [ ] Follow up with ${this.testers[`phase${this.currentPhase}`].filter(t => t.status === 'invited').length} pending testers`);
-    
+    console.log(
+      `  [ ] Review ${recentFeedback.filter((f) => !f.processed).length} unprocessed feedback entries`
+    );
+    console.log(
+      `  [ ] Follow up with ${this.testers[`phase${this.currentPhase}`].filter((t) => t.status === 'invited').length} pending testers`
+    );
+
     const phase = PHASES[this.currentPhase];
     const currentTesters = this.testers[`phase${this.currentPhase}`].length;
     if (currentTesters < phase.targetUsers) {
-      console.log(`  [ ] Recruit ${phase.targetUsers - currentTesters} more testers for current phase`);
+      console.log(
+        `  [ ] Recruit ${phase.targetUsers - currentTesters} more testers for current phase`
+      );
     }
   }
 
@@ -194,10 +220,13 @@ class BetaTestingManager {
       testers: this.testers,
       feedback: this.feedback,
       summary: this.generateSummaryStats(),
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
     };
 
-    const exportFile = path.join(BETA_DATA_DIR, `beta-export-${Date.now()}.json`);
+    const exportFile = path.join(
+      BETA_DATA_DIR,
+      `beta-export-${Date.now()}.json`
+    );
     fs.writeFileSync(exportFile, JSON.stringify(exportData, null, 2));
     console.log(`✅ Data exported to: ${exportFile}`);
     return exportFile;
@@ -208,28 +237,32 @@ class BetaTestingManager {
       totalTesters: 0,
       totalFeedback: this.feedback.length,
       averageRating: 0,
-      phases: {}
+      phases: {},
     };
 
     // Calculate phase statistics
     for (let phase = 1; phase <= 3; phase++) {
       const phaseTesters = this.testers[`phase${phase}`] || [];
-      const phaseFeedback = this.feedback.filter(f => f.phase === phase);
-      
+      const phaseFeedback = this.feedback.filter((f) => f.phase === phase);
+
       stats.phases[phase] = {
         testers: phaseTesters.length,
         feedback: phaseFeedback.length,
-        averageRating: phaseFeedback.length > 0 
-          ? phaseFeedback.reduce((sum, f) => sum + f.rating, 0) / phaseFeedback.length 
-          : 0
+        averageRating:
+          phaseFeedback.length > 0
+            ? phaseFeedback.reduce((sum, f) => sum + f.rating, 0) /
+              phaseFeedback.length
+            : 0,
       };
-      
+
       stats.totalTesters += phaseTesters.length;
     }
 
     // Calculate overall average rating
     if (this.feedback.length > 0) {
-      stats.averageRating = this.feedback.reduce((sum, f) => sum + f.rating, 0) / this.feedback.length;
+      stats.averageRating =
+        this.feedback.reduce((sum, f) => sum + f.rating, 0) /
+        this.feedback.length;
     }
 
     return stats;
@@ -273,7 +306,9 @@ function main() {
 
     case 'add-feedback':
       if (args.length < 4) {
-        console.log('Usage: add-feedback <email> <rating> <comments> [category]');
+        console.log(
+          'Usage: add-feedback <email> <rating> <comments> [category]'
+        );
         return;
       }
       manager.addFeedback(
@@ -294,14 +329,31 @@ function main() {
 
     case 'init':
       console.log('🧪 Initializing beta testing management...');
-      
+
       // Create sample testers for demo
-      manager.addTester(1, 'Alex Developer', 'alex@team.com', 'homeowner', 'Internal team member');
-      manager.addTester(1, 'Sam Tester', 'sam@team.com', 'contractor', 'QA team member');
-      
+      manager.addTester(
+        1,
+        'Alex Developer',
+        'alex@team.com',
+        'homeowner',
+        'Internal team member'
+      );
+      manager.addTester(
+        1,
+        'Sam Tester',
+        'sam@team.com',
+        'contractor',
+        'QA team member'
+      );
+
       // Create sample feedback
-      manager.addFeedback('alex@team.com', 4, 'Great app concept! Login was smooth, job posting needs work.', 'ui');
-      
+      manager.addFeedback(
+        'alex@team.com',
+        4,
+        'Great app concept! Login was smooth, job posting needs work.',
+        'ui'
+      );
+
       console.log('✅ Beta testing initialized with sample data');
       console.log('📝 Run "npm run beta status" to see current status');
       break;
@@ -310,14 +362,22 @@ function main() {
       console.log('🧪 Beta Testing Management Tools\n');
       console.log('Available commands:');
       console.log('  init                           - Initialize beta testing');
-      console.log('  add-tester <phase> <name> <email> [role] [notes] - Add new tester');
-      console.log('  list-testers [phase]           - List testers (default: phase 1)');
+      console.log(
+        '  add-tester <phase> <name> <email> [role] [notes] - Add new tester'
+      );
+      console.log(
+        '  list-testers [phase]           - List testers (default: phase 1)'
+      );
       console.log('  update-status <email> <status> - Update tester status');
-      console.log('  add-feedback <email> <rating> <comments> [category] - Add feedback');
+      console.log(
+        '  add-feedback <email> <rating> <comments> [category] - Add feedback'
+      );
       console.log('  status                         - Generate status report');
       console.log('  export                         - Export all data');
       console.log('\nExample:');
-      console.log('  node scripts/beta-testing-tools.js add-tester 1 "John Smith" john@example.com homeowner "Found via NextDoor"');
+      console.log(
+        '  node scripts/beta-testing-tools.js add-tester 1 "John Smith" john@example.com homeowner "Found via NextDoor"'
+      );
       break;
   }
 }

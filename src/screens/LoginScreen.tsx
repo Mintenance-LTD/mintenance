@@ -16,12 +16,18 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/AppNavigator';
 import { theme } from '../theme';
-import { useAccessibleText, useAccessibleColors } from '../hooks/useAccessibleText';
+import {
+  useAccessibleText,
+  useAccessibleColors,
+} from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
 
-type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
+type LoginScreenNavigationProp = StackNavigationProp<
+  AuthStackParamList,
+  'Login'
+>;
 
 interface Props {
   navigation: LoginScreenNavigationProp;
@@ -53,7 +59,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!email || !password) {
       haptics.error();
-      Alert.alert(String(common.error()), String(t('auth.fillAllFields', 'Please fill in all fields')));
+      Alert.alert(
+        String(common.error()),
+        String(t('auth.fillAllFields', 'Please fill in all fields'))
+      );
       return;
     }
 
@@ -63,7 +72,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.loginSuccess();
     } catch (error: any) {
       haptics.loginFailed();
-      Alert.alert(String(t('auth.loginFailed', 'Login Failed')), String(getErrorMessage('loginFailed', error.message)));
+      Alert.alert(
+        String(t('auth.loginFailed', 'Login Failed')),
+        String(getErrorMessage('loginFailed', error.message))
+      );
     }
   };
 
@@ -75,11 +87,15 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <Image
             source={require('../../assets/icon.png')}
             style={styles.headerLogo}
-            resizeMode="contain"
+            resizeMode='contain'
           />
-          <Text style={[styles.headerTitle, headerTitleText.textStyle]}>Mintenance</Text>
+          <Text style={[styles.headerTitle, headerTitleText.textStyle]}>
+            Mintenance
+          </Text>
         </View>
-        <Text style={styles.headerSubtitle}>Connect homeowners and contractors easily</Text>
+        <Text style={styles.headerSubtitle}>
+          Connect homeowners and contractors easily
+        </Text>
       </View>
 
       <KeyboardAvoidingView
@@ -89,14 +105,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
         >
           {/* Login Form */}
           <View style={styles.formContainer}>
             {/* Email Input with Icon */}
             <View style={styles.inputContainer}>
               <Ionicons
-                name="mail-outline"
+                name='mail-outline'
                 size={20}
                 color={theme.colors.placeholder}
                 style={styles.inputIcon}
@@ -107,22 +123,27 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 placeholder={String(auth.email())}
                 value={email}
                 onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                keyboardType='email-address'
+                autoCapitalize='none'
                 autoCorrect={false}
                 placeholderTextColor={theme.colors.placeholder}
                 accessibilityLabel={String(auth.email())}
-                accessibilityHint={String(t('auth.emailHint', 'Please enter your email address to sign in'))}
-                accessibilityRole="none"
-                textContentType="emailAddress"
-                autoComplete="email"
+                accessibilityHint={String(
+                  t(
+                    'auth.emailHint',
+                    'Please enter your email address to sign in'
+                  )
+                )}
+                accessibilityRole='none'
+                textContentType='emailAddress'
+                autoComplete='email'
               />
             </View>
 
             {/* Password Input with Icon */}
             <View style={styles.inputContainer}>
               <Ionicons
-                name="lock-closed-outline"
+                name='lock-closed-outline'
                 size={20}
                 color={theme.colors.placeholder}
                 style={styles.inputIcon}
@@ -136,21 +157,30 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 secureTextEntry
                 placeholderTextColor={theme.colors.placeholder}
                 accessibilityLabel={String(auth.password())}
-                accessibilityHint={String(t('auth.passwordHint', 'Please enter your password to sign in'))}
-                accessibilityRole="none"
-                textContentType="password"
-                autoComplete="password"
+                accessibilityHint={String(
+                  t(
+                    'auth.passwordHint',
+                    'Please enter your password to sign in'
+                  )
+                )}
+                accessibilityRole='none'
+                textContentType='password'
+                autoComplete='password'
               />
             </View>
 
             {/* Green Log In Button */}
             <Button
-              variant="success"
-              title={loading ? String(t('auth.loggingIn')) : String(auth.login())}
+              variant='success'
+              title={
+                loading ? String(t('auth.loggingIn')) : String(auth.login())
+              }
               onPress={handleLogin}
               disabled={loading}
               loading={loading}
-              accessibilityLabel={loading ? String(t('auth.loggingIn')) : String(auth.login())}
+              accessibilityLabel={
+                loading ? String(t('auth.loggingIn')) : String(auth.login())
+              }
               fullWidth
               style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 32 }}
               textStyle={buttonText.textStyle as any}
@@ -189,11 +219,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   haptics.buttonPress();
                   navigation.navigate('ForgotPassword');
                 }}
-                accessibilityRole="button"
+                accessibilityRole='button'
                 accessibilityLabel={String(auth.forgotPassword())}
-                accessibilityHint={String(t('auth.forgotPasswordHint', 'Double tap to reset your password'))}
+                accessibilityHint={String(
+                  t(
+                    'auth.forgotPasswordHint',
+                    'Double tap to reset your password'
+                  )
+                )}
               >
-                <Text style={[styles.linkText, linkText.textStyle]}>{String(auth.forgotPassword())}</Text>
+                <Text style={[styles.linkText, linkText.textStyle]}>
+                  {String(auth.forgotPassword())}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -202,11 +239,17 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   haptics.buttonPress();
                   navigation.navigate('Register');
                 }}
-                accessibilityRole="button"
-                accessibilityLabel={String(t('auth.signUpForAccount', 'Sign up for new account'))}
-                accessibilityHint={String(t('auth.signUpHint', 'Double tap to create a new account'))}
+                accessibilityRole='button'
+                accessibilityLabel={String(
+                  t('auth.signUpForAccount', 'Sign up for new account')
+                )}
+                accessibilityHint={String(
+                  t('auth.signUpHint', 'Double tap to create a new account')
+                )}
               >
-                <Text style={[styles.linkText, linkText.textStyle]}>{String(auth.register())}</Text>
+                <Text style={[styles.linkText, linkText.textStyle]}>
+                  {String(auth.register())}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

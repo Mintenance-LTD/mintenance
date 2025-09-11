@@ -13,11 +13,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  QuoteBuilderService, 
-  CreateQuoteData, 
-  QuoteTemplate, 
-  QuoteLineItemTemplate 
+import {
+  QuoteBuilderService,
+  CreateQuoteData,
+  QuoteTemplate,
+  QuoteLineItemTemplate,
 } from '../services/QuoteBuilderService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -45,10 +45,14 @@ interface LineItem {
 
 export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   navigation,
-  route
+  route,
 }) => {
   const { user } = useAuth();
-  const { jobId, clientName: initialClientName, clientEmail: initialClientEmail } = route.params || {};
+  const {
+    jobId,
+    clientName: initialClientName,
+    clientEmail: initialClientEmail,
+  } = route.params || {};
 
   // Form state
   const [clientName, setClientName] = useState(initialClientName || '');
@@ -62,7 +66,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   const [validUntil, setValidUntil] = useState('');
   const [termsAndConditions, setTermsAndConditions] = useState('');
   const [notes, setNotes] = useState('');
-  
+
   // Line items state
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [showLineItemModal, setShowLineItemModal] = useState(false);
@@ -91,7 +95,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
 
   const loadTemplates = async () => {
     if (!user) return;
-    
+
     try {
       const data = await QuoteBuilderService.getQuoteTemplates(user.id);
       setTemplates(data);
@@ -107,7 +111,10 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   };
 
   const calculateTotals = () => {
-    const itemsSubtotal = lineItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+    const itemsSubtotal = lineItems.reduce(
+      (sum, item) => sum + item.quantity * item.unit_price,
+      0
+    );
     const markup = parseFloat(markupPercentage) / 100;
     const discount = parseFloat(discountPercentage) / 100;
     const tax = parseFloat(taxRate) / 100;
@@ -145,7 +152,10 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
       updatedItems[editingItemIndex] = item;
       setLineItems(updatedItems);
     } else {
-      setLineItems([...lineItems, { ...item, sort_order: lineItems.length + 1 }]);
+      setLineItems([
+        ...lineItems,
+        { ...item, sort_order: lineItems.length + 1 },
+      ]);
     }
     setShowLineItemModal(false);
     setEditingItemIndex(null);
@@ -154,14 +164,19 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   const applyTemplate = async (templateId: string) => {
     try {
       const template = await QuoteBuilderService.getQuoteTemplate(templateId);
-      const templateLineItems = await QuoteBuilderService.getQuoteTemplateLineItems(templateId);
-      
+      const templateLineItems =
+        await QuoteBuilderService.getQuoteTemplateLineItems(templateId);
+
       if (template) {
-        setMarkupPercentage(template.default_markup_percentage?.toString() || '15');
-        setDiscountPercentage(template.default_discount_percentage?.toString() || '0');
+        setMarkupPercentage(
+          template.default_markup_percentage?.toString() || '15'
+        );
+        setDiscountPercentage(
+          template.default_discount_percentage?.toString() || '0'
+        );
         setTermsAndConditions(template.terms_and_conditions || '');
         setSelectedTemplate(templateId);
-        
+
         const items: LineItem[] = templateLineItems.map((item, index) => ({
           item_name: item.item_name,
           item_description: item.item_description || '',
@@ -170,13 +185,16 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           unit: item.unit,
           category: item.category,
           is_taxable: item.is_taxable,
-          sort_order: index + 1
+          sort_order: index + 1,
         }));
-        
+
         setLineItems(items);
         setShowTemplateModal(false);
-        
-        Alert.alert('Success', `Template "${template.template_name}" applied successfully`);
+
+        Alert.alert(
+          'Success',
+          `Template "${template.template_name}" applied successfully`
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to apply template');
@@ -186,13 +204,21 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   const saveQuote = async (status: 'draft' | 'sent' = 'draft') => {
     if (!user) return;
 
-    if (!clientName || !clientEmail || !projectTitle || lineItems.length === 0) {
-      Alert.alert('Error', 'Please fill in all required fields and add at least one line item');
+    if (
+      !clientName ||
+      !clientEmail ||
+      !projectTitle ||
+      lineItems.length === 0
+    ) {
+      Alert.alert(
+        'Error',
+        'Please fill in all required fields and add at least one line item'
+      );
       return;
     }
 
     setLoading(true);
-    
+
     try {
       const quoteData: CreateQuoteData = {
         client_name: clientName,
@@ -207,12 +233,12 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         tax_rate: parseFloat(taxRate) / 100,
         valid_until: validUntil,
         terms_and_conditions: termsAndConditions,
-        notes: notes,
-        line_items: lineItems
+        notes,
+        line_items: lineItems,
       };
 
       const quote = await QuoteBuilderService.createQuote(user.id, quoteData);
-      
+
       if (status === 'sent') {
         await QuoteBuilderService.sendQuote(quote.id);
       }
@@ -223,8 +249,8 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         [
           {
             text: 'OK',
-            onPress: () => navigation.goBack()
-          }
+            onPress: () => navigation.goBack(),
+          },
         ]
       );
     } catch (error) {
@@ -235,7 +261,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   };
 
   if (loading) {
-    return <LoadingSpinner message="Creating quote..." />;
+    return <LoadingSpinner message='Creating quote...' />;
   }
 
   return (
@@ -246,14 +272,14 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name='arrow-back' size={24} color='#fff' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Quote</Text>
         <TouchableOpacity
           style={styles.templateButton}
           onPress={() => setShowTemplateModal(true)}
         >
-          <Ionicons name="document-text" size={24} color="#fff" />
+          <Ionicons name='document-text' size={24} color='#fff' />
         </TouchableOpacity>
       </View>
 
@@ -261,40 +287,40 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         {/* Client Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Client Information</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Client Name *</Text>
             <TextInput
               style={styles.input}
               value={clientName}
               onChangeText={setClientName}
-              placeholder="Enter client name"
+              placeholder='Enter client name'
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address *</Text>
             <TextInput
               style={styles.input}
               value={clientEmail}
               onChangeText={setClientEmail}
-              placeholder="client@email.com"
+              placeholder='client@email.com'
               placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              keyboardType='email-address'
+              autoCapitalize='none'
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               style={styles.input}
               value={clientPhone}
               onChangeText={setClientPhone}
-              placeholder="Enter phone number"
+              placeholder='Enter phone number'
               placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="phone-pad"
+              keyboardType='phone-pad'
             />
           </View>
         </View>
@@ -302,29 +328,29 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         {/* Project Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Project Details</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Project Title *</Text>
             <TextInput
               style={styles.input}
               value={projectTitle}
               onChangeText={setProjectTitle}
-              placeholder="Enter project title"
+              placeholder='Enter project title'
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Project Description</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={projectDescription}
               onChangeText={setProjectDescription}
-              placeholder="Describe the project details..."
+              placeholder='Describe the project details...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={4}
-              textAlignVertical="top"
+              textAlignVertical='top'
             />
           </View>
         </View>
@@ -334,14 +360,17 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Line Items</Text>
             <TouchableOpacity style={styles.addButton} onPress={addLineItem}>
-              <Ionicons name="add" size={20} color={theme.colors.primary} />
+              <Ionicons name='add' size={20} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
-          
+
           {lineItems.length === 0 ? (
             <View style={styles.emptyLineItems}>
               <Text style={styles.emptyText}>No line items added yet</Text>
-              <TouchableOpacity style={styles.addLineItemButton} onPress={addLineItem}>
+              <TouchableOpacity
+                style={styles.addLineItemButton}
+                onPress={addLineItem}
+              >
                 <Text style={styles.addLineItemText}>Add Line Item</Text>
               </TouchableOpacity>
             </View>
@@ -351,10 +380,13 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
                 <View style={styles.lineItemInfo}>
                   <Text style={styles.lineItemName}>{item.item_name}</Text>
                   {item.item_description && (
-                    <Text style={styles.lineItemDescription}>{item.item_description}</Text>
+                    <Text style={styles.lineItemDescription}>
+                      {item.item_description}
+                    </Text>
                   )}
                   <Text style={styles.lineItemDetails}>
-                    {item.quantity} {item.unit} × £{item.unit_price.toFixed(2)} = £{(item.quantity * item.unit_price).toFixed(2)}
+                    {item.quantity} {item.unit} × £{item.unit_price.toFixed(2)}{' '}
+                    = £{(item.quantity * item.unit_price).toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.lineItemActions}>
@@ -362,13 +394,21 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
                     style={styles.lineItemAction}
                     onPress={() => editLineItem(index)}
                   >
-                    <Ionicons name="pencil" size={16} color={theme.colors.primary} />
+                    <Ionicons
+                      name='pencil'
+                      size={16}
+                      color={theme.colors.primary}
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.lineItemAction, styles.deleteAction]}
                     onPress={() => removeLineItem(index)}
                   >
-                    <Ionicons name="trash" size={16} color={theme.colors.error} />
+                    <Ionicons
+                      name='trash'
+                      size={16}
+                      color={theme.colors.error}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -379,7 +419,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         {/* Pricing Options */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pricing</Text>
-          
+
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
               <Text style={styles.label}>Markup %</Text>
@@ -387,41 +427,41 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
                 style={styles.input}
                 value={markupPercentage}
                 onChangeText={setMarkupPercentage}
-                placeholder="15"
-                keyboardType="numeric"
+                placeholder='15'
+                keyboardType='numeric'
               />
             </View>
-            
+
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
               <Text style={styles.label}>Discount %</Text>
               <TextInput
                 style={styles.input}
                 value={discountPercentage}
                 onChangeText={setDiscountPercentage}
-                placeholder="0"
-                keyboardType="numeric"
+                placeholder='0'
+                keyboardType='numeric'
               />
             </View>
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Tax Rate %</Text>
             <TextInput
               style={styles.input}
               value={taxRate}
               onChangeText={setTaxRate}
-              placeholder="20"
-              keyboardType="numeric"
+              placeholder='20'
+              keyboardType='numeric'
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Valid Until</Text>
             <TextInput
               style={styles.input}
               value={validUntil}
               onChangeText={setValidUntil}
-              placeholder="YYYY-MM-DD"
+              placeholder='YYYY-MM-DD'
             />
           </View>
         </View>
@@ -429,26 +469,28 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         {/* Quote Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quote Summary</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal:</Text>
             <Text style={styles.summaryValue}>£{subtotal.toFixed(2)}</Text>
           </View>
-          
+
           {discountAmount > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Discount:</Text>
-              <Text style={[styles.summaryValue, { color: theme.colors.success }]}>
+              <Text
+                style={[styles.summaryValue, { color: theme.colors.success }]}
+              >
                 -£{discountAmount.toFixed(2)}
               </Text>
             </View>
           )}
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Tax:</Text>
             <Text style={styles.summaryValue}>£{taxAmount.toFixed(2)}</Text>
           </View>
-          
+
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total:</Text>
             <Text style={styles.totalValue}>£{totalAmount.toFixed(2)}</Text>
@@ -458,32 +500,32 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         {/* Terms and Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Additional Information</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Terms and Conditions</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={termsAndConditions}
               onChangeText={setTermsAndConditions}
-              placeholder="Enter terms and conditions..."
+              placeholder='Enter terms and conditions...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
+              textAlignVertical='top'
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Notes</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Internal notes (not visible to client)..."
+              placeholder='Internal notes (not visible to client)...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={2}
-              textAlignVertical="top"
+              textAlignVertical='top'
             />
           </View>
         </View>
@@ -496,7 +538,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           >
             <Text style={styles.saveButtonText}>Save as Draft</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, styles.sendButton]}
             onPress={() => saveQuote('sent')}
@@ -510,7 +552,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
       <Modal
         visible={showTemplateModal}
         transparent
-        animationType="slide"
+        animationType='slide'
         onRequestClose={() => setShowTemplateModal(false)}
       >
         <View style={styles.modalOverlay}>
@@ -518,13 +560,19 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Template</Text>
               <TouchableOpacity onPress={() => setShowTemplateModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='close'
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.templateList}>
               {templates.length === 0 ? (
-                <Text style={styles.noTemplatesText}>No templates available</Text>
+                <Text style={styles.noTemplatesText}>
+                  No templates available
+                </Text>
               ) : (
                 templates.map((template) => (
                   <TouchableOpacity
@@ -532,11 +580,17 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
                     style={styles.templateItem}
                     onPress={() => applyTemplate(template.id)}
                   >
-                    <Text style={styles.templateName}>{template.template_name}</Text>
+                    <Text style={styles.templateName}>
+                      {template.template_name}
+                    </Text>
                     {template.description && (
-                      <Text style={styles.templateDescription}>{template.description}</Text>
+                      <Text style={styles.templateDescription}>
+                        {template.description}
+                      </Text>
                     )}
-                    <Text style={styles.templateUsage}>Used {template.usage_count} times</Text>
+                    <Text style={styles.templateUsage}>
+                      Used {template.usage_count} times
+                    </Text>
                   </TouchableOpacity>
                 ))
               )}

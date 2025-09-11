@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, FlatList, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  FlatList,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AIAnalysisService, AIAnalysis } from '../services/AIAnalysisService';
@@ -13,9 +23,11 @@ import { JobStatusTracker } from '../components/JobStatusTracker';
 import { ContractorAssignment } from '../components/ContractorAssignment';
 import { theme } from '../theme';
 
-
 type JobDetailsScreenRouteProp = RouteProp<RootStackParamList, 'JobDetails'>;
-type JobDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'JobDetails'>;
+type JobDetailsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'JobDetails'
+>;
 
 interface Props {
   route: JobDetailsScreenRouteProp;
@@ -27,10 +39,19 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  
+
   // Use React Query hooks
-  const { data: job, isLoading: jobLoading, error: jobError, refetch: refetchJob } = useJob(jobId);
-  const { data: bids = [], isLoading: bidsLoading, error: bidsError } = useJobBids(jobId);
+  const {
+    data: job,
+    isLoading: jobLoading,
+    error: jobError,
+    refetch: refetchJob,
+  } = useJob(jobId);
+  const {
+    data: bids = [],
+    isLoading: bidsLoading,
+    error: bidsError,
+  } = useJobBids(jobId);
 
   // Load AI analysis when job data is available
   useEffect(() => {
@@ -73,21 +94,29 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const renderBidCard = ({ item: bid }: { item: Bid }) => {
     const isAccepted = bid.status === 'accepted';
     const isPending = bid.status === 'pending';
-    const daysAgo = Math.floor((new Date().getTime() - new Date(bid.createdAt).getTime()) / (1000 * 3600 * 24));
-    
+    const daysAgo = Math.floor(
+      (new Date().getTime() - new Date(bid.createdAt).getTime()) /
+        (1000 * 3600 * 24)
+    );
+
     return (
       <View style={[styles.bidCard, isAccepted && styles.acceptedBidCard]}>
         <View style={styles.bidHeader}>
           <View style={styles.contractorInfo}>
             <View style={styles.contractorAvatar}>
-              <Ionicons name="person" size={20} color="#007AFF" />
+              <Ionicons name='person' size={20} color='#007AFF' />
             </View>
             <View>
-              <Text style={styles.contractorName}>{bid.contractorName || 'Anonymous Contractor'}</Text>
+              <Text style={styles.contractorName}>
+                {bid.contractorName || 'Anonymous Contractor'}
+              </Text>
               <View style={styles.bidMeta}>
-                <Ionicons name="star" size={12} color="#FFD700" />
+                <Ionicons name='star' size={12} color='#FFD700' />
                 <Text style={styles.contractorRating}>4.8 (127 reviews)</Text>
-                <Text style={styles.bidDate}> • {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}</Text>
+                <Text style={styles.bidDate}>
+                  {' '}
+                  • {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
+                </Text>
               </View>
             </View>
           </View>
@@ -95,36 +124,42 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.bidAmount}>${bid.amount.toLocaleString()}</Text>
             {isAccepted && (
               <View style={styles.acceptedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                <Ionicons name='checkmark-circle' size={16} color='#34C759' />
                 <Text style={styles.acceptedText}>Hired</Text>
               </View>
             )}
           </View>
         </View>
-        
+
         <Text style={styles.bidDescription}>{bid.description}</Text>
-        
+
         <View style={styles.bidFooter}>
           <View style={styles.bidActions}>
-            {user?.role === 'homeowner' && job?.status === 'posted' && isPending && (
-              <>
-                <TouchableOpacity style={styles.messageButton}>
-                  <Ionicons name="chatbubble-outline" size={16} color="#007AFF" />
-                  <Text style={styles.messageButtonText}>Message</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.acceptButton}
-                  onPress={() => handleAcceptBid(bid.id)}
-                >
-                  <Ionicons name="checkmark-outline" size={16} color="#fff" />
-                  <Text style={styles.acceptButtonText}>Accept Bid</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            
+            {user?.role === 'homeowner' &&
+              job?.status === 'posted' &&
+              isPending && (
+                <>
+                  <TouchableOpacity style={styles.messageButton}>
+                    <Ionicons
+                      name='chatbubble-outline'
+                      size={16}
+                      color='#007AFF'
+                    />
+                    <Text style={styles.messageButtonText}>Message</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleAcceptBid(bid.id)}
+                  >
+                    <Ionicons name='checkmark-outline' size={16} color='#fff' />
+                    <Text style={styles.acceptButtonText}>Accept Bid</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
             {bid.status === 'rejected' && (
               <View style={styles.rejectedBadge}>
-                <Ionicons name="close-circle" size={16} color="#FF3B30" />
+                <Ionicons name='close-circle' size={16} color='#FF3B30' />
                 <Text style={styles.rejectedText}>Not selected</Text>
               </View>
             )}
@@ -136,48 +171,65 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return '#34C759';
-      case 'rejected': return '#FF3B30';
-      default: return '#8E8E93';
+      case 'accepted':
+        return '#34C759';
+      case 'rejected':
+        return '#FF3B30';
+      default:
+        return '#8E8E93';
     }
   };
 
   const getJobStatusColor = (status: string) => {
     switch (status) {
-      case 'posted': return '#007AFF';
-      case 'assigned': return '#5856D6';
-      case 'in_progress': return '#FF9500';
-      case 'completed': return '#34C759';
-      default: return '#8E8E93';
+      case 'posted':
+        return '#007AFF';
+      case 'assigned':
+        return '#5856D6';
+      case 'in_progress':
+        return '#FF9500';
+      case 'completed':
+        return '#34C759';
+      default:
+        return '#8E8E93';
     }
   };
 
   const getJobStatusIcon = (status: string) => {
     switch (status) {
-      case 'posted': return 'radio-button-on';
-      case 'assigned': return 'person-add';
-      case 'in_progress': return 'hammer';
-      case 'completed': return 'checkmark-circle';
-      default: return 'help-circle';
+      case 'posted':
+        return 'radio-button-on';
+      case 'assigned':
+        return 'person-add';
+      case 'in_progress':
+        return 'hammer';
+      case 'completed':
+        return 'checkmark-circle';
+      default:
+        return 'help-circle';
     }
   };
 
   const formatJobStatus = (status: string) => {
     switch (status) {
-      case 'posted': return 'Open for Bids';
-      case 'assigned': return 'Contractor Assigned';
-      case 'in_progress': return 'Work in Progress';
-      case 'completed': return 'Job Completed';
-      default: return status;
+      case 'posted':
+        return 'Open for Bids';
+      case 'assigned':
+        return 'Contractor Assigned';
+      case 'in_progress':
+        return 'Work in Progress';
+      case 'completed':
+        return 'Job Completed';
+      default:
+        return status;
     }
   };
-
 
   // Loading state
   if (jobLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size='large' color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading job details...</Text>
       </View>
     );
@@ -187,11 +239,14 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   if (jobError || !job) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning-outline" size={48} color="#ef4444" />
+        <Ionicons name='warning-outline' size={48} color='#ef4444' />
         <Text style={styles.errorText}>
           {jobError ? 'Failed to load job details' : 'Job not found'}
         </Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => refetchJob()}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => refetchJob()}
+        >
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -201,7 +256,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -216,25 +271,41 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.jobCard}>
           <Text style={styles.jobTitle}>{job.title}</Text>
           <Text style={styles.jobDescription}>{job.description}</Text>
-          
+
           <View style={styles.jobMeta}>
             <View style={styles.metaRow}>
-              <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='location-outline'
+                size={16}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.metaText}>{job.location}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='cash-outline'
+                size={16}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.metaText}>£{job.budget}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='calendar-outline'
+                size={16}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.metaText}>
                 {new Date(job.createdAt).toLocaleDateString()}
               </Text>
             </View>
             {job.category && (
               <View style={styles.metaRow}>
-                <Ionicons name="pricetag-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='pricetag-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
                 <Text style={styles.metaText}>{job.category}</Text>
               </View>
             )}
@@ -247,7 +318,11 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.photosList}>
                   {job.photos.map((photo: string, index: number) => (
-                    <Image key={index} source={{ uri: photo }} style={styles.jobPhoto} />
+                    <Image
+                      key={index}
+                      source={{ uri: photo }}
+                      style={styles.jobPhoto}
+                    />
                   ))}
                 </View>
               </ScrollView>
@@ -256,8 +331,8 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         {/* Job Status Tracker */}
-        <JobStatusTracker 
-          job={job} 
+        <JobStatusTracker
+          job={job}
           onStatusUpdate={handleJobStatusUpdate}
           showActions={true}
         />
@@ -266,35 +341,46 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         {user?.role === 'contractor' && job.photos && job.photos.length > 0 && (
           <View style={styles.aiAnalysisCard}>
             <View style={styles.aiAnalysisHeader}>
-              <Ionicons name="bulb-outline" size={20} color={theme.colors.primary} />
+              <Ionicons
+                name='bulb-outline'
+                size={20}
+                color={theme.colors.primary}
+              />
               <Text style={styles.aiAnalysisTitle}>AI Analysis</Text>
             </View>
-            
+
             {aiLoading ? (
               <View style={styles.aiLoadingContainer}>
                 <ActivityIndicator color={theme.colors.primary} />
-                <Text style={styles.aiLoadingText}>Analyzing job photos...</Text>
+                <Text style={styles.aiLoadingText}>
+                  Analyzing job photos...
+                </Text>
               </View>
             ) : aiAnalysis ? (
               <View style={styles.aiAnalysisContent}>
                 <Text style={styles.aiConfidence}>
                   Confidence: {aiAnalysis.confidence}%
                 </Text>
-                
+
                 {aiAnalysis.estimatedComplexity && (
                   <Text style={styles.aiComplexity}>
                     Complexity: {aiAnalysis.estimatedComplexity}
                   </Text>
                 )}
-                
-                {aiAnalysis.safetyConcerns && aiAnalysis.safetyConcerns.length > 0 && (
-                  <View style={styles.safetyConcerns}>
-                    <Text style={styles.concernsTitle}>Safety Concerns:</Text>
-                    {aiAnalysis.safetyConcerns.map((c: { concern: string }, index: number) => (
-                      <Text key={index} style={styles.concernText}>• {c.concern}</Text>
-                    ))}
-                  </View>
-                )}
+
+                {aiAnalysis.safetyConcerns &&
+                  aiAnalysis.safetyConcerns.length > 0 && (
+                    <View style={styles.safetyConcerns}>
+                      <Text style={styles.concernsTitle}>Safety Concerns:</Text>
+                      {aiAnalysis.safetyConcerns.map(
+                        (c: { concern: string }, index: number) => (
+                          <Text key={index} style={styles.concernText}>
+                            • {c.concern}
+                          </Text>
+                        )
+                      )}
+                    </View>
+                  )}
               </View>
             ) : null}
           </View>
@@ -302,7 +388,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Contractor Assignment / Bidding */}
         {user?.role === 'homeowner' && (
-          <ContractorAssignment 
+          <ContractorAssignment
             job={job}
             onContractorAssigned={handleContractorAssigned}
           />
@@ -313,9 +399,11 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.contractorActions}>
             <TouchableOpacity
               style={styles.bidButton}
-              onPress={() => navigation.navigate('BidSubmission', { jobId: job.id })}
+              onPress={() =>
+                navigation.navigate('BidSubmission', { jobId: job.id })
+              }
             >
-              <Ionicons name="hammer-outline" size={20} color="#fff" />
+              <Ionicons name='hammer-outline' size={20} color='#fff' />
               <Text style={styles.bidButtonText}>Submit Bid</Text>
             </TouchableOpacity>
           </View>
@@ -329,20 +417,28 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.messageButton}
               onPress={() => {
                 // Navigate to messaging
-                const otherUserId = user?.role === 'homeowner' ? job.contractorId : job.homeownerId;
-                const otherUserName = user?.role === 'homeowner' ? 'Contractor' : 'Homeowner';
-                
+                const otherUserId =
+                  user?.role === 'homeowner'
+                    ? job.contractorId
+                    : job.homeownerId;
+                const otherUserName =
+                  user?.role === 'homeowner' ? 'Contractor' : 'Homeowner';
+
                 if (otherUserId) {
                   navigation.navigate('Messaging', {
                     jobId: job.id,
                     jobTitle: job.title,
                     otherUserId,
-                    otherUserName
+                    otherUserName,
                   });
                 }
               }}
             >
-              <Ionicons name="chatbubble-outline" size={20} color={theme.colors.primary} />
+              <Ionicons
+                name='chatbubble-outline'
+                size={20}
+                color={theme.colors.primary}
+              />
               <Text style={styles.messageButtonText}>Send Message</Text>
             </TouchableOpacity>
           </View>

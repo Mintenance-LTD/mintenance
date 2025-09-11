@@ -14,8 +14,8 @@ jest.mock('../../config/supabase', () => ({
       limit: jest.fn().mockReturnThis(),
       single: jest.fn(),
       neq: jest.fn().mockReturnThis(),
-    }))
-  }
+    })),
+  },
 }));
 
 import { supabase } from '../../config/supabase';
@@ -37,7 +37,7 @@ describe('JobService - Simple Tests', () => {
         homeownerId: 'user-1',
         category: 'Plumbing',
         priority: 'high' as const,
-        photos: ['photo1.jpg']
+        photos: ['photo1.jpg'],
       };
 
       const mockResponse = {
@@ -52,12 +52,12 @@ describe('JobService - Simple Tests', () => {
         photos: ['photo1.jpg'],
         status: 'posted',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
+        updated_at: '2024-01-01T00:00:00Z',
       };
 
       mockSupabase.from().insert().select().single.mockResolvedValue({
         data: mockResponse,
-        error: null
+        error: null,
       });
 
       const result = await JobService.createJob(mockJobData);
@@ -75,16 +75,18 @@ describe('JobService - Simple Tests', () => {
         description: 'Fix leaky faucet',
         location: '123 Main St',
         budget: 150,
-        homeownerId: 'user-1'
+        homeownerId: 'user-1',
       };
 
       const error = new Error('Creation failed');
       mockSupabase.from().insert().select().single.mockResolvedValue({
         data: null,
-        error: error
+        error: error,
       });
 
-      await expect(JobService.createJob(mockJobData)).rejects.toThrow('Creation failed');
+      await expect(JobService.createJob(mockJobData)).rejects.toThrow(
+        'Creation failed'
+      );
     });
   });
 
@@ -100,13 +102,13 @@ describe('JobService - Simple Tests', () => {
           homeowner_id: 'user-1',
           status: 'posted',
           created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
-        }
+          updated_at: '2024-01-01T00:00:00Z',
+        },
       ];
 
       mockSupabase.from().select().eq().order.mockResolvedValue({
         data: mockJobs,
-        error: null
+        error: null,
       });
 
       const result = await JobService.getJobsByHomeowner('user-1');
@@ -121,10 +123,12 @@ describe('JobService - Simple Tests', () => {
       const error = new Error('Fetch failed');
       mockSupabase.from().select().eq().order.mockResolvedValue({
         data: null,
-        error: error
+        error: error,
       });
 
-      await expect(JobService.getJobsByHomeowner('user-1')).rejects.toThrow('Fetch failed');
+      await expect(JobService.getJobsByHomeowner('user-1')).rejects.toThrow(
+        'Fetch failed'
+      );
     });
   });
 
@@ -140,18 +144,21 @@ describe('JobService - Simple Tests', () => {
           homeowner_id: 'user-2',
           status: 'posted',
           created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
-        }
+          updated_at: '2024-01-01T00:00:00Z',
+        },
       ];
 
       mockSupabase.from().select().eq().order.mockResolvedValue({
         data: mockJobs,
-        error: null
+        error: null,
       });
 
       const result = await JobService.getAvailableJobs();
 
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith('status', 'posted');
+      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith(
+        'status',
+        'posted'
+      );
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('posted');
     });
@@ -168,26 +175,33 @@ describe('JobService - Simple Tests', () => {
         homeowner_id: 'user-1',
         status: 'posted',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
+        updated_at: '2024-01-01T00:00:00Z',
       };
 
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: mockJob,
-        error: null
+        error: null,
       });
 
       const result = await JobService.getJobById('job-1');
 
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith('id', 'job-1');
+      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith(
+        'id',
+        'job-1'
+      );
       expect(result?.id).toBe('job-1');
       expect(result?.title).toBe('Kitchen Repair');
     });
 
     it('should return null when job not found', async () => {
-      mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: null,
-        error: { code: 'PGRST116' }
-      });
+      mockSupabase
+        .from()
+        .select()
+        .eq()
+        .single.mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116' },
+        });
 
       const result = await JobService.getJobById('nonexistent');
       expect(result).toBeNull();
@@ -197,17 +211,19 @@ describe('JobService - Simple Tests', () => {
       const error = new Error('Database error');
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: null,
-        error: error
+        error: error,
       });
 
-      await expect(JobService.getJobById('job-1')).rejects.toThrow('Database error');
+      await expect(JobService.getJobById('job-1')).rejects.toThrow(
+        'Database error'
+      );
     });
   });
 
   describe('updateJobStatus', () => {
     it('should update job status successfully', async () => {
       mockSupabase.from().update().eq.mockResolvedValue({
-        error: null
+        error: null,
       });
 
       await JobService.updateJobStatus('job-1', 'in_progress', 'contractor-1');
@@ -215,19 +231,24 @@ describe('JobService - Simple Tests', () => {
       expect(mockSupabase.from().update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'in_progress',
-          contractor_id: 'contractor-1'
+          contractor_id: 'contractor-1',
         })
       );
-      expect(mockSupabase.from().update().eq).toHaveBeenCalledWith('id', 'job-1');
+      expect(mockSupabase.from().update().eq).toHaveBeenCalledWith(
+        'id',
+        'job-1'
+      );
     });
 
     it('should throw error when update fails', async () => {
       const error = new Error('Update failed');
       mockSupabase.from().update().eq.mockResolvedValue({
-        error: error
+        error: error,
       });
 
-      await expect(JobService.updateJobStatus('job-1', 'completed')).rejects.toThrow('Update failed');
+      await expect(
+        JobService.updateJobStatus('job-1', 'completed')
+      ).rejects.toThrow('Update failed');
     });
   });
 
@@ -237,7 +258,7 @@ describe('JobService - Simple Tests', () => {
         jobId: 'job-1',
         contractorId: 'contractor-1',
         amount: 150,
-        description: 'I can fix this quickly'
+        description: 'I can fix this quickly',
       };
 
       const mockBid = {
@@ -247,12 +268,12 @@ describe('JobService - Simple Tests', () => {
         amount: 150,
         description: 'I can fix this quickly',
         status: 'pending',
-        created_at: '2024-01-01T00:00:00Z'
+        created_at: '2024-01-01T00:00:00Z',
       };
 
       mockSupabase.from().insert().select().single.mockResolvedValue({
         data: mockBid,
-        error: null
+        error: null,
       });
 
       const result = await JobService.submitBid(mockBidData);
@@ -279,14 +300,14 @@ describe('JobService - Simple Tests', () => {
           contractor: {
             first_name: 'John',
             last_name: 'Doe',
-            email: 'john@example.com'
-          }
-        }
+            email: 'john@example.com',
+          },
+        },
       ];
 
       mockSupabase.from().select().eq().order.mockResolvedValue({
         data: mockBids,
-        error: null
+        error: null,
       });
 
       const result = await JobService.getBidsByJob('job-1');
@@ -311,13 +332,13 @@ describe('JobService - Simple Tests', () => {
           category: 'Plumbing',
           status: 'posted',
           created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z'
-        }
+          updated_at: '2024-01-01T00:00:00Z',
+        },
       ];
 
       mockSupabase.from().select().or().eq().order().limit.mockResolvedValue({
         data: mockJobs,
-        error: null
+        error: null,
       });
 
       const result = await JobService.searchJobs('kitchen', 10);
@@ -330,28 +351,28 @@ describe('JobService - Simple Tests', () => {
   describe('job lifecycle methods', () => {
     it('should start job', async () => {
       mockSupabase.from().update().eq.mockResolvedValue({
-        error: null
+        error: null,
       });
 
       await JobService.startJob('job-1');
 
       expect(mockSupabase.from().update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'in_progress'
+          status: 'in_progress',
         })
       );
     });
 
     it('should complete job', async () => {
       mockSupabase.from().update().eq.mockResolvedValue({
-        error: null
+        error: null,
       });
 
       await JobService.completeJob('job-1');
 
       expect(mockSupabase.from().update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'completed'
+          status: 'completed',
         })
       );
     });

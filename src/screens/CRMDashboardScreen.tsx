@@ -13,7 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { contractorBusinessSuite, type ClientAnalytics } from '../services/ContractorBusinessSuite';
+import {
+  contractorBusinessSuite,
+  type ClientAnalytics,
+} from '../services/ContractorBusinessSuite';
 import { ClientCard, ClientData } from '../components/ClientCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
@@ -23,7 +26,7 @@ interface CRMDashboardScreenProps {
 }
 
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
-  navigation
+  navigation,
 }) => {
   const { user } = useAuth();
   const [clients, setClients] = useState<ClientData[]>([]);
@@ -31,8 +34,12 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'active' | 'prospect' | 'inactive' | 'high-risk'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'revenue' | 'jobs' | 'recent'>('name');
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'active' | 'prospect' | 'inactive' | 'high-risk'
+  >('all');
+  const [sortBy, setSortBy] = useState<'name' | 'revenue' | 'jobs' | 'recent'>(
+    'name'
+  );
 
   useEffect(() => {
     loadData();
@@ -40,9 +47,11 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
   const loadData = async () => {
     if (!user) return;
-    
+
     try {
-      const analyticsData = await contractorBusinessSuite.getClientAnalytics(user.id);
+      const analyticsData = await contractorBusinessSuite.getClientAnalytics(
+        user.id
+      );
       setClients([]);
       setAnalytics(analyticsData);
     } catch (error) {
@@ -60,12 +69,15 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   };
 
   const filteredAndSortedClients = clients
-    .filter(client => {
+    .filter((client) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const name = `${client.first_name} ${client.last_name}`.toLowerCase();
-        if (!name.includes(query) && !client.email.toLowerCase().includes(query)) {
+        if (
+          !name.includes(query) &&
+          !client.email.toLowerCase().includes(query)
+        ) {
           return false;
         }
       }
@@ -78,7 +90,9 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+          return `${a.first_name} ${a.last_name}`.localeCompare(
+            `${b.first_name} ${b.last_name}`
+          );
         case 'revenue':
           return b.total_revenue - a.total_revenue;
         case 'jobs':
@@ -126,14 +140,16 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     <TouchableOpacity
       style={[
         styles.filterButton,
-        selectedFilter === filter && { backgroundColor: color }
+        selectedFilter === filter && { backgroundColor: color },
       ]}
       onPress={() => setSelectedFilter(filter)}
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter && { color: '#fff' }
-      ]}>
+      <Text
+        style={[
+          styles.filterText,
+          selectedFilter === filter && { color: '#fff' },
+        ]}
+      >
         {label}
       </Text>
     </TouchableOpacity>
@@ -145,28 +161,24 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     icon: string
   ) => (
     <TouchableOpacity
-      style={[
-        styles.sortButton,
-        sortBy === sort && styles.sortButtonActive
-      ]}
+      style={[styles.sortButton, sortBy === sort && styles.sortButtonActive]}
       onPress={() => setSortBy(sort)}
     >
-      <Ionicons 
-        name={icon as any} 
-        size={16} 
-        color={sortBy === sort ? theme.colors.primary : theme.colors.textSecondary} 
+      <Ionicons
+        name={icon as any}
+        size={16}
+        color={
+          sortBy === sort ? theme.colors.primary : theme.colors.textSecondary
+        }
       />
-      <Text style={[
-        styles.sortText,
-        sortBy === sort && styles.sortTextActive
-      ]}>
+      <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
         {label}
       </Text>
     </TouchableOpacity>
   );
 
   if (loading) {
-    return <LoadingSpinner message="Loading CRM dashboard..." />;
+    return <LoadingSpinner message='Loading CRM dashboard...' />;
   }
 
   return (
@@ -177,36 +189,44 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name='arrow-back' size={24} color='#fff' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('AddClient')}
         >
-          <Ionicons name="person-add" size={24} color="#fff" />
+          <Ionicons name='person-add' size={24} color='#fff' />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Analytics Cards */}
         {analytics && (
           <View style={styles.analyticsContainer}>
             <View style={styles.analyticsCard}>
-              <Text style={styles.analyticsValue}>{analytics.total_clients}</Text>
+              <Text style={styles.analyticsValue}>
+                {analytics.total_clients}
+              </Text>
               <Text style={styles.analyticsLabel}>Total Clients</Text>
             </View>
             <View style={styles.analyticsCard}>
-              <Text style={[styles.analyticsValue, { color: theme.colors.success }]}>
+              <Text
+                style={[styles.analyticsValue, { color: theme.colors.success }]}
+              >
                 {analytics.new_clients_this_month}
               </Text>
               <Text style={styles.analyticsLabel}>New This Month</Text>
             </View>
             <View style={styles.analyticsCard}>
-              <Text style={[styles.analyticsValue, { color: theme.colors.warning }]}>
+              <Text
+                style={[styles.analyticsValue, { color: theme.colors.warning }]}
+              >
                 {analytics.repeat_clients}
               </Text>
               <Text style={styles.analyticsLabel}>Repeat Clients</Text>
@@ -223,22 +243,26 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <SearchBar
-            placeholder="Search clients..."
+            placeholder='Search clients...'
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
         {/* Filter Tabs */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
         >
           {renderFilterButton('all', 'All', theme.colors.primary)}
           {renderFilterButton('active', 'Active', theme.colors.success)}
           {renderFilterButton('prospect', 'Prospects', theme.colors.warning)}
-          {renderFilterButton('inactive', 'Inactive', theme.colors.textSecondary)}
+          {renderFilterButton(
+            'inactive',
+            'Inactive',
+            theme.colors.textSecondary
+          )}
           {renderFilterButton('high-risk', 'High Risk', theme.colors.error)}
         </ScrollView>
 
@@ -257,13 +281,16 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         <View style={styles.clientList}>
           {filteredAndSortedClients.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={64} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='people-outline'
+                size={64}
+                color={theme.colors.textTertiary}
+              />
               <Text style={styles.emptyTitle}>No clients found</Text>
               <Text style={styles.emptyText}>
-                {searchQuery 
+                {searchQuery
                   ? `No clients match "${searchQuery}"`
-                  : 'Add your first client to get started'
-                }
+                  : 'Add your first client to get started'}
               </Text>
               {!searchQuery && (
                 <TouchableOpacity
@@ -279,7 +306,11 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               <ClientCard
                 key={client.id}
                 client={client}
-                onPress={() => navigation.navigate('ClientDetail', { clientId: client.client_id })}
+                onPress={() =>
+                  navigation.navigate('ClientDetail', {
+                    clientId: client.client_id,
+                  })
+                }
                 onCall={() => handleCall(client)}
                 onMessage={() => handleMessage(client)}
                 onEmail={() => handleEmail(client)}

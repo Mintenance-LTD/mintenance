@@ -21,7 +21,10 @@ interface Props {
   onContractorSelect: (contractor: ContractorProfile) => void;
 }
 
-const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSelect }) => {
+const ContractorDiscoverView: React.FC<Props> = ({
+  contractors,
+  onContractorSelect,
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const renderStars = (rating: number) => {
@@ -31,27 +34,48 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={i}
+          name='star'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key='half'
+          name='star-half'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={`empty-${i}`}
+          name='star-outline'
+          size={16}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     return stars;
   };
 
-  const renderContractorCard = ({ item: contractor, index }: { item: ContractorProfile; index: number }) => (
+  const renderContractorCard = ({
+    item: contractor,
+    index,
+  }: {
+    item: ContractorProfile;
+    index: number;
+  }) => (
     <TouchableOpacity
       style={styles.contractorCard}
       onPress={() => onContractorSelect(contractor)}
@@ -67,13 +91,21 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
             />
           ) : (
             <View style={styles.placeholderImage}>
-              <Ionicons name="person" size={40} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='person'
+                size={40}
+                color={theme.colors.textSecondary}
+              />
             </View>
           )}
-          
+
           {/* Verified Badge */}
           <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
+            <Ionicons
+              name='checkmark-circle'
+              size={16}
+              color={theme.colors.success}
+            />
           </View>
         </View>
 
@@ -84,27 +116,36 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
           <Text style={styles.contractorTitle}>
             {contractor.skills[0]?.skillName || 'General Contractor'}
           </Text>
-          
+
           {/* Rating */}
           <View style={styles.ratingContainer}>
             <View style={styles.starsContainer}>
               {renderStars(contractor.rating || 0)}
             </View>
             <Text style={styles.ratingText}>
-              {(contractor.rating || 0).toFixed(1)} ({contractor.totalJobsCompleted} reviews)
+              {(contractor.rating || 0).toFixed(1)} (
+              {contractor.totalJobsCompleted} reviews)
             </Text>
           </View>
 
           {/* Distance and Response Time */}
           <View style={styles.quickInfo}>
             <View style={styles.quickInfoItem}>
-              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='location-outline'
+                size={14}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.quickInfoText}>
                 {contractor.distance?.toFixed(1)} km away
               </Text>
             </View>
             <View style={styles.quickInfoItem}>
-              <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='time-outline'
+                size={14}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.quickInfoText}>&lt; 2h response</Text>
             </View>
           </View>
@@ -150,14 +191,16 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
             ))}
             {contractor.skills.length > 4 && (
               <View style={styles.specialtyTag}>
-                <Text style={styles.specialtyText}>+{contractor.skills.length - 4} more</Text>
+                <Text style={styles.specialtyText}>
+                  +{contractor.skills.length - 4} more
+                </Text>
               </View>
             )}
           </View>
-          
+
           {/* Featured Specialty */}
           <View style={styles.featuredSpecialty}>
-            <Ionicons name="flash" size={16} color={theme.colors.warning} />
+            <Ionicons name='flash' size={16} color={theme.colors.warning} />
             <Text style={styles.featuredSpecialtyText}>Emergency Repairs</Text>
           </View>
         </View>
@@ -167,18 +210,21 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
       <View style={styles.aboutSection}>
         <Text style={styles.sectionTitle}>About the Business</Text>
         <Text style={styles.aboutText} numberOfLines={3}>
-          {contractor.bio || 
-           `Licensed ${contractor.skills[0]?.skillName || 'contractor'} with ${5} years of experience. Specializing in residential and commercial projects with a focus on quality workmanship and customer satisfaction.`
-          }
+          {contractor.bio ||
+            `Licensed ${contractor.skills[0]?.skillName || 'contractor'} with ${5} years of experience. Specializing in residential and commercial projects with a focus on quality workmanship and customer satisfaction.`}
         </Text>
-        
+
         <View style={styles.businessDetails}>
           <View style={styles.businessDetailItem}>
-            <Ionicons name="shield-checkmark" size={16} color={theme.colors.success} />
+            <Ionicons
+              name='shield-checkmark'
+              size={16}
+              color={theme.colors.success}
+            />
             <Text style={styles.businessDetailText}>Licensed & Insured</Text>
           </View>
           <View style={styles.businessDetailItem}>
-            <Ionicons name="calendar" size={16} color={theme.colors.info} />
+            <Ionicons name='calendar' size={16} color={theme.colors.info} />
             <Text style={styles.businessDetailText}>Available 7 days/week</Text>
           </View>
         </View>
@@ -187,12 +233,20 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.messageButton}>
-          <Ionicons name="chatbubble-outline" size={20} color={theme.colors.info} />
+          <Ionicons
+            name='chatbubble-outline'
+            size={20}
+            color={theme.colors.info}
+          />
           <Text style={styles.messageButtonText}>Message</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.hireButton}>
-          <Ionicons name="checkmark-outline" size={20} color={theme.colors.textInverse} />
+          <Ionicons
+            name='checkmark-outline'
+            size={20}
+            color={theme.colors.textInverse}
+          />
           <Text style={styles.hireButtonText}>Hire Now</Text>
         </TouchableOpacity>
       </View>
@@ -202,7 +256,7 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
   if (contractors.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="search-outline" size={50} color="#ccc" />
+        <Ionicons name='search-outline' size={50} color='#ccc' />
         <Text style={styles.emptyTitle}>No contractors found</Text>
         <Text style={styles.emptyText}>
           Try adjusting your filters or expanding your search area.
@@ -221,15 +275,18 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
         contentContainerStyle={styles.listContainer}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.y / (400 + 20));
+          const index = Math.round(
+            event.nativeEvent.contentOffset.y / (400 + 20)
+          );
           setCurrentIndex(index);
         }}
       />
-      
+
       {/* Scroll Indicator */}
       <View style={styles.scrollIndicator}>
         <Text style={styles.scrollText}>
-          {Math.min(currentIndex + 1, contractors.length)} of {contractors.length}
+          {Math.min(currentIndex + 1, contractors.length)} of{' '}
+          {contractors.length}
         </Text>
       </View>
     </View>

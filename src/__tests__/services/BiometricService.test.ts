@@ -5,11 +5,13 @@ import { Alert } from 'react-native';
 import { logger } from '../../utils/logger';
 
 // Get mocked modules
-const mockLocalAuth = LocalAuthentication as jest.Mocked<typeof LocalAuthentication>;
+const mockLocalAuth = LocalAuthentication as jest.Mocked<
+  typeof LocalAuthentication
+>;
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
 
-// Create a spy for Alert.alert  
+// Create a spy for Alert.alert
 const mockAlert = {
   alert: jest.fn(),
 };
@@ -34,7 +36,7 @@ describe('BiometricService', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
 
       const result = await BiometricService.isAvailable();
@@ -42,7 +44,9 @@ describe('BiometricService', () => {
       expect(result).toBe(true);
       expect(mockLocalAuth.hasHardwareAsync).toHaveBeenCalled();
       expect(mockLocalAuth.isEnrolledAsync).toHaveBeenCalled();
-      expect(mockLocalAuth.supportedAuthenticationTypesAsync).toHaveBeenCalled();
+      expect(
+        mockLocalAuth.supportedAuthenticationTypesAsync
+      ).toHaveBeenCalled();
     });
 
     it('returns false when hardware is not available', async () => {
@@ -59,7 +63,7 @@ describe('BiometricService', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(false);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
 
       const result = await BiometricService.isAvailable();
@@ -68,7 +72,9 @@ describe('BiometricService', () => {
     });
 
     it('handles errors gracefully', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Hardware check failed'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Hardware check failed')
+      );
 
       const result = await BiometricService.isAvailable();
 
@@ -80,9 +86,11 @@ describe('BiometricService', () => {
     it('returns supported authentication types', async () => {
       const mockTypes = [
         LocalAuthentication.AuthenticationType.FINGERPRINT,
-        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
       ];
-      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(mockTypes);
+      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(
+        mockTypes
+      );
 
       const result = await BiometricService.getSupportedTypes();
 
@@ -90,7 +98,9 @@ describe('BiometricService', () => {
     });
 
     it('handles errors and returns empty array', async () => {
-      mockLocalAuth.supportedAuthenticationTypesAsync.mockRejectedValue(new Error('Failed'));
+      mockLocalAuth.supportedAuthenticationTypesAsync.mockRejectedValue(
+        new Error('Failed')
+      );
 
       const result = await BiometricService.getSupportedTypes();
 
@@ -100,12 +110,16 @@ describe('BiometricService', () => {
 
   describe('getTypeDisplayName', () => {
     it('returns correct display name for fingerprint', () => {
-      const name = BiometricService.getTypeDisplayName(LocalAuthentication.AuthenticationType.FINGERPRINT);
+      const name = BiometricService.getTypeDisplayName(
+        LocalAuthentication.AuthenticationType.FINGERPRINT
+      );
       expect(name).toBe('Fingerprint');
     });
 
     it('returns correct display name for face ID', () => {
-      const name = BiometricService.getTypeDisplayName(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+      const name = BiometricService.getTypeDisplayName(
+        LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
+      );
       expect(name).toBe('Face ID');
     });
 
@@ -122,7 +136,9 @@ describe('BiometricService', () => {
       const result = await BiometricService.isBiometricEnabled();
 
       expect(result).toBe(true);
-      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('biometric_enabled');
+      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled'
+      );
     });
 
     it('returns false when biometric is not enabled', async () => {
@@ -134,7 +150,9 @@ describe('BiometricService', () => {
     });
 
     it('handles errors and returns false', async () => {
-      mockSecureStore.getItemAsync.mockRejectedValue(new Error('Storage error'));
+      mockSecureStore.getItemAsync.mockRejectedValue(
+        new Error('Storage error')
+      );
 
       const result = await BiometricService.isBiometricEnabled();
 
@@ -147,7 +165,7 @@ describe('BiometricService', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
     });
 
@@ -160,10 +178,13 @@ describe('BiometricService', () => {
         'biometric_credentials',
         JSON.stringify({
           email: 'test@example.com',
-          hashedToken: 'token123'
+          hashedToken: 'token123',
         })
       );
-      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith('biometric_enabled', 'true');
+      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled',
+        'true'
+      );
     });
 
     it('throws error when biometric is not available', async () => {
@@ -171,26 +192,30 @@ describe('BiometricService', () => {
 
       await expect(
         BiometricService.enableBiometric('test@example.com', 'token123')
-      ).rejects.toThrow('Biometric authentication is not available on this device');
+      ).rejects.toThrow(
+        'Biometric authentication is not available on this device'
+      );
     });
   });
 
   describe('authenticate', () => {
     beforeEach(() => {
-      mockSecureStore.getItemAsync
-        .mockImplementation((key) => {
-          if (key === 'biometric_enabled') return Promise.resolve('true');
-          if (key === 'biometric_credentials') return Promise.resolve(JSON.stringify({
-            email: 'test@example.com',
-            hashedToken: 'token123'
-          }));
-          return Promise.resolve(null);
-        });
+      mockSecureStore.getItemAsync.mockImplementation((key) => {
+        if (key === 'biometric_enabled') return Promise.resolve('true');
+        if (key === 'biometric_credentials')
+          return Promise.resolve(
+            JSON.stringify({
+              email: 'test@example.com',
+              hashedToken: 'token123',
+            })
+          );
+        return Promise.resolve(null);
+      });
 
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
     });
 
@@ -205,7 +230,7 @@ describe('BiometricService', () => {
 
       expect(result).toEqual({
         email: 'test@example.com',
-        hashedToken: 'token123'
+        hashedToken: 'token123',
       });
     });
 
@@ -222,11 +247,10 @@ describe('BiometricService', () => {
     });
 
     it('returns null when biometric is not enabled', async () => {
-      mockSecureStore.getItemAsync
-        .mockImplementation((key) => {
-          if (key === 'biometric_enabled') return Promise.resolve('false');
-          return Promise.resolve(null);
-        });
+      mockSecureStore.getItemAsync.mockImplementation((key) => {
+        if (key === 'biometric_enabled') return Promise.resolve('false');
+        return Promise.resolve(null);
+      });
 
       const result = await BiometricService.authenticate();
 
@@ -239,14 +263,15 @@ describe('BiometricService', () => {
         error: undefined,
         warning: undefined,
       });
-      mockSecureStore.getItemAsync
-        .mockImplementation((key) => {
-          if (key === 'biometric_enabled') return Promise.resolve('true');
-          if (key === 'biometric_credentials') return Promise.resolve(null);
-          return Promise.resolve(null);
-        });
+      mockSecureStore.getItemAsync.mockImplementation((key) => {
+        if (key === 'biometric_enabled') return Promise.resolve('true');
+        if (key === 'biometric_credentials') return Promise.resolve(null);
+        return Promise.resolve(null);
+      });
 
-      await expect(BiometricService.authenticate()).rejects.toThrow('Biometric credentials not found');
+      await expect(BiometricService.authenticate()).rejects.toThrow(
+        'Biometric credentials not found'
+      );
     });
   });
 
@@ -256,14 +281,22 @@ describe('BiometricService', () => {
 
       await BiometricService.disableBiometric();
 
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_enabled');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled'
+      );
     });
 
     it('handles errors gracefully', async () => {
-      mockSecureStore.deleteItemAsync.mockRejectedValue(new Error('Delete failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValue(
+        new Error('Delete failed')
+      );
 
-      await expect(BiometricService.disableBiometric()).rejects.toThrow('Delete failed');
+      await expect(BiometricService.disableBiometric()).rejects.toThrow(
+        'Delete failed'
+      );
     });
   });
 
@@ -273,12 +306,18 @@ describe('BiometricService', () => {
 
       await BiometricService.clearBiometricData();
 
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_enabled');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled'
+      );
     });
 
     it('handles errors silently', async () => {
-      mockSecureStore.deleteItemAsync.mockRejectedValue(new Error('Delete failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValue(
+        new Error('Delete failed')
+      );
 
       // Should not throw
       await BiometricService.clearBiometricData();
@@ -292,7 +331,7 @@ describe('BiometricService', () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
       mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
       mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([
-        LocalAuthentication.AuthenticationType.FINGERPRINT
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
       ]);
     });
 
@@ -305,21 +344,30 @@ describe('BiometricService', () => {
         }
       });
 
-      await BiometricService.promptEnableBiometric('test@example.com', mockOnEnable);
+      await BiometricService.promptEnableBiometric(
+        'test@example.com',
+        mockOnEnable
+      );
 
       expect(mockAlert.alert).toHaveBeenCalledWith(
         'Enable Fingerprint',
         'Would you like to enable Fingerprint for faster sign-ins?',
         expect.any(Array)
       );
-      expect(mockOnEnable).toHaveBeenCalledWith('test@example.com', 'secure_session_token');
+      expect(mockOnEnable).toHaveBeenCalledWith(
+        'test@example.com',
+        'secure_session_token'
+      );
     });
 
     it('does not show prompt when biometric is not available', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(false);
       const mockOnEnable = jest.fn();
 
-      await BiometricService.promptEnableBiometric('test@example.com', mockOnEnable);
+      await BiometricService.promptEnableBiometric(
+        'test@example.com',
+        mockOnEnable
+      );
 
       expect(mockAlert.alert).not.toHaveBeenCalled();
       expect(mockOnEnable).not.toHaveBeenCalled();

@@ -9,10 +9,12 @@ interface AppErrorBoundaryProps {
   children: React.ReactNode;
 }
 
-export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({ children }) => {
+export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({
+  children,
+}) => {
   const handleGlobalError = (error: Error, errorInfo: any) => {
     console.error('Global app error:', error);
-    
+
     // Send to crash reporting service
     try {
       import('../config/sentry').then(({ captureException }) => {
@@ -28,11 +30,7 @@ export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({ children }) 
     }
   };
 
-  return (
-    <ErrorBoundary onError={handleGlobalError}>
-      {children}
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary onError={handleGlobalError}>{children}</ErrorBoundary>;
 };
 
 // HOC for wrapping screens with error boundaries
@@ -44,15 +42,14 @@ export const withScreenErrorBoundary = <P extends object>(
     showHomeButton?: boolean;
   } = {}
 ) => {
-  const ComponentWithErrorBoundary = (props: P) => (
+  const ComponentWithErrorBoundary = (props: P) =>
     // Cast to any to allow optional fields without altering component prop types
-    (React.createElement(ScreenErrorBoundary as any, {
+    React.createElement(ScreenErrorBoundary as any, {
       screenName,
       fallbackRoute: options.fallbackRoute,
       showHomeButton: options.showHomeButton,
-      children: React.createElement(WrappedComponent, props as any)
-    }))
-  );
+      children: React.createElement(WrappedComponent, props as any),
+    });
 
   ComponentWithErrorBoundary.displayName = `withScreenErrorBoundary(${screenName})`;
   return ComponentWithErrorBoundary;
@@ -84,7 +81,7 @@ export const withAsyncErrorBoundary = <P extends object>(
   } = {}
 ) => {
   const ComponentWithAsyncBoundary = (props: P) => (
-    <AsyncErrorBoundary 
+    <AsyncErrorBoundary
       operationName={operationName}
       onRetry={options.onRetry}
       fallbackMessage={options.fallbackMessage}
@@ -109,7 +106,7 @@ export {
 export const useErrorHandler = () => {
   const handleError = React.useCallback((error: Error, context?: string) => {
     console.error(`Error in ${context || 'component'}:`, error);
-    
+
     // Report to error tracking service
     try {
       import('../config/sentry').then(({ captureException }) => {
@@ -124,17 +121,17 @@ export const useErrorHandler = () => {
     }
   }, []);
 
-  const handleAsyncError = React.useCallback(async (
-    asyncOperation: () => Promise<any>,
-    context?: string
-  ) => {
-    try {
-      return await asyncOperation();
-    } catch (error) {
-      handleError(error as Error, context);
-      throw error; // Re-throw so caller can handle appropriately
-    }
-  }, [handleError]);
+  const handleAsyncError = React.useCallback(
+    async (asyncOperation: () => Promise<any>, context?: string) => {
+      try {
+        return await asyncOperation();
+      } catch (error) {
+        handleError(error as Error, context);
+        throw error; // Re-throw so caller can handle appropriately
+      }
+    },
+    [handleError]
+  );
 
   return { handleError, handleAsyncError };
 };

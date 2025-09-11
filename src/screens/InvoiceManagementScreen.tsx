@@ -13,7 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { contractorBusinessSuite, type Invoice } from '../services/ContractorBusinessSuite';
+import {
+  contractorBusinessSuite,
+  type Invoice,
+} from '../services/ContractorBusinessSuite';
 import { InvoiceCard } from '../components/InvoiceCard';
 import Button from '../components/ui/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -22,14 +25,16 @@ interface InvoiceManagementScreenProps {
   navigation: StackNavigationProp<any>;
 }
 
-export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = ({
-  navigation
-}) => {
+export const InvoiceManagementScreen: React.FC<
+  InvoiceManagementScreenProps
+> = ({ navigation }) => {
   const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'draft' | 'sent' | 'overdue' | 'paid'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'draft' | 'sent' | 'overdue' | 'paid'
+  >('all');
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
@@ -39,7 +44,7 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
 
   const loadInvoices = async () => {
     if (!user) return;
-    
+
     try {
       // TODO: implement invoice listing API in contractorBusinessSuite
       setInvoices([]);
@@ -93,13 +98,13 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
             } catch (error) {
               Alert.alert('Error', 'Failed to update invoice');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
+  const filteredInvoices = invoices.filter((invoice) => {
     if (selectedFilter === 'all') return true;
     return invoice.status === selectedFilter;
   });
@@ -107,10 +112,10 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
   const getFilterCounts = () => {
     const counts = {
       all: invoices.length,
-      draft: invoices.filter(i => i.status === 'draft').length,
-      sent: invoices.filter(i => i.status === 'sent').length,
-      overdue: invoices.filter(i => i.status === 'overdue').length,
-      paid: invoices.filter(i => i.status === 'paid').length,
+      draft: invoices.filter((i) => i.status === 'draft').length,
+      sent: invoices.filter((i) => i.status === 'sent').length,
+      overdue: invoices.filter((i) => i.status === 'overdue').length,
+      paid: invoices.filter((i) => i.status === 'paid').length,
     };
     return counts;
   };
@@ -126,21 +131,23 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
     <TouchableOpacity
       style={[
         styles.filterButton,
-        selectedFilter === filter && { backgroundColor: color }
+        selectedFilter === filter && { backgroundColor: color },
       ]}
       onPress={() => setSelectedFilter(filter)}
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter && { color: theme.colors.textInverse }
-      ]}>
+      <Text
+        style={[
+          styles.filterText,
+          selectedFilter === filter && { color: theme.colors.textInverse },
+        ]}
+      >
         {label} ({count})
       </Text>
     </TouchableOpacity>
   );
 
   if (loading) {
-    return <LoadingSpinner message="Loading invoices..." />;
+    return <LoadingSpinner message='Loading invoices...' />;
   }
 
   return (
@@ -151,14 +158,18 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Invoice Management</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateInvoice')}
         >
-          <Ionicons name="add" size={24} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>
       </View>
 
@@ -166,7 +177,10 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            £{invoices.reduce((sum, inv) => sum + inv.total_amount, 0).toFixed(2)}
+            £
+            {invoices
+              .reduce((sum, inv) => sum + inv.total_amount, 0)
+              .toFixed(2)}
           </Text>
           <Text style={styles.statLabel}>Total Outstanding</Text>
         </View>
@@ -185,16 +199,41 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
       </View>
 
       {/* Filter Tabs */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtersContainer}
       >
-        {renderFilterButton('all', 'All', filterCounts.all, theme.colors.primary)}
-        {renderFilterButton('draft', 'Draft', filterCounts.draft, theme.colors.textSecondary)}
-        {renderFilterButton('sent', 'Sent', filterCounts.sent, theme.colors.warning)}
-        {renderFilterButton('overdue', 'Overdue', filterCounts.overdue, theme.colors.error)}
-        {renderFilterButton('paid', 'Paid', filterCounts.paid, theme.colors.success)}
+        {renderFilterButton(
+          'all',
+          'All',
+          filterCounts.all,
+          theme.colors.primary
+        )}
+        {renderFilterButton(
+          'draft',
+          'Draft',
+          filterCounts.draft,
+          theme.colors.textSecondary
+        )}
+        {renderFilterButton(
+          'sent',
+          'Sent',
+          filterCounts.sent,
+          theme.colors.warning
+        )}
+        {renderFilterButton(
+          'overdue',
+          'Overdue',
+          filterCounts.overdue,
+          theme.colors.error
+        )}
+        {renderFilterButton(
+          'paid',
+          'Paid',
+          filterCounts.paid,
+          theme.colors.success
+        )}
       </ScrollView>
 
       {/* Invoice List */}
@@ -207,18 +246,21 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
       >
         {filteredInvoices.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-outline" size={64} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='document-outline'
+              size={64}
+              color={theme.colors.textTertiary}
+            />
             <Text style={styles.emptyTitle}>No invoices found</Text>
             <Text style={styles.emptyText}>
-              {selectedFilter === 'all' 
+              {selectedFilter === 'all'
                 ? 'Create your first invoice to get started'
-                : `No ${selectedFilter} invoices at the moment`
-              }
+                : `No ${selectedFilter} invoices at the moment`}
             </Text>
             {selectedFilter === 'all' && (
               <Button
-                variant="primary"
-                title="Create Invoice"
+                variant='primary'
+                title='Create Invoice'
                 onPress={() => navigation.navigate('CreateInvoice')}
               />
             )}
@@ -228,7 +270,9 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
             <InvoiceCard
               key={invoice.id}
               invoice={invoice}
-              onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
+              onPress={() =>
+                navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })
+              }
               onSendReminder={() => handleSendReminder(invoice)}
               onMarkPaid={() => handleMarkPaid(invoice)}
             />
@@ -240,7 +284,7 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
       <Modal
         visible={reminderModalVisible}
         transparent
-        animationType="slide"
+        animationType='slide'
         onRequestClose={() => setReminderModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -248,19 +292,21 @@ export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = (
             <Text style={styles.modalTitle}>Send Reminder</Text>
             {selectedInvoice && (
               <Text style={styles.modalText}>
-                Send payment reminder for invoice #{selectedInvoice.invoice_number} to client {selectedInvoice.client_id}?
+                Send payment reminder for invoice #
+                {selectedInvoice.invoice_number} to client{' '}
+                {selectedInvoice.client_id}?
               </Text>
             )}
             <View style={styles.modalActions}>
               <Button
-                variant="secondary"
-                title="Cancel"
+                variant='secondary'
+                title='Cancel'
                 onPress={() => setReminderModalVisible(false)}
                 style={{ flex: 1 }}
               />
               <Button
-                variant="primary"
-                title="Send Reminder"
+                variant='primary'
+                title='Send Reminder'
                 onPress={sendReminderConfirm}
                 style={{ flex: 1 }}
               />

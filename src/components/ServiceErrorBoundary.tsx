@@ -21,9 +21,9 @@ export class ServiceErrorBoundary extends Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = { 
+    this.state = {
       hasError: false,
-      retryCount: 0
+      retryCount: 0,
     };
   }
 
@@ -38,7 +38,7 @@ export class ServiceErrorBoundary extends Component<Props, State> {
     logger.error(`Service error in ${this.props.serviceName}:`, error, {
       componentStack: errorInfo.componentStack,
       errorBoundary: 'ServiceErrorBoundary',
-      retryCount: this.state.retryCount
+      retryCount: this.state.retryCount,
     });
 
     // Call custom error handler
@@ -51,7 +51,7 @@ export class ServiceErrorBoundary extends Component<Props, State> {
 
   retry = () => {
     if (this.state.retryCount < this.maxRetries) {
-      this.setState(prevState => ({
+      this.setState((prevState) => ({
         hasError: false,
         error: undefined,
         retryCount: prevState.retryCount + 1,
@@ -75,7 +75,7 @@ export class ServiceErrorBoundary extends Component<Props, State> {
             The {this.props.serviceName} service is temporarily unavailable.
             {canRetry ? ' Please try again.' : ' Please refresh the app.'}
           </Text>
-          
+
           {canRetry && (
             <TouchableOpacity style={styles.button} onPress={this.retry}>
               <Text style={styles.buttonText}>

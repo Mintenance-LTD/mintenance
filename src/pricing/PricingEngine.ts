@@ -1,7 +1,7 @@
 /**
  * PRICING ENGINE - MAIN ORCHESTRATOR
  * Modular pricing system coordinator
- * 
+ *
  * Responsibilities:
  * - Coordinate between pricing modules
  * - Aggregate results from specialized analyzers
@@ -13,7 +13,10 @@ import { logger } from '../utils/logger';
 import { circuitBreakerManager } from '../utils/circuitBreaker';
 import { measurePerformance } from '../utils/performanceBudgets';
 import { ComplexityAnalyzer } from './complexity/ComplexityAnalyzer';
-import { MarketRateCalculator, type MarketAnalysisResult } from './market/MarketRateCalculator';
+import {
+  MarketRateCalculator,
+  type MarketAnalysisResult,
+} from './market/MarketRateCalculator';
 
 export interface JobPricingInput {
   title: string;
@@ -62,16 +65,30 @@ export interface MarketContext {
  */
 export class PricingEngine {
   private complexityAnalyzer: ComplexityAnalyzer;
-  private marketAnalyzer: { initialize(): Promise<void>; analyze(input: JobPricingInput): Promise<MarketContext> };
-  private mlPredictor: { initialize(): Promise<void>; predict(input: JobPricingInput): Promise<{ suggestedPrice: { min: number; max: number; optimal: number }; confidence: number }> };
-  private recommendationsEngine: { initialize(): Promise<void>; generate(a: any, b: any, c: MarketContext, d: any): Promise<string[]> };
+  private marketAnalyzer: {
+    initialize(): Promise<void>;
+    analyze(input: JobPricingInput): Promise<MarketContext>;
+  };
+  private mlPredictor: {
+    initialize(): Promise<void>;
+    predict(input: JobPricingInput): Promise<{
+      suggestedPrice: { min: number; max: number; optimal: number };
+      confidence: number;
+    }>;
+  };
+  private recommendationsEngine: {
+    initialize(): Promise<void>;
+    generate(a: any, b: any, c: MarketContext, d: any): Promise<string[]>;
+  };
   private initialized = false;
 
   constructor() {
     this.complexityAnalyzer = new ComplexityAnalyzer();
     const calc = new MarketRateCalculator();
     this.marketAnalyzer = {
-      async initialize() { /* no-op */ },
+      async initialize() {
+        /* no-op */
+      },
       async analyze(input: JobPricingInput): Promise<MarketContext> {
         const res: MarketAnalysisResult = await calc.analyzeMarketConditions({
           category: input.category,
@@ -82,14 +99,23 @@ export class PricingEngine {
       },
     };
     this.mlPredictor = {
-      async initialize() { /* no-op */ },
+      async initialize() {
+        /* no-op */
+      },
       async predict(_input: JobPricingInput) {
-        return { suggestedPrice: { min: 100, max: 300, optimal: 200 }, confidence: 0.5 };
-      }
+        return {
+          suggestedPrice: { min: 100, max: 300, optimal: 200 },
+          confidence: 0.5,
+        };
+      },
     };
     this.recommendationsEngine = {
-      async initialize() { /* no-op */ },
-      async generate() { return []; }
+      async initialize() {
+        /* no-op */
+      },
+      async generate() {
+        return [];
+      },
     };
   }
 
@@ -104,7 +130,7 @@ export class PricingEngine {
         this.complexityAnalyzer.initialize(),
         this.marketAnalyzer.initialize(),
         this.mlPredictor.initialize(),
-        this.recommendationsEngine.initialize()
+        this.recommendationsEngine.initialize(),
       ]);
 
       this.initialized = true;
@@ -123,51 +149,63 @@ export class PricingEngine {
 
     return measurePerformance('pricing_engine', async () => {
       return circuitBreakerManager.execute('ml_service', async () => {
-        logger.info('Starting comprehensive pricing analysis', { 
+        logger.info('Starting comprehensive pricing analysis', {
           jobTitle: input.title,
-          category: input.category 
+          category: input.category,
         });
 
         try {
           // Step 1: Run all analyses in parallel for speed
-          const [complexityResult, marketResult, mlResult] = await Promise.allSettled([
-            this.complexityAnalyzer.analyze(input),
-            this.marketAnalyzer.analyze(input),
-            this.mlPredictor.predict(input)
-          ]);
+          const [complexityResult, marketResult, mlResult] =
+            await Promise.allSettled([
+              this.complexityAnalyzer.analyze(input),
+              this.marketAnalyzer.analyze(input),
+              this.mlPredictor.predict(input),
+            ]);
 
           // Extract results, handling failures gracefully
-          const complexity = this.extractResult(complexityResult, 'complexity analysis');
-          const marketData = this.extractResult(marketResult, 'market analysis');
+          const complexity = this.extractResult(
+            complexityResult,
+            'complexity analysis'
+          );
+          const marketData = this.extractResult(
+            marketResult,
+            'market analysis'
+          );
           const mlPrediction = this.extractResult(mlResult, 'ML prediction');
 
           // Step 2: Combine all analyses
-          const combinedAnalysis = this.combineAnalyses(complexity, marketData, mlPrediction, input);
+          const combinedAnalysis = this.combineAnalyses(
+            complexity,
+            marketData,
+            mlPrediction,
+            input
+          );
 
           // Step 3: Generate recommendations
           const recommendations = await this.recommendationsEngine.generate(
             combinedAnalysis as any,
             complexity,
-            (marketData || this.getDefaultMarketData(input.category)) as MarketContext,
+            (marketData ||
+              this.getDefaultMarketData(input.category)) as MarketContext,
             mlPrediction
           );
 
           const finalAnalysis: PricingAnalysis = {
             ...combinedAnalysis,
-            recommendations
+            recommendations,
           };
 
           logger.info('Pricing analysis completed', {
             optimal: finalAnalysis.suggestedPrice.optimal,
             confidence: finalAnalysis.confidence,
-            complexity: finalAnalysis.complexity
+            complexity: finalAnalysis.complexity,
           });
 
           return finalAnalysis;
-
         } catch (error) {
           logger.error('Pricing analysis failed:', error);
-          
+
           // Fallback to basic pricing
           return this.generateFallbackPricing(input);
         }
@@ -185,7 +223,10 @@ export class PricingEngine {
     if (result.status === 'fulfilled') {
       return result.value;
     } else {
-      logger.warn(`${analysisType} failed, continuing with available data:`, result.reason);
+      logger.warn(
+        `${analysisType} failed, continuing with available data:`,
+        result.reason
+      );
       return null;
     }
   }
@@ -204,9 +245,13 @@ export class PricingEngine {
       return {
         suggestedPrice: mlPrediction.suggestedPrice,
         confidence: mlPrediction.confidence,
-        factors: this.combinePricingFactors(complexity, marketData, mlPrediction),
+        factors: this.combinePricingFactors(
+          complexity,
+          marketData,
+          mlPrediction
+        ),
         marketData: marketData || this.getDefaultMarketData(input.category),
-        complexity: this.determineComplexity(complexity, mlPrediction)
+        complexity: this.determineComplexity(complexity, mlPrediction),
       };
     }
 
@@ -216,18 +261,20 @@ export class PricingEngine {
       const complexityMultiplier = complexity.overallComplexity || 1.0;
       const marketMultiplier = marketData.locationMultiplier || 1.0;
 
-      const optimalPrice = Math.round(basePrice * complexityMultiplier * marketMultiplier);
+      const optimalPrice = Math.round(
+        basePrice * complexityMultiplier * marketMultiplier
+      );
 
       return {
         suggestedPrice: {
           min: Math.round(optimalPrice * 0.8),
           max: Math.round(optimalPrice * 1.3),
-          optimal: optimalPrice
+          optimal: optimalPrice,
         },
         confidence: 0.7, // Lower confidence without ML
         factors: this.combinePricingFactors(complexity, marketData, null),
-        marketData: marketData,
-        complexity: this.determineComplexity(complexity, null)
+        marketData,
+        complexity: this.determineComplexity(complexity, null),
       };
     }
 
@@ -237,17 +284,19 @@ export class PricingEngine {
       suggestedPrice: {
         min: Math.round(basePrice * 0.8),
         max: Math.round(basePrice * 1.3),
-        optimal: basePrice
+        optimal: basePrice,
       },
       confidence: 0.5,
-      factors: [{
-        name: 'Base Category Pricing',
-        impact: 0,
-        description: `Standard rate for ${input.category} category`,
-        weight: 1.0
-      }],
+      factors: [
+        {
+          name: 'Base Category Pricing',
+          impact: 0,
+          description: `Standard rate for ${input.category} category`,
+          weight: 1.0,
+        },
+      ],
       marketData: this.getDefaultMarketData(input.category),
-      complexity: 'moderate' as const
+      complexity: 'moderate' as const,
     };
   }
 
@@ -272,7 +321,7 @@ export class PricingEngine {
         name: 'Job Complexity',
         impact: (complexity.overallComplexity - 0.5) * 2,
         description: `Complexity score: ${(complexity.overallComplexity * 100).toFixed(0)}%`,
-        weight: 0.3
+        weight: 0.3,
       });
 
       if (complexity.riskLevel > 0.6) {
@@ -280,7 +329,7 @@ export class PricingEngine {
           name: 'Risk Assessment',
           impact: complexity.riskLevel * 0.4,
           description: `High risk job requiring additional precautions`,
-          weight: 0.2
+          weight: 0.2,
         });
       }
     }
@@ -289,10 +338,14 @@ export class PricingEngine {
     if (marketData) {
       factors.push({
         name: 'Market Conditions',
-        impact: (marketData.demandLevel === 'high' ? 0.2 : 
-                 marketData.demandLevel === 'low' ? -0.1 : 0),
+        impact:
+          marketData.demandLevel === 'high'
+            ? 0.2
+            : marketData.demandLevel === 'low'
+              ? -0.1
+              : 0,
         description: `Market demand is currently ${marketData.demandLevel}`,
-        weight: 0.15
+        weight: 0.15,
       });
 
       if (marketData.locationMultiplier !== 1.0) {
@@ -300,7 +353,7 @@ export class PricingEngine {
           name: 'Location Premium',
           impact: (marketData.locationMultiplier - 1) * 0.6,
           description: `Location adjustment: ${((marketData.locationMultiplier - 1) * 100).toFixed(0)}%`,
-          weight: 0.15
+          weight: 0.15,
         });
       }
     }
@@ -334,15 +387,15 @@ export class PricingEngine {
    */
   private calculateBasePrice(category: string): number {
     const basePrices = {
-      'plumbing': 120,
-      'electrical': 140,
-      'carpentry': 90,
-      'painting': 60,
-      'gardening': 45,
-      'roofing': 200,
-      'cleaning': 35,
-      'heating': 150,
-      'flooring': 95
+      plumbing: 120,
+      electrical: 140,
+      carpentry: 90,
+      painting: 60,
+      gardening: 45,
+      roofing: 200,
+      cleaning: 35,
+      heating: 150,
+      flooring: 95,
     };
 
     return basePrices[category as keyof typeof basePrices] || 80;
@@ -354,11 +407,14 @@ export class PricingEngine {
   private getDefaultMarketData(category: string): MarketContext {
     return {
       averagePrice: this.calculateBasePrice(category),
-      priceRange: [this.calculateBasePrice(category) * 0.7, this.calculateBasePrice(category) * 1.4],
+      priceRange: [
+        this.calculateBasePrice(category) * 0.7,
+        this.calculateBasePrice(category) * 1.4,
+      ],
       demandLevel: 'medium',
       seasonalFactor: 1.0,
       locationMultiplier: 1.0,
-      contractorAvailability: 0.6
+      contractorAvailability: 0.6,
     };
   }
 
@@ -367,16 +423,16 @@ export class PricingEngine {
    */
   private generateFallbackPricing(input: JobPricingInput): PricingAnalysis {
     const basePrice = this.calculateBasePrice(input.category);
-    const urgencyMultiplier = input.urgency === 'high' ? 1.3 : 
-                             input.urgency === 'medium' ? 1.1 : 1.0;
-    
+    const urgencyMultiplier =
+      input.urgency === 'high' ? 1.3 : input.urgency === 'medium' ? 1.1 : 1.0;
+
     const finalPrice = Math.round(basePrice * urgencyMultiplier);
 
     return {
       suggestedPrice: {
         min: Math.round(finalPrice * 0.8),
         max: Math.round(finalPrice * 1.3),
-        optimal: finalPrice
+        optimal: finalPrice,
       },
       confidence: 0.6,
       factors: [
@@ -384,22 +440,22 @@ export class PricingEngine {
           name: 'Base Category Rate',
           impact: 0,
           description: `Standard ${input.category} service rate`,
-          weight: 0.7
+          weight: 0.7,
         },
         {
           name: 'Urgency Adjustment',
           impact: (urgencyMultiplier - 1) * 0.8,
           description: `${input.urgency || 'standard'} priority job`,
-          weight: 0.3
-        }
+          weight: 0.3,
+        },
       ],
       marketData: this.getDefaultMarketData(input.category),
       recommendations: [
         'Pricing based on category standards due to limited analysis data',
         'Consider providing more job details for better price accuracy',
-        'Recommended to get multiple quotes for comparison'
+        'Recommended to get multiple quotes for comparison',
       ],
-      complexity: 'moderate'
+      complexity: 'moderate',
     };
   }
 
@@ -417,8 +473,8 @@ export class PricingEngine {
         complexityAnalyzer: true,
         marketAnalyzer: true,
         mlPredictor: true,
-        recommendationsEngine: true
-      }
+        recommendationsEngine: true,
+      },
     };
   }
 }

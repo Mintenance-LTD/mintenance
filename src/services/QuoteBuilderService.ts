@@ -117,7 +117,10 @@ export interface CreateQuoteTemplateData {
   default_markup_percentage?: number;
   default_discount_percentage?: number;
   terms_and_conditions?: string;
-  line_items?: Omit<QuoteLineItemTemplate, 'id' | 'template_id' | 'created_at'>[];
+  line_items?: Omit<
+    QuoteLineItemTemplate,
+    'id' | 'template_id' | 'created_at'
+  >[];
 }
 
 export interface CreateQuoteData {
@@ -134,7 +137,10 @@ export interface CreateQuoteData {
   valid_until?: string;
   terms_and_conditions?: string;
   notes?: string;
-  line_items: Omit<QuoteLineItem, 'id' | 'quote_id' | 'subtotal' | 'created_at'>[];
+  line_items: Omit<
+    QuoteLineItem,
+    'id' | 'quote_id' | 'subtotal' | 'created_at'
+  >[];
 }
 
 export interface UpdateQuoteData {
@@ -196,7 +202,7 @@ export class QuoteBuilderService {
           default_discount_percentage: templateData.default_discount_percentage,
           terms_and_conditions: templateData.terms_and_conditions,
           is_active: true,
-          usage_count: 0
+          usage_count: 0,
         })
         .select()
         .single();
@@ -207,7 +213,7 @@ export class QuoteBuilderService {
         const lineItems = templateData.line_items.map((item, index) => ({
           template_id: template.id,
           ...item,
-          sort_order: index + 1
+          sort_order: index + 1,
         }));
 
         const { error: lineItemsError } = await supabase
@@ -224,7 +230,9 @@ export class QuoteBuilderService {
     }
   }
 
-  static async getQuoteTemplates(contractorId: string): Promise<QuoteTemplate[]> {
+  static async getQuoteTemplates(
+    contractorId: string
+  ): Promise<QuoteTemplate[]> {
     try {
       const { data, error } = await supabase
         .from('quote_templates')
@@ -241,7 +249,9 @@ export class QuoteBuilderService {
     }
   }
 
-  static async getQuoteTemplate(templateId: string): Promise<QuoteTemplate | null> {
+  static async getQuoteTemplate(
+    templateId: string
+  ): Promise<QuoteTemplate | null> {
     try {
       const { data, error } = await supabase
         .from('quote_templates')
@@ -258,7 +268,9 @@ export class QuoteBuilderService {
     }
   }
 
-  static async getQuoteTemplateLineItems(templateId: string): Promise<QuoteLineItemTemplate[]> {
+  static async getQuoteTemplateLineItems(
+    templateId: string
+  ): Promise<QuoteLineItemTemplate[]> {
     try {
       const { data, error } = await supabase
         .from('quote_line_item_templates')
@@ -287,7 +299,7 @@ export class QuoteBuilderService {
           default_markup_percentage: templateData.default_markup_percentage,
           default_discount_percentage: templateData.default_discount_percentage,
           terms_and_conditions: templateData.terms_and_conditions,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', templateId)
         .select()
@@ -326,7 +338,7 @@ export class QuoteBuilderService {
         subtotal += itemSubtotal;
         return {
           ...item,
-          subtotal: itemSubtotal
+          subtotal: itemSubtotal,
         };
       });
 
@@ -350,7 +362,7 @@ export class QuoteBuilderService {
           client_phone: quoteData.client_phone,
           project_title: quoteData.project_title,
           project_description: quoteData.project_description,
-          subtotal: subtotal,
+          subtotal,
           tax_amount: taxAmount,
           discount_amount: discountAmount,
           total_amount: totalAmount,
@@ -362,7 +374,7 @@ export class QuoteBuilderService {
           valid_until: quoteData.valid_until,
           terms_and_conditions: quoteData.terms_and_conditions,
           notes: quoteData.notes,
-          template_id: quoteData.template_id
+          template_id: quoteData.template_id,
         })
         .select()
         .single();
@@ -379,7 +391,7 @@ export class QuoteBuilderService {
         subtotal: item.subtotal,
         category: item.category,
         is_taxable: item.is_taxable,
-        sort_order: index + 1
+        sort_order: index + 1,
       }));
 
       const { error: lineItemsError } = await supabase
@@ -403,10 +415,11 @@ export class QuoteBuilderService {
           view_count: 0,
           download_count: 0,
           share_count: 0,
-          client_engagement_score: 0
+          client_engagement_score: 0,
         });
 
-      if (analyticsError) console.warn('Failed to create quote analytics:', analyticsError);
+      if (analyticsError)
+        console.warn('Failed to create quote analytics:', analyticsError);
 
       return quote;
     } catch (error) {
@@ -508,7 +521,7 @@ export class QuoteBuilderService {
         .from('contractor_quotes')
         .update({
           ...quoteData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', quoteId)
         .select()
@@ -519,7 +532,7 @@ export class QuoteBuilderService {
       if (quoteData.status) {
         await this.trackQuoteInteraction(quoteId, 'shared', {
           new_status: quoteData.status,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
 
@@ -537,7 +550,7 @@ export class QuoteBuilderService {
         .update({
           status: 'sent',
           sent_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', quoteId)
         .select()
@@ -574,7 +587,7 @@ export class QuoteBuilderService {
         tax_rate: originalQuote.tax_rate,
         terms_and_conditions: originalQuote.terms_and_conditions,
         notes: originalQuote.notes,
-        line_items: lineItems.map(item => ({
+        line_items: lineItems.map((item) => ({
           item_name: item.item_name,
           item_description: item.item_description,
           quantity: item.quantity,
@@ -582,8 +595,8 @@ export class QuoteBuilderService {
           unit: item.unit,
           category: item.category,
           is_taxable: item.is_taxable,
-          sort_order: item.sort_order
-        }))
+          sort_order: item.sort_order,
+        })),
       };
 
       return await this.createQuote(originalQuote.contractor_id, duplicateData);
@@ -614,7 +627,9 @@ export class QuoteBuilderService {
     }
   }
 
-  static async getQuoteSummaryStats(contractorId: string): Promise<QuoteSummaryStats> {
+  static async getQuoteSummaryStats(
+    contractorId: string
+  ): Promise<QuoteSummaryStats> {
     try {
       const { data, error } = await supabase
         .from('contractor_quotes')
@@ -625,19 +640,30 @@ export class QuoteBuilderService {
 
       const quotes = data || [];
       const totalQuotes = quotes.length;
-      const draftQuotes = quotes.filter((q: any) => q.status === 'draft').length;
+      const draftQuotes = quotes.filter(
+        (q: any) => q.status === 'draft'
+      ).length;
       const sentQuotes = quotes.filter((q: any) => q.status === 'sent').length;
-      const acceptedQuotes = quotes.filter((q: any) => q.status === 'accepted').length;
-      const rejectedQuotes = quotes.filter((q: any) => q.status === 'rejected').length;
+      const acceptedQuotes = quotes.filter(
+        (q: any) => q.status === 'accepted'
+      ).length;
+      const rejectedQuotes = quotes.filter(
+        (q: any) => q.status === 'rejected'
+      ).length;
 
-      const totalValue = quotes.reduce((sum: number, q: any) => sum + (q.total_amount || 0), 0);
+      const totalValue = quotes.reduce(
+        (sum: number, q: any) => sum + (q.total_amount || 0),
+        0
+      );
       const acceptedValue = quotes
         .filter((q: any) => q.status === 'accepted')
         .reduce((sum: number, q: any) => sum + (q.total_amount || 0), 0);
 
       const averageQuoteValue = totalQuotes > 0 ? totalValue / totalQuotes : 0;
-      const acceptanceRate = sentQuotes > 0 ? (acceptedQuotes / sentQuotes) * 100 : 0;
-      const conversionRate = totalQuotes > 0 ? (acceptedQuotes / totalQuotes) * 100 : 0;
+      const acceptanceRate =
+        sentQuotes > 0 ? (acceptedQuotes / sentQuotes) * 100 : 0;
+      const conversionRate =
+        totalQuotes > 0 ? (acceptedQuotes / totalQuotes) * 100 : 0;
 
       return {
         total_quotes: totalQuotes,
@@ -649,7 +675,7 @@ export class QuoteBuilderService {
         accepted_value: acceptedValue,
         average_quote_value: averageQuoteValue,
         acceptance_rate: acceptanceRate,
-        conversion_rate: conversionRate
+        conversion_rate: conversionRate,
       };
     } catch (error) {
       console.error('Error fetching quote summary stats:', error);
@@ -663,26 +689,26 @@ export class QuoteBuilderService {
     details?: any
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('quote_interactions')
-        .insert({
-          quote_id: quoteId,
-          interaction_type: interactionType,
-          interaction_details: details
-        });
+      const { error } = await supabase.from('quote_interactions').insert({
+        quote_id: quoteId,
+        interaction_type: interactionType,
+        interaction_details: details,
+      });
 
       if (error) throw error;
 
       await supabase.rpc('update_quote_analytics_on_interaction', {
         p_quote_id: quoteId,
-        p_interaction_type: interactionType
+        p_interaction_type: interactionType,
       });
     } catch (error) {
       console.error('Error tracking quote interaction:', error);
     }
   }
 
-  static async getQuoteAnalytics(quoteId: string): Promise<QuoteAnalytics | null> {
+  static async getQuoteAnalytics(
+    quoteId: string
+  ): Promise<QuoteAnalytics | null> {
     try {
       const { data, error } = await supabase
         .from('quote_analytics')
@@ -733,7 +759,7 @@ export class QuoteBuilderService {
           changes_summary: changesSummary,
           previous_total: previousTotal,
           new_total: newTotal,
-          revised_by: revisedBy
+          revised_by: revisedBy,
         })
         .select()
         .single();

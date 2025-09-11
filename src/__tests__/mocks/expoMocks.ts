@@ -2,26 +2,29 @@ import { jest } from '@jest/globals';
 
 // Expo Modules Mock Factory
 export class ExpoMockFactory {
-  
   // Expo Notifications Mock
   static createNotificationsMock() {
     return {
       setNotificationHandler: jest.fn(),
-      getPermissionsAsync: jest.fn(() => 
+      getPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
-      requestPermissionsAsync: jest.fn(() => 
+      requestPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
-      getExpoPushTokenAsync: jest.fn(() => 
+      getExpoPushTokenAsync: jest.fn(() =>
         Promise.resolve({ data: 'ExponentPushToken[test-token]' })
       ),
       setNotificationChannelAsync: jest.fn(),
-      scheduleNotificationAsync: jest.fn(() => Promise.resolve('notification-id')),
+      scheduleNotificationAsync: jest.fn(() =>
+        Promise.resolve('notification-id')
+      ),
       cancelScheduledNotificationAsync: jest.fn(),
       cancelAllScheduledNotificationsAsync: jest.fn(),
       addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-      addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+      addNotificationResponseReceivedListener: jest.fn(() => ({
+        remove: jest.fn(),
+      })),
       setBadgeCountAsync: jest.fn(),
       getBadgeCountAsync: jest.fn(() => Promise.resolve(0)),
       dismissNotificationAsync: jest.fn(),
@@ -39,7 +42,7 @@ export class ExpoMockFactory {
     };
   }
 
-  // Expo Device Mock  
+  // Expo Device Mock
   static createDeviceMock() {
     return {
       isDevice: true,
@@ -85,13 +88,13 @@ export class ExpoMockFactory {
   // Expo Location Mock
   static createLocationMock() {
     return {
-      requestForegroundPermissionsAsync: jest.fn(() => 
+      requestForegroundPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
-      requestBackgroundPermissionsAsync: jest.fn(() => 
+      requestBackgroundPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
-      getCurrentPositionAsync: jest.fn(() => 
+      getCurrentPositionAsync: jest.fn(() =>
         Promise.resolve({
           coords: {
             latitude: 37.7749,
@@ -123,9 +126,9 @@ export class ExpoMockFactory {
   // Expo SecureStore Mock
   static createSecureStoreMock() {
     const store = new Map<string, string>();
-    
+
     return {
-      getItemAsync: jest.fn((key: string) => 
+      getItemAsync: jest.fn((key: string) =>
         Promise.resolve(store.get(key) || null)
       ),
       setItemAsync: jest.fn((key: string, value: string) => {
@@ -144,34 +147,38 @@ export class ExpoMockFactory {
   // Expo Image Picker Mock
   static createImagePickerMock() {
     return {
-      launchImageLibraryAsync: jest.fn(() => 
+      launchImageLibraryAsync: jest.fn(() =>
         Promise.resolve({
           canceled: false,
-          assets: [{
-            uri: 'file://test-image.jpg',
-            width: 1000,
-            height: 1000,
-            type: 'image',
-            fileSize: 500000,
-          }],
+          assets: [
+            {
+              uri: 'file://test-image.jpg',
+              width: 1000,
+              height: 1000,
+              type: 'image',
+              fileSize: 500000,
+            },
+          ],
         })
       ),
-      launchCameraAsync: jest.fn(() => 
+      launchCameraAsync: jest.fn(() =>
         Promise.resolve({
           canceled: false,
-          assets: [{
-            uri: 'file://test-camera-image.jpg',
-            width: 1000,
-            height: 1000,
-            type: 'image',
-            fileSize: 500000,
-          }],
+          assets: [
+            {
+              uri: 'file://test-camera-image.jpg',
+              width: 1000,
+              height: 1000,
+              type: 'image',
+              fileSize: 500000,
+            },
+          ],
         })
       ),
-      requestMediaLibraryPermissionsAsync: jest.fn(() => 
+      requestMediaLibraryPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
-      requestCameraPermissionsAsync: jest.fn(() => 
+      requestCameraPermissionsAsync: jest.fn(() =>
         Promise.resolve({ status: 'granted', canAskAgain: true, granted: true })
       ),
       MediaTypeOptions: {
@@ -189,7 +196,7 @@ export class ExpoMockFactory {
       hasHardwareAsync: jest.fn(() => Promise.resolve(true)),
       isEnrolledAsync: jest.fn(() => Promise.resolve(true)),
       supportedAuthenticationTypesAsync: jest.fn(() => Promise.resolve([1, 2])),
-      authenticateAsync: jest.fn(() => 
+      authenticateAsync: jest.fn(() =>
         Promise.resolve({ success: true, error: undefined })
       ),
       cancelAuthenticate: jest.fn(),

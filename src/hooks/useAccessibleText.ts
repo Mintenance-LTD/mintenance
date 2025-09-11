@@ -7,15 +7,20 @@ interface UseAccessibleTextOptions {
   minScale?: number;
 }
 
-export const useAccessibleText = (baseFontSize: number, options: UseAccessibleTextOptions = {}) => {
+export const useAccessibleText = (
+  baseFontSize: number,
+  options: UseAccessibleTextOptions = {}
+) => {
   const { maxScale = 1.3, minScale = 0.8 } = options;
-  const [fontSize, setFontSize] = useState(scaledFontSize(baseFontSize, maxScale));
+  const [fontSize, setFontSize] = useState(
+    scaledFontSize(baseFontSize, maxScale)
+  );
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
 
   useEffect(() => {
     // Check if screen reader is enabled
     AccessibilityInfo.isScreenReaderEnabled().then(setIsScreenReaderEnabled);
-    
+
     // Listen for screen reader changes
     const subscription = AccessibilityInfo.addEventListener(
       'screenReaderChanged',
@@ -26,7 +31,7 @@ export const useAccessibleText = (baseFontSize: number, options: UseAccessibleTe
     const updateFontSize = () => {
       const scaledSize = scaledFontSize(baseFontSize, maxScale);
       const constrainedSize = Math.max(
-        baseFontSize * minScale, 
+        baseFontSize * minScale,
         Math.min(scaledSize, baseFontSize * maxScale)
       );
       setFontSize(constrainedSize);
@@ -55,8 +60,10 @@ export const useAccessibleColors = () => {
 
   useEffect(() => {
     // Check for high contrast preference (iOS 13+)
-    AccessibilityInfo.isHighTextContrastEnabled?.().then(setIsHighContrastEnabled);
-    
+    AccessibilityInfo.isHighTextContrastEnabled?.().then(
+      setIsHighContrastEnabled
+    );
+
     const subscription = AccessibilityInfo.addEventListener?.(
       'highTextContrastChanged' as any,
       setIsHighContrastEnabled
@@ -71,7 +78,9 @@ export const useAccessibleColors = () => {
     colors: {
       ...theme.colors,
       textPrimary: isHighContrastEnabled ? '#000000' : theme.colors.textPrimary,
-      textSecondary: isHighContrastEnabled ? '#1F1F1F' : theme.colors.textSecondary,
+      textSecondary: isHighContrastEnabled
+        ? '#1F1F1F'
+        : theme.colors.textSecondary,
       background: isHighContrastEnabled ? '#FFFFFF' : theme.colors.background,
     },
   };
@@ -83,7 +92,7 @@ export const useAccessibleTouchTarget = (baseSize: number) => {
 
   useEffect(() => {
     AccessibilityInfo.isScreenReaderEnabled().then(setIsScreenReaderEnabled);
-    
+
     const subscription = AccessibilityInfo.addEventListener(
       'screenReaderChanged',
       setIsScreenReaderEnabled
@@ -93,8 +102,8 @@ export const useAccessibleTouchTarget = (baseSize: number) => {
   }, []);
 
   // Increase touch targets when screen reader is enabled
-  const accessibleSize = isScreenReaderEnabled 
-    ? Math.max(baseSize, 44) 
+  const accessibleSize = isScreenReaderEnabled
+    ? Math.max(baseSize, 44)
     : Math.max(baseSize, 44); // Always meet minimum 44px
 
   return {

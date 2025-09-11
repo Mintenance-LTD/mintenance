@@ -13,7 +13,15 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData: { firstName: string; lastName: string; role: 'homeowner' | 'contractor' }) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    userData: {
+      firstName: string;
+      lastName: string;
+      role: 'homeowner' | 'contractor';
+    }
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithBiometrics: () => Promise<void>;
   isBiometricAvailable: () => Promise<boolean>;
@@ -31,14 +39,26 @@ export const useAuth = () => {
     return {
       user: null,
       loading: false,
-      signIn: async () => { console.log('Auth not available - using fallback'); },
-      signUp: async () => { console.log('Auth not available - using fallback'); },
-      signOut: async () => { console.log('Auth not available - using fallback'); },
-      signInWithBiometrics: async () => { console.log('Biometric auth not available - using fallback'); },
+      signIn: async () => {
+        console.log('Auth not available - using fallback');
+      },
+      signUp: async () => {
+        console.log('Auth not available - using fallback');
+      },
+      signOut: async () => {
+        console.log('Auth not available - using fallback');
+      },
+      signInWithBiometrics: async () => {
+        console.log('Biometric auth not available - using fallback');
+      },
       isBiometricAvailable: async () => false,
       isBiometricEnabled: async () => false,
-      enableBiometric: async () => { console.log('Biometric auth not available - using fallback'); },
-      disableBiometric: async () => { console.log('Biometric auth not available - using fallback'); },
+      enableBiometric: async () => {
+        console.log('Biometric auth not available - using fallback');
+      },
+      disableBiometric: async () => {
+        console.log('Biometric auth not available - using fallback');
+      },
     };
   }
   return context;
@@ -58,17 +78,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: 'demo@mintenance.com',
     firstName: 'Demo',
     lastName: 'User',
-    role: 'homeowner'
+    role: 'homeowner',
   };
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
       console.log('Demo sign in for:', email);
-      
+
       // Simulate a brief loading time
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Set demo user
       setUser(demoUser);
       console.log('Demo user signed in successfully');
@@ -80,21 +100,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, userData: { firstName: string; lastName: string; role: 'homeowner' | 'contractor' }) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    userData: {
+      firstName: string;
+      lastName: string;
+      role: 'homeowner' | 'contractor';
+    }
+  ) => {
     try {
       setLoading(true);
       console.log('Demo sign up for:', email);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const newUser: User = {
-        id: 'demo-user-' + Date.now(),
+        id: `demo-user-${Date.now()}`,
         email,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        role: userData.role
+        role: userData.role,
       };
-      
+
       setUser(newUser);
       console.log('Demo user signed up successfully');
     } catch (error) {
@@ -121,8 +149,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isBiometricAvailable = async () => false;
   const isBiometricEnabled = async () => false;
-  const enableBiometric = async () => { throw new Error('Biometric authentication not available'); };
-  const disableBiometric = async () => { throw new Error('Biometric authentication not available'); };
+  const enableBiometric = async () => {
+    throw new Error('Biometric authentication not available');
+  };
+  const disableBiometric = async () => {
+    throw new Error('Biometric authentication not available');
+  };
 
   const value: AuthContextType = {
     user,
@@ -137,9 +169,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     disableBiometric,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

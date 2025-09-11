@@ -9,7 +9,7 @@ export const initSentry = () => {
   if (!isFeatureEnabled('enableCrashReporting') || !config.sentryDsn) {
     console.log('Sentry disabled:', {
       crashReportingEnabled: isFeatureEnabled('enableCrashReporting'),
-      hasDsn: !!config.sentryDsn
+      hasDsn: !!config.sentryDsn,
     });
     // Set up no-op functions for logger
     setSentryFunctions({
@@ -32,7 +32,7 @@ export const initSentry = () => {
         return null;
       }
       return event;
-    }
+    },
   });
 
   // Set up Sentry functions for logger after initialization
@@ -44,7 +44,10 @@ export const initSentry = () => {
 };
 
 export const captureException = (error: Error, extra?: Record<string, any>) => {
-  if (!isFeatureEnabled('enableCrashReporting') || config.environment === 'development') {
+  if (
+    !isFeatureEnabled('enableCrashReporting') ||
+    config.environment === 'development'
+  ) {
     console.error('Error:', error, extra);
     return;
   }
@@ -54,8 +57,14 @@ export const captureException = (error: Error, extra?: Record<string, any>) => {
   });
 };
 
-export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
-  if (!isFeatureEnabled('enableCrashReporting') || config.environment === 'development') {
+export const captureMessage = (
+  message: string,
+  level: Sentry.SeverityLevel = 'info'
+) => {
+  if (
+    !isFeatureEnabled('enableCrashReporting') ||
+    config.environment === 'development'
+  ) {
     console.log(`[${level.toUpperCase()}] ${message}`);
     return;
   }
@@ -70,7 +79,7 @@ export const setUserContext = (user: User | null) => {
       email: user.email,
       username: `${user.first_name} ${user.last_name}`,
     });
-    
+
     // Set additional context
     Sentry.setContext('user_profile', {
       role: user.role,
@@ -82,7 +91,11 @@ export const setUserContext = (user: User | null) => {
   }
 };
 
-export const addBreadcrumb = (message: string, category?: string, data?: Record<string, any>) => {
+export const addBreadcrumb = (
+  message: string,
+  category?: string,
+  data?: Record<string, any>
+) => {
   Sentry.addBreadcrumb({
     message,
     category: category || 'app',
@@ -94,7 +107,10 @@ export const addBreadcrumb = (message: string, category?: string, data?: Record<
 
 // Performance monitoring utilities
 export const startTransaction = (name: string, op: string) => {
-  if (!isFeatureEnabled('enablePerformanceMonitoring') || config.environment === 'development') {
+  if (
+    !isFeatureEnabled('enablePerformanceMonitoring') ||
+    config.environment === 'development'
+  ) {
     console.log(`Transaction started: ${name} (${op})`);
     return null;
   }
@@ -103,7 +119,7 @@ export const startTransaction = (name: string, op: string) => {
     message: `Transaction started: ${name}`,
     level: 'info',
     category: 'performance',
-    data: { op }
+    data: { op },
   });
   return { name, op, finish: () => {} }; // Return mock transaction
 };
@@ -114,33 +130,39 @@ export const measureAsyncPerformance = async <T>(
   op: string = 'function'
 ): Promise<T> => {
   const startTime = Date.now();
-  
+
   try {
     const result = await operation();
     const duration = Date.now() - startTime;
-    
-    if (isFeatureEnabled('enablePerformanceMonitoring') && config.environment !== 'development') {
+
+    if (
+      isFeatureEnabled('enablePerformanceMonitoring') &&
+      config.environment !== 'development'
+    ) {
       Sentry.addBreadcrumb({
         message: `${name} completed in ${duration}ms`,
         level: 'info',
         category: 'performance',
-        data: { op, duration }
+        data: { op, duration },
       });
     }
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    
-    if (isFeatureEnabled('enablePerformanceMonitoring') && config.environment !== 'development') {
+
+    if (
+      isFeatureEnabled('enablePerformanceMonitoring') &&
+      config.environment !== 'development'
+    ) {
       Sentry.addBreadcrumb({
         message: `${name} failed after ${duration}ms`,
         level: 'error',
         category: 'performance',
-        data: { op, duration, error: (error as Error).message }
+        data: { op, duration, error: (error as Error).message },
       });
     }
-    
+
     captureException(error as Error, { operation: name });
     throw error;
   }
@@ -150,16 +172,16 @@ export const measureAsyncPerformance = async <T>(
 export const trackNetworkRequest = (url: string, method: string) => {
   const requestId = `${method.toUpperCase()}_${url}`;
   const startTime = Date.now();
-  
+
   if (!__DEV__) {
     Sentry.addBreadcrumb({
       message: `Network request: ${method.toUpperCase()} ${url}`,
       level: 'info',
       category: 'http',
-      data: { url, method, startTime }
+      data: { url, method, startTime },
     });
   }
-  
+
   return {
     success: (status: number) => {
       const duration = Date.now() - startTime;
@@ -168,7 +190,7 @@ export const trackNetworkRequest = (url: string, method: string) => {
           message: `Request success: ${requestId} (${status}) in ${duration}ms`,
           level: 'info',
           category: 'http',
-          data: { url, method, status, duration }
+          data: { url, method, status, duration },
         });
       }
     },
@@ -179,7 +201,7 @@ export const trackNetworkRequest = (url: string, method: string) => {
           message: `Request failed: ${requestId} ${status ? `(${status})` : ''} in ${duration}ms`,
           level: 'error',
           category: 'http',
-          data: { url, method, status, duration, error: error.message }
+          data: { url, method, status, duration, error: error.message },
         });
       }
       captureException(error, { url, method, status });
@@ -188,13 +210,15 @@ export const trackNetworkRequest = (url: string, method: string) => {
 };
 
 // Navigation tracking
-export const trackNavigation = (screenName: string, previousScreen?: string) => {
-  addBreadcrumb(
-    `Navigated to ${screenName}`,
-    'navigation',
-    { screenName, previousScreen }
-  );
-  
+export const trackNavigation = (
+  screenName: string,
+  previousScreen?: string
+) => {
+  addBreadcrumb(`Navigated to ${screenName}`, 'navigation', {
+    screenName,
+    previousScreen,
+  });
+
   Sentry.setContext('screen', {
     current: screenName,
     previous: previousScreen,
@@ -203,7 +227,10 @@ export const trackNavigation = (screenName: string, previousScreen?: string) => 
 };
 
 // Business logic monitoring
-export const trackUserAction = (action: string, details?: Record<string, any>) => {
+export const trackUserAction = (
+  action: string,
+  details?: Record<string, any>
+) => {
   addBreadcrumb(`User action: ${action}`, 'user', details);
 };
 

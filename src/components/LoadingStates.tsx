@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
@@ -42,11 +48,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   return (
     <View style={styles.container}>
       {showSpinner && (
-        <ActivityIndicator 
-          size={size} 
-          color={color} 
-          style={styles.spinner}
-        />
+        <ActivityIndicator size={size} color={color} style={styles.spinner} />
       )}
       <Text style={styles.title}>{title}</Text>
       {message && <Text style={styles.message}>{message}</Text>}
@@ -68,24 +70,28 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <MaterialIcons 
-        name={icon} 
-        size={64} 
-        color={theme.colors.textSecondary} 
+      <MaterialIcons
+        name={icon}
+        size={64}
+        color={theme.colors.textSecondary}
         style={styles.icon}
       />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
-      
+
       {actionText && onActionPress && (
         <TouchableOpacity style={styles.primaryButton} onPress={onActionPress}>
           <Text style={styles.primaryButtonText}>{actionText}</Text>
         </TouchableOpacity>
       )}
-      
+
       {showRetry && onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-          <MaterialIcons name="refresh" size={20} color={theme.colors.primary} />
+          <MaterialIcons
+            name='refresh'
+            size={20}
+            color={theme.colors.primary}
+          />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -104,24 +110,28 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   isNetworkError = false,
 }) => {
   const errorIcon = isNetworkError ? 'wifi-off' : 'error-outline';
-  const defaultMessage = isNetworkError 
+  const defaultMessage = isNetworkError
     ? 'Please check your internet connection and try again.'
     : 'We encountered an unexpected error. Please try again.';
 
   return (
     <View style={styles.container}>
-      <MaterialIcons 
-        name={errorIcon} 
-        size={64} 
-        color={theme.colors.error} 
+      <MaterialIcons
+        name={errorIcon}
+        size={64}
+        color={theme.colors.error}
         style={styles.icon}
       />
       <Text style={styles.errorTitle}>{title}</Text>
       <Text style={styles.message}>{message || defaultMessage}</Text>
-      
+
       {showRetry && onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-          <MaterialIcons name="refresh" size={20} color={theme.colors.primary} />
+          <MaterialIcons
+            name='refresh'
+            size={20}
+            color={theme.colors.primary}
+          />
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       )}
@@ -162,7 +172,7 @@ export const InlineLoader: React.FC<{
 }> = ({ size = 16, color = theme.colors.primary, text }) => {
   return (
     <View style={styles.inlineContainer}>
-      <ActivityIndicator size="small" color={color} />
+      <ActivityIndicator size='small' color={color} />
       {text && <Text style={[styles.inlineText, { color }]}>{text}</Text>}
     </View>
   );
@@ -179,7 +189,7 @@ export const RefreshIndicator: React.FC<{
 
   return (
     <View style={styles.refreshContainer}>
-      <ActivityIndicator size="small" color={theme.colors.primary} />
+      <ActivityIndicator size='small' color={theme.colors.primary} />
       <Text style={styles.refreshText}>{message}</Text>
     </View>
   );
@@ -196,14 +206,19 @@ export const NetworkStatusIndicator: React.FC<{
   if (isOnline && !hasError) return null;
 
   return (
-    <View style={[styles.networkIndicator, !isOnline && styles.networkIndicatorOffline]}>
-      <MaterialIcons 
-        name={!isOnline ? 'wifi-off' : 'warning'} 
-        size={16} 
-        color={(theme.colors as any).white || '#FFFFFF'} 
+    <View
+      style={[
+        styles.networkIndicator,
+        !isOnline && styles.networkIndicatorOffline,
+      ]}
+    >
+      <MaterialIcons
+        name={!isOnline ? 'wifi-off' : 'warning'}
+        size={16}
+        color={(theme.colors as any).white || '#FFFFFF'}
       />
       <Text style={styles.networkText}>
-        {!isOnline ? 'You\'re offline' : 'Connection issues'}
+        {!isOnline ? "You're offline" : 'Connection issues'}
       </Text>
       {onRetry && (
         <TouchableOpacity onPress={onRetry} style={styles.networkRetry}>

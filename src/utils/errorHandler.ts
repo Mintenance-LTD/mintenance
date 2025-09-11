@@ -1,7 +1,6 @@
 import { Alert } from 'react-native';
 import { logger } from './logger';
 
-
 export interface AppError extends Error {
   code?: string;
   statusCode?: number;
@@ -14,7 +13,7 @@ export class ErrorHandler {
 
     // Extract user-friendly message
     const userMessage = this.getUserMessage(error);
-    
+
     // Show alert to user
     Alert.alert('Error', userMessage);
 
@@ -32,7 +31,7 @@ export class ErrorHandler {
 
     // Handle Supabase specific error codes first
     const errorCode = error?.code || error?.error_code;
-    
+
     // Supabase/PostgreSQL specific errors
     switch (errorCode) {
       case 'PGRST301':
@@ -63,14 +62,17 @@ export class ErrorHandler {
     // Message-based error detection for backward compatibility
     if (error.message) {
       const message = error.message.toLowerCase();
-      
+
       if (message.includes('invalid login credentials')) {
         return 'Invalid email or password. Please check your credentials and try again.';
       }
       if (message.includes('email not confirmed')) {
         return 'Please check your email and confirm your account before signing in.';
       }
-      if (message.includes('network request failed') || message.includes('fetch')) {
+      if (
+        message.includes('network request failed') ||
+        message.includes('fetch')
+      ) {
         return 'Network connection failed. Please check your internet connection and try again.';
       }
       if (message.includes('duplicate key')) {
@@ -82,7 +84,11 @@ export class ErrorHandler {
       if (message.includes('not found') || message.includes('pgrst116')) {
         return 'The requested item was not found.';
       }
-      if (message.includes('permission denied') || message.includes('row-level security') || message.includes('policy')) {
+      if (
+        message.includes('permission denied') ||
+        message.includes('row-level security') ||
+        message.includes('policy')
+      ) {
         return 'You do not have permission to perform this action.';
       }
       if (message.includes('password')) {
@@ -116,7 +122,10 @@ export class ErrorHandler {
     }
 
     // Network errors
-    if (error.code === 'NETWORK_ERROR' || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    if (
+      error.code === 'NETWORK_ERROR' ||
+      (typeof navigator !== 'undefined' && !navigator.onLine)
+    ) {
       return 'Please check your internet connection and try again.';
     }
 
@@ -126,12 +135,14 @@ export class ErrorHandler {
 
   static reportError(error: any, context?: string): void {
     // Import Sentry dynamically to avoid circular dependencies
-    import('../config/sentry').then(({ captureException }) => {
-      captureException(error, { context });
-    }).catch(() => {
-      // Fallback if Sentry fails
-      logger.error('Error reporting failed:', error, { context });
-    });
+    import('../config/sentry')
+      .then(({ captureException }) => {
+        captureException(error, { context });
+      })
+      .catch(() => {
+        // Fallback if Sentry fails
+        logger.error('Error reporting failed:', error, { context });
+      });
   }
 
   static async handleAsync<T>(
@@ -162,44 +173,66 @@ export class ErrorHandler {
   }
 
   static isNetworkError(error: any): boolean {
-    const offline = (typeof navigator !== 'undefined' && (navigator as any).onLine === false);
-    return error.code === 'NETWORK_ERROR' || 
-           error.message?.toLowerCase?.().includes('network') ||
-           offline;
+    const offline =
+      typeof navigator !== 'undefined' && (navigator as any).onLine === false;
+    return (
+      error.code === 'NETWORK_ERROR' ||
+      error.message?.toLowerCase?.().includes('network') ||
+      offline
+    );
   }
 
   static isAuthError(error: any): boolean {
-    return error.statusCode === 401 || 
-           error.code === '42501' ||
-           error.message?.includes('permission denied');
+    return (
+      error.statusCode === 401 ||
+      error.code === '42501' ||
+      error.message?.includes('permission denied')
+    );
   }
 
   static isValidationError(error: any): boolean {
-    return error.statusCode === 400 ||
-           error.statusCode === 422 ||
-           error.message?.includes('validation');
+    return (
+      error.statusCode === 400 ||
+      error.statusCode === 422 ||
+      error.message?.includes('validation')
+    );
   }
 
   // Validation helpers
   static validateEmail(email: string): void {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw this.createError('Invalid email format', 'VALIDATION_ERROR', 'Please enter a valid email address.');
+      throw this.createError(
+        'Invalid email format',
+        'VALIDATION_ERROR',
+        'Please enter a valid email address.'
+      );
     }
   }
 
   static validatePassword(password: string): void {
     if (!password || password.length < 8) {
-      throw this.createError('Password too short', 'VALIDATION_ERROR', 'Password must be at least 8 characters long.');
+      throw this.createError(
+        'Password too short',
+        'VALIDATION_ERROR',
+        'Password must be at least 8 characters long.'
+      );
     }
   }
 
   static validateRequired(value: any, fieldName: string): void {
     if (!value || (typeof value === 'string' && !value.trim())) {
-      throw this.createError(`${fieldName} is required`, 'VALIDATION_ERROR', `${fieldName} is required.`);
+      throw this.createError(
+        `${fieldName} is required`,
+        'VALIDATION_ERROR',
+        `${fieldName} is required.`
+      );
     }
   }
 
-  static validateRequiredFields(data: Record<string, any>, requiredFields: string[]): void {
+  static validateRequiredFields(
+    data: Record<string, any>,
+    requiredFields: string[]
+  ): void {
     for (const field of requiredFields) {
       this.validateRequired(data[field], field);
     }
@@ -216,32 +249,38 @@ export class ErrorHandler {
     } = {}
   ): Promise<T> {
     const { maxAttempts = 3, delay = 1000, backoff = true, context } = options;
-    
+
     let lastError: any;
-    
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry if it's not a network error or server error
         if (!this.shouldRetry(error)) {
           throw error;
         }
-        
+
         if (attempt === maxAttempts) {
-          logger.error(`Operation failed after ${maxAttempts} attempts`, { context, error });
+          logger.error(`Operation failed after ${maxAttempts} attempts`, {
+            context,
+            error,
+          });
           throw error;
         }
-        
+
         const retryDelay = backoff ? delay * Math.pow(2, attempt - 1) : delay;
-        logger.warn(`Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`, { context, error: (error as any)?.message || String(error) });
-        
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        logger.warn(
+          `Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`,
+          { context, error: (error as any)?.message || String(error) }
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
     }
-    
+
     throw lastError;
   }
 
@@ -249,11 +288,11 @@ export class ErrorHandler {
     // Retry network errors and server errors
     if (this.isNetworkError(error)) return true;
     if (error.statusCode >= 500) return true;
-    
+
     // Retry specific Supabase errors that might be temporary
     const retryableCodes = ['PGRST301', 'PGRST116']; // Sometimes these are temporary
     if (retryableCodes.includes(error.code)) return true;
-    
+
     return false;
   }
 }

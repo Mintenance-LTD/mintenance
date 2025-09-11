@@ -21,15 +21,20 @@ class OfflineManagerClass {
   private readonly OFFLINE_QUEUE_KEY = 'OFFLINE_QUEUE';
   private readonly MAX_RETRIES = 3;
   private syncInProgress = false;
-  private syncListeners: ((status: SyncStatus, pendingCount: number) => void)[] = [];
+  private syncListeners: ((
+    status: SyncStatus,
+    pendingCount: number
+  ) => void)[] = [];
 
-  async queueAction(action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>): Promise<string> {
+  async queueAction(
+    action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>
+  ): Promise<string> {
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     try {
       // Initialize local database
       await LocalDatabase.init();
-      
+
       // Queue action in local database
       await LocalDatabase.queueOfflineAction({
         id: actionId,
@@ -39,7 +44,7 @@ class OfflineManagerClass {
         maxRetries: action.maxRetries || this.MAX_RETRIES,
         queryKey: action.queryKey,
       });
-      
+
       logger.info('Action queued for offline sync', {
         actionId,
         type: action.type,
@@ -65,7 +70,7 @@ class OfflineManagerClass {
     try {
       await LocalDatabase.init();
       const actions = await LocalDatabase.getOfflineActions();
-      
+
       return actions.map((action: any) => ({
         id: action.id,
         type: action.type,
@@ -86,11 +91,11 @@ class OfflineManagerClass {
     try {
       await LocalDatabase.init();
       const actions = await LocalDatabase.getOfflineActions();
-      
+
       for (const action of actions) {
         await LocalDatabase.removeOfflineAction(action.id);
       }
-      
+
       this.notifySyncListeners('synced', 0);
       logger.info('Offline queue cleared');
     } catch (error) {
@@ -129,10 +134,10 @@ class OfflineManagerClass {
         try {
           await this.executeAction(action);
           syncedCount++;
-          
+
           // Remove successful action from database
           await LocalDatabase.removeOfflineAction(action.id);
-          
+
           // Invalidate related queries
           if (action.queryKey) {
             await queryClient.invalidateQueries({ queryKey: action.queryKey });
@@ -145,7 +150,7 @@ class OfflineManagerClass {
           });
         } catch (error) {
           action.retryCount++;
-          
+
           if (action.retryCount < action.maxRetries) {
             failedActions.push(action);
             logger.warn('Action failed, will retry', {
@@ -157,12 +162,16 @@ class OfflineManagerClass {
           } else {
             // Remove permanently failed actions
             await LocalDatabase.removeOfflineAction(action.id);
-            
-            logger.error('Action failed permanently, removed from queue', error, {
-              actionId: action.id,
-              type: action.type,
-              entity: action.entity,
-            });
+
+            logger.error(
+              'Action failed permanently, removed from queue',
+              error,
+              {
+                actionId: action.id,
+                type: action.type,
+                entity: action.entity,
+              }
+            );
           }
         }
       }
@@ -193,7 +202,7 @@ class OfflineManagerClass {
     // This would be implemented based on your specific API endpoints
     // For now, we'll simulate the action execution
     const { type, entity, data } = action;
-    
+
     logger.debug('Executing offline action', {
       type,
       entity,
@@ -201,7 +210,7 @@ class OfflineManagerClass {
     });
 
     // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Here you would implement actual API calls based on the action type and entity
     switch (entity) {
@@ -222,24 +231,34 @@ class OfflineManagerClass {
     }
   }
 
-  private async executeJobAction(type: OfflineAction['type'], data: any): Promise<void> {
+  private async executeJobAction(
+    type: OfflineAction['type'],
+    data: any
+  ): Promise<void> {
     const { JobService } = await import('./JobService');
-    
+
     switch (type) {
       case 'CREATE':
         await JobService.createJob(data);
         break;
       case 'UPDATE':
-        await JobService.updateJobStatus(data.jobId, data.status, data.contractorId);
+        await JobService.updateJobStatus(
+          data.jobId,
+          data.status,
+          data.contractorId
+        );
         break;
       default:
         throw new Error(`Unsupported job action: ${type}`);
     }
   }
 
-  private async executeBidAction(type: OfflineAction['type'], data: any): Promise<void> {
+  private async executeBidAction(
+    type: OfflineAction['type'],
+    data: any
+  ): Promise<void> {
     const { JobService } = await import('./JobService');
-    
+
     switch (type) {
       case 'CREATE':
         await JobService.submitBid(data);
@@ -254,21 +273,32 @@ class OfflineManagerClass {
     }
   }
 
-  private async executeMessageAction(type: OfflineAction['type'], data: any): Promise<void> {
+  private async executeMessageAction(
+    type: OfflineAction['type'],
+    data: any
+  ): Promise<void> {
     const { MessagingService } = await import('./MessagingService');
-    
+
     switch (type) {
       case 'CREATE':
-        await MessagingService.sendMessage(data.jobId, data.receiverId, data.message, data.senderId);
+        await MessagingService.sendMessage(
+          data.jobId,
+          data.receiverId,
+          data.message,
+          data.senderId
+        );
         break;
       default:
         throw new Error(`Unsupported message action: ${type}`);
     }
   }
 
-  private async executeProfileAction(type: OfflineAction['type'], data: any): Promise<void> {
+  private async executeProfileAction(
+    type: OfflineAction['type'],
+    data: any
+  ): Promise<void> {
     const { UserService } = await import('./UserService');
-    
+
     switch (type) {
       case 'UPDATE':
         await UserService.updateUserProfile(data.userId, data.updates);
@@ -278,9 +308,11 @@ class OfflineManagerClass {
     }
   }
 
-  onSyncStatusChange(callback: (status: SyncStatus, pendingCount: number) => void): () => void {
+  onSyncStatusChange(
+    callback: (status: SyncStatus, pendingCount: number) => void
+  ): () => void {
     this.syncListeners.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.syncListeners.indexOf(callback);
@@ -291,7 +323,7 @@ class OfflineManagerClass {
   }
 
   private notifySyncListeners(status: SyncStatus, pendingCount: number): void {
-    this.syncListeners.forEach(callback => {
+    this.syncListeners.forEach((callback) => {
       try {
         callback(status, pendingCount);
       } catch (error) {

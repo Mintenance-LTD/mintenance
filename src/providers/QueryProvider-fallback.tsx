@@ -7,12 +7,8 @@ interface QueryProviderProps {
 // Simple fallback query provider that just passes through children
 const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
   console.log('Using fallback QueryProvider (React Query not available)');
-  
-  return (
-    <>
-      {children}
-    </>
-  );
+
+  return <>{children}</>;
 };
 
 export default QueryProvider;

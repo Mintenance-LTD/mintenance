@@ -12,7 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { QuoteBuilderService, ContractorQuote, QuoteSummaryStats } from '../services/QuoteBuilderService';
+import {
+  QuoteBuilderService,
+  ContractorQuote,
+  QuoteSummaryStats,
+} from '../services/QuoteBuilderService';
 import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -21,7 +25,7 @@ interface QuoteBuilderScreenProps {
 }
 
 export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
-  navigation
+  navigation,
 }) => {
   const { user } = useAuth();
   const [quotes, setQuotes] = useState<ContractorQuote[]>([]);
@@ -37,10 +41,13 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
   const loadQuotes = async () => {
     if (!user) return;
-    
+
     try {
-      const statusFilter = selectedStatus === 'all' ? undefined : [selectedStatus as any];
-      const data = await QuoteBuilderService.getQuotes(user?.id || '', { status: statusFilter });
+      const statusFilter =
+        selectedStatus === 'all' ? undefined : [selectedStatus as any];
+      const data = await QuoteBuilderService.getQuotes(user?.id || '', {
+        status: statusFilter,
+      });
       setQuotes(data);
     } catch (error) {
       console.error('Error loading quotes:', error);
@@ -52,7 +59,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
   const loadStats = async () => {
     if (!user) return;
-    
+
     try {
       const statsData = await QuoteBuilderService.getQuoteSummaryStats(user.id);
       setStats(statsData);
@@ -70,10 +77,12 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
   const handleStatusFilter = async (status: string) => {
     setSelectedStatus(status);
     setLoading(true);
-    
+
     try {
       const statusFilter = status === 'all' ? undefined : [status as any];
-      const data = await QuoteBuilderService.getQuotes(user?.id || '', { status: statusFilter });
+      const data = await QuoteBuilderService.getQuotes(user?.id || '', {
+        status: statusFilter,
+      });
       setQuotes(data);
     } catch (error) {
       Alert.alert('Error', 'Failed to filter quotes');
@@ -119,8 +128,8 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             } catch (error) {
               Alert.alert('Error', 'Failed to delete quote');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -131,32 +140,43 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     return (
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>Quote Performance</Text>
-        
+
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}>
+          <View
+            style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}
+          >
             <Text style={[styles.statValue, { color: theme.colors.primary }]}>
               {stats.total_quotes}
             </Text>
             <Text style={styles.statLabel}>Total Quotes</Text>
           </View>
-          
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.success }]}>
+
+          <View
+            style={[styles.statCard, { borderLeftColor: theme.colors.success }]}
+          >
             <Text style={[styles.statValue, { color: theme.colors.success }]}>
               {stats.accepted_quotes}
             </Text>
             <Text style={styles.statLabel}>Accepted</Text>
           </View>
         </View>
-        
+
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.warning }]}>
+          <View
+            style={[styles.statCard, { borderLeftColor: theme.colors.warning }]}
+          >
             <Text style={[styles.statValue, { color: theme.colors.warning }]}>
               £{stats.total_value.toFixed(0)}
             </Text>
             <Text style={styles.statLabel}>Total Value</Text>
           </View>
-          
-          <View style={[styles.statCard, { borderLeftColor: theme.colors.secondary }]}>
+
+          <View
+            style={[
+              styles.statCard,
+              { borderLeftColor: theme.colors.secondary },
+            ]}
+          >
             <Text style={[styles.statValue, { color: theme.colors.secondary }]}>
               {stats.acceptance_rate.toFixed(1)}%
             </Text>
@@ -168,8 +188,8 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
   };
 
   const renderStatusFilter = () => (
-    <ScrollView 
-      horizontal 
+    <ScrollView
+      horizontal
       showsHorizontalScrollIndicator={false}
       style={styles.filterContainer}
       contentContainerStyle={styles.filterContent}
@@ -178,21 +198,31 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         { key: 'all', label: 'All', count: stats?.total_quotes || 0 },
         { key: 'draft', label: 'Draft', count: stats?.draft_quotes || 0 },
         { key: 'sent', label: 'Sent', count: stats?.sent_quotes || 0 },
-        { key: 'accepted', label: 'Accepted', count: stats?.accepted_quotes || 0 },
-        { key: 'rejected', label: 'Rejected', count: stats?.rejected_quotes || 0 },
+        {
+          key: 'accepted',
+          label: 'Accepted',
+          count: stats?.accepted_quotes || 0,
+        },
+        {
+          key: 'rejected',
+          label: 'Rejected',
+          count: stats?.rejected_quotes || 0,
+        },
       ].map((filter) => (
         <TouchableOpacity
           key={filter.key}
           style={[
             styles.filterChip,
-            selectedStatus === filter.key && styles.filterChipActive
+            selectedStatus === filter.key && styles.filterChipActive,
           ]}
           onPress={() => handleStatusFilter(filter.key)}
         >
-          <Text style={[
-            styles.filterText,
-            selectedStatus === filter.key && styles.filterTextActive
-          ]}>
+          <Text
+            style={[
+              styles.filterText,
+              selectedStatus === filter.key && styles.filterTextActive,
+            ]}
+          >
             {filter.label} ({filter.count})
           </Text>
         </TouchableOpacity>
@@ -201,7 +231,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
   );
 
   if (loading && quotes.length === 0) {
-    return <LoadingSpinner message="Loading quotes..." />;
+    return <LoadingSpinner message='Loading quotes...' />;
   }
 
   return (
@@ -212,20 +242,22 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name='arrow-back' size={24} color='#fff' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Builder</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateQuote')}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name='add' size={24} color='#fff' />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Statistics */}
@@ -240,23 +272,31 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             style={styles.actionButton}
             onPress={() => navigation.navigate('QuoteTemplates')}
           >
-            <Ionicons name="document-text" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name='document-text'
+              size={24}
+              color={theme.colors.primary}
+            />
             <Text style={styles.actionButtonText}>Templates</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('QuoteAnalytics')}
           >
-            <Ionicons name="analytics" size={24} color={theme.colors.primary} />
+            <Ionicons name='analytics' size={24} color={theme.colors.primary} />
             <Text style={styles.actionButtonText}>Analytics</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('CreateQuote')}
           >
-            <Ionicons name="add-circle" size={24} color={theme.colors.primary} />
+            <Ionicons
+              name='add-circle'
+              size={24}
+              color={theme.colors.primary}
+            />
             <Text style={styles.actionButtonText}>New Quote</Text>
           </TouchableOpacity>
         </View>
@@ -264,18 +304,23 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         {/* Quotes List */}
         <View style={styles.quotesContainer}>
           <Text style={styles.sectionTitle}>
-            {selectedStatus === 'all' ? 'All Quotes' : `${selectedStatus.charAt(0).toUpperCase()}${selectedStatus.slice(1)} Quotes`}
+            {selectedStatus === 'all'
+              ? 'All Quotes'
+              : `${selectedStatus.charAt(0).toUpperCase()}${selectedStatus.slice(1)} Quotes`}
           </Text>
-          
+
           {quotes.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="document-text-outline" size={64} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='document-text-outline'
+                size={64}
+                color={theme.colors.textTertiary}
+              />
               <Text style={styles.emptyTitle}>No quotes found</Text>
               <Text style={styles.emptyText}>
-                {selectedStatus === 'all' 
+                {selectedStatus === 'all'
                   ? 'Create your first quote to get started with professional proposals'
-                  : `No ${selectedStatus} quotes at the moment`
-                }
+                  : `No ${selectedStatus} quotes at the moment`}
               </Text>
               <TouchableOpacity
                 style={styles.createButton}
@@ -289,8 +334,12 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               <QuoteCard
                 key={quote.id}
                 quote={quote}
-                onPress={() => navigation.navigate('QuoteDetail', { quoteId: quote.id })}
-                onEdit={() => navigation.navigate('EditQuote', { quoteId: quote.id })}
+                onPress={() =>
+                  navigation.navigate('QuoteDetail', { quoteId: quote.id })
+                }
+                onEdit={() =>
+                  navigation.navigate('EditQuote', { quoteId: quote.id })
+                }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
                 onDelete={() => handleDeleteQuote(quote.id)}

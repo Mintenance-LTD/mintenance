@@ -18,10 +18,14 @@ jest.mock('react-native', () => {
 
 // Mock Expo modules
 jest.mock('expo-location', () => ({
-  requestForegroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
-  getCurrentPositionAsync: jest.fn(() => Promise.resolve({
-    coords: { latitude: 37.7749, longitude: -122.4194 }
-  })),
+  requestForegroundPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
+  getCurrentPositionAsync: jest.fn(() =>
+    Promise.resolve({
+      coords: { latitude: 37.7749, longitude: -122.4194 },
+    })
+  ),
 }));
 
 jest.mock('expo-secure-store', () => ({
@@ -32,7 +36,9 @@ jest.mock('expo-secure-store', () => ({
 
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
-  requestMediaLibraryPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestMediaLibraryPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
 }));
 
 jest.mock('expo-local-authentication', () => ({
@@ -59,7 +65,9 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('expo-notifications', () => ({
-  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
   setNotificationHandler: jest.fn(),
@@ -76,11 +84,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 // Mock NetInfo
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(),
-  fetch: jest.fn(() => Promise.resolve({
-    isConnected: true,
-    isInternetReachable: true,
-    type: 'wifi',
-  })),
+  fetch: jest.fn(() =>
+    Promise.resolve({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })
+  ),
 }));
 
 // Mock Sentry
@@ -128,7 +138,6 @@ jest.mock('./src/config/sentry', () => ({
   captureException: jest.fn(),
   addBreadcrumb: jest.fn(),
 }));
-
 
 // Mock Supabase
 jest.mock('@supabase/supabase-js', () => ({

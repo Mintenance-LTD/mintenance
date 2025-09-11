@@ -67,7 +67,10 @@ describe('Logger', () => {
         'info',
         { key: 'value' }
       );
-      expect(mockSentry.captureMessage).toHaveBeenCalledWith('Info message', 'info');
+      expect(mockSentry.captureMessage).toHaveBeenCalledWith(
+        'Info message',
+        'info'
+      );
     });
   });
 
@@ -83,7 +86,10 @@ describe('Logger', () => {
         'warning',
         { key: 'value' }
       );
-      expect(mockSentry.captureMessage).toHaveBeenCalledWith('Warning message', 'warning');
+      expect(mockSentry.captureMessage).toHaveBeenCalledWith(
+        'Warning message',
+        'warning'
+      );
     });
   });
 
@@ -101,10 +107,9 @@ describe('Logger', () => {
         'error',
         { key: 'value', error: 'Test error' }
       );
-      expect(mockSentry.captureException).toHaveBeenCalledWith(
-        error,
-        { contexts: { logContext: { key: 'value' } } }
-      );
+      expect(mockSentry.captureException).toHaveBeenCalledWith(error, {
+        contexts: { logContext: { key: 'value' } },
+      });
     });
 
     it('logs error without Error object', () => {
@@ -114,7 +119,10 @@ describe('Logger', () => {
         expect.stringContaining('ERROR: Error message | {"key":"value"}'),
         undefined
       );
-      expect(mockSentry.captureMessage).toHaveBeenCalledWith('Error message', 'error');
+      expect(mockSentry.captureMessage).toHaveBeenCalledWith(
+        'Error message',
+        'error'
+      );
     });
   });
 
@@ -123,7 +131,9 @@ describe('Logger', () => {
       logger.performance('API Call', 1250, { endpoint: '/api/users' });
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: API Call completed in 1250ms | {"endpoint":"/api/users"}')
+        expect.stringContaining(
+          'INFO: API Call completed in 1250ms | {"endpoint":"/api/users"}'
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
         'Performance: API Call completed in 1250ms',
@@ -131,7 +141,7 @@ describe('Logger', () => {
         {
           duration: 1250,
           operation: 'API Call',
-          endpoint: '/api/users'
+          endpoint: '/api/users',
         }
       );
     });
@@ -151,7 +161,7 @@ describe('Logger', () => {
           method: 'GET',
           url: '/api/users',
           status: 200,
-          duration: 150
+          duration: 150,
         }
       );
     });
@@ -182,7 +192,9 @@ describe('Logger', () => {
       logger.userAction('button_click', { button: 'login' });
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: User action: button_click | {"button":"login"}')
+        expect.stringContaining(
+          'INFO: User action: button_click | {"button":"login"}'
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
         'User action: button_click',
@@ -197,7 +209,9 @@ describe('Logger', () => {
       logger.navigation('Home', 'Profile', { userId: '123' });
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: Navigation: Home -> Profile | {"userId":"123"}')
+        expect.stringContaining(
+          'INFO: Navigation: Home -> Profile | {"userId":"123"}'
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
         'Navigation: Home -> Profile',
@@ -212,7 +226,9 @@ describe('Logger', () => {
       logger.auth('login', true, { method: 'email' });
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: Auth login: success | {"method":"email"}')
+        expect.stringContaining(
+          'INFO: Auth login: success | {"method":"email"}'
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
         'Auth login: success',
@@ -222,7 +238,10 @@ describe('Logger', () => {
     });
 
     it('logs failed authentication', () => {
-      logger.auth('login', false, { method: 'email', error: 'invalid_credentials' });
+      logger.auth('login', false, {
+        method: 'email',
+        error: 'invalid_credentials',
+      });
 
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining('WARN: Auth login: failed')
@@ -299,7 +318,9 @@ describe('Logger', () => {
       logger.info('Test message');
 
       expect(console.info).toHaveBeenCalledWith(
-        expect.stringMatching(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] INFO: Test message/)
+        expect.stringMatching(
+          /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] INFO: Test message/
+        )
       );
     });
 
@@ -307,7 +328,9 @@ describe('Logger', () => {
       logger.info('Test message', { key: 'value', nested: { prop: 123 } });
 
       expect(console.info).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: Test message | {"key":"value","nested":{"prop":123}}')
+        expect.stringContaining(
+          'INFO: Test message | {"key":"value","nested":{"prop":123}}'
+        )
       );
     });
   });

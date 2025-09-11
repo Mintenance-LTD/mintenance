@@ -13,7 +13,9 @@ class TestHelpers {
         .toBeVisible()
         .withTimeout(timeout);
     } catch (error) {
-      throw new Error(errorMessage || `Element ${elementId} not visible after ${timeout}ms`);
+      throw new Error(
+        errorMessage || `Element ${elementId} not visible after ${timeout}ms`
+      );
     }
   }
 
@@ -25,7 +27,7 @@ class TestHelpers {
     await element(by.id('email-input')).replaceText(email);
     await element(by.id('password-input')).replaceText(password);
     await element(by.id('sign-in-submit-button')).tap();
-    
+
     await this.waitForElement('home-screen', 15000, 'Failed to sign in user');
   }
 
@@ -53,7 +55,7 @@ class TestHelpers {
       location: '123 Test St',
       budget: '100',
       category: 'General',
-      priority: 'medium'
+      priority: 'medium',
     };
 
     const data = { ...defaultData, ...jobData };
@@ -74,7 +76,11 @@ class TestHelpers {
     await element(by.id(`priority-${data.priority}`)).tap();
     await element(by.id('post-job-submit')).tap();
 
-    await this.waitForElement('job-details-screen', 10000, 'Job creation failed');
+    await this.waitForElement(
+      'job-details-screen',
+      10000,
+      'Job creation failed'
+    );
     return data;
   }
 
@@ -170,7 +176,7 @@ class TestHelpers {
    * Wait with timeout
    */
   static async sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -189,8 +195,10 @@ class TestHelpers {
         if (retries >= maxRetries) {
           throw error; // Max retries reached
         }
-        
-        console.log(`Action failed, retrying in ${delay}ms (attempt ${retries}/${maxRetries})`);
+
+        console.log(
+          `Action failed, retrying in ${delay}ms (attempt ${retries}/${maxRetries})`
+        );
         await this.sleep(delay);
         delay *= 2; // Exponential backoff
       }
@@ -209,8 +217,8 @@ class TestHelpers {
         camera: 'YES',
         photos: 'YES',
         location: 'always',
-        notifications: 'YES'
-      }
+        notifications: 'YES',
+      },
     });
 
     // Wait for app to fully load
@@ -224,7 +232,7 @@ class TestHelpers {
     try {
       // Sign out if signed in
       await this.signOut();
-      
+
       // Clear any cached data
       await device.launchApp({ newInstance: true });
     } catch (error) {
@@ -251,21 +259,21 @@ class TestHelpers {
         email: `homeowner.${timestamp}@testapp.com`,
         password: 'TestPassword123!',
         firstName: 'Test',
-        lastName: 'Homeowner'
+        lastName: 'Homeowner',
       },
       contractor: {
         email: `contractor.${timestamp}@testapp.com`,
         password: 'TestPassword123!',
         firstName: 'Test',
-        lastName: 'Contractor'
+        lastName: 'Contractor',
       },
       job: {
         title: `Test Job ${timestamp}`,
         description: 'Test job for automated testing',
         location: '123 Test Street, Test City',
         budget: '150',
-        category: 'Plumbing'
-      }
+        category: 'Plumbing',
+      },
     };
   }
 
@@ -280,7 +288,7 @@ class TestHelpers {
 
     console.log(`${actionName} took ${duration}ms`);
     expect(duration).toBeLessThan(maxTime);
-    
+
     return duration;
   }
 
@@ -291,11 +299,11 @@ class TestHelpers {
     // Check for accessibility labels
     const importantElements = [
       'sign-in-button',
-      'sign-up-button', 
+      'sign-up-button',
       'post-job-button',
       'jobs-tab',
       'messages-tab',
-      'profile-tab'
+      'profile-tab',
     ];
 
     for (const elementId of importantElements) {
@@ -341,7 +349,7 @@ class TestHelpers {
       title: payload.title || 'Test Notification',
       body: payload.body || 'Test notification body',
       badge: payload.badge || 1,
-      payload: payload.data || {}
+      payload: payload.data || {},
     });
   }
 

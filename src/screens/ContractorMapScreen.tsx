@@ -59,14 +59,16 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
   const [region, setRegion] = useState<Region>(
     initialRegion || {
       latitude: 40.7128,
-      longitude: -74.0060,
+      longitude: -74.006,
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     }
   );
-  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [userLocation, setUserLocation] =
+    useState<Location.LocationObject | null>(null);
   const [contractors, setContractors] = useState<ContractorLocation[]>([]);
-  const [selectedContractor, setSelectedContractor] = useState<ContractorLocation | null>(null);
+  const [selectedContractor, setSelectedContractor] =
+    useState<ContractorLocation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -94,14 +96,14 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const location = await Location.getCurrentPositionAsync({});
       setUserLocation(location);
-      
+
       const newRegion = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       };
-      
+
       setRegion(newRegion);
       mapRef.current?.animateToRegion(newRegion, 1000);
     } catch (error) {
@@ -119,44 +121,58 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const location = {
         latitude: userLocation.coords.latitude,
-        longitude: userLocation.coords.longitude
+        longitude: userLocation.coords.longitude,
       };
 
       // Get real contractors from database
-      const contractorsData = await ContractorService.getNearbyContractors(location, 25);
-      
+      const contractorsData = await ContractorService.getNearbyContractors(
+        location,
+        25
+      );
+
       // Transform contractor profiles to ContractorLocation format
-      const contractorLocations: ContractorLocation[] = contractorsData.map(contractor => ({
-        id: contractor.id,
-        name: `${contractor.firstName} ${contractor.lastName}`.trim(),
-        specialty: contractor.skills[0]?.skillName || contractor.bio?.split('.')[0] || 'Professional Contractor',
-        rating: contractor.rating || 4.5,
-        coordinate: {
-          latitude: contractor.latitude || 40.7128,
-          longitude: contractor.longitude || -74.0060,
-        },
-        address: contractor.address || 'Location not specified',
-        distance: `${contractor.distance?.toFixed(1) || '0.0'} km`,
-        pricing: 'Contact for pricing',
-        verified: (contractor.totalJobsCompleted ?? 0) > 0,
-        responseTime: (contractor.rating ?? 0) >= 4.5 ? '< 30 min' : '< 1 hour',
-        phone: contractor.phone,
-        profileImageUrl: contractor.profileImageUrl,
-        skills: contractor.skills.map(skill => skill.skillName)
-      }));
+      const contractorLocations: ContractorLocation[] = contractorsData.map(
+        (contractor) => ({
+          id: contractor.id,
+          name: `${contractor.firstName} ${contractor.lastName}`.trim(),
+          specialty:
+            contractor.skills[0]?.skillName ||
+            contractor.bio?.split('.')[0] ||
+            'Professional Contractor',
+          rating: contractor.rating || 4.5,
+          coordinate: {
+            latitude: contractor.latitude || 40.7128,
+            longitude: contractor.longitude || -74.006,
+          },
+          address: contractor.address || 'Location not specified',
+          distance: `${contractor.distance?.toFixed(1) || '0.0'} km`,
+          pricing: 'Contact for pricing',
+          verified: (contractor.totalJobsCompleted ?? 0) > 0,
+          responseTime:
+            (contractor.rating ?? 0) >= 4.5 ? '< 30 min' : '< 1 hour',
+          phone: contractor.phone,
+          profileImageUrl: contractor.profileImageUrl,
+          skills: contractor.skills.map((skill) => skill.skillName),
+        })
+      );
 
       setContractors(contractorLocations);
-      
+
       // If specific contractor ID provided, focus on them
       if (contractorId) {
-        const targetContractor = contractorLocations.find(c => c.id === contractorId);
+        const targetContractor = contractorLocations.find(
+          (c) => c.id === contractorId
+        );
         if (targetContractor) {
           setSelectedContractor(targetContractor);
-          mapRef.current?.animateToRegion({
-            ...targetContractor.coordinate,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }, 1000);
+          mapRef.current?.animateToRegion(
+            {
+              ...targetContractor.coordinate,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            },
+            1000
+          );
         }
       }
     } catch (error) {
@@ -170,18 +186,21 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleMarkerPress = (contractor: ContractorLocation) => {
     haptics.buttonPress();
     setSelectedContractor(contractor);
-    
-    mapRef.current?.animateToRegion({
-      latitude: contractor.coordinate.latitude,
-      longitude: contractor.coordinate.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    }, 1000);
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude: contractor.coordinate.latitude,
+        longitude: contractor.coordinate.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      1000
+    );
   };
 
   const handleGetDirections = (contractor: ContractorLocation) => {
     haptics.buttonPress();
-    
+
     const { latitude, longitude } = contractor.coordinate;
     const scheme = Platform.select({
       ios: 'maps:0,0?q=',
@@ -203,7 +222,7 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleContactContractor = (contractor: ContractorLocation) => {
     haptics.buttonPress();
-    
+
     Alert.alert(
       'Contact Contractor',
       `Would you like to contact ${contractor.name}?`,
@@ -226,7 +245,7 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleBookService = (contractor: ContractorLocation) => {
-    navigation.navigate('ServiceBooking', { 
+    navigation.navigate('ServiceBooking', {
       contractorId: contractor.id,
       contractorName: contractor.name,
     });
@@ -236,10 +255,11 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
     setSearchQuery(query);
     // In a real app, this would filter contractors based on search
     if (query.trim()) {
-      const filtered = contractors.filter(contractor =>
-        contractor.name.toLowerCase().includes(query.toLowerCase()) ||
-        contractor.specialty.toLowerCase().includes(query.toLowerCase()) ||
-        contractor.address.toLowerCase().includes(query.toLowerCase())
+      const filtered = contractors.filter(
+        (contractor) =>
+          contractor.name.toLowerCase().includes(query.toLowerCase()) ||
+          contractor.specialty.toLowerCase().includes(query.toLowerCase()) ||
+          contractor.address.toLowerCase().includes(query.toLowerCase())
       );
       // Could update map to show only filtered results
     }
@@ -247,7 +267,7 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleMyLocation = () => {
     haptics.buttonPress();
-    
+
     if (userLocation) {
       const newRegion = {
         latitude: userLocation.coords.latitude,
@@ -273,13 +293,19 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.contractorNameRow}>
               <Text style={styles.contractorName}>{contractor.name}</Text>
               {contractor.verified && (
-                <Ionicons name="checkmark-circle" size={16} color={theme.colors.secondary} />
+                <Ionicons
+                  name='checkmark-circle'
+                  size={16}
+                  color={theme.colors.secondary}
+                />
               )}
             </View>
-            <Text style={styles.contractorSpecialty}>{contractor.specialty}</Text>
+            <Text style={styles.contractorSpecialty}>
+              {contractor.specialty}
+            </Text>
             <View style={styles.contractorMeta}>
               <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={14} color="#FFD700" />
+                <Ionicons name='star' size={14} color='#FFD700' />
                 <Text style={styles.rating}>{contractor.rating}</Text>
               </View>
               <Text style={styles.metaDivider}>•</Text>
@@ -289,49 +315,73 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
             <Text style={styles.contractorAddress}>{contractor.address}</Text>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setSelectedContractor(null)}
           >
-            <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='close'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
 
         <View style={styles.contractorPricing}>
           <View style={styles.pricingInfo}>
-            <Ionicons name="cash-outline" size={16} color={theme.colors.secondary} />
+            <Ionicons
+              name='cash-outline'
+              size={16}
+              color={theme.colors.secondary}
+            />
             <Text style={styles.pricingText}>{contractor.pricing}</Text>
           </View>
           <View style={styles.estimateInfo}>
-            <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
+            <Ionicons
+              name='time-outline'
+              size={16}
+              color={theme.colors.primary}
+            />
             <Text style={styles.estimateText}>35 km/50min</Text>
           </View>
         </View>
 
         <View style={styles.contractorActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleContactContractor(contractor)}
           >
-            <Ionicons name="chatbubble-outline" size={18} color={theme.colors.primary} />
+            <Ionicons
+              name='chatbubble-outline'
+              size={18}
+              color={theme.colors.primary}
+            />
             <Text style={styles.actionButtonText}>Message</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleCall(contractor)}
           >
-            <Ionicons name="call-outline" size={18} color={theme.colors.primary} />
+            <Ionicons
+              name='call-outline'
+              size={18}
+              color={theme.colors.primary}
+            />
             <Text style={styles.actionButtonText}>Call</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.actionButton, styles.directionsButton]}
             onPress={() => handleGetDirections(contractor)}
           >
-            <Ionicons name="navigate-outline" size={18} color="#fff" />
-            <Text style={[styles.actionButtonText, styles.directionsButtonText]}>Directions</Text>
+            <Ionicons name='navigate-outline' size={18} color='#fff' />
+            <Text
+              style={[styles.actionButtonText, styles.directionsButtonText]}
+            >
+              Directions
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -343,22 +393,30 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
-        
+
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
+          <Ionicons name='search' size={20} color={theme.colors.textTertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search Salon, Specialist..."
+            placeholder='Search Salon, Specialist...'
             placeholderTextColor={theme.colors.textTertiary}
             value={searchQuery}
             onChangeText={handleSearch}
           />
         </View>
-        
+
         <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="options-outline" size={20} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='options-outline'
+            size={20}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -378,20 +436,27 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
             coordinate={contractor.coordinate}
             onPress={() => handleMarkerPress(contractor)}
           >
-            <View style={[
-              styles.markerContainer,
-              selectedContractor?.id === contractor.id && styles.selectedMarker
-            ]}>
+            <View
+              style={[
+                styles.markerContainer,
+                selectedContractor?.id === contractor.id &&
+                  styles.selectedMarker,
+              ]}
+            >
               <View style={styles.marker}>
-                <Ionicons 
-                  name="person" 
-                  size={20} 
-                  color={selectedContractor?.id === contractor.id ? '#fff' : theme.colors.primary} 
+                <Ionicons
+                  name='person'
+                  size={20}
+                  color={
+                    selectedContractor?.id === contractor.id
+                      ? '#fff'
+                      : theme.colors.primary
+                  }
                 />
               </View>
               {contractor.verified && (
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark" size={8} color="#fff" />
+                  <Ionicons name='checkmark' size={8} color='#fff' />
                 </View>
               )}
             </View>
@@ -400,14 +465,17 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
       </MapView>
 
       {/* My Location Button */}
-      <TouchableOpacity style={styles.myLocationButton} onPress={handleMyLocation}>
-        <Ionicons name="locate" size={24} color={theme.colors.primary} />
+      <TouchableOpacity
+        style={styles.myLocationButton}
+        onPress={handleMyLocation}
+      >
+        <Ionicons name='locate' size={24} color={theme.colors.primary} />
       </TouchableOpacity>
 
       {/* Loading Indicator */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Finding nearby contractors...</Text>
         </View>
       )}

@@ -36,54 +36,106 @@ const serviceCategories: ServiceCategory[] = [
     name: 'Plumbing',
     icon: 'water-outline',
     color: '#007AFF',
-    subcategories: ['Leaking', 'Blocked Drain', 'Installation', 'Repair', 'Emergency']
+    subcategories: [
+      'Leaking',
+      'Blocked Drain',
+      'Installation',
+      'Repair',
+      'Emergency',
+    ],
   },
   {
     id: 'electrical',
     name: 'Electrical',
     icon: 'flash-outline',
     color: '#FF9500',
-    subcategories: ['Wiring', 'Outlet Installation', 'Lighting', 'Panel Upgrade', 'Emergency']
+    subcategories: [
+      'Wiring',
+      'Outlet Installation',
+      'Lighting',
+      'Panel Upgrade',
+      'Emergency',
+    ],
   },
   {
     id: 'hvac',
     name: 'HVAC',
     icon: 'thermometer-outline',
     color: '#4CD964',
-    subcategories: ['AC Repair', 'Heating', 'Installation', 'Maintenance', 'Duct Cleaning']
+    subcategories: [
+      'AC Repair',
+      'Heating',
+      'Installation',
+      'Maintenance',
+      'Duct Cleaning',
+    ],
   },
   {
     id: 'general',
     name: 'General Maintenance',
     icon: 'hammer-outline',
     color: '#5856D6',
-    subcategories: ['Painting', 'Carpentry', 'Tiling', 'Flooring', 'General Repairs']
+    subcategories: [
+      'Painting',
+      'Carpentry',
+      'Tiling',
+      'Flooring',
+      'General Repairs',
+    ],
   },
   {
     id: 'appliance',
     name: 'Appliance Repair',
     icon: 'home-outline',
     color: '#FF3B30',
-    subcategories: ['Washing Machine', 'Refrigerator', 'Dishwasher', 'Oven', 'Other']
+    subcategories: [
+      'Washing Machine',
+      'Refrigerator',
+      'Dishwasher',
+      'Oven',
+      'Other',
+    ],
   },
   {
     id: 'landscaping',
     name: 'Landscaping',
     icon: 'leaf-outline',
     color: '#34C759',
-    subcategories: ['Lawn Care', 'Tree Service', 'Garden Design', 'Irrigation', 'Cleanup']
-  }
+    subcategories: [
+      'Lawn Care',
+      'Tree Service',
+      'Garden Design',
+      'Irrigation',
+      'Cleanup',
+    ],
+  },
 ];
 
 const priorityLevels = [
-  { id: 'low', name: 'Low', color: '#34C759', description: 'Can wait a few days' },
-  { id: 'medium', name: 'Medium', color: '#FF9500', description: 'Should be done this week' },
-  { id: 'high', name: 'High', color: '#FF3B30', description: 'Urgent - needs attention ASAP' },
+  {
+    id: 'low',
+    name: 'Low',
+    color: '#34C759',
+    description: 'Can wait a few days',
+  },
+  {
+    id: 'medium',
+    name: 'Medium',
+    color: '#FF9500',
+    description: 'Should be done this week',
+  },
+  {
+    id: 'high',
+    name: 'High',
+    color: '#FF3B30',
+    description: 'Urgent - needs attention ASAP',
+  },
 ];
 
 const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<ServiceCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -109,9 +161,11 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const requestPermissions = async () => {
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+    const { status: cameraStatus } =
+      await ImagePicker.requestCameraPermissionsAsync();
+    const { status: libraryStatus } =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
       Alert.alert(
         'Permissions Required',
@@ -142,15 +196,11 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         }
       );
     } else {
-      Alert.alert(
-        'Select Photo',
-        'Choose how you want to add a photo',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Take Photo', onPress: pickImageFromCamera },
-          { text: 'Choose from Library', onPress: pickImageFromLibrary },
-        ]
-      );
+      Alert.alert('Select Photo', 'Choose how you want to add a photo', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: pickImageFromCamera },
+        { text: 'Choose from Library', onPress: pickImageFromLibrary },
+      ]);
     }
   };
 
@@ -164,7 +214,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setPhotos(prev => [...prev, result.assets[0].uri]);
+        setPhotos((prev) => [...prev, result.assets[0].uri]);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to take photo');
@@ -181,7 +231,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setPhotos(prev => [...prev, result.assets[0].uri]);
+        setPhotos((prev) => [...prev, result.assets[0].uri]);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to select photo');
@@ -189,11 +239,17 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
-    if (!selectedCategory || !selectedSubcategory || !description || !location || !budget) {
+    if (
+      !selectedCategory ||
+      !selectedSubcategory ||
+      !description ||
+      !location ||
+      !budget
+    ) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -225,7 +281,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       });
 
       Alert.alert(
-        'Success', 
+        'Success',
         'Service request posted successfully! Contractors in your area will be notified.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
@@ -240,11 +296,11 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name='arrow-back' size={24} color='#fff' />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Request Service</Text>
           <View style={styles.placeholder} />
@@ -253,8 +309,10 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView style={styles.content}>
           <View style={styles.categorySection}>
             <Text style={styles.sectionTitle}>What service do you need?</Text>
-            <Text style={styles.sectionSubtitle}>Select a category to get started</Text>
-            
+            <Text style={styles.sectionSubtitle}>
+              Select a category to get started
+            </Text>
+
             <View style={styles.categoriesGrid}>
               {serviceCategories.map((category) => (
                 <TouchableOpacity
@@ -262,8 +320,17 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   style={[styles.categoryCard, { borderColor: category.color }]}
                   onPress={() => handleCategorySelect(category)}
                 >
-                  <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-                    <Ionicons name={category.icon as any} size={30} color="#fff" />
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      { backgroundColor: category.color },
+                    ]}
+                  >
+                    <Ionicons
+                      name={category.icon as any}
+                      size={30}
+                      color='#fff'
+                    />
                   </View>
                   <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
@@ -278,11 +345,11 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => setSelectedCategory(null)}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name='arrow-back' size={24} color='#fff' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{selectedCategory.name} Service</Text>
         <View style={styles.placeholder} />
@@ -291,7 +358,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView style={styles.content}>
         {/* Subcategory Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What specific service do you need?</Text>
+          <Text style={styles.sectionTitle}>
+            What specific service do you need?
+          </Text>
           <View style={styles.subcategoriesContainer}>
             {selectedCategory.subcategories.map((subcategory) => (
               <TouchableOpacity
@@ -301,14 +370,17 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   selectedSubcategory === subcategory && {
                     backgroundColor: selectedCategory.color,
                     borderColor: selectedCategory.color,
-                  }
+                  },
                 ]}
                 onPress={() => handleSubcategorySelect(subcategory)}
               >
-                <Text style={[
-                  styles.subcategoryText,
-                  selectedSubcategory === subcategory && styles.subcategoryTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.subcategoryText,
+                    selectedSubcategory === subcategory &&
+                      styles.subcategoryTextSelected,
+                  ]}
+                >
                   {subcategory}
                 </Text>
               </TouchableOpacity>
@@ -323,7 +395,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g., Fix Leaking Kitchen Faucet"
+            placeholder='e.g., Fix Leaking Kitchen Faucet'
           />
 
           <Text style={styles.label}>Problem Description *</Text>
@@ -331,10 +403,10 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe the problem in detail... What exactly needs to be fixed or installed?"
+            placeholder='Describe the problem in detail... What exactly needs to be fixed or installed?'
             multiline
             numberOfLines={4}
-            textAlignVertical="top"
+            textAlignVertical='top'
           />
 
           <Text style={styles.label}>Location *</Text>
@@ -342,7 +414,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.input}
             value={location}
             onChangeText={setLocation}
-            placeholder="Your address or area"
+            placeholder='Your address or area'
           />
 
           <Text style={styles.label}>Budget *</Text>
@@ -350,8 +422,8 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.input}
             value={budget}
             onChangeText={setBudget}
-            placeholder="Enter your budget in dollars"
-            keyboardType="numeric"
+            placeholder='Enter your budget in dollars'
+            keyboardType='numeric'
           />
         </View>
 
@@ -365,20 +437,24 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                 style={[
                   styles.priorityCard,
                   { borderColor: level.color },
-                  priority === level.id && { backgroundColor: level.color }
+                  priority === level.id && { backgroundColor: level.color },
                 ]}
                 onPress={() => setPriority(level.id as any)}
               >
-                <Text style={[
-                  styles.priorityName,
-                  { color: priority === level.id ? '#fff' : level.color }
-                ]}>
+                <Text
+                  style={[
+                    styles.priorityName,
+                    { color: priority === level.id ? '#fff' : level.color },
+                  ]}
+                >
                   {level.name}
                 </Text>
-                <Text style={[
-                  styles.priorityDescription,
-                  { color: priority === level.id ? '#fff' : '#666' }
-                ]}>
+                <Text
+                  style={[
+                    styles.priorityDescription,
+                    { color: priority === level.id ? '#fff' : '#666' },
+                  ]}
+                >
                   {level.description}
                 </Text>
               </TouchableOpacity>
@@ -392,8 +468,12 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.sectionSubtitle}>
             Add photos to help contractors understand the problem better
           </Text>
-          
-          <ScrollView horizontal style={styles.photosContainer} showsHorizontalScrollIndicator={false}>
+
+          <ScrollView
+            horizontal
+            style={styles.photosContainer}
+            showsHorizontalScrollIndicator={false}
+          >
             {photos.map((photo, index) => (
               <View key={index} style={styles.photoContainer}>
                 <Image source={{ uri: photo }} style={styles.photo} />
@@ -401,17 +481,17 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.removePhotoButton}
                   onPress={() => removePhoto(index)}
                 >
-                  <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                  <Ionicons name='close-circle' size={24} color='#FF3B30' />
                 </TouchableOpacity>
               </View>
             ))}
-            
+
             {photos.length < 5 && (
               <TouchableOpacity
                 style={styles.addPhotoButton}
                 onPress={showImagePickerOptions}
               >
-                <Ionicons name="camera" size={30} color="#666" />
+                <Ionicons name='camera' size={30} color='#666' />
                 <Text style={styles.addPhotoText}>Add Photo</Text>
               </TouchableOpacity>
             )}
@@ -424,7 +504,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           style={[
             styles.submitButton,
             { backgroundColor: selectedCategory.color },
-            loading && styles.submitButtonDisabled
+            loading && styles.submitButtonDisabled,
           ]}
           onPress={handleSubmit}
           disabled={loading}

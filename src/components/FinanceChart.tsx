@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { theme } from '../theme';
 
@@ -23,7 +18,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
   data,
   title,
   subtitle,
-  height = 220
+  height = 220,
 }) => {
   const chartConfig = {
     backgroundGradientFrom: '#ffffff',
@@ -55,7 +50,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
 
   const renderChart = () => {
     const chartWidth = screenWidth - 48; // Account for padding
-    
+
     switch (type) {
       case 'line':
         return (
@@ -73,7 +68,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
             fromZero
           />
         );
-      
+
       case 'bar':
         return (
           <BarChart
@@ -81,8 +76,8 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
             width={chartWidth}
             height={height}
             chartConfig={chartConfig}
-            yAxisLabel=""
-            yAxisSuffix=""
+            yAxisLabel=''
+            yAxisSuffix=''
             style={styles.chart}
             withVerticalLabels={true}
             withHorizontalLabels={true}
@@ -90,7 +85,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
             showBarTops={false}
           />
         );
-      
+
       case 'pie':
         return (
           <View style={styles.pieContainer}>
@@ -99,15 +94,15 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
               width={chartWidth}
               height={height}
               chartConfig={pieChartConfig}
-              accessor="value"
-              backgroundColor="transparent"
-              paddingLeft="15"
+              accessor='value'
+              backgroundColor='transparent'
+              paddingLeft='15'
               hasLegend={true}
               style={styles.chart}
             />
           </View>
         );
-      
+
       default:
         return null;
     }

@@ -7,16 +7,20 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { 
-  useNeighborhoodLeaderboard, 
-  useCommunityScore, 
-  useNeighborhoodFormatters 
+import {
+  useNeighborhoodLeaderboard,
+  useCommunityScore,
+  useNeighborhoodFormatters,
 } from '../hooks/useNeighborhood';
-import { ContractorRanking, CommunityChampion, JobSuccess } from '../services/NeighborhoodService';
+import {
+  ContractorRanking,
+  CommunityChampion,
+  JobSuccess,
+} from '../services/NeighborhoodService';
 
 interface NeighborhoodLeaderboardProps {
   neighborhoodId: string;
@@ -24,25 +28,23 @@ interface NeighborhoodLeaderboardProps {
   onJobPress?: (jobId: string) => void;
 }
 
-export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = ({
-  neighborhoodId,
-  onContractorPress,
-  onJobPress
-}) => {
-  const [activeTab, setActiveTab] = useState<'contractors' | 'successes' | 'champions'>('contractors');
+export const NeighborhoodLeaderboard: React.FC<
+  NeighborhoodLeaderboardProps
+> = ({ neighborhoodId, onContractorPress, onJobPress }) => {
+  const [activeTab, setActiveTab] = useState<
+    'contractors' | 'successes' | 'champions'
+  >('contractors');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { 
-    data: leaderboard, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: leaderboard,
+    isLoading,
+    error,
+    refetch,
   } = useNeighborhoodLeaderboard(neighborhoodId);
-  
-  const { 
-    data: communityScore,
-    isLoading: scoreLoading 
-  } = useCommunityScore(neighborhoodId);
+
+  const { data: communityScore, isLoading: scoreLoading } =
+    useCommunityScore(neighborhoodId);
 
   const {
     formatRankPosition,
@@ -50,8 +52,8 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
     formatCommunityScore,
     getChampionBadgeEmoji,
     getBadgeLevelColor,
-    getContractorSpecialtyIcon
-  } = (useNeighborhoodFormatters() as any);
+    getContractorSpecialtyIcon,
+  } = useNeighborhoodFormatters() as any;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -59,37 +61,43 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
     setRefreshing(false);
   };
 
-  const renderContractorItem = (contractor: ContractorRanking, index: number) => (
+  const renderContractorItem = (
+    contractor: ContractorRanking,
+    index: number
+  ) => (
     <TouchableOpacity
       key={contractor.contractor_id}
       style={[styles.listItem, index < 3 && styles.topThreeItem]}
       onPress={() => onContractorPress?.(contractor.contractor_id)}
     >
       <View style={styles.rankContainer}>
-        <Text style={[
-          styles.rankText,
-          index < 3 && styles.topThreeRank
-        ]}>
+        <Text style={[styles.rankText, index < 3 && styles.topThreeRank]}>
           {formatRankPosition(contractor.rank_position)}
         </Text>
         {index < 3 && (
-          <Ionicons 
-            name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'} 
-            size={16} 
-            color={index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'} 
+          <Ionicons
+            name={index === 0 ? 'trophy' : index === 1 ? 'medal' : 'ribbon'}
+            size={16}
+            color={
+              index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'
+            }
           />
         )}
       </View>
 
       <View style={styles.avatarContainer}>
         {contractor.contractor_avatar ? (
-          <Image 
-            source={{ uri: contractor.contractor_avatar }} 
+          <Image
+            source={{ uri: contractor.contractor_avatar }}
             style={styles.avatar}
           />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='person'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </View>
         )}
       </View>
@@ -98,16 +106,26 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
         <Text style={styles.contractorName}>{contractor.contractor_name}</Text>
         <View style={styles.contractorMeta}>
           <View style={styles.metaItem}>
-            <Ionicons name="star" size={12} color="#FFD700" />
-            <Text style={styles.metaText}>{contractor.average_rating.toFixed(1)}</Text>
+            <Ionicons name='star' size={12} color='#FFD700' />
+            <Text style={styles.metaText}>
+              {contractor.average_rating.toFixed(1)}
+            </Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="checkmark-circle" size={12} color={theme.colors.success} />
-            <Text style={styles.metaText}>{contractor.jobs_completed} jobs</Text>
+            <Ionicons
+              name='checkmark-circle'
+              size={12}
+              color={theme.colors.success}
+            />
+            <Text style={styles.metaText}>
+              {contractor.jobs_completed} jobs
+            </Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="time" size={12} color={theme.colors.info} />
-            <Text style={styles.metaText}>{formatResponseTime(contractor.response_time_avg)}</Text>
+            <Ionicons name='time' size={12} color={theme.colors.info} />
+            <Text style={styles.metaText}>
+              {formatResponseTime(contractor.response_time_avg)}
+            </Text>
           </View>
         </View>
         {contractor.specialties.length > 0 && (
@@ -130,8 +148,10 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
       </View>
 
       <View style={styles.endorsementBadge}>
-        <Ionicons name="heart" size={14} color={theme.colors.primary} />
-        <Text style={styles.endorsementCount}>{contractor.community_endorsements}</Text>
+        <Ionicons name='heart' size={14} color={theme.colors.primary} />
+        <Text style={styles.endorsementCount}>
+          {contractor.community_endorsements}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -146,7 +166,11 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
         <View style={styles.successHeader}>
           <Text style={styles.jobTitle}>{jobSuccess.job_title}</Text>
           <View style={styles.successMeta}>
-            <Ionicons name="calendar" size={12} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='calendar'
+              size={12}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.successDate}>
               {new Date(jobSuccess.completion_date).toLocaleDateString()}
             </Text>
@@ -155,9 +179,13 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
 
         <View style={styles.successParties}>
           <Text style={styles.successText}>
-            <Text style={styles.contractorName}>{jobSuccess.contractor_name}</Text>
+            <Text style={styles.contractorName}>
+              {jobSuccess.contractor_name}
+            </Text>
             {' for '}
-            <Text style={styles.homeownerName}>{jobSuccess.homeowner_name}</Text>
+            <Text style={styles.homeownerName}>
+              {jobSuccess.homeowner_name}
+            </Text>
           </Text>
         </View>
 
@@ -168,7 +196,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
                 key={star}
                 name={star <= jobSuccess.rating ? 'star' : 'star-outline'}
                 size={14}
-                color="#FFD700"
+                color='#FFD700'
               />
             ))}
             <Text style={styles.ratingText}>({jobSuccess.rating}/5)</Text>
@@ -176,7 +204,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
 
           {(jobSuccess.before_photo || jobSuccess.after_photo) && (
             <View style={styles.photoIndicator}>
-              <Ionicons name="images" size={14} color={theme.colors.primary} />
+              <Ionicons name='images' size={14} color={theme.colors.primary} />
               <Text style={styles.photoText}>Photos</Text>
             </View>
           )}
@@ -185,7 +213,10 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
     </TouchableOpacity>
   );
 
-  const renderCommunityChampion = (champion: CommunityChampion, index: number) => (
+  const renderCommunityChampion = (
+    champion: CommunityChampion,
+    index: number
+  ) => (
     <View key={champion.user_id} style={styles.listItem}>
       <View style={styles.championRank}>
         <Text style={styles.championPosition}>#{index + 1}</Text>
@@ -206,14 +237,21 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
       <View style={styles.championInfo}>
         <Text style={styles.championName}>{champion.user_name}</Text>
         <Text style={styles.championType}>
-          {champion.champion_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+          {champion.champion_type
+            .replace('_', ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())}
         </Text>
         <Text style={styles.championScore}>Score: {champion.score}</Text>
       </View>
 
-      <View style={[styles.badgeLevelIndicator, { 
-        backgroundColor: getBadgeLevelColor(champion.badge_level) 
-      }]}>
+      <View
+        style={[
+          styles.badgeLevelIndicator,
+          {
+            backgroundColor: getBadgeLevelColor(champion.badge_level),
+          },
+        ]}
+      >
         <Text style={styles.badgeLevelText}>
           {champion.badge_level.toUpperCase()}
         </Text>
@@ -224,8 +262,10 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
   if (isLoading && !leaderboard) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading neighborhood leaderboard...</Text>
+        <ActivityIndicator size='large' color={theme.colors.primary} />
+        <Text style={styles.loadingText}>
+          Loading neighborhood leaderboard...
+        </Text>
       </View>
     );
   }
@@ -233,7 +273,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning" size={48} color={theme.colors.error} />
+        <Ionicons name='warning' size={48} color={theme.colors.error} />
         <Text style={styles.errorText}>Unable to load neighborhood data</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
           <Text style={styles.retryButtonText}>Try Again</Text>
@@ -245,16 +285,22 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
   if (!leaderboard) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="location" size={48} color={theme.colors.textSecondary} />
+        <Ionicons
+          name='location'
+          size={48}
+          color={theme.colors.textSecondary}
+        />
         <Text style={styles.emptyText}>No neighborhood data available</Text>
       </View>
     );
   }
 
-  const scoreFormatted = communityScore ? formatCommunityScore(communityScore) : null;
+  const scoreFormatted = communityScore
+    ? formatCommunityScore(communityScore)
+    : null;
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -264,17 +310,23 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
       {/* Neighborhood Header */}
       <View style={styles.header}>
         <View style={styles.neighborhoodTitle}>
-          <Ionicons name="location" size={24} color={theme.colors.primary} />
-          <Text style={styles.neighborhoodName}>{leaderboard.neighborhood.name}</Text>
+          <Ionicons name='location' size={24} color={theme.colors.primary} />
+          <Text style={styles.neighborhoodName}>
+            {leaderboard.neighborhood.name}
+          </Text>
         </View>
-        
+
         <View style={styles.neighborhoodStats}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{leaderboard.neighborhood.member_count}</Text>
+            <Text style={styles.statValue}>
+              {leaderboard.neighborhood.member_count}
+            </Text>
             <Text style={styles.statLabel}>Members</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{leaderboard.neighborhood.completed_jobs_count}</Text>
+            <Text style={styles.statValue}>
+              {leaderboard.neighborhood.completed_jobs_count}
+            </Text>
             <Text style={styles.statLabel}>Jobs Done</Text>
           </View>
           {scoreFormatted && (
@@ -294,15 +346,21 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
           style={[styles.tab, activeTab === 'contractors' && styles.activeTab]}
           onPress={() => setActiveTab('contractors')}
         >
-          <Ionicons 
-            name="hammer" 
-            size={16} 
-            color={activeTab === 'contractors' ? theme.colors.primary : theme.colors.textSecondary} 
+          <Ionicons
+            name='hammer'
+            size={16}
+            color={
+              activeTab === 'contractors'
+                ? theme.colors.primary
+                : theme.colors.textSecondary
+            }
           />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'contractors' && styles.activeTabText
-          ]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'contractors' && styles.activeTabText,
+            ]}
+          >
             Top Contractors
           </Text>
         </TouchableOpacity>
@@ -311,15 +369,21 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
           style={[styles.tab, activeTab === 'successes' && styles.activeTab]}
           onPress={() => setActiveTab('successes')}
         >
-          <Ionicons 
-            name="trophy" 
-            size={16} 
-            color={activeTab === 'successes' ? theme.colors.primary : theme.colors.textSecondary} 
+          <Ionicons
+            name='trophy'
+            size={16}
+            color={
+              activeTab === 'successes'
+                ? theme.colors.primary
+                : theme.colors.textSecondary
+            }
           />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'successes' && styles.activeTabText
-          ]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'successes' && styles.activeTabText,
+            ]}
+          >
             Recent Success
           </Text>
         </TouchableOpacity>
@@ -328,15 +392,21 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
           style={[styles.tab, activeTab === 'champions' && styles.activeTab]}
           onPress={() => setActiveTab('champions')}
         >
-          <Ionicons 
-            name="star" 
-            size={16} 
-            color={activeTab === 'champions' ? theme.colors.primary : theme.colors.textSecondary} 
+          <Ionicons
+            name='star'
+            size={16}
+            color={
+              activeTab === 'champions'
+                ? theme.colors.primary
+                : theme.colors.textSecondary
+            }
           />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'champions' && styles.activeTabText
-          ]}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'champions' && styles.activeTabText,
+            ]}
+          >
             Champions
           </Text>
         </TouchableOpacity>
@@ -346,7 +416,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
       <View style={styles.content}>
         {activeTab === 'contractors' && (
           <View>
-            {leaderboard.topContractors.map((contractor, index) => 
+            {leaderboard.topContractors.map((contractor, index) =>
               renderContractorItem(contractor, index)
             )}
           </View>
@@ -354,7 +424,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
 
         {activeTab === 'successes' && (
           <View>
-            {leaderboard.recentSuccesses.map((success, index) => 
+            {leaderboard.recentSuccesses.map((success, index) =>
               renderJobSuccess(success, index)
             )}
           </View>
@@ -362,7 +432,7 @@ export const NeighborhoodLeaderboard: React.FC<NeighborhoodLeaderboardProps> = (
 
         {activeTab === 'champions' && (
           <View>
-            {leaderboard.communityChampions.map((champion, index) => 
+            {leaderboard.communityChampions.map((champion, index) =>
               renderCommunityChampion(champion, index)
             )}
           </View>
@@ -560,7 +630,7 @@ const styles = StyleSheet.create({
   specialtyChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: `${theme.colors.primary}20`,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
     borderRadius: theme.borderRadius.sm,
@@ -584,7 +654,7 @@ const styles = StyleSheet.create({
   endorsementBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: `${theme.colors.primary}20`,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
     borderRadius: theme.borderRadius.sm,

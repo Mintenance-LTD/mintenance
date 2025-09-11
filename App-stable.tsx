@@ -45,7 +45,7 @@ const LoadingScreen = () => (
   <View style={styles.loadingContainer}>
     <Text style={styles.appTitle}>Mintenance</Text>
     <Text style={styles.subtitle}>Contractor Discovery Marketplace</Text>
-    <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+    <ActivityIndicator size='large' color='#007AFF' style={styles.loader} />
     <Text style={styles.loadingText}>Starting up...</Text>
   </View>
 );
@@ -58,22 +58,18 @@ const FallbackApp = ({ error }: { error?: string }) => (
     <Text style={styles.fallbackText}>
       Welcome to Mintenance! The app is in development mode.
     </Text>
-    {error && (
-      <Text style={styles.errorInfo}>
-        Debug info: {error}
-      </Text>
-    )}
+    {error && <Text style={styles.errorInfo}>Debug info: {error}</Text>}
     <Text style={styles.instructionText}>
-      • Connect contractors with homeowners{'\n'}
-      • Post jobs and get bids{'\n'}
-      • Real-time messaging{'\n'}
-      • Secure payments
+      • Connect contractors with homeowners{'\n'}• Post jobs and get bids{'\n'}•
+      Real-time messaging{'\n'}• Secure payments
     </Text>
   </View>
 );
 
 export default function App() {
-  const [appState, setAppState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [appState, setAppState] = useState<'loading' | 'ready' | 'error'>(
+    'loading'
+  );
   const [components, setComponents] = useState<any>({});
   const [error, setError] = useState<string>('');
 
@@ -81,12 +77,12 @@ export default function App() {
     const initializeApp = async () => {
       try {
         console.log('🚀 Initializing Mintenance app...');
-        
+
         // Add a small delay to ensure everything is loaded
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const loadedComponents: any = {};
-        
+
         // Try to load each component safely
         try {
           const { AuthProvider } = await import('./src/contexts/AuthContext');
@@ -97,7 +93,8 @@ export default function App() {
         }
 
         try {
-          const AppNavigator = (await import('./src/navigation/AppNavigator')).default;
+          const AppNavigator = (await import('./src/navigation/AppNavigator'))
+            .default;
           loadedComponents.AppNavigator = AppNavigator;
           console.log('✅ AppNavigator loaded');
         } catch (e) {
@@ -105,7 +102,8 @@ export default function App() {
         }
 
         try {
-          const ErrorBoundary = (await import('./src/components/ErrorBoundary')).default;
+          const ErrorBoundary = (await import('./src/components/ErrorBoundary'))
+            .default;
           loadedComponents.ErrorBoundary = ErrorBoundary;
           console.log('✅ ErrorBoundary loaded');
         } catch (e) {
@@ -113,7 +111,8 @@ export default function App() {
         }
 
         try {
-          const QueryProvider = (await import('./src/providers/QueryProvider')).default;
+          const QueryProvider = (await import('./src/providers/QueryProvider'))
+            .default;
           loadedComponents.QueryProvider = QueryProvider;
           console.log('✅ QueryProvider loaded');
         } catch (e) {
@@ -122,21 +121,25 @@ export default function App() {
 
         // Initialize optional systems (don't fail if these don't work)
         try {
-          const { errorMonitoring } = await import('./src/utils/errorMonitoring');
+          const { errorMonitoring } = await import(
+            './src/utils/errorMonitoring'
+          );
           console.log('✅ Error monitoring available');
         } catch (e) {
           console.log('ℹ️ Error monitoring not available (optional)');
         }
 
         try {
-          const { performanceBudgetManager } = await import('./src/utils/performanceBudgets');
+          const { performanceBudgetManager } = await import(
+            './src/utils/performanceBudgets'
+          );
           console.log('✅ Performance monitoring available');
         } catch (e) {
           console.log('ℹ️ Performance monitoring not available (optional)');
         }
 
         setComponents(loadedComponents);
-        
+
         // Check if we have minimum required components
         if (loadedComponents.AuthProvider && loadedComponents.AppNavigator) {
           setAppState('ready');
@@ -144,9 +147,10 @@ export default function App() {
         } else {
           setError('Missing core components');
           setAppState('error');
-          console.log('⚠️ App initialized with missing components, using fallback');
+          console.log(
+            '⚠️ App initialized with missing components, using fallback'
+          );
         }
-        
       } catch (error: any) {
         console.error('❌ Failed to initialize app:', error);
         setError(error.message || 'Initialization failed');
@@ -162,25 +166,30 @@ export default function App() {
     return (
       <SimpleErrorBoundary>
         <LoadingScreen />
-        <StatusBar style="auto" />
+        <StatusBar style='auto' />
       </SimpleErrorBoundary>
     );
   }
 
   // Error state or missing components
-  if (appState === 'error' || !components.AuthProvider || !components.AppNavigator) {
+  if (
+    appState === 'error' ||
+    !components.AuthProvider ||
+    !components.AppNavigator
+  ) {
     return (
       <SimpleErrorBoundary>
         <FallbackApp error={error} />
-        <StatusBar style="auto" />
+        <StatusBar style='auto' />
       </SimpleErrorBoundary>
     );
   }
 
   // Full app
-  const { AuthProvider, AppNavigator, ErrorBoundary, QueryProvider } = components;
+  const { AuthProvider, AppNavigator, ErrorBoundary, QueryProvider } =
+    components;
   const ErrorComponent = ErrorBoundary || SimpleErrorBoundary;
-  
+
   return (
     <SimpleErrorBoundary>
       <ErrorComponent>
@@ -188,13 +197,13 @@ export default function App() {
           <QueryProvider>
             <AuthProvider>
               <AppNavigator />
-              <StatusBar style="auto" />
+              <StatusBar style='auto' />
             </AuthProvider>
           </QueryProvider>
         ) : (
           <AuthProvider>
             <AppNavigator />
-            <StatusBar style="auto" />
+            <StatusBar style='auto' />
           </AuthProvider>
         )}
       </ErrorComponent>

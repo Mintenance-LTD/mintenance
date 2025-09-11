@@ -20,4 +20,3 @@ export const renderWithProviders = (ui: React.ReactElement, renderFn: any) => {
 };
 
 export default Providers;
-

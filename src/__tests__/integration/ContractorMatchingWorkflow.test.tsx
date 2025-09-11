@@ -84,11 +84,19 @@ jest.mock('../../utils/logger', () => ({
 
 const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
 const mockJobService = JobService as jest.Mocked<typeof JobService>;
-const mockContractorService = ContractorService as jest.Mocked<typeof ContractorService>;
-const mockMessagingService = MessagingService as jest.Mocked<typeof MessagingService>;
+const mockContractorService = ContractorService as jest.Mocked<
+  typeof ContractorService
+>;
+const mockMessagingService = MessagingService as jest.Mocked<
+  typeof MessagingService
+>;
 
 // Mock Contractor Discovery Screen (Swipe Interface)
-const MockContractorDiscoveryScreen = ({ onMatch }: { onMatch?: (contractor: any, action: string) => void }) => {
+const MockContractorDiscoveryScreen = ({
+  onMatch,
+}: {
+  onMatch?: (contractor: any, action: string) => void;
+}) => {
   const [contractors, setContractors] = React.useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = React.useState(0);
 
@@ -115,7 +123,7 @@ const MockContractorDiscoveryScreen = ({ onMatch }: { onMatch?: (contractor: any
           action,
         });
         onMatch?.(contractor, action);
-        setCurrentIndex(prev => prev + 1);
+        setCurrentIndex((prev) => prev + 1);
       } catch (error) {
         console.log('Match creation error:', error);
       }
@@ -126,29 +134,33 @@ const MockContractorDiscoveryScreen = ({ onMatch }: { onMatch?: (contractor: any
 
   if (!currentContractor) {
     return (
-      <View testID="contractor-discovery-screen">
-        <Text testID="no-more-contractors">No more contractors to review</Text>
+      <View testID='contractor-discovery-screen'>
+        <Text testID='no-more-contractors'>No more contractors to review</Text>
       </View>
     );
   }
 
   return (
-    <View testID="contractor-discovery-screen">
-      <Text testID="discovery-title">Discover Contractors</Text>
-      <View testID="contractor-card">
-        <Text testID="contractor-name">{currentContractor.name}</Text>
-        <Text testID="contractor-skills">{currentContractor.skills?.join(', ')}</Text>
-        <Text testID="contractor-rating">Rating: {currentContractor.rating}/5</Text>
-        <Text testID="contractor-bio">{currentContractor.bio}</Text>
+    <View testID='contractor-discovery-screen'>
+      <Text testID='discovery-title'>Discover Contractors</Text>
+      <View testID='contractor-card'>
+        <Text testID='contractor-name'>{currentContractor.name}</Text>
+        <Text testID='contractor-skills'>
+          {currentContractor.skills?.join(', ')}
+        </Text>
+        <Text testID='contractor-rating'>
+          Rating: {currentContractor.rating}/5
+        </Text>
+        <Text testID='contractor-bio'>{currentContractor.bio}</Text>
       </View>
       <TouchableOpacity
-        testID="pass-button"
+        testID='pass-button'
         onPress={() => handleSwipe('pass')}
       >
         <Text>Pass</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="like-button"
+        testID='like-button'
         onPress={() => handleSwipe('like')}
       >
         <Text>Like</Text>
@@ -158,7 +170,11 @@ const MockContractorDiscoveryScreen = ({ onMatch }: { onMatch?: (contractor: any
 };
 
 // Mock Matches Screen
-const MockMatchesScreen = ({ userRole }: { userRole: 'homeowner' | 'contractor' }) => {
+const MockMatchesScreen = ({
+  userRole,
+}: {
+  userRole: 'homeowner' | 'contractor';
+}) => {
   const [matches, setMatches] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -186,18 +202,20 @@ const MockMatchesScreen = ({ userRole }: { userRole: 'homeowner' | 'contractor' 
   };
 
   return (
-    <View testID="matches-screen">
-      <Text testID="matches-title">
+    <View testID='matches-screen'>
+      <Text testID='matches-title'>
         {userRole === 'homeowner' ? 'Contractor Matches' : 'Homeowner Matches'}
       </Text>
       {matches.map((match, index) => (
         <View key={match.id || index} testID={`match-item-${index}`}>
           <Text testID={`match-name-${index}`}>
-            {userRole === 'homeowner' ? match.contractorName : match.homeownerName}
+            {userRole === 'homeowner'
+              ? match.contractorName
+              : match.homeownerName}
           </Text>
           <Text testID={`match-status-${index}`}>{match.status}</Text>
           {match.status === 'mutual' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               testID={`chat-button-${index}`}
               onPress={() => handleStartChat(match.id)}
             >
@@ -206,15 +224,17 @@ const MockMatchesScreen = ({ userRole }: { userRole: 'homeowner' | 'contractor' 
           )}
         </View>
       ))}
-      {matches.length === 0 && (
-        <Text testID="no-matches">No matches yet</Text>
-      )}
+      {matches.length === 0 && <Text testID='no-matches'>No matches yet</Text>}
     </View>
   );
 };
 
 // Mock Bidding Dashboard
-const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contractor' }) => {
+const MockBiddingDashboard = ({
+  userRole,
+}: {
+  userRole: 'homeowner' | 'contractor';
+}) => {
   const [bids, setBids] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -244,7 +264,10 @@ const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contracto
     }
   };
 
-  const handleJobAction = async (jobId: string, action: 'start' | 'complete') => {
+  const handleJobAction = async (
+    jobId: string,
+    action: 'start' | 'complete'
+  ) => {
     try {
       if (action === 'start') {
         await JobService.startJob(jobId);
@@ -257,8 +280,8 @@ const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contracto
   };
 
   return (
-    <View testID="bidding-dashboard">
-      <Text testID="dashboard-title">
+    <View testID='bidding-dashboard'>
+      <Text testID='dashboard-title'>
         {userRole === 'contractor' ? 'My Bids' : 'Received Bids'}
       </Text>
       {bids.map((bid, index) => (
@@ -266,25 +289,25 @@ const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contracto
           <Text testID={`bid-job-title-${index}`}>{bid.jobTitle || 'Job'}</Text>
           <Text testID={`bid-amount-${index}`}>${bid.amount}</Text>
           <Text testID={`bid-status-${index}`}>{bid.status}</Text>
-          
+
           {userRole === 'homeowner' && bid.status === 'pending' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               testID={`accept-bid-dashboard-${index}`}
               onPress={() => handleAcceptBid(bid.id)}
             >
               <Text>Accept</Text>
             </TouchableOpacity>
           )}
-          
+
           {userRole === 'contractor' && bid.status === 'accepted' && (
             <View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 testID={`start-job-${index}`}
                 onPress={() => handleJobAction(bid.jobId, 'start')}
               >
                 <Text>Start Job</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 testID={`complete-job-${index}`}
                 onPress={() => handleJobAction(bid.jobId, 'complete')}
               >
@@ -295,8 +318,10 @@ const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contracto
         </View>
       ))}
       {bids.length === 0 && (
-        <Text testID="no-bids">
-          {userRole === 'contractor' ? 'No bids submitted yet' : 'No bids received yet'}
+        <Text testID='no-bids'>
+          {userRole === 'contractor'
+            ? 'No bids submitted yet'
+            : 'No bids received yet'}
         </Text>
       )}
     </View>
@@ -304,23 +329,23 @@ const MockBiddingDashboard = ({ userRole }: { userRole: 'homeowner' | 'contracto
 };
 
 // Test Navigator Component
-const TestNavigator = ({ 
+const TestNavigator = ({
   screen,
   userRole,
-  onMatch 
-}: { 
-  screen: 'discovery' | 'matches' | 'bidding'; 
+  onMatch,
+}: {
+  screen: 'discovery' | 'matches' | 'bidding';
   userRole: 'homeowner' | 'contractor';
   onMatch?: (contractor: any, action: string) => void;
 }) => {
   if (screen === 'discovery') {
     return <MockContractorDiscoveryScreen onMatch={onMatch} />;
   }
-  
+
   if (screen === 'matches') {
     return <MockMatchesScreen userRole={userRole} />;
   }
-  
+
   return <MockBiddingDashboard userRole={userRole} />;
 };
 
@@ -384,9 +409,9 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       let matchAction: string;
 
       const { getByTestId } = render(
-        <TestWrapper 
-          screen="discovery" 
-          userRole="homeowner"
+        <TestWrapper
+          screen='discovery'
+          userRole='homeowner'
           onMatch={(contractor: any, action: string) => {
             matchedContractor = contractor;
             matchAction = action;
@@ -409,7 +434,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       const contractorName = getByTestId('contractor-name');
       const contractorSkills = getByTestId('contractor-skills');
       const contractorRating = getByTestId('contractor-rating');
-      
+
       expect(contractorName.props.children).toBe('Mike Johnson');
       expect(contractorSkills.props.children).toBe('Plumbing, Electrical');
       expect(contractorRating.props.children).toEqual(['Rating: ', 4.8, '/5']);
@@ -435,7 +460,9 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Should show next contractor
       await waitFor(() => {
-        expect(getByTestId('contractor-name').props.children).toBe('Sarah Wilson');
+        expect(getByTestId('contractor-name').props.children).toBe(
+          'Sarah Wilson'
+        );
       });
     });
 
@@ -460,7 +487,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       });
 
       const { getByTestId } = render(
-        <TestWrapper screen="discovery" userRole="homeowner" />
+        <TestWrapper screen='discovery' userRole='homeowner' />
       );
 
       await waitFor(() => {
@@ -518,12 +545,14 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       });
 
       const { getByTestId } = render(
-        <TestWrapper screen="matches" userRole="homeowner" />
+        <TestWrapper screen='matches' userRole='homeowner' />
       );
 
       // Should load matches
       await waitFor(() => {
-        expect(mockContractorService.getMatches).toHaveBeenCalledWith('user-123');
+        expect(mockContractorService.getMatches).toHaveBeenCalledWith(
+          'user-123'
+        );
       });
 
       // Should display matches
@@ -561,7 +590,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       mockContractorService.getMatches.mockResolvedValue([]);
 
       const { getByTestId } = render(
-        <TestWrapper screen="matches" userRole="homeowner" />
+        <TestWrapper screen='matches' userRole='homeowner' />
       );
 
       await waitFor(() => {
@@ -599,12 +628,14 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       mockJobService.completeJob.mockResolvedValue(undefined);
 
       const { getByTestId } = render(
-        <TestWrapper screen="bidding" userRole="contractor" />
+        <TestWrapper screen='bidding' userRole='contractor' />
       );
 
       // Should load contractor bids
       await waitFor(() => {
-        expect(mockJobService.getBidsByContractor).toHaveBeenCalledWith('contractor-123');
+        expect(mockJobService.getBidsByContractor).toHaveBeenCalledWith(
+          'contractor-123'
+        );
       });
 
       // Should display bids
@@ -622,7 +653,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       const bid1Title = getByTestId('bid-job-title-0');
       const bid1Amount = getByTestId('bid-amount-0');
       const bid1Status = getByTestId('bid-status-0');
-      
+
       expect(bid1Title.props.children).toBe('Kitchen Faucet Repair');
       expect(bid1Amount.props.children).toEqual(['$', 150]);
       expect(bid1Status.props.children).toBe('accepted');
@@ -678,7 +709,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       mockJobService.acceptBid.mockResolvedValue(undefined);
 
       const { getByTestId } = render(
-        <TestWrapper screen="bidding" userRole="homeowner" />
+        <TestWrapper screen='bidding' userRole='homeowner' />
       );
 
       // Should load job bids
@@ -718,7 +749,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       mockJobService.getBidsByContractor.mockResolvedValue([]);
 
       const { getByTestId } = render(
-        <TestWrapper screen="bidding" userRole="contractor" />
+        <TestWrapper screen='bidding' userRole='contractor' />
       );
 
       await waitFor(() => {

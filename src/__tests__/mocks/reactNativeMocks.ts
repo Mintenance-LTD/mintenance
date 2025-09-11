@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 
 // React Native Mock Factory
 export class ReactNativeMockFactory {
-
   // Platform Mock
   static createPlatformMock() {
     return {
@@ -63,7 +62,7 @@ export class ReactNativeMockFactory {
   // NetInfo Mock
   static createNetInfoMock() {
     return {
-      fetch: jest.fn(() => 
+      fetch: jest.fn(() =>
         Promise.resolve({
           type: 'wifi',
           isConnected: true,
@@ -110,7 +109,7 @@ export class ReactNativeMockFactory {
     const storage = new Map<string, string>();
 
     return {
-      getItem: jest.fn((key: string) => 
+      getItem: jest.fn((key: string) =>
         Promise.resolve(storage.get(key) || null)
       ),
       setItem: jest.fn((key: string, value: string) => {
@@ -142,7 +141,7 @@ export class ReactNativeMockFactory {
       }),
       getAllKeys: jest.fn(() => Promise.resolve(Array.from(storage.keys()))),
       multiGet: jest.fn((keys: string[]) => {
-        const result = keys.map(key => [key, storage.get(key) || null]);
+        const result = keys.map((key) => [key, storage.get(key) || null]);
         return Promise.resolve(result);
       }),
       multiSet: jest.fn((keyValuePairs: [string, string][]) => {
@@ -150,7 +149,7 @@ export class ReactNativeMockFactory {
         return Promise.resolve();
       }),
       multiRemove: jest.fn((keys: string[]) => {
-        keys.forEach(key => storage.delete(key));
+        keys.forEach((key) => storage.delete(key));
         return Promise.resolve();
       }),
       __storage: storage, // For testing purposes
@@ -275,7 +274,7 @@ export class ReactNativeMockFactory {
       InteractionManager,
       BackHandler,
       NativeModules,
-      
+
       // Core Components
       View: mockComponent,
       Text: mockComponent,
@@ -291,12 +290,11 @@ export class ReactNativeMockFactory {
       SafeAreaView: mockComponent,
       StatusBar: mockComponent,
 
-      
       // Layout Components
       FlatList: mockComponent,
       SectionList: mockComponent,
       VirtualizedList: mockComponent,
-      
+
       // Styles
       StyleSheet: {
         create: jest.fn((styles) => styles),
@@ -309,7 +307,7 @@ export class ReactNativeMockFactory {
           bottom: 0,
         },
       },
-      
+
       // Animated
       Animated: {
         View: mockComponent,
@@ -326,18 +324,24 @@ export class ReactNativeMockFactory {
         })),
         ValueXY: jest.fn(),
         timing: jest.fn(() => ({
-          start: jest.fn((callback) => callback && callback({ finished: true })),
+          start: jest.fn(
+            (callback) => callback && callback({ finished: true })
+          ),
           stop: jest.fn(),
           reset: jest.fn(),
         })),
 
-                spring: jest.fn(() => ({
-          start: jest.fn((callback) => callback && callback({ finished: true })),
+        spring: jest.fn(() => ({
+          start: jest.fn(
+            (callback) => callback && callback({ finished: true })
+          ),
           stop: jest.fn(),
           reset: jest.fn(),
         })),
         decay: jest.fn(() => ({
-          start: jest.fn((callback) => callback && callback({ finished: true })),
+          start: jest.fn(
+            (callback) => callback && callback({ finished: true })
+          ),
           stop: jest.fn(),
           reset: jest.fn(),
         })),
@@ -362,7 +366,7 @@ export class ReactNativeMockFactory {
           bounce: jest.fn(),
         },
       },
-      
+
       // PanResponder
       PanResponder: {
         create: jest.fn(() => ({

@@ -9,7 +9,7 @@ import {
   Alert,
   Modal,
   TextInput,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { logger } from '../utils/logger';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,9 +39,14 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
     if (!user) return;
 
     try {
-      const isNowLiked = await ContractorSocialService.toggleLike(post.id, user.id);
+      const isNowLiked = await ContractorSocialService.toggleLike(
+        post.id,
+        user.id
+      );
       setLiked(isNowLiked);
-      setLikesCount((prev: number) => (isNowLiked ? prev + 1 : Math.max(0, prev - 1)));
+      setLikesCount((prev: number) =>
+        isNowLiked ? prev + 1 : Math.max(0, prev - 1)
+      );
     } catch (error) {
       logger.error('Error toggling like:', error);
       Alert.alert('Error', 'Failed to update like status');
@@ -53,7 +58,9 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
 
     setLoadingComments(true);
     try {
-      const postComments = await ContractorSocialService.getPostComments(post.id);
+      const postComments = await ContractorSocialService.getPostComments(
+        post.id
+      );
       setComments(postComments);
     } catch (error) {
       logger.error('Error loading comments:', error);
@@ -77,7 +84,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
         user.id,
         newComment.trim()
       );
-      setComments(prev => [...prev, comment]);
+      setComments((prev) => [...prev, comment]);
       setNewComment('');
       onUpdate?.();
     } catch (error) {
@@ -163,7 +170,8 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
               />
             ) : (
               <Text style={styles.avatarText}>
-                {p.contractor?.firstName?.[0]}{p.contractor?.lastName?.[0]}
+                {p.contractor?.firstName?.[0]}
+                {p.contractor?.lastName?.[0]}
               </Text>
             )}
           </View>
@@ -172,21 +180,34 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
               {p.contractor?.firstName} {p.contractor?.lastName}
             </Text>
             <View style={styles.postMeta}>
-              <View style={[styles.postTypeBadge, { backgroundColor: getPostTypeColor() }]}>
-                <Ionicons name={getPostTypeIcon()} size={12} color="#fff" />
+              <View
+                style={[
+                  styles.postTypeBadge,
+                  { backgroundColor: getPostTypeColor() },
+                ]}
+              >
+                <Ionicons name={getPostTypeIcon()} size={12} color='#fff' />
                 <Text style={styles.postTypeText}>{getPostTypeLabel()}</Text>
               </View>
               <Text style={styles.timeText}>{formatTimeAgo(p.createdAt)}</Text>
             </View>
           </View>
         </View>
-        
+
         {p.urgencyLevel && (
-          <View style={[
-            styles.urgencyBadge,
-            { backgroundColor: p.urgencyLevel === 'high' ? '#FF3B30' : 
-                               p.urgencyLevel === 'medium' ? '#FF9500' : '#4CD964' }
-          ]}>
+          <View
+            style={[
+              styles.urgencyBadge,
+              {
+                backgroundColor:
+                  p.urgencyLevel === 'high'
+                    ? '#FF3B30'
+                    : p.urgencyLevel === 'medium'
+                      ? '#FF9500'
+                      : '#4CD964',
+              },
+            ]}
+          >
             <Text style={styles.urgencyText}>
               {p.urgencyLevel.toUpperCase()}
             </Text>
@@ -218,13 +239,15 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
           <View style={styles.projectDetails}>
             {p.projectDuration && (
               <View style={styles.detailItem}>
-                <Ionicons name="time-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>{p.projectDuration}h duration</Text>
+                <Ionicons name='time-outline' size={16} color='#666' />
+                <Text style={styles.detailText}>
+                  {p.projectDuration}h duration
+                </Text>
               </View>
             )}
             {p.projectCost && (
               <View style={styles.detailItem}>
-                <Ionicons name="cash-outline" size={16} color="#666" />
+                <Ionicons name='cash-outline' size={16} color='#666' />
                 <Text style={styles.detailText}>${p.projectCost}</Text>
               </View>
             )}
@@ -235,12 +258,12 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
         {p.postType === 'equipment_share' && (
           <View style={styles.equipmentDetails}>
             <View style={styles.detailItem}>
-              <Ionicons name="build-outline" size={16} color="#666" />
+              <Ionicons name='build-outline' size={16} color='#666' />
               <Text style={styles.detailText}>{p.itemName}</Text>
             </View>
             {p.rentalPrice && (
               <View style={styles.detailItem}>
-                <Ionicons name="cash-outline" size={16} color="#666" />
+                <Ionicons name='cash-outline' size={16} color='#666' />
                 <Text style={styles.detailText}>${p.rentalPrice}/day</Text>
               </View>
             )}
@@ -249,7 +272,11 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
 
         {/* Images */}
         {p.images && p.images.length > 0 && (
-          <ScrollView horizontal style={styles.imagesContainer} showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            horizontal
+            style={styles.imagesContainer}
+            showsHorizontalScrollIndicator={false}
+          >
             {p.images.map((imageUrl: string, index: number) => (
               <Image
                 key={index}
@@ -263,27 +290,30 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.actionButton, liked && styles.actionButtonLiked]}
           onPress={handleLike}
         >
-          <Ionicons 
-            name={liked ? "heart" : "heart-outline"} 
-            size={20} 
-            color={liked ? "#FF3B30" : "#666"} 
+          <Ionicons
+            name={liked ? 'heart' : 'heart-outline'}
+            size={20}
+            color={liked ? '#FF3B30' : '#666'}
           />
           <Text style={[styles.actionText, liked && styles.actionTextLiked]}>
             {likesCount}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={handleShowComments}>
-          <Ionicons name="chatbubble-outline" size={20} color="#666" />
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleShowComments}
+        >
+          <Ionicons name='chatbubble-outline' size={20} color='#666' />
           <Text style={styles.actionText}>{p.commentsCount || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="share-outline" size={20} color="#666" />
+          <Ionicons name='share-outline' size={20} color='#666' />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -291,14 +321,14 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
       {/* Comments Modal */}
       <Modal
         visible={showComments}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType='slide'
+        presentationStyle='pageSheet'
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Comments</Text>
             <TouchableOpacity onPress={() => setShowComments(false)}>
-              <Ionicons name="close" size={24} color={theme.colors.info} />
+              <Ionicons name='close' size={24} color={theme.colors.info} />
             </TouchableOpacity>
           </View>
 
@@ -310,7 +340,8 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
                 <View key={comment.id} style={styles.comment}>
                   <View style={styles.commentHeader}>
                     <Text style={styles.commentAuthor}>
-                      {comment.contractor?.firstName} {comment.contractor?.lastName}
+                      {comment.contractor?.firstName}{' '}
+                      {comment.contractor?.lastName}
                     </Text>
                     <Text style={styles.commentTime}>
                       {formatTimeAgo(comment.createdAt)}
@@ -319,7 +350,11 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
                   <Text style={styles.commentText}>{comment.commentText}</Text>
                   {comment.isSolution && (
                     <View style={styles.solutionBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
+                      <Ionicons
+                        name='checkmark-circle'
+                        size={16}
+                        color='#4CD964'
+                      />
                       <Text style={styles.solutionText}>Solution</Text>
                     </View>
                   )}
@@ -334,20 +369,20 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
             <View style={styles.commentInput}>
               <TextInput
                 style={styles.commentTextInput}
-                placeholder="Add a comment..."
+                placeholder='Add a comment...'
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
               />
-              <TouchableOpacity 
-                style={styles.sendButton} 
+              <TouchableOpacity
+                style={styles.sendButton}
                 onPress={handleAddComment}
                 disabled={!newComment.trim()}
               >
-                <Ionicons 
-                  name="send" 
-                  size={20} 
-                  color={newComment.trim() ? theme.colors.info : '#ccc'} 
+                <Ionicons
+                  name='send'
+                  size={20}
+                  color={newComment.trim() ? theme.colors.info : '#ccc'}
                 />
               </TouchableOpacity>
             </View>

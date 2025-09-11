@@ -14,7 +14,10 @@ const normalize = (size: number, maxScale: number = 1.3): number => {
 };
 
 // Text scaling hook for dynamic accessibility
-export const useAccessibleFontSize = (baseFontSize: number, maxScale: number = 1.3) => {
+export const useAccessibleFontSize = (
+  baseFontSize: number,
+  maxScale: number = 1.3
+) => {
   return normalize(baseFontSize, maxScale);
 };
 
@@ -33,94 +36,94 @@ export const theme = {
   // Color Palette
   colors: {
     // Primary Brand Colors (Updated to darker blues)
-    primary: '#0F172A',        // Very dark blue/slate - navy blue
-    primaryLight: '#1E293B',   // Lighter but still dark blue
-    primaryDark: '#020617',    // Darkest blue for pressed states
-    
+    primary: '#0F172A', // Very dark blue/slate - navy blue
+    primaryLight: '#1E293B', // Lighter but still dark blue
+    primaryDark: '#020617', // Darkest blue for pressed states
+
     // Secondary Colors (Updated to vibrant mint green)
-    secondary: '#10B981',      // Vibrant emerald green - modern and fresh
-    secondaryLight: '#34D399', // Lighter emerald for secondary elements  
-    secondaryDark: '#059669',  // Darker emerald for pressed states
-    
+    secondary: '#10B981', // Vibrant emerald green - modern and fresh
+    secondaryLight: '#34D399', // Lighter emerald for secondary elements
+    secondaryDark: '#059669', // Darker emerald for pressed states
+
     // Accent Colors for variety
-    accent: '#F59E0B',         // Warm amber
-    accentLight: '#FCD34D',    // Light amber
-    accentDark: '#D97706',     // Dark amber
-    
+    accent: '#F59E0B', // Warm amber
+    accentLight: '#FCD34D', // Light amber
+    accentDark: '#D97706', // Dark amber
+
     // Success/Error States
     success: '#34C759',
     successLight: '#5DD579',
     successDark: '#248A3D',
-    
+
     error: '#FF3B30',
     errorLight: '#FF6B61',
     errorDark: '#D70015',
-    
+
     warning: '#FF9500',
     warningLight: '#FFB143',
     warningDark: '#CC7700',
-    
+
     info: '#007AFF',
     infoLight: '#339FFF',
     infoDark: '#0051D5',
-    
+
     // Neutral Colors
-    background: '#FFFFFF',     // Pure white background as specified
+    background: '#FFFFFF', // Pure white background as specified
     surface: '#FFFFFF',
     surfaceSecondary: '#F8FAFC',
     surfaceTertiary: '#F1F5F9',
-    
+
     // Common utility colors
     white: '#FFFFFF',
     black: '#000000',
-    
+
     // Text Colors (WCAG AA Compliant)
-    textPrimary: '#1F2937',    // 4.5:1 contrast on white
-    textSecondary: '#4B5563',  // 4.5:1 contrast on white
-    textTertiary: '#6B7280',   // 4.5:1 contrast on white (was #8E8E93 - failed)
+    textPrimary: '#1F2937', // 4.5:1 contrast on white
+    textSecondary: '#4B5563', // 4.5:1 contrast on white
+    textTertiary: '#6B7280', // 4.5:1 contrast on white (was #8E8E93 - failed)
     textQuaternary: '#9CA3AF', // For less important text, still passes AA
     textInverse: '#FFFFFF',
     textInverseMuted: 'rgba(255, 255, 255, 0.8)',
-    
+
     // Placeholder Text (WCAG Compliant)
-    placeholder: '#6B7280',    // Meets WCAG AA standard (4.5:1)
-    
+    placeholder: '#6B7280', // Meets WCAG AA standard (4.5:1)
+
     // Border Colors (Enhanced contrast)
     border: '#E5E7EB',
     borderLight: '#F3F4F6',
     borderDark: '#D1D5DB',
-    borderFocus: '#0F172A',   // Very dark blue for focused states
-    
+    borderFocus: '#0F172A', // Very dark blue for focused states
+
     // Priority Colors (Enhanced)
-    priorityHigh: '#EF4444',    // Vibrant red
-    priorityMedium: '#F59E0B',  // Warm amber 
-    priorityLow: '#10B981',     // Vibrant green
-    priorityUrgent: '#DC2626',  // Dark red
-    
+    priorityHigh: '#EF4444', // Vibrant red
+    priorityMedium: '#F59E0B', // Warm amber
+    priorityLow: '#10B981', // Vibrant green
+    priorityUrgent: '#DC2626', // Dark red
+
     // Status Colors
     statusPosted: '#007AFF',
-    statusAssigned: '#FF9500', 
+    statusAssigned: '#FF9500',
     statusInProgress: '#FF9500',
     statusCompleted: '#34C759',
     statusCancelled: '#8E8E93',
-    
+
     // Special purpose colors
     ratingGold: '#FFD700',
-    
+
     // Overlay helpers
     overlayWhite10: 'rgba(255, 255, 255, 0.10)',
     overlayWhite15: 'rgba(255, 255, 255, 0.15)',
     overlayWhite20: 'rgba(255, 255, 255, 0.20)',
-    
+
     // Category Colors (More vibrant)
-    plumbing: '#3B82F6',       // Bright blue
-    electrical: '#F59E0B',     // Warm amber
-    hvac: '#10B981',           // Vibrant green  
-    handyman: '#8B5CF6',       // Purple
-    cleaning: '#EF4444',       // Vibrant red
-    landscaping: '#10B981',    // Vibrant green
-    appliance: '#EC4899',      // Pink
-    painting: '#F97316',       // Orange
+    plumbing: '#3B82F6', // Bright blue
+    electrical: '#F59E0B', // Warm amber
+    hvac: '#10B981', // Vibrant green
+    handyman: '#8B5CF6', // Purple
+    cleaning: '#EF4444', // Vibrant red
+    landscaping: '#10B981', // Vibrant green
+    appliance: '#EC4899', // Pink
+    painting: '#F97316', // Orange
   },
 
   // Typography
@@ -132,7 +135,7 @@ export const theme = {
       semibold: 'System',
       bold: 'System',
     },
-    
+
     // Font Weights
     fontWeight: {
       regular: '400' as const,
@@ -140,7 +143,7 @@ export const theme = {
       semibold: '600' as const,
       bold: '700' as const,
     },
-    
+
     // Font Sizes (with dynamic scaling support)
     fontSize: {
       xs: normalize(10),
@@ -153,7 +156,7 @@ export const theme = {
       '4xl': normalize(32),
       '5xl': normalize(48),
     },
-    
+
     // Raw font sizes for custom scaling
     rawFontSize: {
       xs: 10,
@@ -166,7 +169,7 @@ export const theme = {
       '4xl': 32,
       '5xl': 48,
     },
-    
+
     // Accessibility font sizes (larger scaling)
     accessibleFontSize: {
       xs: normalize(10, 1.5),
@@ -179,7 +182,7 @@ export const theme = {
       '4xl': normalize(32, 1.5),
       '5xl': normalize(48, 1.5),
     },
-    
+
     // Line Heights
     lineHeight: {
       tight: 1.2,
@@ -263,7 +266,7 @@ export const theme = {
     // Button Variants
     button: {
       primary: {
-        backgroundColor: '#0F172A',  // Very dark blue primary
+        backgroundColor: '#0F172A', // Very dark blue primary
         color: '#FFFFFF',
         borderColor: '#0F172A',
       },
@@ -278,7 +281,7 @@ export const theme = {
         borderColor: 'transparent',
       },
       success: {
-        backgroundColor: '#4ECDC4',  // Mint green accent
+        backgroundColor: '#4ECDC4', // Mint green accent
         color: '#FFFFFF',
         borderColor: '#4ECDC4',
       },
@@ -293,14 +296,14 @@ export const theme = {
         borderColor: 'transparent',
       },
     },
-    
+
     // Card Variants (Rounded cards)
     card: {
       default: {
         backgroundColor: '#FFFFFF',
         borderColor: '#E5E7EB',
         borderWidth: 1,
-        borderRadius: 16,          // Rounded cards
+        borderRadius: 16, // Rounded cards
       },
       elevated: {
         backgroundColor: '#FFFFFF',
@@ -314,23 +317,23 @@ export const theme = {
         borderRadius: 16,
       },
     },
-    
+
     // Input Variants (WCAG Compliant)
     input: {
       default: {
         backgroundColor: '#FFFFFF',
         borderColor: '#E5E7EB',
-        color: '#1F2937',           // High contrast text
+        color: '#1F2937', // High contrast text
         placeholderTextColor: '#6B7280', // WCAG AA compliant placeholder
       },
       focused: {
-        borderColor: '#0F172A',    // Very dark blue focus
+        borderColor: '#0F172A', // Very dark blue focus
         backgroundColor: '#FFFFFF',
         shadowColor: '#0F172A',
         shadowOpacity: 0.1,
       },
       error: {
-        borderColor: '#DC2626',    // Higher contrast red
+        borderColor: '#DC2626', // Higher contrast red
         backgroundColor: '#FEF2F2',
         color: '#DC2626',
       },
@@ -343,19 +346,19 @@ export const theme = {
     screenPadding: 16,
     cardPadding: 16,
     sectionSpacing: 24,
-    
+
     // Common Dimensions (Platform-specific and accessible)
-    buttonHeight: 44,          // Minimum touch target
-    buttonHeightLarge: 48,     // Preferred touch target
-    inputHeight: 44,           // Minimum touch target
-    inputHeightLarge: 48,      // Preferred touch target
+    buttonHeight: 44, // Minimum touch target
+    buttonHeightLarge: 48, // Preferred touch target
+    inputHeight: 44, // Minimum touch target
+    inputHeightLarge: 48, // Preferred touch target
     headerHeight: 56,
     tabBarHeight: {
-      ios: 83,                 // iOS specific (49px + 34px safe area)
-      android: 56,             // Android specific
+      ios: 83, // iOS specific (49px + 34px safe area)
+      android: 56, // Android specific
     },
-    minTouchTarget: 44,        // WCAG minimum touch target
-    
+    minTouchTarget: 44, // WCAG minimum touch target
+
     // Breakpoints (for responsive design)
     breakpoints: {
       sm: 375,
@@ -417,7 +420,7 @@ export type Theme = typeof theme;
 export const getColor = (colorPath: string) => {
   const keys = colorPath.split('.');
   let value: any = theme.colors;
-  
+
   for (const key of keys) {
     if (value && typeof value === 'object' && key in value) {
       value = value[key];
@@ -425,7 +428,7 @@ export const getColor = (colorPath: string) => {
       return undefined;
     }
   }
-  
+
   return typeof value === 'string' ? value : undefined;
 };
 
@@ -438,12 +441,18 @@ export const getFontSize = (size: keyof typeof theme.typography.fontSize) => {
 };
 
 // Dynamic font size with accessibility scaling
-export const getAccessibleFontSize = (size: keyof typeof theme.typography.rawFontSize, maxScale: number = 1.3) => {
+export const getAccessibleFontSize = (
+  size: keyof typeof theme.typography.rawFontSize,
+  maxScale: number = 1.3
+) => {
   return normalize(theme.typography.rawFontSize[size], maxScale);
 };
 
 // Responsive font scaling utility
-export const scaledFontSize = (size: number, maxScale: number = 1.3): number => {
+export const scaledFontSize = (
+  size: number,
+  maxScale: number = 1.3
+): number => {
   return normalize(size, maxScale);
 };
 
@@ -469,7 +478,7 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-// Priority color helper  
+// Priority color helper
 export const getPriorityColor = (priority: string) => {
   switch (priority) {
     case 'high':
@@ -485,7 +494,9 @@ export const getPriorityColor = (priority: string) => {
 
 // Category color helper
 export const getCategoryColor = (category: string) => {
-  const categoryKey = category.toLowerCase().replace(/\s+/g, '') as keyof typeof theme.colors;
+  const categoryKey = category
+    .toLowerCase()
+    .replace(/\s+/g, '') as keyof typeof theme.colors;
   return (theme.colors as any)[categoryKey] || theme.colors.textSecondary;
 };
 

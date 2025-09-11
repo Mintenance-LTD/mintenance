@@ -76,14 +76,14 @@ describe('Theme', () => {
     });
 
     it('should have numeric font sizes', () => {
-      Object.values(theme.typography.fontSize).forEach(size => {
+      Object.values(theme.typography.fontSize).forEach((size) => {
         expect(typeof size).toBe('number');
         expect(size).toBeGreaterThan(0);
       });
     });
 
     it('should have valid font weights', () => {
-      Object.values(theme.typography.fontWeight).forEach(weight => {
+      Object.values(theme.typography.fontWeight).forEach((weight) => {
         expect(typeof weight).toBe('string');
         expect(weight).toMatch(/^\d{3}$/); // Should be 3-digit string like '400', '500', etc.
       });
@@ -97,7 +97,7 @@ describe('Theme', () => {
     });
 
     it('should have numeric border radius values', () => {
-      Object.values(theme.borderRadius).forEach(radius => {
+      Object.values(theme.borderRadius).forEach((radius) => {
         expect(typeof radius).toBe('number');
         expect(radius).toBeGreaterThanOrEqual(0);
       });
@@ -111,7 +111,7 @@ describe('Theme', () => {
     });
 
     it('should have proper shadow structure', () => {
-      Object.values(theme.shadows).forEach(shadow => {
+      Object.values(theme.shadows).forEach((shadow) => {
         expect(typeof shadow).toBe('object');
         if (shadow && typeof shadow === 'object') {
           // Each shadow should have required properties for React Native
@@ -129,8 +129,8 @@ describe('Theme', () => {
     it('should have responsive breakpoints defined', () => {
       if (theme.breakpoints) {
         expect(typeof theme.breakpoints).toBe('object');
-        
-        Object.values(theme.breakpoints).forEach(breakpoint => {
+
+        Object.values(theme.breakpoints).forEach((breakpoint) => {
           expect(typeof breakpoint).toBe('number');
           expect(breakpoint).toBeGreaterThan(0);
         });
@@ -148,12 +148,12 @@ describe('Theme', () => {
 
     it('should be immutable', () => {
       const originalPrimary = theme.colors.primary;
-      
+
       // Attempt to modify theme (should not affect original)
       expect(() => {
         (theme.colors as any).primary = '#changed';
       }).not.toThrow();
-      
+
       // Original value should remain (if theme is properly frozen)
       // This test will pass either way but documents expected behavior
       expect(typeof theme.colors.primary).toBe('string');
@@ -170,7 +170,9 @@ describe('Theme', () => {
     it('should have touch target friendly spacing', () => {
       // Ensure spacing scale includes values appropriate for touch targets (44px minimum)
       const spacingValues = Object.values(theme.spacing);
-      const hasLargeTouchSpacing = spacingValues.some(spacing => spacing >= 44);
+      const hasLargeTouchSpacing = spacingValues.some(
+        (spacing) => spacing >= 44
+      );
       expect(hasLargeTouchSpacing).toBe(true);
     });
   });
@@ -181,14 +183,17 @@ describe('Theme', () => {
       expect(theme.colors).toBeDefined();
       expect(theme.colors.background).toBeDefined();
       expect(theme.colors.textPrimary).toBeDefined();
-      
+
       // These properties are essential for dark mode switching
       const essentialColors = [
-        'primary', 'secondary', 'background', 
-        'textPrimary', 'textSecondary'
+        'primary',
+        'secondary',
+        'background',
+        'textPrimary',
+        'textSecondary',
       ];
-      
-      essentialColors.forEach(colorKey => {
+
+      essentialColors.forEach((colorKey) => {
         expect(theme.colors).toHaveProperty(colorKey);
       });
     });

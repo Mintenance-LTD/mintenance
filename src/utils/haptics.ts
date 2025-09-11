@@ -2,10 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { logger } from './logger';
 
-
 // Haptic feedback utility with fallbacks and best practices
 export class HapticService {
-  
   // Light haptic feedback for button presses, selections
   static light = async () => {
     if (Platform.OS === 'ios') {
@@ -85,7 +83,7 @@ export class HapticService {
   static longPress = () => HapticService.medium();
   static swipeAction = () => HapticService.light();
   static cardFlip = () => HapticService.medium();
-  
+
   // Feedback for specific app actions
   static likePost = () => HapticService.light();
   static savePost = () => HapticService.medium();
@@ -105,13 +103,13 @@ export const useHaptics = () => {
     light: HapticService.light,
     medium: HapticService.medium,
     heavy: HapticService.heavy,
-    
+
     // Notification haptics
     success: HapticService.success,
     warning: HapticService.warning,
     error: HapticService.error,
     selection: HapticService.selection,
-    
+
     // Context-specific haptics
     buttonPress: HapticService.buttonPress,
     tabSwitch: HapticService.tabSwitch,
@@ -121,7 +119,7 @@ export const useHaptics = () => {
     pullToRefresh: HapticService.pullToRefresh,
     longPress: HapticService.longPress,
     swipeAction: HapticService.swipeAction,
-    
+
     // App-specific haptics
     likePost: HapticService.likePost,
     savePost: HapticService.savePost,

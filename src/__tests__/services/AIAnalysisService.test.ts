@@ -1,5 +1,8 @@
 import React from 'react';
-import { AIAnalysisService, AIAnalysis } from '../../services/AIAnalysisService';
+import {
+  AIAnalysisService,
+  AIAnalysis,
+} from '../../services/AIAnalysisService';
 import { Job } from '../../types';
 import { logger } from '../../utils/logger';
 
@@ -8,14 +11,14 @@ enum JobPriority {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  URGENT = 'urgent'
+  URGENT = 'urgent',
 }
 
 enum JobStatus {
   POSTED = 'posted',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 // Mock logger
@@ -24,28 +27,29 @@ jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 describe('AIAnalysisService', () => {
   const mockJobBase: Partial<Job> = {
     id: 'job-1',
     title: 'Fix Kitchen Sink Leak',
-    description: 'The kitchen sink has a leak under the faucet that needs fixing',
+    description:
+      'The kitchen sink has a leak under the faucet that needs fixing',
     category: 'plumbing',
     priority: JobPriority.HIGH,
     status: JobStatus.POSTED,
     budget: 200,
     homeownerId: 'homeowner-1',
-    createdAt: '2024-01-01T00:00:00Z'
+    createdAt: '2024-01-01T00:00:00Z',
   };
 
   const mockPlumbingJob: Job = {
     ...mockJobBase,
     photos: ['photo1.jpg', 'photo2.jpg'],
     category: 'plumbing',
-    subcategory: 'sink_repair'
+    subcategory: 'sink_repair',
   } as Job;
 
   const mockElectricalJob: Job = {
@@ -54,12 +58,12 @@ describe('AIAnalysisService', () => {
     description: 'Install a new ceiling fan in the living room',
     category: 'electrical',
     subcategory: 'installation',
-    photos: ['ceiling.jpg']
+    photos: ['ceiling.jpg'],
   } as Job;
 
   const mockJobWithoutPhotos: Job = {
     ...mockJobBase,
-    photos: []
+    photos: [],
   } as Job;
 
   beforeEach(() => {
@@ -78,7 +82,7 @@ describe('AIAnalysisService', () => {
         recommendedActions: expect.any(Array),
         estimatedComplexity: expect.stringMatching(/^(Low|Medium|High)$/),
         suggestedTools: expect.any(Array),
-        estimatedDuration: expect.any(String)
+        estimatedDuration: expect.any(String),
       });
 
       expect(result!.confidence).toBeGreaterThan(0);
@@ -86,7 +90,8 @@ describe('AIAnalysisService', () => {
     });
 
     it('should analyze job without photos using category-based analysis', async () => {
-      const result = await AIAnalysisService.analyzeJobPhotos(mockJobWithoutPhotos);
+      const result =
+        await AIAnalysisService.analyzeJobPhotos(mockJobWithoutPhotos);
 
       expect(result).toBeDefined();
       expect(result!.detectedItems).toContain('Kitchen sink components');
@@ -108,29 +113,47 @@ describe('AIAnalysisService', () => {
 
       expect(result).toBeDefined();
       expect(result!.detectedItems).toEqual(
-        expect.arrayContaining(['Sink faucet', 'Water pipes', 'Shut-off valves'])
+        expect.arrayContaining([
+          'Sink faucet',
+          'Water pipes',
+          'Shut-off valves',
+        ])
       );
       expect(result!.suggestedTools).toEqual(
-        expect.arrayContaining(['Pipe wrench', 'Adjustable wrench', 'Plumber\'s tape'])
+        expect.arrayContaining([
+          'Pipe wrench',
+          'Adjustable wrench',
+          "Plumber's tape",
+        ])
       );
     });
 
     it('should handle electrical category analysis', async () => {
-      const result = await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
+      const result =
+        await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
 
       expect(result).toBeDefined();
       expect(result!.detectedItems).toEqual(
-        expect.arrayContaining(['Ceiling electrical box', 'Wire connections', 'Circuit breaker'])
+        expect.arrayContaining([
+          'Ceiling electrical box',
+          'Wire connections',
+          'Circuit breaker',
+        ])
       );
       expect(result!.suggestedTools).toEqual(
-        expect.arrayContaining(['Wire strippers', 'Voltage tester', 'Screwdrivers'])
+        expect.arrayContaining([
+          'Wire strippers',
+          'Voltage tester',
+          'Screwdrivers',
+        ])
       );
       expect(result!.safetyConcerns.length).toBeGreaterThan(0);
       expect(result!.safetyConcerns[0].severity).toBe('High');
     });
 
     it('should include safety concerns for electrical work', async () => {
-      const result = await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
+      const result =
+        await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
 
       expect(result).toBeDefined();
       expect(result!.safetyConcerns).toEqual(
@@ -138,15 +161,17 @@ describe('AIAnalysisService', () => {
           expect.objectContaining({
             concern: 'Electrical shock hazard',
             severity: 'High',
-            description: expect.any(String)
-          })
+            description: expect.any(String),
+          }),
         ])
       );
     });
 
     it('should set appropriate complexity levels', async () => {
-      const plumbingResult = await AIAnalysisService.analyzeJobPhotos(mockPlumbingJob);
-      const electricalResult = await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
+      const plumbingResult =
+        await AIAnalysisService.analyzeJobPhotos(mockPlumbingJob);
+      const electricalResult =
+        await AIAnalysisService.analyzeJobPhotos(mockElectricalJob);
 
       expect(plumbingResult!.estimatedComplexity).toBe('Medium');
       expect(electricalResult!.estimatedComplexity).toBe('High');
@@ -156,13 +181,16 @@ describe('AIAnalysisService', () => {
       const result = await AIAnalysisService.analyzeJobPhotos(mockPlumbingJob);
 
       expect(result).toBeDefined();
-      expect(result!.estimatedDuration).toMatch(/\d+(-\d+)?\s+(hours?|minutes?)/);
+      expect(result!.estimatedDuration).toMatch(
+        /\d+(-\d+)?\s+(hours?|minutes?)/
+      );
     });
   });
 
   describe('generateTextAnalysis', () => {
     it('should analyze job description text', async () => {
-      const result = await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
 
       expect(result).toBeDefined();
       expect(result).toMatchObject({
@@ -172,14 +200,15 @@ describe('AIAnalysisService', () => {
         complexity: expect.stringMatching(/^(Low|Medium|High)$/),
         estimatedCost: expect.objectContaining({
           min: expect.any(Number),
-          max: expect.any(Number)
+          max: expect.any(Number),
         }),
-        suggestedContractorTypes: expect.any(Array)
+        suggestedContractorTypes: expect.any(Array),
       });
     });
 
     it('should extract relevant keywords from description', async () => {
-      const result = await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
 
       expect(result.keywords).toEqual(
         expect.arrayContaining(['leak', 'kitchen', 'sink', 'faucet'])
@@ -190,16 +219,19 @@ describe('AIAnalysisService', () => {
       const urgentJob = {
         ...mockPlumbingJob,
         priority: JobPriority.URGENT,
-        description: 'Emergency water leak flooding the basement'
+        description: 'Emergency water leak flooding the basement',
       };
 
-      const result = await AIAnalysisService.generateTextAnalysis(urgentJob as Job);
+      const result = await AIAnalysisService.generateTextAnalysis(
+        urgentJob as Job
+      );
 
       expect(result.urgency).toBe('High');
     });
 
     it('should suggest appropriate contractor types', async () => {
-      const result = await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateTextAnalysis(mockPlumbingJob);
 
       expect(result.suggestedContractorTypes).toEqual(
         expect.arrayContaining(['Plumber', 'General Contractor'])
@@ -209,10 +241,12 @@ describe('AIAnalysisService', () => {
     it('should handle missing description gracefully', async () => {
       const jobWithoutDescription = {
         ...mockPlumbingJob,
-        description: ''
+        description: '',
       };
 
-      const result = await AIAnalysisService.generateTextAnalysis(jobWithoutDescription as Job);
+      const result = await AIAnalysisService.generateTextAnalysis(
+        jobWithoutDescription as Job
+      );
 
       expect(result).toBeDefined();
       expect(result.keywords).toEqual([]);
@@ -222,24 +256,26 @@ describe('AIAnalysisService', () => {
 
   describe('generateJobRecommendations', () => {
     it('should generate appropriate recommendations', async () => {
-      const result = await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
 
       expect(result).toBeDefined();
       expect(result).toMatchObject({
         contractorSkills: expect.any(Array),
         budgetRange: expect.objectContaining({
           min: expect.any(Number),
-          max: expect.any(Number)
+          max: expect.any(Number),
         }),
         timelineEstimate: expect.any(String),
         preparationSteps: expect.any(Array),
         materialsList: expect.any(Array),
-        riskFactors: expect.any(Array)
+        riskFactors: expect.any(Array),
       });
     });
 
     it('should recommend appropriate contractor skills', async () => {
-      const result = await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
 
       expect(result.contractorSkills).toEqual(
         expect.arrayContaining(['Plumbing', 'Pipe repair'])
@@ -247,42 +283,46 @@ describe('AIAnalysisService', () => {
     });
 
     it('should provide realistic budget ranges', async () => {
-      const result = await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
 
       expect(result.budgetRange.min).toBeGreaterThan(0);
       expect(result.budgetRange.max).toBeGreaterThan(result.budgetRange.min);
     });
 
     it('should include relevant preparation steps', async () => {
-      const result = await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
 
       expect(result.preparationSteps).toEqual(
         expect.arrayContaining([
           'Turn off water supply to the sink',
-          'Clear the area under the sink'
+          'Clear the area under the sink',
         ])
       );
     });
 
     it('should list necessary materials', async () => {
-      const result = await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
+      const result =
+        await AIAnalysisService.generateJobRecommendations(mockPlumbingJob);
 
       expect(result.materialsList).toEqual(
         expect.arrayContaining([
           'Replacement faucet parts',
-          'Plumber\'s putty',
-          'Thread sealant tape'
+          "Plumber's putty",
+          'Thread sealant tape',
         ])
       );
     });
 
     it('should identify potential risk factors', async () => {
-      const electricalResult = await AIAnalysisService.generateJobRecommendations(mockElectricalJob);
+      const electricalResult =
+        await AIAnalysisService.generateJobRecommendations(mockElectricalJob);
 
       expect(electricalResult.riskFactors).toEqual(
         expect.arrayContaining([
           'Electrical shock hazard - turn off power at breaker',
-          'Working at height - use proper ladder safety'
+          'Working at height - use proper ladder safety',
         ])
       );
     });
@@ -296,7 +336,7 @@ describe('AIAnalysisService', () => {
       expect(results).toHaveLength(2);
       expect(results[0]).toMatchObject({
         jobId: 'job-1',
-        analysis: expect.any(Object)
+        analysis: expect.any(Object),
       });
     });
 
@@ -310,17 +350,22 @@ describe('AIAnalysisService', () => {
       const invalidJob = { ...mockPlumbingJob, id: null } as any;
       const validJob = mockElectricalJob;
 
-      const results = await AIAnalysisService.getBatchAnalysis([invalidJob, validJob]);
+      const results = await AIAnalysisService.getBatchAnalysis([
+        invalidJob,
+        validJob,
+      ]);
 
       expect(results).toHaveLength(1);
       expect(results[0].jobId).toBe(mockElectricalJob.id);
     });
 
     it('should process jobs in parallel efficiently', async () => {
-      const jobs = Array(5).fill(mockPlumbingJob).map((job, index) => ({
-        ...job,
-        id: `job-${index}`
-      }));
+      const jobs = Array(5)
+        .fill(mockPlumbingJob)
+        .map((job, index) => ({
+          ...job,
+          id: `job-${index}`,
+        }));
 
       const startTime = Date.now();
       const results = await AIAnalysisService.getBatchAnalysis(jobs);
@@ -359,10 +404,12 @@ describe('AIAnalysisService', () => {
     it('should handle unexpected category values', async () => {
       const jobWithUnknownCategory = {
         ...mockPlumbingJob,
-        category: 'unknown_category'
+        category: 'unknown_category',
       } as Job;
 
-      const result = await AIAnalysisService.analyzeJobPhotos(jobWithUnknownCategory);
+      const result = await AIAnalysisService.analyzeJobPhotos(
+        jobWithUnknownCategory
+      );
 
       expect(result).toBeDefined();
       expect(result!.estimatedComplexity).toBe('Medium'); // Should default to medium
@@ -377,15 +424,15 @@ describe('AIAnalysisService', () => {
       'flooring',
       'roofing',
       'hvac',
-      'general'
+      'general',
     ];
 
-    categories.forEach(category => {
+    categories.forEach((category) => {
       it(`should provide category-specific analysis for ${category}`, async () => {
         const job = {
           ...mockJobBase,
           category,
-          photos: []
+          photos: [],
         } as Job;
 
         const result = await AIAnalysisService.analyzeJobPhotos(job);
@@ -398,22 +445,42 @@ describe('AIAnalysisService', () => {
     });
 
     it('should provide higher complexity for electrical and plumbing', async () => {
-      const electricalJob = { ...mockJobBase, category: 'electrical', photos: [] } as Job;
-      const paintingJob = { ...mockJobBase, category: 'painting', photos: [] } as Job;
+      const electricalJob = {
+        ...mockJobBase,
+        category: 'electrical',
+        photos: [],
+      } as Job;
+      const paintingJob = {
+        ...mockJobBase,
+        category: 'painting',
+        photos: [],
+      } as Job;
 
-      const electricalResult = await AIAnalysisService.analyzeJobPhotos(electricalJob);
-      const paintingResult = await AIAnalysisService.analyzeJobPhotos(paintingJob);
+      const electricalResult =
+        await AIAnalysisService.analyzeJobPhotos(electricalJob);
+      const paintingResult =
+        await AIAnalysisService.analyzeJobPhotos(paintingJob);
 
       expect(electricalResult!.estimatedComplexity).toBe('High');
       expect(paintingResult!.estimatedComplexity).toBe('Low');
     });
 
     it('should include more safety concerns for high-risk categories', async () => {
-      const roofingJob = { ...mockJobBase, category: 'roofing', photos: [] } as Job;
-      const paintingJob = { ...mockJobBase, category: 'painting', photos: [] } as Job;
+      const roofingJob = {
+        ...mockJobBase,
+        category: 'roofing',
+        photos: [],
+      } as Job;
+      const paintingJob = {
+        ...mockJobBase,
+        category: 'painting',
+        photos: [],
+      } as Job;
 
-      const roofingResult = await AIAnalysisService.analyzeJobPhotos(roofingJob);
-      const paintingResult = await AIAnalysisService.analyzeJobPhotos(paintingJob);
+      const roofingResult =
+        await AIAnalysisService.analyzeJobPhotos(roofingJob);
+      const paintingResult =
+        await AIAnalysisService.analyzeJobPhotos(paintingJob);
 
       expect(roofingResult!.safetyConcerns.length).toBeGreaterThan(
         paintingResult!.safetyConcerns.length
@@ -424,9 +491,9 @@ describe('AIAnalysisService', () => {
   describe('performance and reliability', () => {
     it('should complete analysis within reasonable time', async () => {
       const startTime = Date.now();
-      
+
       await AIAnalysisService.analyzeJobPhotos(mockPlumbingJob);
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(100); // Should be very fast for mock implementation
     });
@@ -439,10 +506,12 @@ describe('AIAnalysisService', () => {
     });
 
     it('should handle high load batch processing', async () => {
-      const largeJobBatch = Array(50).fill(mockPlumbingJob).map((job, index) => ({
-        ...job,
-        id: `batch-job-${index}`
-      }));
+      const largeJobBatch = Array(50)
+        .fill(mockPlumbingJob)
+        .map((job, index) => ({
+          ...job,
+          id: `batch-job-${index}`,
+        }));
 
       const startTime = Date.now();
       const results = await AIAnalysisService.getBatchAnalysis(largeJobBatch);

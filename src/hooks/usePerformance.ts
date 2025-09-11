@@ -1,5 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { performanceMonitor, PerformanceMetrics } from '../utils/performanceMonitor';
+import {
+  performanceMonitor,
+  PerformanceMetrics,
+} from '../utils/performanceMonitor';
 import { logger } from '../utils/logger';
 
 export const usePerformance = () => {
@@ -9,7 +12,7 @@ export const usePerformance = () => {
   // Track navigation performance
   const trackNavigation = useCallback((screenName: string) => {
     performanceMonitor.startNavigationTimer();
-    
+
     // Auto-record navigation time after a brief delay
     setTimeout(() => {
       performanceMonitor.recordNavigationTime(screenName);
@@ -19,7 +22,7 @@ export const usePerformance = () => {
   // Track API call performance
   const trackApiCall = useCallback((requestId: string, endpoint: string) => {
     performanceMonitor.startApiTimer(requestId);
-    
+
     return () => {
       performanceMonitor.recordApiResponseTime(requestId, endpoint);
     };
@@ -60,11 +63,13 @@ export const useFPSMonitoring = (enabled: boolean = __DEV__) => {
   const measureFPS = useCallback(() => {
     frameCount.current++;
     const currentTime = Date.now();
-    
+
     if (currentTime - lastTime.current >= 1000) {
-      const fps = Math.round((frameCount.current * 1000) / (currentTime - lastTime.current));
+      const fps = Math.round(
+        (frameCount.current * 1000) / (currentTime - lastTime.current)
+      );
       performanceMonitor.recordFPS(fps);
-      
+
       frameCount.current = 0;
       lastTime.current = currentTime;
     }

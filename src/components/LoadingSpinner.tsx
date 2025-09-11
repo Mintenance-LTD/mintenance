@@ -14,9 +14,13 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = theme.colors.info,
 }) => {
   return (
-    <View style={styles.container} testID="loading-spinner">
+    <View style={styles.container} testID='loading-spinner'>
       <ActivityIndicator size={size} color={color} />
-      {message && <Text style={[styles.message, { color }]} testID="loading-text">{message}</Text>}
+      {message && (
+        <Text style={[styles.message, { color }]} testID='loading-text'>
+          {message}
+        </Text>
+      )}
     </View>
   );
 };
@@ -30,7 +34,7 @@ export const FullScreenLoading: React.FC<FullScreenLoadingProps> = ({
 }) => {
   return (
     <View style={styles.fullScreenContainer}>
-      <ActivityIndicator size="large" color={theme.colors.info} />
+      <ActivityIndicator size='large' color={theme.colors.info} />
       <Text style={styles.fullScreenMessage}>{message}</Text>
     </View>
   );

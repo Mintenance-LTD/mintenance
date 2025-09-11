@@ -10,7 +10,6 @@ import { NotificationService } from './NotificationService';
 import { Job } from '../types';
 import { logger } from '../utils/logger';
 
-
 export class IntegrationTestService {
   /**
    * Test complete job workflow with all features
@@ -42,7 +41,8 @@ export class IntegrationTestService {
       const testJob: Job = {
         id: jobId,
         title: 'Kitchen Faucet Repair',
-        description: 'Leaky kitchen faucet needs professional repair. Water dripping constantly.',
+        description:
+          'Leaky kitchen faucet needs professional repair. Water dripping constantly.',
         location: 'Kitchen',
         homeowner_id: homeownerId,
         contractor_id: undefined,
@@ -54,7 +54,7 @@ export class IntegrationTestService {
         created_at: nowIso,
         updated_at: nowIso,
         // computed mirrors
-        homeownerId: homeownerId,
+        homeownerId,
         contractorId: undefined,
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -71,17 +71,20 @@ export class IntegrationTestService {
       logger.debug('✅ AI Analysis completed');
     } catch (error) {
       errors.push(`AI Analysis failed: ${error}`);
-      results.aiAnalysis = { success: false, error: error };
+      results.aiAnalysis = { success: false, error };
       logger.debug('❌ AI Analysis failed');
     }
 
     // Test 2: Payment System
     try {
       logger.debug('2️⃣ Testing Payment System...');
-      
+
       // Create payment intent
-      const paymentIntent = await PaymentService.createJobPayment(jobId, jobAmount);
-      
+      const paymentIntent = await PaymentService.createJobPayment(
+        jobId,
+        jobAmount
+      );
+
       // Create escrow transaction
       const escrowTransaction = await PaymentService.createEscrowTransaction(
         jobId,
@@ -99,14 +102,14 @@ export class IntegrationTestService {
       logger.debug('✅ Payment System setup completed');
     } catch (error) {
       errors.push(`Payment System failed: ${error}`);
-      results.paymentSetup = { success: false, error: error };
+      results.paymentSetup = { success: false, error };
       logger.debug('❌ Payment System failed');
     }
 
     // Test 3: Messaging System
     try {
       logger.debug('3️⃣ Testing Messaging System...');
-      
+
       // Send test message
       await MessagingService.sendMessage(
         jobId,
@@ -117,7 +120,7 @@ export class IntegrationTestService {
 
       // Get messages to verify
       const messages = await MessagingService.getJobMessages(jobId, 10);
-      
+
       results.messaging = {
         success: true,
         messagesSent: 1,
@@ -127,14 +130,14 @@ export class IntegrationTestService {
       logger.debug('✅ Messaging System completed');
     } catch (error) {
       errors.push(`Messaging System failed: ${error}`);
-      results.messaging = { success: false, error: error };
+      results.messaging = { success: false, error };
       logger.debug('❌ Messaging System failed');
     }
 
     // Test 4: Push Notifications
     try {
       logger.debug('4️⃣ Testing Push Notifications...');
-      
+
       // Send test notification to contractor
       await NotificationService.sendNotificationToUser(
         contractorId,
@@ -145,8 +148,9 @@ export class IntegrationTestService {
       );
 
       // Get notification count
-      const notificationCount = await NotificationService.getUnreadNotificationCount(contractorId);
-      
+      const notificationCount =
+        await NotificationService.getUnreadNotificationCount(contractorId);
+
       results.notifications = {
         success: true,
         notificationSent: true,
@@ -156,19 +160,23 @@ export class IntegrationTestService {
       logger.debug('✅ Push Notifications completed');
     } catch (error) {
       errors.push(`Push Notifications failed: ${error}`);
-      results.notifications = { success: false, error: error };
+      results.notifications = { success: false, error };
       logger.debug('❌ Push Notifications failed');
     }
 
     const success = errors.length === 0;
-    
+
     logger.debug('\n📊 Integration Test Results:');
     logger.debug(`Overall Status: ${success ? '✅ PASS' : '❌ FAIL'}`);
     logger.debug(`AI Analysis: ${results.aiAnalysis?.success ? '✅' : '❌'}`);
-    logger.debug(`Payment System: ${results.paymentSetup?.success ? '✅' : '❌'}`);
+    logger.debug(
+      `Payment System: ${results.paymentSetup?.success ? '✅' : '❌'}`
+    );
     logger.debug(`Messaging: ${results.messaging?.success ? '✅' : '❌'}`);
-    logger.debug(`Notifications: ${results.notifications?.success ? '✅' : '❌'}`);
-    
+    logger.debug(
+      `Notifications: ${results.notifications?.success ? '✅' : '❌'}`
+    );
+
     if (errors.length > 0) {
       logger.debug('\n❌ Errors found:');
       errors.forEach((error, index) => {
@@ -213,7 +221,10 @@ export class IntegrationTestService {
       },
       configurations: {
         openaiKey: !!process.env.OPENAI_API_KEY,
-        stripeKeys: !!(process.env.STRIPE_SECRET_KEY && process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY),
+        stripeKeys: !!(
+          process.env.STRIPE_SECRET_KEY &&
+          process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        ),
         supabaseRealtime: true, // Assume enabled if we got here
         pushNotifications: !!process.env.EXPO_PROJECT_ID,
       },
@@ -240,7 +251,8 @@ export class IntegrationTestService {
     health.services.payments = health.configurations.stripeKeys;
 
     // Test messaging service
-    health.services.messaging = health.services.database && health.configurations.supabaseRealtime;
+    health.services.messaging =
+      health.services.database && health.configurations.supabaseRealtime;
 
     // Test notification service
     health.services.notifications = health.configurations.pushNotifications;
@@ -250,7 +262,7 @@ export class IntegrationTestService {
     Object.entries(health.services).forEach(([service, status]) => {
       logger.debug(`  ${service}: ${status ? '✅' : '❌'}`);
     });
-    
+
     logger.debug('Configurations:');
     Object.entries(health.configurations).forEach(([config, status]) => {
       logger.debug(`  ${config}: ${status ? '✅' : '❌'}`);
@@ -301,7 +313,7 @@ export class IntegrationTestService {
         createdAt: nowPerfIso,
         updatedAt: nowPerfIso,
       };
-      
+
       await RealAIAnalysisService.analyzeJobPhotos(testJob);
       times.aiAnalysis = Date.now() - start;
     } catch (error) {
@@ -311,7 +323,7 @@ export class IntegrationTestService {
     // Other performance tests would go here...
     // For now, setting placeholder values
     times.paymentIntent = 300; // Typical Stripe API response time
-    times.sendMessage = 150;   // Typical Supabase response time
+    times.sendMessage = 150; // Typical Supabase response time
     times.sendNotification = 400; // Typical push notification time
 
     logger.debug('\n⚡ Performance Results:');
@@ -328,10 +340,10 @@ export class IntegrationTestService {
    * Run complete test suite
    */
   static async runCompleteTestSuite(
-    testJobId: string = 'integration-test-' + Date.now(),
+    testJobId: string = `integration-test-${Date.now()}`,
     testHomeownerId: string = 'test-homeowner',
     testContractorId: string = 'test-contractor',
-    testAmount: number = 150.00
+    testAmount: number = 150.0
   ) {
     logger.debug('🧪🔬 Starting Complete Integration Test Suite...\n');
 
@@ -346,26 +358,39 @@ export class IntegrationTestService {
       ),
     };
 
-    const overallSuccess = results.workflowTest.success &&
+    const overallSuccess =
+      results.workflowTest.success &&
       results.healthCheck.services.database &&
       Object.values(results.healthCheck.services).filter(Boolean).length >= 3;
 
     logger.debug('\n🎯 FINAL RESULTS:');
     logger.debug('================');
-    logger.debug(`Overall Status: ${overallSuccess ? '✅ PRODUCTION READY' : '❌ NEEDS FIXES'}`);
-    logger.debug(`Health Score: ${Object.values(results.healthCheck.services).filter(Boolean).length}/5 services operational`);
-    logger.debug(`Workflow Test: ${results.workflowTest.success ? '✅ PASS' : '❌ FAIL'}`);
-    logger.debug('Performance: ${Object.values(results.performanceTest.averageResponseTimes).filter(t => t > 0 && t < 1000).length}/4 operations under 1s');
+    logger.debug(
+      `Overall Status: ${overallSuccess ? '✅ PRODUCTION READY' : '❌ NEEDS FIXES'}`
+    );
+    logger.debug(
+      `Health Score: ${Object.values(results.healthCheck.services).filter(Boolean).length}/5 services operational`
+    );
+    logger.debug(
+      `Workflow Test: ${results.workflowTest.success ? '✅ PASS' : '❌ FAIL'}`
+    );
+    logger.debug(
+      'Performance: ${Object.values(results.performanceTest.averageResponseTimes).filter(t => t > 0 && t < 1000).length}/4 operations under 1s'
+    );
 
     if (!overallSuccess) {
       logger.debug('\n⚠️ Issues to resolve:');
       if (results.workflowTest.errors.length > 0) {
-        results.workflowTest.errors.forEach(error => logger.debug('  - ${error}'));
+        results.workflowTest.errors.forEach((error) =>
+          logger.debug('  - ${error}')
+        );
       }
-      
-      Object.entries(results.healthCheck.services).forEach(([service, healthy]) => {
-        if (!healthy) logger.debug('  - ${service} service not operational');
-      });
+
+      Object.entries(results.healthCheck.services).forEach(
+        ([service, healthy]) => {
+          if (!healthy) logger.debug('  - ${service} service not operational');
+        }
+      );
     }
 
     return results;

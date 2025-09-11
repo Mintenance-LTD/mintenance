@@ -1,11 +1,17 @@
 import { supabase } from '../config/supabase';
-import { ContractorPost, ContractorPostComment, ContractorPostType, ContractorFollow, ContractorEndorsement, LocationData } from '../types';
+import {
+  ContractorPost,
+  ContractorPostComment,
+  ContractorPostType,
+  ContractorFollow,
+  ContractorEndorsement,
+  LocationData,
+} from '../types';
 import { logger } from '../utils/logger';
-
 
 export class ContractorSocialService {
   // ===== POSTS =====
-  
+
   static async getFeedPosts(
     contractorId: string,
     location?: LocationData,
@@ -15,7 +21,8 @@ export class ContractorSocialService {
     try {
       let query = supabase
         .from('contractor_posts')
-        .select(`
+        .select(
+          `
           *,
           contractor:contractor_id (
             id,
@@ -28,7 +35,8 @@ export class ContractorSocialService {
           contractor_post_likes!inner (
             contractor_id
           )
-        `)
+        `
+        )
         .eq('is_active', true)
         .eq('is_flagged', false)
         .order('created_at', { ascending: false })
@@ -48,20 +56,29 @@ export class ContractorSocialService {
         .select('post_id')
         .eq('contractor_id', contractorId);
 
-      const likedPostIds = new Set(userLikes?.map((like: any) => like.post_id) || []);
+      const likedPostIds = new Set(
+        userLikes?.map((like: any) => like.post_id) || []
+      );
 
-      return posts?.map((post: any) => this.mapToContractorPost(post, likedPostIds.has(post.id))) || [];
+      return (
+        posts?.map((post: any) =>
+          this.mapToContractorPost(post, likedPostIds.has(post.id))
+        ) || []
+      );
     } catch (error) {
       logger.error('Error fetching feed posts:', error);
       throw error;
     }
   }
 
-  static async getPostsByContractor(contractorId: string): Promise<ContractorPost[]> {
+  static async getPostsByContractor(
+    contractorId: string
+  ): Promise<ContractorPost[]> {
     try {
       const { data: posts, error } = await supabase
         .from('contractor_posts')
-        .select(`
+        .select(
+          `
           *,
           contractor:contractor_id (
             id,
@@ -70,7 +87,8 @@ export class ContractorSocialService {
             profile_image_url,
             rating
           )
-        `)
+        `
+        )
         .eq('contractor_id', contractorId)
         .eq('is_active', true)
         .eq('is_flagged', false)
@@ -78,14 +96,18 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return posts?.map((post: any) => this.mapToContractorPost(post, false)) || [];
+      return (
+        posts?.map((post: any) => this.mapToContractorPost(post, false)) || []
+      );
     } catch (error) {
       logger.error('Error fetching contractor posts:', error);
       throw error;
     }
   }
 
-  static async createPost(post: Partial<ContractorPost>): Promise<ContractorPost> {
+  static async createPost(
+    post: Partial<ContractorPost>
+  ): Promise<ContractorPost> {
     try {
       const p: any = post as any;
       const { data, error } = await supabase
@@ -112,7 +134,7 @@ export class ContractorSocialService {
           available_until: p.availableUntil,
           latitude: p.latitude,
           longitude: p.longitude,
-          location_radius: p.locationRadius || 50
+          location_radius: p.locationRadius || 50,
         })
         .select()
         .single();
@@ -126,7 +148,10 @@ export class ContractorSocialService {
     }
   }
 
-  static async updatePost(postId: string, updates: Partial<ContractorPost>): Promise<ContractorPost> {
+  static async updatePost(
+    postId: string,
+    updates: Partial<ContractorPost>
+  ): Promise<ContractorPost> {
     try {
       const u: any = updates as any;
       const { data, error } = await supabase
@@ -135,7 +160,7 @@ export class ContractorSocialService {
           title: u.title,
           content: u.content,
           images: u.images,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', postId)
         .select()
@@ -166,7 +191,10 @@ export class ContractorSocialService {
 
   // ===== LIKES =====
 
-  static async toggleLike(postId: string, contractorId: string): Promise<boolean> {
+  static async toggleLike(
+    postId: string,
+    contractorId: string
+  ): Promise<boolean> {
     try {
       // Check if already liked
       const { data: existingLike } = await supabase
@@ -188,12 +216,10 @@ export class ContractorSocialService {
         return false;
       } else {
         // Like
-        const { error } = await supabase
-          .from('contractor_post_likes')
-          .insert({
-            post_id: postId,
-            contractor_id: contractorId
-          });
+        const { error } = await supabase.from('contractor_post_likes').insert({
+          post_id: postId,
+          contractor_id: contractorId,
+        });
 
         if (error) throw error;
         return true;
@@ -206,11 +232,14 @@ export class ContractorSocialService {
 
   // ===== COMMENTS =====
 
-  static async getPostComments(postId: string): Promise<ContractorPostComment[]> {
+  static async getPostComments(
+    postId: string
+  ): Promise<ContractorPostComment[]> {
     try {
       const { data: comments, error } = await supabase
         .from('contractor_post_comments')
-        .select(`
+        .select(
+          `
           *,
           contractor:contractor_id (
             id,
@@ -219,14 +248,19 @@ export class ContractorSocialService {
             profile_image_url,
             rating
           )
-        `)
+        `
+        )
         .eq('post_id', postId)
         .is('parent_comment_id', null)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      return comments?.map((comment: any) => this.mapToContractorPostComment(comment)) || [];
+      return (
+        comments?.map((comment: any) =>
+          this.mapToContractorPostComment(comment)
+        ) || []
+      );
     } catch (error) {
       logger.error('Error fetching comments:', error);
       throw error;
@@ -246,7 +280,7 @@ export class ContractorSocialService {
           post_id: postId,
           contractor_id: contractorId,
           comment_text: commentText,
-          parent_comment_id: parentCommentId
+          parent_comment_id: parentCommentId,
         })
         .select()
         .single();
@@ -260,13 +294,16 @@ export class ContractorSocialService {
     }
   }
 
-  static async markCommentAsSolution(commentId: string, verifiedBy: string): Promise<void> {
+  static async markCommentAsSolution(
+    commentId: string,
+    verifiedBy: string
+  ): Promise<void> {
     try {
       const { error } = await supabase
         .from('contractor_post_comments')
         .update({
           is_solution: true,
-          solution_verified_by: verifiedBy
+          solution_verified_by: verifiedBy,
         })
         .eq('id', commentId);
 
@@ -279,13 +316,16 @@ export class ContractorSocialService {
 
   // ===== FOLLOWS =====
 
-  static async followContractor(followerId: string, followingId: string): Promise<ContractorFollow> {
+  static async followContractor(
+    followerId: string,
+    followingId: string
+  ): Promise<ContractorFollow> {
     try {
       const { data, error } = await supabase
         .from('contractor_follows')
         .insert({
           follower_id: followerId,
-          following_id: followingId
+          following_id: followingId,
         })
         .select()
         .single();
@@ -296,7 +336,7 @@ export class ContractorSocialService {
         id: data.id,
         followerId: data.follower_id,
         followingId: data.following_id,
-        createdAt: data.created_at
+        createdAt: data.created_at,
       };
     } catch (error) {
       logger.error('Error following contractor:', error);
@@ -304,7 +344,10 @@ export class ContractorSocialService {
     }
   }
 
-  static async unfollowContractor(followerId: string, followingId: string): Promise<void> {
+  static async unfollowContractor(
+    followerId: string,
+    followingId: string
+  ): Promise<void> {
     try {
       const { error } = await supabase
         .from('contractor_follows')
@@ -328,12 +371,14 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return follows?.map((follow: any) => ({
-        id: follow.id,
-        followerId: follow.follower_id,
-        followingId: follow.following_id,
-        createdAt: follow.created_at
-      })) || [];
+      return (
+        follows?.map((follow: any) => ({
+          id: follow.id,
+          followerId: follow.follower_id,
+          followingId: follow.following_id,
+          createdAt: follow.created_at,
+        })) || []
+      );
     } catch (error) {
       logger.error('Error fetching following:', error);
       throw error;
@@ -355,32 +400,35 @@ export class ContractorSocialService {
           contractor_id: contractorId,
           endorser_id: endorserId,
           skill_name: skillName,
-          endorsement_note: note
+          endorsement_note: note,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      return ({
+      return {
         id: data.id,
         contractorId: data.contractor_id,
         endorserId: data.endorser_id,
         skillName: data.skill_name,
         endorsementNote: data.endorsement_note,
-        createdAt: data.created_at
-      } as any) as ContractorEndorsement;
+        createdAt: data.created_at,
+      } as any as ContractorEndorsement;
     } catch (error) {
       logger.error('Error creating endorsement:', error);
       throw error;
     }
   }
 
-  static async getContractorEndorsements(contractorId: string): Promise<ContractorEndorsement[]> {
+  static async getContractorEndorsements(
+    contractorId: string
+  ): Promise<ContractorEndorsement[]> {
     try {
       const { data: endorsements, error } = await supabase
         .from('contractor_expertise_endorsements')
-        .select(`
+        .select(
+          `
           *,
           endorser:endorser_id (
             id,
@@ -388,29 +436,37 @@ export class ContractorSocialService {
             last_name,
             profile_image_url
           )
-        `)
+        `
+        )
         .eq('contractor_id', contractorId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return endorsements?.map((endorsement: any) => ({
-        id: endorsement.id,
-        contractorId: endorsement.contractor_id,
-        endorserId: endorsement.endorser_id,
-        skillName: endorsement.skill_name,
-        endorsementNote: endorsement.endorsement_note,
-        createdAt: endorsement.created_at,
-        endorser: endorsement.endorser ? {
-          id: endorsement.endorser.id,
-          firstName: endorsement.endorser.first_name,
-          lastName: endorsement.endorser.last_name,
-          profileImageUrl: endorsement.endorser.profile_image_url,
-          email: '',
-          role: 'contractor' as const,
-          createdAt: ''
-        } : undefined
-      }) as any) || [];
+      return (
+        endorsements?.map(
+          (endorsement: any) =>
+            ({
+              id: endorsement.id,
+              contractorId: endorsement.contractor_id,
+              endorserId: endorsement.endorser_id,
+              skillName: endorsement.skill_name,
+              endorsementNote: endorsement.endorsement_note,
+              createdAt: endorsement.created_at,
+              endorser: endorsement.endorser
+                ? {
+                    id: endorsement.endorser.id,
+                    firstName: endorsement.endorser.first_name,
+                    lastName: endorsement.endorser.last_name,
+                    profileImageUrl: endorsement.endorser.profile_image_url,
+                    email: '',
+                    role: 'contractor' as const,
+                    createdAt: '',
+                  }
+                : undefined,
+            }) as any
+        ) || []
+      );
     } catch (error) {
       logger.error('Error fetching endorsements:', error);
       throw error;
@@ -419,8 +475,11 @@ export class ContractorSocialService {
 
   // ===== HELPER METHODS =====
 
-  private static mapToContractorPost(data: any, isLikedByUser: boolean): ContractorPost {
-    return ({
+  private static mapToContractorPost(
+    data: any,
+    isLikedByUser: boolean
+  ): ContractorPost {
+    return {
       id: data.id,
       contractorId: data.contractor_id,
       type: data.post_type,
@@ -454,22 +513,24 @@ export class ContractorSocialService {
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       isLikedByUser,
-      contractor: data.contractor ? {
-        id: data.contractor.id,
-        firstName: data.contractor.first_name,
-        lastName: data.contractor.last_name,
-        profileImageUrl: data.contractor.profile_image_url,
-        rating: data.contractor.rating,
-        totalJobsCompleted: data.contractor.total_jobs_completed,
-        email: '',
-        role: 'contractor' as const,
-        createdAt: ''
-      } : undefined
-    } as any) as ContractorPost;
+      contractor: data.contractor
+        ? {
+            id: data.contractor.id,
+            firstName: data.contractor.first_name,
+            lastName: data.contractor.last_name,
+            profileImageUrl: data.contractor.profile_image_url,
+            rating: data.contractor.rating,
+            totalJobsCompleted: data.contractor.total_jobs_completed,
+            email: '',
+            role: 'contractor' as const,
+            createdAt: '',
+          }
+        : undefined,
+    } as any as ContractorPost;
   }
 
   private static mapToContractorPostComment(data: any): ContractorPostComment {
-    return ({
+    return {
       id: data.id,
       postId: data.post_id,
       contractorId: data.contractor_id,
@@ -481,16 +542,18 @@ export class ContractorSocialService {
       isFlagged: data.is_flagged,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      contractor: data.contractor ? {
-        id: data.contractor.id,
-        firstName: data.contractor.first_name,
-        lastName: data.contractor.last_name,
-        profileImageUrl: data.contractor.profile_image_url,
-        rating: data.contractor.rating,
-        email: '',
-        role: 'contractor' as const,
-        createdAt: ''
-      } : undefined
-    } as any) as ContractorPostComment;
+      contractor: data.contractor
+        ? {
+            id: data.contractor.id,
+            firstName: data.contractor.first_name,
+            lastName: data.contractor.last_name,
+            profileImageUrl: data.contractor.profile_image_url,
+            rating: data.contractor.rating,
+            email: '',
+            role: 'contractor' as const,
+            createdAt: '',
+          }
+        : undefined,
+    } as any as ContractorPostComment;
   }
 }

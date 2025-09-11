@@ -2,7 +2,7 @@
 /**
  * REAL PAYMENT GATEWAY INTEGRATION
  * Production-Grade Payment Processing for Mintenance Platform
- * 
+ *
  * Features:
  * - Stripe Payment Gateway Integration
  * - PayPal Alternative Payment Method
@@ -136,7 +136,7 @@ export class PaymentGateway {
       // Verify Stripe connection
       await this.stripe.accounts.retrieve();
       console.log('✅ Stripe payment gateway initialized successfully');
-      
+
       this.isInitialized = true;
     } catch (error) {
       console.error('❌ Payment gateway initialization failed:', error);
@@ -165,12 +165,12 @@ export class PaymentGateway {
       logger.info('Creating job payment intent', {
         amount: params.amount,
         jobId: params.jobId,
-        paymentType: params.paymentType
+        paymentType: params.paymentType,
       });
 
       // Create Stripe customer if not exists
       const customer = await this.getOrCreateStripeCustomer(params.customerId);
-      
+
       // Create payment intent with escrow hold
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(params.amount * 100), // Convert to cents
@@ -179,7 +179,8 @@ export class PaymentGateway {
         payment_method: params.paymentMethodId,
         confirmation_method: 'manual',
         confirm: !!params.paymentMethodId,
-        capture_method: params.automaticCapture !== false ? 'automatic' : 'manual',
+        capture_method:
+          params.automaticCapture !== false ? 'automatic' : 'manual',
         metadata: {
           jobId: params.jobId,
           jobTitle: params.jobTitle,
@@ -187,14 +188,16 @@ export class PaymentGateway {
           customerId: params.customerId,
           contractorId: params.contractorId,
           paymentType: params.paymentType,
-          platform: 'mintenance'
+          platform: 'mintenance',
         },
         description: `Mintenance Job Payment: ${params.jobTitle}`,
         statement_descriptor_suffix: 'Mintenance',
         transfer_data: {
-          destination: await this.getContractorStripeAccount(params.contractorId),
+          destination: await this.getContractorStripeAccount(
+            params.contractorId
+          ),
           amount: Math.round(params.amount * 0.95 * 100), // 5% platform fee
-        }
+        },
       });
 
       const result: PaymentIntent = {
@@ -208,8 +211,8 @@ export class PaymentGateway {
         metadata: {
           jobTitle: params.jobTitle,
           jobCategory: params.jobCategory,
-          paymentType: params.paymentType
-        }
+          paymentType: params.paymentType,
+        },
       };
 
       // Create escrow transaction for job completion payments
@@ -219,11 +222,10 @@ export class PaymentGateway {
 
       logger.info('Job payment intent created successfully', {
         paymentIntentId: result.id,
-        status: result.status
+        status: result.status,
       });
 
       return result;
-
     } catch (error) {
       logger.error('Failed to create job payment', error);
       throw new Error(`Payment creation failed: ${error.message}`);
@@ -233,14 +235,20 @@ export class PaymentGateway {
   /**
    * Confirm payment with 3D Secure support
    */
-  async confirmPayment(paymentIntentId: string, paymentMethodId?: string): Promise<PaymentIntent> {
+  async confirmPayment(
+    paymentIntentId: string,
+    paymentMethodId?: string
+  ): Promise<PaymentIntent> {
     try {
       logger.info('Confirming payment', { paymentIntentId });
 
-      const confirmed = await this.stripe.paymentIntents.confirm(paymentIntentId, {
-        payment_method: paymentMethodId,
-        return_url: `${process.env.APP_URL}/payment/success`,
-      });
+      const confirmed = await this.stripe.paymentIntents.confirm(
+        paymentIntentId,
+        {
+          payment_method: paymentMethodId,
+          return_url: `${process.env.APP_URL}/payment/success`,
+        }
+      );
 
       const result: PaymentIntent = {
         id: confirmed.id,
@@ -253,17 +261,16 @@ export class PaymentGateway {
         metadata: {
           jobTitle: confirmed.metadata.jobTitle,
           jobCategory: confirmed.metadata.jobCategory,
-          paymentType: confirmed.metadata.paymentType as any
-        }
+          paymentType: confirmed.metadata.paymentType as any,
+        },
       };
 
       logger.info('Payment confirmed successfully', {
         paymentIntentId: result.id,
-        status: result.status
+        status: result.status,
       });
 
       return result;
-
     } catch (error) {
       logger.error('Payment confirmation failed', error);
       throw new Error(`Payment confirmation failed: ${error.message}`);
@@ -273,7 +280,9 @@ export class PaymentGateway {
   /**
    * Create escrow transaction for job protection
    */
-  async createEscrowTransaction(paymentIntent: PaymentIntent): Promise<EscrowTransaction> {
+  async createEscrowTransaction(
+    paymentIntent: PaymentIntent
+  ): Promise<EscrowTransaction> {
     try {
       const escrow: EscrowTransaction = {
         id: `escrow_${paymentIntent.id}`,
@@ -287,8 +296,8 @@ export class PaymentGateway {
         releaseConditions: [
           'Job marked as completed by customer',
           '7 days elapsed without disputes',
-          'No active disputes or claims'
-        ]
+          'No active disputes or claims',
+        ],
       };
 
       // Store escrow transaction in database
@@ -297,11 +306,10 @@ export class PaymentGateway {
       logger.info('Escrow transaction created', {
         escrowId: escrow.id,
         amount: escrow.amount,
-        holdUntil: escrow.holdUntil
+        holdUntil: escrow.holdUntil,
       });
 
       return escrow;
-
     } catch (error) {
       logger.error('Failed to create escrow transaction', error);
       throw new Error('Escrow creation failed');
@@ -314,9 +322,11 @@ export class PaymentGateway {
   async releaseEscrowFunds(escrowId: string, reason: string): Promise<void> {
     try {
       const escrow = await this.getEscrowTransaction(escrowId);
-      
+
       if (escrow.status !== 'held') {
-        throw new Error(`Cannot release funds. Escrow status: ${escrow.status}`);
+        throw new Error(
+          `Cannot release funds. Escrow status: ${escrow.status}`
+        );
       }
 
       // Transfer funds to contractor
@@ -327,8 +337,8 @@ export class PaymentGateway {
         metadata: {
           escrowId: escrow.id,
           jobId: escrow.jobId,
-          releaseReason: reason
-        }
+          releaseReason: reason,
+        },
       });
 
       // Update escrow status
@@ -338,9 +348,8 @@ export class PaymentGateway {
         escrowId,
         amount: escrow.amount,
         contractorId: escrow.contractorId,
-        reason
+        reason,
       });
-
     } catch (error) {
       logger.error('Failed to release escrow funds', error);
       throw new Error(`Escrow release failed: ${error.message}`);
@@ -350,19 +359,22 @@ export class PaymentGateway {
   /**
    * Handle payment dispute
    */
-  async createPaymentDispute(escrowId: string, params: {
-    reason: string;
-    submittedBy: 'customer' | 'contractor';
-    evidence: string[];
-  }): Promise<void> {
+  async createPaymentDispute(
+    escrowId: string,
+    params: {
+      reason: string;
+      submittedBy: 'customer' | 'contractor';
+      evidence: string[];
+    }
+  ): Promise<void> {
     try {
       const escrow = await this.getEscrowTransaction(escrowId);
-      
+
       const disputeDetails = {
         reason: params.reason,
         submittedBy: params.submittedBy,
         submittedAt: new Date(),
-        evidence: params.evidence
+        evidence: params.evidence,
       };
 
       // Update escrow with dispute details
@@ -374,9 +386,8 @@ export class PaymentGateway {
       logger.info('Payment dispute created', {
         escrowId,
         submittedBy: params.submittedBy,
-        reason: params.reason
+        reason: params.reason,
       });
-
     } catch (error) {
       logger.error('Failed to create payment dispute', error);
       throw new Error(`Dispute creation failed: ${error.message}`);
@@ -386,31 +397,39 @@ export class PaymentGateway {
   /**
    * Set up contractor subscription
    */
-  async createContractorSubscription(contractorId: string, plan: 'basic' | 'professional' | 'enterprise'): Promise<Subscription> {
+  async createContractorSubscription(
+    contractorId: string,
+    plan: 'basic' | 'professional' | 'enterprise'
+  ): Promise<Subscription> {
     try {
       const customer = await this.getOrCreateStripeCustomer(contractorId);
-      
+
       const planPricing = {
         basic: { amount: 1999, maxJobs: 10 }, // £19.99
         professional: { amount: 4999, maxJobs: 50 }, // £49.99
-        enterprise: { amount: 9999, maxJobs: -1 } // £99.99 (unlimited)
+        enterprise: { amount: 9999, maxJobs: -1 }, // £99.99 (unlimited)
       };
 
-      const price = await this.getOrCreateSubscriptionPrice(plan, planPricing[plan].amount);
-      
+      const price = await this.getOrCreateSubscriptionPrice(
+        plan,
+        planPricing[plan].amount
+      );
+
       const subscription = await this.stripe.subscriptions.create({
         customer: customer.id,
-        items: [{
-          price: price.id,
-        }],
+        items: [
+          {
+            price: price.id,
+          },
+        ],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
         expand: ['latest_invoice.payment_intent'],
         metadata: {
           contractorId,
           plan,
-          platform: 'mintenance'
-        }
+          platform: 'mintenance',
+        },
       });
 
       const result: Subscription = {
@@ -427,18 +446,17 @@ export class PaymentGateway {
           prioritySupport: plan !== 'basic',
           advancedAnalytics: plan === 'professional' || plan === 'enterprise',
           customBranding: plan === 'enterprise',
-          apiAccess: plan === 'enterprise'
-        }
+          apiAccess: plan === 'enterprise',
+        },
       };
 
       logger.info('Contractor subscription created', {
         subscriptionId: result.id,
         contractorId,
-        plan
+        plan,
       });
 
       return result;
-
     } catch (error) {
       logger.error('Failed to create contractor subscription', error);
       throw new Error(`Subscription creation failed: ${error.message}`);
@@ -475,7 +493,7 @@ export class PaymentGateway {
         items: params.items,
         taxAmount,
         totalAmount,
-        dueDate: params.dueDate
+        dueDate: params.dueDate,
       };
 
       // Store invoice in database
@@ -483,16 +501,18 @@ export class PaymentGateway {
 
       // Create Stripe invoice for payment collection
       const customer = await this.getOrCreateStripeCustomer(params.customerId);
-      
+
       const stripeInvoice = await this.stripe.invoices.create({
         customer: customer.id,
         collection_method: 'send_invoice',
-        days_until_due: Math.ceil((params.dueDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
+        days_until_due: Math.ceil(
+          (params.dueDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        ),
         metadata: {
           jobId: params.jobId,
           contractorId: params.contractorId,
-          invoiceId: invoice.id
-        }
+          invoiceId: invoice.id,
+        },
       });
 
       // Add line items
@@ -503,7 +523,7 @@ export class PaymentGateway {
           amount: Math.round(item.amount * 100),
           currency: 'gbp',
           description: item.description,
-          quantity: item.quantity
+          quantity: item.quantity,
         });
       }
 
@@ -514,58 +534,68 @@ export class PaymentGateway {
           invoice: stripeInvoice.id,
           amount: Math.round(taxAmount * 100),
           currency: 'gbp',
-          description: 'VAT (20%)'
+          description: 'VAT (20%)',
         });
       }
 
       logger.info('Job invoice generated', {
         invoiceId: invoice.id,
         invoiceNumber,
-        totalAmount
+        totalAmount,
       });
 
       return invoice;
-
     } catch (error: any) {
       logger.error('Failed to generate job invoice', error);
-      throw new Error(`Invoice generation failed: ${error?.message || String(error)}`);
+      throw new Error(
+        `Invoice generation failed: ${error?.message || String(error)}`
+      );
     }
   }
 
   /**
    * Process refund for canceled job
    */
-  async processRefund(paymentIntentId: string, amount?: number, reason?: string): Promise<void> {
+  async processRefund(
+    paymentIntentId: string,
+    amount?: number,
+    reason?: string
+  ): Promise<void> {
     try {
       const refund = await this.stripe.refunds.create({
         payment_intent: paymentIntentId,
         amount: amount ? Math.round(amount * 100) : undefined,
-        reason: reason as any || 'requested_by_customer',
+        reason: (reason as any) || 'requested_by_customer',
         metadata: {
           platform: 'mintenance',
-          refundReason: reason || 'Job canceled'
-        }
+          refundReason: reason || 'Job canceled',
+        },
       });
 
       logger.info('Refund processed successfully', {
         refundId: refund.id,
         amount: refund.amount / 100,
-        paymentIntentId
+        paymentIntentId,
       });
-
     } catch (error: any) {
       logger.error('Failed to process refund', error);
-      throw new Error(`Refund processing failed: ${error?.message || String(error)}`);
+      throw new Error(
+        `Refund processing failed: ${error?.message || String(error)}`
+      );
     }
   }
 
   /**
    * Save payment method for future use
    */
-  async savePaymentMethod(customerId: string, paymentMethodId: string, setAsDefault: boolean = false): Promise<PaymentMethod> {
+  async savePaymentMethod(
+    customerId: string,
+    paymentMethodId: string,
+    setAsDefault: boolean = false
+  ): Promise<PaymentMethod> {
     try {
       const customer = await this.getOrCreateStripeCustomer(customerId);
-      
+
       // Attach payment method to customer
       await this.stripe.paymentMethods.attach(paymentMethodId, {
         customer: customer.id,
@@ -580,8 +610,9 @@ export class PaymentGateway {
         });
       }
 
-      const paymentMethod = await this.stripe.paymentMethods.retrieve(paymentMethodId);
-      
+      const paymentMethod =
+        await this.stripe.paymentMethods.retrieve(paymentMethodId);
+
       const result: PaymentMethod = {
         id: paymentMethod.id,
         type: paymentMethod.type as any,
@@ -590,40 +621,46 @@ export class PaymentGateway {
           last4: paymentMethod.card?.last4,
           brand: paymentMethod.card?.brand,
           expiryMonth: paymentMethod.card?.exp_month,
-          expiryYear: paymentMethod.card?.exp_year
+          expiryYear: paymentMethod.card?.exp_year,
         },
-        customerId
+        customerId,
       };
 
       logger.info('Payment method saved successfully', {
         paymentMethodId,
         customerId,
-        isDefault: setAsDefault
+        isDefault: setAsDefault,
       });
 
       return result;
-
     } catch (error: any) {
       logger.error('Failed to save payment method', error);
-      throw new Error(`Payment method save failed: ${error?.message || String(error)}`);
+      throw new Error(
+        `Payment method save failed: ${error?.message || String(error)}`
+      );
     }
   }
 
   /**
    * Get payment history for customer or contractor
    */
-  async getPaymentHistory(userId: string, userType: 'customer' | 'contractor', limit: number = 20): Promise<PaymentIntent[]> {
+  async getPaymentHistory(
+    userId: string,
+    userType: 'customer' | 'contractor',
+    limit: number = 20
+  ): Promise<PaymentIntent[]> {
     try {
-      const metadataKey = userType === 'customer' ? 'customerId' : 'contractorId';
-      
+      const metadataKey =
+        userType === 'customer' ? 'customerId' : 'contractorId';
+
       const paymentIntents = await this.stripe.paymentIntents.list({
         limit,
         expand: ['data.charges'],
       });
 
       const filtered = paymentIntents.data
-        .filter(pi => pi.metadata[metadataKey] === userId)
-        .map(pi => ({
+        .filter((pi) => pi.metadata[metadataKey] === userId)
+        .map((pi) => ({
           id: pi.id,
           amount: pi.amount / 100,
           currency: pi.currency,
@@ -634,26 +671,29 @@ export class PaymentGateway {
           metadata: {
             jobTitle: pi.metadata.jobTitle,
             jobCategory: pi.metadata.jobCategory,
-            paymentType: pi.metadata.paymentType as any
-          }
+            paymentType: pi.metadata.paymentType as any,
+          },
         }));
 
       return filtered;
-
     } catch (error: any) {
       logger.error('Failed to retrieve payment history', error);
-      throw new Error(`Payment history retrieval failed: ${error?.message || String(error)}`);
+      throw new Error(
+        `Payment history retrieval failed: ${error?.message || String(error)}`
+      );
     }
   }
 
   // Private helper methods...
 
-  private async getOrCreateStripeCustomer(userId: string): Promise<Stripe.Customer> {
+  private async getOrCreateStripeCustomer(
+    userId: string
+  ): Promise<Stripe.Customer> {
     try {
       // First, try to find existing customer
       const existing = await this.stripe.customers.list({
         limit: 1,
-        email: `user-${userId}@mintenance.app` // Temporary email pattern
+        email: `user-${userId}@mintenance.app`, // Temporary email pattern
       });
 
       if (existing.data.length > 0) {
@@ -665,30 +705,34 @@ export class PaymentGateway {
         email: `user-${userId}@mintenance.app`,
         metadata: {
           userId,
-          platform: 'mintenance'
-        }
+          platform: 'mintenance',
+        },
       });
 
       return customer;
-
     } catch (error) {
       logger.error('Failed to get or create Stripe customer', error);
       throw new Error('Customer creation failed');
     }
   }
 
-  private async getContractorStripeAccount(contractorId: string): Promise<string> {
+  private async getContractorStripeAccount(
+    contractorId: string
+  ): Promise<string> {
     // In production, this would retrieve the contractor's connected Stripe account
     // For now, return a mock account ID
     return `acct_contractor_${contractorId}`;
   }
 
-  private async getOrCreateSubscriptionPrice(plan: string, amount: number): Promise<Stripe.Price> {
+  private async getOrCreateSubscriptionPrice(
+    plan: string,
+    amount: number
+  ): Promise<Stripe.Price> {
     try {
       // Try to find existing price
       const prices = await this.stripe.prices.list({
         limit: 10,
-        lookup_keys: [`mintenance_${plan}_monthly`]
+        lookup_keys: [`mintenance_${plan}_monthly`],
       });
 
       if (prices.data.length > 0) {
@@ -704,55 +748,62 @@ export class PaymentGateway {
         },
         product_data: {
           name: `Mintenance ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
-          description: `Monthly subscription for contractors`
+          description: `Monthly subscription for contractors`,
         },
-        lookup_key: `mintenance_${plan}_monthly`
+        lookup_key: `mintenance_${plan}_monthly`,
       });
 
       return price;
-
     } catch (error) {
       logger.error('Failed to get or create subscription price', error);
       throw new Error('Price creation failed');
     }
   }
 
-  private mapStripeStatus(stripeStatus: string): 'pending' | 'processing' | 'succeeded' | 'failed' | 'canceled' {
+  private mapStripeStatus(
+    stripeStatus: string
+  ): 'pending' | 'processing' | 'succeeded' | 'failed' | 'canceled' {
     const statusMap: Record<string, any> = {
-      'requires_payment_method': 'pending',
-      'requires_confirmation': 'pending',
-      'requires_action': 'processing',
-      'processing': 'processing',
-      'succeeded': 'succeeded',
-      'requires_capture': 'succeeded',
-      'canceled': 'canceled',
-      'payment_failed': 'failed'
+      requires_payment_method: 'pending',
+      requires_confirmation: 'pending',
+      requires_action: 'processing',
+      processing: 'processing',
+      succeeded: 'succeeded',
+      requires_capture: 'succeeded',
+      canceled: 'canceled',
+      payment_failed: 'failed',
     };
 
     return statusMap[stripeStatus] || 'pending';
   }
 
-  private mapSubscriptionStatus(stripeStatus: string): 'active' | 'canceled' | 'past_due' | 'unpaid' {
+  private mapSubscriptionStatus(
+    stripeStatus: string
+  ): 'active' | 'canceled' | 'past_due' | 'unpaid' {
     const statusMap: Record<string, any> = {
-      'active': 'active',
-      'canceled': 'canceled',
-      'incomplete': 'unpaid',
-      'incomplete_expired': 'canceled',
-      'past_due': 'past_due',
-      'unpaid': 'unpaid',
-      'paused': 'canceled'
+      active: 'active',
+      canceled: 'canceled',
+      incomplete: 'unpaid',
+      incomplete_expired: 'canceled',
+      past_due: 'past_due',
+      unpaid: 'unpaid',
+      paused: 'canceled',
     };
 
     return statusMap[stripeStatus] || 'unpaid';
   }
 
   // Database operations (would be implemented with actual database)
-  private async storeEscrowTransaction(escrow: EscrowTransaction): Promise<void> {
+  private async storeEscrowTransaction(
+    escrow: EscrowTransaction
+  ): Promise<void> {
     // Store in database
     console.log('Storing escrow transaction:', escrow.id);
   }
 
-  private async getEscrowTransaction(escrowId: string): Promise<EscrowTransaction> {
+  private async getEscrowTransaction(
+    escrowId: string
+  ): Promise<EscrowTransaction> {
     // Retrieve from database
     return {
       id: escrowId,
@@ -763,21 +814,31 @@ export class PaymentGateway {
       customerId: 'cust_test',
       contractorId: 'cont_test',
       holdUntil: new Date(),
-      releaseConditions: []
+      releaseConditions: [],
     };
   }
 
-  private async updateEscrowStatus(escrowId: string, status: string): Promise<void> {
+  private async updateEscrowStatus(
+    escrowId: string,
+    status: string
+  ): Promise<void> {
     // Update in database
     console.log('Updating escrow status:', escrowId, status);
   }
 
-  private async updateEscrowDispute(escrowId: string, status: string, dispute: any): Promise<void> {
+  private async updateEscrowDispute(
+    escrowId: string,
+    status: string,
+    dispute: any
+  ): Promise<void> {
     // Update in database
     console.log('Updating escrow dispute:', escrowId, status);
   }
 
-  private async notifyDisputeCreated(escrow: EscrowTransaction, dispute: any): Promise<void> {
+  private async notifyDisputeCreated(
+    escrow: EscrowTransaction,
+    dispute: any
+  ): Promise<void> {
     // Send notifications
     console.log('Notifying dispute created:', escrow.id);
   }

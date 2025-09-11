@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Image,
+} from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile, LocationData } from '../types';
@@ -11,7 +19,8 @@ interface Props {
 }
 
 const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
-  const [selectedContractor, setSelectedContractor] = useState<ContractorProfile | null>(null);
+  const [selectedContractor, setSelectedContractor] =
+    useState<ContractorProfile | null>(null);
   const [region, setRegion] = useState<Region>({
     latitude: userLocation.latitude,
     longitude: userLocation.longitude,
@@ -30,20 +39,35 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={14} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={i}
+          name='star'
+          size={14}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={14} color={theme.colors.ratingGold} />
+        <Ionicons
+          key='half'
+          name='star-half'
+          size={14}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={14} color={theme.colors.ratingGold} />
+        <Ionicons
+          key={`empty-${i}`}
+          name='star-outline'
+          size={14}
+          color={theme.colors.ratingGold}
+        />
       );
     }
 
@@ -65,11 +89,11 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
             latitude: userLocation.latitude,
             longitude: userLocation.longitude,
           }}
-          title="Your Location"
-          description="You are here"
-          pinColor="blue"
+          title='Your Location'
+          description='You are here'
+          pinColor='blue'
         />
-        
+
         {/* Contractor Markers */}
         {contractors.map((contractor) => (
           <Marker
@@ -80,12 +104,16 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
             }}
             title={`${contractor.firstName} ${contractor.lastName}`}
             description={`${contractor.rating?.toFixed(1)} ⭐ • ${contractor.distance?.toFixed(1)}km`}
-            pinColor="orange"
+            pinColor='orange'
             onPress={() => handleMarkerPress(contractor)}
           >
             <View style={styles.customMarker}>
               <View style={styles.markerContent}>
-                <Ionicons name="person" size={16} color={theme.colors.textInverse} />
+                <Ionicons
+                  name='person'
+                  size={16}
+                  color={theme.colors.textInverse}
+                />
               </View>
               <View style={styles.markerPointer} />
             </View>
@@ -97,7 +125,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
       <Modal
         visible={selectedContractor !== null}
         transparent={true}
-        animationType="slide"
+        animationType='slide'
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -109,7 +137,11 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                     onPress={() => setSelectedContractor(null)}
                     style={styles.closeButton}
                   >
-                    <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                    <Ionicons
+                      name='close'
+                      size={24}
+                      color={theme.colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -122,21 +154,27 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                           style={styles.avatarImage}
                         />
                       ) : (
-                        <Ionicons name="person" size={30} color={theme.colors.info} />
+                        <Ionicons
+                          name='person'
+                          size={30}
+                          color={theme.colors.info}
+                        />
                       )}
                     </View>
-                    
+
                     <View style={styles.contractorInfo}>
                       <Text style={styles.contractorName}>
-                        {selectedContractor.firstName} {selectedContractor.lastName}
+                        {selectedContractor.firstName}{' '}
+                        {selectedContractor.lastName}
                       </Text>
-                      
+
                       <View style={styles.ratingRow}>
                         <View style={styles.starsContainer}>
                           {renderStars(selectedContractor.rating || 0)}
                         </View>
                         <Text style={styles.ratingText}>
-                          {(selectedContractor.rating || 0).toFixed(1)} ({selectedContractor.totalJobsCompleted} jobs)
+                          {(selectedContractor.rating || 0).toFixed(1)} (
+                          {selectedContractor.totalJobsCompleted} jobs)
                         </Text>
                       </View>
 
@@ -149,22 +187,27 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                   {selectedContractor.bio && (
                     <View style={styles.bioSection}>
                       <Text style={styles.sectionTitle}>About</Text>
-                      <Text style={styles.bioText}>{selectedContractor.bio}</Text>
+                      <Text style={styles.bioText}>
+                        {selectedContractor.bio}
+                      </Text>
                     </View>
                   )}
 
-                  {selectedContractor.skills && selectedContractor.skills.length > 0 && (
-                    <View style={styles.skillsSection}>
-                      <Text style={styles.sectionTitle}>Specialties</Text>
-                      <View style={styles.skillsGrid}>
-                        {selectedContractor.skills.map((skill, index) => (
-                          <View key={index} style={styles.skillTag}>
-                            <Text style={styles.skillText}>{skill.skillName}</Text>
-                          </View>
-                        ))}
+                  {selectedContractor.skills &&
+                    selectedContractor.skills.length > 0 && (
+                      <View style={styles.skillsSection}>
+                        <Text style={styles.sectionTitle}>Specialties</Text>
+                        <View style={styles.skillsGrid}>
+                          {selectedContractor.skills.map((skill, index) => (
+                            <View key={index} style={styles.skillTag}>
+                              <Text style={styles.skillText}>
+                                {skill.skillName}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
 
                   <View style={styles.performanceSection}>
                     <Text style={styles.sectionTitle}>Performance</Text>
@@ -195,12 +238,16 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.contactButton}>
-                    <Ionicons name="chatbubble-outline" size={20} color="#fff" />
+                    <Ionicons
+                      name='chatbubble-outline'
+                      size={20}
+                      color='#fff'
+                    />
                     <Text style={styles.contactButtonText}>Message</Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity style={styles.hireButton}>
-                    <Ionicons name="checkmark-outline" size={20} color="#fff" />
+                    <Ionicons name='checkmark-outline' size={20} color='#fff' />
                     <Text style={styles.hireButtonText}>Hire Now</Text>
                   </TouchableOpacity>
                 </View>

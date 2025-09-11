@@ -6,7 +6,17 @@ export interface FormTemplate {
   contractor_id: string;
   template_name: string;
   description?: string;
-  category: 'inspection' | 'maintenance' | 'installation' | 'repair' | 'safety_check' | 'compliance' | 'quality_assurance' | 'site_survey' | 'completion_report' | 'custom';
+  category:
+    | 'inspection'
+    | 'maintenance'
+    | 'installation'
+    | 'repair'
+    | 'safety_check'
+    | 'compliance'
+    | 'quality_assurance'
+    | 'site_survey'
+    | 'completion_report'
+    | 'custom';
   version: number;
   is_active: boolean;
   is_default: boolean;
@@ -30,7 +40,31 @@ export interface FormField {
   template_id: string;
   field_name: string;
   field_label: string;
-  field_type: 'text' | 'textarea' | 'number' | 'decimal' | 'date' | 'time' | 'datetime' | 'email' | 'phone' | 'url' | 'select' | 'multiselect' | 'radio' | 'checkbox' | 'boolean' | 'rating' | 'slider' | 'signature' | 'photo' | 'file' | 'location' | 'barcode' | 'section_header' | 'html_content';
+  field_type:
+    | 'text'
+    | 'textarea'
+    | 'number'
+    | 'decimal'
+    | 'date'
+    | 'time'
+    | 'datetime'
+    | 'email'
+    | 'phone'
+    | 'url'
+    | 'select'
+    | 'multiselect'
+    | 'radio'
+    | 'checkbox'
+    | 'boolean'
+    | 'rating'
+    | 'slider'
+    | 'signature'
+    | 'photo'
+    | 'file'
+    | 'location'
+    | 'barcode'
+    | 'section_header'
+    | 'html_content';
   is_required: boolean;
   is_readonly: boolean;
   is_hidden: boolean;
@@ -56,7 +90,14 @@ export interface JobSheet {
   template_id: string;
   sheet_number: string;
   sheet_title: string;
-  status: 'created' | 'in_progress' | 'pending_review' | 'completed' | 'approved' | 'rejected' | 'archived';
+  status:
+    | 'created'
+    | 'in_progress'
+    | 'pending_review'
+    | 'completed'
+    | 'approved'
+    | 'rejected'
+    | 'archived';
   priority: number;
   assigned_to?: string;
   reviewed_by?: string;
@@ -225,7 +266,7 @@ export class JobSheetsService {
   // =============================================
   // FORM TEMPLATES MANAGEMENT
   // =============================================
-  
+
   static async createFormTemplate(
     contractorId: string,
     templateData: CreateFormTemplateData
@@ -248,7 +289,7 @@ export class JobSheetsService {
           custom_css: templateData.custom_css,
           instructions: templateData.instructions,
           is_active: true,
-          version: 1
+          version: 1,
         })
         .select()
         .single();
@@ -278,7 +319,9 @@ export class JobSheetsService {
     }
   }
 
-  static async getFormTemplate(templateId: string): Promise<FormTemplate | null> {
+  static async getFormTemplate(
+    templateId: string
+  ): Promise<FormTemplate | null> {
     try {
       const { data, error } = await supabase
         .from('form_templates')
@@ -304,7 +347,7 @@ export class JobSheetsService {
         .from('form_templates')
         .update({
           ...templateData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', templateId)
         .select()
@@ -338,14 +381,17 @@ export class JobSheetsService {
 
   static async createFormField(
     templateId: string,
-    fieldData: Omit<FormField, 'id' | 'template_id' | 'created_at' | 'updated_at'>
+    fieldData: Omit<
+      FormField,
+      'id' | 'template_id' | 'created_at' | 'updated_at'
+    >
   ): Promise<FormField> {
     try {
       const { data, error } = await supabase
         .from('form_fields')
         .insert({
           template_id: templateId,
-          ...fieldData
+          ...fieldData,
         })
         .select()
         .single();
@@ -376,14 +422,16 @@ export class JobSheetsService {
 
   static async updateFormField(
     fieldId: string,
-    fieldData: Partial<Omit<FormField, 'id' | 'template_id' | 'created_at' | 'updated_at'>>
+    fieldData: Partial<
+      Omit<FormField, 'id' | 'template_id' | 'created_at' | 'updated_at'>
+    >
   ): Promise<FormField> {
     try {
       const { data, error } = await supabase
         .from('form_fields')
         .update({
           ...fieldData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', fieldId)
         .select()
@@ -411,9 +459,12 @@ export class JobSheetsService {
     }
   }
 
-  static async reorderFormFields(templateId: string, fieldOrders: { id: string; sort_order: number }[]): Promise<void> {
+  static async reorderFormFields(
+    templateId: string,
+    fieldOrders: { id: string; sort_order: number }[]
+  ): Promise<void> {
     try {
-      const updates = fieldOrders.map(({ id, sort_order }) => 
+      const updates = fieldOrders.map(({ id, sort_order }) =>
         supabase
           .from('form_fields')
           .update({ sort_order, updated_at: new Date().toISOString() })
@@ -437,8 +488,10 @@ export class JobSheetsService {
   ): Promise<JobSheet> {
     try {
       // Generate sheet number
-      const { data: sheetNumber } = await supabase
-        .rpc('generate_job_sheet_number', { contractor_id_param: contractorId });
+      const { data: sheetNumber } = await supabase.rpc(
+        'generate_job_sheet_number',
+        { contractor_id_param: contractorId }
+      );
 
       const { data, error } = await supabase
         .from('job_sheets')
@@ -454,7 +507,7 @@ export class JobSheetsService {
           due_date: sheetData.due_date,
           location_name: sheetData.location_name,
           location_address: sheetData.location_address,
-          location_coordinates: sheetData.location_coordinates 
+          location_coordinates: sheetData.location_coordinates
             ? `POINT(${sheetData.location_coordinates.lng} ${sheetData.location_coordinates.lat})`
             : null,
           client_name: sheetData.client_name,
@@ -463,7 +516,7 @@ export class JobSheetsService {
           form_data: sheetData.form_data || {},
           tags: sheetData.tags,
           notes: sheetData.notes,
-          status: 'created'
+          status: 'created',
         })
         .select()
         .single();
@@ -555,7 +608,7 @@ export class JobSheetsService {
         .from('job_sheets')
         .update({
           ...sheetData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId)
         .select()
@@ -578,7 +631,7 @@ export class JobSheetsService {
         .from('job_sheets')
         .update({
           form_data: formData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId)
         .select()
@@ -599,7 +652,7 @@ export class JobSheetsService {
         .update({
           status: 'in_progress',
           started_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId)
         .select()
@@ -613,11 +666,16 @@ export class JobSheetsService {
     }
   }
 
-  static async completeJobSheet(sheetId: string, qualityNotes?: string): Promise<JobSheet> {
+  static async completeJobSheet(
+    sheetId: string,
+    qualityNotes?: string
+  ): Promise<JobSheet> {
     try {
       // Calculate quality score
-      const { data: qualityScore } = await supabase
-        .rpc('calculate_quality_score', { sheet_id: sheetId });
+      const { data: qualityScore } = await supabase.rpc(
+        'calculate_quality_score',
+        { sheet_id: sheetId }
+      );
 
       const { data, error } = await supabase
         .from('job_sheets')
@@ -626,7 +684,7 @@ export class JobSheetsService {
           completed_at: new Date().toISOString(),
           quality_score: qualityScore,
           quality_notes: qualityNotes,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId)
         .select()
@@ -667,7 +725,7 @@ export class JobSheetsService {
         .from('job_sheet_signatures')
         .insert({
           job_sheet_id: sheetId,
-          ...signatureData
+          ...signatureData,
         })
         .select()
         .single();
@@ -680,7 +738,9 @@ export class JobSheetsService {
     }
   }
 
-  static async getJobSheetSignatures(sheetId: string): Promise<JobSheetSignature[]> {
+  static async getJobSheetSignatures(
+    sheetId: string
+  ): Promise<JobSheetSignature[]> {
     try {
       const { data, error } = await supabase
         .from('job_sheet_signatures')
@@ -709,7 +769,7 @@ export class JobSheetsService {
         .from('job_sheets')
         .update({
           status: 'pending_review',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId)
         .select()
@@ -738,7 +798,7 @@ export class JobSheetsService {
           approved_by: approverId,
           approval_status: 'approved',
           approval_level: approvalLevel,
-          approval_notes: approvalNotes
+          approval_notes: approvalNotes,
         })
         .select()
         .single();
@@ -752,7 +812,7 @@ export class JobSheetsService {
           status: 'approved',
           approved_by: approverId,
           approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId);
 
@@ -782,7 +842,7 @@ export class JobSheetsService {
           approval_status: 'rejected',
           approval_level: approvalLevel,
           approval_notes: rejectionNotes,
-          required_changes: requiredChanges
+          required_changes: requiredChanges,
         })
         .select()
         .single();
@@ -794,7 +854,7 @@ export class JobSheetsService {
         .from('job_sheets')
         .update({
           status: 'rejected',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sheetId);
 
@@ -827,53 +887,74 @@ export class JobSheetsService {
   // ANALYTICS AND REPORTING
   // =============================================
 
-  static async getJobSheetSummaryStats(contractorId: string): Promise<JobSheetSummaryStats> {
+  static async getJobSheetSummaryStats(
+    contractorId: string
+  ): Promise<JobSheetSummaryStats> {
     try {
       const { data, error } = await supabase
         .from('job_sheets')
-        .select('status, completed_at, due_date, quality_score, created_at, started_at')
+        .select(
+          'status, completed_at, due_date, quality_score, created_at, started_at'
+        )
         .eq('contractor_id', contractorId);
 
       if (error) throw error;
 
       const sheets = data || [];
       const totalSheets = sheets.length;
-      const completedSheets = sheets.filter((s: any) => s.status === 'completed' || s.status === 'approved').length;
-      const pendingSheets = sheets.filter((s: any) => ['created', 'in_progress', 'pending_review'].includes(s.status)).length;
-      
+      const completedSheets = sheets.filter(
+        (s: any) => s.status === 'completed' || s.status === 'approved'
+      ).length;
+      const pendingSheets = sheets.filter((s: any) =>
+        ['created', 'in_progress', 'pending_review'].includes(s.status)
+      ).length;
+
       const now = new Date();
-      const overdueSheets = sheets.filter((s: any) => 
-        s.due_date && 
-        new Date(s.due_date) < now && 
-        !['completed', 'approved'].includes(s.status)
+      const overdueSheets = sheets.filter(
+        (s: any) =>
+          s.due_date &&
+          new Date(s.due_date) < now &&
+          !['completed', 'approved'].includes(s.status)
       ).length;
 
       // Calculate average completion time (in hours)
-      const completedWithTimes = sheets.filter((s: any) => s.started_at && s.completed_at);
-      const avgCompletionTime = completedWithTimes.length > 0
-        ? completedWithTimes.reduce((sum: number, s: any) => {
-            const start = new Date(s.started_at!).getTime();
-            const end = new Date(s.completed_at!).getTime();
-            return sum + (end - start) / (1000 * 60 * 60); // Convert to hours
-          }, 0) / completedWithTimes.length
-        : 0;
+      const completedWithTimes = sheets.filter(
+        (s: any) => s.started_at && s.completed_at
+      );
+      const avgCompletionTime =
+        completedWithTimes.length > 0
+          ? completedWithTimes.reduce((sum: number, s: any) => {
+              const start = new Date(s.started_at!).getTime();
+              const end = new Date(s.completed_at!).getTime();
+              return sum + (end - start) / (1000 * 60 * 60); // Convert to hours
+            }, 0) / completedWithTimes.length
+          : 0;
 
       // Calculate average quality score
-      const sheetsWithQuality = sheets.filter((s: any) => s.quality_score !== null);
-      const avgQualityScore = sheetsWithQuality.length > 0
-        ? sheetsWithQuality.reduce((sum: number, s: any) => sum + (s.quality_score || 0), 0) / sheetsWithQuality.length
-        : 0;
+      const sheetsWithQuality = sheets.filter(
+        (s: any) => s.quality_score !== null
+      );
+      const avgQualityScore =
+        sheetsWithQuality.length > 0
+          ? sheetsWithQuality.reduce(
+              (sum: number, s: any) => sum + (s.quality_score || 0),
+              0
+            ) / sheetsWithQuality.length
+          : 0;
 
       // Calculate completion rate
-      const completionRate = totalSheets > 0 ? (completedSheets / totalSheets) * 100 : 0;
+      const completionRate =
+        totalSheets > 0 ? (completedSheets / totalSheets) * 100 : 0;
 
       // Calculate on-time completion rate
-      const completedOnTime = sheets.filter((s: any) => 
-        s.completed_at && 
-        s.due_date && 
-        new Date(s.completed_at) <= new Date(s.due_date)
+      const completedOnTime = sheets.filter(
+        (s: any) =>
+          s.completed_at &&
+          s.due_date &&
+          new Date(s.completed_at) <= new Date(s.due_date)
       ).length;
-      const onTimeCompletionRate = completedSheets > 0 ? (completedOnTime / completedSheets) * 100 : 0;
+      const onTimeCompletionRate =
+        completedSheets > 0 ? (completedOnTime / completedSheets) * 100 : 0;
 
       return {
         total_sheets: totalSheets,
@@ -883,7 +964,7 @@ export class JobSheetsService {
         average_completion_time: avgCompletionTime,
         average_quality_score: avgQualityScore,
         completion_rate: completionRate,
-        on_time_completion_rate: onTimeCompletionRate
+        on_time_completion_rate: onTimeCompletionRate,
       };
     } catch (error) {
       console.error('Error fetching job sheet summary stats:', error);
@@ -900,7 +981,7 @@ export class JobSheetsService {
         .from('form_analytics')
         .insert({
           contractor_id: contractorId,
-          ...analyticsData
+          ...analyticsData,
         })
         .select()
         .single();
@@ -919,7 +1000,10 @@ export class JobSheetsService {
 
   static async createDigitalChecklist(
     templateId: string,
-    checklistData: Omit<DigitalChecklist, 'id' | 'template_id' | 'usage_count' | 'created_at' | 'updated_at'>
+    checklistData: Omit<
+      DigitalChecklist,
+      'id' | 'template_id' | 'usage_count' | 'created_at' | 'updated_at'
+    >
   ): Promise<DigitalChecklist> {
     try {
       const { data, error } = await supabase
@@ -927,7 +1011,7 @@ export class JobSheetsService {
         .insert({
           template_id: templateId,
           ...checklistData,
-          usage_count: 0
+          usage_count: 0,
         })
         .select()
         .single();
@@ -940,7 +1024,9 @@ export class JobSheetsService {
     }
   }
 
-  static async getDigitalChecklists(templateId: string): Promise<DigitalChecklist[]> {
+  static async getDigitalChecklists(
+    templateId: string
+  ): Promise<DigitalChecklist[]> {
     try {
       const { data, error } = await supabase
         .from('digital_checklists')
@@ -981,20 +1067,27 @@ export class JobSheetsService {
         client_phone: originalSheet.client_phone,
         form_data: originalSheet.form_data,
         tags: originalSheet.tags,
-        notes: originalSheet.notes
+        notes: originalSheet.notes,
       };
 
-      return await this.createJobSheet(originalSheet.contractor_id, duplicateData);
+      return await this.createJobSheet(
+        originalSheet.contractor_id,
+        duplicateData
+      );
     } catch (error) {
       console.error('Error duplicating job sheet:', error);
       throw new Error('Failed to duplicate job sheet');
     }
   }
 
-  static async calculateFormCompletionPercentage(sheetId: string): Promise<number> {
+  static async calculateFormCompletionPercentage(
+    sheetId: string
+  ): Promise<number> {
     try {
-      const { data, error } = await supabase
-        .rpc('calculate_form_completion_percentage', { sheet_id: sheetId });
+      const { data, error } = await supabase.rpc(
+        'calculate_form_completion_percentage',
+        { sheet_id: sheetId }
+      );
 
       if (error) throw error;
       return data || 0;
@@ -1004,7 +1097,10 @@ export class JobSheetsService {
     }
   }
 
-  static validateFormData(formData: any, fields: FormField[]): { isValid: boolean; errors: string[] } {
+  static validateFormData(
+    formData: any,
+    fields: FormField[]
+  ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     for (const field of fields) {
@@ -1053,15 +1149,19 @@ export class JobSheetsService {
       // Apply validation rules
       if (field.validation_rules) {
         const rules = field.validation_rules;
-        
+
         if (rules.min_length && value.length < rules.min_length) {
-          errors.push(`${field.field_label} must be at least ${rules.min_length} characters long`);
+          errors.push(
+            `${field.field_label} must be at least ${rules.min_length} characters long`
+          );
         }
-        
+
         if (rules.max_length && value.length > rules.max_length) {
-          errors.push(`${field.field_label} must be no more than ${rules.max_length} characters long`);
+          errors.push(
+            `${field.field_label} must be no more than ${rules.max_length} characters long`
+          );
         }
-        
+
         if (rules.pattern) {
           const regex = new RegExp(rules.pattern);
           if (!regex.test(value)) {
@@ -1073,7 +1173,7 @@ export class JobSheetsService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

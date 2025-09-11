@@ -24,7 +24,9 @@ describe('ErrorBoundary', () => {
 
   it('should display error UI when error occurs', () => {
     // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -33,14 +35,18 @@ describe('ErrorBoundary', () => {
     );
 
     expect(getByText('Something went wrong')).toBeTruthy();
-    expect(getByText('An unexpected error occurred. Please try again.')).toBeTruthy();
+    expect(
+      getByText('An unexpected error occurred. Please try again.')
+    ).toBeTruthy();
     expect(getByText('Try Again')).toBeTruthy();
 
     consoleSpy.mockRestore();
   });
 
   it('should log error to console', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     render(
       <ErrorBoundary>
@@ -61,7 +67,9 @@ describe('ErrorBoundary', () => {
     const originalDev = (global as any).__DEV__;
     (global as any).__DEV__ = true;
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -80,7 +88,9 @@ describe('ErrorBoundary', () => {
     const originalDev = (global as any).__DEV__;
     (global as any).__DEV__ = false;
 
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { queryByText } = render(
       <ErrorBoundary>

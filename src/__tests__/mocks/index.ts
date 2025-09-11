@@ -24,10 +24,10 @@ export const resetAllMocks = () => {
 // Common test setup function
 export const setupTestMocks = () => {
   resetAllMocks();
-  
+
   // Set up global test environment
   global.__DEV__ = process.env.NODE_ENV !== 'production';
-  
+
   // Mock console methods to reduce noise in tests
   global.console = {
     ...console,
@@ -36,7 +36,7 @@ export const setupTestMocks = () => {
     info: jest.fn(),
     debug: jest.fn(),
   };
-  
+
   return {
     supabase: SupabaseMockFactory.createMockClient(),
     expo: ExpoMockFactory.createAllMocks(),

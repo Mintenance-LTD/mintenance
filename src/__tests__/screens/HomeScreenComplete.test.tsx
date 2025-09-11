@@ -24,11 +24,13 @@ const mockNavigate = jest.fn();
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    jest.mocked(require('@react-navigation/native').useNavigation).mockReturnValue({
-      navigate: mockNavigate,
-      goBack: jest.fn(),
-    });
+
+    jest
+      .mocked(require('@react-navigation/native').useNavigation)
+      .mockReturnValue({
+        navigate: mockNavigate,
+        goBack: jest.fn(),
+      });
 
     mockUseAuth.mockReturnValue({
       user: {
@@ -145,7 +147,9 @@ describe('HomeScreen', () => {
 
   it('handles error state', async () => {
     const mockJobs: any[] = [];
-    mockJobService.getUserJobs.mockRejectedValue(new Error('Failed to load jobs'));
+    mockJobService.getUserJobs.mockRejectedValue(
+      new Error('Failed to load jobs')
+    );
 
     const { getByText } = render(<HomeScreen />);
 

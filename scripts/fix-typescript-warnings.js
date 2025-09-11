@@ -14,7 +14,9 @@ function getTypeScriptWarnings() {
     return [];
   } catch (error) {
     const output = error.stdout?.toString() || error.stderr?.toString() || '';
-    return output.split('\n').filter(line => line.trim() && line.includes('error TS'));
+    return output
+      .split('\n')
+      .filter((line) => line.trim() && line.includes('error TS'));
   }
 }
 
@@ -24,12 +26,12 @@ function fixCommonIssues() {
 
   // Fix 1: Add proper imports for React components
   const testFiles = findFiles('./src', /\.test\.(ts|tsx)$/);
-  testFiles.forEach(file => {
+  testFiles.forEach((file) => {
     let content = fs.readFileSync(file, 'utf8');
-    
+
     // Add React import if JSX is used but React not imported
-    if (content.includes('<') && !content.includes("import React")) {
-      content = "import React from 'react';\n" + content;
+    if (content.includes('<') && !content.includes('import React')) {
+      content = `import React from 'react';\n${content}`;
       fs.writeFileSync(file, content);
       console.log(`✅ Fixed React import in ${file}`);
     }
@@ -37,9 +39,9 @@ function fixCommonIssues() {
 
   // Fix 2: Add explicit return types for problematic functions
   const serviceFiles = findFiles('./src/services', /\.ts$/);
-  serviceFiles.forEach(file => {
+  serviceFiles.forEach((file) => {
     let content = fs.readFileSync(file, 'utf8');
-    
+
     // Add Promise<void> return type where missing
     content = content.replace(
       /async (\w+)\([^)]*\)\s*{/g,
@@ -50,7 +52,7 @@ function fixCommonIssues() {
         return match;
       }
     );
-    
+
     fs.writeFileSync(file, content);
   });
 
@@ -92,15 +94,15 @@ export {};`;
 // Helper function to find files recursively
 function findFiles(dir, pattern) {
   let results = [];
-  
+
   if (!fs.existsSync(dir)) return results;
-  
+
   const files = fs.readdirSync(dir);
-  
+
   for (const file of files) {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
-    
+
     if (stat.isDirectory()) {
       if (file !== 'node_modules' && file !== '.git') {
         results = results.concat(findFiles(filePath, pattern));
@@ -109,7 +111,7 @@ function findFiles(dir, pattern) {
       results.push(filePath);
     }
   }
-  
+
   return results;
 }
 
@@ -182,30 +184,29 @@ async function main() {
   try {
     // Apply common fixes
     fixCommonIssues();
-    
+
     // Create missing type definitions
     createMissingTypeDefs();
-    
+
     // Check remaining warnings
     const warnings = getTypeScriptWarnings();
-    
+
     if (warnings.length === 0) {
       console.log('🎉 All TypeScript warnings have been fixed!\n');
       return;
     }
-    
+
     console.log(`⚠️  ${warnings.length} TypeScript warnings remaining:\n`);
-    warnings.slice(0, 10).forEach(warning => {
+    warnings.slice(0, 10).forEach((warning) => {
       console.log(`   ${warning}`);
     });
-    
+
     if (warnings.length > 10) {
       console.log(`   ... and ${warnings.length - 10} more warnings`);
     }
-    
+
     console.log('\n💡 Some warnings may require manual fixes.');
     console.log('   Run "npm run type-check" to see detailed warnings.');
-    
   } catch (error) {
     console.error('❌ Error fixing TypeScript warnings:', error.message);
     process.exit(1);

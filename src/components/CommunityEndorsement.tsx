@@ -8,11 +8,14 @@ import {
   Modal,
   Alert,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { useAddEndorsement, useNeighborhoodFormatters } from '../hooks/useNeighborhood';
+import {
+  useAddEndorsement,
+  useNeighborhoodFormatters,
+} from '../hooks/useNeighborhood';
 import { logger } from '../utils/logger';
 
 interface CommunityEndorsementProps {
@@ -35,8 +38,8 @@ const SKILL_CATEGORIES = [
       'Problem Solving',
       'Tool Proficiency',
       'Safety Awareness',
-      'Code Compliance'
-    ]
+      'Code Compliance',
+    ],
   },
   {
     category: 'Service Quality',
@@ -48,8 +51,8 @@ const SKILL_CATEGORIES = [
       'Attention to Detail',
       'Fair Pricing',
       'Honesty',
-      'Professionalism'
-    ]
+      'Professionalism',
+    ],
   },
   {
     category: 'Customer Experience',
@@ -61,9 +64,9 @@ const SKILL_CATEGORIES = [
       'Warranty Support',
       'Advice & Tips',
       'Emergency Response',
-      'Value for Money'
-    ]
-  }
+      'Value for Money',
+    ],
+  },
 ];
 
 export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
@@ -72,7 +75,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
   endorserId,
   isVisible,
   onClose,
-  onEndorsementAdded
+  onEndorsementAdded,
 }) => {
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [customSkill, setCustomSkill] = useState<string>('');
@@ -80,56 +83,65 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const { mutate: addEndorsement, isPending } = useAddEndorsement();
-  const { getContractorSpecialtyIcon } = (useNeighborhoodFormatters() as any);
+  const { getContractorSpecialtyIcon } = useNeighborhoodFormatters() as any;
 
   const handleSubmit = async () => {
     const skillToEndorse = customSkill.trim() || selectedSkill;
-    
+
     if (!skillToEndorse) {
-      Alert.alert('Missing Information', 'Please select or enter a skill to endorse.');
+      Alert.alert(
+        'Missing Information',
+        'Please select or enter a skill to endorse.'
+      );
       return;
     }
 
     if (message.trim().length > 200) {
-      Alert.alert('Message Too Long', 'Please keep your message under 200 characters.');
+      Alert.alert(
+        'Message Too Long',
+        'Please keep your message under 200 characters.'
+      );
       return;
     }
 
     try {
-      addEndorsement({
-        endorserId,
-        contractorId,
-        skill: skillToEndorse,
-        message: message.trim() || undefined
-      }, {
-        onSuccess: () => {
-          logger.info('Endorsement added successfully', {
-            contractorId,
-            skill: skillToEndorse
-          });
-          
-          Alert.alert(
-            'Endorsement Added!',
-            `Your endorsement for ${contractorName}'s ${skillToEndorse.toLowerCase()} has been added to the community.`,
-            [
-              {
-                text: 'Great!',
-                onPress: () => {
-                  onEndorsementAdded?.();
-                  handleClose();
-                }
-              }
-            ]
-          );
+      addEndorsement(
+        {
+          endorserId,
+          contractorId,
+          skill: skillToEndorse,
+          message: message.trim() || undefined,
         },
-        onError: (error) => {
-          logger.error('Failed to add endorsement', error);
-          Alert.alert(
-            'Error',
-            'Failed to add your endorsement. Please try again.'
-          );
+        {
+          onSuccess: () => {
+            logger.info('Endorsement added successfully', {
+              contractorId,
+              skill: skillToEndorse,
+            });
+
+            Alert.alert(
+              'Endorsement Added!',
+              `Your endorsement for ${contractorName}'s ${skillToEndorse.toLowerCase()} has been added to the community.`,
+              [
+                {
+                  text: 'Great!',
+                  onPress: () => {
+                    onEndorsementAdded?.();
+                    handleClose();
+                  },
+                },
+              ]
+            );
+          },
+          onError: (error) => {
+            logger.error('Failed to add endorsement', error);
+            Alert.alert(
+              'Error',
+              'Failed to add your endorsement. Please try again.'
+            );
+          },
         }
-      });
+      );
     } catch (error) {
       logger.error('Endorsement submission error', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -156,15 +168,15 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
   return (
     <Modal
       visible={isVisible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType='slide'
+      presentationStyle='pageSheet'
       onRequestClose={handleClose}
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Endorse {contractorName}</Text>
           <View style={styles.placeholder} />
@@ -174,18 +186,20 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
           {/* Introduction */}
           <View style={styles.introSection}>
             <View style={styles.introIcon}>
-              <Ionicons name="heart" size={32} color={theme.colors.primary} />
+              <Ionicons name='heart' size={32} color={theme.colors.primary} />
             </View>
             <Text style={styles.introTitle}>Help Your Community</Text>
             <Text style={styles.introText}>
-              Your endorsement helps neighbors find the best contractors in your area.
-              Share what {contractorName} does well!
+              Your endorsement helps neighbors find the best contractors in your
+              area. Share what {contractorName} does well!
             </Text>
           </View>
 
           {/* Skill Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>What would you like to endorse?</Text>
+            <Text style={styles.sectionTitle}>
+              What would you like to endorse?
+            </Text>
             <Text style={styles.sectionSubtitle}>
               Select a skill or enter your own
             </Text>
@@ -199,7 +213,11 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                 >
                   <Text style={styles.categoryTitle}>{category.category}</Text>
                   <Ionicons
-                    name={expandedCategory === category.category ? 'chevron-up' : 'chevron-down'}
+                    name={
+                      expandedCategory === category.category
+                        ? 'chevron-up'
+                        : 'chevron-down'
+                    }
                     size={20}
                     color={theme.colors.textSecondary}
                   />
@@ -212,18 +230,24 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
                         key={skill}
                         style={[
                           styles.skillChip,
-                          selectedSkill === skill && styles.selectedSkill
+                          selectedSkill === skill && styles.selectedSkill,
                         ]}
                         onPress={() => handleSkillSelect(skill)}
                       >
-                        <Text style={[
-                          styles.skillText,
-                          selectedSkill === skill && styles.selectedSkillText
-                        ]}>
+                        <Text
+                          style={[
+                            styles.skillText,
+                            selectedSkill === skill && styles.selectedSkillText,
+                          ]}
+                        >
                           {skill}
                         </Text>
                         {selectedSkill === skill && (
-                          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                          <Ionicons
+                            name='checkmark-circle'
+                            size={16}
+                            color='#fff'
+                          />
                         )}
                       </TouchableOpacity>
                     ))}
@@ -234,10 +258,12 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
 
             {/* Custom Skill Input */}
             <View style={styles.customSkillContainer}>
-              <Text style={styles.customSkillLabel}>Or enter your own skill:</Text>
+              <Text style={styles.customSkillLabel}>
+                Or enter your own skill:
+              </Text>
               <TextInput
                 style={styles.customSkillInput}
-                placeholder="e.g., Great at emergency repairs"
+                placeholder='e.g., Great at emergency repairs'
                 value={customSkill}
                 onChangeText={(text) => {
                   setCustomSkill(text);
@@ -259,12 +285,12 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
             </Text>
             <TextInput
               style={styles.messageInput}
-              placeholder="e.g., Fixed my sink quickly and explained what was wrong. Very professional!"
+              placeholder='e.g., Fixed my sink quickly and explained what was wrong. Very professional!'
               value={message}
               onChangeText={setMessage}
               multiline
               numberOfLines={4}
-              textAlignVertical="top"
+              textAlignVertical='top'
               maxLength={200}
             />
             <Text style={styles.characterCount}>
@@ -278,7 +304,11 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
               <Text style={styles.previewTitle}>Preview</Text>
               <View style={styles.previewCard}>
                 <View style={styles.previewHeader}>
-                  <Ionicons name="heart" size={16} color={theme.colors.primary} />
+                  <Ionicons
+                    name='heart'
+                    size={16}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.previewSkill}>
                     {customSkill.trim() || selectedSkill}
                   </Text>
@@ -299,16 +329,18 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
           <TouchableOpacity
             style={[
               styles.submitButton,
-              (!selectedSkill && !customSkill.trim()) && styles.submitButtonDisabled
+              !selectedSkill &&
+                !customSkill.trim() &&
+                styles.submitButtonDisabled,
             ]}
             onPress={handleSubmit}
             disabled={isPending || (!selectedSkill && !customSkill.trim())}
           >
             {isPending ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color='#fff' size='small' />
             ) : (
               <>
-                <Ionicons name="heart" size={20} color="#fff" />
+                <Ionicons name='heart' size={20} color='#fff' />
                 <Text style={styles.submitButtonText}>Add Endorsement</Text>
               </>
             )}
@@ -358,7 +390,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: `${theme.colors.primary}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing[3],

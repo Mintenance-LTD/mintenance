@@ -2,12 +2,11 @@ import { supabase } from '../config/supabase';
 import { ContractorPost, ContractorPostComment } from '../types';
 import { logger } from '../utils/logger';
 
-
 export class ModerationService {
   // Flag content for review
   static async flagPost(
     postId: string,
-    reportedBy: string, 
+    reportedBy: string,
     reason: string
   ): Promise<void> {
     try {
@@ -15,14 +14,19 @@ export class ModerationService {
         .from('contractor_posts')
         .update({
           is_flagged: true,
-          flagged_reason: reason
+          flagged_reason: reason,
         })
         .eq('id', postId);
 
       if (error) throw error;
 
       // Log the report
-      await this.logModerationAction('post_flagged', postId, reportedBy, reason);
+      await this.logModerationAction(
+        'post_flagged',
+        postId,
+        reportedBy,
+        reason
+      );
     } catch (error) {
       logger.error('Error flagging post:', error);
       throw error;
@@ -38,14 +42,19 @@ export class ModerationService {
       const { error } = await supabase
         .from('contractor_post_comments')
         .update({
-          is_flagged: true
+          is_flagged: true,
         })
         .eq('id', commentId);
 
       if (error) throw error;
 
-      // Log the report  
-      await this.logModerationAction('comment_flagged', commentId, reportedBy, reason);
+      // Log the report
+      await this.logModerationAction(
+        'comment_flagged',
+        commentId,
+        reportedBy,
+        reason
+      );
     } catch (error) {
       logger.error('Error flagging comment:', error);
       throw error;
@@ -57,7 +66,8 @@ export class ModerationService {
     try {
       const { data: posts, error } = await supabase
         .from('contractor_posts')
-        .select(`
+        .select(
+          `
           *,
           contractor:contractor_id (
             id,
@@ -65,54 +75,59 @@ export class ModerationService {
             last_name,
             email
           )
-        `)
+        `
+        )
         .eq('is_flagged', true)
         .eq('is_active', true)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      return posts?.map((post: any) => ({
-        id: post.id,
-        contractorId: post.contractor_id,
-        postType: post.post_type,
-        title: post.title,
-        content: post.content,
-        images: post.images || [],
-        skillsUsed: post.skills_used,
-        materialsUsed: post.materials_used,
-        projectDuration: post.project_duration,
-        projectCost: post.project_cost,
-        helpCategory: post.help_category,
-        locationNeeded: post.location_needed,
-        urgencyLevel: post.urgency_level,
-        budgetRange: post.budget_range,
-        itemName: post.item_name,
-        itemCondition: post.item_condition,
-        rentalPrice: post.rental_price,
-        availableFrom: post.available_from,
-        availableUntil: post.available_until,
-        likesCount: post.likes_count || 0,
-        commentsCount: post.comments_count || 0,
-        sharesCount: post.shares_count || 0,
-        viewsCount: post.views_count || 0,
-        isActive: post.is_active,
-        isFlagged: post.is_flagged,
-        flaggedReason: post.flagged_reason,
-        latitude: post.latitude,
-        longitude: post.longitude,
-        locationRadius: post.location_radius,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-        contractor: post.contractor ? {
-          id: post.contractor.id,
-          firstName: post.contractor.first_name,
-          lastName: post.contractor.last_name,
-          email: post.contractor.email,
-          role: 'contractor' as const,
-          createdAt: ''
-        } : undefined
-      })) || [];
+      return (
+        posts?.map((post: any) => ({
+          id: post.id,
+          contractorId: post.contractor_id,
+          postType: post.post_type,
+          title: post.title,
+          content: post.content,
+          images: post.images || [],
+          skillsUsed: post.skills_used,
+          materialsUsed: post.materials_used,
+          projectDuration: post.project_duration,
+          projectCost: post.project_cost,
+          helpCategory: post.help_category,
+          locationNeeded: post.location_needed,
+          urgencyLevel: post.urgency_level,
+          budgetRange: post.budget_range,
+          itemName: post.item_name,
+          itemCondition: post.item_condition,
+          rentalPrice: post.rental_price,
+          availableFrom: post.available_from,
+          availableUntil: post.available_until,
+          likesCount: post.likes_count || 0,
+          commentsCount: post.comments_count || 0,
+          sharesCount: post.shares_count || 0,
+          viewsCount: post.views_count || 0,
+          isActive: post.is_active,
+          isFlagged: post.is_flagged,
+          flaggedReason: post.flagged_reason,
+          latitude: post.latitude,
+          longitude: post.longitude,
+          locationRadius: post.location_radius,
+          createdAt: post.created_at,
+          updatedAt: post.updated_at,
+          contractor: post.contractor
+            ? {
+                id: post.contractor.id,
+                firstName: post.contractor.first_name,
+                lastName: post.contractor.last_name,
+                email: post.contractor.email,
+                role: 'contractor' as const,
+                createdAt: '',
+              }
+            : undefined,
+        })) || []
+      );
     } catch (error) {
       logger.error('Error fetching flagged posts:', error);
       throw error;
@@ -120,10 +135,7 @@ export class ModerationService {
   }
 
   // Moderation actions
-  static async approvePost(
-    postId: string, 
-    moderatorId: string
-  ): Promise<void> {
+  static async approvePost(postId: string, moderatorId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('contractor_posts')
@@ -131,7 +143,7 @@ export class ModerationService {
           is_flagged: false,
           flagged_reason: null,
           moderated_at: new Date().toISOString(),
-          moderated_by: moderatorId
+          moderated_by: moderatorId,
         })
         .eq('id', postId);
 
@@ -156,13 +168,18 @@ export class ModerationService {
           is_active: false,
           moderated_at: new Date().toISOString(),
           moderated_by: moderatorId,
-          flagged_reason: reason
+          flagged_reason: reason,
         })
         .eq('id', postId);
 
       if (error) throw error;
 
-      await this.logModerationAction('post_removed', postId, moderatorId, reason);
+      await this.logModerationAction(
+        'post_removed',
+        postId,
+        moderatorId,
+        reason
+      );
     } catch (error) {
       logger.error('Error removing post:', error);
       throw error;
@@ -176,15 +193,22 @@ export class ModerationService {
   }> {
     // Simple keyword-based filtering
     const blockedWords = [
-      'spam', 'scam', 'fake', 'illegal', 'drugs', 'weapons',
-      'discriminatory', 'harassment', 'threatening'
+      'spam',
+      'scam',
+      'fake',
+      'illegal',
+      'drugs',
+      'weapons',
+      'discriminatory',
+      'harassment',
+      'threatening',
     ];
-    
+
     const violations: string[] = [];
     const lowerContent = content.toLowerCase();
 
     // Check for blocked words
-    blockedWords.forEach(word => {
+    blockedWords.forEach((word) => {
       if (lowerContent.includes(word)) {
         violations.push(`Contains blocked word: ${word}`);
       }
@@ -202,13 +226,16 @@ export class ModerationService {
     }
 
     // Check for external links (simple detection)
-    if (/https?:\/\//.test(content) && !/supabase\.co|expo\.dev/.test(content)) {
+    if (
+      /https?:\/\//.test(content) &&
+      !/supabase\.co|expo\.dev/.test(content)
+    ) {
       violations.push('Contains external links');
     }
 
     return {
       isViolation: violations.length > 0,
-      reasons: violations
+      reasons: violations,
     };
   }
 
@@ -223,7 +250,7 @@ export class ModerationService {
     if (check.isViolation) {
       return {
         approved: false,
-        reason: check.reasons.join(', ')
+        reason: check.reasons.join(', '),
       };
     }
 
@@ -245,7 +272,7 @@ export class ModerationService {
         contentId,
         userId,
         reason,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // In production, you'd want:
@@ -266,14 +293,27 @@ export class ModerationService {
     contentType: 'post' | 'comment',
     contentId: string,
     reportedBy: string,
-    reason: 'spam' | 'inappropriate' | 'harassment' | 'misinformation' | 'other',
+    reason:
+      | 'spam'
+      | 'inappropriate'
+      | 'harassment'
+      | 'misinformation'
+      | 'other',
     details?: string
   ): Promise<void> {
     try {
       if (contentType === 'post') {
-        await this.flagPost(contentId, reportedBy, `${reason}: ${details || ''}`);
+        await this.flagPost(
+          contentId,
+          reportedBy,
+          `${reason}: ${details || ''}`
+        );
       } else {
-        await this.flagComment(contentId, reportedBy, `${reason}: ${details || ''}`);
+        await this.flagComment(
+          contentId,
+          reportedBy,
+          `${reason}: ${details || ''}`
+        );
       }
     } catch (error) {
       logger.error('Error submitting report:', error);
@@ -295,22 +335,33 @@ export class ModerationService {
 
       if (error) throw error;
 
-      const stats = data?.reduce((acc: { totalPosts: number; activePosts: number; flaggedPosts: number; removedPosts: number }, post: any) => {
-        acc.totalPosts++;
-        if (post.is_active) acc.activePosts++;
-        if (post.is_flagged) acc.flaggedPosts++;
-        if (!post.is_active) acc.removedPosts++;
-        return acc;
-      }, {
+      const stats = data?.reduce(
+        (
+          acc: {
+            totalPosts: number;
+            activePosts: number;
+            flaggedPosts: number;
+            removedPosts: number;
+          },
+          post: any
+        ) => {
+          acc.totalPosts++;
+          if (post.is_active) acc.activePosts++;
+          if (post.is_flagged) acc.flaggedPosts++;
+          if (!post.is_active) acc.removedPosts++;
+          return acc;
+        },
+        {
+          totalPosts: 0,
+          activePosts: 0,
+          flaggedPosts: 0,
+          removedPosts: 0,
+        }
+      ) || {
         totalPosts: 0,
         activePosts: 0,
         flaggedPosts: 0,
-        removedPosts: 0
-      }) || {
-        totalPosts: 0,
-        activePosts: 0,
-        flaggedPosts: 0,
-        removedPosts: 0
+        removedPosts: 0,
       };
 
       return stats;

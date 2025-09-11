@@ -8,9 +8,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     from: jest.fn(),
     storage: {
-      from: jest.fn()
-    }
-  }
+      from: jest.fn(),
+    },
+  },
 }));
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
@@ -24,7 +24,7 @@ const mockJobData: JobData = {
   priority: 'high',
   location: '123 Main Street, Anytown, USA',
   homeowner_id: 'homeowner-1',
-  photos: ['photo1.jpg']
+  photos: ['photo1.jpg'],
 };
 
 const mockJob: Job = {
@@ -32,13 +32,13 @@ const mockJob: Job = {
   ...mockJobData,
   status: 'posted',
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
+  updated_at: new Date().toISOString(),
 };
 
 describe('JobService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Default mock implementations
     mockSupabase.from.mockReturnValue({
       insert: jest.fn().mockReturnThis(),
@@ -68,19 +68,25 @@ describe('JobService', () => {
         single: jest.fn().mockResolvedValue({ data: null, error }),
       } as any);
 
-      await expect(JobService.createJob(mockJobData)).rejects.toThrow('Database error');
+      await expect(JobService.createJob(mockJobData)).rejects.toThrow(
+        'Database error'
+      );
     });
 
     it('validates required fields', async () => {
       const invalidJobData = { ...mockJobData, title: '' };
-      
-      await expect(JobService.createJob(invalidJobData)).rejects.toThrow('Title is required');
+
+      await expect(JobService.createJob(invalidJobData)).rejects.toThrow(
+        'Title is required'
+      );
     });
 
     it('validates budget is positive', async () => {
       const invalidJobData = { ...mockJobData, budget: -50 };
-      
-      await expect(JobService.createJob(invalidJobData)).rejects.toThrow('Budget must be positive');
+
+      await expect(JobService.createJob(invalidJobData)).rejects.toThrow(
+        'Budget must be positive'
+      );
     });
   });
 
@@ -140,7 +146,7 @@ describe('JobService', () => {
     it('updates job successfully', async () => {
       const updates = { title: 'Updated Title', budget: 200 };
       const updatedJob = { ...mockJob, ...updates };
-      
+
       mockSupabase.from.mockReturnValue({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -156,8 +162,9 @@ describe('JobService', () => {
     it('prevents status updates to invalid values', async () => {
       const updates = { status: 'invalid-status' as any };
 
-      await expect(JobService.updateJob('test-job-1', updates))
-        .rejects.toThrow('Invalid status');
+      await expect(JobService.updateJob('test-job-1', updates)).rejects.toThrow(
+        'Invalid status'
+      );
     });
   });
 
@@ -180,8 +187,9 @@ describe('JobService', () => {
         eq: jest.fn().mockResolvedValue({ error }),
       } as any);
 
-      await expect(JobService.deleteJob('test-job-1'))
-        .rejects.toThrow('Cannot delete job with active bids');
+      await expect(JobService.deleteJob('test-job-1')).rejects.toThrow(
+        'Cannot delete job with active bids'
+      );
     });
   });
 
@@ -207,9 +215,9 @@ describe('JobService', () => {
     });
 
     it('filters by budget range', async () => {
-      await JobService.searchJobs('repair', { 
-        minBudget: 100, 
-        maxBudget: 500 
+      await JobService.searchJobs('repair', {
+        minBudget: 100,
+        maxBudget: 500,
       });
 
       const mockQuery = mockSupabase.from().select().textSearch();
@@ -230,7 +238,10 @@ describe('JobService', () => {
       const result = await JobService.getJobsByUser('homeowner-1', 'homeowner');
 
       expect(result).toEqual(mockJobs);
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith('homeowner_id', 'homeowner-1');
+      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith(
+        'homeowner_id',
+        'homeowner-1'
+      );
     });
 
     it('fetches jobs by contractor through bids', async () => {
@@ -241,7 +252,10 @@ describe('JobService', () => {
         order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
       } as any);
 
-      const result = await JobService.getJobsByUser('contractor-1', 'contractor');
+      const result = await JobService.getJobsByUser(
+        'contractor-1',
+        'contractor'
+      );
 
       expect(result).toEqual(mockJobs);
     });

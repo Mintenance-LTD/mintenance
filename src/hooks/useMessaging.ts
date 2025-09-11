@@ -1,6 +1,10 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessagingService, Message, MessageThread } from '../services/MessagingService';
+import {
+  MessagingService,
+  Message,
+  MessageThread,
+} from '../services/MessagingService';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
 import { queryKeys } from '../lib/queryClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -68,7 +72,8 @@ export const useSendMessage = () => {
     },
     entity: 'message',
     actionType: 'CREATE',
-    getQueryKey: (variables) => queryKeys.messages.conversation(variables.jobId),
+    getQueryKey: (variables) =>
+      queryKeys.messages.conversation(variables.jobId),
     optimisticUpdate: (variables) => ({
       id: `temp_message_${Date.now()}`,
       jobId: variables.jobId,
@@ -96,8 +101,12 @@ export const useMarkMessagesAsRead = () => {
     },
     onSuccess: (_, { jobId }) => {
       // Update the conversation in the threads list
-      queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversation(jobId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversations(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversation(jobId),
+      });
     },
     onError: (error) => {
       logger.error('Failed to mark messages as read:', error);
@@ -126,7 +135,11 @@ export const useUnreadMessageCount = () => {
 /**
  * Hook to search messages in a job conversation
  */
-export const useSearchJobMessages = (jobId: string, searchTerm: string, limit: number = 20) => {
+export const useSearchJobMessages = (
+  jobId: string,
+  searchTerm: string,
+  limit: number = 20
+) => {
   return useQuery({
     queryKey: ['messages', 'search', jobId, searchTerm],
     queryFn: () => MessagingService.searchJobMessages(jobId, searchTerm, limit),
@@ -162,17 +175,19 @@ export const useRealTimeMessages = (
           queryKeys.messages.conversation(jobId),
           (oldData: Message[] | undefined) => {
             if (!oldData) return [newMessage];
-            
+
             // Check if message already exists (avoid duplicates)
-            const exists = oldData.some(msg => msg.id === newMessage.id);
+            const exists = oldData.some((msg) => msg.id === newMessage.id);
             if (exists) return oldData;
-            
+
             return [...oldData, newMessage];
           }
         );
 
         // Invalidate conversations list to update last message and unread count
-        queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages.conversations(),
+        });
       },
       (updatedMessage) => {
         // Call the provided callback
@@ -183,8 +198,8 @@ export const useRealTimeMessages = (
           queryKeys.messages.conversation(jobId),
           (oldData: Message[] | undefined) => {
             if (!oldData) return [updatedMessage];
-            
-            return oldData.map(msg => 
+
+            return oldData.map((msg) =>
               msg.id === updatedMessage.id ? updatedMessage : msg
             );
           }
@@ -222,12 +237,16 @@ export const useMessageThreadsWithRealTime = () => {
         thread.jobId,
         (newMessage) => {
           // Update the threads list when new messages arrive
-          queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.messages.conversations(),
+          });
         },
         (updatedMessage) => {
           // Update if message read status changes
           if (updatedMessage.receiverId === user.id) {
-            queryClient.invalidateQueries({ queryKey: queryKeys.messages.conversations() });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.messages.conversations(),
+            });
           }
         }
       );
@@ -236,7 +255,7 @@ export const useMessageThreadsWithRealTime = () => {
     });
 
     return () => {
-      subscriptions.forEach(unsub => unsub());
+      subscriptions.forEach((unsub) => unsub());
     };
   }, [user?.id, threadsQuery.data, queryClient]);
 

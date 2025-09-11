@@ -31,7 +31,9 @@ describe('HapticService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      mockHaptics.impactAsync.mockRejectedValue(new Error('Haptics not available'));
+      mockHaptics.impactAsync.mockRejectedValue(
+        new Error('Haptics not available')
+      );
 
       // Should not throw
       await expect(HapticService.light()).resolves.not.toThrow();

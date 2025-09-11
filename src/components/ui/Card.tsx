@@ -10,7 +10,11 @@ export interface CardProps {
   style?: ViewStyle | ViewStyle[];
 }
 
-export const Card: React.FC<CardProps> = ({ children, variant = 'default', style }) => {
+export const Card: React.FC<CardProps> = ({
+  children,
+  variant = 'default',
+  style,
+}) => {
   const v = theme.components.card[variant] as any;
   return <View style={[styles.base, v, style]}>{children}</View>;
 };
@@ -23,4 +27,3 @@ const styles = StyleSheet.create({
 });
 
 export default Card;
-

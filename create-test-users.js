@@ -23,9 +23,9 @@ async function createTestUsers() {
       password: 'password123',
       userData: {
         first_name: 'John',
-        last_name: 'Doe', 
-        role: 'homeowner'
-      }
+        last_name: 'Doe',
+        role: 'homeowner',
+      },
     },
     {
       email: 'test@contractor.com',
@@ -33,21 +33,21 @@ async function createTestUsers() {
       userData: {
         first_name: 'Jane',
         last_name: 'Smith',
-        role: 'contractor'
-      }
-    }
+        role: 'contractor',
+      },
+    },
   ];
 
   for (const user of testUsers) {
     console.log(`Creating ${user.userData.role}: ${user.email}`);
-    
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email: user.email,
         password: user.password,
         options: {
-          data: user.userData
-        }
+          data: user.userData,
+        },
       });
 
       if (error) {
@@ -58,9 +58,9 @@ async function createTestUsers() {
         }
       } else {
         console.log(`✅ Created ${user.email} successfully`);
-        
+
         // Wait a moment for the trigger to process
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
       console.log(`❌ Error creating ${user.email}:`, error.message);

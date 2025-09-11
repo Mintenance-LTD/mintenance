@@ -40,23 +40,33 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
 
   const renderQueryErrorFallback = (error: Error, resetError: () => void) => (
     <View style={styles.container}>
-      <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.warning} />
-      
+      <Ionicons
+        name='cloud-offline-outline'
+        size={48}
+        color={theme.colors.warning}
+      />
+
       <Text style={styles.title}>Data Load Error</Text>
       <Text style={styles.message}>
-        Unable to load {queryName} data. Please check your connection and try again.
+        Unable to load {queryName} data. Please check your connection and try
+        again.
       </Text>
-      
+
       <TouchableOpacity
         style={styles.retryButton}
         onPress={() => {
           resetError();
           onRetry?.();
         }}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={`Retry loading ${queryName}`}
       >
-        <Ionicons name="refresh" size={16} color={theme.colors.textInverse} style={styles.buttonIcon} />
+        <Ionicons
+          name='refresh'
+          size={16}
+          color={theme.colors.textInverse}
+          style={styles.buttonIcon}
+        />
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
 

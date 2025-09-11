@@ -2,7 +2,6 @@ import * as Location from 'expo-location';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 
-
 export interface UserLocation {
   latitude: number;
   longitude: number;
@@ -53,7 +52,9 @@ export class LocationService {
         );
         return { ...userLocation, ...address };
       } catch (addressError) {
-        logger.warn('Could not get address information:', { data: addressError });
+        logger.warn('Could not get address information:', {
+          data: addressError,
+        });
         return userLocation;
       }
     } catch (error) {
@@ -65,7 +66,10 @@ export class LocationService {
   /**
    * Reverse geocode coordinates to get address
    */
-  static async reverseGeocode(latitude: number, longitude: number): Promise<{
+  static async reverseGeocode(
+    latitude: number,
+    longitude: number
+  ): Promise<{
     address?: string;
     city?: string;
     state?: string;

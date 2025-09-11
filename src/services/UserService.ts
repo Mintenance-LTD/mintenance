@@ -2,7 +2,6 @@ import { supabase } from '../config/supabase';
 import { User } from '../types';
 import { logger } from '../utils/logger';
 
-
 export interface ContractorStats {
   activeJobs: number;
   monthlyEarnings: number;
@@ -22,13 +21,13 @@ export interface ContractorStats {
 }
 
 export interface UserProfile extends User {
-  skills?: Array<{ skillName: string }>;
-  reviews?: Array<{
+  skills?: { skillName: string }[];
+  reviews?: {
     rating: number;
     comment: string;
     reviewer: string;
     createdAt: string;
-  }>;
+  }[];
   distance?: number;
 }
 
@@ -36,7 +35,9 @@ export class UserService {
   /**
    * Get comprehensive contractor statistics from real database
    */
-  static async getContractorStats(contractorId: string): Promise<ContractorStats> {
+  static async getContractorStats(
+    contractorId: string
+  ): Promise<ContractorStats> {
     try {
       // Get contractor's jobs statistics
       const { data: jobs, error: jobsError } = await supabase
@@ -61,12 +62,14 @@ export class UserService {
 
       const { data: todaysJobs, error: todaysError } = await supabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           id, title, location, created_at,
           homeowner:homeowner_id (
             first_name, last_name
           )
-        `)
+        `
+        )
         .eq('contractor_id', contractorId)
         .in('status', ['assigned', 'in_progress'])
         .gte('created_at', todayStart)
@@ -76,44 +79,64 @@ export class UserService {
       if (todaysError) throw todaysError;
 
       // Calculate statistics
-      const activeJobs = jobs?.filter((job: any) => ['assigned', 'in_progress'].includes(job.status)).length || 0;
-      const completedJobs = jobs?.filter((job: any) => job.status === 'completed').length || 0;
-      
+      const activeJobs =
+        jobs?.filter((job: any) =>
+          ['assigned', 'in_progress'].includes(job.status)
+        ).length || 0;
+      const completedJobs =
+        jobs?.filter((job: any) => job.status === 'completed').length || 0;
+
       // Calculate monthly earnings (current month)
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      const monthlyEarnings = (jobs as any[])?.filter((job: any) => {
-        const jobDate = new Date(job.updated_at);
-        return job.status === 'completed' && 
-               jobDate.getMonth() === currentMonth && 
-               jobDate.getFullYear() === currentYear;
-      }).reduce((total: number, job: any) => total + Number(job.budget || 0), 0) || 0;
+      const monthlyEarnings =
+        (jobs as any[])
+          ?.filter((job: any) => {
+            const jobDate = new Date(job.updated_at);
+            return (
+              job.status === 'completed' &&
+              jobDate.getMonth() === currentMonth &&
+              jobDate.getFullYear() === currentYear
+            );
+          })
+          .reduce(
+            (total: number, job: any) => total + Number(job.budget || 0),
+            0
+          ) || 0;
 
       // Calculate average rating
-      const avgRating = reviews && (reviews as any[]).length > 0 
-        ? (reviews as any[]).reduce((sum: number, review: any) => sum + Number(review.rating || 0), 0) / (reviews as any[]).length 
-        : 0;
+      const avgRating =
+        reviews && (reviews as any[]).length > 0
+          ? (reviews as any[]).reduce(
+              (sum: number, review: any) => sum + Number(review.rating || 0),
+              0
+            ) / (reviews as any[]).length
+          : 0;
 
       // Calculate response time (mock for now - would need message timestamps)
-      const responseTime = avgRating >= 4.5 ? '< 1h' : avgRating >= 4.0 ? '< 2h' : '< 4h';
+      const responseTime =
+        avgRating >= 4.5 ? '< 1h' : avgRating >= 4.0 ? '< 2h' : '< 4h';
 
       // Success rate calculation
       const totalJobs = jobs?.length || 0;
-      const successRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
+      const successRate =
+        totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
       // Get next appointment
       let nextAppointment;
       if (todaysJobs && todaysJobs.length > 0) {
         const nextJob = todaysJobs[0];
         nextAppointment = {
-          time: new Date(nextJob.created_at).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit' 
+          time: new Date(nextJob.created_at).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
           }),
-          client: `${(nextJob.homeowner as any)?.first_name || ''} ${(nextJob.homeowner as any)?.last_name || ''}`.trim() || 'Client',
+          client:
+            `${(nextJob.homeowner as any)?.first_name || ''} ${(nextJob.homeowner as any)?.last_name || ''}`.trim() ||
+            'Client',
           location: nextJob.location,
           type: nextJob.title,
-          jobId: nextJob.id
+          jobId: nextJob.id,
         };
       }
 
@@ -126,11 +149,11 @@ export class UserService {
         responseTime,
         successRate,
         todaysAppointments: todaysJobs?.length || 0,
-        nextAppointment
+        nextAppointment,
       };
-
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error fetching contractor stats:', errorInstance);
       // Return default values on error
       return {
@@ -141,7 +164,7 @@ export class UserService {
         totalJobsCompleted: 0,
         responseTime: '< 2h',
         successRate: 0,
-        todaysAppointments: 0
+        todaysAppointments: 0,
       };
     }
   }
@@ -153,12 +176,14 @@ export class UserService {
     try {
       const { data: user, error } = await supabase
         .from('users')
-        .select(`
+        .select(
+          `
           *,
           contractor_skills (
             skill_name
           )
-        `)
+        `
+        )
         .eq('id', userId)
         .single();
 
@@ -169,7 +194,8 @@ export class UserService {
       if (user.role === 'contractor') {
         const { data: reviewData, error: reviewError } = await supabase
           .from('reviews')
-          .select(`
+          .select(
+            `
             rating,
             comment,
             created_at,
@@ -177,7 +203,8 @@ export class UserService {
               first_name,
               last_name
             )
-          `)
+          `
+          )
           .eq('reviewed_id', userId)
           .order('created_at', { ascending: false })
           .limit(10);
@@ -186,8 +213,9 @@ export class UserService {
           reviews = reviewData.map((review: any) => ({
             rating: review.rating,
             comment: review.comment,
-            reviewer: `${(review.reviewer as any)?.first_name || ''} ${(review.reviewer as any)?.last_name || ''}`.trim(),
-            createdAt: review.created_at
+            reviewer:
+              `${(review.reviewer as any)?.first_name || ''} ${(review.reviewer as any)?.last_name || ''}`.trim(),
+            createdAt: review.created_at,
           }));
         }
       }
@@ -203,11 +231,11 @@ export class UserService {
         bio: user.bio,
         profileImageUrl: user.profile_image_url,
         created_at: user.created_at,
-        updated_at: user.updated_at
+        updated_at: user.updated_at,
       };
-
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error fetching user profile:', errorInstance);
       return null;
     }
@@ -238,17 +266,18 @@ export class UserService {
         .eq('reviewer_id', homeownerId);
 
       return {
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User',
+        name:
+          `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User',
         rating: user.rating || 0,
         reviewCount: reviewCount || 0,
-        memberSince: new Date(user.created_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short' 
-        })
+        memberSince: new Date(user.created_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+        }),
       };
-
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error fetching homeowner data:', errorInstance);
       return null;
     }
@@ -257,7 +286,10 @@ export class UserService {
   /**
    * Update user profile
    */
-  static async updateUserProfile(userId: string, updates: Partial<User>): Promise<boolean> {
+  static async updateUserProfile(
+    userId: string,
+    updates: Partial<User>
+  ): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('users')
@@ -271,13 +303,14 @@ export class UserService {
           longitude: updates.longitude,
           address: updates.address,
           is_available: updates.isAvailable,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
 
       return !error;
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error updating user profile:', errorInstance);
       return false;
     }
@@ -287,20 +320,22 @@ export class UserService {
    * Get nearby contractors with distance calculation
    */
   static async getNearbyContractors(
-    userLatitude: number, 
-    userLongitude: number, 
+    userLatitude: number,
+    userLongitude: number,
     radiusKm: number = 25,
     skillFilter?: string
   ): Promise<UserProfile[]> {
     try {
-      let query = supabase
+      const query = supabase
         .from('users')
-        .select(`
+        .select(
+          `
           *,
           contractor_skills (
             skill_name
           )
-        `)
+        `
+        )
         .eq('role', 'contractor')
         .eq('is_available', true)
         .not('latitude', 'is', null)
@@ -321,24 +356,27 @@ export class UserService {
           );
           return distance <= radiusKm;
         })
-        .map((contractor: any) => ({
-          id: contractor.id,
-          email: contractor.email,
-          first_name: contractor.first_name,
-          last_name: contractor.last_name,
-          role: contractor.role,
-          phone: contractor.phone,
-          address: contractor.address,
-          bio: contractor.bio,
-          profileImageUrl: contractor.profile_image_url,
-          created_at: contractor.created_at,
-          updated_at: contractor.updated_at
-        } as UserProfile));
+        .map(
+          (contractor: any) =>
+            ({
+              id: contractor.id,
+              email: contractor.email,
+              first_name: contractor.first_name,
+              last_name: contractor.last_name,
+              role: contractor.role,
+              phone: contractor.phone,
+              address: contractor.address,
+              bio: contractor.bio,
+              profileImageUrl: contractor.profile_image_url,
+              created_at: contractor.created_at,
+              updated_at: contractor.updated_at,
+            }) as UserProfile
+        );
 
       return nearbyContractors;
-
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error fetching nearby contractors:', errorInstance);
       return [];
     }
@@ -348,19 +386,21 @@ export class UserService {
    * Calculate distance between two points using Haversine formula
    */
   private static calculateDistance(
-    lat1: number, 
-    lon1: number, 
-    lat2: number, 
+    lat1: number,
+    lon1: number,
+    lat2: number,
     lon2: number
   ): number {
     const R = 6371; // Earth's radius in km
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(lat1)) *
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
@@ -371,12 +411,15 @@ export class UserService {
   /**
    * Get contractors that previously worked with a homeowner
    */
-  static async getPreviousContractors(homeownerId: string): Promise<UserProfile[]> {
+  static async getPreviousContractors(
+    homeownerId: string
+  ): Promise<UserProfile[]> {
     try {
       // Get completed jobs for this homeowner with contractor info
       const { data: completedJobs, error } = await supabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           contractor_id,
           contractor:contractor_id (
             id,
@@ -390,7 +433,8 @@ export class UserService {
               skill_name
             )
           )
-        `)
+        `
+        )
         .eq('homeowner_id', homeownerId)
         .eq('status', 'completed')
         .not('contractor_id', 'is', null)
@@ -404,7 +448,7 @@ export class UserService {
 
       // Get unique contractors (avoid duplicates if they worked multiple jobs)
       const uniqueContractors = new Map();
-      
+
       for (const job of completedJobs) {
         const contractor = job.contractor as any;
         if (contractor && !uniqueContractors.has(contractor.id)) {
@@ -429,13 +473,17 @@ export class UserService {
             profileImageUrl: contractor.profile_image_url,
             created_at: '',
             updated_at: '',
-            skills: contractor.contractor_skills?.map((s: any) => ({ skillName: s.skill_name })) || [],
-            reviews: reviews?.map((review: any) => ({
-              rating: review.rating,
-              comment: review.comment,
-              reviewer: 'You',
-              createdAt: review.created_at
-            })) || []
+            skills:
+              contractor.contractor_skills?.map((s: any) => ({
+                skillName: s.skill_name,
+              })) || [],
+            reviews:
+              reviews?.map((review: any) => ({
+                rating: review.rating,
+                comment: review.comment,
+                reviewer: 'You',
+                createdAt: review.created_at,
+              })) || [],
           };
 
           uniqueContractors.set(contractor.id, contractorProfile);
@@ -443,9 +491,9 @@ export class UserService {
       }
 
       return Array.from(uniqueContractors.values()).slice(0, 5); // Return max 5 previous contractors
-
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
       logger.error('Error fetching previous contractors:', errorInstance);
       return [];
     }

@@ -71,7 +71,9 @@ jest.mock('../../services/OfflineManager', () => ({
 }));
 
 const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
-const mockBiometricService = BiometricService as jest.Mocked<typeof BiometricService>;
+const mockBiometricService = BiometricService as jest.Mocked<
+  typeof BiometricService
+>;
 
 // Simplified Login Screen Component for Testing
 const MockLoginScreen = () => {
@@ -80,13 +82,13 @@ const MockLoginScreen = () => {
   const [password, setPassword] = React.useState('');
 
   if (loading) {
-    return <Text testID="loading">Loading...</Text>;
+    return <Text testID='loading'>Loading...</Text>;
   }
 
   if (user) {
     return (
-      <View testID="home-screen">
-        <Text testID="welcome-message">Welcome, {user.first_name}!</Text>
+      <View testID='home-screen'>
+        <Text testID='welcome-message'>Welcome, {user.first_name}!</Text>
       </View>
     );
   }
@@ -109,32 +111,29 @@ const MockLoginScreen = () => {
   };
 
   return (
-    <View testID="login-screen">
+    <View testID='login-screen'>
       <Text>Sign In</Text>
       <TextInput
-        testID="email-input"
-        placeholder="Email"
+        testID='email-input'
+        placeholder='Email'
         value={email}
         onChangeText={setEmail}
       />
       <TextInput
-        testID="password-input"
-        placeholder="Password"
+        testID='password-input'
+        placeholder='Password'
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity
-        testID="sign-in-button"
-        onPress={handleSignIn}
-      >
+      <TouchableOpacity testID='sign-in-button' onPress={handleSignIn}>
         <Text>Sign In</Text>
       </TouchableOpacity>
-      <TouchableOpacity testID="sign-up-link">
+      <TouchableOpacity testID='sign-up-link'>
         <Text>Don't have an account? Sign up</Text>
       </TouchableOpacity>
-      <TouchableOpacity 
-        testID="biometric-login-button"
+      <TouchableOpacity
+        testID='biometric-login-button'
         onPress={handleBiometricSignIn}
       >
         <Text>Sign in with biometrics</Text>
@@ -168,52 +167,57 @@ const MockRegisterScreen = () => {
   };
 
   return (
-    <View testID="register-screen">
+    <View testID='register-screen'>
       <Text>Create Account</Text>
       <TextInput
-        testID="first-name-input"
-        placeholder="First Name"
+        testID='first-name-input'
+        placeholder='First Name'
         value={formData.firstName}
-        onChangeText={(text) => setFormData(prev => ({ ...prev, firstName: text }))}
+        onChangeText={(text) =>
+          setFormData((prev) => ({ ...prev, firstName: text }))
+        }
       />
       <TextInput
-        testID="last-name-input"
-        placeholder="Last Name"
+        testID='last-name-input'
+        placeholder='Last Name'
         value={formData.lastName}
-        onChangeText={(text) => setFormData(prev => ({ ...prev, lastName: text }))}
+        onChangeText={(text) =>
+          setFormData((prev) => ({ ...prev, lastName: text }))
+        }
       />
       <TextInput
-        testID="email-input"
-        placeholder="Email"
+        testID='email-input'
+        placeholder='Email'
         value={formData.email}
-        onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+        onChangeText={(text) =>
+          setFormData((prev) => ({ ...prev, email: text }))
+        }
       />
       <TextInput
-        testID="password-input"
-        placeholder="Password"
+        testID='password-input'
+        placeholder='Password'
         value={formData.password}
-        onChangeText={(text) => setFormData(prev => ({ ...prev, password: text }))}
+        onChangeText={(text) =>
+          setFormData((prev) => ({ ...prev, password: text }))
+        }
         secureTextEntry
       />
       <TouchableOpacity
-        testID="homeowner-role-button"
-        onPress={() => setFormData(prev => ({ ...prev, role: 'homeowner' }))}
+        testID='homeowner-role-button'
+        onPress={() => setFormData((prev) => ({ ...prev, role: 'homeowner' }))}
       >
         <Text>I need help with home projects</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="contractor-role-button"
-        onPress={() => setFormData(prev => ({ ...prev, role: 'contractor' }))}
+        testID='contractor-role-button'
+        onPress={() => setFormData((prev) => ({ ...prev, role: 'contractor' }))}
       >
         <Text>I provide home services</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        testID="create-account-button"
-        onPress={handleSignUp}
-      >
+      <TouchableOpacity testID='create-account-button' onPress={handleSignUp}>
         <Text>Create Account</Text>
       </TouchableOpacity>
-      <TouchableOpacity testID="sign-in-link">
+      <TouchableOpacity testID='sign-in-link'>
         <Text>Already have an account? Sign in</Text>
       </TouchableOpacity>
     </View>
@@ -221,7 +225,11 @@ const MockRegisterScreen = () => {
 };
 
 // Simple Navigator that switches between login and register
-const MockNavigator = ({ initialScreen = 'login' }: { initialScreen?: string }) => {
+const MockNavigator = ({
+  initialScreen = 'login',
+}: {
+  initialScreen?: string;
+}) => {
   const [currentScreen, setCurrentScreen] = React.useState(initialScreen);
   const { user } = useAuth();
 
@@ -275,7 +283,7 @@ describe('User Authentication Workflow Integration', () => {
       });
 
       const { getByTestId, queryByTestId } = render(
-        <TestWrapper initialScreen="register" />
+        <TestWrapper initialScreen='register' />
       );
 
       // Wait for initial loading to complete
@@ -334,10 +342,12 @@ describe('User Authentication Workflow Integration', () => {
     });
 
     it('should handle registration validation errors gracefully', async () => {
-      mockAuthService.signUp.mockRejectedValue(new Error('Email already exists'));
+      mockAuthService.signUp.mockRejectedValue(
+        new Error('Email already exists')
+      );
 
       const { getByTestId, queryByTestId } = render(
-        <TestWrapper initialScreen="register" />
+        <TestWrapper initialScreen='register' />
       );
 
       await waitFor(() => {
@@ -439,7 +449,9 @@ describe('User Authentication Workflow Integration', () => {
     });
 
     it('should handle invalid login credentials', async () => {
-      mockAuthService.signIn.mockRejectedValue(new Error('Invalid credentials'));
+      mockAuthService.signIn.mockRejectedValue(
+        new Error('Invalid credentials')
+      );
 
       const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
@@ -482,7 +494,7 @@ describe('User Authentication Workflow Integration', () => {
       // Mock biometric availability
       mockBiometricService.isAvailable.mockResolvedValue(true);
       mockBiometricService.isBiometricEnabled.mockResolvedValue(false);
-      
+
       // Mock successful login
       mockAuthService.getCurrentUser
         .mockResolvedValueOnce(null)
@@ -546,7 +558,7 @@ describe('User Authentication Workflow Integration', () => {
       mockAuthService.getCurrentUser
         .mockResolvedValueOnce(null)
         .mockResolvedValue(mockUser);
-        
+
       mockAuthService.getCurrentSession.mockResolvedValue({
         user: mockUser,
         access_token: 'token123',

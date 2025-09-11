@@ -1,6 +1,9 @@
 // Arrange mocks BEFORE importing the module under test
 const mockErrorUtils = { setGlobalHandler: jest.fn() };
-jest.mock('react-native', () => ({ ErrorUtils: mockErrorUtils, Platform: { OS: 'ios' } }));
+jest.mock('react-native', () => ({
+  ErrorUtils: mockErrorUtils,
+  Platform: { OS: 'ios' },
+}));
 
 const mockLogger = { error: jest.fn(), warn: jest.fn(), debug: jest.fn() };
 jest.mock('../../utils/logger', () => ({ logger: mockLogger }));
@@ -9,7 +12,10 @@ const mockSentry = { captureException: jest.fn(), addBreadcrumb: jest.fn() };
 jest.mock('@sentry/react-native', () => mockSentry);
 
 const mockExceptionsManager = { unstable_setGlobalHandler: jest.fn() };
-jest.mock('react-native/Libraries/Core/ExceptionsManager', () => mockExceptionsManager);
+jest.mock(
+  'react-native/Libraries/Core/ExceptionsManager',
+  () => mockExceptionsManager
+);
 
 let setupGlobalErrorHandler: any, logError: any, trackPerformance: any;
 
@@ -25,7 +31,11 @@ describe('GlobalErrorHandler', () => {
     // eslint-disable-next-line no-undef
     // @ts-ignore
     global.__DEV__ = false;
-    ({ setupGlobalErrorHandler, logError, trackPerformance } = require('../../utils/globalErrorHandler'));
+    ({
+      setupGlobalErrorHandler,
+      logError,
+      trackPerformance,
+    } = require('../../utils/globalErrorHandler'));
   });
 
   describe('setupGlobalErrorHandler', () => {
@@ -33,7 +43,9 @@ describe('GlobalErrorHandler', () => {
       setupGlobalErrorHandler();
 
       expect(mockErrorUtils.setGlobalHandler).toHaveBeenCalled();
-      expect(mockExceptionsManager.unstable_setGlobalHandler).toHaveBeenCalled();
+      expect(
+        mockExceptionsManager.unstable_setGlobalHandler
+      ).toHaveBeenCalled();
     });
 
     it('should handle JS errors and log them', () => {
@@ -45,7 +57,10 @@ describe('GlobalErrorHandler', () => {
 
       errorHandler(testError, false);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Global JS Error:', testError);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Global JS Error:',
+        testError
+      );
     });
 
     it('should handle fatal JS errors', () => {
@@ -56,7 +71,10 @@ describe('GlobalErrorHandler', () => {
 
       errorHandler(testError, true);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Global JS Error:', testError);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Global JS Error:',
+        testError
+      );
     });
 
     it('should handle non-fatal errors in development mode', () => {
@@ -68,8 +86,14 @@ describe('GlobalErrorHandler', () => {
 
       errorHandler(testError, false);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Global JS Error:', testError);
-      expect(mockLogger.warn).toHaveBeenCalledWith('Non-fatal error handled globally:', { data: testError });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Global JS Error:',
+        testError
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Non-fatal error handled globally:',
+        { data: testError }
+      );
     });
 
     it('should not warn for fatal errors in development mode', () => {
@@ -81,22 +105,34 @@ describe('GlobalErrorHandler', () => {
 
       errorHandler(testError, true);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Global JS Error:', testError);
-      expect(mockLogger.warn).not.toHaveBeenCalledWith('Non-fatal error handled globally:', expect.anything());
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Global JS Error:',
+        testError
+      );
+      expect(mockLogger.warn).not.toHaveBeenCalledWith(
+        'Non-fatal error handled globally:',
+        expect.anything()
+      );
     });
 
     it('should handle promise rejections when ExceptionsManager is available', () => {
       setupGlobalErrorHandler();
 
-      expect(mockExceptionsManager.unstable_setGlobalHandler).toHaveBeenCalled();
+      expect(
+        mockExceptionsManager.unstable_setGlobalHandler
+      ).toHaveBeenCalled();
 
       // Get the promise rejection handler
-      const promiseHandler = mockExceptionsManager.unstable_setGlobalHandler.mock.calls[0][0];
+      const promiseHandler =
+        mockExceptionsManager.unstable_setGlobalHandler.mock.calls[0][0];
       const testError = 'Unhandled promise rejection';
 
       promiseHandler(testError, false);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Unhandled Promise Rejection:', testError);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Unhandled Promise Rejection:',
+        testError
+      );
     });
 
     it('should handle case when ExceptionsManager is not available', () => {
@@ -115,7 +151,11 @@ describe('GlobalErrorHandler', () => {
 
       logError(testError, testContext);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, testContext);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        testError,
+        testContext
+      );
     });
 
     it('should log error without context', () => {
@@ -123,7 +163,11 @@ describe('GlobalErrorHandler', () => {
 
       logError(testError);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, undefined);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        testError,
+        undefined
+      );
     });
 
     it('should handle various error types', () => {
@@ -147,7 +191,9 @@ describe('GlobalErrorHandler', () => {
 
       trackPerformance(operation, duration);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('Performance: API call took 250ms');
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Performance: API call took 250ms'
+      );
     });
 
     it('should handle various operation names and durations', () => {
@@ -165,7 +211,9 @@ describe('GlobalErrorHandler', () => {
       expect(mockLogger.debug).toHaveBeenCalledTimes(testCases.length);
 
       testCases.forEach(({ operation, duration }) => {
-        expect(mockLogger.debug).toHaveBeenCalledWith(`Performance: ${operation} took ${duration}ms`);
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          `Performance: ${operation} took ${duration}ms`
+        );
       });
     });
 
@@ -173,21 +221,27 @@ describe('GlobalErrorHandler', () => {
       trackPerformance('Instant operation', 0);
       trackPerformance('Negative duration', -5);
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('Performance: Instant operation took 0ms');
-      expect(mockLogger.debug).toHaveBeenCalledWith('Performance: Negative duration took -5ms');
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Performance: Instant operation took 0ms'
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Performance: Negative duration took -5ms'
+      );
     });
   });
 
   describe('Sentry Integration', () => {
     it('should handle Sentry import success', async () => {
       const testError = new Error('Sentry test error');
-      
+
       logError(testError, { test: true });
 
       // Wait for dynamic import to resolve
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, { test: true });
+      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, {
+        test: true,
+      });
     });
 
     it('should handle Sentry import failure gracefully', async () => {
@@ -200,17 +254,23 @@ describe('GlobalErrorHandler', () => {
       logError(testError);
 
       // Wait for dynamic import to fail
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, undefined);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        testError,
+        undefined
+      );
     });
 
     it('should handle trackPerformance Sentry integration', async () => {
       trackPerformance('Test operation', 100);
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      expect(mockLogger.debug).toHaveBeenCalledWith('Performance: Test operation took 100ms');
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Performance: Test operation took 100ms'
+      );
     });
   });
 
@@ -219,8 +279,16 @@ describe('GlobalErrorHandler', () => {
       logError(null as any);
       logError(undefined as any);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', null, undefined);
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', undefined, undefined);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        null,
+        undefined
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        undefined,
+        undefined
+      );
     });
 
     it('should handle circular reference in context', () => {
@@ -231,7 +299,11 @@ describe('GlobalErrorHandler', () => {
 
       // Should not throw
       expect(() => logError(testError, circularContext)).not.toThrow();
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, circularContext);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        testError,
+        circularContext
+      );
     });
 
     it('should handle very long operation names', () => {
@@ -239,23 +311,31 @@ describe('GlobalErrorHandler', () => {
       const duration = 500;
 
       expect(() => trackPerformance(longOperation, duration)).not.toThrow();
-      expect(mockLogger.debug).toHaveBeenCalledWith(`Performance: ${longOperation} took ${duration}ms`);
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        `Performance: ${longOperation} took ${duration}ms`
+      );
     });
   });
 
   describe('Integration Tests', () => {
     it('should work with all functions together', () => {
       setupGlobalErrorHandler();
-      
+
       const testError = new Error('Integration test error');
       const testContext = { integration: true };
-      
+
       logError(testError, testContext);
       trackPerformance('Integration test', 150);
 
       expect(mockErrorUtils.setGlobalHandler).toHaveBeenCalled();
-      expect(mockLogger.error).toHaveBeenCalledWith('App Error:', testError, testContext);
-      expect(mockLogger.debug).toHaveBeenCalledWith('Performance: Integration test took 150ms');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'App Error:',
+        testError,
+        testContext
+      );
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Performance: Integration test took 150ms'
+      );
     });
 
     it('should maintain functionality after multiple setups', () => {

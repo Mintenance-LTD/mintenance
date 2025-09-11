@@ -58,21 +58,23 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
-const mockBiometricService = BiometricService as jest.Mocked<typeof BiometricService>;
+const mockBiometricService = BiometricService as jest.Mocked<
+  typeof BiometricService
+>;
 
 // Test component that uses AuthContext
 const TestAuthComponent = () => {
   const { user, loading, signIn, signUp, signOut } = useAuth();
 
   if (loading) {
-    return <Text testID="loading">Loading...</Text>;
+    return <Text testID='loading'>Loading...</Text>;
   }
 
   if (user) {
     return (
       <View>
-        <Text testID="user-info">Welcome, {user.first_name}!</Text>
-        <TouchableOpacity testID="sign-out-button" onPress={signOut}>
+        <Text testID='user-info'>Welcome, {user.first_name}!</Text>
+        <TouchableOpacity testID='sign-out-button' onPress={signOut}>
           <Text>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -82,18 +84,20 @@ const TestAuthComponent = () => {
   return (
     <View>
       <TouchableOpacity
-        testID="sign-in-button"
+        testID='sign-in-button'
         onPress={() => signIn('test@example.com', 'password123')}
       >
         <Text>Sign In</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        testID="sign-up-button"
-        onPress={() => signUp('test@example.com', 'password123', {
-          firstName: 'Test',
-          lastName: 'User',
-          role: 'homeowner'
-        })}
+        testID='sign-up-button'
+        onPress={() =>
+          signUp('test@example.com', 'password123', {
+            firstName: 'Test',
+            lastName: 'User',
+            role: 'homeowner',
+          })
+        }
       >
         <Text>Sign Up</Text>
       </TouchableOpacity>
@@ -182,7 +186,10 @@ describe('Auth Context Integration', () => {
     });
 
     // Verify sign in was called
-    expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    expect(mockAuthService.signIn).toHaveBeenCalledWith(
+      'test@example.com',
+      'password123'
+    );
 
     // Should show user info after successful sign in
     await waitFor(() => {

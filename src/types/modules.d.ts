@@ -7,23 +7,23 @@ declare module '@react-native-community/netinfo' {
     type: string;
     details: any;
   }
-  
+
   const NetInfo: {
     fetch: () => Promise<NetInfoState>;
     addEventListener: (listener: (state: NetInfoState) => void) => () => void;
   };
-  
+
   export default NetInfo;
 }
 
 declare module 'react-native-deck-swiper' {
   import { Component } from 'react';
-  
+
   export interface SwipeDirection {
     x: number;
     y: number;
   }
-  
+
   export interface DeckSwiperProps {
     cards: any[];
     onSwipedLeft?: (index: number) => void;
@@ -41,7 +41,7 @@ declare module 'react-native-deck-swiper' {
     animateOverlayLabelsOpacity?: boolean;
     animateCardOpacity?: boolean;
   }
-  
+
   export default class DeckSwiper extends Component<DeckSwiperProps> {}
 }
 

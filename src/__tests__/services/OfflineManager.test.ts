@@ -73,7 +73,9 @@ describe('OfflineManager', () => {
         data: { title: 'Test Job' },
       };
 
-      await expect(OfflineManager.queueAction(action)).rejects.toThrow('Storage error');
+      await expect(OfflineManager.queueAction(action)).rejects.toThrow(
+        'Storage error'
+      );
     });
   });
 
@@ -135,7 +137,9 @@ describe('OfflineManager', () => {
 
       await OfflineManager.syncQueue();
 
-      expect(mockAsyncStorage.getItem).not.toHaveBeenCalledWith('OFFLINE_QUEUE');
+      expect(mockAsyncStorage.getItem).not.toHaveBeenCalledWith(
+        'OFFLINE_QUEUE'
+      );
     });
 
     it('syncs empty queue successfully', async () => {
@@ -191,7 +195,9 @@ describe('OfflineManager', () => {
 
       // Mock failing job service
       const { JobService } = require('../../services/JobService');
-      JobService.createJob = jest.fn().mockRejectedValue(new Error('Network error'));
+      JobService.createJob = jest
+        .fn()
+        .mockRejectedValue(new Error('Network error'));
 
       await OfflineManager.syncQueue();
 
@@ -219,12 +225,17 @@ describe('OfflineManager', () => {
 
       // Mock failing job service
       const { JobService } = require('../../services/JobService');
-      JobService.createJob = jest.fn().mockRejectedValue(new Error('Permanent error'));
+      JobService.createJob = jest
+        .fn()
+        .mockRejectedValue(new Error('Permanent error'));
 
       await OfflineManager.syncQueue();
 
       // Should remove failed action from queue
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith('OFFLINE_QUEUE', '[]');
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        'OFFLINE_QUEUE',
+        '[]'
+      );
     });
   });
 

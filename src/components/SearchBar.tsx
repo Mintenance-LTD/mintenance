@@ -53,11 +53,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
+
   const inputRef = useRef<TextInput>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const focusAnimation = useRef(new Animated.Value(0)).current;
-  
+
   const { t, common } = useI18n();
   const haptics = useHaptics();
   const searchText = useAccessibleText(16);
@@ -159,7 +159,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       >
         {/* Search Icon */}
         <Ionicons
-          name="search"
+          name='search'
           size={20}
           color={isFocused ? theme.colors.primary : theme.colors.textTertiary}
           style={styles.searchIcon}
@@ -178,17 +178,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
           placeholderTextColor={theme.colors.placeholder}
           autoFocus={autoFocus}
           editable={!disabled}
-          returnKeyType="search"
+          returnKeyType='search'
           clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
-          accessibilityRole="search"
+          accessibilityRole='search'
           accessibilityLabel={String(t('search.searchInput', 'Search input'))}
-          accessibilityHint={String(t('search.searchHint', 'Enter search terms and tap search'))}
+          accessibilityHint={String(
+            t('search.searchHint', 'Enter search terms and tap search')
+          )}
         />
 
         {/* Loading Indicator */}
         {loading && (
           <ActivityIndicator
-            size="small"
+            size='small'
             color={theme.colors.primary}
             style={styles.loadingIndicator}
           />
@@ -199,12 +201,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <TouchableOpacity
             onPress={handleClear}
             style={styles.clearButton}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={String(t('common.clear'))}
-            accessibilityHint={String(t('search.clearHint', 'Clear search text'))}
+            accessibilityHint={String(
+              t('search.clearHint', 'Clear search text')
+            )}
           >
             <Ionicons
-              name="close-circle"
+              name='close-circle'
               size={20}
               color={theme.colors.textTertiary}
             />
@@ -217,14 +221,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
             onPress={handleFilterPress}
             style={styles.filterButton}
             disabled={disabled}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={String(t('search.filters'))}
-            accessibilityHint={String(t('search.filtersHint', 'Open search filters'))}
+            accessibilityHint={String(
+              t('search.filtersHint', 'Open search filters')
+            )}
           >
             <Ionicons
-              name="options"
+              name='options'
               size={20}
-              color={isFocused ? theme.colors.primary : theme.colors.textSecondary}
+              color={
+                isFocused ? theme.colors.primary : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
         )}
@@ -238,11 +246,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
               key={index}
               style={styles.suggestionItem}
               onPress={() => handleSuggestionPress(suggestion)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`${String(t('search.suggestion'))}: ${suggestion}`}
             >
               <Ionicons
-                name="search"
+                name='search'
                 size={16}
                 color={theme.colors.textTertiary}
                 style={styles.suggestionIcon}

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import Button from '../components/ui/Button';
 import { Picker } from '@react-native-picker/picker';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,9 +31,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [category, setCategory] = useState('handyman');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
   const [budget, setBudget] = useState('');
-  const [aiPricingAnalysis, setAIPricingAnalysis] = useState<PricingAnalysis | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
+  const [aiPricingAnalysis, setAIPricingAnalysis] =
+    useState<PricingAnalysis | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+
   const createJobMutation = useCreateJob();
 
   const jobCategories = [
@@ -53,29 +65,35 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     switch (fieldName) {
       case 'title':
         if (!value.trim()) return 'Job title is required';
-        if (value.trim().length < 10) return 'Job title must be at least 10 characters';
-        if (value.trim().length > 100) return 'Job title cannot exceed 100 characters';
+        if (value.trim().length < 10)
+          return 'Job title must be at least 10 characters';
+        if (value.trim().length > 100)
+          return 'Job title cannot exceed 100 characters';
         return '';
-      
+
       case 'description':
         if (!value.trim()) return 'Description is required';
-        if (value.trim().length < 20) return 'Description must be at least 20 characters';
-        if (value.trim().length > 500) return 'Description cannot exceed 500 characters';
+        if (value.trim().length < 20)
+          return 'Description must be at least 20 characters';
+        if (value.trim().length > 500)
+          return 'Description cannot exceed 500 characters';
         return '';
-      
+
       case 'location':
         if (!value.trim()) return 'Location is required';
-        if (value.trim().length < 5) return 'Please provide a more specific location';
+        if (value.trim().length < 5)
+          return 'Please provide a more specific location';
         return '';
-      
+
       case 'budget':
         if (!value.trim()) return 'Budget is required';
         const budgetNumber = parseFloat(value);
-        if (isNaN(budgetNumber) || budgetNumber <= 0) return 'Budget must be a valid positive number';
+        if (isNaN(budgetNumber) || budgetNumber <= 0)
+          return 'Budget must be a valid positive number';
         if (budgetNumber > 50000) return 'Budget cannot exceed £50,000';
         if (budgetNumber < 10) return 'Minimum budget is £10';
         return '';
-      
+
       default:
         return '';
     }
@@ -100,9 +118,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
     // Clear or set validation error for this field
     const error = validateField(fieldName, value);
-    setValidationErrors(prev => ({
+    setValidationErrors((prev) => ({
       ...prev,
-      [fieldName]: error
+      [fieldName]: error,
     }));
   };
 
@@ -123,9 +141,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     setValidationErrors(errors);
 
     // Check if there are any validation errors
-    const hasErrors = Object.values(errors).some(error => error !== '');
+    const hasErrors = Object.values(errors).some((error) => error !== '');
     if (hasErrors) {
-      Alert.alert('Validation Error', 'Please fix the errors in the form before submitting');
+      Alert.alert(
+        'Validation Error',
+        'Please fix the errors in the form before submitting'
+      );
       return;
     }
 
@@ -137,14 +158,18 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     const budgetNumber = parseFloat(budget);
 
     // Warn if budget is significantly different from AI recommendation
-    if (aiPricingAnalysis && Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) > aiPricingAnalysis.suggestedPrice.optimal * 0.3) {
+    if (
+      aiPricingAnalysis &&
+      Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) >
+        aiPricingAnalysis.suggestedPrice.optimal * 0.3
+    ) {
       const proceed = await new Promise<boolean>((resolve) => {
         Alert.alert(
           'Budget Notice',
           `Your budget (£${budgetNumber}) differs from our AI recommendation (£${aiPricingAnalysis.suggestedPrice.optimal}). Continue anyway?`,
           [
             { text: 'Cancel', onPress: () => resolve(false) },
-            { text: 'Continue', onPress: () => resolve(true) }
+            { text: 'Continue', onPress: () => resolve(true) },
           ]
         );
       });
@@ -168,22 +193,25 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         budget: budgetNumber,
         homeownerId: user.id,
         category,
-        priority: urgency
+        priority: urgency,
       });
 
       Alert.alert('Success', 'Job posted successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
       logger.error('Job posting failed:', error);
-      Alert.alert('Error', error.message || 'Failed to post job. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to post job. Please try again.'
+      );
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -197,11 +225,8 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.form}>
           <Text style={styles.label}>Job Title *</Text>
           <TextInput
-            style={[
-              styles.input,
-              validationErrors.title && styles.inputError
-            ]}
-            placeholder="e.g., Kitchen Sink Repair"
+            style={[styles.input, validationErrors.title && styles.inputError]}
+            placeholder='e.g., Kitchen Sink Repair'
             value={title}
             onChangeText={(value) => handleFieldChange('title', value)}
             maxLength={100}
@@ -218,7 +243,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.picker}
             >
               {jobCategories.map((cat) => (
-                <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
+                <Picker.Item
+                  key={cat.value}
+                  label={cat.label}
+                  value={cat.value}
+                />
               ))}
             </Picker>
           </View>
@@ -226,16 +255,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.label}>Description *</Text>
           <TextInput
             style={[
-              styles.input, 
+              styles.input,
               styles.textArea,
-              validationErrors.description && styles.inputError
+              validationErrors.description && styles.inputError,
             ]}
-            placeholder="Describe the job in detail..."
+            placeholder='Describe the job in detail...'
             value={description}
             onChangeText={(value) => handleFieldChange('description', value)}
             multiline
             numberOfLines={4}
-            textAlignVertical="top"
+            textAlignVertical='top'
             maxLength={500}
           />
           <Text style={styles.characterCount}>
@@ -249,9 +278,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={[
               styles.input,
-              validationErrors.location && styles.inputError
+              validationErrors.location && styles.inputError,
             ]}
-            placeholder="e.g., Central London, Manchester City Centre"
+            placeholder='e.g., Central London, Manchester City Centre'
             value={location}
             onChangeText={(value) => handleFieldChange('location', value)}
             maxLength={100}
@@ -267,14 +296,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
                 key={level}
                 style={[
                   styles.urgencyButton,
-                  urgency === level && styles.urgencyButtonActive
+                  urgency === level && styles.urgencyButtonActive,
                 ]}
                 onPress={() => setUrgency(level)}
               >
-                <Text style={[
-                  styles.urgencyButtonText,
-                  urgency === level && styles.urgencyButtonTextActive
-                ]}>
+                <Text
+                  style={[
+                    styles.urgencyButtonText,
+                    urgency === level && styles.urgencyButtonTextActive,
+                  ]}
+                >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -290,7 +321,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
                 category,
                 location: location.trim(),
                 urgency,
-                homeownerBudget: budget ? parseFloat(budget) : undefined
+                homeownerBudget: budget ? parseFloat(budget) : undefined,
               }}
               onPricingUpdate={handlePricingUpdate}
               autoAnalyze={true}
@@ -298,17 +329,19 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <Text style={styles.label}>Your Budget *</Text>
-          <View style={[
-            styles.budgetInputContainer,
-            validationErrors.budget && styles.inputError
-          ]}>
+          <View
+            style={[
+              styles.budgetInputContainer,
+              validationErrors.budget && styles.inputError,
+            ]}
+          >
             <Text style={styles.currencySymbol}>£</Text>
             <TextInput
               style={styles.budgetInput}
-              placeholder="Enter amount"
+              placeholder='Enter amount'
               value={budget}
               onChangeText={(value) => handleFieldChange('budget', value)}
-              keyboardType="numeric"
+              keyboardType='numeric'
             />
           </View>
           {validationErrors.budget && (
@@ -318,14 +351,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           {aiPricingAnalysis && (
             <View style={styles.budgetComparisonContainer}>
               <Text style={styles.budgetComparisonText}>
-                AI Suggestion: £{aiPricingAnalysis.suggestedPrice.min} - £{aiPricingAnalysis.suggestedPrice.max}
+                AI Suggestion: £{aiPricingAnalysis.suggestedPrice.min} - £
+                {aiPricingAnalysis.suggestedPrice.max}
               </Text>
             </View>
           )}
 
           <View style={styles.budgetHint}>
             <Text style={styles.hintText}>
-              🤖 Use AI-powered pricing above for market-accurate budget suggestions
+              🤖 Use AI-powered pricing above for market-accurate budget
+              suggestions
             </Text>
           </View>
         </View>
@@ -333,7 +368,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.footer}>
         <Button
-          variant="primary"
+          variant='primary'
           title={createJobMutation.isPending ? 'Posting…' : 'Post Job'}
           onPress={handleSubmit}
           disabled={createJobMutation.isPending}
@@ -461,7 +496,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   budgetComparisonContainer: {
-    backgroundColor: theme.colors.info + '20',
+    backgroundColor: `${theme.colors.info}20`,
     padding: theme.spacing[2],
     borderRadius: theme.borderRadius.sm,
     marginTop: theme.spacing[1],
@@ -472,7 +507,7 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.fontWeight.medium,
   },
   budgetHint: {
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: `${theme.colors.primary}15`,
     padding: theme.spacing[3],
     borderRadius: theme.borderRadius.md,
     marginTop: theme.spacing[3],

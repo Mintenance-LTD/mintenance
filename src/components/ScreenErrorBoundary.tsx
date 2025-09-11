@@ -30,9 +30,9 @@ export class ScreenErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error(`Screen error in ${this.props.screenName}:`, error, {
       componentStack: errorInfo.componentStack,
-      errorBoundary: 'ScreenErrorBoundary'
+      errorBoundary: 'ScreenErrorBoundary',
     });
-    
+
     this.setState({
       error,
       errorInfo,
@@ -62,7 +62,7 @@ export class ScreenErrorBoundary extends Component<Props, State> {
           <Text style={styles.message}>
             Something went wrong while loading this screen. Please try again.
           </Text>
-          
+
           {__DEV__ && this.state.error && (
             <View style={styles.debugContainer}>
               <Text style={styles.debugTitle}>Debug Info:</Text>

@@ -1,10 +1,10 @@
 /**
  * CIRCUIT BREAKER IMPLEMENTATION
  * Production-grade fault tolerance for external services
- * 
+ *
  * Features:
  * - Automatic failure detection and recovery
- * - Configurable thresholds and timeouts  
+ * - Configurable thresholds and timeouts
  * - Metrics collection and monitoring
  * - Graceful degradation strategies
  * - Support for multiple failure scenarios
@@ -14,10 +14,10 @@ import { logger } from './logger';
 
 export interface CircuitBreakerConfig {
   name: string;
-  failureThreshold: number;    // Number of failures before opening
-  recoveryTimeout: number;     // Time in ms before attempting recovery
-  monitoringWindow: number;    // Time window for failure counting
-  expectedErrors: string[];    // Error types that should trigger circuit breaker
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time in ms before attempting recovery
+  monitoringWindow: number; // Time window for failure counting
+  expectedErrors: string[]; // Error types that should trigger circuit breaker
   fallbackFunction?: () => any; // Fallback when circuit is open
 }
 
@@ -32,9 +32,9 @@ export interface CircuitBreakerMetrics {
 }
 
 export enum CircuitState {
-  CLOSED = 'CLOSED',       // Normal operation
-  OPEN = 'OPEN',           // Circuit breaker is open, rejecting requests
-  HALF_OPEN = 'HALF_OPEN'  // Testing if service has recovered
+  CLOSED = 'CLOSED', // Normal operation
+  OPEN = 'OPEN', // Circuit breaker is open, rejecting requests
+  HALF_OPEN = 'HALF_OPEN', // Testing if service has recovered
 }
 
 /**
@@ -55,12 +55,12 @@ export class CircuitBreaker {
       circuitOpenCount: 0,
       averageResponseTime: 0,
       lastFailureTime: null,
-      currentState: this.state
+      currentState: this.state,
     };
 
     logger.info(`Circuit breaker initialized: ${config.name}`, {
       failureThreshold: config.failureThreshold,
-      recoveryTimeout: config.recoveryTimeout
+      recoveryTimeout: config.recoveryTimeout,
     });
   }
 
@@ -73,7 +73,9 @@ export class CircuitBreaker {
         return this.handleOpenCircuit();
       } else {
         this.state = CircuitState.HALF_OPEN;
-        logger.info(`Circuit breaker ${this.config.name} entering HALF_OPEN state`);
+        logger.info(
+          `Circuit breaker ${this.config.name} entering HALF_OPEN state`
+        );
       }
     }
 
@@ -89,13 +91,12 @@ export class CircuitBreaker {
 
     try {
       const result = await operation();
-      
+
       // Success - record metrics
       const responseTime = Date.now() - startTime;
       this.onSuccess(responseTime);
-      
+
       return result;
-      
     } catch (error) {
       const responseTime = Date.now() - startTime;
       this.onFailure(error as Error, responseTime);
@@ -109,10 +110,12 @@ export class CircuitBreaker {
   private onSuccess(responseTime: number): void {
     this.metrics.successfulRequests++;
     this.updateAverageResponseTime(responseTime);
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.reset();
-      logger.info(`Circuit breaker ${this.config.name} recovered - returning to CLOSED state`);
+      logger.info(
+        `Circuit breaker ${this.config.name} recovered - returning to CLOSED state`
+      );
     } else {
       this.failureCount = Math.max(0, this.failureCount - 1); // Gradually reduce failure count
     }
@@ -125,16 +128,16 @@ export class CircuitBreaker {
     this.metrics.failedRequests++;
     this.metrics.lastFailureTime = Date.now();
     this.updateAverageResponseTime(responseTime);
-    
+
     if (this.isExpectedError(error)) {
       this.failureCount++;
-      
+
       logger.warn(`Circuit breaker ${this.config.name} recorded failure`, {
         error: error.message,
         failureCount: this.failureCount,
-        threshold: this.config.failureThreshold
+        threshold: this.config.failureThreshold,
       });
-      
+
       if (this.failureCount >= this.config.failureThreshold) {
         this.trip();
       }
@@ -148,10 +151,10 @@ export class CircuitBreaker {
     if (this.config.expectedErrors.length === 0) {
       return true; // All errors trigger circuit breaker
     }
-    
-    return this.config.expectedErrors.some(expectedError => 
-      error.name === expectedError || 
-      error.message.includes(expectedError)
+
+    return this.config.expectedErrors.some(
+      (expectedError) =>
+        error.name === expectedError || error.message.includes(expectedError)
     );
   }
 
@@ -163,11 +166,14 @@ export class CircuitBreaker {
     this.nextAttemptTime = Date.now() + this.config.recoveryTimeout;
     this.metrics.circuitOpenCount++;
     this.metrics.currentState = this.state;
-    
-    logger.error(`Circuit breaker ${this.config.name} TRIPPED - entering OPEN state`, {
-      failureCount: this.failureCount,
-      nextAttemptTime: new Date(this.nextAttemptTime).toISOString()
-    });
+
+    logger.error(
+      `Circuit breaker ${this.config.name} TRIPPED - entering OPEN state`,
+      {
+        failureCount: this.failureCount,
+        nextAttemptTime: new Date(this.nextAttemptTime).toISOString(),
+      }
+    );
   }
 
   /**
@@ -185,10 +191,14 @@ export class CircuitBreaker {
    */
   private handleOpenCircuit<T>(): T {
     if (this.config.fallbackFunction) {
-      logger.info(`Circuit breaker ${this.config.name} using fallback function`);
+      logger.info(
+        `Circuit breaker ${this.config.name} using fallback function`
+      );
       return this.config.fallbackFunction();
     } else {
-      throw new Error(`Circuit breaker ${this.config.name} is OPEN - service unavailable`);
+      throw new Error(
+        `Circuit breaker ${this.config.name} is OPEN - service unavailable`
+      );
     }
   }
 
@@ -196,9 +206,11 @@ export class CircuitBreaker {
    * Update running average response time
    */
   private updateAverageResponseTime(responseTime: number): void {
-    const totalResponses = this.metrics.successfulRequests + this.metrics.failedRequests;
-    this.metrics.averageResponseTime = 
-      ((this.metrics.averageResponseTime * (totalResponses - 1)) + responseTime) / totalResponses;
+    const totalResponses =
+      this.metrics.successfulRequests + this.metrics.failedRequests;
+    this.metrics.averageResponseTime =
+      (this.metrics.averageResponseTime * (totalResponses - 1) + responseTime) /
+      totalResponses;
   }
 
   /**
@@ -228,8 +240,9 @@ export class CircuitBreaker {
    */
   isHealthy(): boolean {
     if (this.metrics.totalRequests === 0) return true;
-    
-    const failureRate = this.metrics.failedRequests / this.metrics.totalRequests;
+
+    const failureRate =
+      this.metrics.failedRequests / this.metrics.totalRequests;
     return failureRate < 0.5 && this.state !== CircuitState.OPEN;
   }
 }
@@ -260,12 +273,15 @@ export class CircuitBreakerManager {
   /**
    * Execute operation with named circuit breaker
    */
-  async execute<T>(serviceName: string, operation: () => Promise<T>): Promise<T> {
+  async execute<T>(
+    serviceName: string,
+    operation: () => Promise<T>
+  ): Promise<T> {
     const circuitBreaker = this.circuitBreakers.get(serviceName);
     if (!circuitBreaker) {
       throw new Error(`Circuit breaker not found for service: ${serviceName}`);
     }
-    
+
     return circuitBreaker.execute(operation);
   }
 
@@ -274,11 +290,11 @@ export class CircuitBreakerManager {
    */
   getAllMetrics(): Record<string, CircuitBreakerMetrics> {
     const allMetrics: Record<string, CircuitBreakerMetrics> = {};
-    
+
     for (const [name, circuitBreaker] of this.circuitBreakers) {
       allMetrics[name] = circuitBreaker.getMetrics();
     }
-    
+
     return allMetrics;
   }
 
@@ -286,15 +302,18 @@ export class CircuitBreakerManager {
    * Get health status of all services
    */
   getHealthStatus(): Record<string, { healthy: boolean; state: CircuitState }> {
-    const healthStatus: Record<string, { healthy: boolean; state: CircuitState }> = {};
-    
+    const healthStatus: Record<
+      string,
+      { healthy: boolean; state: CircuitState }
+    > = {};
+
     for (const [name, circuitBreaker] of this.circuitBreakers) {
       healthStatus[name] = {
         healthy: circuitBreaker.isHealthy(),
-        state: circuitBreaker.getState()
+        state: circuitBreaker.getState(),
       };
     }
-    
+
     return healthStatus;
   }
 
@@ -305,7 +324,7 @@ export class CircuitBreakerManager {
     for (const circuitBreaker of this.circuitBreakers.values()) {
       circuitBreaker.manualReset();
     }
-    
+
     logger.info('All circuit breakers reset');
   }
 }
@@ -320,14 +339,14 @@ export const DEFAULT_CONFIGS = {
     failureThreshold: 5,
     recoveryTimeout: 30000, // 30 seconds
     monitoringWindow: 60000, // 1 minute
-    expectedErrors: ['NetworkError', 'TimeoutError', 'PostgrestError']
+    expectedErrors: ['NetworkError', 'TimeoutError', 'PostgrestError'],
   },
   STRIPE: {
     name: 'stripe',
     failureThreshold: 3,
     recoveryTimeout: 60000, // 1 minute
     monitoringWindow: 120000, // 2 minutes
-    expectedErrors: ['StripeError', 'APIError', 'NetworkError']
+    expectedErrors: ['StripeError', 'APIError', 'NetworkError'],
   },
   ML_SERVICE: {
     name: 'ml_service',
@@ -335,40 +354,40 @@ export const DEFAULT_CONFIGS = {
     recoveryTimeout: 15000, // 15 seconds
     monitoringWindow: 60000, // 1 minute
     expectedErrors: ['ModelError', 'InferenceError', 'TimeoutError'],
-    fallbackFunction: () => ({ confidence: 0.5, fallback: true })
+    fallbackFunction: () => ({ confidence: 0.5, fallback: true }),
   },
   GEOCODING: {
     name: 'geocoding',
     failureThreshold: 5,
     recoveryTimeout: 30000, // 30 seconds
     monitoringWindow: 60000, // 1 minute
-    expectedErrors: ['APIError', 'RateLimitError', 'NetworkError']
+    expectedErrors: ['APIError', 'RateLimitError', 'NetworkError'],
   },
   NOTIFICATION: {
     name: 'notification',
     failureThreshold: 8,
     recoveryTimeout: 20000, // 20 seconds
     monitoringWindow: 300000, // 5 minutes
-    expectedErrors: ['PushError', 'SMSError', 'EmailError']
-  }
+    expectedErrors: ['PushError', 'SMSError', 'EmailError'],
+  },
 };
 
 // Initialize default circuit breakers
 export const initializeCircuitBreakers = (): void => {
   // Supabase circuit breaker
   circuitBreakerManager.create(DEFAULT_CONFIGS.SUPABASE);
-  
-  // Stripe circuit breaker  
+
+  // Stripe circuit breaker
   circuitBreakerManager.create(DEFAULT_CONFIGS.STRIPE);
-  
+
   // ML service circuit breaker with fallback
   circuitBreakerManager.create(DEFAULT_CONFIGS.ML_SERVICE);
-  
+
   // Geocoding service circuit breaker
   circuitBreakerManager.create(DEFAULT_CONFIGS.GEOCODING);
-  
+
   // Notification service circuit breaker
   circuitBreakerManager.create(DEFAULT_CONFIGS.NOTIFICATION);
-  
+
   logger.info('All circuit breakers initialized successfully');
 };

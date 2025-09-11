@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
@@ -25,13 +25,24 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
   jobInput,
   onPricingUpdate,
   showDetails = true,
-  autoAnalyze = false
+  autoAnalyze = false,
 }) => {
-  const { analysis, isLoading, analyzePricing, formatPricing, getHomeownerInsights } = useAIPricing();
+  const {
+    analysis,
+    isLoading,
+    analyzePricing,
+    formatPricing,
+    getHomeownerInsights,
+  } = useAIPricing();
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (autoAnalyze && jobInput.title && jobInput.description && jobInput.category) {
+    if (
+      autoAnalyze &&
+      jobInput.title &&
+      jobInput.description &&
+      jobInput.category
+    ) {
       handleAnalyzePricing();
     }
   }, [autoAnalyze, jobInput.title, jobInput.description, jobInput.category]);
@@ -62,11 +73,16 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
 
   const getComplexityIcon = (complexity: string) => {
     switch (complexity) {
-      case 'simple': return 'checkmark-circle';
-      case 'moderate': return 'warning';
-      case 'complex': return 'alert-circle';
-      case 'specialist': return 'star';
-      default: return 'help-circle';
+      case 'simple':
+        return 'checkmark-circle';
+      case 'moderate':
+        return 'warning';
+      case 'complex':
+        return 'alert-circle';
+      case 'specialist':
+        return 'star';
+      default:
+        return 'help-circle';
     }
   };
 
@@ -74,20 +90,26 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="analytics" size={24} color={theme.colors.primary} />
+          <Ionicons name='analytics' size={24} color={theme.colors.primary} />
           <Text style={styles.headerText}>AI Pricing Analysis</Text>
         </View>
-        
+
         <Text style={styles.description}>
-          Get intelligent pricing suggestions based on market data and job complexity
+          Get intelligent pricing suggestions based on market data and job
+          complexity
         </Text>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.analyzeButton}
           onPress={handleAnalyzePricing}
           disabled={isLoading}
         >
-          <Ionicons name={"brain" as any} size={20} color="#fff" style={styles.buttonIcon} />
+          <Ionicons
+            name={'brain' as any}
+            size={20}
+            color='#fff'
+            style={styles.buttonIcon}
+          />
           <Text style={styles.analyzeButtonText}>Analyze Pricing</Text>
         </TouchableOpacity>
       </View>
@@ -98,7 +120,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Analyzing job requirements...</Text>
           <Text style={styles.loadingSubtext}>This may take a few seconds</Text>
         </View>
@@ -114,18 +136,18 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <TouchableOpacity 
-        style={styles.header} 
+      <TouchableOpacity
+        style={styles.header}
         onPress={() => setExpanded(!expanded)}
       >
         <View style={styles.headerLeft}>
-          <Ionicons name="analytics" size={24} color={theme.colors.primary} />
+          <Ionicons name='analytics' size={24} color={theme.colors.primary} />
           <Text style={styles.headerText}>AI Pricing Analysis</Text>
         </View>
-        <Ionicons 
-          name={expanded ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color={theme.colors.textSecondary} 
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={theme.colors.textSecondary}
         />
       </TouchableOpacity>
 
@@ -134,20 +156,29 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
         <Text style={styles.priceLabel}>Suggested Price Range</Text>
         <Text style={styles.priceRange}>{formatted.priceRange}</Text>
         <Text style={styles.optimalPrice}>Optimal: {formatted.optimal}</Text>
-        
+
         <View style={styles.metaInfo}>
           <View style={styles.metaItem}>
-            <Ionicons 
-              name={getComplexityIcon(analysis.complexity)} 
-              size={16} 
-              color={theme.colors.textSecondary} 
+            <Ionicons
+              name={getComplexityIcon(analysis.complexity)}
+              size={16}
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.metaText}>{formatted.complexityLabel}</Text>
           </View>
-          
+
           <View style={styles.metaItem}>
-            <Ionicons name="checkmark-circle" size={16} color={getConfidenceColor(analysis.confidence)} />
-            <Text style={[styles.metaText, { color: getConfidenceColor(analysis.confidence) }]}>
+            <Ionicons
+              name='checkmark-circle'
+              size={16}
+              color={getConfidenceColor(analysis.confidence)}
+            />
+            <Text
+              style={[
+                styles.metaText,
+                { color: getConfidenceColor(analysis.confidence) },
+              ]}
+            >
               {formatted.confidence} confident
             </Text>
           </View>
@@ -163,14 +194,24 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
               <Text style={styles.sectionTitle}>Key Pricing Factors</Text>
               {formatted.topFactors.map((factor, index) => (
                 <View key={index} style={styles.factorItem}>
-                  <Ionicons 
-                    name={factor.impact === 'increases' ? "trending-up" : "trending-down"} 
-                    size={16} 
-                    color={factor.impact === 'increases' ? theme.colors.success : theme.colors.warning} 
+                  <Ionicons
+                    name={
+                      factor.impact === 'increases'
+                        ? 'trending-up'
+                        : 'trending-down'
+                    }
+                    size={16}
+                    color={
+                      factor.impact === 'increases'
+                        ? theme.colors.success
+                        : theme.colors.warning
+                    }
                   />
                   <View style={styles.factorContent}>
                     <Text style={styles.factorName}>{factor.name}</Text>
-                    <Text style={styles.factorDescription}>{factor.description}</Text>
+                    <Text style={styles.factorDescription}>
+                      {factor.description}
+                    </Text>
                   </View>
                 </View>
               ))}
@@ -183,16 +224,27 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
             <View style={styles.marketGrid}>
               <View style={styles.marketItem}>
                 <Text style={styles.marketLabel}>Average Price</Text>
-                <Text style={styles.marketValue}>£{Math.round(analysis.marketData.averagePrice)}</Text>
+                <Text style={styles.marketValue}>
+                  £{Math.round(analysis.marketData.averagePrice)}
+                </Text>
               </View>
               <View style={styles.marketItem}>
                 <Text style={styles.marketLabel}>Demand Level</Text>
-                <Text style={[styles.marketValue, { 
-                  color: analysis.marketData.demandLevel === 'high' ? theme.colors.error : 
-                         analysis.marketData.demandLevel === 'low' ? theme.colors.success : 
-                         theme.colors.warning 
-                }]}>
-                  {analysis.marketData.demandLevel.charAt(0).toUpperCase() + analysis.marketData.demandLevel.slice(1)}
+                <Text
+                  style={[
+                    styles.marketValue,
+                    {
+                      color:
+                        analysis.marketData.demandLevel === 'high'
+                          ? theme.colors.error
+                          : analysis.marketData.demandLevel === 'low'
+                            ? theme.colors.success
+                            : theme.colors.warning,
+                    },
+                  ]}
+                >
+                  {analysis.marketData.demandLevel.charAt(0).toUpperCase() +
+                    analysis.marketData.demandLevel.slice(1)}
                 </Text>
               </View>
             </View>
@@ -203,22 +255,35 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Budget Insights</Text>
               {insights.map((insight, index) => (
-                <View key={index} style={[styles.insightItem, { borderLeftColor: 
-                  insight.type === 'success' ? theme.colors.success :
-                  insight.type === 'warning' ? theme.colors.warning :
-                  theme.colors.info
-                }]}>
-                  <Ionicons 
+                <View
+                  key={index}
+                  style={[
+                    styles.insightItem,
+                    {
+                      borderLeftColor:
+                        insight.type === 'success'
+                          ? theme.colors.success
+                          : insight.type === 'warning'
+                            ? theme.colors.warning
+                            : theme.colors.info,
+                    },
+                  ]}
+                >
+                  <Ionicons
                     name={
-                      insight.type === 'success' ? "checkmark-circle" :
-                      insight.type === 'warning' ? "warning" :
-                      "information-circle"
+                      insight.type === 'success'
+                        ? 'checkmark-circle'
+                        : insight.type === 'warning'
+                          ? 'warning'
+                          : 'information-circle'
                     }
-                    size={16} 
+                    size={16}
                     color={
-                      insight.type === 'success' ? theme.colors.success :
-                      insight.type === 'warning' ? theme.colors.warning :
-                      theme.colors.info
+                      insight.type === 'success'
+                        ? theme.colors.success
+                        : insight.type === 'warning'
+                          ? theme.colors.warning
+                          : theme.colors.info
                     }
                   />
                   <Text style={styles.insightText}>{insight.message}</Text>
@@ -233,19 +298,25 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
               <Text style={styles.sectionTitle}>Recommendations</Text>
               {analysis.recommendations.map((recommendation, index) => (
                 <View key={index} style={styles.recommendationItem}>
-                  <Ionicons name="bulb" size={16} color={theme.colors.warning} />
-                  <Text style={styles.recommendationText}>{recommendation}</Text>
+                  <Ionicons
+                    name='bulb'
+                    size={16}
+                    color={theme.colors.warning}
+                  />
+                  <Text style={styles.recommendationText}>
+                    {recommendation}
+                  </Text>
                 </View>
               ))}
             </View>
           )}
 
           {/* Re-analyze Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.reanalyzeButton}
             onPress={handleAnalyzePricing}
           >
-            <Ionicons name="refresh" size={16} color={theme.colors.primary} />
+            <Ionicons name='refresh' size={16} color={theme.colors.primary} />
             <Text style={styles.reanalyzeText}>Re-analyze</Text>
           </TouchableOpacity>
         </View>

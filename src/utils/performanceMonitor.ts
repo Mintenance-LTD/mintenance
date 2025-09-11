@@ -19,13 +19,18 @@ export interface PerformanceBudget {
 class PerformanceMonitor {
   private metrics: PerformanceMetrics = {};
   private budgets: PerformanceBudget[] = [
-    { metric: 'memoryUsage', warning: 150000000, error: 300000000, unit: 'bytes' },
+    {
+      metric: 'memoryUsage',
+      warning: 150000000,
+      error: 300000000,
+      unit: 'bytes',
+    },
     { metric: 'startupTime', warning: 3000, error: 5000, unit: 'ms' },
     { metric: 'navigationTime', warning: 500, error: 1000, unit: 'ms' },
     { metric: 'apiResponseTime', warning: 2000, error: 5000, unit: 'ms' },
-    { metric: 'fps', warning: 55, error: 50, unit: 'fps' }
+    { metric: 'fps', warning: 55, error: 50, unit: 'fps' },
   ];
-  
+
   private startTime: number = Date.now();
   private navigationStartTime?: number;
   private apiStartTimes: Map<string, number> = new Map();
@@ -43,7 +48,7 @@ class PerformanceMonitor {
 
   recordNavigationTime(screenName: string): void {
     if (!this.navigationStartTime) return;
-    
+
     const navigationTime = Date.now() - this.navigationStartTime;
     this.metrics.navigationTime = navigationTime;
     this.checkBudget('navigationTime', navigationTime);
@@ -74,12 +79,19 @@ class PerformanceMonitor {
         const memoryUsage = memory.usedJSHeapSize;
         this.metrics.memoryUsage = memoryUsage;
         this.checkBudget('memoryUsage', memoryUsage);
-        logger.debug(`Memory usage: ${(memoryUsage / 1024 / 1024).toFixed(2)}MB`);
-      } else if ((global as any).__DEV__ && (global as any).nativePerformanceNow) {
+        logger.debug(
+          `Memory usage: ${(memoryUsage / 1024 / 1024).toFixed(2)}MB`
+        );
+      } else if (
+        (global as any).__DEV__ &&
+        (global as any).nativePerformanceNow
+      ) {
         // Use approximate memory estimation for development
         const approximateMemory = 50 * 1024 * 1024; // 50MB baseline
         this.metrics.memoryUsage = approximateMemory;
-        logger.debug(`Estimated memory usage: ${(approximateMemory / 1024 / 1024).toFixed(2)}MB (estimated)`);
+        logger.debug(
+          `Estimated memory usage: ${(approximateMemory / 1024 / 1024).toFixed(2)}MB (estimated)`
+        );
       } else {
         logger.debug('Memory monitoring not available on this platform');
       }
@@ -91,37 +103,43 @@ class PerformanceMonitor {
   recordFPS(fps: number): void {
     this.metrics.fps = fps;
     this.checkBudget('fps', fps);
-    
+
     if (fps < 55) {
       logger.warn(`Low FPS detected: ${fps}`);
     }
   }
 
   private checkBudget(metric: keyof PerformanceMetrics, value: number): void {
-    const budget = this.budgets.find(b => b.metric === metric);
+    const budget = this.budgets.find((b) => b.metric === metric);
     if (!budget) return;
 
     const isInverted = metric === 'fps'; // Higher is better for FPS
-    
+
     if (isInverted ? value < budget.error : value > budget.error) {
-      logger.error(`Performance budget exceeded for ${metric}: ${value}${budget.unit} (limit: ${budget.error}${budget.unit})`);
+      logger.error(
+        `Performance budget exceeded for ${metric}: ${value}${budget.unit} (limit: ${budget.error}${budget.unit})`
+      );
       this.reportBudgetViolation(metric, value, budget, 'error');
     } else if (isInverted ? value < budget.warning : value > budget.warning) {
-      logger.warn(`Performance budget warning for ${metric}: ${value}${budget.unit} (limit: ${budget.warning}${budget.unit})`);
+      logger.warn(
+        `Performance budget warning for ${metric}: ${value}${budget.unit} (limit: ${budget.warning}${budget.unit})`
+      );
       this.reportBudgetViolation(metric, value, budget, 'warning');
     }
   }
 
   private reportBudgetViolation(
-    metric: keyof PerformanceMetrics, 
-    value: number, 
-    budget: PerformanceBudget, 
+    metric: keyof PerformanceMetrics,
+    value: number,
+    budget: PerformanceBudget,
     severity: 'warning' | 'error'
   ): void {
     // In production, send to analytics service
     if (!__DEV__) {
       // Example: Analytics.track('performance_budget_violation', { metric, value, severity });
-      logger.info(`Would report ${severity} for ${metric}: ${value}${budget.unit}`);
+      logger.info(
+        `Would report ${severity} for ${metric}: ${value}${budget.unit}`
+      );
     }
   }
 
@@ -129,8 +147,12 @@ class PerformanceMonitor {
     return { ...this.metrics };
   }
 
-  getBudgetStatus(): { metric: string; value?: number; status: 'good' | 'warning' | 'error' }[] {
-    return this.budgets.map(budget => {
+  getBudgetStatus(): {
+    metric: string;
+    value?: number;
+    status: 'good' | 'warning' | 'error';
+  }[] {
+    return this.budgets.map((budget) => {
       const value = this.metrics[budget.metric];
       if (value === undefined) {
         return { metric: budget.metric, status: 'good' };
@@ -153,16 +175,16 @@ class PerformanceMonitor {
 
   generateReport(): string {
     const status = this.getBudgetStatus();
-    const errors = status.filter(s => s.status === 'error');
-    const warnings = status.filter(s => s.status === 'warning');
-    const good = status.filter(s => s.status === 'good');
+    const errors = status.filter((s) => s.status === 'error');
+    const warnings = status.filter((s) => s.status === 'warning');
+    const good = status.filter((s) => s.status === 'good');
 
     let report = '📊 Performance Budget Report\n\n';
-    
+
     if (errors.length > 0) {
       report += '❌ Budget Violations (Errors):\n';
-      errors.forEach(item => {
-        const budget = this.budgets.find(b => b.metric === item.metric);
+      errors.forEach((item) => {
+        const budget = this.budgets.find((b) => b.metric === item.metric);
         report += `  • ${item.metric}: ${item.value}${budget?.unit || ''} (limit: ${budget?.error}${budget?.unit || ''})\n`;
       });
       report += '\n';
@@ -170,8 +192,8 @@ class PerformanceMonitor {
 
     if (warnings.length > 0) {
       report += '⚠️ Budget Warnings:\n';
-      warnings.forEach(item => {
-        const budget = this.budgets.find(b => b.metric === item.metric);
+      warnings.forEach((item) => {
+        const budget = this.budgets.find((b) => b.metric === item.metric);
         report += `  • ${item.metric}: ${item.value}${budget?.unit || ''} (warning: ${budget?.warning}${budget?.unit || ''})\n`;
       });
       report += '\n';
@@ -179,9 +201,9 @@ class PerformanceMonitor {
 
     if (good.length > 0) {
       report += '✅ Within Budget:\n';
-      good.forEach(item => {
+      good.forEach((item) => {
         if (item.value !== undefined) {
-          const budget = this.budgets.find(b => b.metric === item.metric);
+          const budget = this.budgets.find((b) => b.metric === item.metric);
           report += `  • ${item.metric}: ${item.value}${budget?.unit || ''}\n`;
         }
       });

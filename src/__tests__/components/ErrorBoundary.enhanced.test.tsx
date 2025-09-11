@@ -20,7 +20,11 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-const ThrowingComponent = ({ shouldThrow = true }: { shouldThrow?: boolean }) => {
+const ThrowingComponent = ({
+  shouldThrow = true,
+}: {
+  shouldThrow?: boolean;
+}) => {
   if (shouldThrow) {
     throw new Error('Test error');
   }
@@ -44,7 +48,9 @@ describe('ErrorBoundary', () => {
 
   it('renders error UI when an error occurs', () => {
     // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -53,13 +59,17 @@ describe('ErrorBoundary', () => {
     );
 
     expect(getByText('Something went wrong')).toBeTruthy();
-    expect(getByText('An unexpected error occurred. Please try again.')).toBeTruthy();
+    expect(
+      getByText('An unexpected error occurred. Please try again.')
+    ).toBeTruthy();
 
     consoleSpy.mockRestore();
   });
 
   it('displays error ID when error occurs', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -75,7 +85,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows debug info in development mode', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const originalDev = (global as any).__DEV__;
     (global as any).__DEV__ = true;
 
@@ -93,7 +105,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('hides debug info in production mode', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const originalDev = (global as any).__DEV__;
     (global as any).__DEV__ = false;
 
@@ -110,7 +124,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls custom error handler when provided', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const onError = jest.fn();
 
     render(
@@ -122,7 +138,7 @@ describe('ErrorBoundary', () => {
     expect(onError).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({
-        componentStack: expect.any(String)
+        componentStack: expect.any(String),
       })
     );
 
@@ -130,7 +146,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('uses custom fallback when provided', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
     const customFallback = (error: Error, resetError: () => void) => {
       const React = require('react');
       const { Text, TouchableOpacity } = require('react-native');
@@ -138,7 +156,11 @@ describe('ErrorBoundary', () => {
         React.Fragment,
         {},
         React.createElement(Text, {}, 'Custom error message'),
-        React.createElement(TouchableOpacity, { onPress: resetError }, React.createElement(Text, {}, 'Reset'))
+        React.createElement(
+          TouchableOpacity,
+          { onPress: resetError },
+          React.createElement(Text, {}, 'Reset')
+        )
       );
     };
 
@@ -155,11 +177,13 @@ describe('ErrorBoundary', () => {
   });
 
   it('resets error state when Try Again is pressed', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const TestComponent = () => {
       const [shouldThrow, setShouldThrow] = React.useState(true);
-      
+
       return (
         <ErrorBoundary>
           <TouchableOpacity onPress={() => setShouldThrow(false)}>
@@ -185,7 +209,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows report error alert when Report Issue is pressed', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -200,7 +226,7 @@ describe('ErrorBoundary', () => {
       expect.stringContaining('Error ID:'),
       expect.arrayContaining([
         { text: 'Cancel', style: 'cancel' },
-        expect.objectContaining({ text: 'Report' })
+        expect.objectContaining({ text: 'Report' }),
       ])
     );
 
@@ -208,8 +234,10 @@ describe('ErrorBoundary', () => {
   });
 
   it('handles error without error ID gracefully', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
     const { getByText } = render(
       <ErrorBoundary>
         <ThrowingComponent shouldThrow={true} />

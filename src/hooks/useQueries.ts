@@ -18,34 +18,48 @@ export const queryKeys = {
   contractors: {
     all: () => ['contractors'] as const,
     lists: () => [...queryKeys.contractors.all(), 'list'] as const,
-    list: (filters: string) => [...queryKeys.contractors.lists(), filters] as const,
+    list: (filters: string) =>
+      [...queryKeys.contractors.lists(), filters] as const,
     details: () => [...queryKeys.contractors.all(), 'detail'] as const,
     detail: (id: string) => [...queryKeys.contractors.details(), id] as const,
   },
   messages: {
     all: () => ['messages'] as const,
-    conversations: () => [...queryKeys.messages.all(), 'conversations'] as const,
-    conversation: (id: string) => [...queryKeys.messages.all(), 'conversation', id] as const,
+    conversations: () =>
+      [...queryKeys.messages.all(), 'conversations'] as const,
+    conversation: (id: string) =>
+      [...queryKeys.messages.all(), 'conversation', id] as const,
   },
   feed: {
     all: () => ['feed'] as const,
-    posts: (filters: string) => [...queryKeys.feed.all(), 'posts', filters] as const,
+    posts: (filters: string) =>
+      [...queryKeys.feed.all(), 'posts', filters] as const,
   },
   search: {
     all: () => ['search'] as const,
-    contractors: (query: string, filters: string) => [...queryKeys.search.all(), 'contractors', query, filters] as const,
-    jobs: (query: string, filters: string) => [...queryKeys.search.all(), 'jobs', query, filters] as const,
+    contractors: (query: string, filters: string) =>
+      [...queryKeys.search.all(), 'contractors', query, filters] as const,
+    jobs: (query: string, filters: string) =>
+      [...queryKeys.search.all(), 'jobs', query, filters] as const,
   },
 };
 
 // Query Invalidation Helpers
 export const invalidateQueries = {
-  allJobs: () => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all() }),
-  jobDetails: (jobId: string) => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(jobId) }),
-  allContractors: () => queryClient.invalidateQueries({ queryKey: queryKeys.contractors.all() }),
-  contractorDetails: (contractorId: string) => queryClient.invalidateQueries({ queryKey: queryKeys.contractors.detail(contractorId) }),
-  allMessages: () => queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() }),
-  feedPosts: () => queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() }),
+  allJobs: () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all() }),
+  jobDetails: (jobId: string) =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(jobId) }),
+  allContractors: () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.contractors.all() }),
+  contractorDetails: (contractorId: string) =>
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.contractors.detail(contractorId),
+    }),
+  allMessages: () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() }),
+  feedPosts: () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.feed.all() }),
 };
 
 // Job-related hooks
@@ -83,8 +97,15 @@ export const useCreateJob = () => {
 
 export const useUpdateJob = () => {
   return useMutation({
-    mutationFn: ({ jobId, status, contractorId }: { jobId: string; status: 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'; contractorId?: string }) => 
-      JobService.updateJobStatus(jobId, status as any, contractorId),
+    mutationFn: ({
+      jobId,
+      status,
+      contractorId,
+    }: {
+      jobId: string;
+      status: 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+      contractorId?: string;
+    }) => JobService.updateJobStatus(jobId, status as any, contractorId),
     onSuccess: (data, variables) => {
       // Invalidate specific job details
       invalidateQueries.jobDetails(variables.jobId);
@@ -101,7 +122,8 @@ export const useUpdateJob = () => {
 export const useDeleteJob = () => {
   return useMutation({
     // Soft-delete by marking as cancelled
-    mutationFn: (jobId: string) => JobService.updateJobStatus(jobId, 'cancelled' as any),
+    mutationFn: (jobId: string) =>
+      JobService.updateJobStatus(jobId, 'cancelled' as any),
     onSuccess: () => {
       invalidateQueries.allJobs();
       HapticService.success();
@@ -150,7 +172,10 @@ export const useConversations = (enabled = true) => {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.messages.conversations(),
-    queryFn: () => user?.id ? MessagingService.getUserMessageThreads(user.id) : Promise.resolve([]),
+    queryFn: () =>
+      user?.id
+        ? MessagingService.getUserMessageThreads(user.id)
+        : Promise.resolve([]),
     enabled: enabled && !!user?.id,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
@@ -168,7 +193,12 @@ export const useJobMessages = (jobId: string, enabled = true) => {
 
 export const useSendMessage = () => {
   return useMutation({
-    mutationFn: ({ jobId, recipientId, message, senderId }: {
+    mutationFn: ({
+      jobId,
+      recipientId,
+      message,
+      senderId,
+    }: {
       jobId: string;
       recipientId: string;
       message: string;
@@ -246,9 +276,16 @@ export const useToggleSave = () => {
 };
 
 // Search hooks
-export const useSearchContractors = (query: string, filters?: any, enabled = true) => {
+export const useSearchContractors = (
+  query: string,
+  filters?: any,
+  enabled = true
+) => {
   return useQuery({
-    queryKey: queryKeys.search.contractors(query, JSON.stringify(filters || {})),
+    queryKey: queryKeys.search.contractors(
+      query,
+      JSON.stringify(filters || {})
+    ),
     queryFn: () => Promise.resolve([] as any[]),
     enabled: enabled && query.length > 2, // Only search if query is 3+ characters
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -279,13 +316,13 @@ export const useOptimisticUpdate = <T>({
     onMutate: async (variables) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey });
-      
+
       // Snapshot the previous value
       const previousData = queryClient.getQueryData(queryKey);
-      
+
       // Optimistically update to the new value
       queryClient.setQueryData(queryKey, (old: T) => updateFn(old, variables));
-      
+
       // Return a context object with the snapshotted value
       return { previousData };
     },

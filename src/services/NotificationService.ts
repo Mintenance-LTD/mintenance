@@ -5,7 +5,6 @@ import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 
-
 export interface PushNotification {
   id: string;
   userId: string;
@@ -47,7 +46,7 @@ export class NotificationService {
       // Register for push notifications
       const token = await this.registerForPushNotifications();
       this.pushToken = token;
-      
+
       return token;
     } catch (error) {
       logger.error('Error initializing notifications:', error);
@@ -65,7 +64,8 @@ export class NotificationService {
     }
 
     // Check existing permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
     // Request permissions if not already granted
@@ -80,9 +80,10 @@ export class NotificationService {
     }
 
     // Get the push token (resolve projectId from Expo config)
-    const projectId = (Constants as any)?.expoConfig?.extra?.eas?.projectId
-      || (Constants as any)?.easConfig?.projectId
-      || process.env.EXPO_PROJECT_ID; // fallback
+    const projectId =
+      (Constants as any)?.expoConfig?.extra?.eas?.projectId ||
+      (Constants as any)?.easConfig?.projectId ||
+      process.env.EXPO_PROJECT_ID; // fallback
 
     let tokenData: { data: string };
     if (projectId) {
@@ -176,7 +177,7 @@ export class NotificationService {
       const response = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Accept-Encoding': 'gzip, deflate',
           'Content-Type': 'application/json',
         },
@@ -191,15 +192,16 @@ export class NotificationService {
           },
           sound: 'default',
           channelId: this.getChannelForType(type),
-          priority: type === 'message' || type === 'payment' ? 'high' : 'normal',
+          priority:
+            type === 'message' || type === 'payment' ? 'high' : 'normal',
         }),
       });
 
       const result = await response.json();
-      
+
       if (result.data?.[0]?.status === 'error') {
         logger.error('Push notification error:', result.data[0].message);
-        
+
         // If token is invalid, remove it from user
         if (result.data[0].details?.error === 'DeviceNotRegistered') {
           await this.removePushToken(userId);
@@ -207,7 +209,13 @@ export class NotificationService {
       }
 
       // Save notification to database
-      await this.saveNotificationToDatabase(userId, title, message, type, actionUrl);
+      await this.saveNotificationToDatabase(
+        userId,
+        title,
+        message,
+        type,
+        actionUrl
+      );
     } catch (error) {
       logger.error('Error sending push notification:', error);
     }
@@ -234,7 +242,9 @@ export class NotificationService {
       if (error || !users?.length) return;
 
       const notifications = users
-        .filter((user: any) => this.shouldSendNotification(type, user.notification_settings || {}))
+        .filter((user: any) =>
+          this.shouldSendNotification(type, user.notification_settings || {})
+        )
         .map((user: any) => ({
           to: user.push_token,
           title,
@@ -246,7 +256,8 @@ export class NotificationService {
           },
           sound: 'default',
           channelId: this.getChannelForType(type),
-          priority: type === 'message' || type === 'payment' ? 'high' : 'normal',
+          priority:
+            type === 'message' || type === 'payment' ? 'high' : 'normal',
         }));
 
       if (notifications.length === 0) return;
@@ -255,7 +266,7 @@ export class NotificationService {
       const response = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Accept-Encoding': 'gzip, deflate',
           'Content-Type': 'application/json',
         },
@@ -263,11 +274,14 @@ export class NotificationService {
       });
 
       const results = await response.json();
-      
+
       // Handle any errors
       if (results.data) {
         results.data.forEach((result: any, index: number) => {
-          if (result.status === 'error' && result.details?.error === 'DeviceNotRegistered') {
+          if (
+            result.status === 'error' &&
+            result.details?.error === 'DeviceNotRegistered'
+          ) {
             // Remove invalid token
             const userId = users[index].id;
             this.removePushToken(userId);
@@ -276,9 +290,17 @@ export class NotificationService {
       }
 
       // Save notifications to database
-      await Promise.all(userIds.map(userId => 
-        this.saveNotificationToDatabase(userId, title, message, type, actionUrl)
-      ));
+      await Promise.all(
+        userIds.map((userId) =>
+          this.saveNotificationToDatabase(
+            userId,
+            title,
+            message,
+            type,
+            actionUrl
+          )
+        )
+      );
     } catch (error) {
       logger.error('Error sending batch push notifications:', error);
     }
@@ -294,14 +316,14 @@ export class NotificationService {
     data?: any
   ): Promise<string> {
     try {
-    const identifier = await Notifications.scheduleNotificationAsync({
+      const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body: message,
           data,
           sound: 'default',
         },
-        trigger: (typeof trigger === 'number' 
+        trigger: (typeof trigger === 'number'
           ? { seconds: trigger }
           : (trigger as any)) as any,
       });
@@ -435,7 +457,9 @@ export class NotificationService {
   static setupNotificationListener(
     onNotificationReceived: (notification: Notifications.Notification) => void
   ): () => void {
-    const subscription = Notifications.addNotificationReceivedListener(onNotificationReceived);
+    const subscription = Notifications.addNotificationReceivedListener(
+      onNotificationReceived
+    );
     return () => subscription.remove();
   }
 
@@ -445,7 +469,10 @@ export class NotificationService {
   static setupNotificationResponseListener(
     onNotificationTapped: (response: Notifications.NotificationResponse) => void
   ): () => void {
-    const subscription = Notifications.addNotificationResponseReceivedListener(onNotificationTapped);
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(
+        onNotificationTapped
+      );
     return () => subscription.remove();
   }
 
@@ -506,15 +533,17 @@ export class NotificationService {
     actionUrl?: string
   ): Promise<void> {
     try {
-      await supabase.from('notifications').insert([{
-        user_id: userId,
-        title,
-        message,
-        type,
-        action_url: actionUrl,
-        read: false,
-        created_at: new Date().toISOString(),
-      }]);
+      await supabase.from('notifications').insert([
+        {
+          user_id: userId,
+          title,
+          message,
+          type,
+          action_url: actionUrl,
+          read: false,
+          created_at: new Date().toISOString(),
+        },
+      ]);
     } catch (error) {
       logger.error('Error saving notification to database:', error);
     }
@@ -523,7 +552,11 @@ export class NotificationService {
   /**
    * Quick notification methods for common use cases
    */
-  static async notifyJobUpdate(contractorId: string, jobTitle: string, status: string): Promise<void> {
+  static async notifyJobUpdate(
+    contractorId: string,
+    jobTitle: string,
+    status: string
+  ): Promise<void> {
     await this.sendNotificationToUser(
       contractorId,
       'Job Update',
@@ -532,7 +565,11 @@ export class NotificationService {
     );
   }
 
-  static async notifyNewMessage(receiverId: string, senderName: string, jobTitle: string): Promise<void> {
+  static async notifyNewMessage(
+    receiverId: string,
+    senderName: string,
+    jobTitle: string
+  ): Promise<void> {
     await this.sendNotificationToUser(
       receiverId,
       'New Message',
@@ -541,7 +578,10 @@ export class NotificationService {
     );
   }
 
-  static async notifyPaymentReceived(contractorId: string, amount: number): Promise<void> {
+  static async notifyPaymentReceived(
+    contractorId: string,
+    amount: number
+  ): Promise<void> {
     await this.sendNotificationToUser(
       contractorId,
       'Payment Received',

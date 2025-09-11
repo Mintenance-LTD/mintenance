@@ -57,10 +57,10 @@ const assets = [
   { name: 'icon.svg', content: iconSVG },
   { name: 'splash.svg', content: splashSVG },
   { name: 'adaptive-icon.svg', content: adaptiveIconSVG },
-  { name: 'favicon.svg', content: faviconSVG }
+  { name: 'favicon.svg', content: faviconSVG },
 ];
 
-assets.forEach(asset => {
+assets.forEach((asset) => {
   const filePath = path.join(assetsDir, asset.name);
   fs.writeFileSync(filePath, asset.content);
   console.log(`✅ Created ${asset.name}`);
@@ -101,19 +101,26 @@ magick favicon.svg -resize 48x48 favicon.png
 After conversion, you can delete the .svg files and keep only the .png files.
 `;
 
-fs.writeFileSync(path.join(assetsDir, 'CONVERSION_INSTRUCTIONS.md'), conversionInstructions);
+fs.writeFileSync(
+  path.join(assetsDir, 'CONVERSION_INSTRUCTIONS.md'),
+  conversionInstructions
+);
 console.log('✅ Created CONVERSION_INSTRUCTIONS.md');
 
 console.log('\n🎨 Placeholder assets generated successfully!');
 console.log('📝 Next steps:');
-console.log('1. Convert SVG files to PNG using one of the methods in CONVERSION_INSTRUCTIONS.md');
-console.log('2. Or use the simple PNG assets created by running this script with --png flag');
+console.log(
+  '1. Convert SVG files to PNG using one of the methods in CONVERSION_INSTRUCTIONS.md'
+);
+console.log(
+  '2. Or use the simple PNG assets created by running this script with --png flag'
+);
 console.log('3. Replace with final branded assets before store submission');
 
 // For immediate building needs, let's create very simple PNG files using ASCII art approach
 if (process.argv.includes('--png')) {
   console.log('\n🔧 Creating basic PNG placeholders...');
-  
+
   // This would require a canvas library, so let's create a different solution
   const simplePngInstructions = `
 To create immediate PNG files for building:
@@ -128,6 +135,6 @@ To create immediate PNG files for building:
 
 This will allow the build to complete while you prepare proper assets.
 `;
-  
+
   console.log(simplePngInstructions);
 }

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Alert,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { Job, Bid } from '../types';
@@ -14,11 +23,11 @@ interface ContractorAssignmentProps {
 
 export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   job,
-  onContractorAssigned
+  onContractorAssigned,
 }) => {
   const { user } = useAuth();
   const [selectedBid, setSelectedBid] = useState<string | null>(null);
-  
+
   // Get bids for this job
   const { data: bids = [], isLoading, error, refetch } = useJobBids(job.id);
   const acceptBidMutation = useAcceptBid();
@@ -35,8 +44,8 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         {
           text: 'Accept Bid',
           style: 'default',
-          onPress: () => confirmAcceptBid(bid)
-        }
+          onPress: () => confirmAcceptBid(bid),
+        },
       ]
     );
   };
@@ -47,7 +56,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         jobId: job.id,
         bidId: bid.id,
         contractorId: bid.contractorId,
-        amount: bid.amount
+        amount: bid.amount,
       });
 
       setSelectedBid(bid.id);
@@ -64,7 +73,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       }
     } catch (error: any) {
       logger.error('Failed to accept bid:', error);
-      Alert.alert('Error', error.message || 'Failed to accept bid. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to accept bid. Please try again.'
+      );
     } finally {
       setSelectedBid(null);
     }
@@ -95,18 +107,22 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   };
 
   const renderBidCard = ({ item: bid }: { item: Bid }) => {
-    const isLowestBid = bids.length > 1 && bid.amount === Math.min(...bids.map((b: Bid) => b.amount));
+    const isLowestBid =
+      bids.length > 1 &&
+      bid.amount === Math.min(...bids.map((b: Bid) => b.amount));
     const isSelected = selectedBid === bid.id;
-    
+
     return (
-      <View style={[
-        styles.bidCard,
-        isLowestBid && styles.lowestBidCard,
-        isSelected && styles.selectedBidCard
-      ]}>
+      <View
+        style={[
+          styles.bidCard,
+          isLowestBid && styles.lowestBidCard,
+          isSelected && styles.selectedBidCard,
+        ]}
+      >
         {isLowestBid && (
           <View style={styles.lowestBidBadge}>
-            <Ionicons name="trophy" size={14} color="#FFD700" />
+            <Ionicons name='trophy' size={14} color='#FFD700' />
             <Text style={styles.lowestBidText}>Lowest Bid</Text>
           </View>
         )}
@@ -114,12 +130,19 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
         <View style={styles.contractorHeader}>
           <View style={styles.contractorAvatar}>
             {(bid as any).contractorAvatar ? (
-              <Image source={{ uri: (bid as any).contractorAvatar }} style={styles.avatar} />
+              <Image
+                source={{ uri: (bid as any).contractorAvatar }}
+                style={styles.avatar}
+              />
             ) : (
-              <Ionicons name="person-circle" size={40} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='person-circle'
+                size={40}
+                color={theme.colors.textTertiary}
+              />
             )}
           </View>
-          
+
           <View style={styles.contractorInfo}>
             <Text style={styles.contractorName}>
               {bid.contractorName || 'Anonymous Contractor'}
@@ -127,20 +150,20 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             <Text style={styles.contractorRating}>
               {getContractorRating((bid as any).contractorRating)}
             </Text>
-            <Text style={styles.bidTime}>
-              {formatTimeAgo(bid.createdAt)}
-            </Text>
+            <Text style={styles.bidTime}>{formatTimeAgo(bid.createdAt)}</Text>
           </View>
 
           <View style={styles.bidAmount}>
             <Text style={styles.bidPrice}>£{bid.amount}</Text>
             {job.budget && (
-              <Text style={[
-                styles.budgetComparison,
-                {
-                  color: bid.amount <= job.budget ? '#10B981' : '#EF4444'
-                }
-              ]}>
+              <Text
+                style={[
+                  styles.budgetComparison,
+                  {
+                    color: bid.amount <= job.budget ? '#10B981' : '#EF4444',
+                  },
+                ]}
+              >
                 {bid.amount <= job.budget ? 'Within budget' : 'Over budget'}
               </Text>
             )}
@@ -155,7 +178,11 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
         {(bid as any).proposedTimeline && (
           <View style={styles.timeline}>
-            <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='time-outline'
+              size={16}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.timelineText}>
               Estimated completion: {(bid as any).proposedTimeline}
             </Text>
@@ -167,7 +194,9 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             style={styles.viewProfileButton}
             onPress={() => {
               // Navigate to contractor profile
-              logger.info('View contractor profile', { contractorId: bid.contractorId });
+              logger.info('View contractor profile', {
+                contractorId: bid.contractorId,
+              });
             }}
           >
             <Text style={styles.viewProfileText}>View Profile</Text>
@@ -177,16 +206,16 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
             <TouchableOpacity
               style={[
                 styles.acceptButton,
-                isSelected && styles.acceptButtonLoading
+                isSelected && styles.acceptButtonLoading,
               ]}
               onPress={() => handleAcceptBid(bid)}
               disabled={isSelected || acceptBidMutation.isPending}
             >
               {isSelected && acceptBidMutation.isPending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size='small' color='#FFFFFF' />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                  <Ionicons name='checkmark' size={16} color='#FFFFFF' />
                   <Text style={styles.acceptButtonText}>Accept Bid</Text>
                 </>
               )}
@@ -195,7 +224,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
           {bid.status === 'accepted' && (
             <View style={styles.acceptedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Ionicons name='checkmark-circle' size={16} color='#10B981' />
               <Text style={styles.acceptedText}>Accepted</Text>
             </View>
           )}
@@ -206,10 +235,14 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="document-text-outline" size={48} color={theme.colors.textTertiary} />
+      <Ionicons
+        name='document-text-outline'
+        size={48}
+        color={theme.colors.textTertiary}
+      />
       <Text style={styles.emptyTitle}>No Bids Yet</Text>
       <Text style={styles.emptyDescription}>
-        Contractors haven't submitted bids for this job yet. 
+        Contractors haven't submitted bids for this job yet.
         {'\n'}Check back later or share your job to attract more contractors.
       </Text>
     </View>
@@ -231,7 +264,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading bids...</Text>
         </View>
       </View>
@@ -243,9 +276,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Ionicons name="warning-outline" size={48} color="#EF4444" />
+          <Ionicons name='warning-outline' size={48} color='#EF4444' />
           <Text style={styles.errorText}>Failed to load bids</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -256,7 +292,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   return (
     <View style={styles.container}>
       {renderHeader()}
-      
+
       {bids.length === 0 ? (
         renderEmptyState()
       ) : (

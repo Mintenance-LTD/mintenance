@@ -27,98 +27,117 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     bgColor: '#EFF6FF',
     icon: 'megaphone-outline',
     label: 'Posted',
-    description: 'Waiting for contractor bids'
+    description: 'Waiting for contractor bids',
   },
   assigned: {
     color: '#F59E0B',
     bgColor: '#FFFBEB',
     icon: 'person-outline',
     label: 'Assigned',
-    description: 'Contractor assigned, waiting to start'
+    description: 'Contractor assigned, waiting to start',
   },
   in_progress: {
     color: '#8B5CF6',
     bgColor: '#F3E8FF',
     icon: 'hammer-outline',
     label: 'In Progress',
-    description: 'Work is currently underway'
+    description: 'Work is currently underway',
   },
   completed: {
     color: '#10B981',
     bgColor: '#ECFDF5',
     icon: 'checkmark-circle-outline',
     label: 'Completed',
-    description: 'Job has been finished'
+    description: 'Job has been finished',
   },
   cancelled: {
     color: '#EF4444',
     bgColor: '#FEF2F2',
     icon: 'close-circle-outline',
     label: 'Cancelled',
-    description: 'Job was cancelled'
+    description: 'Job was cancelled',
   },
 };
 
-const JOB_WORKFLOW: Array<{ 
-  status: string; 
-  nextActions: Array<{
+const JOB_WORKFLOW: {
+  status: string;
+  nextActions: {
     status: string;
     label: string;
     requiresContractor?: boolean;
     requiredRole?: 'homeowner' | 'contractor';
-  }>;
-}> = [
+  }[];
+}[] = [
   {
     status: 'posted',
     nextActions: [
-      { status: 'assigned', label: 'Assign Contractor', requiresContractor: true, requiredRole: 'homeowner' },
-      { status: 'cancelled', label: 'Cancel Job', requiredRole: 'homeowner' }
-    ]
+      {
+        status: 'assigned',
+        label: 'Assign Contractor',
+        requiresContractor: true,
+        requiredRole: 'homeowner',
+      },
+      { status: 'cancelled', label: 'Cancel Job', requiredRole: 'homeowner' },
+    ],
   },
   {
     status: 'assigned',
     nextActions: [
-      { status: 'in_progress', label: 'Start Work', requiredRole: 'contractor' },
-      { status: 'cancelled', label: 'Cancel Job', requiredRole: 'homeowner' }
-    ]
+      {
+        status: 'in_progress',
+        label: 'Start Work',
+        requiredRole: 'contractor',
+      },
+      { status: 'cancelled', label: 'Cancel Job', requiredRole: 'homeowner' },
+    ],
   },
   {
     status: 'in_progress',
     nextActions: [
-      { status: 'completed', label: 'Mark Complete', requiredRole: 'contractor' },
-    ]
+      {
+        status: 'completed',
+        label: 'Mark Complete',
+        requiredRole: 'contractor',
+      },
+    ],
   },
   {
     status: 'completed',
-    nextActions: []
+    nextActions: [],
   },
   {
     status: 'cancelled',
-    nextActions: []
-  }
+    nextActions: [],
+  },
 ];
 
 export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
   job,
   onStatusUpdate,
-  showActions = true
+  showActions = true,
 }) => {
   const { user } = useAuth();
   const updateJobStatusMutation = useUpdateJobStatus();
-  
+
   const currentConfig = STATUS_CONFIG[job.status];
-  const workflow = JOB_WORKFLOW.find(w => w.status === job.status);
-  
+  const workflow = JOB_WORKFLOW.find((w) => w.status === job.status);
+
   const handleStatusChange = (newStatus: any, requiresContractor?: boolean) => {
-    const action = workflow?.nextActions.find(a => a.status === newStatus);
-    
+    const action = workflow?.nextActions.find((a) => a.status === newStatus);
+
     if (action?.requiredRole && user?.role !== action.requiredRole) {
-      Alert.alert('Access Denied', `Only ${action.requiredRole}s can perform this action`);
+      Alert.alert(
+        'Access Denied',
+        `Only ${action.requiredRole}s can perform this action`
+      );
       return;
     }
 
     if (requiresContractor && !job.contractorId) {
-      Alert.alert('Contractor Required', 'Please assign a contractor before changing status');
+      Alert.alert(
+        'Contractor Required',
+        'Please assign a contractor before changing status'
+      );
       return;
     }
 
@@ -131,8 +150,8 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
         {
           text: 'Confirm',
           style: 'default',
-          onPress: () => performStatusUpdate(newStatus)
-        }
+          onPress: () => performStatusUpdate(newStatus),
+        },
       ]
     );
   };
@@ -144,13 +163,13 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
         oldStatus: job.status,
         newStatus,
         userId: user?.id,
-        userRole: user?.role
+        userRole: user?.role,
       });
 
       await updateJobStatusMutation.mutateAsync({
         jobId: job.id,
         status: newStatus as any,
-        contractorId: job.contractorId || undefined
+        contractorId: job.contractorId || undefined,
       });
 
       // Call the optional callback
@@ -158,7 +177,10 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
         onStatusUpdate({ ...job, status: newStatus });
       }
 
-      Alert.alert('Success', `Job status updated to ${STATUS_CONFIG[newStatus].label}`);
+      Alert.alert(
+        'Success',
+        `Job status updated to ${STATUS_CONFIG[newStatus].label}`
+      );
     } catch (error: any) {
       logger.error('Failed to update job status:', error);
       Alert.alert('Error', error.message || 'Failed to update job status');
@@ -166,9 +188,16 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
   };
 
   const getProgressPercentage = (): number => {
-    const statusOrder: Job['status'][] = ['posted', 'assigned', 'in_progress', 'completed'];
+    const statusOrder: Job['status'][] = [
+      'posted',
+      'assigned',
+      'in_progress',
+      'completed',
+    ];
     const currentIndex = statusOrder.indexOf(job.status);
-    return (job.status as any) === 'cancelled' ? 0 : ((currentIndex + 1) / statusOrder.length) * 100;
+    return (job.status as any) === 'cancelled'
+      ? 0
+      : ((currentIndex + 1) / statusOrder.length) * 100;
   };
 
   const renderProgressBar = () => {
@@ -178,14 +207,21 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${percentage}%` }]} />
         </View>
-        <Text style={styles.progressText}>{Math.round(percentage)}% Complete</Text>
+        <Text style={styles.progressText}>
+          {Math.round(percentage)}% Complete
+        </Text>
       </View>
     );
   };
 
   const renderTimeline = () => {
-    const statusOrder: Job['status'][] = ['posted', 'assigned', 'in_progress', 'completed'];
-    
+    const statusOrder: Job['status'][] = [
+      'posted',
+      'assigned',
+      'in_progress',
+      'completed',
+    ];
+
     return (
       <View style={styles.timeline}>
         {statusOrder.map((status, index) => {
@@ -193,40 +229,47 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           const isActive = status === job.status;
           const isPassed = statusOrder.indexOf(job.status) > index;
           const isCancelled = (job.status as any) === 'cancelled';
-          
+
           return (
             <View key={status} style={styles.timelineItem}>
-              <View style={[
-                styles.timelineIcon,
-                {
-                  backgroundColor: isActive || isPassed ? config.color : '#E5E7EB',
-                  opacity: isCancelled && !isActive ? 0.3 : 1
-                }
-              ]}>
-                <Ionicons 
-                  name={config.icon} 
-                  size={16} 
-                  color={isActive || isPassed ? '#FFFFFF' : '#9CA3AF'} 
+              <View
+                style={[
+                  styles.timelineIcon,
+                  {
+                    backgroundColor:
+                      isActive || isPassed ? config.color : '#E5E7EB',
+                    opacity: isCancelled && !isActive ? 0.3 : 1,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={config.icon}
+                  size={16}
+                  color={isActive || isPassed ? '#FFFFFF' : '#9CA3AF'}
                 />
               </View>
-              <Text style={[
-                styles.timelineLabel,
-                {
-                  color: isActive ? config.color : '#6B7280',
-                  fontWeight: isActive ? '600' : '400',
-                  opacity: isCancelled && !isActive ? 0.3 : 1
-                }
-              ]}>
+              <Text
+                style={[
+                  styles.timelineLabel,
+                  {
+                    color: isActive ? config.color : '#6B7280',
+                    fontWeight: isActive ? '600' : '400',
+                    opacity: isCancelled && !isActive ? 0.3 : 1,
+                  },
+                ]}
+              >
                 {config.label}
               </Text>
               {index < statusOrder.length - 1 && (
-                <View style={[
-                  styles.timelineLine,
-                  {
-                    backgroundColor: isPassed ? config.color : '#E5E7EB',
-                    opacity: isCancelled ? 0.3 : 1
-                  }
-                ]} />
+                <View
+                  style={[
+                    styles.timelineLine,
+                    {
+                      backgroundColor: isPassed ? config.color : '#E5E7EB',
+                      opacity: isCancelled ? 0.3 : 1,
+                    },
+                  ]}
+                />
               )}
             </View>
           );
@@ -238,10 +281,17 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
   return (
     <View style={styles.container}>
       {/* Current Status Card */}
-      <View style={[styles.statusCard, { backgroundColor: currentConfig.bgColor }]}>
+      <View
+        style={[styles.statusCard, { backgroundColor: currentConfig.bgColor }]}
+      >
         <View style={styles.statusHeader}>
-          <View style={[styles.statusIcon, { backgroundColor: currentConfig.color }]}>
-            <Ionicons name={currentConfig.icon} size={24} color="#FFFFFF" />
+          <View
+            style={[
+              styles.statusIcon,
+              { backgroundColor: currentConfig.color },
+            ]}
+          >
+            <Ionicons name={currentConfig.icon} size={24} color='#FFFFFF' />
           </View>
           <View style={styles.statusInfo}>
             <Text style={[styles.statusLabel, { color: currentConfig.color }]}>
@@ -252,7 +302,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
             </Text>
           </View>
         </View>
-        
+
         {(job.status as any) !== 'cancelled' && renderProgressBar()}
       </View>
 
@@ -269,29 +319,30 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           <View style={styles.actionButtons}>
             {workflow.nextActions.map((action) => {
               const actionConfig = STATUS_CONFIG[action.status];
-              const canPerform = !action.requiredRole || user?.role === action.requiredRole;
-              
+              const canPerform =
+                !action.requiredRole || user?.role === action.requiredRole;
+
               return (
                 <TouchableOpacity
                   key={action.status}
                   style={[
                     styles.actionButton,
-                    { 
+                    {
                       backgroundColor: actionConfig.color,
-                      opacity: canPerform ? 1 : 0.5
-                    }
+                      opacity: canPerform ? 1 : 0.5,
+                    },
                   ]}
-                  onPress={() => handleStatusChange(action.status, action.requiresContractor)}
+                  onPress={() =>
+                    handleStatusChange(action.status, action.requiresContractor)
+                  }
                   disabled={!canPerform || updateJobStatusMutation.isPending}
                 >
-                  <Ionicons 
-                    name={actionConfig.icon} 
-                    size={18} 
-                    color="#FFFFFF" 
+                  <Ionicons
+                    name={actionConfig.icon}
+                    size={18}
+                    color='#FFFFFF'
                   />
-                  <Text style={styles.actionButtonText}>
-                    {action.label}
-                  </Text>
+                  <Text style={styles.actionButtonText}>{action.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -306,13 +357,17 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Created</Text>
             <Text style={styles.infoValue}>
-              {new Date(((job as any).createdAt || (job as any).created_at) as any).toLocaleDateString()}
+              {new Date(
+                ((job as any).createdAt || (job as any).created_at) as any
+              ).toLocaleDateString()}
             </Text>
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Last Updated</Text>
             <Text style={styles.infoValue}>
-              {new Date(((job as any).updatedAt || (job as any).updated_at) as any).toLocaleDateString()}
+              {new Date(
+                ((job as any).updatedAt || (job as any).updated_at) as any
+              ).toLocaleDateString()}
             </Text>
           </View>
           {job.contractorId && (

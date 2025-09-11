@@ -1,7 +1,7 @@
 /**
  * JOB COMPLEXITY ANALYZER
  * Specialized module for analyzing job complexity factors
- * 
+ *
  * Responsibilities:
  * - Text complexity analysis using NLP techniques
  * - Technical skill requirement extraction
@@ -13,13 +13,13 @@
 import { logger } from '../../utils/logger';
 
 export interface JobComplexityResult {
-  overallComplexity: number;      // 0-1 scale
-  textComplexity: number;         // Language complexity score
-  skillRequirements: string[];    // Required skills list
-  timeEstimate: number;           // Estimated hours
-  materialComplexity: number;     // Material complexity score
-  riskLevel: number;              // Risk assessment score
-  specialEquipment: boolean;      // Special equipment needed
+  overallComplexity: number; // 0-1 scale
+  textComplexity: number; // Language complexity score
+  skillRequirements: string[]; // Required skills list
+  timeEstimate: number; // Estimated hours
+  materialComplexity: number; // Material complexity score
+  riskLevel: number; // Risk assessment score
+  specialEquipment: boolean; // Special equipment needed
   certificationRequired: boolean; // Professional certification needed
 }
 
@@ -73,19 +73,25 @@ export class ComplexityAnalyzer {
     estimatedDuration?: number;
   }): Promise<JobComplexityResult> {
     const combinedText = `${input.title} ${input.description}`.toLowerCase();
-    
+
     // Analyze different complexity aspects
     const textComplexity = this.analyzeTextComplexity(combinedText);
-    const skillRequirements = this.extractSkillRequirements(combinedText, input.category);
+    const skillRequirements = this.extractSkillRequirements(
+      combinedText,
+      input.category
+    );
     const riskLevel = this.assessRiskLevel(combinedText, input.category);
     const materialComplexity = this.assessMaterialComplexity(combinedText);
     const timeEstimate = this.estimateTimeRequirement(
-      combinedText, 
-      input.category, 
+      combinedText,
+      input.category,
       input.estimatedDuration
     );
     const specialEquipment = this.requiresSpecialEquipment(combinedText);
-    const certificationRequired = this.requiresCertification(combinedText, input.category);
+    const certificationRequired = this.requiresCertification(
+      combinedText,
+      input.category
+    );
 
     // Calculate overall complexity
     const overallComplexity = this.calculateOverallComplexity({
@@ -94,7 +100,7 @@ export class ComplexityAnalyzer {
       riskLevel,
       materialComplexity,
       specialEquipment,
-      certificationRequired
+      certificationRequired,
     });
 
     const result: JobComplexityResult = {
@@ -105,14 +111,14 @@ export class ComplexityAnalyzer {
       materialComplexity,
       riskLevel,
       specialEquipment,
-      certificationRequired
+      certificationRequired,
     };
 
     logger.info('Job complexity analysis completed', {
       overallComplexity: result.overallComplexity.toFixed(2),
       skillsCount: result.skillRequirements.length,
       riskLevel: result.riskLevel.toFixed(2),
-      timeEstimate: result.timeEstimate
+      timeEstimate: result.timeEstimate,
     });
 
     return result;
@@ -123,8 +129,8 @@ export class ComplexityAnalyzer {
    */
   private analyzeTextComplexity(text: string): number {
     const words = text.split(/\s+/);
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+
     let complexity = 0.5; // Base complexity
 
     // Word count factor
@@ -137,22 +143,22 @@ export class ComplexityAnalyzer {
     else if (avgSentenceLength > 15) complexity += 0.1;
 
     // Technical vocabulary density
-    const technicalWords = words.filter(word => 
-      this.keywords.technical.some(tech => word.includes(tech))
+    const technicalWords = words.filter((word) =>
+      this.keywords.technical.some((tech) => word.includes(tech))
     ).length;
     const technicalDensity = technicalWords / words.length;
     complexity += Math.min(technicalDensity * 2, 0.3);
 
     // Complexity keywords
-    this.keywords.high.forEach(keyword => {
+    this.keywords.high.forEach((keyword) => {
       if (text.includes(keyword)) complexity += 0.1;
     });
 
-    this.keywords.medium.forEach(keyword => {
+    this.keywords.medium.forEach((keyword) => {
       if (text.includes(keyword)) complexity += 0.05;
     });
 
-    this.keywords.low.forEach(keyword => {
+    this.keywords.low.forEach((keyword) => {
       if (text.includes(keyword)) complexity -= 0.05;
     });
 
@@ -167,17 +173,17 @@ export class ComplexityAnalyzer {
 
     // Category-based base skills
     const categorySkills = this.getCategorySkills(category);
-    categorySkills.forEach(skill => skills.add(skill));
+    categorySkills.forEach((skill) => skills.add(skill));
 
     // Extract skills from text
     const skillPatterns = [
       /need.*?([a-z]+ experience)/gi,
       /require.*?([a-z]+ skills?)/gi,
       /must have.*?([a-z]+ knowledge)/gi,
-      /(certified|licensed|qualified) in ([a-z\s]+)/gi
+      /(certified|licensed|qualified) in ([a-z\s]+)/gi,
     ];
 
-    skillPatterns.forEach(pattern => {
+    skillPatterns.forEach((pattern) => {
       const matches = text.matchAll(pattern);
       for (const match of matches) {
         if (match[1] || match[2]) {
@@ -187,14 +193,14 @@ export class ComplexityAnalyzer {
     });
 
     // Technical skills detection
-    this.keywords.technical.forEach(tech => {
+    this.keywords.technical.forEach((tech) => {
       if (text.includes(tech)) {
         skills.add(tech.replace(/_/g, ' '));
       }
     });
 
     // Equipment-specific skills
-    this.keywords.equipment.forEach(equipment => {
+    this.keywords.equipment.forEach((equipment) => {
       if (text.includes(equipment)) {
         skills.add(`${equipment} operation`);
       }
@@ -210,7 +216,7 @@ export class ComplexityAnalyzer {
     let risk = this.getCategoryBaseRisk(category);
 
     // Risk keywords increase risk score
-    this.keywords.risk.forEach(riskWord => {
+    this.keywords.risk.forEach((riskWord) => {
       if (text.includes(riskWord)) {
         risk += 0.15;
       }
@@ -237,7 +243,9 @@ export class ComplexityAnalyzer {
     }
 
     // Emergency/urgent situations
-    if (text.match(/emergency|urgent|asap|immediately|broken|leaking|flooding/i)) {
+    if (
+      text.match(/emergency|urgent|asap|immediately|broken|leaking|flooding/i)
+    ) {
       risk += 0.1;
     }
 
@@ -252,12 +260,22 @@ export class ComplexityAnalyzer {
 
     // Specialized materials
     const specialMaterials = [
-      'marble', 'granite', 'hardwood', 'engineered', 'composite',
-      'stainless steel', 'copper', 'cast iron', 'porcelain',
-      'natural stone', 'tile', 'laminate', 'vinyl'
+      'marble',
+      'granite',
+      'hardwood',
+      'engineered',
+      'composite',
+      'stainless steel',
+      'copper',
+      'cast iron',
+      'porcelain',
+      'natural stone',
+      'tile',
+      'laminate',
+      'vinyl',
     ];
 
-    specialMaterials.forEach(material => {
+    specialMaterials.forEach((material) => {
       if (text.includes(material)) complexity += 0.1;
     });
 
@@ -267,10 +285,10 @@ export class ComplexityAnalyzer {
     }
 
     // Multiple material types
-    const materialCount = this.keywords.materials.filter(material => 
+    const materialCount = this.keywords.materials.filter((material) =>
       text.includes(material)
     ).length;
-    
+
     if (materialCount > 3) complexity += 0.15;
     else if (materialCount > 1) complexity += 0.1;
 
@@ -281,8 +299,8 @@ export class ComplexityAnalyzer {
    * Estimate time requirement for job completion
    */
   private estimateTimeRequirement(
-    text: string, 
-    category: string, 
+    text: string,
+    category: string,
     providedEstimate?: number
   ): number {
     if (providedEstimate) {
@@ -291,15 +309,15 @@ export class ComplexityAnalyzer {
 
     // Base time estimates by category (in hours)
     const baseTimes = {
-      'plumbing': 4,
-      'electrical': 3,
-      'painting': 8,
-      'carpentry': 6,
-      'cleaning': 2,
-      'gardening': 4,
-      'roofing': 12,
-      'heating': 5,
-      'flooring': 10
+      plumbing: 4,
+      electrical: 3,
+      painting: 8,
+      carpentry: 6,
+      cleaning: 2,
+      gardening: 4,
+      roofing: 12,
+      heating: 5,
+      flooring: 10,
     };
 
     let estimate = baseTimes[category as keyof typeof baseTimes] || 4;
@@ -328,16 +346,22 @@ export class ComplexityAnalyzer {
    * Check if special equipment is required
    */
   private requiresSpecialEquipment(text: string): boolean {
-    const equipmentNeeded = this.keywords.equipment.some(equipment => 
+    const equipmentNeeded = this.keywords.equipment.some((equipment) =>
       text.includes(equipment)
     );
 
     const specialIndicators = [
-      'scaffold', 'crane', 'hoist', 'compressor', 'generator',
-      'specialized tool', 'professional equipment', 'industrial'
+      'scaffold',
+      'crane',
+      'hoist',
+      'compressor',
+      'generator',
+      'specialized tool',
+      'professional equipment',
+      'industrial',
     ];
 
-    const specialNeeded = specialIndicators.some(indicator => 
+    const specialNeeded = specialIndicators.some((indicator) =>
       text.includes(indicator)
     );
 
@@ -349,14 +373,19 @@ export class ComplexityAnalyzer {
    */
   private requiresCertification(text: string, category: string): boolean {
     // Category-specific certification requirements
-    const certificationCategories = ['electrical', 'gas', 'plumbing', 'roofing'];
+    const certificationCategories = [
+      'electrical',
+      'gas',
+      'plumbing',
+      'roofing',
+    ];
     if (certificationCategories.includes(category)) {
       return true;
     }
 
     // Text-based certification indicators
     const certificationIndicators = this.keywords.certifications;
-    return certificationIndicators.some(cert => text.includes(cert));
+    return certificationIndicators.some((cert) => text.includes(cert));
   }
 
   /**
@@ -376,12 +405,12 @@ export class ComplexityAnalyzer {
       riskLevel: 0.3,
       materialComplexity: 0.15,
       specialEquipment: 0.05,
-      certificationRequired: 0.05
+      certificationRequired: 0.05,
     };
 
     const skillScore = Math.min(1, factors.skillRequirements / 5); // Normalize to 0-1
-    
-    const complexity = 
+
+    const complexity =
       factors.textComplexity * weights.textComplexity +
       skillScore * weights.skillRequirements +
       factors.riskLevel * weights.riskLevel +
@@ -397,18 +426,50 @@ export class ComplexityAnalyzer {
    */
   private getCategorySkills(category: string): string[] {
     const skillMap = {
-      'plumbing': ['pipe fitting', 'leak repair', 'water systems', 'drainage'],
-      'electrical': ['wiring', 'circuit installation', 'electrical safety', 'troubleshooting'],
-      'carpentry': ['wood working', 'joinery', 'measuring', 'tool handling'],
-      'painting': ['surface preparation', 'color matching', 'brush techniques', 'finishing'],
-      'gardening': ['plant care', 'soil management', 'pruning', 'landscaping'],
-      'roofing': ['height work', 'weatherproofing', 'tile installation', 'safety protocols'],
-      'cleaning': ['sanitation', 'product knowledge', 'time management', 'attention to detail'],
-      'heating': ['HVAC systems', 'gas safety', 'thermostat installation', 'maintenance'],
-      'flooring': ['measuring', 'subfloor preparation', 'installation techniques', 'finishing']
+      plumbing: ['pipe fitting', 'leak repair', 'water systems', 'drainage'],
+      electrical: [
+        'wiring',
+        'circuit installation',
+        'electrical safety',
+        'troubleshooting',
+      ],
+      carpentry: ['wood working', 'joinery', 'measuring', 'tool handling'],
+      painting: [
+        'surface preparation',
+        'color matching',
+        'brush techniques',
+        'finishing',
+      ],
+      gardening: ['plant care', 'soil management', 'pruning', 'landscaping'],
+      roofing: [
+        'height work',
+        'weatherproofing',
+        'tile installation',
+        'safety protocols',
+      ],
+      cleaning: [
+        'sanitation',
+        'product knowledge',
+        'time management',
+        'attention to detail',
+      ],
+      heating: [
+        'HVAC systems',
+        'gas safety',
+        'thermostat installation',
+        'maintenance',
+      ],
+      flooring: [
+        'measuring',
+        'subfloor preparation',
+        'installation techniques',
+        'finishing',
+      ],
     };
 
-    return skillMap[category as keyof typeof skillMap] || ['general maintenance'];
+    return (
+      skillMap[category as keyof typeof skillMap] || ['general maintenance']
+    );
   }
 
   /**
@@ -416,15 +477,15 @@ export class ComplexityAnalyzer {
    */
   private getCategoryBaseRisk(category: string): number {
     const riskLevels = {
-      'electrical': 0.4,
-      'roofing': 0.5,
-      'plumbing': 0.3,
-      'heating': 0.4,
-      'carpentry': 0.2,
-      'painting': 0.1,
-      'cleaning': 0.05,
-      'gardening': 0.1,
-      'flooring': 0.15
+      electrical: 0.4,
+      roofing: 0.5,
+      plumbing: 0.3,
+      heating: 0.4,
+      carpentry: 0.2,
+      painting: 0.1,
+      cleaning: 0.05,
+      gardening: 0.1,
+      flooring: 0.15,
     };
 
     return riskLevels[category as keyof typeof riskLevels] || 0.2;
@@ -436,40 +497,118 @@ export class ComplexityAnalyzer {
   private initializeKeywords(): ComplexityKeywords {
     return {
       high: [
-        'complex', 'complicated', 'difficult', 'challenging', 'specialist',
-        'custom', 'bespoke', 'professional', 'certified', 'licensed',
-        'structural', 'bearing', 'foundation', 'rewire', 'replumb'
+        'complex',
+        'complicated',
+        'difficult',
+        'challenging',
+        'specialist',
+        'custom',
+        'bespoke',
+        'professional',
+        'certified',
+        'licensed',
+        'structural',
+        'bearing',
+        'foundation',
+        'rewire',
+        'replumb',
       ],
       medium: [
-        'repair', 'replace', 'install', 'upgrade', 'maintenance',
-        'service', 'check', 'inspect', 'diagnose', 'troubleshoot'
+        'repair',
+        'replace',
+        'install',
+        'upgrade',
+        'maintenance',
+        'service',
+        'check',
+        'inspect',
+        'diagnose',
+        'troubleshoot',
       ],
       low: [
-        'simple', 'basic', 'easy', 'quick', 'minor', 'small',
-        'touch up', 'clean', 'tidy', 'straightforward', 'routine'
+        'simple',
+        'basic',
+        'easy',
+        'quick',
+        'minor',
+        'small',
+        'touch up',
+        'clean',
+        'tidy',
+        'straightforward',
+        'routine',
       ],
       technical: [
-        'circuit', 'voltage', 'amperage', 'pressure', 'temperature',
-        'thermostat', 'valve', 'junction', 'fitting', 'insulation',
-        'waterproofing', 'ventilation', 'drainage', 'heating_system'
+        'circuit',
+        'voltage',
+        'amperage',
+        'pressure',
+        'temperature',
+        'thermostat',
+        'valve',
+        'junction',
+        'fitting',
+        'insulation',
+        'waterproofing',
+        'ventilation',
+        'drainage',
+        'heating_system',
       ],
       risk: [
-        'dangerous', 'hazardous', 'safety', 'risk', 'caution',
-        'warning', 'emergency', 'leak', 'gas', 'electrical',
-        'height', 'ladder', 'scaffold', 'structural', 'bearing'
+        'dangerous',
+        'hazardous',
+        'safety',
+        'risk',
+        'caution',
+        'warning',
+        'emergency',
+        'leak',
+        'gas',
+        'electrical',
+        'height',
+        'ladder',
+        'scaffold',
+        'structural',
+        'bearing',
       ],
       materials: [
-        'wood', 'metal', 'plastic', 'ceramic', 'stone', 'glass',
-        'concrete', 'brick', 'tile', 'vinyl', 'laminate', 'carpet'
+        'wood',
+        'metal',
+        'plastic',
+        'ceramic',
+        'stone',
+        'glass',
+        'concrete',
+        'brick',
+        'tile',
+        'vinyl',
+        'laminate',
+        'carpet',
       ],
       equipment: [
-        'drill', 'saw', 'grinder', 'compressor', 'generator',
-        'ladder', 'scaffold', 'crane', 'hoist', 'pump'
+        'drill',
+        'saw',
+        'grinder',
+        'compressor',
+        'generator',
+        'ladder',
+        'scaffold',
+        'crane',
+        'hoist',
+        'pump',
       ],
       certifications: [
-        'licensed', 'certified', 'qualified', 'registered', 'approved',
-        'gas safe', 'part p', 'city and guilds', 'nvq', 'btec'
-      ]
+        'licensed',
+        'certified',
+        'qualified',
+        'registered',
+        'approved',
+        'gas safe',
+        'part p',
+        'city and guilds',
+        'nvq',
+        'btec',
+      ],
     };
   }
 

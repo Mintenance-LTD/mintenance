@@ -97,7 +97,10 @@ export class AnimationUtils {
   }
 
   // Like animation with heart bounce
-  static createLikeAnimation(scaleValue: Animated.Value, colorValue: Animated.Value) {
+  static createLikeAnimation(
+    scaleValue: Animated.Value,
+    colorValue: Animated.Value
+  ) {
     return Animated.parallel([
       Animated.sequence([
         Animated.timing(scaleValue, {
@@ -141,7 +144,10 @@ export class AnimationUtils {
   }
 
   // Staggered list animation
-  static createStaggeredAnimation(animatedValues: Animated.Value[], delay: number = 100) {
+  static createStaggeredAnimation(
+    animatedValues: Animated.Value[],
+    delay: number = 100
+  ) {
     const animations = animatedValues.map((value, index) =>
       Animated.timing(value, {
         toValue: 1,
@@ -192,16 +198,18 @@ export class AnimationUtils {
 }
 
 // Animated TouchableOpacity component with built-in animations
-export const AnimatedTouchableOpacity = Animated.createAnimatedComponent(require('react-native').TouchableOpacity);
+export const AnimatedTouchableOpacity = Animated.createAnimatedComponent(
+  require('react-native').TouchableOpacity
+);
 
 // Custom hook for button press animations
 export const useButtonAnimation = () => {
   const scaleValue = new Animated.Value(1);
-  
+
   const animatePress = () => {
     AnimationUtils.createButtonPressAnimation(scaleValue).start();
   };
-  
+
   return {
     scaleValue,
     animatePress,
@@ -213,11 +221,11 @@ export const useButtonAnimation = () => {
 export const useLikeAnimation = () => {
   const scaleValue = new Animated.Value(1);
   const colorValue = new Animated.Value(0);
-  
+
   const animateLike = () => {
     AnimationUtils.createLikeAnimation(scaleValue, colorValue).start();
   };
-  
+
   return {
     scaleValue,
     colorValue,

@@ -42,7 +42,7 @@ class SyncManagerService {
   private appStateSubscription: any = null;
   private networkSubscription: any = null;
   private syncListeners: ((status: SyncStatus) => void)[] = [];
-  
+
   private readonly DEFAULT_BATCH_SIZE = 50;
   private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
   private readonly BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -100,7 +100,7 @@ class SyncManagerService {
     logger.info('Starting full sync', config);
 
     const errors: SyncError[] = [];
-    
+
     try {
       // Check network connectivity
       const networkState = await NetInfo.fetch();
@@ -109,37 +109,43 @@ class SyncManagerService {
       }
 
       // Sync in order of dependency (users first, then jobs, then messages)
-      if (config.direction === 'download' || config.direction === 'bidirectional') {
+      if (
+        config.direction === 'download' ||
+        config.direction === 'bidirectional'
+      ) {
         // Download remote changes first
-        await this.downloadUsers(config).catch(error => {
+        await this.downloadUsers(config).catch((error) => {
           errors.push(this.createSyncError('user', 'download', error));
         });
 
-        await this.downloadJobs(config).catch(error => {
+        await this.downloadJobs(config).catch((error) => {
           errors.push(this.createSyncError('job', 'download', error));
         });
 
-        await this.downloadMessages(config).catch(error => {
+        await this.downloadMessages(config).catch((error) => {
           errors.push(this.createSyncError('message', 'download', error));
         });
       }
 
-      if (config.direction === 'upload' || config.direction === 'bidirectional') {
+      if (
+        config.direction === 'upload' ||
+        config.direction === 'bidirectional'
+      ) {
         // Upload local changes
-        await this.uploadDirtyRecords('users', config).catch(error => {
+        await this.uploadDirtyRecords('users', config).catch((error) => {
           errors.push(this.createSyncError('user', 'upload', error));
         });
 
-        await this.uploadDirtyRecords('jobs', config).catch(error => {
+        await this.uploadDirtyRecords('jobs', config).catch((error) => {
           errors.push(this.createSyncError('job', 'upload', error));
         });
 
-        await this.uploadDirtyRecords('messages', config).catch(error => {
+        await this.uploadDirtyRecords('messages', config).catch((error) => {
           errors.push(this.createSyncError('message', 'upload', error));
         });
 
         // Process offline action queue
-        await this.processOfflineActions().catch(error => {
+        await this.processOfflineActions().catch((error) => {
           errors.push(this.createSyncError('action_queue', 'process', error));
         });
       }
@@ -162,7 +168,7 @@ class SyncManagerService {
     } catch (error) {
       logger.error('Full sync failed:', error);
       errors.push(this.createSyncError('sync_manager', 'full_sync', error));
-      
+
       const status = { ...this.getSyncStatus(), errors };
       this.notifySyncListeners(status);
       return status;
@@ -179,7 +185,7 @@ class SyncManagerService {
     if (!currentUser) return;
 
     logger.debug('Downloading users');
-    
+
     // For contractors, we might want to download other users for discovery
     if (currentUser.role === 'contractor') {
       // Implementation would depend on your API design
@@ -200,7 +206,7 @@ class SyncManagerService {
     try {
       // Get available jobs for contractors, own jobs for homeowners
       let remoteJobs: Job[] = [];
-      
+
       if (currentUser.role === 'contractor') {
         remoteJobs = await JobService.getAvailableJobs();
       } else {
@@ -230,19 +236,28 @@ class SyncManagerService {
 
     try {
       // Get user's job conversations
-      const jobs = await LocalDatabase.getJobsByStatus('assigned', currentUser.id);
-      
+      const jobs = await LocalDatabase.getJobsByStatus(
+        'assigned',
+        currentUser.id
+      );
+
       for (const job of jobs) {
         try {
-          const messages = await MessagingService.getJobMessages(job.id, config.batchSize);
-          
+          const messages = await MessagingService.getJobMessages(
+            job.id,
+            config.batchSize
+          );
+
           for (const message of messages) {
             // Remove computed fields before saving
             const { senderName, senderRole, ...messageData } = message;
             await LocalDatabase.saveMessage(messageData, false);
           }
         } catch (error) {
-          logger.warn('Failed to download messages for job', { jobId: job.id, error });
+          logger.warn('Failed to download messages for job', {
+            jobId: job.id,
+            error,
+          });
         }
       }
 
@@ -256,18 +271,26 @@ class SyncManagerService {
   /**
    * Upload dirty records to remote server
    */
-  private async uploadDirtyRecords(table: string, config: SyncOptions): Promise<void> {
+  private async uploadDirtyRecords(
+    table: string,
+    config: SyncOptions
+  ): Promise<void> {
     const dirtyRecords = await LocalDatabase.getDirtyRecords(table);
     if (dirtyRecords.length === 0) return;
 
     logger.debug(`Uploading dirty ${table}`, { count: dirtyRecords.length });
 
-    for (const record of dirtyRecords.slice(0, config.batchSize || this.DEFAULT_BATCH_SIZE)) {
+    for (const record of dirtyRecords.slice(
+      0,
+      config.batchSize || this.DEFAULT_BATCH_SIZE
+    )) {
       try {
         await this.uploadRecord(table, record);
         await LocalDatabase.markRecordSynced(table, record.id);
       } catch (error) {
-        logger.error(`Failed to upload ${table} record`, error as unknown, { id: record.id });
+        logger.error(`Failed to upload ${table} record`, error as unknown, {
+          id: record.id,
+        });
         // Don't mark as synced, will retry next time
       }
     }
@@ -312,7 +335,7 @@ class SyncManagerService {
     for (const action of actions) {
       try {
         const data = JSON.parse(action.data);
-        
+
         switch (action.entity) {
           case 'job':
             await this.processJobAction(action.type, data);
@@ -327,7 +350,9 @@ class SyncManagerService {
         await LocalDatabase.removeOfflineAction(action.id);
         logger.debug('Processed offline action:', action.id);
       } catch (error) {
-        logger.error('Failed to process offline action', error as unknown, { id: action.id });
+        logger.error('Failed to process offline action', error as unknown, {
+          id: action.id,
+        });
         // Keep action in queue for retry
       }
     }
@@ -339,7 +364,11 @@ class SyncManagerService {
         await JobService.createJob(data);
         break;
       case 'UPDATE':
-        await JobService.updateJobStatus(data.jobId, data.status, data.contractorId);
+        await JobService.updateJobStatus(
+          data.jobId,
+          data.status,
+          data.contractorId
+        );
         break;
       default:
         throw new Error(`Unknown job action: ${type}`);
@@ -368,12 +397,12 @@ class SyncManagerService {
    */
   private async updateSyncMetadata(): Promise<void> {
     const timestamp = Date.now();
-    
+
     const tables = ['users', 'jobs', 'messages', 'bids'];
-    
+
     for (const table of tables) {
       const storageInfo = await LocalDatabase.getStorageInfo();
-      
+
       await LocalDatabase.updateSyncMetadata({
         table,
         lastSyncTimestamp: timestamp,
@@ -429,7 +458,11 @@ class SyncManagerService {
   /**
    * Create sync error object
    */
-  private createSyncError(entity: string, operation: string, error: any): SyncError {
+  private createSyncError(
+    entity: string,
+    operation: string,
+    error: any
+  ): SyncError {
     return {
       id: `${entity}_${operation}_${Date.now()}`,
       entity,
@@ -445,7 +478,7 @@ class SyncManagerService {
    */
   onSyncStatusChange(callback: (status: SyncStatus) => void): () => void {
     this.syncListeners.push(callback);
-    
+
     return () => {
       const index = this.syncListeners.indexOf(callback);
       if (index > -1) {
@@ -458,7 +491,7 @@ class SyncManagerService {
    * Notify all sync listeners
    */
   private notifySyncListeners(status: SyncStatus): void {
-    this.syncListeners.forEach(callback => {
+    this.syncListeners.forEach((callback) => {
       try {
         callback(status);
       } catch (error) {
@@ -487,18 +520,18 @@ class SyncManagerService {
    */
   async cleanup(): Promise<void> {
     this.stopBackgroundSync();
-    
+
     if (this.appStateSubscription) {
       this.appStateSubscription.remove();
     }
-    
+
     if (this.networkSubscription) {
       this.networkSubscription();
     }
-    
+
     await LocalDatabase.close();
     this.isInitialized = false;
-    
+
     logger.info('SyncManager cleanup completed');
   }
 }

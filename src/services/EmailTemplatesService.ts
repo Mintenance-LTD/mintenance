@@ -9,7 +9,17 @@ export interface EmailTemplate {
   id: string;
   contractor_id: string;
   template_name: string;
-  template_category: 'invoice' | 'quote' | 'reminder' | 'confirmation' | 'follow_up' | 'welcome' | 'completion' | 'marketing' | 'appointment' | 'custom';
+  template_category:
+    | 'invoice'
+    | 'quote'
+    | 'reminder'
+    | 'confirmation'
+    | 'follow_up'
+    | 'welcome'
+    | 'completion'
+    | 'marketing'
+    | 'appointment'
+    | 'custom';
   template_type: 'professional' | 'friendly' | 'formal' | 'custom';
   subject_line: string;
   html_content?: string;
@@ -40,7 +50,14 @@ export interface EmailTemplate {
 export interface TemplateVariable {
   id: string;
   variable_name: string;
-  variable_category: 'client' | 'contractor' | 'job' | 'invoice' | 'payment' | 'company' | 'system';
+  variable_category:
+    | 'client'
+    | 'contractor'
+    | 'job'
+    | 'invoice'
+    | 'payment'
+    | 'company'
+    | 'system';
   description?: string;
   example_value?: string;
   data_type: 'text' | 'number' | 'date' | 'currency' | 'boolean';
@@ -137,19 +154,21 @@ export class EmailTemplatesService {
     try {
       const { data, error } = await supabase
         .from('email_templates')
-        .insert([{
-          ...templateData,
-          template_type: templateData.template_type || 'professional',
-          is_active: true,
-          is_default: false,
-          language_code: 'en-GB',
-          times_used: 0,
-          variables: templateData.variables || [],
-          required_variables: templateData.required_variables || [],
-          brand_colors: templateData.brand_colors || {},
-          auto_send_delay_hours: templateData.auto_send_delay_hours || 0,
-          auto_send_conditions: templateData.auto_send_conditions || {}
-        }])
+        .insert([
+          {
+            ...templateData,
+            template_type: templateData.template_type || 'professional',
+            is_active: true,
+            is_default: false,
+            language_code: 'en-GB',
+            times_used: 0,
+            variables: templateData.variables || [],
+            required_variables: templateData.required_variables || [],
+            brand_colors: templateData.brand_colors || {},
+            auto_send_delay_hours: templateData.auto_send_delay_hours || 0,
+            auto_send_conditions: templateData.auto_send_conditions || {},
+          },
+        ])
         .select()
         .single();
 
@@ -179,7 +198,7 @@ export class EmailTemplatesService {
   }
 
   static async getTemplatesByCategory(
-    contractorId: string, 
+    contractorId: string,
     category: EmailTemplate['template_category']
   ): Promise<EmailTemplate[]> {
     try {
@@ -215,7 +234,10 @@ export class EmailTemplatesService {
     }
   }
 
-  static async updateTemplate(templateId: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate> {
+  static async updateTemplate(
+    templateId: string,
+    updates: Partial<EmailTemplate>
+  ): Promise<EmailTemplate> {
     try {
       const { data, error } = await supabase
         .from('email_templates')
@@ -266,7 +288,9 @@ export class EmailTemplatesService {
     }
   }
 
-  static async getVariablesByCategory(category: TemplateVariable['variable_category']): Promise<TemplateVariable[]> {
+  static async getVariablesByCategory(
+    category: TemplateVariable['variable_category']
+  ): Promise<TemplateVariable[]> {
     try {
       const { data, error } = await supabase
         .from('template_variables')
@@ -301,45 +325,55 @@ export class EmailTemplatesService {
       }
 
       // Validate required variables
-      const { data: missingVars } = await supabase
-        .rpc('validate_template_variables', {
+      const { data: missingVars } = await supabase.rpc(
+        'validate_template_variables',
+        {
           template_id: templateId,
-          provided_variables: variables
-        });
+          provided_variables: variables,
+        }
+      );
 
       if (missingVars && missingVars.length > 0) {
-        throw new Error(`Missing required variables: ${missingVars.join(', ')}`);
+        throw new Error(
+          `Missing required variables: ${missingVars.join(', ')}`
+        );
       }
 
       // Process subject line
-      const { data: processedSubject } = await supabase
-        .rpc('replace_template_variables', {
+      const { data: processedSubject } = await supabase.rpc(
+        'replace_template_variables',
+        {
           template_content: template.subject_line,
-          variables: variables
-        });
+          variables,
+        }
+      );
 
       // Process text content
-      const { data: processedText } = await supabase
-        .rpc('replace_template_variables', {
+      const { data: processedText } = await supabase.rpc(
+        'replace_template_variables',
+        {
           template_content: template.text_content,
-          variables: variables
-        });
+          variables,
+        }
+      );
 
       // Process HTML content if available
       let processedHtml: string | undefined;
       if (template.html_content) {
-        const { data: htmlData } = await supabase
-          .rpc('replace_template_variables', {
+        const { data: htmlData } = await supabase.rpc(
+          'replace_template_variables',
+          {
             template_content: template.html_content,
-            variables: variables
-          });
+            variables,
+          }
+        );
         processedHtml = htmlData;
       }
 
       return {
         subject_line: processedSubject || template.subject_line,
         text_content: processedText || template.text_content,
-        html_content: processedHtml
+        html_content: processedHtml,
       };
     } catch (error) {
       logger.error('Error processing template:', error);
@@ -348,12 +382,18 @@ export class EmailTemplatesService {
   }
 
   // Client-side fallback for template variable replacement
-  static replaceVariables(content: string, variables: Record<string, any>): string {
+  static replaceVariables(
+    content: string,
+    variables: Record<string, any>
+  ): string {
     let result = content;
-    Object.keys(variables).forEach(key => {
+    Object.keys(variables).forEach((key) => {
       const value = variables[key];
       const placeholder = `{{${key}}}`;
-      result = result.replace(new RegExp(placeholder, 'g'), String(value || ''));
+      result = result.replace(
+        new RegExp(placeholder, 'g'),
+        String(value || '')
+      );
     });
     return result;
   }
@@ -378,10 +418,14 @@ export class EmailTemplatesService {
   }): Promise<{ success: boolean; email_id: string; error?: string }> {
     try {
       // If template_id is provided, process the template
-      let processedContent: { subject_line: string; text_content: string; html_content?: string } = {
+      let processedContent: {
+        subject_line: string;
+        text_content: string;
+        html_content?: string;
+      } = {
         subject_line: emailData.subject_line,
         text_content: emailData.text_content,
-        html_content: emailData.html_content
+        html_content: emailData.html_content,
       };
 
       if (emailData.template_id && emailData.variables) {
@@ -394,25 +438,27 @@ export class EmailTemplatesService {
       // Record email in history
       const { data: emailRecord, error: historyError } = await supabase
         .from('email_history')
-        .insert([{
-          template_id: emailData.template_id,
-          contractor_id: emailData.contractor_id,
-          recipient_email: emailData.recipient_email,
-          recipient_name: emailData.recipient_name,
-          subject_line: processedContent.subject_line,
-          text_content: processedContent.text_content,
-          html_content: processedContent.html_content,
-          job_id: emailData.job_id,
-          invoice_id: emailData.invoice_id,
-          context_type: emailData.context_type || 'manual',
-          context_data: emailData.context_data || {},
-          status: 'sent',
-          send_attempts: 1,
-          open_count: 0,
-          click_count: 0,
-          device_info: {},
-          location_info: {}
-        }])
+        .insert([
+          {
+            template_id: emailData.template_id,
+            contractor_id: emailData.contractor_id,
+            recipient_email: emailData.recipient_email,
+            recipient_name: emailData.recipient_name,
+            subject_line: processedContent.subject_line,
+            text_content: processedContent.text_content,
+            html_content: processedContent.html_content,
+            job_id: emailData.job_id,
+            invoice_id: emailData.invoice_id,
+            context_type: emailData.context_type || 'manual',
+            context_data: emailData.context_data || {},
+            status: 'sent',
+            send_attempts: 1,
+            open_count: 0,
+            click_count: 0,
+            device_info: {},
+            location_info: {},
+          },
+        ])
         .select()
         .single();
 
@@ -424,30 +470,33 @@ export class EmailTemplatesService {
           .from('email_templates')
           .update({
             times_used: supabase.raw('times_used + 1'),
-            last_used: new Date().toISOString()
+            last_used: new Date().toISOString(),
           })
           .eq('id', emailData.template_id);
       }
 
       // In a real implementation, you would integrate with an email service provider
       // like SendGrid, Mailgun, or AWS SES to actually send the email
-      
+
       // For now, we'll simulate successful sending
       return {
         success: true,
-        email_id: emailRecord.id
+        email_id: emailRecord.id,
       };
     } catch (error) {
       logger.error('Error sending email:', error);
       return {
         success: false,
         email_id: '',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
-  static async getEmailHistory(contractorId: string, limit: number = 50): Promise<EmailHistory[]> {
+  static async getEmailHistory(
+    contractorId: string,
+    limit: number = 50
+  ): Promise<EmailHistory[]> {
     try {
       const { data, error } = await supabase
         .from('email_history')
@@ -502,13 +551,13 @@ export class EmailTemplatesService {
     periodEnd: string
   ): Promise<{
     summary: EmailAnalytics;
-    by_template: Array<EmailAnalytics & { template_name: string }>;
-    by_category: Array<{ category: string; metrics: EmailAnalytics }>;
+    by_template: (EmailAnalytics & { template_name: string })[];
+    by_category: { category: string; metrics: EmailAnalytics }[];
   }> {
     try {
       // This would be implemented with more complex queries
       // For now, return a simplified version
-      
+
       const { data: history, error } = await supabase
         .from('email_history')
         .select('*')
@@ -520,10 +569,13 @@ export class EmailTemplatesService {
 
       // Calculate basic metrics
       const totalSent = history?.length || 0;
-      const delivered = history?.filter((h: any) => h.status === 'delivered').length || 0;
+      const delivered =
+        history?.filter((h: any) => h.status === 'delivered').length || 0;
       const opened = history?.filter((h: any) => h.open_count > 0).length || 0;
-      const clicked = history?.filter((h: any) => h.click_count > 0).length || 0;
-      const bounced = history?.filter((h: any) => h.status === 'bounced').length || 0;
+      const clicked =
+        history?.filter((h: any) => h.click_count > 0).length || 0;
+      const bounced =
+        history?.filter((h: any) => h.status === 'bounced').length || 0;
 
       const summary: EmailAnalytics = {
         id: '',
@@ -535,9 +587,11 @@ export class EmailTemplatesService {
         emails_bounced: bounced,
         emails_failed: 0,
         unique_opens: opened,
-        total_opens: history?.reduce((sum: number, h: any) => sum + h.open_count, 0) || 0,
+        total_opens:
+          history?.reduce((sum: number, h: any) => sum + h.open_count, 0) || 0,
         unique_clicks: clicked,
-        total_clicks: history?.reduce((sum: number, h: any) => sum + h.click_count, 0) || 0,
+        total_clicks:
+          history?.reduce((sum: number, h: any) => sum + h.click_count, 0) || 0,
         unsubscribes: 0,
         complaints: 0,
         delivery_rate: totalSent > 0 ? (delivered / totalSent) * 100 : 0,
@@ -548,13 +602,13 @@ export class EmailTemplatesService {
         leads_generated: 0,
         jobs_booked: 0,
         revenue_generated: 0,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       return {
         summary,
         by_template: [],
-        by_category: []
+        by_category: [],
       };
     } catch (error) {
       logger.error('Error generating analytics report:', error);
@@ -578,27 +632,29 @@ export class EmailTemplatesService {
 
       const { data, error } = await supabase
         .from('email_templates')
-        .insert([{
-          contractor_id: original.contractor_id,
-          template_name: newName,
-          template_category: original.template_category,
-          template_type: original.template_type,
-          subject_line: original.subject_line,
-          html_content: original.html_content,
-          text_content: original.text_content,
-          preview_text: original.preview_text,
-          description: `Copy of ${original.description || original.template_name}`,
-          is_active: true,
-          is_default: false,
-          language_code: original.language_code,
-          variables: original.variables,
-          required_variables: original.required_variables,
-          brand_colors: original.brand_colors,
-          logo_url: original.logo_url,
-          company_signature: original.company_signature,
-          footer_content: original.footer_content,
-          times_used: 0
-        }])
+        .insert([
+          {
+            contractor_id: original.contractor_id,
+            template_name: newName,
+            template_category: original.template_category,
+            template_type: original.template_type,
+            subject_line: original.subject_line,
+            html_content: original.html_content,
+            text_content: original.text_content,
+            preview_text: original.preview_text,
+            description: `Copy of ${original.description || original.template_name}`,
+            is_active: true,
+            is_default: false,
+            language_code: original.language_code,
+            variables: original.variables,
+            required_variables: original.required_variables,
+            brand_colors: original.brand_colors,
+            logo_url: original.logo_url,
+            company_signature: original.company_signature,
+            footer_content: original.footer_content,
+            times_used: 0,
+          },
+        ])
         .select()
         .single();
 
@@ -638,7 +694,7 @@ export class EmailTemplatesService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 

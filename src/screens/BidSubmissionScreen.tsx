@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
@@ -9,9 +17,14 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
 
-
-type BidSubmissionScreenRouteProp = RouteProp<RootStackParamList, 'BidSubmission'>;
-type BidSubmissionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'BidSubmission'>;
+type BidSubmissionScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'BidSubmission'
+>;
+type BidSubmissionScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'BidSubmission'
+>;
 
 interface Props {
   route: BidSubmissionScreenRouteProp;
@@ -70,7 +83,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       });
 
       Alert.alert('Success', 'Your bid has been submitted!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to submit bid');
@@ -98,7 +111,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -120,10 +133,10 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.label}>Your Bid Amount *</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter your bid amount"
+            placeholder='Enter your bid amount'
             value={amount}
             onChangeText={setAmount}
-            keyboardType="numeric"
+            keyboardType='numeric'
           />
 
           <Text style={styles.label}>Proposal Description *</Text>
@@ -134,23 +147,34 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             onChangeText={setDescription}
             multiline
             numberOfLines={6}
-            textAlignVertical="top"
+            textAlignVertical='top'
             maxLength={1000}
           />
 
           <View style={styles.tipBox}>
             <Text style={styles.tipTitle}>💡 Bidding Tips:</Text>
-            <Text style={styles.tipText}>• Be competitive but fair with your pricing</Text>
-            <Text style={styles.tipText}>• Include your timeline and availability</Text>
-            <Text style={styles.tipText}>• Mention relevant experience or certifications</Text>
-            <Text style={styles.tipText}>• Be professional and detailed in your proposal</Text>
+            <Text style={styles.tipText}>
+              • Be competitive but fair with your pricing
+            </Text>
+            <Text style={styles.tipText}>
+              • Include your timeline and availability
+            </Text>
+            <Text style={styles.tipText}>
+              • Mention relevant experience or certifications
+            </Text>
+            <Text style={styles.tipText}>
+              • Be professional and detailed in your proposal
+            </Text>
           </View>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            submitting && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
         >

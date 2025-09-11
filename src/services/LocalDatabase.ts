@@ -135,7 +135,7 @@ class LocalDatabaseService {
         query_key TEXT, -- JSON array as string
         created_at INTEGER NOT NULL,
         synced_at INTEGER
-      )`
+      )`,
     ];
 
     for (const tableSQL of tables) {
@@ -204,11 +204,14 @@ class LocalDatabaseService {
       user.created_at,
       user.updated_at,
       markDirty ? null : new Date().toISOString(),
-      markDirty ? 1 : 0
+      markDirty ? 1 : 0,
     ];
 
     await this.db.runAsync(query, values);
-    logger.debug('User saved to local database', { userId: user.id, markDirty });
+    logger.debug('User saved to local database', {
+      userId: user.id,
+      markDirty,
+    });
   }
 
   async getUser(userId: string): Promise<User | null> {
@@ -216,7 +219,7 @@ class LocalDatabaseService {
 
     const query = 'SELECT * FROM users WHERE id = ?';
     const result = await this.db.getFirstAsync(query, [userId]);
-    
+
     return result ? this.mapRowToUser(result as any) : null;
   }
 
@@ -225,7 +228,7 @@ class LocalDatabaseService {
 
     const query = 'SELECT * FROM users ORDER BY created_at DESC';
     const rows = await this.db.getAllAsync(query);
-    
+
     return rows.map(this.mapRowToUser);
   }
 
@@ -284,7 +287,7 @@ class LocalDatabaseService {
       job.created_at,
       job.updated_at,
       markDirty ? null : new Date().toISOString(),
-      markDirty ? 1 : 0
+      markDirty ? 1 : 0,
     ];
 
     await this.db.runAsync(query, values);
@@ -296,16 +299,17 @@ class LocalDatabaseService {
 
     const query = 'SELECT * FROM jobs WHERE id = ?';
     const result = await this.db.getFirstAsync(query, [jobId]);
-    
+
     return result ? this.mapRowToJob(result as any) : null;
   }
 
   async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const query = 'SELECT * FROM jobs WHERE homeowner_id = ? ORDER BY created_at DESC';
+    const query =
+      'SELECT * FROM jobs WHERE homeowner_id = ? ORDER BY created_at DESC';
     const rows = await this.db.getAllAsync(query, [homeownerId]);
-    
+
     return rows.map(this.mapRowToJob);
   }
 
@@ -322,7 +326,7 @@ class LocalDatabaseService {
 
     query += ' ORDER BY created_at DESC';
     const rows = await this.db.getAllAsync(query, params);
-    
+
     return rows.map(this.mapRowToJob);
   }
 
@@ -354,7 +358,10 @@ class LocalDatabaseService {
   // MESSAGE OPERATIONS
   // ============================================================================
 
-  async saveMessage(message: Omit<Message, 'senderName' | 'senderRole'>, markDirty: boolean = false): Promise<void> {
+  async saveMessage(
+    message: Omit<Message, 'senderName' | 'senderRole'>,
+    markDirty: boolean = false
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `
@@ -375,14 +382,20 @@ class LocalDatabaseService {
       message.read ? 1 : 0,
       message.createdAt,
       markDirty ? null : new Date().toISOString(),
-      markDirty ? 1 : 0
+      markDirty ? 1 : 0,
     ];
 
     await this.db.runAsync(query, values);
-    logger.debug('Message saved to local database', { messageId: message.id, markDirty });
+    logger.debug('Message saved to local database', {
+      messageId: message.id,
+      markDirty,
+    });
   }
 
-  async getMessagesByJob(jobId: string, limit: number = 50): Promise<Message[]> {
+  async getMessagesByJob(
+    jobId: string,
+    limit: number = 50
+  ): Promise<Message[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `
@@ -393,7 +406,7 @@ class LocalDatabaseService {
       ORDER BY m.created_at DESC 
       LIMIT ?
     `;
-    
+
     const rows = await this.db.getAllAsync(query, [jobId, limit]);
     return rows.map(this.mapRowToMessage).reverse(); // Chronological order
   }
@@ -409,8 +422,10 @@ class LocalDatabaseService {
       attachmentUrl: row.attachment_url,
       read: Boolean(row.read),
       createdAt: row.created_at,
-      senderName: row.first_name && row.last_name ? 
-        `${row.first_name} ${row.last_name}`.trim() : 'Unknown User',
+      senderName:
+        row.first_name && row.last_name
+          ? `${row.first_name} ${row.last_name}`.trim()
+          : 'Unknown User',
       senderRole: row.role,
     };
   }
@@ -438,7 +453,7 @@ class LocalDatabaseService {
 
     const query = 'SELECT * FROM sync_metadata WHERE table_name = ?';
     const result = await this.db.getFirstAsync(query, [tableName]);
-    
+
     if (!result) return null;
 
     return {
@@ -462,7 +477,7 @@ class LocalDatabaseService {
       metadata.table,
       metadata.lastSyncTimestamp,
       metadata.recordCount,
-      metadata.isDirty ? 1 : 0
+      metadata.isDirty ? 1 : 0,
     ]);
   }
 
@@ -493,14 +508,15 @@ class LocalDatabaseService {
       JSON.stringify(action.data),
       action.maxRetries,
       action.queryKey ? JSON.stringify(action.queryKey) : null,
-      Date.now()
+      Date.now(),
     ]);
   }
 
   async getOfflineActions(): Promise<any[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const query = 'SELECT * FROM offline_actions WHERE synced_at IS NULL ORDER BY created_at ASC';
+    const query =
+      'SELECT * FROM offline_actions WHERE synced_at IS NULL ORDER BY created_at ASC';
     return await this.db.getAllAsync(query);
   }
 
@@ -518,12 +534,19 @@ class LocalDatabaseService {
   async clearAllData(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const tables = ['users', 'jobs', 'messages', 'bids', 'sync_metadata', 'offline_actions'];
-    
+    const tables = [
+      'users',
+      'jobs',
+      'messages',
+      'bids',
+      'sync_metadata',
+      'offline_actions',
+    ];
+
     for (const table of tables) {
       await this.db.runAsync(`DELETE FROM ${table}`);
     }
-    
+
     logger.info('All local data cleared');
   }
 
@@ -541,7 +564,7 @@ class LocalDatabaseService {
         (SELECT COUNT(*) FROM messages) +
         (SELECT COUNT(*) FROM bids) as total
     `;
-    
+
     const dirtyQuery = `
       SELECT 
         (SELECT COUNT(*) FROM users WHERE is_dirty = TRUE) +
@@ -549,13 +572,14 @@ class LocalDatabaseService {
         (SELECT COUNT(*) FROM messages WHERE is_dirty = TRUE) +
         (SELECT COUNT(*) FROM bids WHERE is_dirty = TRUE) as dirty
     `;
-    
-    const actionsQuery = 'SELECT COUNT(*) as actions FROM offline_actions WHERE synced_at IS NULL';
+
+    const actionsQuery =
+      'SELECT COUNT(*) as actions FROM offline_actions WHERE synced_at IS NULL';
 
     const [totalResult, dirtyResult, actionsResult] = await Promise.all([
       this.db.getFirstAsync(totalQuery),
       this.db.getFirstAsync(dirtyQuery),
-      this.db.getFirstAsync(actionsQuery)
+      this.db.getFirstAsync(actionsQuery),
     ]);
 
     return {

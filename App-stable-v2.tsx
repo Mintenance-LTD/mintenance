@@ -7,7 +7,7 @@ const LoadingScreen = () => (
   <View style={styles.container}>
     <Text style={styles.title}>Mintenance</Text>
     <Text style={styles.subtitle}>Contractor Discovery Marketplace</Text>
-    <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+    <ActivityIndicator size='large' color='#007AFF' style={styles.loader} />
     <Text style={styles.loadingText}>Initializing...</Text>
   </View>
 );
@@ -20,11 +20,7 @@ const FallbackScreen = ({ error }: { error?: string }) => (
     <Text style={styles.message}>
       Welcome! The app is starting up in safe mode.
     </Text>
-    {error && (
-      <Text style={styles.error}>
-        Debug: {error}
-      </Text>
-    )}
+    {error && <Text style={styles.error}>Debug: {error}</Text>}
     <Text style={styles.features}>
       🔧 Connect with contractors{'\n'}
       🏠 Post home improvement jobs{'\n'}
@@ -47,9 +43,9 @@ export default function App() {
   const initializeApp = async () => {
     try {
       console.log('🚀 Starting Mintenance app...');
-      
+
       // Small delay for smoother loading
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const loadedComponents: any = {};
       let hasAllComponents = true;
@@ -62,7 +58,9 @@ export default function App() {
       } catch (e: any) {
         console.warn('⚠️ AuthProvider failed, using fallback');
         try {
-          const { AuthProvider } = await import('./src/contexts/AuthContext-fallback');
+          const { AuthProvider } = await import(
+            './src/contexts/AuthContext-fallback'
+          );
           loadedComponents.AuthProvider = AuthProvider;
         } catch (fallbackError) {
           console.error('❌ AuthProvider fallback failed');
@@ -71,13 +69,16 @@ export default function App() {
       }
 
       try {
-        const AppNavigator = (await import('./src/navigation/AppNavigator')).default;
+        const AppNavigator = (await import('./src/navigation/AppNavigator'))
+          .default;
         loadedComponents.AppNavigator = AppNavigator;
         console.log('✅ AppNavigator loaded');
       } catch (e) {
         console.warn('⚠️ AppNavigator failed, using fallback');
         try {
-          const AppNavigator = (await import('./src/navigation/AppNavigator-fallback')).default;
+          const AppNavigator = (
+            await import('./src/navigation/AppNavigator-fallback')
+          ).default;
           loadedComponents.AppNavigator = AppNavigator;
         } catch (fallbackError) {
           console.error('❌ AppNavigator fallback failed');
@@ -87,14 +88,16 @@ export default function App() {
 
       // Try to load optional components (won't fail startup if missing)
       try {
-        const ErrorBoundary = (await import('./src/components/ErrorBoundary')).default;
+        const ErrorBoundary = (await import('./src/components/ErrorBoundary'))
+          .default;
         loadedComponents.ErrorBoundary = ErrorBoundary;
       } catch (e) {
         console.log('ℹ️ ErrorBoundary not available, using built-in');
       }
 
       try {
-        const QueryProvider = (await import('./src/providers/QueryProvider')).default;
+        const QueryProvider = (await import('./src/providers/QueryProvider'))
+          .default;
         loadedComponents.QueryProvider = QueryProvider;
       } catch (e) {
         console.log('ℹ️ QueryProvider not available, using basic setup');
@@ -102,14 +105,13 @@ export default function App() {
 
       setComponents(loadedComponents);
       setAppReady(hasAllComponents);
-      
+
       if (hasAllComponents) {
         console.log('✅ App initialization completed successfully');
       } else {
         setError('Some components failed to load');
         console.log('⚠️ App initialized in fallback mode');
       }
-      
     } catch (error: any) {
       console.error('❌ App initialization failed:', error);
       setError(error.message || 'Initialization failed');
@@ -122,7 +124,7 @@ export default function App() {
     return (
       <>
         <LoadingScreen />
-        <StatusBar style="auto" />
+        <StatusBar style='auto' />
       </>
     );
   }
@@ -132,18 +134,19 @@ export default function App() {
     return (
       <>
         <FallbackScreen error={error} />
-        <StatusBar style="auto" />
+        <StatusBar style='auto' />
       </>
     );
   }
 
   // Render full app
-  const { AuthProvider, AppNavigator, ErrorBoundary, QueryProvider } = components;
-  
+  const { AuthProvider, AppNavigator, ErrorBoundary, QueryProvider } =
+    components;
+
   const AppContent = () => (
     <AuthProvider>
       <AppNavigator />
-      <StatusBar style="auto" />
+      <StatusBar style='auto' />
     </AuthProvider>
   );
 

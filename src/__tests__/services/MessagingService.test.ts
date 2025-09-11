@@ -80,13 +80,22 @@ describe('MessagingService', () => {
     });
 
     it('should handle message sending errors', async () => {
-      mockSupabase.from().insert().select().single.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database error' },
-      });
+      mockSupabase
+        .from()
+        .insert()
+        .select()
+        .single.mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Database error' },
+        });
 
       await expect(
-        MessagingService.sendMessage('job-1', 'user-2', 'Test message', 'user-1')
+        MessagingService.sendMessage(
+          'job-1',
+          'user-2',
+          'Test message',
+          'user-1'
+        )
       ).rejects.toThrow();
     });
 
@@ -170,7 +179,9 @@ describe('MessagingService', () => {
 
       await MessagingService.getJobMessages('job-1', 20, 40);
 
-      expect(mockSupabase.from().select().eq().order().range).toHaveBeenCalledWith(40, 59);
+      expect(
+        mockSupabase.from().select().eq().order().range
+      ).toHaveBeenCalledWith(40, 59);
     });
   });
 
@@ -182,8 +193,16 @@ describe('MessagingService', () => {
           title: 'Kitchen Repair',
           homeowner_id: 'user-1',
           contractor_id: 'user-2',
-          homeowner: { first_name: 'John', last_name: 'Homeowner', role: 'homeowner' },
-          contractor: { first_name: 'Jane', last_name: 'Contractor', role: 'contractor' },
+          homeowner: {
+            first_name: 'John',
+            last_name: 'Homeowner',
+            role: 'homeowner',
+          },
+          contractor: {
+            first_name: 'Jane',
+            last_name: 'Contractor',
+            role: 'contractor',
+          },
         },
       ];
 
@@ -193,15 +212,26 @@ describe('MessagingService', () => {
       });
 
       // Mock last message query
-      mockSupabase.from().select().eq().order().limit.mockResolvedValueOnce({
-        data: [{
-          id: 'msg-1',
-          message_text: 'Latest message',
-          created_at: '2024-01-01T10:00:00Z',
-          sender: { first_name: 'Jane', last_name: 'Contractor', role: 'contractor' },
-        }],
-        error: null,
-      });
+      mockSupabase
+        .from()
+        .select()
+        .eq()
+        .order()
+        .limit.mockResolvedValueOnce({
+          data: [
+            {
+              id: 'msg-1',
+              message_text: 'Latest message',
+              created_at: '2024-01-01T10:00:00Z',
+              sender: {
+                first_name: 'Jane',
+                last_name: 'Contractor',
+                role: 'contractor',
+              },
+            },
+          ],
+          error: null,
+        });
 
       // Mock unread count query
       mockSupabase.from().select().eq().eq().eq.mockResolvedValueOnce({
@@ -245,9 +275,14 @@ describe('MessagingService', () => {
 
       mockSupabase.channel.mockReturnValueOnce(mockChannel);
 
-      const unsubscribe = MessagingService.subscribeToJobMessages('job-1', mockCallback);
+      const unsubscribe = MessagingService.subscribeToJobMessages(
+        'job-1',
+        mockCallback
+      );
 
-      expect(mockSupabase.channel).toHaveBeenCalledWith('messages:job_id=eq.job-1');
+      expect(mockSupabase.channel).toHaveBeenCalledWith(
+        'messages:job_id=eq.job-1'
+      );
       expect(mockChannel.on).toHaveBeenCalledTimes(2); // INSERT and UPDATE events
 
       // Test unsubscribe function
@@ -269,10 +304,14 @@ describe('MessagingService', () => {
     });
 
     it('should handle errors gracefully and return 0', async () => {
-      mockSupabase.from().select().eq().eq.mockResolvedValueOnce({
-        count: null,
-        error: { message: 'Database error' },
-      });
+      mockSupabase
+        .from()
+        .select()
+        .eq()
+        .eq.mockResolvedValueOnce({
+          count: null,
+          error: { message: 'Database error' },
+        });
 
       const count = await MessagingService.getUnreadMessageCount('user-1');
 
@@ -303,16 +342,30 @@ describe('MessagingService', () => {
           id: 'msg-1',
           job_id: 'job-1',
           message_text: 'I can fix the plumbing issue',
-          sender: { first_name: 'John', last_name: 'Contractor', role: 'contractor' },
+          sender: {
+            first_name: 'John',
+            last_name: 'Contractor',
+            role: 'contractor',
+          },
         },
       ];
 
-      mockSupabase.from().select().eq().ilike().order().limit.mockResolvedValueOnce({
-        data: mockSearchResults,
-        error: null,
-      });
+      mockSupabase
+        .from()
+        .select()
+        .eq()
+        .ilike()
+        .order()
+        .limit.mockResolvedValueOnce({
+          data: mockSearchResults,
+          error: null,
+        });
 
-      const result = await MessagingService.searchJobMessages('job-1', 'plumbing', 20);
+      const result = await MessagingService.searchJobMessages(
+        'job-1',
+        'plumbing',
+        20
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].messageText).toContain('plumbing');

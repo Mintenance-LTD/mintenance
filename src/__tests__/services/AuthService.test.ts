@@ -11,7 +11,9 @@ jest.mock('../../utils/errorHandler', () => ({
     validateEmail: jest.fn(),
     validatePassword: jest.fn(),
     validateRequired: jest.fn(),
-    getUserMessage: jest.fn((error) => error.userMessage || error.message || 'An error occurred'),
+    getUserMessage: jest.fn(
+      (error) => error.userMessage || error.message || 'An error occurred'
+    ),
     createError: jest.fn((message, code, userMessage) => {
       const error = new Error(userMessage || message);
       error.name = code || 'Error';
@@ -29,13 +31,13 @@ const mockUser: User = {
   last_name: 'Doe',
   role: 'homeowner',
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
+  updated_at: new Date().toISOString(),
 };
 
 const mockAuthUser = {
   id: 'user-1',
   email: 'test@example.com',
-  user_metadata: {}
+  user_metadata: {},
 };
 
 describe('AuthService', () => {
@@ -49,17 +51,17 @@ describe('AuthService', () => {
       password: 'password123',
       firstName: 'John',
       lastName: 'Doe',
-      role: 'homeowner' as const
+      role: 'homeowner' as const,
     };
 
     it('signs up user successfully', async () => {
       mockSupabase.auth.signUp.mockResolvedValue({
         data: { user: mockAuthUser },
-        error: null
+        error: null,
       });
 
       mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null })
+        insert: jest.fn().mockResolvedValue({ error: null }),
       } as any);
 
       const result = await AuthService.signUp(signUpData);
@@ -72,9 +74,9 @@ describe('AuthService', () => {
             first_name: signUpData.firstName,
             last_name: signUpData.lastName,
             role: signUpData.role,
-            full_name: `${signUpData.firstName} ${signUpData.lastName}`
-          }
-        }
+            full_name: `${signUpData.firstName} ${signUpData.lastName}`,
+          },
+        },
       });
 
       expect(result.user).toEqual(mockAuthUser);
@@ -84,11 +86,12 @@ describe('AuthService', () => {
       const error = { message: 'Email already registered' };
       mockSupabase.auth.signUp.mockResolvedValue({
         data: { user: null },
-        error
+        error,
       });
 
-      await expect(AuthService.signUp(signUpData))
-        .rejects.toThrow('Email already registered');
+      await expect(AuthService.signUp(signUpData)).rejects.toThrow(
+        'Email already registered'
+      );
     });
 
     it('validates email format', async () => {
@@ -97,9 +100,10 @@ describe('AuthService', () => {
         throw new Error('Please enter a valid email address.');
       });
 
-      await expect(AuthService.signUp(invalidData))
-        .rejects.toThrow('Please enter a valid email address.');
-      
+      await expect(AuthService.signUp(invalidData)).rejects.toThrow(
+        'Please enter a valid email address.'
+      );
+
       expect(ErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email');
     });
 
@@ -109,9 +113,10 @@ describe('AuthService', () => {
         throw new Error('Password must be at least 8 characters long.');
       });
 
-      await expect(AuthService.signUp(weakPasswordData))
-        .rejects.toThrow('Password must be at least 8 characters long.');
-      
+      await expect(AuthService.signUp(weakPasswordData)).rejects.toThrow(
+        'Password must be at least 8 characters long.'
+      );
+
       expect(ErrorHandler.validatePassword).toHaveBeenCalledWith('123');
     });
 
@@ -121,10 +126,14 @@ describe('AuthService', () => {
         throw new Error('First name is required.');
       });
 
-      await expect(AuthService.signUp(incompleteData))
-        .rejects.toThrow('First name is required.');
-      
-      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith('', 'First name');
+      await expect(AuthService.signUp(incompleteData)).rejects.toThrow(
+        'First name is required.'
+      );
+
+      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith(
+        '',
+        'First name'
+      );
     });
   });
 
@@ -133,20 +142,23 @@ describe('AuthService', () => {
       const mockSession = { user: mockAuthUser, access_token: 'token123' };
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: mockAuthUser, session: mockSession },
-        error: null
+        error: null,
       });
 
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null })
+        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
       } as any);
 
-      const result = await AuthService.signIn('test@example.com', 'password123');
+      const result = await AuthService.signIn(
+        'test@example.com',
+        'password123'
+      );
 
       expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       });
 
       const expectedUser = {
@@ -163,11 +175,12 @@ describe('AuthService', () => {
       const error = { message: 'Invalid login credentials' };
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: null },
-        error
+        error,
       });
 
-      await expect(AuthService.signIn('test@example.com', 'wrongpassword'))
-        .rejects.toThrow('Invalid login credentials');
+      await expect(
+        AuthService.signIn('test@example.com', 'wrongpassword')
+      ).rejects.toThrow('Invalid login credentials');
     });
 
     it('validates email format', async () => {
@@ -175,9 +188,10 @@ describe('AuthService', () => {
         throw new Error('Please enter a valid email address.');
       });
 
-      await expect(AuthService.signIn('invalid-email', 'password123'))
-        .rejects.toThrow('Please enter a valid email address.');
-      
+      await expect(
+        AuthService.signIn('invalid-email', 'password123')
+      ).rejects.toThrow('Please enter a valid email address.');
+
       expect(ErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email');
     });
 
@@ -186,10 +200,14 @@ describe('AuthService', () => {
         throw new Error('Password is required.');
       });
 
-      await expect(AuthService.signIn('test@example.com', ''))
-        .rejects.toThrow('Password is required.');
-      
-      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith('', 'Password');
+      await expect(AuthService.signIn('test@example.com', '')).rejects.toThrow(
+        'Password is required.'
+      );
+
+      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith(
+        '',
+        'Password'
+      );
     });
   });
 
@@ -206,8 +224,7 @@ describe('AuthService', () => {
       const error = new Error('Signout failed');
       mockSupabase.auth.signOut.mockResolvedValue({ error });
 
-      await expect(AuthService.signOut())
-        .rejects.toThrow('Signout failed');
+      await expect(AuthService.signOut()).rejects.toThrow('Signout failed');
     });
   });
 
@@ -216,7 +233,7 @@ describe('AuthService', () => {
       const mockSession = { user: mockAuthUser, access_token: 'token' };
       mockSupabase.auth.getSession.mockResolvedValue({
         data: { session: mockSession },
-        error: null
+        error: null,
       });
 
       const result = await AuthService.getCurrentSession();
@@ -227,7 +244,7 @@ describe('AuthService', () => {
     it('returns null when no session', async () => {
       mockSupabase.auth.getSession.mockResolvedValue({
         data: { session: null },
-        error: null
+        error: null,
       });
 
       const result = await AuthService.getCurrentSession();
@@ -240,13 +257,13 @@ describe('AuthService', () => {
     it('returns current user profile', async () => {
       mockSupabase.auth.getSession.mockResolvedValue({
         data: { session: { user: mockAuthUser } },
-        error: null
+        error: null,
       });
 
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null })
+        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
       } as any);
 
       const result = await AuthService.getCurrentUser();
@@ -264,7 +281,7 @@ describe('AuthService', () => {
     it('returns null when not authenticated', async () => {
       mockSupabase.auth.getSession.mockResolvedValue({
         data: { session: null },
-        error: null
+        error: null,
       });
 
       const result = await AuthService.getCurrentUser();
@@ -282,7 +299,7 @@ describe('AuthService', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: updatedUser, error: null })
+        single: jest.fn().mockResolvedValue({ data: updatedUser, error: null }),
       } as any);
 
       const result = await AuthService.updateUserProfile('user-1', updates);
@@ -294,8 +311,9 @@ describe('AuthService', () => {
     it('validates profile updates', async () => {
       const invalidUpdates = { email: 'invalid-email' };
 
-      await expect(AuthService.updateUserProfile('user-1', invalidUpdates))
-        .rejects.toThrow('Invalid email format');
+      await expect(
+        AuthService.updateUserProfile('user-1', invalidUpdates)
+      ).rejects.toThrow('Invalid email format');
     });
   });
 
@@ -303,7 +321,7 @@ describe('AuthService', () => {
     it('sends password reset email', async () => {
       mockSupabase.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
         data: {},
-        error: null
+        error: null,
       });
 
       await AuthService.resetPassword('test@example.com');
@@ -317,18 +335,20 @@ describe('AuthService', () => {
       const error = { message: 'Email not found' };
       mockSupabase.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
         data: null,
-        error
+        error,
       });
 
-      await expect(AuthService.resetPassword('test@example.com'))
-        .rejects.toThrow('Email not found');
+      await expect(
+        AuthService.resetPassword('test@example.com')
+      ).rejects.toThrow('Email not found');
     });
   });
 
   describe('validateToken', () => {
     it('validates JWT token successfully', () => {
-      const validToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-      
+      const validToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
       const result = AuthService.validateToken(validToken);
 
       expect(result).toBe(true);
@@ -344,7 +364,8 @@ describe('AuthService', () => {
 
     it('rejects expired tokens', () => {
       // Mock expired token
-      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid';
+      const expiredToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid';
 
       const result = AuthService.validateToken(expiredToken);
 

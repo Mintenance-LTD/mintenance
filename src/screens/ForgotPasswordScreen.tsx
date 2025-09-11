@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import Button from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,7 +19,10 @@ import { AuthStackParamList } from '../navigation/AppNavigator';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
-type ForgotPasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
+type ForgotPasswordScreenNavigationProp = StackNavigationProp<
+  AuthStackParamList,
+  'ForgotPassword'
+>;
 
 interface Props {
   navigation: ForgotPasswordScreenNavigationProp;
@@ -35,10 +49,10 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       await AuthService.resetPassword(email);
       setSuccess(true);
       logger.info('Password reset email sent', { email });
-      
+
       Alert.alert(
         'Check Your Email',
-        'We\'ve sent you a password reset link. Please check your email and follow the instructions to reset your password.',
+        "We've sent you a password reset link. Please check your email and follow the instructions to reset your password.",
         [
           {
             text: 'OK',
@@ -50,7 +64,8 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       logger.error('Password reset failed', error);
       Alert.alert(
         'Reset Failed',
-        error.message || 'Failed to send reset email. Please check your email address and try again.'
+        error.message ||
+          'Failed to send reset email. Please check your email address and try again.'
       );
     } finally {
       setLoading(false);
@@ -62,23 +77,28 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Image 
-              source={require('../../assets/icon.png')} 
+            <Image
+              source={require('../../assets/icon.png')}
               style={styles.headerLogo}
-              resizeMode="contain"
+              resizeMode='contain'
             />
             <Text style={styles.headerTitle}>Mintenance</Text>
           </View>
         </View>
 
         <View style={styles.successContainer}>
-          <Ionicons name="checkmark-circle" size={80} color={theme.colors.success} />
+          <Ionicons
+            name='checkmark-circle'
+            size={80}
+            color={theme.colors.success}
+          />
           <Text style={styles.successTitle}>Email Sent!</Text>
           <Text style={styles.successMessage}>
-            We've sent a password reset link to {email}. Please check your email and follow the instructions.
+            We've sent a password reset link to {email}. Please check your email
+            and follow the instructions.
           </Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
@@ -93,90 +113,97 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       {/* Header with Back Button */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backIconButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          accessibilityHint="Return to login screen"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          accessibilityHint='Return to login screen'
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
-        
+
         <View style={styles.headerContent}>
-          <Image 
-            source={require('../../assets/icon.png')} 
+          <Image
+            source={require('../../assets/icon.png')}
             style={styles.headerLogo}
-            resizeMode="contain"
+            resizeMode='contain'
           />
           <Text style={styles.headerTitle}>Reset Password</Text>
         </View>
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps='handled'
         >
           <View style={styles.formContainer}>
             <View style={styles.instructionContainer}>
-              <Ionicons name="mail" size={48} color={theme.colors.primary} />
+              <Ionicons name='mail' size={48} color={theme.colors.primary} />
               <Text style={styles.instructionTitle}>Forgot your password?</Text>
               <Text style={styles.instructionText}>
-                Enter your email address and we'll send you a link to reset your password.
+                Enter your email address and we'll send you a link to reset your
+                password.
               </Text>
             </View>
 
             {/* Email Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="mail-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name='mail-outline'
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Email Address"
+                placeholder='Email Address'
                 value={email}
                 onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                keyboardType='email-address'
+                autoCapitalize='none'
                 autoCorrect={false}
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel="Email address"
-                accessibilityHint="Enter your email address to receive a password reset link"
-                accessibilityRole="none"
-                textContentType="emailAddress"
-                autoComplete="email"
+                accessibilityLabel='Email address'
+                accessibilityHint='Enter your email address to receive a password reset link'
+                accessibilityRole='none'
+                textContentType='emailAddress'
+                autoComplete='email'
                 autoFocus
               />
             </View>
-            
+
             {/* Send Reset Link Button */}
             <Button
-              variant="primary"
+              variant='primary'
               title={loading ? 'Sending...' : 'Send Reset Link'}
               onPress={handleResetPassword}
               disabled={loading}
               loading={loading}
-              accessibilityLabel={loading ? 'Sending reset email' : 'Send reset email'}
+              accessibilityLabel={
+                loading ? 'Sending reset email' : 'Send reset email'
+              }
               fullWidth
               style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 24 }}
             />
-            
+
             {/* Back to Login Link */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backLinkButton}
               onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Back to login"
-              accessibilityHint="Return to login screen"
+              accessibilityRole='button'
+              accessibilityLabel='Back to login'
+              accessibilityHint='Return to login screen'
             >
               <Text style={styles.backLinkText}>Back to Login</Text>
             </TouchableOpacity>

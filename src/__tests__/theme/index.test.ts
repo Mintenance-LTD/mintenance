@@ -1,12 +1,12 @@
-import { 
-  theme, 
-  getStatusColor, 
-  getPriorityColor, 
-  getCategoryColor, 
+import {
+  theme,
+  getStatusColor,
+  getPriorityColor,
+  getCategoryColor,
   getColor,
   getSpacing,
   getFontSize,
-  getShadow
+  getShadow,
 } from '../../theme';
 
 describe('Theme System', () => {
@@ -199,7 +199,7 @@ describe('Theme System', () => {
       // Ensure text colors have sufficient contrast
       expect(theme.colors.textPrimary).toBe('#1F2937'); // Dark text
       expect(theme.colors.surface).toBe('#FFFFFF'); // Light background
-      
+
       // Error states should be distinguishable
       expect(theme.colors.error).toBe('#FF3B30');
       expect(theme.colors.success).toBe('#34C759');

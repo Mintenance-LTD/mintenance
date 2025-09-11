@@ -60,7 +60,7 @@ export class SupabaseMockFactory {
     };
 
     // Make all methods return the chain for chaining, except terminal methods
-    Object.keys(chain).forEach(key => {
+    Object.keys(chain).forEach((key) => {
       if (!['single', 'maybeSingle'].includes(key)) {
         (chain as any)[key].mockReturnValue(chain);
       }
@@ -83,8 +83,12 @@ export class SupabaseMockFactory {
       signOut: jest.fn(),
       resetPasswordForEmail: jest.fn(),
       updateUser: jest.fn(),
-      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: jest.fn(() =>
+        Promise.resolve({ data: { user: null }, error: null })
+      ),
+      getSession: jest.fn(() =>
+        Promise.resolve({ data: { session: null }, error: null })
+      ),
       refreshSession: jest.fn(),
       setSession: jest.fn(),
       onAuthStateChange: jest.fn(() => ({
@@ -131,11 +135,17 @@ export class SupabaseMockFactory {
   }
 
   // Helper methods for common test scenarios
-  static mockSuccessResponse<T>(data: T, count?: number): MockSupabaseResponse<T> {
+  static mockSuccessResponse<T>(
+    data: T,
+    count?: number
+  ): MockSupabaseResponse<T> {
     return { data, error: null, count };
   }
 
-  static mockErrorResponse(message: string, code?: string): MockSupabaseResponse {
+  static mockErrorResponse(
+    message: string,
+    code?: string
+  ): MockSupabaseResponse {
     return {
       data: null,
       error: {
@@ -147,7 +157,10 @@ export class SupabaseMockFactory {
     };
   }
 
-  static setupChainMock(chain: MockSupabaseChain, response: MockSupabaseResponse) {
+  static setupChainMock(
+    chain: MockSupabaseChain,
+    response: MockSupabaseResponse
+  ) {
     chain.single.mockResolvedValueOnce(response);
     chain.maybeSingle.mockResolvedValueOnce(response);
     return chain;
@@ -209,7 +222,16 @@ export const createMockSupabaseClient = SupabaseMockFactory.createMockClient;
 // Export commonly used responses
 export const MOCK_RESPONSES = {
   SUCCESS_EMPTY: SupabaseMockFactory.mockSuccessResponse(null),
-  ERROR_NOT_FOUND: SupabaseMockFactory.mockErrorResponse('Not found', 'NOT_FOUND'),
-  ERROR_UNAUTHORIZED: SupabaseMockFactory.mockErrorResponse('Unauthorized', 'UNAUTHORIZED'),
-  ERROR_NETWORK: SupabaseMockFactory.mockErrorResponse('Network error', 'NETWORK_ERROR'),
+  ERROR_NOT_FOUND: SupabaseMockFactory.mockErrorResponse(
+    'Not found',
+    'NOT_FOUND'
+  ),
+  ERROR_UNAUTHORIZED: SupabaseMockFactory.mockErrorResponse(
+    'Unauthorized',
+    'UNAUTHORIZED'
+  ),
+  ERROR_NETWORK: SupabaseMockFactory.mockErrorResponse(
+    'Network error',
+    'NETWORK_ERROR'
+  ),
 };

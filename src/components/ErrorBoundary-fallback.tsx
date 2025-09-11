@@ -13,7 +13,10 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: any) => void;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -26,10 +29,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('ErrorBoundary caught an error:', error);
     console.error('Error info:', errorInfo);
-    
+
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     // Call custom error handler if provided
@@ -63,9 +66,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
           <Text style={styles.errorMessage}>
-            The app encountered an unexpected error. This is likely a temporary issue.
+            The app encountered an unexpected error. This is likely a temporary
+            issue.
           </Text>
-          
+
           <View style={styles.errorDetails}>
             <Text style={styles.errorDetailsTitle}>Error Details:</Text>
             <Text style={styles.errorDetailsText}>
@@ -73,7 +77,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.retryButton} onPress={this.resetError}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={this.resetError}
+          >
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
 

@@ -6,7 +6,6 @@ import { BiometricService } from '../services/BiometricService';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
-
 interface BiometricLoginButtonProps {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
@@ -30,13 +29,15 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
     try {
       const available = await BiometricService.isAvailable();
       const enabled = await BiometricService.isBiometricEnabled();
-      
+
       setIsAvailable(available);
       setIsEnabled(enabled);
 
       if (available) {
         const types = await BiometricService.getSupportedTypes();
-        const typeNames = types.map(type => BiometricService.getTypeDisplayName(type));
+        const typeNames = types.map((type) =>
+          BiometricService.getTypeDisplayName(type)
+        );
         setBiometricType(typeNames.join(' or '));
       }
     } catch (error) {
@@ -55,18 +56,21 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
       onSuccess?.();
     } catch (error) {
       const errorMessage = (error as Error).message;
-      
+
       // Handle specific error cases
-      if (errorMessage.includes('cancelled') || errorMessage.includes('canceled')) {
+      if (
+        errorMessage.includes('cancelled') ||
+        errorMessage.includes('canceled')
+      ) {
         // User cancelled - don't show error
         return;
       }
-      
+
       Alert.alert(
         'Authentication Failed',
         `${biometricType} authentication failed. Please try again or use your password.`
       );
-      
+
       onError?.(error as Error);
     } finally {
       setLoading(false);
@@ -85,12 +89,12 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleBiometricLogin}
         disabled={loading}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={`Sign in with ${biometricType}`}
-        accessibilityHint="Use biometric authentication to sign in quickly"
+        accessibilityHint='Use biometric authentication to sign in quickly'
       >
         <Ionicons
-          name="finger-print"
+          name='finger-print'
           size={32}
           color={loading ? theme.colors.textTertiary : theme.colors.primary}
         />

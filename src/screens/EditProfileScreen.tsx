@@ -20,7 +20,7 @@ const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
-  
+
   // Form state
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
@@ -32,23 +32,23 @@ const EditProfileScreen: React.FC = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      
+
       const updates = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
         bio: bio.trim(),
       };
-      
+
       // Only update non-empty fields
       const filteredUpdates = Object.fromEntries(
         Object.entries(updates).filter(([_, value]) => value !== '')
       );
-      
+
       if (user && Object.keys(filteredUpdates).length > 0) {
         await AuthService.updateUserProfile(user.id, filteredUpdates);
         Alert.alert('Success', 'Profile updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() }
+          { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
         navigation.goBack();
@@ -63,15 +63,19 @@ const EditProfileScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
-        <TouchableOpacity 
-          style={styles.saveButton} 
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleSave}
           disabled={loading}
         >
@@ -86,7 +90,10 @@ const EditProfileScreen: React.FC = () => {
         <View style={styles.photoSection}>
           <View style={styles.avatarContainer}>
             {user?.profileImageUrl ? (
-              <Image source={{ uri: user.profileImageUrl }} style={styles.avatar} />
+              <Image
+                source={{ uri: user.profileImageUrl }}
+                style={styles.avatar}
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
@@ -96,7 +103,7 @@ const EditProfileScreen: React.FC = () => {
               </View>
             )}
             <TouchableOpacity style={styles.photoEditButton}>
-              <Ionicons name="camera" size={20} color={theme.colors.info} />
+              <Ionicons name='camera' size={20} color={theme.colors.info} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.changePhotoButton}>
@@ -107,51 +114,51 @@ const EditProfileScreen: React.FC = () => {
         {/* Basic Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Information</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>First Name</Text>
             <TextInput
               style={styles.input}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Enter your first name"
-              placeholderTextColor="#999"
+              placeholder='Enter your first name'
+              placeholderTextColor='#999'
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Last Name</Text>
             <TextInput
               style={styles.input}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Enter your last name"
-              placeholderTextColor="#999"
+              placeholder='Enter your last name'
+              placeholderTextColor='#999'
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
             <TextInput
               style={[styles.input, styles.disabledInput]}
               value={user?.email || ''}
               editable={false}
-              placeholderTextColor="#999"
+              placeholderTextColor='#999'
             />
             <Text style={styles.helperText}>
               Email cannot be changed. Contact support if needed.
             </Text>
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone number"
-              placeholderTextColor="#999"
-              keyboardType="phone-pad"
+              placeholder='Enter your phone number'
+              placeholderTextColor='#999'
+              keyboardType='phone-pad'
             />
           </View>
         </View>
@@ -159,31 +166,30 @@ const EditProfileScreen: React.FC = () => {
         {/* Bio Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About You</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Bio</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={bio}
               onChangeText={setBio}
-              placeholder={user?.role === 'contractor' ? 
-                'Tell homeowners about your experience and expertise...' : 
-                'Tell contractors about your project preferences...'
+              placeholder={
+                user?.role === 'contractor'
+                  ? 'Tell homeowners about your experience and expertise...'
+                  : 'Tell contractors about your project preferences...'
               }
-              placeholderTextColor="#999"
+              placeholderTextColor='#999'
               multiline
               numberOfLines={4}
             />
-            <Text style={styles.helperText}>
-              {bio.length}/200 characters
-            </Text>
+            <Text style={styles.helperText}>{bio.length}/200 characters</Text>
           </View>
         </View>
 
         {/* Notification Preferences */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notification Preferences</Text>
-          
+
           <View style={styles.switchRow}>
             <View style={styles.switchInfo}>
               <Text style={styles.switchLabel}>Email Notifications</Text>
@@ -194,11 +200,14 @@ const EditProfileScreen: React.FC = () => {
             <Switch
               value={emailNotifications}
               onValueChange={setEmailNotifications}
-              trackColor={{ false: theme.colors.borderLight, true: theme.colors.success }}
+              trackColor={{
+                false: theme.colors.borderLight,
+                true: theme.colors.success,
+              }}
               thumbColor={theme.colors.textInverse}
             />
           </View>
-          
+
           <View style={styles.switchRow}>
             <View style={styles.switchInfo}>
               <Text style={styles.switchLabel}>Push Notifications</Text>
@@ -209,7 +218,10 @@ const EditProfileScreen: React.FC = () => {
             <Switch
               value={pushNotifications}
               onValueChange={setPushNotifications}
-              trackColor={{ false: theme.colors.borderLight, true: theme.colors.success }}
+              trackColor={{
+                false: theme.colors.borderLight,
+                true: theme.colors.success,
+              }}
               thumbColor={theme.colors.textInverse}
             />
           </View>
@@ -218,21 +230,23 @@ const EditProfileScreen: React.FC = () => {
         {/* Account Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          
+
           <TouchableOpacity style={styles.actionItem}>
             <View style={styles.actionLeft}>
-              <Ionicons name="key-outline" size={20} color="#666" />
+              <Ionicons name='key-outline' size={20} color='#666' />
               <Text style={styles.actionText}>Change Password</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name='chevron-forward' size={16} color='#ccc' />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={[styles.actionItem, styles.dangerAction]}>
             <View style={styles.actionLeft}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-              <Text style={[styles.actionText, styles.dangerText]}>Delete Account</Text>
+              <Ionicons name='trash-outline' size={20} color='#FF3B30' />
+              <Text style={[styles.actionText, styles.dangerText]}>
+                Delete Account
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#FF3B30" />
+            <Ionicons name='chevron-forward' size={16} color='#FF3B30' />
           </TouchableOpacity>
         </View>
       </ScrollView>

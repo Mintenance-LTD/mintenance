@@ -1,5 +1,10 @@
 import React from 'react';
-import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+} from '@tanstack/react-query';
 import { useNetworkState } from './useNetworkState';
 import { OfflineManager, OfflineAction } from '../services/OfflineManager';
 import { LocalDatabase } from '../services/LocalDatabase';
@@ -49,10 +54,10 @@ export const useOfflineQuery = <T = any>({
       retry: (failureCount: number, error: any) => {
         // Don't retry if offline
         if (!isOnline) return false;
-        
+
         // Don't retry on client errors (4xx)
         if (error?.status >= 400 && error?.status < 500) return false;
-        
+
         // Limit retries on slow connections
         const maxRetries = connectionQuality === 'poor' ? 1 : 3;
         return failureCount < maxRetries;
@@ -72,7 +77,9 @@ export const useOfflineQuery = <T = any>({
         if (!isOnline || offlineFirst) {
           const localData = await tryLocalQuery(queryKey);
           if (localData !== null) {
-            logger.debug('Returning local data', { queryKey: (queryKey as string[]).join('.') });
+            logger.debug('Returning local data', {
+              queryKey: (queryKey as string[]).join('.'),
+            });
             return localData;
           }
         }
@@ -83,10 +90,10 @@ export const useOfflineQuery = <T = any>({
         }
 
         const remoteData = await queryFn();
-        
+
         // Cache successful remote data locally
         if (remoteData && isOnline) {
-          await cacheLocalData(queryKey, remoteData).catch(error => {
+          await cacheLocalData(queryKey, remoteData).catch((error) => {
             logger.warn('Failed to cache local data:', error);
           });
         }
@@ -105,7 +112,9 @@ export const useOfflineQuery = <T = any>({
         if (isOnline && !offlineFirst) {
           const localData = await tryLocalQuery(queryKey);
           if (localData !== null) {
-            logger.info('Using local data as fallback', { queryKey: (queryKey as string[]).join('.') });
+            logger.info('Using local data as fallback', {
+              queryKey: (queryKey as string[]).join('.'),
+            });
             return localData;
           }
         }
@@ -143,10 +152,13 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
   const { isOnline, connectionQuality } = useNetworkState();
   const queryClient = useQueryClient();
 
-  const mutationConfig = React.useMemo(() => ({
-    retry: onlineOnly ? (isOnline ? 2 : 0) : 1,
-    retryDelay: connectionQuality === 'poor' ? 3000 : 1000,
-  }), [onlineOnly, isOnline, connectionQuality]);
+  const mutationConfig = React.useMemo(
+    () => ({
+      retry: onlineOnly ? (isOnline ? 2 : 0) : 1,
+      retryDelay: connectionQuality === 'poor' ? 3000 : 1000,
+    }),
+    [onlineOnly, isOnline, connectionQuality]
+  );
 
   return useMutation<TData, Error, TVariables>({
     ...mutationConfig,
@@ -180,7 +192,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
               data: variables,
               maxRetries: retryCount,
               // Persist a mutable copy for offline storage
-              queryKey: (getQueryKey?.(variables) as unknown as string[]),
+              queryKey: getQueryKey?.(variables) as unknown as string[],
             });
 
             logger.info('Mutation queued for offline sync', {
@@ -194,7 +206,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
               return optimisticUpdate(variables) as TData;
             }
           }
-          
+
           throw error;
         }
       }
@@ -206,7 +218,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         data: variables,
         maxRetries: retryCount,
         // Persist a mutable copy for offline storage
-        queryKey: (getQueryKey?.(variables) as unknown as string[]),
+        queryKey: getQueryKey?.(variables) as unknown as string[],
       });
 
       logger.info('Offline mutation queued', {
@@ -221,7 +233,9 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
       }
 
       // Create a more informative error for offline actions without optimistic updates
-      const error = new Error(`${entity} ${actionType.toLowerCase()} has been queued and will sync when connection is restored`);
+      const error = new Error(
+        `${entity} ${actionType.toLowerCase()} has been queued and will sync when connection is restored`
+      );
       error.name = 'OfflineQueuedError';
       throw error;
     },
@@ -229,17 +243,17 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
       // Apply optimistic update to cache if provided
       if (optimisticUpdate && getQueryKey) {
         const queryKey = getQueryKey(variables);
-        
+
         // Cancel any outgoing refetches
         await queryClient.cancelQueries({ queryKey });
-        
+
         // Snapshot the previous value
         const previousData = queryClient.getQueryData(queryKey);
-        
+
         // Optimistically update the cache
         const optimisticData = optimisticUpdate(variables);
         queryClient.setQueryData(queryKey, optimisticData);
-        
+
         return { previousData, queryKey };
       }
     },
@@ -248,7 +262,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
       if (context?.previousData && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousData);
       }
-      
+
       logger.error('Mutation error:', error, {
         entity,
         actionType,
@@ -261,7 +275,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         const queryKey = getQueryKey(variables);
         queryClient.invalidateQueries({ queryKey });
       }
-      
+
       logger.info('Mutation succeeded', {
         entity,
         actionType,
@@ -274,9 +288,9 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
 const tryLocalQuery = async (queryKey: QueryKey): Promise<any> => {
   try {
     await LocalDatabase.init();
-    
+
     const [entity, operation, ...params] = queryKey as string[];
-    
+
     switch (entity) {
       case 'jobs':
         return await handleJobsQuery(operation, params);
@@ -293,7 +307,10 @@ const tryLocalQuery = async (queryKey: QueryKey): Promise<any> => {
   }
 };
 
-const handleJobsQuery = async (operation: string, params: string[]): Promise<any> => {
+const handleJobsQuery = async (
+  operation: string,
+  params: string[]
+): Promise<any> => {
   switch (operation) {
     case 'list':
       if (params[0] === 'available') {
@@ -303,7 +320,9 @@ const handleJobsQuery = async (operation: string, params: string[]): Promise<any
         return await LocalDatabase.getJobsByHomeowner(homeownerId);
       } else if (params[0]?.startsWith('status:')) {
         const status = params[0].split(':')[1];
-        const userId = params[0].includes('user:') ? params[0].split('user:')[1] : undefined;
+        const userId = params[0].includes('user:')
+          ? params[0].split('user:')[1]
+          : undefined;
         return await LocalDatabase.getJobsByStatus(status, userId);
       }
       break;
@@ -315,7 +334,10 @@ const handleJobsQuery = async (operation: string, params: string[]): Promise<any
   return null;
 };
 
-const handleUserQuery = async (operation: string, params: string[]): Promise<any> => {
+const handleUserQuery = async (
+  operation: string,
+  params: string[]
+): Promise<any> => {
   switch (operation) {
     case 'profile':
       return await LocalDatabase.getUser(params[0]);
@@ -324,7 +346,10 @@ const handleUserQuery = async (operation: string, params: string[]): Promise<any
   }
 };
 
-const handleMessagesQuery = async (operation: string, params: string[]): Promise<any> => {
+const handleMessagesQuery = async (
+  operation: string,
+  params: string[]
+): Promise<any> => {
   switch (operation) {
     case 'conversation':
       return await LocalDatabase.getMessagesByJob(params[0]);
@@ -336,9 +361,9 @@ const handleMessagesQuery = async (operation: string, params: string[]): Promise
 const cacheLocalData = async (queryKey: QueryKey, data: any): Promise<void> => {
   try {
     await LocalDatabase.init();
-    
+
     const [entity, operation, ...params] = queryKey as string[];
-    
+
     switch (entity) {
       case 'jobs':
         await cacheJobsData(operation, params, data);
@@ -355,7 +380,11 @@ const cacheLocalData = async (queryKey: QueryKey, data: any): Promise<void> => {
   }
 };
 
-const cacheJobsData = async (operation: string, params: string[], data: any): Promise<void> => {
+const cacheJobsData = async (
+  operation: string,
+  params: string[],
+  data: any
+): Promise<void> => {
   if (Array.isArray(data)) {
     for (const job of data) {
       await LocalDatabase.saveJob(job, false);
@@ -365,13 +394,21 @@ const cacheJobsData = async (operation: string, params: string[], data: any): Pr
   }
 };
 
-const cacheUserData = async (operation: string, params: string[], data: any): Promise<void> => {
+const cacheUserData = async (
+  operation: string,
+  params: string[],
+  data: any
+): Promise<void> => {
   if (data) {
     await LocalDatabase.saveUser(data, false);
   }
 };
 
-const cacheMessagesData = async (operation: string, params: string[], data: any): Promise<void> => {
+const cacheMessagesData = async (
+  operation: string,
+  params: string[],
+  data: any
+): Promise<void> => {
   if (Array.isArray(data)) {
     for (const message of data) {
       const { senderName, senderRole, ...messageData } = message;
@@ -389,7 +426,7 @@ export const useOfflineSyncStatus = () => {
     const unsubscribe = SyncManager.onSyncStatusChange(setSyncStatus);
     return unsubscribe;
   }, []);
-  
+
   return {
     isOnline,
     syncStatus,

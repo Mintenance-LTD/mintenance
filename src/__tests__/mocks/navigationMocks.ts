@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 
 // Navigation Mock Factory
 export class NavigationMockFactory {
-
   // React Navigation Mock
   static createReactNavigationMock() {
     const mockNavigate = jest.fn();
@@ -57,13 +56,15 @@ export class NavigationMockFactory {
       }),
 
       // Navigation state hook
-      useNavigationState: jest.fn((selector) => selector({
-        key: 'stack-test',
-        index: 0,
-        routeNames: ['Home', 'Profile'],
-        routes: [{ key: 'home', name: 'Home' }],
-        type: 'stack',
-      })),
+      useNavigationState: jest.fn((selector) =>
+        selector({
+          key: 'stack-test',
+          index: 0,
+          routeNames: ['Home', 'Profile'],
+          routes: [{ key: 'home', name: 'Home' }],
+          type: 'stack',
+        })
+      ),
 
       // Is focused hook
       useIsFocused: jest.fn(() => true),
@@ -255,7 +256,7 @@ export class NavigationMockFactory {
     const mockNavigate = jest.fn();
     const mockGoBack = jest.fn();
     const mockReset = jest.fn();
-    
+
     return {
       useNavigation: () => ({
         navigate: mockNavigate,
@@ -286,6 +287,9 @@ export class NavigationMockFactory {
 }
 
 // Export commonly used mocks
-export const mockReactNavigation = NavigationMockFactory.createReactNavigationMock();
-export const mockStackNavigator = NavigationMockFactory.createStackNavigatorMock();
-export const mockBottomTabNavigator = NavigationMockFactory.createBottomTabNavigatorMock();
+export const mockReactNavigation =
+  NavigationMockFactory.createReactNavigationMock();
+export const mockStackNavigator =
+  NavigationMockFactory.createStackNavigatorMock();
+export const mockBottomTabNavigator =
+  NavigationMockFactory.createBottomTabNavigatorMock();

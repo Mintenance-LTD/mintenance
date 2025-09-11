@@ -56,7 +56,7 @@ class CodeSplittingManager {
       retryAttempts = 3,
       fallback: Fallback,
       preload = false,
-      chunkName = 'unknown'
+      chunkName = 'unknown',
     } = options;
 
     if (preload) {
@@ -64,7 +64,12 @@ class CodeSplittingManager {
     }
 
     return React.lazy(() => {
-      return this.loadChunkWithRetry(importFn, chunkName, retryAttempts, timeout);
+      return this.loadChunkWithRetry(
+        importFn,
+        chunkName,
+        retryAttempts,
+        timeout
+      );
     });
   }
 
@@ -78,7 +83,7 @@ class CodeSplittingManager {
     timeout: number
   ): Promise<T> {
     const cacheKey = chunkName;
-    
+
     // Return from cache if available
     if (this.chunkCache.has(cacheKey)) {
       logger.debug(`Chunk ${chunkName} loaded from cache`);
@@ -90,7 +95,12 @@ class CodeSplittingManager {
       return this.loadingChunks.get(cacheKey)!;
     }
 
-    const loadPromise = this.performChunkLoad(importFn, chunkName, retryAttempts, timeout);
+    const loadPromise = this.performChunkLoad(
+      importFn,
+      chunkName,
+      retryAttempts,
+      timeout
+    );
     this.loadingChunks.set(cacheKey, loadPromise);
 
     try {
@@ -120,36 +130,40 @@ class CodeSplittingManager {
 
         const result = await Promise.race([
           importFn(),
-          this.createTimeoutPromise<T>(timeout, chunkName)
+          this.createTimeoutPromise<T>(timeout, chunkName),
         ]);
 
         const loadTime = performance.now() - startTime;
-        
+
         // Track successful load
         this.trackChunkMetrics({
           chunkName,
           loadTime,
           size: this.estimateChunkSize(result),
           success: true,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         logger.performance(`Chunk ${chunkName} loaded`, loadTime, {
           attempt: attempt + 1,
-          cached: false
+          cached: false,
         });
 
         return result;
-
       } catch (error) {
         lastError = error as Error;
-        logger.warn(`Chunk ${chunkName} load failed (attempt ${attempt + 1}):`, { 
-          data: error 
-        });
+        logger.warn(
+          `Chunk ${chunkName} load failed (attempt ${attempt + 1}):`,
+          {
+            data: error,
+          }
+        );
 
         if (attempt < retryAttempts) {
           // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempt) * 1000)
+          );
         }
       }
     }
@@ -162,17 +176,23 @@ class CodeSplittingManager {
       size: 0,
       success: false,
       error: lastError,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
-    logger.error(`Chunk ${chunkName} failed to load after ${retryAttempts + 1} attempts`, lastError!);
+    logger.error(
+      `Chunk ${chunkName} failed to load after ${retryAttempts + 1} attempts`,
+      lastError!
+    );
     throw lastError || new Error(`Failed to load chunk ${chunkName}`);
   }
 
   /**
    * Create timeout promise for chunk loading
    */
-  private createTimeoutPromise<T>(timeout: number, chunkName: string): Promise<T> {
+  private createTimeoutPromise<T>(
+    timeout: number,
+    chunkName: string
+  ): Promise<T> {
     return new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error(`Chunk ${chunkName} load timeout after ${timeout}ms`));
@@ -202,7 +222,7 @@ class CodeSplittingManager {
    */
   private trackChunkMetrics(metrics: ChunkMetrics): void {
     this.chunkMetrics.push(metrics);
-    
+
     // Keep only last 100 entries
     if (this.chunkMetrics.length > 100) {
       this.chunkMetrics.shift();
@@ -221,7 +241,7 @@ class CodeSplittingManager {
    */
   async preloadChunks(chunkNames?: string[]): Promise<void> {
     const chunksToPreload = chunkNames || this.preloadQueue;
-    
+
     logger.debug(`Preloading ${chunksToPreload.length} chunks`);
 
     const preloadPromises = chunksToPreload.map(async (chunkName) => {
@@ -274,17 +294,18 @@ class CodeSplittingManager {
         successRate: 0,
         averageLoadTime: 0,
         slowestChunks: [],
-        failedChunks: []
+        failedChunks: [],
       };
     }
 
-    const successful = this.chunkMetrics.filter(m => m.success);
-    const failed = this.chunkMetrics.filter(m => !m.success);
+    const successful = this.chunkMetrics.filter((m) => m.success);
+    const failed = this.chunkMetrics.filter((m) => !m.success);
     const successRate = (successful.length / total) * 100;
-    const averageLoadTime = successful.reduce((sum, m) => sum + m.loadTime, 0) / successful.length;
+    const averageLoadTime =
+      successful.reduce((sum, m) => sum + m.loadTime, 0) / successful.length;
 
     const slowestChunks = [...this.chunkMetrics]
-      .filter(m => m.success)
+      .filter((m) => m.success)
       .sort((a, b) => b.loadTime - a.loadTime)
       .slice(0, 5);
 
@@ -293,7 +314,7 @@ class CodeSplittingManager {
       successRate,
       averageLoadTime,
       slowestChunks,
-      failedChunks: failed
+      failedChunks: failed,
     };
   }
 }
@@ -318,7 +339,7 @@ export const createLazyScreen = <P extends object>(
     chunkName: `screen-${screenName}`,
     timeout: 15000,
     retryAttempts: 2,
-    preload: false
+    preload: false,
   });
 };
 
@@ -331,14 +352,14 @@ export const createLazyFeature = <P extends object>(
     chunkName: `feature-${featureName}`,
     timeout: 10000,
     retryAttempts: 3,
-    preload: true
+    preload: true,
   });
 };
 
 // React hook for preloading chunks
 export const useChunkPreloader = (chunkNames: string[]) => {
   const React = require('react');
-  
+
   React.useEffect(() => {
     const preload = async () => {
       try {
@@ -371,6 +392,6 @@ export const useChunkPerformance = () => {
   return {
     metrics,
     report: codeSplittingManager.getPerformanceReport(),
-    clearCache: codeSplittingManager.clearChunkCache
+    clearCache: codeSplittingManager.clearChunkCache,
   };
 };

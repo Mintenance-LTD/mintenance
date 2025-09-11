@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
-
 interface Props {
   children: ReactNode;
   fallback?: (error: Error, resetError: () => void) => ReactNode;
@@ -29,24 +28,29 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: any) {
     // Generate error ID for tracking
-    const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const errorId =
+      Date.now().toString(36) + Math.random().toString(36).substr(2);
     this.setState({ errorId });
-    
+
     // Create safe context for logging
     const safeContext = {
       message: error.message,
       stack: error.stack?.substring(0, 500) || 'No stack trace',
-      componentStack: errorInfo.componentStack?.substring(0, 500) || 'No component stack',
-      errorId
+      componentStack:
+        errorInfo.componentStack?.substring(0, 500) || 'No component stack',
+      errorId,
     };
-    
+
     // Safely log the error without potential circular references
     try {
       logger.error('Error caught by boundary:', error, safeContext);
     } catch (logError) {
-      console.error('Error boundary caught error, but failed to log it:', error.message);
+      console.error(
+        'Error boundary caught error, but failed to log it:',
+        error.message
+      );
     }
-    
+
     // Call custom error handler if provided
     if (this.props.onError) {
       try {
@@ -55,20 +59,23 @@ export class ErrorBoundary extends Component<Props, State> {
         console.error('Custom error handler failed:', handlerError);
       }
     }
-    
+
     // Import Sentry dynamically to avoid issues
-    import('@sentry/react-native').then(({ captureException }) => {
-      captureException(error, {
-        contexts: {
-          errorBoundary: {
-            componentStack: errorInfo.componentStack?.substring(0, 500) || 'N/A', // Limit length
-            errorId,
+    import('@sentry/react-native')
+      .then(({ captureException }) => {
+        captureException(error, {
+          contexts: {
+            errorBoundary: {
+              componentStack:
+                errorInfo.componentStack?.substring(0, 500) || 'N/A', // Limit length
+              errorId,
+            },
           },
-        },
+        });
+      })
+      .catch((e) => {
+        console.warn('Sentry not available:', e.message);
       });
-    }).catch(e => {
-      console.warn('Sentry not available:', e.message);
-    });
   }
 
   handleRetry = () => {
@@ -103,17 +110,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <Ionicons name="warning-outline" size={64} color={theme.colors.error} />
-          
+          <Ionicons
+            name='warning-outline'
+            size={64}
+            color={theme.colors.error}
+          />
+
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.message}>
             An unexpected error occurred. Please try again.
           </Text>
-          
+
           {this.state.errorId && (
             <Text style={styles.errorId}>Error ID: {this.state.errorId}</Text>
           )}
-          
+
           {__DEV__ && this.state.error && (
             <View style={styles.debugInfo}>
               <Text style={styles.debugTitle}>Debug Info:</Text>
@@ -123,15 +134,31 @@ export class ErrorBoundary extends Component<Props, State> {
               </Text>
             </View>
           )}
-          
+
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.retryButton} onPress={this.handleRetry}>
-              <Ionicons name="refresh" size={16} color="#fff" style={styles.buttonIcon} />
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={this.handleRetry}
+            >
+              <Ionicons
+                name='refresh'
+                size={16}
+                color='#fff'
+                style={styles.buttonIcon}
+              />
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.reportButton} onPress={this.handleReportError}>
-              <Ionicons name="bug-outline" size={16} color={theme.colors.primary} style={styles.buttonIcon} />
+
+            <TouchableOpacity
+              style={styles.reportButton}
+              onPress={this.handleReportError}
+            >
+              <Ionicons
+                name='bug-outline'
+                size={16}
+                color={theme.colors.primary}
+                style={styles.buttonIcon}
+              />
               <Text style={styles.reportButtonText}>Report Issue</Text>
             </TouchableOpacity>
           </View>

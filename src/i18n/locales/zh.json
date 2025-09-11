@@ -1,1 +1,1 @@
-{"common":{"ok":"确定","cancel":"取消","loading":"加载中..."},"auth":{"login":"登录","register":"注册"},"navigation":{"home":"首页","profile":"个人资料"}}
+{ "common": { "ok": "确定", "cancel": "取消", "loading": "加载中..." }, "auth": { "login": "登录", "register": "注册" }, "navigation": { "home": "首页", "profile": "个人资料" } }

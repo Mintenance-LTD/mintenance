@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { ContractorQuote } from '../services/QuoteBuilderService';
@@ -24,29 +19,43 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
   onEdit,
   onSend,
   onDuplicate,
-  onDelete
+  onDelete,
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return theme.colors.textSecondary;
-      case 'sent': return theme.colors.primary;
-      case 'viewed': return theme.colors.warning;
-      case 'accepted': return theme.colors.success;
-      case 'rejected': return theme.colors.error;
-      case 'expired': return theme.colors.textTertiary;
-      default: return theme.colors.textSecondary;
+      case 'draft':
+        return theme.colors.textSecondary;
+      case 'sent':
+        return theme.colors.primary;
+      case 'viewed':
+        return theme.colors.warning;
+      case 'accepted':
+        return theme.colors.success;
+      case 'rejected':
+        return theme.colors.error;
+      case 'expired':
+        return theme.colors.textTertiary;
+      default:
+        return theme.colors.textSecondary;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'draft': return 'document-outline';
-      case 'sent': return 'send';
-      case 'viewed': return 'eye';
-      case 'accepted': return 'checkmark-circle';
-      case 'rejected': return 'close-circle';
-      case 'expired': return 'time-outline';
-      default: return 'document-outline';
+      case 'draft':
+        return 'document-outline';
+      case 'sent':
+        return 'send';
+      case 'viewed':
+        return 'eye';
+      case 'accepted':
+        return 'checkmark-circle';
+      case 'rejected':
+        return 'close-circle';
+      case 'expired':
+        return 'time-outline';
+      default:
+        return 'document-outline';
     }
   };
 
@@ -58,11 +67,12 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
-  const isExpired = quote.valid_until && new Date(quote.valid_until) < new Date();
+  const isExpired =
+    quote.valid_until && new Date(quote.valid_until) < new Date();
   const actualStatus = isExpired ? 'expired' : quote.status;
 
   return (
@@ -71,47 +81,62 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
         <View style={styles.quoteInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.quoteNumber}>#{quote.quote_number}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(actualStatus) }]}>
-              <Ionicons 
-                name={getStatusIcon(actualStatus) as any} 
-                size={12} 
-                color="#fff" 
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(actualStatus) },
+              ]}
+            >
+              <Ionicons
+                name={getStatusIcon(actualStatus) as any}
+                size={12}
+                color='#fff'
               />
               <Text style={styles.statusText}>
                 {actualStatus.toUpperCase()}
               </Text>
             </View>
           </View>
-          
+
           <Text style={styles.projectTitle}>{quote.project_title}</Text>
           <Text style={styles.clientName}>{quote.client_name}</Text>
         </View>
-        
+
         <View style={styles.amountContainer}>
-          <Text style={styles.amount}>{formatCurrency(quote.total_amount)}</Text>
+          <Text style={styles.amount}>
+            {formatCurrency(quote.total_amount)}
+          </Text>
           <Text style={styles.amountLabel}>Total</Text>
         </View>
       </View>
 
       <View style={styles.detailsRow}>
         <View style={styles.detail}>
-          <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='calendar-outline'
+            size={14}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.detailText}>
             Created: {formatDate(quote.created_at)}
           </Text>
         </View>
-        
+
         {quote.valid_until && (
           <View style={styles.detail}>
-            <Ionicons 
-              name="time-outline" 
-              size={14} 
-              color={isExpired ? theme.colors.error : theme.colors.textSecondary} 
+            <Ionicons
+              name='time-outline'
+              size={14}
+              color={
+                isExpired ? theme.colors.error : theme.colors.textSecondary
+              }
             />
-            <Text style={[
-              styles.detailText,
-              isExpired && { color: theme.colors.error }
-            ]}>
+            <Text
+              style={[
+                styles.detailText,
+                isExpired && { color: theme.colors.error },
+              ]}
+            >
               Valid until: {formatDate(quote.valid_until)}
             </Text>
           </View>
@@ -132,16 +157,18 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             {formatCurrency(quote.subtotal)}
           </Text>
         </View>
-        
+
         {quote.discount_amount && quote.discount_amount > 0 && (
           <View style={styles.breakdownItem}>
             <Text style={styles.breakdownLabel}>Discount</Text>
-            <Text style={[styles.breakdownValue, { color: theme.colors.success }]}>
+            <Text
+              style={[styles.breakdownValue, { color: theme.colors.success }]}
+            >
               -{formatCurrency(quote.discount_amount)}
             </Text>
           </View>
         )}
-        
+
         <View style={styles.breakdownItem}>
           <Text style={styles.breakdownLabel}>Tax</Text>
           <Text style={styles.breakdownValue}>
@@ -151,7 +178,9 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
       </View>
 
       {/* Additional Info */}
-      {(quote.markup_percentage || quote.discount_percentage || quote.notes) && (
+      {(quote.markup_percentage ||
+        quote.discount_percentage ||
+        quote.notes) && (
         <View style={styles.additionalInfo}>
           {quote.markup_percentage && quote.markup_percentage > 0 && (
             <View style={styles.infoChip}>
@@ -160,18 +189,24 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               </Text>
             </View>
           )}
-          
+
           {quote.discount_percentage && quote.discount_percentage > 0 && (
             <View style={[styles.infoChip, styles.discountChip]}>
-              <Text style={[styles.infoChipText, { color: theme.colors.success }]}>
+              <Text
+                style={[styles.infoChipText, { color: theme.colors.success }]}
+              >
                 Discount: {quote.discount_percentage}%
               </Text>
             </View>
           )}
-          
+
           {quote.notes && (
             <View style={styles.infoChip}>
-              <Ionicons name="document-text-outline" size={12} color={theme.colors.primary} />
+              <Ionicons
+                name='document-text-outline'
+                size={12}
+                color={theme.colors.primary}
+              />
               <Text style={styles.infoChipText}>Has Notes</Text>
             </View>
           )}
@@ -180,46 +215,46 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity 
-          style={styles.actionButton} 
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={(e) => {
             e.stopPropagation();
             onEdit();
           }}
         >
-          <Ionicons name="pencil" size={16} color={theme.colors.primary} />
+          <Ionicons name='pencil' size={16} color={theme.colors.primary} />
         </TouchableOpacity>
-        
+
         {quote.status === 'draft' && (
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.sendButton]} 
+          <TouchableOpacity
+            style={[styles.actionButton, styles.sendButton]}
             onPress={(e) => {
               e.stopPropagation();
               onSend();
             }}
           >
-            <Ionicons name="send" size={16} color={theme.colors.success} />
+            <Ionicons name='send' size={16} color={theme.colors.success} />
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity 
-          style={styles.actionButton} 
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={(e) => {
             e.stopPropagation();
             onDuplicate();
           }}
         >
-          <Ionicons name="copy" size={16} color={theme.colors.warning} />
+          <Ionicons name='copy' size={16} color={theme.colors.warning} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]} 
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
           onPress={(e) => {
             e.stopPropagation();
             onDelete();
           }}
         >
-          <Ionicons name="trash" size={16} color={theme.colors.error} />
+          <Ionicons name='trash' size={16} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

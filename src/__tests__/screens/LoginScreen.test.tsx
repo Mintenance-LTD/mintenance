@@ -18,11 +18,13 @@ const mockNavigate = jest.fn();
 describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    jest.mocked(require('@react-navigation/native').useNavigation).mockReturnValue({
-      navigate: mockNavigate,
-      goBack: jest.fn(),
-    });
+
+    jest
+      .mocked(require('@react-navigation/native').useNavigation)
+      .mockReturnValue({
+        navigate: mockNavigate,
+        goBack: jest.fn(),
+      });
 
     mockUseAuth.mockReturnValue({
       user: null,
@@ -41,7 +43,7 @@ describe('LoginScreen', () => {
     expect(getByTestId('email-input')).toBeTruthy();
     expect(getByTestId('password-input')).toBeTruthy();
     expect(getByText('Sign In')).toBeTruthy();
-    expect(getByText('Don\'t have an account? Sign Up')).toBeTruthy();
+    expect(getByText("Don't have an account? Sign Up")).toBeTruthy();
   });
 
   it('validates email format', async () => {
@@ -85,7 +87,10 @@ describe('LoginScreen', () => {
     fireEvent.press(getByText('Sign In'));
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockSignIn).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123'
+      );
     });
   });
 
@@ -106,7 +111,9 @@ describe('LoginScreen', () => {
   });
 
   it('displays error message on sign in failure', async () => {
-    const mockSignIn = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+    const mockSignIn = jest
+      .fn()
+      .mockRejectedValue(new Error('Invalid credentials'));
     mockUseAuth.mockReturnValue({
       user: null,
       session: null,
@@ -131,7 +138,7 @@ describe('LoginScreen', () => {
   it('navigates to register screen when sign up link is pressed', () => {
     const { getByText } = render(<LoginScreen />);
 
-    fireEvent.press(getByText('Don\'t have an account? Sign Up'));
+    fireEvent.press(getByText("Don't have an account? Sign Up"));
 
     expect(mockNavigate).toHaveBeenCalledWith('Register');
   });

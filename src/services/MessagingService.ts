@@ -3,7 +3,6 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
 import { sanitizeText } from '../utils/sanitize';
 
-
 export interface Message {
   id: string;
   jobId: string;
@@ -24,11 +23,11 @@ export interface MessageThread {
   jobTitle: string;
   lastMessage?: Message;
   unreadCount: number;
-  participants: Array<{
+  participants: {
     id: string;
     name: string;
     role: string;
-  }>;
+  }[];
 }
 
 export class MessagingService {
@@ -49,20 +48,24 @@ export class MessagingService {
       const safeMessageText = sanitizeText(messageText);
       const { data, error } = await supabase
         .from('messages')
-        .insert([{
-          job_id: jobId,
-          sender_id: senderId,
-          receiver_id: receiverId,
-          message_text: safeMessageText,
-          message_type: messageType,
-          attachment_url: attachmentUrl,
-          read: false,
-          created_at: new Date().toISOString(),
-        }])
-        .select(`
+        .insert([
+          {
+            job_id: jobId,
+            sender_id: senderId,
+            receiver_id: receiverId,
+            message_text: safeMessageText,
+            message_type: messageType,
+            attachment_url: attachmentUrl,
+            read: false,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select(
+          `
           *,
           sender:users!messages_sender_id_fkey(first_name, last_name, role)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
@@ -88,10 +91,12 @@ export class MessagingService {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
+        .select(
+          `
           *,
           sender:users!messages_sender_id_fkey(first_name, last_name, role)
-        `)
+        `
+        )
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -113,11 +118,13 @@ export class MessagingService {
       // Get jobs where user is involved (as homeowner or contractor)
       const { data: jobs, error: jobsError } = await supabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           id, title, homeowner_id, contractor_id,
           homeowner:users!jobs_homeowner_id_fkey(first_name, last_name, role),
           contractor:users!jobs_contractor_id_fkey(first_name, last_name, role)
-        `)
+        `
+        )
         .or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`);
 
       if (jobsError) throw jobsError;
@@ -128,10 +135,12 @@ export class MessagingService {
         // Get last message for this job
         const { data: lastMessage } = await supabase
           .from('messages')
-          .select(`
+          .select(
+            `
             *,
             sender:users!messages_sender_id_fkey(first_name, last_name, role)
-          `)
+          `
+          )
           .eq('job_id', job.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -145,14 +154,15 @@ export class MessagingService {
           .eq('read', false);
 
         // Determine other participant
-        const otherParticipant = job.homeowner_id === userId 
-          ? job.contractor 
-          : job.homeowner;
+        const otherParticipant =
+          job.homeowner_id === userId ? job.contractor : job.homeowner;
 
         threads.push({
           jobId: job.id,
           jobTitle: job.title,
-          lastMessage: lastMessage?.[0] ? this.formatMessage(lastMessage[0]) : undefined,
+          lastMessage: lastMessage?.[0]
+            ? this.formatMessage(lastMessage[0])
+            : undefined,
           unreadCount: unreadCount || 0,
           participants: [
             {
@@ -164,7 +174,7 @@ export class MessagingService {
               id: job.contractor_id,
               name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
               role: job.contractor?.role || 'contractor',
-            }
+            },
           ].filter(Boolean),
         });
       }
@@ -183,7 +193,10 @@ export class MessagingService {
   /**
    * Mark messages as read
    */
-  static async markMessagesAsRead(jobId: string, userId: string): Promise<void> {
+  static async markMessagesAsRead(
+    jobId: string,
+    userId: string
+  ): Promise<void> {
     try {
       const { error } = await supabase
         .from('messages')
@@ -206,10 +219,11 @@ export class MessagingService {
     jobId: string,
     onNewMessage: (message: Message) => void,
     onMessageUpdate: (message: Message) => void = () => {},
-    onError: (error: any) => void = (error) => logger.error('Real-time subscription error:', error)
+    onError: (error: any) => void = (error) =>
+      logger.error('Real-time subscription error:', error)
   ): () => void {
     const channelKey = `messages_${jobId}`;
-    
+
     try {
       // Clean up existing channel if any
       if (this.activeChannels.has(channelKey)) {
@@ -231,10 +245,12 @@ export class MessagingService {
               // Fetch the complete message with sender info
               const { data, error } = await supabase
                 .from('messages')
-                .select(`
+                .select(
+                  `
                   *,
                   sender:users!messages_sender_id_fkey(first_name, last_name, role)
-                `)
+                `
+                )
                 .eq('id', payload.new.id)
                 .single();
 
@@ -265,10 +281,12 @@ export class MessagingService {
             try {
               const { data, error } = await supabase
                 .from('messages')
-                .select(`
+                .select(
+                  `
                   *,
                   sender:users!messages_sender_id_fkey(first_name, last_name, role)
-                `)
+                `
+                )
                 .eq('id', payload.new.id)
                 .single();
 
@@ -344,10 +362,10 @@ export class MessagingService {
       // Only allow sender to delete their own messages
       const { error } = await supabase
         .from('messages')
-        .update({ 
+        .update({
           message_text: '[Message deleted]',
           message_type: 'text',
-          attachment_url: null
+          attachment_url: null,
         })
         .eq('id', messageId)
         .eq('sender_id', userId);
@@ -370,10 +388,12 @@ export class MessagingService {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
+        .select(
+          `
           *,
           sender:users!messages_sender_id_fkey(first_name, last_name, role)
-        `)
+        `
+        )
         .eq('job_id', jobId)
         .ilike('message_text', `%${searchTerm}%`)
         .order('created_at', { ascending: false })
@@ -391,16 +411,21 @@ export class MessagingService {
   /**
    * Create notification for new message
    */
-  private static async createMessageNotification(message: any, receiverId: string): Promise<void> {
+  private static async createMessageNotification(
+    message: any,
+    receiverId: string
+  ): Promise<void> {
     try {
-      await supabase.from('notifications').insert([{
-        user_id: receiverId,
-        title: 'New Message',
-        message: `${message.sender?.first_name || 'Someone'} sent you a message`,
-        type: 'message',
-        action_url: `/jobs/${message.job_id}/messages`,
-        created_at: new Date().toISOString(),
-      }]);
+      await supabase.from('notifications').insert([
+        {
+          user_id: receiverId,
+          title: 'New Message',
+          message: `${message.sender?.first_name || 'Someone'} sent you a message`,
+          type: 'message',
+          action_url: `/jobs/${message.job_id}/messages`,
+          created_at: new Date().toISOString(),
+        },
+      ]);
     } catch (error) {
       logger.error('Error creating message notification:', error);
     }
@@ -420,9 +445,9 @@ export class MessagingService {
       attachmentUrl: data.attachment_url,
       read: data.read,
       createdAt: data.created_at,
-      senderName: data.sender ? 
-        `${data.sender.first_name || ''} ${data.sender.last_name || ''}`.trim() : 
-        'Unknown User',
+      senderName: data.sender
+        ? `${data.sender.first_name || ''} ${data.sender.last_name || ''}`.trim()
+        : 'Unknown User',
       senderRole: data.sender?.role,
     };
   }

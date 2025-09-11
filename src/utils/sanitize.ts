@@ -24,4 +24,3 @@ export function sanitizeText(input: string | undefined | null): string {
 
 // Back-compat default export
 export default { sanitizeText };
-

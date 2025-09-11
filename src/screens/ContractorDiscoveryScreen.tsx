@@ -37,7 +37,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
   const initializeLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission Required',
@@ -81,9 +81,9 @@ const ContractorDiscoveryScreen: React.FC = () => {
 
   const filterContractorsByService = (service: string | null) => {
     if (!service) return contractors;
-    
-    return contractors.filter(contractor => 
-      contractor.skills.some(skill => 
+
+    return contractors.filter((contractor) =>
+      contractor.skills.some((skill) =>
         skill.skillName.toLowerCase().includes(service.toLowerCase())
       )
     );
@@ -91,17 +91,37 @@ const ContractorDiscoveryScreen: React.FC = () => {
 
   const serviceFilters = [
     { id: null, name: 'All', icon: 'grid-outline', color: '#8E8E93' },
-    { id: 'plumbing', name: 'Plumbing', icon: 'water-outline', color: theme.colors.info },
-    { id: 'electrical', name: 'Electrical', icon: 'flash-outline', color: '#FF9500' },
+    {
+      id: 'plumbing',
+      name: 'Plumbing',
+      icon: 'water-outline',
+      color: theme.colors.info,
+    },
+    {
+      id: 'electrical',
+      name: 'Electrical',
+      icon: 'flash-outline',
+      color: '#FF9500',
+    },
     { id: 'hvac', name: 'HVAC', icon: 'thermometer-outline', color: '#4CD964' },
-    { id: 'general', name: 'General', icon: 'hammer-outline', color: '#5856D6' },
-    { id: 'appliance', name: 'Appliance', icon: 'home-outline', color: '#FF3B30' },
+    {
+      id: 'general',
+      name: 'General',
+      icon: 'hammer-outline',
+      color: '#5856D6',
+    },
+    {
+      id: 'appliance',
+      name: 'Appliance',
+      icon: 'home-outline',
+      color: '#FF3B30',
+    },
   ];
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.info} />
+        <ActivityIndicator size='large' color={theme.colors.info} />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -111,7 +131,10 @@ const ContractorDiscoveryScreen: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Unable to access your location</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={initializeLocation}
+        >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -136,19 +159,25 @@ const ContractorDiscoveryScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.toggleButton,
-            viewMode === 'discover' && styles.toggleButtonActive
+            viewMode === 'discover' && styles.toggleButtonActive,
           ]}
           onPress={() => setViewMode('discover')}
         >
-          <Ionicons 
-            name="person-outline" 
-            size={20} 
-            color={viewMode === 'discover' ? theme.colors.textInverse : theme.colors.info} 
+          <Ionicons
+            name='person-outline'
+            size={20}
+            color={
+              viewMode === 'discover'
+                ? theme.colors.textInverse
+                : theme.colors.info
+            }
           />
-          <Text style={[
-            styles.toggleText,
-            viewMode === 'discover' && styles.toggleTextActive
-          ]}>
+          <Text
+            style={[
+              styles.toggleText,
+              viewMode === 'discover' && styles.toggleTextActive,
+            ]}
+          >
             Discover
           </Text>
         </TouchableOpacity>
@@ -156,19 +185,23 @@ const ContractorDiscoveryScreen: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.toggleButton,
-            viewMode === 'map' && styles.toggleButtonActive
+            viewMode === 'map' && styles.toggleButtonActive,
           ]}
           onPress={() => setViewMode('map')}
         >
-          <Ionicons 
-            name="map-outline" 
-            size={20} 
-            color={viewMode === 'map' ? theme.colors.textInverse : theme.colors.info} 
+          <Ionicons
+            name='map-outline'
+            size={20}
+            color={
+              viewMode === 'map' ? theme.colors.textInverse : theme.colors.info
+            }
           />
-          <Text style={[
-            styles.toggleText,
-            viewMode === 'map' && styles.toggleTextActive
-          ]}>
+          <Text
+            style={[
+              styles.toggleText,
+              viewMode === 'map' && styles.toggleTextActive,
+            ]}
+          >
             Map
           </Text>
         </TouchableOpacity>
@@ -182,19 +215,25 @@ const ContractorDiscoveryScreen: React.FC = () => {
             style={[
               styles.filterButton,
               { borderColor: filter.color },
-              selectedService === filter.id && { backgroundColor: filter.color }
+              selectedService === filter.id && {
+                backgroundColor: filter.color,
+              },
             ]}
             onPress={() => setSelectedService(filter.id)}
           >
-            <Ionicons 
-              name={filter.icon as any} 
-              size={16} 
-              color={selectedService === filter.id ? '#fff' : filter.color} 
+            <Ionicons
+              name={filter.icon as any}
+              size={16}
+              color={selectedService === filter.id ? '#fff' : filter.color}
             />
-            <Text style={[
-              styles.filterText,
-              { color: selectedService === filter.id ? '#fff' : filter.color }
-            ]}>
+            <Text
+              style={[
+                styles.filterText,
+                {
+                  color: selectedService === filter.id ? '#fff' : filter.color,
+                },
+              ]}
+            >
               {filter.name}
             </Text>
           </TouchableOpacity>
@@ -213,7 +252,10 @@ const ContractorDiscoveryScreen: React.FC = () => {
             contractors={filteredContractors}
             onContractorSelect={(contractor) => {
               // Handle contractor selection - could navigate to profile or show details
-              logger.debug('Selected contractor:', { firstName: contractor.firstName, lastName: contractor.lastName });
+              logger.debug('Selected contractor:', {
+                firstName: contractor.firstName,
+                lastName: contractor.lastName,
+              });
             }}
           />
         )}

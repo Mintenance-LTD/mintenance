@@ -13,7 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { ServiceAreasService, ServiceArea } from '../services/ServiceAreasService';
+import {
+  ServiceAreasService,
+  ServiceArea,
+} from '../services/ServiceAreasService';
 import { ServiceAreaCard } from '../components/ServiceAreaCard';
 import Button from '../components/ui/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -23,7 +26,7 @@ interface ServiceAreasScreenProps {
 }
 
 export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
-  navigation
+  navigation,
 }) => {
   const { user } = useAuth();
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
@@ -38,7 +41,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
 
   const loadServiceAreas = async () => {
     if (!user) return;
-    
+
     try {
       const data = await ServiceAreasService.getServiceAreas(user.id);
       setServiceAreas(data);
@@ -59,10 +62,10 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
   const handleToggleActive = async (area: ServiceArea) => {
     try {
       await ServiceAreasService.updateServiceArea(area.id, {
-        is_active: !area.is_active
+        is_active: !area.is_active,
       });
       await loadServiceAreas();
-      
+
       Alert.alert(
         'Success',
         `Service area ${area.is_active ? 'deactivated' : 'activated'} successfully`
@@ -83,7 +86,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
     try {
       await ServiceAreasService.deleteServiceArea(selectedArea.id);
       await loadServiceAreas();
-      
+
       Alert.alert('Success', 'Service area deleted successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to delete service area');
@@ -93,9 +96,9 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
     }
   };
 
-  const activeAreas = serviceAreas.filter(area => area.is_active);
-  const inactiveAreas = serviceAreas.filter(area => !area.is_active);
-  const primaryArea = serviceAreas.find(area => area.is_primary_area);
+  const activeAreas = serviceAreas.filter((area) => area.is_active);
+  const inactiveAreas = serviceAreas.filter((area) => !area.is_active);
+  const primaryArea = serviceAreas.find((area) => area.is_primary_area);
 
   const renderStatsCard = (
     title: string,
@@ -113,7 +116,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
   );
 
   if (loading) {
-    return <LoadingSpinner message="Loading service areas..." />;
+    return <LoadingSpinner message='Loading service areas...' />;
   }
 
   return (
@@ -124,55 +127,96 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Service Areas</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateServiceArea')}
         >
-          <Ionicons name="add" size={24} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Statistics */}
         <View style={styles.statsContainer}>
-          {renderStatsCard('Total Areas', serviceAreas.length, 'map', theme.colors.primary)}
-          {renderStatsCard('Active', activeAreas.length, 'checkmark-circle', theme.colors.success)}
-          {renderStatsCard('Inactive', inactiveAreas.length, 'pause-circle', theme.colors.textSecondary)}
-          {renderStatsCard('Primary', primaryArea ? '1' : '0', 'star', theme.colors.warning)}
+          {renderStatsCard(
+            'Total Areas',
+            serviceAreas.length,
+            'map',
+            theme.colors.primary
+          )}
+          {renderStatsCard(
+            'Active',
+            activeAreas.length,
+            'checkmark-circle',
+            theme.colors.success
+          )}
+          {renderStatsCard(
+            'Inactive',
+            inactiveAreas.length,
+            'pause-circle',
+            theme.colors.textSecondary
+          )}
+          {renderStatsCard(
+            'Primary',
+            primaryArea ? '1' : '0',
+            'star',
+            theme.colors.warning
+          )}
         </View>
 
         {/* Quick Insights */}
         {serviceAreas.length > 0 && (
           <View style={styles.insightsContainer}>
             <Text style={styles.insightsTitle}>Coverage Overview</Text>
-            
+
             {primaryArea && (
               <View style={styles.insightItem}>
-                <Ionicons name="star" size={16} color={theme.colors.warning} />
+                <Ionicons name='star' size={16} color={theme.colors.warning} />
                 <Text style={styles.insightText}>
                   Primary area: {primaryArea.area_name}
                 </Text>
               </View>
             )}
-            
+
             <View style={styles.insightItem}>
-              <Ionicons name="speedometer" size={16} color={theme.colors.primary} />
+              <Ionicons
+                name='speedometer'
+                size={16}
+                color={theme.colors.primary}
+              />
               <Text style={styles.insightText}>
-                Average response time: {Math.round(serviceAreas.reduce((sum, area) => sum + area.response_time_hours, 0) / serviceAreas.length)}h
+                Average response time:{' '}
+                {Math.round(
+                  serviceAreas.reduce(
+                    (sum, area) => sum + area.response_time_hours,
+                    0
+                  ) / serviceAreas.length
+                )}
+                h
               </Text>
             </View>
-            
+
             <View style={styles.insightItem}>
-              <Ionicons name="cash" size={16} color={theme.colors.success} />
+              <Ionicons name='cash' size={16} color={theme.colors.success} />
               <Text style={styles.insightText}>
-                Base travel charges: £{serviceAreas.reduce((sum, area) => sum + area.base_travel_charge, 0).toFixed(2)} total
+                Base travel charges: £
+                {serviceAreas
+                  .reduce((sum, area) => sum + area.base_travel_charge, 0)
+                  .toFixed(2)}{' '}
+                total
               </Text>
             </View>
           </View>
@@ -181,17 +225,22 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
         {/* Service Areas List */}
         <View style={styles.areasContainer}>
           <Text style={styles.sectionTitle}>Your Service Areas</Text>
-          
+
           {serviceAreas.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="map-outline" size={64} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='map-outline'
+                size={64}
+                color={theme.colors.textTertiary}
+              />
               <Text style={styles.emptyTitle}>No service areas defined</Text>
               <Text style={styles.emptyText}>
-                Create your first service area to start accepting jobs in your preferred locations
+                Create your first service area to start accepting jobs in your
+                preferred locations
               </Text>
               <Button
-                variant="primary"
-                title="Create Service Area"
+                variant='primary'
+                title='Create Service Area'
                 onPress={() => navigation.navigate('CreateServiceArea')}
               />
             </View>
@@ -207,8 +256,16 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
                     <ServiceAreaCard
                       key={area.id}
                       serviceArea={area}
-                      onPress={() => navigation.navigate('ServiceAreaDetail', { areaId: area.id })}
-                      onEdit={() => navigation.navigate('EditServiceArea', { areaId: area.id })}
+                      onPress={() =>
+                        navigation.navigate('ServiceAreaDetail', {
+                          areaId: area.id,
+                        })
+                      }
+                      onEdit={() =>
+                        navigation.navigate('EditServiceArea', {
+                          areaId: area.id,
+                        })
+                      }
                       onToggleActive={() => handleToggleActive(area)}
                       onDelete={() => handleDeletePress(area)}
                     />
@@ -226,8 +283,16 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
                     <ServiceAreaCard
                       key={area.id}
                       serviceArea={area}
-                      onPress={() => navigation.navigate('ServiceAreaDetail', { areaId: area.id })}
-                      onEdit={() => navigation.navigate('EditServiceArea', { areaId: area.id })}
+                      onPress={() =>
+                        navigation.navigate('ServiceAreaDetail', {
+                          areaId: area.id,
+                        })
+                      }
+                      onEdit={() =>
+                        navigation.navigate('EditServiceArea', {
+                          areaId: area.id,
+                        })
+                      }
                       onToggleActive={() => handleToggleActive(area)}
                       onDelete={() => handleDeletePress(area)}
                     />
@@ -242,28 +307,36 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
         {serviceAreas.length > 0 && (
           <View style={styles.actionsContainer}>
             <Text style={styles.actionsTitle}>Quick Actions</Text>
-            
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation.navigate('ServiceAreaAnalytics')}
             >
-              <Ionicons name="analytics" size={24} color={theme.colors.primary} />
+              <Ionicons
+                name='analytics'
+                size={24}
+                color={theme.colors.primary}
+              />
               <Text style={styles.actionButtonText}>View Analytics</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation.navigate('RouteOptimization')}
             >
-              <Ionicons name="map" size={24} color={theme.colors.primary} />
+              <Ionicons name='map' size={24} color={theme.colors.primary} />
               <Text style={styles.actionButtonText}>Route Planning</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation.navigate('CoverageMap')}
             >
-              <Ionicons name="location" size={24} color={theme.colors.primary} />
+              <Ionicons
+                name='location'
+                size={24}
+                color={theme.colors.primary}
+              />
               <Text style={styles.actionButtonText}>Coverage Map</Text>
             </TouchableOpacity>
           </View>
@@ -274,7 +347,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
       <Modal
         visible={deleteModalVisible}
         transparent
-        animationType="slide"
+        animationType='slide'
         onRequestClose={() => setDeleteModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -282,19 +355,20 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
             <Text style={styles.modalTitle}>Delete Service Area</Text>
             {selectedArea && (
               <Text style={styles.modalText}>
-                Are you sure you want to delete "{selectedArea.area_name}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedArea.area_name}"? This
+                action cannot be undone.
               </Text>
             )}
             <View style={styles.modalActions}>
               <Button
-                variant="secondary"
-                title="Cancel"
+                variant='secondary'
+                title='Cancel'
                 onPress={() => setDeleteModalVisible(false)}
                 style={{ flex: 1 }}
               />
               <Button
-                variant="danger"
-                title="Delete"
+                variant='danger'
+                title='Delete'
                 onPress={handleDeleteConfirm}
                 style={{ flex: 1 }}
               />

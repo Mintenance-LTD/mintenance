@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
 import { BiometricService } from '../services/BiometricService';
@@ -14,7 +20,8 @@ try {
     setUserContext: sentry.setUserContext || (() => {}),
     trackUserAction: sentry.trackUserAction || (() => {}),
     addBreadcrumb: sentry.addBreadcrumb || (() => {}),
-    measureAsyncPerformance: sentry.measureAsyncPerformance || ((fn: any) => fn()),
+    measureAsyncPerformance:
+      sentry.measureAsyncPerformance || ((fn: any) => fn()),
   };
 } catch (error) {
   console.log('Sentry not available, using no-op functions');
@@ -26,14 +33,26 @@ try {
   };
 }
 
-const { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } = sentryFunctions;
-
+const {
+  setUserContext,
+  trackUserAction,
+  addBreadcrumb,
+  measureAsyncPerformance,
+} = sentryFunctions;
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData: { firstName: string; lastName: string; role: 'homeowner' | 'contractor' }) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    userData: {
+      firstName: string;
+      lastName: string;
+      role: 'homeowner' | 'contractor';
+    }
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   // Biometric methods
   signInWithBiometrics: () => Promise<void>;
@@ -65,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Check for existing session
     checkUser();
-    
+
     // Check biometric availability
     checkBiometricAvailability();
 
@@ -74,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const session = await AuthService.getCurrentSession();
       // In a real app, you'd set up auth state change listener here
     };
-    
+
     setupAuthListener();
   }, []);
 
@@ -108,7 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
       setUser(user);
       setUserContext(user);
-      
+
       if (user) {
         addBreadcrumb(`User session restored: ${user.email}`, 'auth');
         initializePushNotifications(user.id);
@@ -123,36 +142,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     trackUserAction('auth.sign_in_attempt', { email });
-    
+
     try {
       const result = await measureAsyncPerformance(
         () => AuthService.signIn(email, password),
         'auth.sign_in',
         'auth'
       );
-      
+
       // If signIn returns user data directly, use it
       let user;
-      if (result && result.user) {
+      if (result?.user) {
         user = result.user;
       } else {
         // Fallback to getCurrentUser if needed
         user = await AuthService.getCurrentUser();
       }
-      
+
       setUser(user);
       setUserContext(user);
-      
+
       if (user) {
-        trackUserAction('auth.sign_in_success', { 
-          userId: user.id, 
-          role: user.role 
+        trackUserAction('auth.sign_in_success', {
+          userId: user.id,
+          role: user.role,
         });
         addBreadcrumb(`User signed in: ${user.email}`, 'auth');
         initializePushNotifications(user.id);
-        
+
         // Prompt for biometric setup if available and not already enabled
-        if (biometricAvailable && !(await BiometricService.isBiometricEnabled())) {
+        if (
+          biometricAvailable &&
+          !(await BiometricService.isBiometricEnabled())
+        ) {
           // Wait a bit to let the UI settle
           setTimeout(() => {
             BiometricService.promptEnableBiometric(
@@ -165,9 +187,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
-      trackUserAction('auth.sign_in_failed', { 
-        email, 
-        error: (error as Error).message 
+      trackUserAction('auth.sign_in_failed', {
+        email,
+        error: (error as Error).message,
       });
       throw error;
     } finally {
@@ -175,37 +197,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, userData: { firstName: string; lastName: string; role: 'homeowner' | 'contractor' }) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    userData: {
+      firstName: string;
+      lastName: string;
+      role: 'homeowner' | 'contractor';
+    }
+  ) => {
     setLoading(true);
-    trackUserAction('auth.sign_up_attempt', { 
-      email, 
-      role: userData.role 
+    trackUserAction('auth.sign_up_attempt', {
+      email,
+      role: userData.role,
     });
-    
+
     try {
       await measureAsyncPerformance(
-        () => AuthService.signUp({ 
-          email, 
-          password, 
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: userData.role 
-        }),
+        () =>
+          AuthService.signUp({
+            email,
+            password,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            role: userData.role,
+          }),
         'auth.sign_up',
         'auth'
       );
-      
+
       const user = await AuthService.getCurrentUser();
       setUser(user);
       setUserContext(user);
-      
+
       if (user) {
-        trackUserAction('auth.sign_up_success', { 
-          userId: user.id, 
-          role: user.role 
+        trackUserAction('auth.sign_up_success', {
+          userId: user.id,
+          role: user.role,
         });
         addBreadcrumb(`New user registered: ${user.email}`, 'auth');
-        
+
         // Prompt for biometric setup for new users if available
         if (biometricAvailable) {
           setTimeout(() => {
@@ -219,10 +250,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
-      trackUserAction('auth.sign_up_failed', { 
-        email, 
+      trackUserAction('auth.sign_up_failed', {
+        email,
         role: userData.role,
-        error: (error as Error).message 
+        error: (error as Error).message,
       });
       throw error;
     } finally {
@@ -233,19 +264,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       const currentUser = user;
-      trackUserAction('auth.sign_out_attempt', { 
-        userId: currentUser?.id 
+      trackUserAction('auth.sign_out_attempt', {
+        userId: currentUser?.id,
       });
-      
+
       await measureAsyncPerformance(
         () => AuthService.signOut(),
         'auth.sign_out',
         'auth'
       );
-      
+
       setUser(null);
       setUserContext(null);
-      
+
       // Clear query cache and offline queue when user logs out
       try {
         const { queryClient } = await import('../lib/queryClient');
@@ -256,15 +287,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (e) {
         logger.warn('Could not clear cache on logout:', e);
       }
-      
-      trackUserAction('auth.sign_out_success', { 
-        userId: currentUser?.id 
+
+      trackUserAction('auth.sign_out_success', {
+        userId: currentUser?.id,
       });
       addBreadcrumb('User signed out', 'auth');
     } catch (error) {
-      trackUserAction('auth.sign_out_failed', { 
+      trackUserAction('auth.sign_out_failed', {
         userId: user?.id,
-        error: (error as Error).message 
+        error: (error as Error).message,
       });
       handleError(error, 'Sign out');
     }
@@ -281,8 +312,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (user && user.email === credentials.email) {
           setUser(user);
           setUserContext(user);
-          trackUserAction('auth.biometric_sign_in_success', { 
-            userId: user.id 
+          trackUserAction('auth.biometric_sign_in_success', {
+            userId: user.id,
           });
           addBreadcrumb('User signed in with biometrics', 'auth');
         } else {
@@ -290,8 +321,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
-      trackUserAction('auth.biometric_sign_in_failed', { 
-        error: (error as Error).message 
+      trackUserAction('auth.biometric_sign_in_failed', {
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -307,9 +338,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const enableBiometric = async (): Promise<void> => {
     if (!user) {
-      throw new Error('User must be signed in to enable biometric authentication');
+      throw new Error(
+        'User must be signed in to enable biometric authentication'
+      );
     }
-    
+
     const sessionToken = 'secure_session_token'; // Get actual session token
     await BiometricService.enableBiometric(user.email, sessionToken);
   };
@@ -332,9 +365,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     disableBiometric,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

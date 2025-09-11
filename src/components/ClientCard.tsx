@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
@@ -43,21 +38,31 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return theme.colors.success;
-      case 'prospect': return theme.colors.warning;
-      case 'inactive': return theme.colors.textSecondary;
-      case 'former': return theme.colors.error;
-      default: return theme.colors.textSecondary;
+      case 'active':
+        return theme.colors.success;
+      case 'prospect':
+        return theme.colors.warning;
+      case 'inactive':
+        return theme.colors.textSecondary;
+      case 'former':
+        return theme.colors.error;
+      default:
+        return theme.colors.textSecondary;
     }
   };
 
   const getClientTypeIcon = (type: string) => {
     switch (type) {
-      case 'residential': return 'home';
-      case 'commercial': return 'business';
-      case 'industrial': return 'construct';
-      case 'government': return 'library';
-      default: return 'person';
+      case 'residential':
+        return 'home';
+      case 'commercial':
+        return 'business';
+      case 'industrial':
+        return 'construct';
+      case 'government':
+        return 'library';
+      default:
+        return 'person';
     }
   };
 
@@ -69,8 +74,11 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 
   const risk = getRiskLevel(client.churn_risk_score);
   const clientName = `${client.first_name} ${client.last_name}`;
-  const lastJobDays = client.last_job_date 
-    ? Math.floor((new Date().getTime() - new Date(client.last_job_date).getTime()) / (1000 * 60 * 60 * 24))
+  const lastJobDays = client.last_job_date
+    ? Math.floor(
+        (new Date().getTime() - new Date(client.last_job_date).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
     : null;
 
   return (
@@ -78,10 +86,10 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <View style={styles.header}>
         <View style={styles.clientInfo}>
           <View style={styles.nameRow}>
-            <Ionicons 
-              name={getClientTypeIcon(client.client_type) as any} 
-              size={16} 
-              color={theme.colors.primary} 
+            <Ionicons
+              name={getClientTypeIcon(client.client_type) as any}
+              size={16}
+              color={theme.colors.primary}
             />
             <Text style={styles.clientName}>{clientName}</Text>
           </View>
@@ -90,9 +98,14 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Text style={styles.clientPhone}>{client.phone}</Text>
           )}
         </View>
-        
+
         <View style={styles.statusContainer}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(client.relationship_status) }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(client.relationship_status) },
+            ]}
+          >
             <Text style={styles.statusText}>
               {client.relationship_status.toUpperCase()}
             </Text>
@@ -119,14 +132,18 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           <Text style={styles.metricLabel}>Revenue</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricValue}>{client.payment_history_score}%</Text>
+          <Text style={styles.metricValue}>
+            {client.payment_history_score}%
+          </Text>
           <Text style={styles.metricLabel}>Pay Score</Text>
         </View>
         {client.satisfaction_score && (
           <View style={styles.metric}>
             <View style={styles.rating}>
-              <Text style={styles.metricValue}>{client.satisfaction_score.toFixed(1)}</Text>
-              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={styles.metricValue}>
+                {client.satisfaction_score.toFixed(1)}
+              </Text>
+              <Ionicons name='star' size={12} color='#FFD700' />
             </View>
             <Text style={styles.metricLabel}>Rating</Text>
           </View>
@@ -135,7 +152,11 @@ export const ClientCard: React.FC<ClientCardProps> = ({
 
       {lastJobDays !== null && (
         <View style={styles.lastActivity}>
-          <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='time-outline'
+            size={14}
+            color={theme.colors.textSecondary}
+          />
           <Text style={styles.lastActivityText}>
             Last job {lastJobDays === 0 ? 'today' : `${lastJobDays} days ago`}
           </Text>
@@ -145,21 +166,29 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <View style={styles.actions}>
         {onCall && (
           <TouchableOpacity style={styles.actionButton} onPress={onCall}>
-            <Ionicons name="call" size={16} color={theme.colors.primary} />
+            <Ionicons name='call' size={16} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
         {onMessage && (
           <TouchableOpacity style={styles.actionButton} onPress={onMessage}>
-            <Ionicons name="chatbubble" size={16} color={theme.colors.primary} />
+            <Ionicons
+              name='chatbubble'
+              size={16}
+              color={theme.colors.primary}
+            />
           </TouchableOpacity>
         )}
         {onEmail && (
           <TouchableOpacity style={styles.actionButton} onPress={onEmail}>
-            <Ionicons name="mail" size={16} color={theme.colors.primary} />
+            <Ionicons name='mail' size={16} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.actionButton, styles.moreButton]}>
-          <Ionicons name="ellipsis-horizontal" size={16} color={theme.colors.primary} />
+          <Ionicons
+            name='ellipsis-horizontal'
+            size={16}
+            color={theme.colors.primary}
+          />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

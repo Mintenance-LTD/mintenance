@@ -86,7 +86,7 @@ export function useAuth(): AuthContextType {
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) throw new Error('No user logged in');
-    
+
     const updatedUser = await AuthService.updateUserProfile(user.id, updates);
     setUser(updatedUser);
   };

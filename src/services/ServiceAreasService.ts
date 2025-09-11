@@ -127,21 +127,32 @@ export class ServiceAreasService {
     try {
       const { data, error } = await supabase
         .from('service_areas')
-        .insert([{
-          ...areaData,
-          base_travel_charge: areaData.base_travel_charge || 0,
-          per_km_rate: areaData.per_km_rate || 0,
-          minimum_job_value: areaData.minimum_job_value || 0,
-          priority_level: areaData.priority_level || 1,
-          is_primary_area: areaData.is_primary_area || false,
-          response_time_hours: areaData.response_time_hours || 24,
-          weekend_surcharge: areaData.weekend_surcharge || 0,
-          evening_surcharge: areaData.evening_surcharge || 0,
-          emergency_available: areaData.emergency_available || false,
-          emergency_surcharge: areaData.emergency_surcharge || 0,
-          preferred_days: areaData.preferred_days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-          preferred_hours: areaData.preferred_hours || { start: '09:00', end: '17:00' }
-        }])
+        .insert([
+          {
+            ...areaData,
+            base_travel_charge: areaData.base_travel_charge || 0,
+            per_km_rate: areaData.per_km_rate || 0,
+            minimum_job_value: areaData.minimum_job_value || 0,
+            priority_level: areaData.priority_level || 1,
+            is_primary_area: areaData.is_primary_area || false,
+            response_time_hours: areaData.response_time_hours || 24,
+            weekend_surcharge: areaData.weekend_surcharge || 0,
+            evening_surcharge: areaData.evening_surcharge || 0,
+            emergency_available: areaData.emergency_available || false,
+            emergency_surcharge: areaData.emergency_surcharge || 0,
+            preferred_days: areaData.preferred_days || [
+              'monday',
+              'tuesday',
+              'wednesday',
+              'thursday',
+              'friday',
+            ],
+            preferred_hours: areaData.preferred_hours || {
+              start: '09:00',
+              end: '17:00',
+            },
+          },
+        ])
         .select()
         .single();
 
@@ -169,7 +180,10 @@ export class ServiceAreasService {
     }
   }
 
-  static async updateServiceArea(areaId: string, updates: Partial<ServiceArea>): Promise<ServiceArea> {
+  static async updateServiceArea(
+    areaId: string,
+    updates: Partial<ServiceArea>
+  ): Promise<ServiceArea> {
     try {
       const { data, error } = await supabase
         .from('service_areas')
@@ -205,14 +219,18 @@ export class ServiceAreasService {
   // =====================================================
 
   static async calculateDistance(
-    lat1: number, lng1: number,
-    lat2: number, lng2: number
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
   ): Promise<number> {
     try {
-      const { data, error } = await supabase
-        .rpc('calculate_distance_km', {
-          lat1, lng1, lat2, lng2
-        });
+      const { data, error } = await supabase.rpc('calculate_distance_km', {
+        lat1,
+        lng1,
+        lat2,
+        lng2,
+      });
 
       if (error) throw error;
       return data;
@@ -223,16 +241,23 @@ export class ServiceAreasService {
     }
   }
 
-  static haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  static haversineDistance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRadians(lat2 - lat1);
     const dLng = this.toRadians(lng2 - lng1);
-    
-    const a = 
+
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    
+      Math.cos(this.toRadians(lat1)) *
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -247,12 +272,14 @@ export class ServiceAreasService {
     longitude: number
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .rpc('is_location_in_service_area', {
+      const { data, error } = await supabase.rpc(
+        'is_location_in_service_area',
+        {
           p_area_id: areaId,
           p_latitude: latitude,
-          p_longitude: longitude
-        });
+          p_longitude: longitude,
+        }
+      );
 
       if (error) throw error;
       return data;
@@ -268,12 +295,14 @@ export class ServiceAreasService {
     maxDistance: number = 50
   ): Promise<ContractorLocation[]> {
     try {
-      const { data, error } = await supabase
-        .rpc('find_contractors_for_location', {
+      const { data, error } = await supabase.rpc(
+        'find_contractors_for_location',
+        {
           p_latitude: latitude,
           p_longitude: longitude,
-          p_max_distance: maxDistance
-        });
+          p_max_distance: maxDistance,
+        }
+      );
 
       if (error) throw error;
       return data || [];
@@ -298,20 +327,20 @@ export class ServiceAreasService {
     eveningSurcharge: number = 0,
     emergencySurcharge: number = 0
   ): number {
-    let charge = baseCharge + (perKmRate * distance);
-    
+    let charge = baseCharge + perKmRate * distance;
+
     if (isWeekend) {
       charge += charge * (weekendSurcharge / 100);
     }
-    
+
     if (isEvening) {
       charge += charge * (eveningSurcharge / 100);
     }
-    
+
     if (isEmergency) {
       charge += charge * (emergencySurcharge / 100);
     }
-    
+
     return Math.round(charge * 100) / 100; // Round to 2 decimal places
   }
 
@@ -380,12 +409,14 @@ export class ServiceAreasService {
     try {
       const { data, error } = await supabase
         .from('service_routes')
-        .insert([{
-          ...routeData,
-          jobs: routeData.jobs || [],
-          waypoints: [],
-          status: 'planned'
-        }])
+        .insert([
+          {
+            ...routeData,
+            jobs: routeData.jobs || [],
+            waypoints: [],
+            status: 'planned',
+          },
+        ])
         .select()
         .single();
 
@@ -397,23 +428,26 @@ export class ServiceAreasService {
     }
   }
 
-  static async optimizeRoute(routeId: string, jobLocations: Array<{
-    job_id: string;
-    latitude: number;
-    longitude: number;
-  }>): Promise<{
+  static async optimizeRoute(
+    routeId: string,
+    jobLocations: {
+      job_id: string;
+      latitude: number;
+      longitude: number;
+    }[]
+  ): Promise<{
     optimized_order: string[];
     total_distance: number;
     estimated_time: number;
   }> {
     // This is a simplified optimization algorithm
     // In production, you'd use Google Maps API or similar service
-    
+
     if (jobLocations.length <= 1) {
       return {
-        optimized_order: jobLocations.map(loc => loc.job_id),
+        optimized_order: jobLocations.map((loc) => loc.job_id),
         total_distance: 0,
-        estimated_time: 0
+        estimated_time: 0,
       };
     }
 
@@ -422,34 +456,36 @@ export class ServiceAreasService {
     const visited: typeof jobLocations = [];
     let currentLocation = unvisited.shift()!;
     visited.push(currentLocation);
-    
+
     let totalDistance = 0;
-    
+
     while (unvisited.length > 0) {
       let nearestIndex = 0;
       let nearestDistance = Infinity;
-      
+
       for (let i = 0; i < unvisited.length; i++) {
         const distance = this.haversineDistance(
-          currentLocation.latitude, currentLocation.longitude,
-          unvisited[i].latitude, unvisited[i].longitude
+          currentLocation.latitude,
+          currentLocation.longitude,
+          unvisited[i].latitude,
+          unvisited[i].longitude
         );
-        
+
         if (distance < nearestDistance) {
           nearestDistance = distance;
           nearestIndex = i;
         }
       }
-      
+
       totalDistance += nearestDistance;
       currentLocation = unvisited.splice(nearestIndex, 1)[0];
       visited.push(currentLocation);
     }
-    
+
     return {
-      optimized_order: visited.map(loc => loc.job_id),
+      optimized_order: visited.map((loc) => loc.job_id),
       total_distance: Math.round(totalDistance * 100) / 100,
-      estimated_time: Math.round(totalDistance * 2) // Rough estimate: 2 minutes per km
+      estimated_time: Math.round(totalDistance * 2), // Rough estimate: 2 minutes per km
     };
   }
 
@@ -478,11 +514,11 @@ export class ServiceAreasService {
     errors: string[];
   }> {
     const errors: string[] = [];
-    
+
     if (!areaData.area_name || areaData.area_name.trim().length === 0) {
       errors.push('Area name is required');
     }
-    
+
     if (areaData.area_type === 'radius') {
       if (!areaData.center_latitude || !areaData.center_longitude) {
         errors.push('Center coordinates are required for radius areas');
@@ -491,30 +527,33 @@ export class ServiceAreasService {
         errors.push('Radius must be greater than 0');
       }
     }
-    
+
     if (areaData.area_type === 'postal_codes') {
       if (!areaData.postal_codes || areaData.postal_codes.length === 0) {
         errors.push('At least one postal code is required');
       }
     }
-    
+
     if (areaData.area_type === 'cities') {
       if (!areaData.cities || areaData.cities.length === 0) {
         errors.push('At least one city is required');
       }
     }
-    
+
     if (areaData.per_km_rate && areaData.per_km_rate < 0) {
       errors.push('Per-km rate cannot be negative');
     }
-    
-    if (areaData.priority_level && (areaData.priority_level < 1 || areaData.priority_level > 5)) {
+
+    if (
+      areaData.priority_level &&
+      (areaData.priority_level < 1 || areaData.priority_level > 5)
+    ) {
       errors.push('Priority level must be between 1 and 5');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -546,7 +585,7 @@ export class ServiceAreasService {
       preferred_days: data.preferred_days,
       preferred_hours: data.preferred_hours,
       created_at: data.created_at,
-      updated_at: data.updated_at
+      updated_at: data.updated_at,
     };
   }
 }

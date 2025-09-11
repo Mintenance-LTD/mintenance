@@ -14,22 +14,23 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
-      
+      <StatusBar style='auto' />
+
       <View style={styles.content}>
         <Text style={styles.title}>🏠 Mintenance</Text>
         <Text style={styles.subtitle}>Home Maintenance Made Easy</Text>
-        
+
         <View style={styles.description}>
           <Text style={styles.descriptionText}>
-            Connect with trusted contractors for all your home maintenance needs.
+            Connect with trusted contractors for all your home maintenance
+            needs.
           </Text>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.versionText}>Version 1.1.0</Text>
       </View>
     </View>

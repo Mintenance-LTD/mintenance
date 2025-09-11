@@ -8,7 +8,7 @@ export interface User {
   updated_at: string;
   // Optional fields
   firstName?: string; // Computed field
-  lastName?: string;  // Computed field
+  lastName?: string; // Computed field
   createdAt?: string; // Computed field
   latitude?: number;
   longitude?: number;
@@ -114,7 +114,11 @@ export interface LocationData {
 }
 
 // Contractor Social features
-export type ContractorPostType = 'project_showcase' | 'tip' | 'before_after' | 'milestone';
+export type ContractorPostType =
+  | 'project_showcase'
+  | 'tip'
+  | 'before_after'
+  | 'milestone';
 
 export interface ContractorPost {
   id: string;
@@ -172,11 +176,11 @@ export interface MessageThread {
   jobTitle: string;
   lastMessage?: Message;
   unreadCount: number;
-  participants: Array<{
+  participants: {
     id: string;
     name: string;
     role: string;
-  }>;
+  }[];
 }
 
 // Additional types for biometric authentication

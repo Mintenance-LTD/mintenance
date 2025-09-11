@@ -75,7 +75,7 @@ const PaymentMethodsScreen: React.FC = () => {
       ];
 
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setPaymentMethods(mockPaymentMethods);
     } catch (error) {
       console.error('Error loading payment methods:', error);
@@ -103,7 +103,9 @@ const PaymentMethodsScreen: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setPaymentMethods(methods => methods.filter(m => m.id !== methodId));
+            setPaymentMethods((methods) =>
+              methods.filter((m) => m.id !== methodId)
+            );
           },
         },
       ]
@@ -111,8 +113,8 @@ const PaymentMethodsScreen: React.FC = () => {
   };
 
   const handleSetDefault = (methodId: string) => {
-    setPaymentMethods(methods =>
-      methods.map(method => ({
+    setPaymentMethods((methods) =>
+      methods.map((method) => ({
         ...method,
         isDefault: method.id === methodId,
       }))
@@ -122,37 +124,15 @@ const PaymentMethodsScreen: React.FC = () => {
   const renderPaymentMethodIcon = (method: PaymentMethod) => {
     switch (method.type) {
       case 'card':
-        return (
-          <Ionicons
-            name="card"
-            size={24}
-            color={theme.colors.primary}
-          />
-        );
+        return <Ionicons name='card' size={24} color={theme.colors.primary} />;
       case 'bank':
         return (
-          <Ionicons
-            name="business"
-            size={24}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='business' size={24} color={theme.colors.primary} />
         );
       case 'paypal':
-        return (
-          <Ionicons
-            name="logo-paypal"
-            size={24}
-            color="#003087"
-          />
-        );
+        return <Ionicons name='logo-paypal' size={24} color='#003087' />;
       default:
-        return (
-          <Ionicons
-            name="card"
-            size={24}
-            color={theme.colors.primary}
-          />
-        );
+        return <Ionicons name='card' size={24} color={theme.colors.primary} />;
     }
   };
 
@@ -170,7 +150,8 @@ const PaymentMethodsScreen: React.FC = () => {
                   {method.brand} •••• {method.last4}
                 </Text>
                 <Text style={styles.paymentMethodSubtitle}>
-                  Expires {method.expiryMonth?.toString().padStart(2, '0')}/{method.expiryYear}
+                  Expires {method.expiryMonth?.toString().padStart(2, '0')}/
+                  {method.expiryYear}
                 </Text>
               </>
             )}
@@ -183,7 +164,9 @@ const PaymentMethodsScreen: React.FC = () => {
             {method.type === 'bank' && (
               <>
                 <Text style={styles.paymentMethodTitle}>{method.bankName}</Text>
-                <Text style={styles.paymentMethodSubtitle}>•••• {method.last4}</Text>
+                <Text style={styles.paymentMethodSubtitle}>
+                  •••• {method.last4}
+                </Text>
               </>
             )}
           </View>
@@ -196,16 +179,16 @@ const PaymentMethodsScreen: React.FC = () => {
           )}
           {!method.isDefault && (
             <Button
-              variant="secondary"
-              size="sm"
-              title="Set Default"
+              variant='secondary'
+              size='sm'
+              title='Set Default'
               onPress={() => handleSetDefault(method.id)}
             />
           )}
           <Button
-            variant="danger"
-            size="sm"
-            title="Delete"
+            variant='danger'
+            size='sm'
+            title='Delete'
             onPress={() => handleDeletePaymentMethod(method.id)}
           />
         </View>
@@ -216,7 +199,7 @@ const PaymentMethodsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size='large' color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading payment methods...</Text>
       </View>
     );
@@ -225,10 +208,10 @@ const PaymentMethodsScreen: React.FC = () => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="warning-outline" size={50} color={theme.colors.error} />
+        <Ionicons name='warning-outline' size={50} color={theme.colors.error} />
         <Text style={styles.errorTitle}>Something went wrong</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <Button variant="primary" title="Retry" onPress={loadPaymentMethods} />
+        <Button variant='primary' title='Retry' onPress={loadPaymentMethods} />
       </View>
     );
   }
@@ -240,7 +223,11 @@ const PaymentMethodsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.title}>Payment Methods</Text>
         <View style={styles.placeholder} />
@@ -258,7 +245,11 @@ const PaymentMethodsScreen: React.FC = () => {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="card-outline" size={50} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='card-outline'
+              size={50}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.emptyTitle}>No Payment Methods</Text>
             <Text style={styles.emptySubtitle}>
               Add a payment method to start making secure payments
@@ -267,20 +258,24 @@ const PaymentMethodsScreen: React.FC = () => {
         )}
 
         <Button
-          variant="primary"
-          title="Add Payment Method"
+          variant='primary'
+          title='Add Payment Method'
           onPress={handleAddPaymentMethod}
           fullWidth
         />
 
         <View style={styles.securityInfo}>
           <View style={styles.securityHeader}>
-            <Ionicons name="shield-checkmark" size={20} color={theme.colors.secondary} />
+            <Ionicons
+              name='shield-checkmark'
+              size={20}
+              color={theme.colors.secondary}
+            />
             <Text style={styles.securityTitle}>Your payment is secure</Text>
           </View>
           <Text style={styles.securityText}>
-            All payment information is encrypted and processed securely. 
-            We never store your full card details on our servers.
+            All payment information is encrypted and processed securely. We
+            never store your full card details on our servers.
           </Text>
         </View>
       </ScrollView>

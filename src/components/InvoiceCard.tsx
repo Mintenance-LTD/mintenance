@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { Invoice } from '../services/ContractorBusinessSuite';
@@ -20,48 +15,64 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   invoice,
   onPress,
   onSendReminder,
-  onMarkPaid
+  onMarkPaid,
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return theme.colors.success;
-      case 'overdue': return theme.colors.error;
-      case 'sent': return theme.colors.warning;
-      case 'draft': return theme.colors.textSecondary;
-      default: return theme.colors.primary;
+      case 'paid':
+        return theme.colors.success;
+      case 'overdue':
+        return theme.colors.error;
+      case 'sent':
+        return theme.colors.warning;
+      case 'draft':
+        return theme.colors.textSecondary;
+      default:
+        return theme.colors.primary;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'paid': return 'checkmark-circle';
-      case 'overdue': return 'warning';
-      case 'sent': return 'mail';
-      case 'draft': return 'document-outline';
-      default: return 'document';
+      case 'paid':
+        return 'checkmark-circle';
+      case 'overdue':
+        return 'warning';
+      case 'sent':
+        return 'mail';
+      case 'draft':
+        return 'document-outline';
+      default:
+        return 'document';
     }
   };
 
   const isOverdue = invoice.status === 'overdue';
   const canSendReminder = invoice.status === 'sent' || isOverdue;
-  const canMarkPaid = invoice.status !== 'paid' && invoice.status !== 'cancelled';
+  const canMarkPaid =
+    invoice.status !== 'paid' && invoice.status !== 'cancelled';
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.header}>
         <View style={styles.invoiceInfo}>
           <Text style={styles.invoiceNumber}>#{invoice.invoice_number}</Text>
-          <Text style={styles.clientName}>{(invoice as any).client_name || ''}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
-          <Ionicons 
-            name={getStatusIcon(invoice.status) as any} 
-            size={14} 
-            color="#fff" 
-          />
-          <Text style={styles.statusText}>
-            {invoice.status.toUpperCase()}
+          <Text style={styles.clientName}>
+            {(invoice as any).client_name || ''}
           </Text>
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: getStatusColor(invoice.status) },
+          ]}
+        >
+          <Ionicons
+            name={getStatusIcon(invoice.status) as any}
+            size={14}
+            color='#fff'
+          />
+          <Text style={styles.statusText}>{invoice.status.toUpperCase()}</Text>
         </View>
       </View>
 
@@ -77,9 +88,17 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
 
         {isOverdue && (
           <View style={styles.overdueContainer}>
-            <Ionicons name="time-outline" size={14} color={theme.colors.error} />
+            <Ionicons
+              name='time-outline'
+              size={14}
+              color={theme.colors.error}
+            />
             <Text style={styles.overdueText}>
-              {Math.ceil((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 60 * 60 * 24))} days overdue
+              {Math.ceil(
+                (new Date().getTime() - new Date(invoice.due_date).getTime()) /
+                  (1000 * 60 * 60 * 24)
+              )}{' '}
+              days overdue
             </Text>
           </View>
         )}
@@ -93,21 +112,29 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
 
       <View style={styles.actions}>
         {canSendReminder && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, styles.reminderButton]}
             onPress={onSendReminder}
           >
-            <Ionicons name="mail-outline" size={16} color={theme.colors.primary} />
+            <Ionicons
+              name='mail-outline'
+              size={16}
+              color={theme.colors.primary}
+            />
             <Text style={styles.reminderButtonText}>Send Reminder</Text>
           </TouchableOpacity>
         )}
 
         {canMarkPaid && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.actionButton, styles.paidButton]}
             onPress={onMarkPaid}
           >
-            <Ionicons name="checkmark-circle-outline" size={16} color={theme.colors.success} />
+            <Ionicons
+              name='checkmark-circle-outline'
+              size={16}
+              color={theme.colors.success}
+            />
             <Text style={styles.paidButtonText}>Mark Paid</Text>
           </TouchableOpacity>
         )}

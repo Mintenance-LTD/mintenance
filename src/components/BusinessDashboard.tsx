@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
-import { 
-  useBusinessDashboard, 
+import {
+  useBusinessDashboard,
   useBusinessSuiteFormatters,
-  businessSuiteUtils
+  businessSuiteUtils,
 } from '../hooks/useBusinessSuite';
 
 interface BusinessDashboardProps {
@@ -24,17 +24,19 @@ interface BusinessDashboardProps {
 
 export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   contractorId,
-  onNavigate
+  onNavigate,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedKPI, setSelectedKPI] = useState<'revenue' | 'jobs' | 'satisfaction' | 'profitability'>('revenue');
+  const [selectedKPI, setSelectedKPI] = useState<
+    'revenue' | 'jobs' | 'satisfaction' | 'profitability'
+  >('revenue');
 
   const dashboard = useBusinessDashboard(contractorId);
-  const { 
-    formatCurrency, 
-    formatPercentage, 
+  const {
+    formatCurrency,
+    formatPercentage,
     getPerformanceColor,
-    calculateGrowthTrend 
+    calculateGrowthTrend,
   } = useBusinessSuiteFormatters();
 
   const handleRefresh = async () => {
@@ -46,7 +48,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   if (dashboard.isLoading && !dashboard.kpis) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size='large' color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading business dashboard...</Text>
       </View>
     );
@@ -61,7 +63,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     color: string,
     onPress?: () => void
   ) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.kpiCard, { borderLeftColor: color }]}
       onPress={onPress}
     >
@@ -69,30 +71,47 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         <Ionicons name={icon as any} size={24} color={color} />
         <Text style={styles.kpiTitle}>{title}</Text>
       </View>
-      
+
       <Text style={[styles.kpiValue, { color }]}>
         {typeof value === 'number' ? formatCurrency(value) : value}
       </Text>
-      
+
       <Text style={styles.kpiSubtitle}>{subtitle}</Text>
-      
+
       {trend && (
         <View style={styles.trendContainer}>
-          <Ionicons 
-            name={trend.trend === 'growing' ? 'trending-up' : 
-                  trend.trend === 'declining' ? 'trending-down' : 'remove'} 
-            size={16} 
-            color={trend.trend === 'growing' ? theme.colors.success : 
-                   trend.trend === 'declining' ? theme.colors.error : 
-                   theme.colors.textSecondary} 
+          <Ionicons
+            name={
+              trend.trend === 'growing'
+                ? 'trending-up'
+                : trend.trend === 'declining'
+                  ? 'trending-down'
+                  : 'remove'
+            }
+            size={16}
+            color={
+              trend.trend === 'growing'
+                ? theme.colors.success
+                : trend.trend === 'declining'
+                  ? theme.colors.error
+                  : theme.colors.textSecondary
+            }
           />
-          <Text style={[
-            styles.trendText,
-            { color: trend.trend === 'growing' ? theme.colors.success : 
-                     trend.trend === 'declining' ? theme.colors.error : 
-                     theme.colors.textSecondary }
-          ]}>
-            {trend.percentage > 0 ? '+' : ''}{trend.percentage.toFixed(1)}%
+          <Text
+            style={[
+              styles.trendText,
+              {
+                color:
+                  trend.trend === 'growing'
+                    ? theme.colors.success
+                    : trend.trend === 'declining'
+                      ? theme.colors.error
+                      : theme.colors.textSecondary,
+              },
+            ]}
+          >
+            {trend.percentage > 0 ? '+' : ''}
+            {trend.percentage.toFixed(1)}%
           </Text>
         </View>
       )}
@@ -100,13 +119,18 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   );
 
   const renderInsightCard = (insight: any, index: number) => (
-    <View 
-      key={index} 
+    <View
+      key={index}
       style={[
         styles.insightCard,
-        { borderLeftColor: insight.type === 'success' ? theme.colors.success : 
-                           insight.type === 'warning' ? theme.colors.warning : 
-                           theme.colors.info }
+        {
+          borderLeftColor:
+            insight.type === 'success'
+              ? theme.colors.success
+              : insight.type === 'warning'
+                ? theme.colors.warning
+                : theme.colors.info,
+        },
       ]}
     >
       <View style={styles.insightHeader}>
@@ -118,18 +142,23 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   );
 
   const renderActionItem = (item: any, index: number) => (
-    <TouchableOpacity 
-      key={index} 
+    <TouchableOpacity
+      key={index}
       style={[
         styles.actionItem,
-        { borderColor: item.type === 'urgent' ? theme.colors.error : theme.colors.warning }
+        {
+          borderColor:
+            item.type === 'urgent' ? theme.colors.error : theme.colors.warning,
+        },
       ]}
     >
       <View style={styles.actionHeader}>
-        <Ionicons 
-          name={item.type === 'urgent' ? 'alert-circle' : 'warning'} 
-          size={20} 
-          color={item.type === 'urgent' ? theme.colors.error : theme.colors.warning} 
+        <Ionicons
+          name={item.type === 'urgent' ? 'alert-circle' : 'warning'}
+          size={20}
+          color={
+            item.type === 'urgent' ? theme.colors.error : theme.colors.warning
+          }
         />
         <Text style={styles.actionTitle}>{item.title}</Text>
       </View>
@@ -142,35 +171,39 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionsGrid}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('CreateInvoice')}
         >
-          <Ionicons name="document-text" size={24} color={theme.colors.primary} />
+          <Ionicons
+            name='document-text'
+            size={24}
+            color={theme.colors.primary}
+          />
           <Text style={styles.quickActionText}>Create Invoice</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('RecordExpense')}
         >
-          <Ionicons name="receipt" size={24} color={theme.colors.primary} />
+          <Ionicons name='receipt' size={24} color={theme.colors.primary} />
           <Text style={styles.quickActionText}>Log Expense</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('UpdateSchedule')}
         >
-          <Ionicons name="calendar" size={24} color={theme.colors.primary} />
+          <Ionicons name='calendar' size={24} color={theme.colors.primary} />
           <Text style={styles.quickActionText}>Update Schedule</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => onNavigate?.('ViewClients')}
         >
-          <Ionicons name="people" size={24} color={theme.colors.primary} />
+          <Ionicons name='people' size={24} color={theme.colors.primary} />
           <Text style={styles.quickActionText}>Manage Clients</Text>
         </TouchableOpacity>
       </View>
@@ -178,7 +211,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   );
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -207,7 +240,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               theme.colors.success,
               () => onNavigate?.('FinancialSummary')
             )}
-            
+
             {renderKPICard(
               'Jobs Completed',
               dashboard.kpis.jobs.completed,
@@ -217,7 +250,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               theme.colors.primary,
               () => onNavigate?.('JobsAnalytics')
             )}
-            
+
             {renderKPICard(
               'Client Satisfaction',
               `${dashboard.kpis.satisfaction.rating.toFixed(1)}/5`,
@@ -227,7 +260,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               theme.colors.warning,
               () => onNavigate?.('ClientAnalytics')
             )}
-            
+
             {renderKPICard(
               'Profit Margin',
               `${dashboard.kpis.profitability.margin.toFixed(1)}%`,
@@ -237,7 +270,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               getPerformanceColor(dashboard.kpis.profitability.margin, {
                 excellent: 35,
                 good: 25,
-                average: 15
+                average: 15,
               }),
               () => onNavigate?.('ProfitAnalysis')
             )}
@@ -259,19 +292,34 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 <View style={styles.healthMetric}>
                   <Text style={styles.healthMetricLabel}>Profitability</Text>
                   <View style={styles.healthBar}>
-                    <View style={[styles.healthBarFill, { width: '85%', backgroundColor: theme.colors.success }]} />
+                    <View
+                      style={[
+                        styles.healthBarFill,
+                        { width: '85%', backgroundColor: theme.colors.success },
+                      ]}
+                    />
                   </View>
                 </View>
                 <View style={styles.healthMetric}>
                   <Text style={styles.healthMetricLabel}>Efficiency</Text>
                   <View style={styles.healthBar}>
-                    <View style={[styles.healthBarFill, { width: '92%', backgroundColor: theme.colors.success }]} />
+                    <View
+                      style={[
+                        styles.healthBarFill,
+                        { width: '92%', backgroundColor: theme.colors.success },
+                      ]}
+                    />
                   </View>
                 </View>
                 <View style={styles.healthMetric}>
                   <Text style={styles.healthMetricLabel}>Growth</Text>
                   <View style={styles.healthBar}>
-                    <View style={[styles.healthBarFill, { width: '78%', backgroundColor: theme.colors.warning }]} />
+                    <View
+                      style={[
+                        styles.healthBarFill,
+                        { width: '78%', backgroundColor: theme.colors.warning },
+                      ]}
+                    />
                   </View>
                 </View>
               </View>
@@ -284,7 +332,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       {dashboard.insights.length > 0 && (
         <View style={styles.insightsSection}>
           <Text style={styles.sectionTitle}>Business Insights</Text>
-          {dashboard.insights.map((insight, index) => renderInsightCard(insight, index))}
+          {dashboard.insights.map((insight, index) =>
+            renderInsightCard(insight, index)
+          )}
         </View>
       )}
 
@@ -292,7 +342,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       {dashboard.actionItems.length > 0 && (
         <View style={styles.actionItemsSection}>
           <Text style={styles.sectionTitle}>Action Required</Text>
-          {dashboard.actionItems.map((item, index) => renderActionItem(item, index))}
+          {dashboard.actionItems.map((item, index) =>
+            renderActionItem(item, index)
+          )}
         </View>
       )}
 
@@ -303,56 +355,68 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       <View style={styles.businessToolsContainer}>
         <Text style={styles.sectionTitle}>Business Tools</Text>
         <View style={styles.toolsGrid}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('InvoiceManager')}
           >
-            <Ionicons name="document-text" size={32} color={theme.colors.primary} />
+            <Ionicons
+              name='document-text'
+              size={32}
+              color={theme.colors.primary}
+            />
             <Text style={styles.toolTitle}>Invoice Manager</Text>
-            <Text style={styles.toolDescription}>Create and track invoices</Text>
+            <Text style={styles.toolDescription}>
+              Create and track invoices
+            </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('ExpenseTracker')}
           >
-            <Ionicons name="receipt" size={32} color={theme.colors.primary} />
+            <Ionicons name='receipt' size={32} color={theme.colors.primary} />
             <Text style={styles.toolTitle}>Expense Tracker</Text>
-            <Text style={styles.toolDescription}>Log and categorize expenses</Text>
+            <Text style={styles.toolDescription}>
+              Log and categorize expenses
+            </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('ScheduleManager')}
           >
-            <Ionicons name="calendar" size={32} color={theme.colors.primary} />
+            <Ionicons name='calendar' size={32} color={theme.colors.primary} />
             <Text style={styles.toolTitle}>Schedule Manager</Text>
-            <Text style={styles.toolDescription}>Manage availability and bookings</Text>
+            <Text style={styles.toolDescription}>
+              Manage availability and bookings
+            </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('ClientCRM')}
           >
-            <Ionicons name="people" size={32} color={theme.colors.primary} />
+            <Ionicons name='people' size={32} color={theme.colors.primary} />
             <Text style={styles.toolTitle}>Client CRM</Text>
-            <Text style={styles.toolDescription}>Manage client relationships</Text>
+            <Text style={styles.toolDescription}>
+              Manage client relationships
+            </Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('MarketingHub')}
           >
-            <Ionicons name="megaphone" size={32} color={theme.colors.primary} />
+            <Ionicons name='megaphone' size={32} color={theme.colors.primary} />
             <Text style={styles.toolTitle}>Marketing Hub</Text>
             <Text style={styles.toolDescription}>Promote your services</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.toolCard}
             onPress={() => onNavigate?.('BusinessGoals')}
           >
-            <Ionicons name="flag" size={32} color={theme.colors.primary} />
+            <Ionicons name='flag' size={32} color={theme.colors.primary} />
             <Text style={styles.toolTitle}>Business Goals</Text>
             <Text style={styles.toolDescription}>Set and track objectives</Text>
           </TouchableOpacity>
@@ -361,11 +425,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.reportButton}
           onPress={() => onNavigate?.('BusinessReport')}
         >
-          <Ionicons name="bar-chart" size={20} color="#fff" />
+          <Ionicons name='bar-chart' size={20} color='#fff' />
           <Text style={styles.reportButtonText}>Generate Business Report</Text>
         </TouchableOpacity>
       </View>
@@ -481,7 +545,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.success + '20',
+    backgroundColor: `${theme.colors.success}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing[4],

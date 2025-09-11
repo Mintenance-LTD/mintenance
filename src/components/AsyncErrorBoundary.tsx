@@ -63,30 +63,36 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
   const renderAsyncErrorFallback = (error: Error, resetError: () => void) => (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons 
-          name="alert-circle-outline" 
-          size={54} 
-          color="#FF3B30" 
-        />
+        <Ionicons name='alert-circle-outline' size={54} color='#FF3B30' />
       </View>
-      
+
       <Text style={styles.title}>Operation Failed</Text>
       <Text style={styles.message}>
-        {fallbackMessage || 
-         `The ${operationName} operation encountered an error. Please try again.`}
+        {fallbackMessage ||
+          `The ${operationName} operation encountered an error. Please try again.`}
       </Text>
-      
+
       <TouchableOpacity
         style={[styles.retryButton, isRetrying && styles.retryButtonDisabled]}
         onPress={() => handleRetry(resetError)}
         disabled={isRetrying}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={`Retry ${operationName} operation`}
       >
         {isRetrying ? (
-          <Ionicons name="hourglass-outline" size={16} color={theme.colors.textInverse} style={styles.buttonIcon} />
+          <Ionicons
+            name='hourglass-outline'
+            size={16}
+            color={theme.colors.textInverse}
+            style={styles.buttonIcon}
+          />
         ) : (
-          <Ionicons name="refresh" size={16} color={theme.colors.textInverse} style={styles.buttonIcon} />
+          <Ionicons
+            name='refresh'
+            size={16}
+            color={theme.colors.textInverse}
+            style={styles.buttonIcon}
+          />
         )}
         <Text style={styles.retryButtonText}>
           {isRetrying ? 'Retrying...' : 'Try Again'}
@@ -97,7 +103,9 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
         <View style={styles.debugInfo}>
           <Text style={styles.debugText}>Operation: {operationName}</Text>
           <Text style={styles.debugText}>Error: {error.message}</Text>
-          <Text style={styles.debugText}>Stack: {error.stack?.substring(0, 200) || 'N/A'}</Text>
+          <Text style={styles.debugText}>
+            Stack: {error.stack?.substring(0, 200) || 'N/A'}
+          </Text>
         </View>
       )}
     </View>

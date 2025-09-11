@@ -16,7 +16,7 @@ const mockJob: Job = {
   homeowner_id: 'homeowner-1',
   photos: ['photo1.jpg'],
   created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
+  updated_at: new Date().toISOString(),
 };
 
 const mockOnPress = jest.fn();
@@ -49,7 +49,12 @@ describe('JobCard', () => {
 
   it('shows bid button for contractors', () => {
     const { getByText } = render(
-      <JobCard job={mockJob} onPress={mockOnPress} onBid={mockOnBid} showBidButton={true} />
+      <JobCard
+        job={mockJob}
+        onPress={mockOnPress}
+        onBid={mockOnBid}
+        showBidButton={true}
+      />
     );
 
     expect(getByText('Place Bid')).toBeTruthy();
@@ -57,7 +62,12 @@ describe('JobCard', () => {
 
   it('calls onBid when bid button is pressed', () => {
     const { getByText } = render(
-      <JobCard job={mockJob} onPress={mockOnPress} onBid={mockOnBid} showBidButton={true} />
+      <JobCard
+        job={mockJob}
+        onPress={mockOnPress}
+        onBid={mockOnBid}
+        showBidButton={true}
+      />
     );
 
     fireEvent.press(getByText('Place Bid'));
@@ -91,7 +101,7 @@ describe('JobCard', () => {
       status: 'posted',
       homeowner_id: 'homeowner-1',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     const { getByText } = render(
@@ -103,7 +113,7 @@ describe('JobCard', () => {
   });
 
   it('formats budget correctly', () => {
-    const expensiveJob = { ...mockJob, budget: 1500.50 };
+    const expensiveJob = { ...mockJob, budget: 1500.5 };
     const { getByText } = render(
       <JobCard job={expensiveJob} onPress={mockOnPress} />
     );
@@ -112,11 +122,12 @@ describe('JobCard', () => {
   });
 
   it('truncates long descriptions', () => {
-    const longDescriptionJob = { 
-      ...mockJob, 
-      description: 'This is a very long description that should be truncated to prevent the card from becoming too tall and affecting the layout of the job list screen.'
+    const longDescriptionJob = {
+      ...mockJob,
+      description:
+        'This is a very long description that should be truncated to prevent the card from becoming too tall and affecting the layout of the job list screen.',
     };
-    
+
     const { getByText } = render(
       <JobCard job={longDescriptionJob} onPress={mockOnPress} />
     );

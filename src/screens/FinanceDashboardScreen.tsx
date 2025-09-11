@@ -13,7 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { contractorBusinessSuite, type FinancialSummary } from '../services/ContractorBusinessSuite';
+import {
+  contractorBusinessSuite,
+  type FinancialSummary,
+} from '../services/ContractorBusinessSuite';
 import { FinanceChart } from '../components/FinanceChart';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -24,13 +27,17 @@ interface FinanceDashboardScreenProps {
 }
 
 export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
-  navigation
+  navigation,
 }) => {
   const { user } = useAuth();
-  const [financialData, setFinancialData] = useState<FinancialSummary | null>(null);
+  const [financialData, setFinancialData] = useState<FinancialSummary | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<'3m' | '6m' | '12m'>('6m');
+  const [selectedPeriod, setSelectedPeriod] = useState<'3m' | '6m' | '12m'>(
+    '6m'
+  );
 
   useEffect(() => {
     loadFinancialData();
@@ -38,7 +45,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
 
   const loadFinancialData = async () => {
     if (!user) return;
-    
+
     try {
       const data = await contractorBusinessSuite.getFinancialSummary(user.id);
       setFinancialData(data);
@@ -67,52 +74,86 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
 
   const getRevenueChartData = () => {
     if (!financialData) return { labels: [], datasets: [{ data: [] }] };
-    
+
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     return {
       labels: months,
-      datasets: [{
-        data: financialData.monthly_revenue.slice(-6),
-        color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
-        strokeWidth: 2
-      }]
+      datasets: [
+        {
+          data: financialData.monthly_revenue.slice(-6),
+          color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+          strokeWidth: 2,
+        },
+      ],
     };
   };
 
   const getProfitChartData = () => {
     if (!financialData) return { labels: [], datasets: [{ data: [] }] };
-    
+
     return {
-      labels: financialData.profit_trends.map(trend => trend.month.slice(0, 3)),
-      datasets: [{
-        data: financialData.profit_trends.map(trend => trend.profit),
-        color: (opacity = 1) => `rgba(52, 199, 89, ${opacity})`,
-        strokeWidth: 2
-      }]
+      labels: financialData.profit_trends.map((trend) =>
+        trend.month.slice(0, 3)
+      ),
+      datasets: [
+        {
+          data: financialData.profit_trends.map((trend) => trend.profit),
+          color: (opacity = 1) => `rgba(52, 199, 89, ${opacity})`,
+          strokeWidth: 2,
+        },
+      ],
     };
   };
 
   const getCashFlowChartData = () => {
     if (!financialData) return { labels: [], datasets: [{ data: [] }] };
-    
+
     return {
-      labels: financialData.cash_flow_forecast.slice(0, 4).map(flow => `W${flow.week}`),
-      datasets: [{
-        data: financialData.cash_flow_forecast.slice(0, 4).map(flow => flow.net_flow),
-        colors: financialData.cash_flow_forecast.slice(0, 4).map(flow => 
-          flow.net_flow >= 0 ? theme.colors.success : theme.colors.error
-        )
-      }]
+      labels: financialData.cash_flow_forecast
+        .slice(0, 4)
+        .map((flow) => `W${flow.week}`),
+      datasets: [
+        {
+          data: financialData.cash_flow_forecast
+            .slice(0, 4)
+            .map((flow) => flow.net_flow),
+          colors: financialData.cash_flow_forecast
+            .slice(0, 4)
+            .map((flow) =>
+              flow.net_flow >= 0 ? theme.colors.success : theme.colors.error
+            ),
+        },
+      ],
     };
   };
 
   const getExpenseBredownData = () => {
     // Mock expense categories data - would come from actual expense tracking
     return [
-      { name: 'Materials', value: 45, color: '#007AFF', legendFontColor: theme.colors.textSecondary },
-      { name: 'Labor', value: 30, color: '#34C759', legendFontColor: theme.colors.textSecondary },
-      { name: 'Transport', value: 15, color: '#FF9500', legendFontColor: theme.colors.textSecondary },
-      { name: 'Equipment', value: 10, color: '#FF3B30', legendFontColor: theme.colors.textSecondary },
+      {
+        name: 'Materials',
+        value: 45,
+        color: '#007AFF',
+        legendFontColor: theme.colors.textSecondary,
+      },
+      {
+        name: 'Labor',
+        value: 30,
+        color: '#34C759',
+        legendFontColor: theme.colors.textSecondary,
+      },
+      {
+        name: 'Transport',
+        value: 15,
+        color: '#FF9500',
+        legendFontColor: theme.colors.textSecondary,
+      },
+      {
+        name: 'Equipment',
+        value: 10,
+        color: '#FF3B30',
+        legendFontColor: theme.colors.textSecondary,
+      },
     ];
   };
 
@@ -124,7 +165,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     change?: { value: number; isPositive: boolean },
     onPress?: () => void
   ) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.kpiCard, { borderLeftColor: color }]}
       onPress={onPress}
     >
@@ -135,16 +176,25 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
       <Text style={[styles.kpiValue, { color }]}>{value}</Text>
       {change && (
         <View style={styles.changeContainer}>
-          <Ionicons 
-            name={change.isPositive ? 'trending-up' : 'trending-down'} 
-            size={12} 
-            color={change.isPositive ? theme.colors.success : theme.colors.error} 
+          <Ionicons
+            name={change.isPositive ? 'trending-up' : 'trending-down'}
+            size={12}
+            color={
+              change.isPositive ? theme.colors.success : theme.colors.error
+            }
           />
-          <Text style={[
-            styles.changeText,
-            { color: change.isPositive ? theme.colors.success : theme.colors.error }
-          ]}>
-            {change.isPositive ? '+' : ''}{change.value.toFixed(1)}%
+          <Text
+            style={[
+              styles.changeText,
+              {
+                color: change.isPositive
+                  ? theme.colors.success
+                  : theme.colors.error,
+              },
+            ]}
+          >
+            {change.isPositive ? '+' : ''}
+            {change.value.toFixed(1)}%
           </Text>
         </View>
       )}
@@ -155,21 +205,23 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     <TouchableOpacity
       style={[
         styles.periodButton,
-        selectedPeriod === period && styles.periodButtonActive
+        selectedPeriod === period && styles.periodButtonActive,
       ]}
       onPress={() => setSelectedPeriod(period)}
     >
-      <Text style={[
-        styles.periodButtonText,
-        selectedPeriod === period && styles.periodButtonTextActive
-      ]}>
+      <Text
+        style={[
+          styles.periodButtonText,
+          selectedPeriod === period && styles.periodButtonTextActive,
+        ]}
+      >
         {label}
       </Text>
     </TouchableOpacity>
   );
 
   if (loading) {
-    return <LoadingSpinner message="Loading financial dashboard..." />;
+    return <LoadingSpinner message='Loading financial dashboard...' />;
   }
 
   return (
@@ -180,20 +232,22 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name='arrow-back' size={24} color='#fff' />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Finance Dashboard</Text>
         <TouchableOpacity
           style={styles.exportButton}
           onPress={() => navigation.navigate('FinanceReports')}
         >
-          <Ionicons name="document-text" size={24} color="#fff" />
+          <Ionicons name='document-text' size={24} color='#fff' />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Period Selector */}
@@ -209,13 +263,21 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             <View style={styles.kpiContainer}>
               {renderKPICard(
                 'Total Revenue',
-                formatCurrency(financialData.monthly_revenue.reduce((sum, rev) => sum + rev, 0)),
+                formatCurrency(
+                  financialData.monthly_revenue.reduce(
+                    (sum, rev) => sum + rev,
+                    0
+                  )
+                ),
                 'cash',
                 theme.colors.primary,
-                { value: financialData.quarterly_growth, isPositive: financialData.quarterly_growth > 0 },
+                {
+                  value: financialData.quarterly_growth,
+                  isPositive: financialData.quarterly_growth > 0,
+                },
                 () => navigation.navigate('RevenueDetail')
               )}
-              
+
               {renderKPICard(
                 'Outstanding',
                 formatCurrency(financialData.outstanding_invoices),
@@ -224,7 +286,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
                 undefined,
                 () => navigation.navigate('InvoiceManagement')
               )}
-              
+
               {renderKPICard(
                 'Overdue',
                 formatCurrency(financialData.overdue_amount),
@@ -233,7 +295,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
                 undefined,
                 () => navigation.navigate('OverdueInvoices')
               )}
-              
+
               {renderKPICard(
                 'Tax Due',
                 formatCurrency(financialData.tax_obligations),
@@ -246,37 +308,37 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
 
             {/* Revenue Trend Chart */}
             <FinanceChart
-              type="line"
+              type='line'
               data={getRevenueChartData()}
-              title="Revenue Trend"
+              title='Revenue Trend'
               subtitle={`Last 6 months • ${formatCurrency(financialData.yearly_projection)} projected annually`}
               height={200}
             />
 
             {/* Profit Analysis Chart */}
             <FinanceChart
-              type="bar"
+              type='bar'
               data={getProfitChartData()}
-              title="Profit Analysis"
-              subtitle="Monthly profit after expenses"
+              title='Profit Analysis'
+              subtitle='Monthly profit after expenses'
               height={200}
             />
 
             {/* Cash Flow Forecast */}
             <FinanceChart
-              type="bar"
+              type='bar'
               data={getCashFlowChartData()}
-              title="Cash Flow Forecast"
-              subtitle="Next 4 weeks projection"
+              title='Cash Flow Forecast'
+              subtitle='Next 4 weeks projection'
               height={180}
             />
 
             {/* Expense Breakdown */}
             <FinanceChart
-              type="pie"
+              type='pie'
               data={getExpenseBredownData()}
-              title="Expense Breakdown"
-              subtitle="Current period distribution"
+              title='Expense Breakdown'
+              subtitle='Current period distribution'
               height={200}
             />
 
@@ -284,35 +346,51 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             <View style={styles.actionsContainer}>
               <Text style={styles.actionsTitle}>Quick Actions</Text>
               <View style={styles.actionButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => navigation.navigate('CreateInvoice')}
                 >
-                  <Ionicons name="receipt-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name='receipt-outline'
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.actionButtonText}>Create Invoice</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => navigation.navigate('AddExpense')}
                 >
-                  <Ionicons name="card-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name='card-outline'
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.actionButtonText}>Add Expense</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => navigation.navigate('RecordPayment')}
                 >
-                  <Ionicons name="checkmark-circle-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name='checkmark-circle-outline'
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.actionButtonText}>Record Payment</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => navigation.navigate('FinanceReports')}
                 >
-                  <Ionicons name="analytics-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name='analytics-outline'
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                   <Text style={styles.actionButtonText}>View Reports</Text>
                 </TouchableOpacity>
               </View>
@@ -321,36 +399,53 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             {/* Financial Insights */}
             <View style={styles.insightsContainer}>
               <Text style={styles.insightsTitle}>Financial Insights</Text>
-              
+
               <View style={styles.insightCard}>
-                <Ionicons name="trending-up" size={20} color={theme.colors.success} />
+                <Ionicons
+                  name='trending-up'
+                  size={20}
+                  color={theme.colors.success}
+                />
                 <View style={styles.insightContent}>
                   <Text style={styles.insightText}>
-                    Your revenue has grown by {financialData.quarterly_growth.toFixed(1)}% this quarter
+                    Your revenue has grown by{' '}
+                    {financialData.quarterly_growth.toFixed(1)}% this quarter
                   </Text>
-                  <Text style={styles.insightSubtext}>Keep up the excellent work!</Text>
+                  <Text style={styles.insightSubtext}>
+                    Keep up the excellent work!
+                  </Text>
                 </View>
               </View>
 
               {financialData.overdue_amount > 0 && (
                 <View style={styles.insightCard}>
-                  <Ionicons name="warning" size={20} color={theme.colors.warning} />
+                  <Ionicons
+                    name='warning'
+                    size={20}
+                    color={theme.colors.warning}
+                  />
                   <View style={styles.insightContent}>
                     <Text style={styles.insightText}>
-                      You have {formatCurrency(financialData.overdue_amount)} in overdue invoices
+                      You have {formatCurrency(financialData.overdue_amount)} in
+                      overdue invoices
                     </Text>
-                    <Text style={styles.insightSubtext}>Consider sending reminders to improve cash flow</Text>
+                    <Text style={styles.insightSubtext}>
+                      Consider sending reminders to improve cash flow
+                    </Text>
                   </View>
                 </View>
               )}
 
               <View style={styles.insightCard}>
-                <Ionicons name="bulb" size={20} color={theme.colors.primary} />
+                <Ionicons name='bulb' size={20} color={theme.colors.primary} />
                 <View style={styles.insightContent}>
                   <Text style={styles.insightText}>
-                    Based on your trends, you could save 15% on material costs by bulk purchasing
+                    Based on your trends, you could save 15% on material costs
+                    by bulk purchasing
                   </Text>
-                  <Text style={styles.insightSubtext}>Consider negotiating better supplier rates</Text>
+                  <Text style={styles.insightSubtext}>
+                    Consider negotiating better supplier rates
+                  </Text>
                 </View>
               </View>
             </View>

@@ -7,9 +7,9 @@ import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useHaptics } from '../utils/haptics';
 
 import { useAuth } from '../contexts/AuthContext';
-import { 
+import {
   AppErrorBoundary,
-  withScreenErrorBoundary 
+  withScreenErrorBoundary,
 } from '../components/ErrorBoundaryProvider';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -42,11 +42,31 @@ import { theme } from '../theme';
 const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
 const SafeJobsScreen = withScreenErrorBoundary(JobsScreen, 'Jobs');
 const SafeProfileScreen = withScreenErrorBoundary(ProfileScreen, 'Profile');
-const SafeJobPostingScreen = withScreenErrorBoundary(JobPostingScreen, 'Job Posting', { fallbackRoute: 'Home' });
-const SafeJobDetailsScreen = withScreenErrorBoundary(JobDetailsScreen, 'Job Details', { fallbackRoute: 'Jobs' });
-const SafeMessagingScreen = withScreenErrorBoundary(MessagingScreen, 'Messaging', { fallbackRoute: 'Inbox' });
-const SafeContractorDiscoveryScreen = withScreenErrorBoundary(ContractorDiscoveryScreen, 'Contractor Discovery', { fallbackRoute: 'Home' });
-const SafePaymentMethodsScreen = withScreenErrorBoundary(PaymentMethodsScreen, 'Payment Methods', { fallbackRoute: 'Profile' });
+const SafeJobPostingScreen = withScreenErrorBoundary(
+  JobPostingScreen,
+  'Job Posting',
+  { fallbackRoute: 'Home' }
+);
+const SafeJobDetailsScreen = withScreenErrorBoundary(
+  JobDetailsScreen,
+  'Job Details',
+  { fallbackRoute: 'Jobs' }
+);
+const SafeMessagingScreen = withScreenErrorBoundary(
+  MessagingScreen,
+  'Messaging',
+  { fallbackRoute: 'Inbox' }
+);
+const SafeContractorDiscoveryScreen = withScreenErrorBoundary(
+  ContractorDiscoveryScreen,
+  'Contractor Discovery',
+  { fallbackRoute: 'Home' }
+);
+const SafePaymentMethodsScreen = withScreenErrorBoundary(
+  PaymentMethodsScreen,
+  'Payment Methods',
+  { fallbackRoute: 'Profile' }
+);
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -118,9 +138,9 @@ const RootStack = createStackNavigator<RootStackParamList>();
 
 const AuthNavigator = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-    <AuthStack.Screen name="Login" component={LoginScreen} />
-    <AuthStack.Screen name="Register" component={RegisterScreen} />
-    <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <AuthStack.Screen name='Login' component={LoginScreen} />
+    <AuthStack.Screen name='Register' component={RegisterScreen} />
+    <AuthStack.Screen name='ForgotPassword' component={ForgotPasswordScreen} />
   </AuthStack.Navigator>
 );
 
@@ -128,7 +148,7 @@ const AddButton = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const haptics = useHaptics();
-  
+
   const handleAddPress = () => {
     haptics.buttonPress();
     if (user?.role === 'homeowner') {
@@ -140,21 +160,27 @@ const AddButton = () => {
   };
 
   return (
-    <TouchableOpacity 
-      style={styles.addButton} 
+    <TouchableOpacity
+      style={styles.addButton}
       onPress={handleAddPress}
-      accessibilityRole="button"
-      accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Browse jobs"}
-      accessibilityHint={user?.role === 'homeowner' ? "Double tap to create a new service request" : "Double tap to browse available jobs"}
+      accessibilityRole='button'
+      accessibilityLabel={
+        user?.role === 'homeowner' ? 'Create service request' : 'Browse jobs'
+      }
+      accessibilityHint={
+        user?.role === 'homeowner'
+          ? 'Double tap to create a new service request'
+          : 'Double tap to browse available jobs'
+      }
     >
-      <Ionicons name="add" size={24} color={theme.colors.textInverse} />
+      <Ionicons name='add' size={24} color={theme.colors.textInverse} />
     </TouchableOpacity>
   );
 };
 
 const TabNavigator = () => {
   const { user } = useAuth();
-  
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -164,26 +190,26 @@ const TabNavigator = () => {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          paddingBottom: Platform.OS === 'ios' ? 34 : 12,  // More padding for text
-          paddingTop: 12,                                   // More top padding
-          height: Platform.OS === 'ios' ? 90 : 72,         // Increased heights
+          paddingBottom: Platform.OS === 'ios' ? 34 : 12, // More padding for text
+          paddingTop: 12, // More top padding
+          height: Platform.OS === 'ios' ? 90 : 72, // Increased heights
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
           marginTop: 2,
-          marginBottom: Platform.OS === 'ios' ? 0 : 4,  // Extra margin for Android
+          marginBottom: Platform.OS === 'ios' ? 0 : 4, // Extra margin for Android
         },
       }}
     >
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name='Home'
         component={SafeHomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name='home' size={size} color={color} />
           ),
-          tabBarAccessibilityLabel: "Home tab",
+          tabBarAccessibilityLabel: 'Home tab',
           tabBarButton: (props) => {
             const haptics = useHaptics();
             return (
@@ -193,23 +219,23 @@ const TabNavigator = () => {
                   haptics.tabSwitch();
                   props.onPress?.(e);
                 }}
-                accessibilityRole="tab"
-                accessibilityLabel="Home tab"
-                accessibilityHint="Navigate to home screen"
+                accessibilityRole='tab'
+                accessibilityLabel='Home tab'
+                accessibilityHint='Navigate to home screen'
                 style={[props.style, { minHeight: 44, minWidth: 44 }]} // WCAG touch target
               />
             );
           },
         }}
       />
-      <Tab.Screen 
-        name="Feed" 
+      <Tab.Screen
+        name='Feed'
         component={ContractorSocialScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="newspaper" size={size} color={color} />
+            <Ionicons name='newspaper' size={size} color={color} />
           ),
-          tabBarAccessibilityLabel: "Community feed tab",
+          tabBarAccessibilityLabel: 'Community feed tab',
           tabBarButton: (props) => {
             const haptics = useHaptics();
             return (
@@ -219,28 +245,39 @@ const TabNavigator = () => {
                   haptics.tabSwitch();
                   props.onPress?.(e);
                 }}
-                accessibilityRole="tab"
-                accessibilityLabel="Community feed tab"
-                accessibilityHint="Navigate to community feed"
+                accessibilityRole='tab'
+                accessibilityLabel='Community feed tab'
+                accessibilityHint='Navigate to community feed'
                 style={[props.style, { minHeight: 44, minWidth: 44 }]} // WCAG touch target
               />
             );
           },
         }}
       />
-      <Tab.Screen 
-        name="Add" 
+      <Tab.Screen
+        name='Add'
         component={HomeScreen} // Placeholder, actual action handled by button
         options={{
           tabBarIcon: ({ focused }) => <AddButton />,
           tabBarLabel: '',
-          tabBarAccessibilityLabel: user?.role === 'homeowner' ? "Create service request" : "Browse jobs",
+          tabBarAccessibilityLabel:
+            user?.role === 'homeowner'
+              ? 'Create service request'
+              : 'Browse jobs',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...(props as any)}
-              accessibilityRole="button"
-              accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Browse jobs"}
-              accessibilityHint={user?.role === 'homeowner' ? "Create a new service request" : "Browse available jobs"}
+              accessibilityRole='button'
+              accessibilityLabel={
+                user?.role === 'homeowner'
+                  ? 'Create service request'
+                  : 'Browse jobs'
+              }
+              accessibilityHint={
+                user?.role === 'homeowner'
+                  ? 'Create a new service request'
+                  : 'Browse available jobs'
+              }
               style={[props.style, { minHeight: 56, minWidth: 56 }]} // Larger touch target for FAB
             />
           ),
@@ -258,39 +295,39 @@ const TabNavigator = () => {
           },
         })}
       />
-      <Tab.Screen 
-        name="Inbox" 
+      <Tab.Screen
+        name='Inbox'
         component={MessagesListScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+            <Ionicons name='chatbubbles' size={size} color={color} />
           ),
-          tabBarAccessibilityLabel: "Messages tab",
+          tabBarAccessibilityLabel: 'Messages tab',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...(props as any)}
-              accessibilityRole="tab"
-              accessibilityLabel="Messages tab"
-              accessibilityHint="Navigate to messages and conversations"
+              accessibilityRole='tab'
+              accessibilityLabel='Messages tab'
+              accessibilityHint='Navigate to messages and conversations'
               style={[props.style, { minHeight: 44, minWidth: 44 }]} // WCAG touch target
             />
           ),
         }}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name='Profile'
         component={SafeProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name='person' size={size} color={color} />
           ),
-          tabBarAccessibilityLabel: "Profile tab",
+          tabBarAccessibilityLabel: 'Profile tab',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...(props as any)}
-              accessibilityRole="tab"
-              accessibilityLabel="Profile tab"
-              accessibilityHint="Navigate to your profile and settings"
+              accessibilityRole='tab'
+              accessibilityLabel='Profile tab'
+              accessibilityHint='Navigate to your profile and settings'
               style={[props.style, { minHeight: 44, minWidth: 44 }]} // WCAG touch target
             />
           ),
@@ -302,79 +339,52 @@ const TabNavigator = () => {
 
 const MainNavigator = () => (
   <RootStack.Navigator screenOptions={{ headerShown: false }}>
-    <RootStack.Screen name="Main" component={TabNavigator} />
-    <RootStack.Screen 
-      name="Jobs" 
-      component={SafeJobsScreen}
-    />
-    <RootStack.Screen 
-      name="JobPosting" 
+    <RootStack.Screen name='Main' component={TabNavigator} />
+    <RootStack.Screen name='Jobs' component={SafeJobsScreen} />
+    <RootStack.Screen
+      name='JobPosting'
       component={SafeJobPostingScreen}
       options={{ presentation: 'modal' }}
     />
-    <RootStack.Screen 
-      name="ServiceRequest" 
-      component={ServiceRequestScreen}
-    />
-    <RootStack.Screen 
-      name="JobDetails" 
-      component={SafeJobDetailsScreen}
-    />
-    <RootStack.Screen 
-      name="BidSubmission" 
+    <RootStack.Screen name='ServiceRequest' component={ServiceRequestScreen} />
+    <RootStack.Screen name='JobDetails' component={SafeJobDetailsScreen} />
+    <RootStack.Screen
+      name='BidSubmission'
       component={BidSubmissionScreen}
       options={{ presentation: 'modal' }}
     />
-    <RootStack.Screen 
-      name="FindContractors" 
+    <RootStack.Screen
+      name='FindContractors'
       component={FindContractorsScreen}
     />
-    <RootStack.Screen 
-      name="ContractorDiscovery" 
+    <RootStack.Screen
+      name='ContractorDiscovery'
       component={ContractorDiscoveryScreen}
     />
-    <RootStack.Screen 
-      name="Messaging" 
-      component={SafeMessagingScreen as any}
-    />
-    <RootStack.Screen 
-      name="EditProfile" 
-      component={EditProfileScreen}
-    />
-    <RootStack.Screen 
-      name="NotificationSettings" 
+    <RootStack.Screen name='Messaging' component={SafeMessagingScreen as any} />
+    <RootStack.Screen name='EditProfile' component={EditProfileScreen} />
+    <RootStack.Screen
+      name='NotificationSettings'
       component={NotificationSettingsScreen}
     />
-    <RootStack.Screen 
-      name="PaymentMethods" 
+    <RootStack.Screen
+      name='PaymentMethods'
       component={SafePaymentMethodsScreen}
     />
-    <RootStack.Screen 
-      name="HelpCenter" 
-      component={HelpCenterScreen}
-    />
-    <RootStack.Screen 
-      name="InvoiceManagement" 
+    <RootStack.Screen name='HelpCenter' component={HelpCenterScreen} />
+    <RootStack.Screen
+      name='InvoiceManagement'
       component={InvoiceManagementScreen}
     />
-    <RootStack.Screen 
-      name="CRMDashboard" 
-      component={CRMDashboardScreen}
-    />
-    <RootStack.Screen 
-      name="FinanceDashboard" 
+    <RootStack.Screen name='CRMDashboard' component={CRMDashboardScreen} />
+    <RootStack.Screen
+      name='FinanceDashboard'
       component={FinanceDashboardScreen}
     />
-    <RootStack.Screen 
-      name="ServiceAreas" 
-      component={ServiceAreasScreen}
-    />
-    <RootStack.Screen 
-      name="QuoteBuilder" 
-      component={QuoteBuilderScreen}
-    />
-    <RootStack.Screen 
-      name="CreateQuote" 
+    <RootStack.Screen name='ServiceAreas' component={ServiceAreasScreen} />
+    <RootStack.Screen name='QuoteBuilder' component={QuoteBuilderScreen} />
+    <RootStack.Screen
+      name='CreateQuote'
       component={CreateQuoteScreen}
       options={{ presentation: 'modal' }}
     />

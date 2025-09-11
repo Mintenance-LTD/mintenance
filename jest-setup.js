@@ -16,7 +16,9 @@ jest.mock('react-native-reanimated', () => {
 });
 
 // Mock React Native Animated Helper (conditionally)
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => {}, {virtual: true});
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => {}, {
+  virtual: true,
+});
 
 // Mock React Native modules
 jest.mock('react-native', () => {
@@ -35,27 +37,35 @@ jest.mock('react-native', () => {
 
 // Mock Expo modules
 jest.mock('expo-location', () => ({
-  requestForegroundPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
-  getCurrentPositionAsync: jest.fn(() => Promise.resolve({
-    coords: { 
-      latitude: 37.7749, 
-      longitude: -122.4194,
-      altitude: 10,
-      accuracy: 10,
-      altitudeAccuracy: 10,
-      heading: 0,
-      speed: 0,
-    },
-    timestamp: Date.now(),
-  })),
-  reverseGeocodeAsync: jest.fn(() => Promise.resolve([{
-    streetNumber: '123',
-    street: 'Main St',
-    city: 'San Francisco',
-    region: 'CA',
-    postalCode: '94103',
-    country: 'US',
-  }])),
+  requestForegroundPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
+  getCurrentPositionAsync: jest.fn(() =>
+    Promise.resolve({
+      coords: {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        altitude: 10,
+        accuracy: 10,
+        altitudeAccuracy: 10,
+        heading: 0,
+        speed: 0,
+      },
+      timestamp: Date.now(),
+    })
+  ),
+  reverseGeocodeAsync: jest.fn(() =>
+    Promise.resolve([
+      {
+        streetNumber: '123',
+        street: 'Main St',
+        city: 'San Francisco',
+        region: 'CA',
+        postalCode: '94103',
+        country: 'US',
+      },
+    ])
+  ),
   LocationAccuracy: {
     Balanced: 1,
   },
@@ -72,7 +82,9 @@ jest.mock('expo-secure-store', () => ({
 
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
-  requestMediaLibraryPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestMediaLibraryPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
 }));
 
 jest.mock('expo-local-authentication', () => ({
@@ -104,14 +116,20 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('expo-notifications', () => ({
-  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
-  getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test-token]' })),
+  getExpoPushTokenAsync: jest.fn(() =>
+    Promise.resolve({ data: 'ExponentPushToken[test-token]' })
+  ),
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
   setNotificationHandler: jest.fn(),
   addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
   setBadgeCountAsync: jest.fn(),
   setNotificationChannelAsync: jest.fn(),
   AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
@@ -133,11 +151,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 // Mock NetInfo
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(),
-  fetch: jest.fn(() => Promise.resolve({
-    isConnected: true,
-    isInternetReachable: true,
-    type: 'wifi',
-  })),
+  fetch: jest.fn(() =>
+    Promise.resolve({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })
+  ),
 }));
 
 // Mock Sentry
@@ -194,7 +214,6 @@ jest.mock('./src/config/sentry', () => ({
   captureException: jest.fn(),
   addBreadcrumb: jest.fn(),
 }));
-
 
 // Mock Supabase
 jest.mock('@supabase/supabase-js', () => ({
@@ -255,7 +274,8 @@ jest.mock('expo-sqlite', () => {
 
       // INSERT offline_actions
       if (q.startsWith('INSERT OR REPLACE INTO OFFLINE_ACTIONS')) {
-        const [id, type, entity, data, max_retries, query_key, created_at] = params;
+        const [id, type, entity, data, max_retries, query_key, created_at] =
+          params;
         state.offline_actions.set(id, {
           id,
           type,
@@ -285,7 +305,8 @@ jest.mock('expo-sqlite', () => {
         else if (table.startsWith('MESSAGES')) state.messages.clear();
         else if (table.startsWith('BIDS')) state.bids.clear();
         else if (table.startsWith('SYNC_METADATA')) state.sync_metadata.clear();
-        else if (table.startsWith('OFFLINE_ACTIONS')) state.offline_actions.clear();
+        else if (table.startsWith('OFFLINE_ACTIONS'))
+          state.offline_actions.clear();
         return { rowsAffected: 1 };
       }
 
@@ -316,8 +337,14 @@ jest.mock('expo-sqlite', () => {
         return { rowsAffected: 1 };
       }
       if (q.startsWith('INSERT OR REPLACE INTO SYNC_METADATA')) {
-        const [table_name, last_sync_timestamp, record_count, is_dirty] = params;
-        state.sync_metadata.set(table_name, { table_name, last_sync_timestamp, record_count, is_dirty });
+        const [table_name, last_sync_timestamp, record_count, is_dirty] =
+          params;
+        state.sync_metadata.set(table_name, {
+          table_name,
+          last_sync_timestamp,
+          record_count,
+          is_dirty,
+        });
         return { rowsAffected: 1 };
       }
 
@@ -328,7 +355,9 @@ jest.mock('expo-sqlite', () => {
     getFirstAsync: jest.fn(async (sql, params = []) => {
       const q = (sql || '').trim().toUpperCase();
       if (q.includes('SELECT COUNT(*) AS ACTIONS FROM OFFLINE_ACTIONS')) {
-        const actions = Array.from(state.offline_actions.values()).filter((r) => !r.synced_at).length;
+        const actions = Array.from(state.offline_actions.values()).filter(
+          (r) => !r.synced_at
+        ).length;
         return { actions };
       }
       if (q.startsWith('SELECT * FROM SYNC_METADATA WHERE TABLE_NAME =')) {
@@ -357,7 +386,10 @@ jest.mock('expo-sqlite', () => {
   };
 
   return {
-    openDatabase: jest.fn(() => ({ transaction: jest.fn(), closeAsync: jest.fn() })),
+    openDatabase: jest.fn(() => ({
+      transaction: jest.fn(),
+      closeAsync: jest.fn(),
+    })),
     openDatabaseAsync: jest.fn(async () => db),
   };
 });
@@ -377,11 +409,11 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View } = require('react-native');
-  
+
   const MapView = (props) => React.createElement(View, props);
   const Marker = (props) => React.createElement(View, props);
   const Region = {};
-  
+
   return {
     __esModule: true,
     default: MapView,
@@ -395,7 +427,7 @@ jest.mock('react-native-maps', () => {
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
-  
+
   return {
     Ionicons: (props) => React.createElement(Text, props, props.name),
     MaterialIcons: (props) => React.createElement(Text, props, props.name),
@@ -431,6 +463,10 @@ if (typeof global.ErrorUtils === 'undefined') {
 }
 
 // Stub ExceptionsManager to avoid require errors
-jest.mock('react-native/Libraries/Core/ExceptionsManager', () => ({
-  unstable_setGlobalHandler: jest.fn(),
-}), { virtual: true });
+jest.mock(
+  'react-native/Libraries/Core/ExceptionsManager',
+  () => ({
+    unstable_setGlobalHandler: jest.fn(),
+  }),
+  { virtual: true }
+);

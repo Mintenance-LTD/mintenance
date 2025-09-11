@@ -11,7 +11,7 @@ export interface SignUpData {
 }
 
 export class AuthService {
-  static async signUp(userData: SignUpData) : Promise<any> {
+  static async signUp(userData: SignUpData): Promise<any> {
     // Validation using ErrorHandler
     ErrorHandler.validateEmail(userData.email);
     ErrorHandler.validatePassword(userData.password);
@@ -26,23 +26,26 @@ export class AuthService {
           first_name: userData.firstName,
           last_name: userData.lastName,
           role: userData.role,
-          full_name: `${userData.firstName} ${userData.lastName}`
-        }
-      }
+          full_name: `${userData.firstName} ${userData.lastName}`,
+        },
+      },
     });
 
     if (error) {
       const userMessage = ErrorHandler.getUserMessage(error);
       throw ErrorHandler.createError(error.message, error.code, userMessage);
     }
-    
+
     // User profile is automatically created by the handle_new_user trigger
     // No manual profile creation needed
-    
+
     return data;
   }
 
-  static async signIn(email: string, password: string) : Promise<{user: any, session: any} | any> {
+  static async signIn(
+    email: string,
+    password: string
+  ): Promise<{ user: any; session: any } | any> {
     // Validation using ErrorHandler
     ErrorHandler.validateEmail(email);
     ErrorHandler.validateRequired(password, 'Password');
@@ -56,7 +59,7 @@ export class AuthService {
       const userMessage = ErrorHandler.getUserMessage(error);
       throw ErrorHandler.createError(error.message, error.code, userMessage);
     }
-    
+
     // Get user profile
     if (data.user) {
       const { data: userProfile, error: profileError } = await supabase
@@ -64,7 +67,7 @@ export class AuthService {
         .select('*')
         .eq('id', data.user.id)
         .single();
-      
+
       if (profileError) {
         console.warn('Profile fetch error:', profileError);
         // Return user data from auth even if profile fetch fails
@@ -81,39 +84,43 @@ export class AuthService {
           lastName: data.user.user_metadata?.last_name || '',
           createdAt: data.user.created_at || new Date().toISOString(),
         };
-        
+
         return {
           user: fallbackUser,
-          session: data.session
+          session: data.session,
         };
       }
-      
+
       // Add computed fields for backward compatibility
-      const enhancedProfile = userProfile ? {
-        ...userProfile,
-        firstName: userProfile.first_name,
-        lastName: userProfile.last_name,
-        createdAt: userProfile.created_at,
-      } : null;
-      
+      const enhancedProfile = userProfile
+        ? {
+            ...userProfile,
+            firstName: userProfile.first_name,
+            lastName: userProfile.last_name,
+            createdAt: userProfile.created_at,
+          }
+        : null;
+
       return {
         user: enhancedProfile,
-        session: data.session
+        session: data.session,
       };
     }
-    
+
     return data;
   }
 
-  static async signOut() : Promise<void> {
+  static async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }
 
   static async getCurrentUser(): Promise<User | null> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.user) return null;
 
       const { data: userProfile, error } = await supabase
@@ -157,12 +164,17 @@ export class AuthService {
     }
   }
 
-  static async getCurrentSession() : Promise<any> {
-    const { data: { session } } = await supabase.auth.getSession();
+  static async getCurrentSession(): Promise<any> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session;
   }
 
-  static async updateUserProfile(userId: string, updates: Partial<User>): Promise<User> {
+  static async updateUserProfile(
+    userId: string,
+    updates: Partial<User>
+  ): Promise<User> {
     // Validation
     if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
       throw new Error('Invalid email format');
@@ -188,8 +200,13 @@ export class AuthService {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) {
       // Provide more user-friendly error messages for password reset
-      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
-        throw new Error('Network connection failed. Please check your internet connection and try again.');
+      if (
+        error.message.includes('Network request failed') ||
+        error.message.includes('fetch')
+      ) {
+        throw new Error(
+          'Network connection failed. Please check your internet connection and try again.'
+        );
       } else if (error.message.includes('Invalid email')) {
         throw new Error('Please enter a valid email address.');
       } else {
@@ -216,7 +233,7 @@ export class AuthService {
       let decoded = '';
       try {
         // Prefer global atob when available (some RN envs polyfill it)
-        const g: any = (globalThis as any);
+        const g: any = globalThis as any;
         if (typeof g.atob === 'function') {
           decoded = g.atob(base64Url);
         } else if (typeof Buffer !== 'undefined') {

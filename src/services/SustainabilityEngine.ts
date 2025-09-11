@@ -112,7 +112,6 @@ export interface JobSustainabilityAnalysis {
 // =====================================================
 
 class SustainabilityEngine {
-
   // Calculate comprehensive ESG score for contractors
   async calculateContractorESGScore(contractorId: string): Promise<ESGScore> {
     try {
@@ -120,12 +119,12 @@ class SustainabilityEngine {
         sustainabilityMetrics,
         certifications,
         jobHistory,
-        clientFeedback
+        clientFeedback,
       ] = await Promise.all([
         this.getContractorSustainabilityMetrics(contractorId),
         this.getContractorCertifications(contractorId),
         this.getContractorJobHistory(contractorId),
-        this.getContractorSustainabilityFeedback(contractorId)
+        this.getContractorSustainabilityFeedback(contractorId),
       ]);
 
       // Environmental Score (40% of overall)
@@ -134,7 +133,7 @@ class SustainabilityEngine {
         renewableEnergyUse: sustainabilityMetrics.renewable_energy_percentage,
         wasteReduction: 100 - sustainabilityMetrics.waste_generated_kg,
         localSourcing: sustainabilityMetrics.local_sourcing_percentage,
-        recycledMaterials: sustainabilityMetrics.recycled_materials_percentage
+        recycledMaterials: sustainabilityMetrics.recycled_materials_percentage,
       });
 
       // Social Score (35% of overall)
@@ -143,7 +142,7 @@ class SustainabilityEngine {
         fairEmploymentPractices: jobHistory.employment_score || 80,
         clientEducation: jobHistory.education_initiatives || 0,
         localJobCreation: jobHistory.local_employment_percentage || 50,
-        diversityInclusion: jobHistory.diversity_score || 70
+        diversityInclusion: jobHistory.diversity_score || 70,
       });
 
       // Governance Score (25% of overall)
@@ -152,14 +151,12 @@ class SustainabilityEngine {
         transparencyRating: clientFeedback.transparency_score || 75,
         ethicalPractices: clientFeedback.ethics_score || 80,
         reportingQuality: sustainabilityMetrics ? 85 : 40,
-        stakeholderEngagement: clientFeedback.engagement_score || 70
+        stakeholderEngagement: clientFeedback.engagement_score || 70,
       });
 
       // Overall weighted score
       const overallScore = Math.round(
-        (environmentalScore * 0.4) +
-        (socialScore * 0.35) +
-        (governanceScore * 0.25)
+        environmentalScore * 0.4 + socialScore * 0.35 + governanceScore * 0.25
       );
 
       // Determine certification level
@@ -171,7 +168,7 @@ class SustainabilityEngine {
         social_score: socialScore,
         governance_score: governanceScore,
         certification_level: certificationLevel,
-        last_calculated: new Date().toISOString()
+        last_calculated: new Date().toISOString(),
       };
 
       // Store the score in database
@@ -180,7 +177,7 @@ class SustainabilityEngine {
       logger.info('ESG score calculated', {
         contractorId,
         overallScore,
-        certificationLevel
+        certificationLevel,
       });
 
       return esgScore;
@@ -203,14 +200,14 @@ class SustainabilityEngine {
         title: jobTitle,
         description: jobDescription,
         category,
-        location
+        location,
       });
 
       // Generate improvement suggestions
       const improvementSuggestions = await this.generateEcoRecommendations({
         jobDetails: { title: jobTitle, description: jobDescription, category },
         currentImpact: predictedImpact,
-        location
+        location,
       });
 
       // Find green contractors for this job
@@ -221,7 +218,8 @@ class SustainabilityEngine {
       );
 
       // Calculate overall sustainability score
-      const sustainabilityScore = this.calculateJobSustainabilityScore(predictedImpact);
+      const sustainabilityScore =
+        this.calculateJobSustainabilityScore(predictedImpact);
 
       // Check if eligible for green certification
       const certificationEligible = sustainabilityScore >= 75;
@@ -232,7 +230,7 @@ class SustainabilityEngine {
         improvement_suggestions: improvementSuggestions,
         green_contractor_recommendations: greenContractors,
         sustainability_score: sustainabilityScore,
-        certification_eligible: certificationEligible
+        certification_eligible: certificationEligible,
       };
     } catch (error) {
       logger.error('Failed to analyze job sustainability', error);
@@ -253,7 +251,9 @@ class SustainabilityEngine {
       }
 
       // Sort by carbon reduction potential
-      return suggestions.sort((a, b) => b.carbon_reduction - a.carbon_reduction);
+      return suggestions.sort(
+        (a, b) => b.carbon_reduction - a.carbon_reduction
+      );
     } catch (error) {
       logger.error('Failed to get sustainable alternatives', error);
       return [];
@@ -296,17 +296,22 @@ class SustainabilityEngine {
   }
 
   // Get contractor sustainability ranking
-  async getContractorSustainabilityRanking(location: string, category?: string) : Promise<any[]> {
+  async getContractorSustainabilityRanking(
+    location: string,
+    category?: string
+  ): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('contractor_esg_profiles')
-        .select(`
+        .select(
+          `
           contractor_id,
           overall_esg_score,
           certification_level,
           green_job_percentage,
           users!contractor_id(first_name, last_name)
-        `)
+        `
+        )
         .gte('overall_esg_score', 60)
         .order('overall_esg_score', { ascending: false })
         .limit(20);
@@ -323,7 +328,7 @@ class SustainabilityEngine {
   async trackSustainabilityProgress(
     contractorId: string,
     timeframe: 'month' | 'quarter' | 'year'
-  ) : Promise<{
+  ): Promise<{
     trend: 'improving' | 'declining' | 'stable' | 'insufficient_data' | 'error';
     improvement?: number;
     carbon_reduction_kg?: number;
@@ -335,7 +340,7 @@ class SustainabilityEngine {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      
+
       switch (timeframe) {
         case 'month':
           startDate.setMonth(startDate.getMonth() - 1);
@@ -366,17 +371,26 @@ class SustainabilityEngine {
       const firstMetric = data[0];
       const latestMetric = data[data.length - 1];
 
-      const carbonReduction = firstMetric.carbon_footprint_kg - latestMetric.carbon_footprint_kg;
-      const wasteReduction = firstMetric.waste_generated_kg - latestMetric.waste_generated_kg;
-      const renewableIncrease = latestMetric.renewable_energy_percentage - firstMetric.renewable_energy_percentage;
+      const carbonReduction =
+        firstMetric.carbon_footprint_kg - latestMetric.carbon_footprint_kg;
+      const wasteReduction =
+        firstMetric.waste_generated_kg - latestMetric.waste_generated_kg;
+      const renewableIncrease =
+        latestMetric.renewable_energy_percentage -
+        firstMetric.renewable_energy_percentage;
 
       return {
-        trend: carbonReduction > 0 ? 'improving' : carbonReduction < 0 ? 'declining' : 'stable',
+        trend:
+          carbonReduction > 0
+            ? 'improving'
+            : carbonReduction < 0
+              ? 'declining'
+              : 'stable',
         carbon_reduction_kg: carbonReduction,
         waste_reduction_kg: wasteReduction,
         renewable_increase_percent: renewableIncrease,
         timeframe,
-        data_points: data.length
+        data_points: data.length,
       };
     } catch (error) {
       logger.error('Failed to track sustainability progress', error);
@@ -396,7 +410,10 @@ class SustainabilityEngine {
     recycledMaterials: number;
   }): number {
     // Score components (0-100 each)
-    const carbonScore = Math.max(0, 100 - (metrics.carbonFootprint / 100 * 100));
+    const carbonScore = Math.max(
+      0,
+      100 - (metrics.carbonFootprint / 100) * 100
+    );
     const renewableScore = metrics.renewableEnergyUse;
     const wasteScore = metrics.wasteReduction;
     const localScore = metrics.localSourcing;
@@ -404,11 +421,11 @@ class SustainabilityEngine {
 
     // Weighted average
     const environmentalScore = Math.round(
-      (carbonScore * 0.3) +
-      (renewableScore * 0.25) +
-      (wasteScore * 0.2) +
-      (localScore * 0.15) +
-      (recyclingScore * 0.1)
+      carbonScore * 0.3 +
+        renewableScore * 0.25 +
+        wasteScore * 0.2 +
+        localScore * 0.15 +
+        recyclingScore * 0.1
     );
 
     return Math.min(100, Math.max(0, environmentalScore));
@@ -426,11 +443,11 @@ class SustainabilityEngine {
     const educationScore = Math.min(100, metrics.clientEducation * 5);
 
     const socialScore = Math.round(
-      (communityScore * 0.25) +
-      (metrics.fairEmploymentPractices * 0.25) +
-      (educationScore * 0.2) +
-      (metrics.localJobCreation * 0.15) +
-      (metrics.diversityInclusion * 0.15)
+      communityScore * 0.25 +
+        metrics.fairEmploymentPractices * 0.25 +
+        educationScore * 0.2 +
+        metrics.localJobCreation * 0.15 +
+        metrics.diversityInclusion * 0.15
     );
 
     return Math.min(100, Math.max(0, socialScore));
@@ -444,17 +461,19 @@ class SustainabilityEngine {
     stakeholderEngagement: number;
   }): number {
     const governanceScore = Math.round(
-      (metrics.certificationCompliance * 0.25) +
-      (metrics.transparencyRating * 0.2) +
-      (metrics.ethicalPractices * 0.25) +
-      (metrics.reportingQuality * 0.15) +
-      (metrics.stakeholderEngagement * 0.15)
+      metrics.certificationCompliance * 0.25 +
+        metrics.transparencyRating * 0.2 +
+        metrics.ethicalPractices * 0.25 +
+        metrics.reportingQuality * 0.15 +
+        metrics.stakeholderEngagement * 0.15
     );
 
     return Math.min(100, Math.max(0, governanceScore));
   }
 
-  private determineCertificationLevel(score: number): 'bronze' | 'silver' | 'gold' | 'platinum' {
+  private determineCertificationLevel(
+    score: number
+  ): 'bronze' | 'silver' | 'gold' | 'platinum' {
     if (score >= 90) return 'platinum';
     if (score >= 80) return 'gold';
     if (score >= 70) return 'silver';
@@ -473,53 +492,61 @@ class SustainabilityEngine {
         carbon_footprint_kg: 15,
         water_usage_liters: 50,
         waste_generated_kg: 5,
-        energy_usage_kwh: 8
+        energy_usage_kwh: 8,
       },
       electrical: {
         carbon_footprint_kg: 12,
         water_usage_liters: 5,
         waste_generated_kg: 8,
-        energy_usage_kwh: 15
+        energy_usage_kwh: 15,
       },
       painting: {
         carbon_footprint_kg: 25,
         water_usage_liters: 20,
         waste_generated_kg: 12,
-        energy_usage_kwh: 10
+        energy_usage_kwh: 10,
       },
       carpentry: {
         carbon_footprint_kg: 35,
         water_usage_liters: 15,
         waste_generated_kg: 20,
-        energy_usage_kwh: 12
+        energy_usage_kwh: 12,
       },
       gardening: {
         carbon_footprint_kg: 8,
         water_usage_liters: 100,
         waste_generated_kg: 30,
-        energy_usage_kwh: 5
-      }
+        energy_usage_kwh: 5,
+      },
     };
 
     const baseImpact = baseImpacts[jobDetails.category] || baseImpacts.plumbing;
 
     // Adjust for job complexity (simple algorithm)
-    const complexityMultiplier = this.assessJobComplexity(jobDetails.description);
+    const complexityMultiplier = this.assessJobComplexity(
+      jobDetails.description
+    );
 
     return {
       id: '',
       entity_id: '',
       entity_type: 'job',
-      carbon_footprint_kg: (baseImpact.carbon_footprint_kg || 15) * complexityMultiplier,
-      water_usage_liters: (baseImpact.water_usage_liters || 20) * complexityMultiplier,
-      waste_generated_kg: (baseImpact.waste_generated_kg || 8) * complexityMultiplier,
-      energy_usage_kwh: (baseImpact.energy_usage_kwh || 10) * complexityMultiplier,
+      carbon_footprint_kg:
+        (baseImpact.carbon_footprint_kg || 15) * complexityMultiplier,
+      water_usage_liters:
+        (baseImpact.water_usage_liters || 20) * complexityMultiplier,
+      waste_generated_kg:
+        (baseImpact.waste_generated_kg || 8) * complexityMultiplier,
+      energy_usage_kwh:
+        (baseImpact.energy_usage_kwh || 10) * complexityMultiplier,
       renewable_energy_percentage: 25, // UK average
       local_sourcing_percentage: 60,
       recycled_materials_percentage: 30,
-      transportation_emissions_kg: this.calculateTransportationEmissions(jobDetails.location),
+      transportation_emissions_kg: this.calculateTransportationEmissions(
+        jobDetails.location
+      ),
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
   }
 
@@ -527,13 +554,15 @@ class SustainabilityEngine {
     const complexityKeywords = {
       high: ['renovation', 'installation', 'replacement', 'rewiring', 'major'],
       medium: ['repair', 'fix', 'maintenance', 'service', 'check'],
-      low: ['touch-up', 'minor', 'quick', 'simple', 'small']
+      low: ['touch-up', 'minor', 'quick', 'simple', 'small'],
     };
 
     const desc = description.toLowerCase();
 
-    if (complexityKeywords.high.some(keyword => desc.includes(keyword))) return 1.5;
-    if (complexityKeywords.low.some(keyword => desc.includes(keyword))) return 0.7;
+    if (complexityKeywords.high.some((keyword) => desc.includes(keyword)))
+      return 1.5;
+    if (complexityKeywords.low.some((keyword) => desc.includes(keyword)))
+      return 0.7;
     return 1.0; // medium complexity default
   }
 
@@ -542,7 +571,7 @@ class SustainabilityEngine {
     const isLondon = location.toLowerCase().includes('london');
     const avgDistanceKm = isLondon ? 15 : 25; // Average contractor travel distance
     const emissionFactorKgPerKm = 0.2; // Average van emissions
-    
+
     return avgDistanceKm * emissionFactorKgPerKm;
   }
 
@@ -552,31 +581,42 @@ class SustainabilityEngine {
     location: string;
   }): Promise<EcoJobRecommendation> {
     // Generate material swap suggestions
-    const materialSwaps = await this.generateMaterialSwaps(params.jobDetails.category);
-    
+    const materialSwaps = await this.generateMaterialSwaps(
+      params.jobDetails.category
+    );
+
     // Generate process optimizations
-    const processOptimizations = this.generateProcessOptimizations(params.currentImpact);
+    const processOptimizations = this.generateProcessOptimizations(
+      params.currentImpact
+    );
 
     // Calculate potential carbon reduction
-    const potentialReduction = materialSwaps.reduce((sum, swap) => sum + swap.carbon_reduction, 0) +
-                              processOptimizations.reduce((sum, opt) => sum + opt.carbon_reduction, 0);
+    const potentialReduction =
+      materialSwaps.reduce((sum, swap) => sum + swap.carbon_reduction, 0) +
+      processOptimizations.reduce((sum, opt) => sum + opt.carbon_reduction, 0);
 
     return {
       job_id: '',
       sustainability_improvements: {
         material_swaps: materialSwaps,
         process_optimizations: processOptimizations,
-        energy_efficiency_tips: this.getEnergyEfficiencyTips(params.jobDetails.category),
-        waste_reduction_strategies: this.getWasteReductionStrategies(params.jobDetails.category)
+        energy_efficiency_tips: this.getEnergyEfficiencyTips(
+          params.jobDetails.category
+        ),
+        waste_reduction_strategies: this.getWasteReductionStrategies(
+          params.jobDetails.category
+        ),
       },
       potential_carbon_reduction: potentialReduction,
       estimated_cost_impact: this.calculateCostImpact(materialSwaps),
       difficulty_level: 'moderate',
-      roi_timeframe: '12-18 months'
+      roi_timeframe: '12-18 months',
     };
   }
 
-  private async generateMaterialSwaps(category: string): Promise<MaterialSwapSuggestion[]> {
+  private async generateMaterialSwaps(
+    category: string
+  ): Promise<MaterialSwapSuggestion[]> {
     const swapDatabase: Record<string, MaterialSwapSuggestion[]> = {
       painting: [
         {
@@ -585,7 +625,7 @@ class SustainabilityEngine {
           benefits: ['Better indoor air quality', 'Reduced chemical emissions'],
           carbon_reduction: 2.5,
           cost_difference: 15, // 15% premium
-          availability: 'readily_available'
+          availability: 'readily_available',
         },
         {
           original_material: 'Plastic-based Primer',
@@ -593,8 +633,8 @@ class SustainabilityEngine {
           benefits: ['Biodegradable', 'Non-toxic'],
           carbon_reduction: 1.8,
           cost_difference: 8,
-          availability: 'readily_available'
-        }
+          availability: 'readily_available',
+        },
       ],
       carpentry: [
         {
@@ -603,8 +643,8 @@ class SustainabilityEngine {
           benefits: ['Sustainably sourced', 'Better durability'],
           carbon_reduction: 8.5,
           cost_difference: 25,
-          availability: 'order_required'
-        }
+          availability: 'order_required',
+        },
       ],
       plumbing: [
         {
@@ -613,15 +653,17 @@ class SustainabilityEngine {
           benefits: ['Longer lifespan', 'Better insulation'],
           carbon_reduction: 3.2,
           cost_difference: 12,
-          availability: 'readily_available'
-        }
-      ]
+          availability: 'readily_available',
+        },
+      ],
     };
 
     return swapDatabase[category] || [];
   }
 
-  private generateProcessOptimizations(currentImpact: SustainabilityMetrics): ProcessOptimization[] {
+  private generateProcessOptimizations(
+    currentImpact: SustainabilityMetrics
+  ): ProcessOptimization[] {
     const optimizations: ProcessOptimization[] = [];
 
     // Transportation optimization
@@ -632,11 +674,11 @@ class SustainabilityEngine {
         implementation_steps: [
           'Plan efficient routes to minimize travel',
           'Consider electric or hybrid vehicles',
-          'Combine multiple jobs in same area'
+          'Combine multiple jobs in same area',
         ],
         carbon_reduction: currentImpact.transportation_emissions_kg * 0.3,
         cost_savings: 50,
-        difficulty: 'easy'
+        difficulty: 'easy',
       });
     }
 
@@ -648,11 +690,11 @@ class SustainabilityEngine {
         implementation_steps: [
           'Sort materials on-site',
           'Partner with local recycling facilities',
-          'Reuse materials where possible'
+          'Reuse materials where possible',
         ],
         carbon_reduction: currentImpact.waste_generated_kg * 0.5,
         cost_savings: 30,
-        difficulty: 'moderate'
+        difficulty: 'moderate',
       });
     }
 
@@ -664,25 +706,27 @@ class SustainabilityEngine {
       electrical: [
         'Use LED bulbs instead of incandescent',
         'Install smart thermostats for better energy management',
-        'Consider solar-powered options where applicable'
+        'Consider solar-powered options where applicable',
       ],
       plumbing: [
         'Install low-flow fixtures to reduce water usage',
         'Insulate pipes to reduce energy loss',
-        'Use tankless water heaters for better efficiency'
+        'Use tankless water heaters for better efficiency',
       ],
       heating: [
         'Upgrade to high-efficiency boilers',
         'Improve home insulation',
-        'Install programmable thermostats'
-      ]
+        'Install programmable thermostats',
+      ],
     };
 
-    return tipDatabase[category] || [
-      'Use energy-efficient tools and equipment',
-      'Work during daylight hours when possible',
-      'Turn off equipment when not in use'
-    ];
+    return (
+      tipDatabase[category] || [
+        'Use energy-efficient tools and equipment',
+        'Work during daylight hours when possible',
+        'Turn off equipment when not in use',
+      ]
+    );
   }
 
   private getWasteReductionStrategies(category: string): string[] {
@@ -691,31 +735,44 @@ class SustainabilityEngine {
       'Donate or sell leftover materials',
       'Use digital receipts and documentation',
       'Choose packaging-minimal products',
-      'Implement a job-site recycling program'
+      'Implement a job-site recycling program',
     ];
   }
 
   private calculateCostImpact(materialSwaps: MaterialSwapSuggestion[]): number {
-    return materialSwaps.reduce((total, swap) => total + swap.cost_difference, 0);
+    return materialSwaps.reduce(
+      (total, swap) => total + swap.cost_difference,
+      0
+    );
   }
 
-  private calculateJobSustainabilityScore(impact: SustainabilityMetrics): number {
+  private calculateJobSustainabilityScore(
+    impact: SustainabilityMetrics
+  ): number {
     // Scoring algorithm based on various factors
-    const carbonScore = Math.max(0, 100 - (impact.carbon_footprint_kg / 50 * 100));
-    const wasteScore = Math.max(0, 100 - (impact.waste_generated_kg / 30 * 100));
+    const carbonScore = Math.max(
+      0,
+      100 - (impact.carbon_footprint_kg / 50) * 100
+    );
+    const wasteScore = Math.max(
+      0,
+      100 - (impact.waste_generated_kg / 30) * 100
+    );
     const renewableScore = impact.renewable_energy_percentage;
     const recyclingScore = impact.recycled_materials_percentage;
 
     return Math.round(
-      (carbonScore * 0.4) +
-      (wasteScore * 0.25) +
-      (renewableScore * 0.2) +
-      (recyclingScore * 0.15)
+      carbonScore * 0.4 +
+        wasteScore * 0.25 +
+        renewableScore * 0.2 +
+        recyclingScore * 0.15
     );
   }
 
   // Database interaction methods
-  private async getContractorSustainabilityMetrics(contractorId: string): Promise<SustainabilityMetrics> {
+  private async getContractorSustainabilityMetrics(
+    contractorId: string
+  ): Promise<SustainabilityMetrics> {
     const { data, error } = await supabase
       .from('sustainability_metrics')
       .select('*')
@@ -740,14 +797,16 @@ class SustainabilityEngine {
         recycled_materials_percentage: 30,
         transportation_emissions_kg: 15,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
     }
 
     return data;
   }
 
-  private async getContractorCertifications(contractorId: string): Promise<GreenCertification[]> {
+  private async getContractorCertifications(
+    contractorId: string
+  ): Promise<GreenCertification[]> {
     const { data, error } = await supabase
       .from('green_certifications')
       .select('*')
@@ -765,39 +824,44 @@ class SustainabilityEngine {
       employment_score: 85,
       education_initiatives: 5,
       local_employment_percentage: 80,
-      diversity_score: 75
+      diversity_score: 75,
     };
   }
 
-  private async getContractorSustainabilityFeedback(contractorId: string): Promise<any> {
+  private async getContractorSustainabilityFeedback(
+    contractorId: string
+  ): Promise<any> {
     // Mock data - in real implementation would query client feedback
     return {
       transparency_score: 82,
       ethics_score: 88,
-      engagement_score: 79
+      engagement_score: 79,
     };
   }
 
-  private async storeESGScore(contractorId: string, esgScore: ESGScore): Promise<void> {
-    const { error } = await supabase
-      .from('contractor_esg_scores')
-      .upsert({
-        contractor_id: contractorId,
-        overall_esg_score: esgScore.overall_score,
-        environmental_score: esgScore.environmental_score,
-        social_score: esgScore.social_score,
-        governance_score: esgScore.governance_score,
-        certification_level: esgScore.certification_level,
-        last_calculated: esgScore.last_calculated,
-        updated_at: new Date().toISOString()
-      });
+  private async storeESGScore(
+    contractorId: string,
+    esgScore: ESGScore
+  ): Promise<void> {
+    const { error } = await supabase.from('contractor_esg_scores').upsert({
+      contractor_id: contractorId,
+      overall_esg_score: esgScore.overall_score,
+      environmental_score: esgScore.environmental_score,
+      social_score: esgScore.social_score,
+      governance_score: esgScore.governance_score,
+      certification_level: esgScore.certification_level,
+      last_calculated: esgScore.last_calculated,
+      updated_at: new Date().toISOString(),
+    });
 
     if (error) {
       logger.error('Failed to store ESG score', error);
     }
   }
 
-  private async findSustainableAlternatives(material: string): Promise<MaterialSwapSuggestion[]> {
+  private async findSustainableAlternatives(
+    material: string
+  ): Promise<MaterialSwapSuggestion[]> {
     const { data, error } = await supabase
       .from('sustainable_materials')
       .select('*')
@@ -811,11 +875,15 @@ class SustainabilityEngine {
       benefits: item.certification_labels,
       carbon_reduction: item.carbon_intensity,
       cost_difference: item.cost_premium_percentage,
-      availability: item.local_availability ? 'readily_available' : 'order_required'
+      availability: item.local_availability
+        ? 'readily_available'
+        : 'order_required',
     }));
   }
 
-  private async getMaterialCarbonData(material: string): Promise<{ carbon_intensity: number }> {
+  private async getMaterialCarbonData(
+    material: string
+  ): Promise<{ carbon_intensity: number }> {
     const { data, error } = await supabase
       .from('sustainable_materials')
       .select('carbon_intensity')

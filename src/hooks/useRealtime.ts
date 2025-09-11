@@ -3,7 +3,7 @@ import { RealtimeService, RealtimeCallback } from '../services/RealtimeService';
 
 export const useJobUpdates = (jobId: string, callback: RealtimeCallback) => {
   const callbackRef = useRef(callback);
-  
+
   // Update callback ref when callback changes
   useEffect(() => {
     callbackRef.current = callback;
@@ -21,9 +21,12 @@ export const useJobUpdates = (jobId: string, callback: RealtimeCallback) => {
   }, [jobId]);
 };
 
-export const useContractorBids = (contractorId: string, callback: RealtimeCallback) => {
+export const useContractorBids = (
+  contractorId: string,
+  callback: RealtimeCallback
+) => {
   const callbackRef = useRef(callback);
-  
+
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
@@ -40,9 +43,12 @@ export const useContractorBids = (contractorId: string, callback: RealtimeCallba
   }, [contractorId]);
 };
 
-export const useHomeownerJobs = (homeownerId: string, callback: RealtimeCallback) => {
+export const useHomeownerJobs = (
+  homeownerId: string,
+  callback: RealtimeCallback
+) => {
   const callbackRef = useRef(callback);
-  
+
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
@@ -61,14 +67,14 @@ export const useHomeownerJobs = (homeownerId: string, callback: RealtimeCallback
 
 export const useAvailableJobs = (callback: RealtimeCallback) => {
   const callbackRef = useRef(callback);
-  
+
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
 
   useEffect(() => {
-    const unsubscribe = RealtimeService.subscribeToAvailableJobs(
-      (payload) => callbackRef.current(payload)
+    const unsubscribe = RealtimeService.subscribeToAvailableJobs((payload) =>
+      callbackRef.current(payload)
     );
 
     return unsubscribe;

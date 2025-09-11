@@ -9,22 +9,22 @@ console.log('==================================\n');
 
 // Performance budgets configuration
 const PERFORMANCE_BUDGETS = {
-  bundleSize: { 
+  bundleSize: {
     warning: 15 * 1024 * 1024, // 15MB
-    error: 20 * 1024 * 1024    // 20MB
+    error: 20 * 1024 * 1024, // 20MB
   },
   memoryUsage: {
     warning: 150 * 1024 * 1024, // 150MB
-    error: 300 * 1024 * 1024    // 300MB
+    error: 300 * 1024 * 1024, // 300MB
   },
   startupTime: {
     warning: 3000, // 3 seconds
-    error: 5000    // 5 seconds
+    error: 5000, // 5 seconds
   },
   apiResponseTime: {
     warning: 2000, // 2 seconds
-    error: 5000    // 5 seconds
-  }
+    error: 5000, // 5 seconds
+  },
 };
 
 class PerformanceDashboard {
@@ -39,57 +39,62 @@ class PerformanceDashboard {
 
     // Analyze bundle size
     await this.analyzeBundleSize();
-    
+
     // Check performance monitors in code
     this.analyzePerformanceMonitoring();
-    
+
     // Analyze dependencies
     this.analyzeDependencies();
-    
+
     // Generate recommendations
     this.generateRecommendations();
-    
+
     // Create dashboard HTML
     this.createDashboard();
-    
+
     // Print summary
     this.printSummary();
   }
 
   async analyzeBundleSize() {
     console.log('📦 Analyzing bundle size...');
-    
+
     try {
       // Create a production build analysis
-      const buildOutput = execSync('npx expo export --platform android --dev false', {
-        stdio: 'pipe',
-        encoding: 'utf8'
-      });
-      
+      const buildOutput = execSync(
+        'npx expo export --platform android --dev false',
+        {
+          stdio: 'pipe',
+          encoding: 'utf8',
+        }
+      );
+
       // Get bundle size (simplified - would need more sophisticated analysis)
       const bundlePath = './dist/bundles';
       if (fs.existsSync(bundlePath)) {
         const files = fs.readdirSync(bundlePath);
         let totalSize = 0;
-        
-        files.forEach(file => {
+
+        files.forEach((file) => {
           const filePath = path.join(bundlePath, file);
           if (fs.statSync(filePath).isFile()) {
             totalSize += fs.statSync(filePath).size;
           }
         });
-        
+
         this.metrics.bundleSize = totalSize;
-        
-        console.log(`   Bundle size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
-        
+
+        console.log(
+          `   Bundle size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`
+        );
+
         if (totalSize > PERFORMANCE_BUDGETS.bundleSize.error) {
           this.violations.push({
             type: 'bundle_size',
             severity: 'error',
             actual: totalSize,
             threshold: PERFORMANCE_BUDGETS.bundleSize.error,
-            message: `Bundle size exceeds error threshold`
+            message: `Bundle size exceeds error threshold`,
           });
         } else if (totalSize > PERFORMANCE_BUDGETS.bundleSize.warning) {
           this.violations.push({
@@ -97,38 +102,40 @@ class PerformanceDashboard {
             severity: 'warning',
             actual: totalSize,
             threshold: PERFORMANCE_BUDGETS.bundleSize.warning,
-            message: `Bundle size exceeds warning threshold`
+            message: `Bundle size exceeds warning threshold`,
           });
         }
       }
-      
     } catch (error) {
       console.log('   ⚠️  Could not analyze bundle size:', error.message);
     }
-    
+
     console.log();
   }
 
   analyzePerformanceMonitoring() {
     console.log('⚡ Analyzing performance monitoring implementation...');
-    
+
     // Check if performance monitor is implemented
     const performanceMonitorPath = './src/utils/performanceMonitor.ts';
     if (fs.existsSync(performanceMonitorPath)) {
       console.log('   ✅ Performance monitor found');
-      
+
       const content = fs.readFileSync(performanceMonitorPath, 'utf8');
-      
+
       // Check for different monitoring features
       const features = [
         { name: 'Memory monitoring', pattern: /recordMemoryUsage/ },
-        { name: 'API response time tracking', pattern: /recordApiResponseTime/ },
+        {
+          name: 'API response time tracking',
+          pattern: /recordApiResponseTime/,
+        },
         { name: 'Navigation timing', pattern: /recordNavigationTime/ },
         { name: 'Startup time tracking', pattern: /recordStartupTime/ },
-        { name: 'FPS monitoring', pattern: /recordFPS/ }
+        { name: 'FPS monitoring', pattern: /recordFPS/ },
       ];
-      
-      features.forEach(feature => {
+
+      features.forEach((feature) => {
         if (feature.pattern.test(content)) {
           console.log(`   ✅ ${feature.name} implemented`);
         } else {
@@ -136,59 +143,58 @@ class PerformanceDashboard {
           this.recommendations.push(`Implement ${feature.name.toLowerCase()}`);
         }
       });
-      
     } else {
       console.log('   ❌ Performance monitor not found');
       this.violations.push({
         type: 'performance_monitoring',
         severity: 'warning',
-        message: 'Performance monitoring not implemented'
+        message: 'Performance monitoring not implemented',
       });
     }
-    
+
     console.log();
   }
 
   analyzeDependencies() {
     console.log('📚 Analyzing dependencies for performance impact...');
-    
+
     const packageJsonPath = './package.json';
     if (!fs.existsSync(packageJsonPath)) {
       console.log('   ❌ package.json not found');
       return;
     }
-    
+
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const dependencies = {
       ...packageJson.dependencies,
-      ...packageJson.devDependencies
+      ...packageJson.devDependencies,
     };
-    
+
     // Known heavy dependencies
     const heavyDependencies = [
       'react-native-maps',
       'react-native-video',
       '@react-native-community/blur',
       'react-native-svg',
-      'lottie-react-native'
+      'lottie-react-native',
     ];
-    
+
     let heavyCount = 0;
-    heavyDependencies.forEach(dep => {
+    heavyDependencies.forEach((dep) => {
       if (dependencies[dep]) {
         console.log(`   ⚠️  Heavy dependency detected: ${dep}`);
         heavyCount++;
       }
     });
-    
+
     if (heavyCount > 3) {
       this.violations.push({
         type: 'dependencies',
         severity: 'warning',
-        message: `${heavyCount} heavy dependencies detected. Consider code splitting.`
+        message: `${heavyCount} heavy dependencies detected. Consider code splitting.`,
       });
     }
-    
+
     console.log(`   Total dependencies: ${Object.keys(dependencies).length}`);
     console.log(`   Heavy dependencies: ${heavyCount}`);
     console.log();
@@ -196,54 +202,66 @@ class PerformanceDashboard {
 
   generateRecommendations() {
     console.log('💡 Generating performance recommendations...');
-    
+
     // Bundle size recommendations
     if (this.metrics.bundleSize) {
       const sizeMB = this.metrics.bundleSize / 1024 / 1024;
       if (sizeMB > 10) {
-        this.recommendations.push('Consider implementing code splitting to reduce bundle size');
-        this.recommendations.push('Use dynamic imports for rarely used features');
-        this.recommendations.push('Enable tree shaking for unused code elimination');
+        this.recommendations.push(
+          'Consider implementing code splitting to reduce bundle size'
+        );
+        this.recommendations.push(
+          'Use dynamic imports for rarely used features'
+        );
+        this.recommendations.push(
+          'Enable tree shaking for unused code elimination'
+        );
       }
     }
-    
+
     // Check for potential optimizations
     const srcFiles = this.findFiles('./src', /\.(ts|tsx)$/);
-    
+
     // Check for console.log statements (performance impact)
     let consoleLogCount = 0;
-    srcFiles.forEach(file => {
+    srcFiles.forEach((file) => {
       const content = fs.readFileSync(file, 'utf8');
       const matches = content.match(/console\.log/g);
       if (matches) {
         consoleLogCount += matches.length;
       }
     });
-    
+
     if (consoleLogCount > 20) {
-      this.recommendations.push(`Remove ${consoleLogCount} console.log statements for better performance`);
+      this.recommendations.push(
+        `Remove ${consoleLogCount} console.log statements for better performance`
+      );
     }
-    
+
     // Check for inline styles (performance anti-pattern)
     let inlineStyleCount = 0;
-    srcFiles.filter(f => f.endsWith('.tsx')).forEach(file => {
-      const content = fs.readFileSync(file, 'utf8');
-      const matches = content.match(/style=\{\{/g);
-      if (matches) {
-        inlineStyleCount += matches.length;
-      }
-    });
-    
+    srcFiles
+      .filter((f) => f.endsWith('.tsx'))
+      .forEach((file) => {
+        const content = fs.readFileSync(file, 'utf8');
+        const matches = content.match(/style=\{\{/g);
+        if (matches) {
+          inlineStyleCount += matches.length;
+        }
+      });
+
     if (inlineStyleCount > 10) {
-      this.recommendations.push(`Replace ${inlineStyleCount} inline styles with StyleSheet for better performance`);
+      this.recommendations.push(
+        `Replace ${inlineStyleCount} inline styles with StyleSheet for better performance`
+      );
     }
-    
+
     console.log();
   }
 
   createDashboard() {
     console.log('🎨 Creating performance dashboard...');
-    
+
     const dashboardHTML = `
 <!DOCTYPE html>
 <html lang="en">
@@ -299,7 +317,7 @@ class PerformanceDashboard {
         
         <div class="metrics-grid">
             <div class="metric-card">
-                <div class="metric-value">${this.metrics.bundleSize ? (this.metrics.bundleSize / 1024 / 1024).toFixed(1) + 'MB' : 'N/A'}</div>
+                <div class="metric-value">${this.metrics.bundleSize ? `${(this.metrics.bundleSize / 1024 / 1024).toFixed(1)}MB` : 'N/A'}</div>
                 <div class="metric-label">Bundle Size</div>
             </div>
             <div class="metric-card">
@@ -312,26 +330,42 @@ class PerformanceDashboard {
             </div>
         </div>
         
-        ${this.violations.length > 0 ? `
+        ${
+          this.violations.length > 0
+            ? `
         <div class="violations">
             <h2>⚠️ Performance Violations</h2>
-            ${this.violations.map(v => `
+            ${this.violations
+              .map(
+                (v) => `
                 <div class="violation ${v.severity}">
                     <strong>${v.type.replace('_', ' ').toUpperCase()}</strong>: ${v.message}
                     ${v.actual ? `<br>Actual: ${v.actual}, Threshold: ${v.threshold}` : ''}
                 </div>
-            `).join('')}
+            `
+              )
+              .join('')}
         </div>
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${this.recommendations.length > 0 ? `
+        ${
+          this.recommendations.length > 0
+            ? `
         <div class="recommendations">
             <h2>💡 Performance Recommendations</h2>
-            ${this.recommendations.map(r => `
+            ${this.recommendations
+              .map(
+                (r) => `
                 <div class="recommendation">${r}</div>
-            `).join('')}
+            `
+              )
+              .join('')}
         </div>
-        ` : ''}
+        `
+            : ''
+        }
         
         <div class="timestamp">
             Generated on ${new Date().toLocaleString()}
@@ -339,7 +373,7 @@ class PerformanceDashboard {
     </div>
 </body>
 </html>`;
-    
+
     fs.writeFileSync('./performance-dashboard.html', dashboardHTML);
     console.log('   ✅ Dashboard created: ./performance-dashboard.html');
     console.log();
@@ -348,41 +382,47 @@ class PerformanceDashboard {
   printSummary() {
     console.log('📋 Performance Summary');
     console.log('====================');
-    
+
     if (this.violations.length === 0) {
       console.log('✅ No performance violations detected!');
     } else {
-      console.log(`❌ ${this.violations.length} performance violations detected:`);
-      this.violations.forEach(v => {
+      console.log(
+        `❌ ${this.violations.length} performance violations detected:`
+      );
+      this.violations.forEach((v) => {
         console.log(`   ${v.severity.toUpperCase()}: ${v.message}`);
       });
     }
-    
+
     if (this.recommendations.length > 0) {
-      console.log(`\\n💡 ${this.recommendations.length} optimization opportunities:`);
-      this.recommendations.slice(0, 5).forEach(r => {
+      console.log(
+        `\\n💡 ${this.recommendations.length} optimization opportunities:`
+      );
+      this.recommendations.slice(0, 5).forEach((r) => {
         console.log(`   • ${r}`);
       });
-      
+
       if (this.recommendations.length > 5) {
-        console.log(`   ... and ${this.recommendations.length - 5} more recommendations`);
+        console.log(
+          `   ... and ${this.recommendations.length - 5} more recommendations`
+        );
       }
     }
-    
+
     console.log(`\\n📊 Full report available at: ./performance-dashboard.html`);
   }
 
   findFiles(dir, pattern) {
     let results = [];
-    
+
     if (!fs.existsSync(dir)) return results;
-    
+
     const files = fs.readdirSync(dir);
-    
+
     for (const file of files) {
       const filePath = path.join(dir, file);
       const stat = fs.statSync(filePath);
-      
+
       if (stat.isDirectory()) {
         if (file !== 'node_modules' && file !== '.git' && file !== 'dist') {
           results = results.concat(this.findFiles(filePath, pattern));
@@ -391,7 +431,7 @@ class PerformanceDashboard {
         results.push(filePath);
       }
     }
-    
+
     return results;
   }
 }
@@ -400,9 +440,11 @@ async function main() {
   try {
     const dashboard = new PerformanceDashboard();
     await dashboard.generateReport();
-    
+
     // Return appropriate exit code
-    const criticalViolations = dashboard.violations.filter(v => v.severity === 'error');
+    const criticalViolations = dashboard.violations.filter(
+      (v) => v.severity === 'error'
+    );
     if (criticalViolations.length > 0) {
       console.log('\\n❌ Critical performance issues detected.');
       process.exit(1);
@@ -410,7 +452,6 @@ async function main() {
       console.log('\\n✅ Performance monitoring completed successfully.');
       process.exit(0);
     }
-    
   } catch (error) {
     console.error('❌ Error generating performance dashboard:', error.message);
     process.exit(1);

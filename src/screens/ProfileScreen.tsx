@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Image,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +16,6 @@ import { Job } from '../types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';
-
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -29,11 +36,11 @@ const ProfileScreen: React.FC = () => {
 
   const loadUserStats = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       let jobs: Job[] = [];
-      
+
       if (user.role === 'homeowner') {
         jobs = await JobService.getJobsByHomeowner(user.id);
       } else {
@@ -41,19 +48,24 @@ const ProfileScreen: React.FC = () => {
         // For now, using a placeholder
         jobs = [];
       }
-      
+
       const stats = {
         totalJobs: jobs.length,
-        completedJobs: jobs.filter(job => job.status === 'completed').length,
-        activeJobs: jobs.filter(job => job.status === 'in_progress' || job.status === 'assigned').length,
+        completedJobs: jobs.filter((job) => job.status === 'completed').length,
+        activeJobs: jobs.filter(
+          (job) => job.status === 'in_progress' || job.status === 'assigned'
+        ).length,
         rating: 4.8, // Would come from reviews
         responseTime: '< 2h',
-        joinDate: new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long' 
-        }),
+        joinDate: new Date(user.createdAt || Date.now()).toLocaleDateString(
+          'en-US',
+          {
+            year: 'numeric',
+            month: 'long',
+          }
+        ),
       };
-      
+
       setUserStats(stats);
     } catch (error) {
       logger.error('Failed to load user stats:', error);
@@ -63,14 +75,10 @@ const ProfileScreen: React.FC = () => {
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: signOut },
-      ]
-    );
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: signOut },
+    ]);
   };
 
   return (
@@ -83,56 +91,78 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.profileInfo}>
           <View style={styles.avatarContainer}>
             {user?.profileImageUrl ? (
-              <Image source={{ uri: user.profileImageUrl }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: user.profileImageUrl }}
+                style={styles.avatarImage}
+              />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  {user?.firstName?.[0]}
+                  {user?.lastName?.[0]}
                 </Text>
               </View>
             )}
-            
+
             {/* Verification Badges */}
             <View style={styles.verificationBadges}>
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CD964" />
+                <Ionicons name='checkmark-circle' size={20} color='#4CD964' />
               </View>
               {user?.role === 'contractor' && (
                 <View style={styles.licensedBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.info} />
+                  <Ionicons
+                    name='shield-checkmark'
+                    size={16}
+                    color={theme.colors.info}
+                  />
                 </View>
               )}
             </View>
           </View>
-          
+
           <Text style={styles.userName}>
             {user?.firstName} {user?.lastName}
           </Text>
-          
+
           {user?.role === 'contractor' && (
             <View style={styles.contractorTitle}>
-              <Ionicons name="hammer" size={16} color="#666" />
-              <Text style={styles.contractorTitleText}>Professional Contractor</Text>
+              <Ionicons name='hammer' size={16} color='#666' />
+              <Text style={styles.contractorTitleText}>
+                Professional Contractor
+              </Text>
             </View>
           )}
-          
+
           <Text style={styles.userEmail}>{user?.email}</Text>
-          
+
           <View style={styles.badgeContainer}>
-            <View style={[styles.roleBadge, user?.role === 'contractor' && styles.contractorBadge]}>
-              <Ionicons 
-                name={user?.role === 'contractor' ? 'construct' : 'home'} 
-                size={14} 
-                color={user?.role === 'contractor' ? '#FF6B35' : '#007AFF'} 
+            <View
+              style={[
+                styles.roleBadge,
+                user?.role === 'contractor' && styles.contractorBadge,
+              ]}
+            >
+              <Ionicons
+                name={user?.role === 'contractor' ? 'construct' : 'home'}
+                size={14}
+                color={user?.role === 'contractor' ? '#FF6B35' : '#007AFF'}
               />
-              <Text style={[styles.roleText, user?.role === 'contractor' && styles.contractorRoleText]}>
+              <Text
+                style={[
+                  styles.roleText,
+                  user?.role === 'contractor' && styles.contractorRoleText,
+                ]}
+              >
                 {user?.role === 'contractor' ? 'Professional' : 'Homeowner'}
               </Text>
             </View>
-            
+
             <View style={styles.memberSinceBadge}>
-              <Ionicons name="calendar-outline" size={14} color="#666" />
-              <Text style={styles.memberSinceText}>Since {userStats.joinDate}</Text>
+              <Ionicons name='calendar-outline' size={14} color='#666' />
+              <Text style={styles.memberSinceText}>
+                Since {userStats.joinDate}
+              </Text>
             </View>
           </View>
         </View>
@@ -164,59 +194,75 @@ const ProfileScreen: React.FC = () => {
             <View style={styles.performanceGrid}>
               <View style={styles.performanceItem}>
                 <View style={styles.performanceHeader}>
-                  <Ionicons name="star" size={18} color="#FFD700" />
-                  <Text style={styles.performanceValue}>{userStats.rating.toFixed(1)}</Text>
+                  <Ionicons name='star' size={18} color='#FFD700' />
+                  <Text style={styles.performanceValue}>
+                    {userStats.rating.toFixed(1)}
+                  </Text>
                 </View>
                 <Text style={styles.performanceLabel}>Overall Rating</Text>
-                <Text style={styles.performanceSubtext}>Based on 127 reviews</Text>
+                <Text style={styles.performanceSubtext}>
+                  Based on 127 reviews
+                </Text>
               </View>
-              
+
               <View style={styles.performanceItem}>
                 <View style={styles.performanceHeader}>
-                  <Ionicons name="checkmark-circle" size={18} color="#34C759" />
+                  <Ionicons name='checkmark-circle' size={18} color='#34C759' />
                   <Text style={styles.performanceValue}>98%</Text>
                 </View>
                 <Text style={styles.performanceLabel}>Success Rate</Text>
-                <Text style={styles.performanceSubtext}>Jobs completed successfully</Text>
+                <Text style={styles.performanceSubtext}>
+                  Jobs completed successfully
+                </Text>
               </View>
-              
+
               <View style={styles.performanceItem}>
                 <View style={styles.performanceHeader}>
-                  <Ionicons name="time" size={18} color="#FF9500" />
-                  <Text style={styles.performanceValue}>{userStats.responseTime}</Text>
+                  <Ionicons name='time' size={18} color='#FF9500' />
+                  <Text style={styles.performanceValue}>
+                    {userStats.responseTime}
+                  </Text>
                 </View>
                 <Text style={styles.performanceLabel}>Response Time</Text>
                 <Text style={styles.performanceSubtext}>Average response</Text>
               </View>
-              
+
               <View style={styles.performanceItem}>
                 <View style={styles.performanceHeader}>
-                  <Ionicons name="briefcase" size={18} color={theme.colors.info} />
+                  <Ionicons
+                    name='briefcase'
+                    size={18}
+                    color={theme.colors.info}
+                  />
                   <Text style={styles.performanceValue}>85</Text>
                 </View>
                 <Text style={styles.performanceLabel}>Jobs Done</Text>
                 <Text style={styles.performanceSubtext}>Total completed</Text>
               </View>
             </View>
-            
+
             {/* Verification Status */}
             <View style={styles.verificationSection}>
               <Text style={styles.verificationTitle}>Verification Status</Text>
               <View style={styles.verificationItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CD964" />
+                <Ionicons name='checkmark-circle' size={20} color='#4CD964' />
                 <Text style={styles.verificationText}>Identity Verified</Text>
               </View>
               <View style={styles.verificationItem}>
-                <Ionicons name="shield-checkmark" size={20} color="#4CD964" />
+                <Ionicons name='shield-checkmark' size={20} color='#4CD964' />
                 <Text style={styles.verificationText}>Licensed & Insured</Text>
               </View>
               <View style={styles.verificationItem}>
-                <Ionicons name="card" size={20} color="#4CD964" />
-                <Text style={styles.verificationText}>Payment Method Verified</Text>
+                <Ionicons name='card' size={20} color='#4CD964' />
+                <Text style={styles.verificationText}>
+                  Payment Method Verified
+                </Text>
               </View>
               <View style={styles.verificationItem}>
-                <Ionicons name="call" size={20} color="#4CD964" />
-                <Text style={styles.verificationText}>Phone Number Verified</Text>
+                <Ionicons name='call' size={20} color='#4CD964' />
+                <Text style={styles.verificationText}>
+                  Phone Number Verified
+                </Text>
               </View>
             </View>
           </View>
@@ -224,85 +270,109 @@ const ProfileScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('EditProfile')}
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='person-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Edit Profile</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('NotificationSettings')}
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="notifications-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='notifications-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('PaymentMethods')}
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="card-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='card-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Payment Methods</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
+
           {user?.role === 'contractor' && (
             <>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => navigation.navigate('FinanceDashboard')}
               >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
-                    <Ionicons name="analytics-outline" size={20} color={theme.colors.primary} />
+                    <Ionicons
+                      name='analytics-outline'
+                      size={20}
+                      color={theme.colors.primary}
+                    />
                   </View>
                   <Text style={styles.menuText}>Finance Dashboard</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => navigation.navigate('InvoiceManagement')}
               >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
-                    <Ionicons name="receipt-outline" size={20} color={theme.colors.primary} />
+                    <Ionicons
+                      name='receipt-outline'
+                      size={20}
+                      color={theme.colors.primary}
+                    />
                   </View>
                   <Text style={styles.menuText}>Invoice Management</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => navigation.navigate('CRMDashboard')}
               >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
-                    <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
+                    <Ionicons
+                      name='people-outline'
+                      size={20}
+                      color={theme.colors.primary}
+                    />
                   </View>
                   <Text style={styles.menuText}>Client Management</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
               </TouchableOpacity>
             </>
           )}
@@ -310,21 +380,25 @@ const ProfileScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('HelpCenter')}
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="help-circle-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='help-circle-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Help Center</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
               Alert.alert(
@@ -336,14 +410,18 @@ const ProfileScreen: React.FC = () => {
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='mail-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Contact Us</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
               Alert.alert(
@@ -355,14 +433,18 @@ const ProfileScreen: React.FC = () => {
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="document-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='document-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Terms of Service</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
               Alert.alert(
@@ -374,17 +456,21 @@ const ProfileScreen: React.FC = () => {
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name='shield-checkmark-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
               </View>
               <Text style={styles.menuText}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
         </View>
 
         <Button
-          variant="danger"
-          title="Sign Out"
+          variant='danger'
+          title='Sign Out'
           onPress={handleSignOut}
           fullWidth
           style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 50 }}

@@ -31,13 +31,16 @@ const COVERAGE_THRESHOLDS = {
 
 function runTestsWithCoverage() {
   console.log('🧪 Running tests with coverage...\n');
-  
+
   try {
-    const result = execSync('npm test -- --coverage --watchAll=false --verbose', {
-      stdio: 'pipe',
-      encoding: 'utf8'
-    });
-    
+    const result = execSync(
+      'npm test -- --coverage --watchAll=false --verbose',
+      {
+        stdio: 'pipe',
+        encoding: 'utf8',
+      }
+    );
+
     console.log(result);
     return true;
   } catch (error) {
@@ -49,12 +52,14 @@ function runTestsWithCoverage() {
 
 function parseCoverageReport() {
   const coveragePath = './coverage/coverage-summary.json';
-  
+
   if (!fs.existsSync(coveragePath)) {
-    console.error('❌ Coverage report not found. Make sure tests run with --coverage flag.');
+    console.error(
+      '❌ Coverage report not found. Make sure tests run with --coverage flag.'
+    );
     return null;
   }
-  
+
   try {
     return JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
   } catch (error) {
@@ -65,85 +70,89 @@ function parseCoverageReport() {
 
 function checkCoverageThresholds(coverage) {
   console.log('🎯 Checking coverage thresholds...\n');
-  
+
   let allPassed = true;
-  
+
   // Check global coverage
   const global = coverage.total;
   console.log('📈 Global Coverage:');
-  
+
   Object.entries(COVERAGE_THRESHOLDS.global).forEach(([metric, threshold]) => {
     const actual = global[metric].pct;
     const passed = actual >= threshold;
-    
-    console.log(`   ${metric}: ${actual}% ${passed ? '✅' : '❌'} (threshold: ${threshold}%)`);
-    
+
+    console.log(
+      `   ${metric}: ${actual}% ${passed ? '✅' : '❌'} (threshold: ${threshold}%)`
+    );
+
     if (!passed) {
       allPassed = false;
     }
   });
-  
+
   console.log();
-  
+
   // Check specific path thresholds
   Object.entries(COVERAGE_THRESHOLDS).forEach(([pathPattern, thresholds]) => {
     if (pathPattern === 'global') return;
-    
+
     console.log(`📁 Coverage for ${pathPattern}:`);
-    
-    const matchingFiles = Object.keys(coverage).filter(file => 
+
+    const matchingFiles = Object.keys(coverage).filter((file) =>
       file.startsWith(pathPattern.replace('./', ''))
     );
-    
+
     if (matchingFiles.length === 0) {
       console.log('   ⚠️  No matching files found\n');
       return;
     }
-    
+
     // Calculate average coverage for matching files
     const avgCoverage = matchingFiles.reduce((acc, file) => {
       const fileCoverage = coverage[file];
-      Object.keys(thresholds).forEach(metric => {
+      Object.keys(thresholds).forEach((metric) => {
         acc[metric] = (acc[metric] || 0) + fileCoverage[metric].pct;
       });
       return acc;
     }, {});
-    
-    Object.keys(avgCoverage).forEach(metric => {
+
+    Object.keys(avgCoverage).forEach((metric) => {
       avgCoverage[metric] = avgCoverage[metric] / matchingFiles.length;
     });
-    
+
     // Check thresholds
     Object.entries(thresholds).forEach(([metric, threshold]) => {
       const actual = avgCoverage[metric] || 0;
       const passed = actual >= threshold;
-      
-      console.log(`   ${metric}: ${actual.toFixed(1)}% ${passed ? '✅' : '❌'} (threshold: ${threshold}%)`);
-      
+
+      console.log(
+        `   ${metric}: ${actual.toFixed(1)}% ${passed ? '✅' : '❌'} (threshold: ${threshold}%)`
+      );
+
       if (!passed) {
         allPassed = false;
       }
     });
-    
+
     console.log();
   });
-  
+
   return allPassed;
 }
 
 function generateCoverageReport(coverage) {
   console.log('📄 Generating coverage report...\n');
-  
+
   const report = {
     timestamp: new Date().toISOString(),
     overall: coverage.total,
     summary: {
-      totalFiles: Object.keys(coverage).filter(key => key !== 'total').length,
+      totalFiles: Object.keys(coverage).filter((key) => key !== 'total').length,
       passedThresholds: false,
-      recommendations: []
-    }
+      recommendations: [],
+    },
   };
-  
+
   // Add recommendations based on low coverage areas
   const global = coverage.total;
   Object.entries(COVERAGE_THRESHOLDS.global).forEach(([metric, threshold]) => {
@@ -153,83 +162,92 @@ function generateCoverageReport(coverage) {
       );
     }
   });
-  
+
   // Find files with lowest coverage
   const filesByLines = Object.entries(coverage)
     .filter(([key]) => key !== 'total')
     .sort(([, a], [, b]) => a.lines.pct - b.lines.pct)
     .slice(0, 5);
-  
+
   if (filesByLines.length > 0) {
     report.summary.recommendations.push(
       'Focus testing efforts on these low-coverage files:'
     );
-    
+
     filesByLines.forEach(([file, cov]) => {
-      report.summary.recommendations.push(`  - ${file}: ${cov.lines.pct}% line coverage`);
+      report.summary.recommendations.push(
+        `  - ${file}: ${cov.lines.pct}% line coverage`
+      );
     });
   }
-  
+
   // Write report
-  fs.writeFileSync('./coverage/coverage-report.json', JSON.stringify(report, null, 2));
-  
+  fs.writeFileSync(
+    './coverage/coverage-report.json',
+    JSON.stringify(report, null, 2)
+  );
+
   console.log('💡 Recommendations:');
-  report.summary.recommendations.forEach(rec => {
+  report.summary.recommendations.forEach((rec) => {
     console.log(`   ${rec}`);
   });
-  
+
   return report;
 }
 
 function createMissingTestFiles() {
   console.log('\n🔍 Finding files without tests...\n');
-  
-  const srcFiles = findFiles('./src', /\.(ts|tsx)$/)
-    .filter(file => !file.includes('__tests__') && !file.includes('.test.') && !file.includes('.spec.'));
-  
+
+  const srcFiles = findFiles('./src', /\.(ts|tsx)$/).filter(
+    (file) =>
+      !file.includes('__tests__') &&
+      !file.includes('.test.') &&
+      !file.includes('.spec.')
+  );
+
   const testFiles = findFiles('./src', /\.(test|spec)\.(ts|tsx)$/);
   const testedFiles = new Set(
-    testFiles.map(testFile => {
+    testFiles.map((testFile) => {
       return testFile
         .replace(/\/__tests__\//, '/')
         .replace(/\.(test|spec)\./, '.')
         .replace(/\.tsx?$/, '');
     })
   );
-  
-  const untestedFiles = srcFiles.filter(srcFile => {
+
+  const untestedFiles = srcFiles.filter((srcFile) => {
     const normalizedSrc = srcFile.replace(/\.tsx?$/, '');
     return !testedFiles.has(normalizedSrc);
   });
-  
+
   if (untestedFiles.length === 0) {
     console.log('✅ All source files have corresponding test files!');
     return;
   }
-  
+
   console.log(`📋 ${untestedFiles.length} files without tests:`);
-  untestedFiles.forEach(file => {
+  untestedFiles.forEach((file) => {
     console.log(`   ${file}`);
   });
-  
+
   // Create basic test templates for missing files
   console.log('\n📝 Creating test templates...\n');
-  
-  untestedFiles.slice(0, 5).forEach(srcFile => {
+
+  untestedFiles.slice(0, 5).forEach((srcFile) => {
     const testFile = srcFile.replace(/\.(ts|tsx)$/, '.test.$1');
     const testDir = path.dirname(testFile);
-    
+
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
     }
-    
+
     const isReactComponent = srcFile.endsWith('.tsx');
     const componentName = path.basename(srcFile, path.extname(srcFile));
-    
-    const testTemplate = isReactComponent ? 
-      generateReactTestTemplate(componentName, srcFile) :
-      generateServiceTestTemplate(componentName, srcFile);
-    
+
+    const testTemplate = isReactComponent
+      ? generateReactTestTemplate(componentName, srcFile)
+      : generateServiceTestTemplate(componentName, srcFile);
+
     if (!fs.existsSync(testFile)) {
       fs.writeFileSync(testFile, testTemplate);
       console.log(`✅ Created test template: ${testFile}`);
@@ -322,15 +340,15 @@ describe('${serviceName}', () => {
 
 function findFiles(dir, pattern) {
   let results = [];
-  
+
   if (!fs.existsSync(dir)) return results;
-  
+
   const files = fs.readdirSync(dir);
-  
+
   for (const file of files) {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
-    
+
     if (stat.isDirectory()) {
       if (file !== 'node_modules' && file !== '.git' && file !== 'coverage') {
         results = results.concat(findFiles(filePath, pattern));
@@ -339,7 +357,7 @@ function findFiles(dir, pattern) {
       results.push(filePath);
     }
   }
-  
+
   return results;
 }
 
@@ -347,28 +365,28 @@ async function main() {
   try {
     // Run tests with coverage
     const testsPass = runTestsWithCoverage();
-    
+
     if (!testsPass) {
       console.log('❌ Tests must pass before checking coverage.');
       process.exit(1);
     }
-    
+
     // Parse coverage report
     const coverage = parseCoverageReport();
-    
+
     if (!coverage) {
       process.exit(1);
     }
-    
+
     // Check thresholds
     const thresholdsPassed = checkCoverageThresholds(coverage);
-    
+
     // Generate detailed report
     generateCoverageReport(coverage);
-    
+
     // Create missing test files
     createMissingTestFiles();
-    
+
     if (thresholdsPassed) {
       console.log('\n🎉 All coverage thresholds met!');
       process.exit(0);
@@ -376,7 +394,6 @@ async function main() {
       console.log('\n❌ Coverage thresholds not met. Please add more tests.');
       process.exit(1);
     }
-    
   } catch (error) {
     console.error('❌ Error checking test coverage:', error.message);
     process.exit(1);
@@ -391,5 +408,5 @@ module.exports = {
   runTestsWithCoverage,
   parseCoverageReport,
   checkCoverageThresholds,
-  createMissingTestFiles
+  createMissingTestFiles,
 };

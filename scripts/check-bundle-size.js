@@ -7,27 +7,27 @@ const path = require('path');
 const BUNDLE_SIZE_LIMITS = {
   android: {
     warning: 20 * 1024 * 1024, // 20MB
-    error: 25 * 1024 * 1024,   // 25MB
+    error: 25 * 1024 * 1024, // 25MB
   },
   ios: {
     warning: 20 * 1024 * 1024, // 20MB
-    error: 25 * 1024 * 1024,   // 25MB
+    error: 25 * 1024 * 1024, // 25MB
   },
   web: {
-    warning: 5 * 1024 * 1024,  // 5MB
-    error: 10 * 1024 * 1024,   // 10MB
+    warning: 5 * 1024 * 1024, // 5MB
+    error: 10 * 1024 * 1024, // 10MB
   },
 };
 
 // Asset size limits
 const ASSET_LIMITS = {
   image: {
-    warning: 500 * 1024,  // 500KB
-    error: 1024 * 1024,   // 1MB
+    warning: 500 * 1024, // 500KB
+    error: 1024 * 1024, // 1MB
   },
   font: {
-    warning: 100 * 1024,  // 100KB
-    error: 200 * 1024,    // 200KB
+    warning: 100 * 1024, // 100KB
+    error: 200 * 1024, // 200KB
   },
 };
 
@@ -36,12 +36,12 @@ function formatBytes(bytes) {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 function checkBundleSize() {
   console.log('🔍 Checking bundle sizes...\n');
-  
+
   const violations = [];
   const warnings = [];
   const reportData = {
@@ -50,31 +50,39 @@ function checkBundleSize() {
     bundles: [],
     assets: [],
     violations: [],
-    warnings: []
+    warnings: [],
   };
 
   // Check if bundle analysis report exists
   const reportPath = path.join(process.cwd(), 'bundle-analysis-report.json');
   if (!fs.existsSync(reportPath)) {
-    console.log('⚠️  Bundle analysis report not found. Run `npm run bundle:analyze` first.');
+    console.log(
+      '⚠️  Bundle analysis report not found. Run `npm run bundle:analyze` first.'
+    );
     return;
   }
 
   try {
     const bundleReport = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    
+
     // Check main bundle sizes
     if (bundleReport.bundles) {
-      bundleReport.bundles.forEach(bundle => {
+      bundleReport.bundles.forEach((bundle) => {
         const platform = bundle.platform || 'unknown';
         const size = bundle.size || 0;
-        const limits = BUNDLE_SIZE_LIMITS[platform] || BUNDLE_SIZE_LIMITS.android;
-        
+        const limits =
+          BUNDLE_SIZE_LIMITS[platform] || BUNDLE_SIZE_LIMITS.android;
+
         reportData.bundles.push({
           platform,
           size,
           sizeFormatted: formatBytes(size),
-          status: size > limits.error ? 'error' : size > limits.warning ? 'warning' : 'ok'
+          status:
+            size > limits.error
+              ? 'error'
+              : size > limits.warning
+                ? 'warning'
+                : 'ok',
         });
 
         if (size > limits.error) {
@@ -85,7 +93,7 @@ function checkBundleSize() {
             platform,
             actual: size,
             limit: limits.error,
-            message: violation
+            message: violation,
           });
           console.log(violation);
         } else if (size > limits.warning) {
@@ -96,7 +104,7 @@ function checkBundleSize() {
             platform,
             actual: size,
             limit: limits.warning,
-            message: warning
+            message: warning,
           });
           console.log(warning);
         } else {
@@ -107,16 +115,21 @@ function checkBundleSize() {
 
     // Check individual asset sizes
     if (bundleReport.assets) {
-      bundleReport.assets.forEach(asset => {
+      bundleReport.assets.forEach((asset) => {
         const { name, size, type } = asset;
         const limits = ASSET_LIMITS[type] || ASSET_LIMITS.image;
-        
+
         reportData.assets.push({
           name,
           size,
           sizeFormatted: formatBytes(size),
           type,
-          status: size > limits.error ? 'error' : size > limits.warning ? 'warning' : 'ok'
+          status:
+            size > limits.error
+              ? 'error'
+              : size > limits.warning
+                ? 'warning'
+                : 'ok',
         });
 
         if (size > limits.error) {
@@ -128,7 +141,7 @@ function checkBundleSize() {
             assetType: type,
             actual: size,
             limit: limits.error,
-            message: violation
+            message: violation,
           });
           console.log(violation);
         } else if (size > limits.warning) {
@@ -140,7 +153,7 @@ function checkBundleSize() {
             assetType: type,
             actual: size,
             limit: limits.warning,
-            message: warning
+            message: warning,
           });
         }
       });
@@ -152,7 +165,9 @@ function checkBundleSize() {
     // Write violations file for CI
     if (violations.length > 0) {
       fs.writeFileSync('performance-violations.txt', violations.join('\n'));
-      console.log(`\n❌ ${violations.length} performance budget violation(s) detected!`);
+      console.log(
+        `\n❌ ${violations.length} performance budget violation(s) detected!`
+      );
       process.exit(1);
     }
 
@@ -161,7 +176,6 @@ function checkBundleSize() {
     }
 
     console.log('\n✅ All bundle size checks passed!');
-
   } catch (error) {
     console.error('Error checking bundle sizes:', error.message);
     process.exit(1);
@@ -183,13 +197,23 @@ function generatePerformanceReport(data) {
     report.push('');
     report.push('| Platform | Size | Status | Limit |');
     report.push('|----------|------|--------|-------|');
-    
-    data.bundles.forEach(bundle => {
-      const limits = BUNDLE_SIZE_LIMITS[bundle.platform] || BUNDLE_SIZE_LIMITS.android;
-      const statusIcon = bundle.status === 'error' ? '❌' : bundle.status === 'warning' ? '⚠️' : '✅';
-      const limitFormatted = formatBytes(bundle.status === 'error' ? limits.error : limits.warning);
-      
-      report.push(`| ${bundle.platform} | ${bundle.sizeFormatted} | ${statusIcon} ${bundle.status} | ${limitFormatted} |`);
+
+    data.bundles.forEach((bundle) => {
+      const limits =
+        BUNDLE_SIZE_LIMITS[bundle.platform] || BUNDLE_SIZE_LIMITS.android;
+      const statusIcon =
+        bundle.status === 'error'
+          ? '❌'
+          : bundle.status === 'warning'
+            ? '⚠️'
+            : '✅';
+      const limitFormatted = formatBytes(
+        bundle.status === 'error' ? limits.error : limits.warning
+      );
+
+      report.push(
+        `| ${bundle.platform} | ${bundle.sizeFormatted} | ${statusIcon} ${bundle.status} | ${limitFormatted} |`
+      );
     });
     report.push('');
   }
@@ -198,7 +222,7 @@ function generatePerformanceReport(data) {
   if (data.violations.length > 0) {
     report.push('### ❌ Budget Violations');
     report.push('');
-    data.violations.forEach(violation => {
+    data.violations.forEach((violation) => {
       report.push(`- ${violation.message}`);
     });
     report.push('');
@@ -208,7 +232,7 @@ function generatePerformanceReport(data) {
   if (data.warnings.length > 0) {
     report.push('### ⚠️ Warnings');
     report.push('');
-    data.warnings.forEach(warning => {
+    data.warnings.forEach((warning) => {
       report.push(`- ${warning.message}`);
     });
     report.push('');
@@ -217,7 +241,7 @@ function generatePerformanceReport(data) {
   // Summary
   const totalViolations = data.violations.length;
   const totalWarnings = data.warnings.length;
-  
+
   if (totalViolations === 0 && totalWarnings === 0) {
     report.push('### ✅ Summary');
     report.push('');
@@ -227,10 +251,12 @@ function generatePerformanceReport(data) {
     report.push('');
     report.push(`- **Violations:** ${totalViolations}`);
     report.push(`- **Warnings:** ${totalWarnings}`);
-    
+
     if (totalViolations > 0) {
       report.push('');
-      report.push('> ⚠️ **Action Required:** Performance budget violations must be resolved before merging.');
+      report.push(
+        '> ⚠️ **Action Required:** Performance budget violations must be resolved before merging.'
+      );
     }
   }
 

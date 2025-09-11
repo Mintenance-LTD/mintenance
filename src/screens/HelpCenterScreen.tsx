@@ -24,32 +24,38 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: '1',
       question: 'How do I post a job?',
-      answer: 'To post a job, tap the "+" button in the center of the bottom navigation, select your service category, fill in the job details, and submit. Contractors will be able to see and bid on your job.',
+      answer:
+        'To post a job, tap the "+" button in the center of the bottom navigation, select your service category, fill in the job details, and submit. Contractors will be able to see and bid on your job.',
     },
     {
       id: '2',
       question: 'How do I find contractors?',
-      answer: 'Use the Contractor Discovery feature by tapping on "Find Contractors" from the home screen. You can swipe through contractor profiles and connect with ones that match your needs.',
+      answer:
+        'Use the Contractor Discovery feature by tapping on "Find Contractors" from the home screen. You can swipe through contractor profiles and connect with ones that match your needs.',
     },
     {
       id: '3',
       question: 'How does payment work?',
-      answer: 'We use an escrow system for secure payments. When you accept a bid, the payment is held securely until the job is completed to your satisfaction. Then the payment is released to the contractor.',
+      answer:
+        'We use an escrow system for secure payments. When you accept a bid, the payment is held securely until the job is completed to your satisfaction. Then the payment is released to the contractor.',
     },
     {
       id: '4',
-      question: 'What if I\'m not satisfied with the work?',
-      answer: 'If you\'re not satisfied, contact the contractor first to resolve the issue. If that doesn\'t work, contact our support team through the app and we\'ll help mediate the situation.',
+      question: "What if I'm not satisfied with the work?",
+      answer:
+        "If you're not satisfied, contact the contractor first to resolve the issue. If that doesn't work, contact our support team through the app and we'll help mediate the situation.",
     },
     {
       id: '5',
       question: 'How do I become a verified contractor?',
-      answer: 'To become verified, complete your profile, upload required licenses and insurance documents, and pass our background check. Verified contractors get priority in search results.',
+      answer:
+        'To become verified, complete your profile, upload required licenses and insurance documents, and pass our background check. Verified contractors get priority in search results.',
     },
     {
       id: '6',
       question: 'Can I cancel a job after posting?',
-      answer: 'Yes, you can cancel a job before accepting any bids without any fees. If you\'ve already accepted a bid, cancellation policies may apply.',
+      answer:
+        "Yes, you can cancel a job before accepting any bids without any fees. If you've already accepted a bid, cancellation policies may apply.",
     },
   ];
 
@@ -87,7 +93,7 @@ const HelpCenterScreen: React.FC = () => {
   const handleContactSupport = () => {
     Alert.alert(
       'Contact Support',
-      'Choose how you\'d like to contact our support team:',
+      "Choose how you'd like to contact our support team:",
       [
         { text: 'Email', onPress: handleEmailSupport },
         { text: 'Phone', onPress: handlePhoneCall },
@@ -97,7 +103,10 @@ const HelpCenterScreen: React.FC = () => {
   };
 
   const handleLiveChat = () => {
-    Alert.alert('Live Chat', 'Live chat is coming soon! Please use email or phone support for now.');
+    Alert.alert(
+      'Live Chat',
+      'Live chat is coming soon! Please use email or phone support for now.'
+    );
   };
 
   const handlePhoneCall = () => {
@@ -112,19 +121,24 @@ const HelpCenterScreen: React.FC = () => {
     setExpandedFaq(expandedFaq === id ? null : id);
   };
 
-  const filteredFaqs = faqData.filter(faq =>
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFaqs = faqData.filter(
+    (faq) =>
+      faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help Center</Text>
         <View style={styles.placeholder} />
@@ -134,10 +148,14 @@ const HelpCenterScreen: React.FC = () => {
         {/* Search Bar */}
         <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='search'
+              size={20}
+              color={theme.colors.textTertiary}
+            />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for help..."
+              placeholder='Search for help...'
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={theme.colors.textTertiary}
@@ -149,17 +167,23 @@ const HelpCenterScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Get Help Now</Text>
           <View style={styles.quickActionsGrid}>
-            {quickActions.map(action => (
+            {quickActions.map((action) => (
               <TouchableOpacity
                 key={action.id}
                 style={styles.quickActionCard}
                 onPress={action.action}
               >
                 <View style={styles.quickActionIcon}>
-                  <Ionicons name={action.icon as any} size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name={action.icon as any}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <Text style={styles.quickActionTitle}>{action.title}</Text>
-                <Text style={styles.quickActionDescription}>{action.description}</Text>
+                <Text style={styles.quickActionDescription}>
+                  {action.description}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -168,7 +192,7 @@ const HelpCenterScreen: React.FC = () => {
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          {filteredFaqs.map(faq => (
+          {filteredFaqs.map((faq) => (
             <TouchableOpacity
               key={faq.id}
               style={styles.faqItem}
@@ -189,62 +213,98 @@ const HelpCenterScreen: React.FC = () => {
               )}
             </TouchableOpacity>
           ))}
-          
-      {filteredFaqs.length === 0 && searchQuery && (
-        <View style={styles.noResults}>
-          <Ionicons name="search" size={48} color={theme.colors.textTertiary} />
-          <Text style={styles.noResultsText}>No results found</Text>
-          <Text style={styles.noResultsSubtext}>
-            Try different keywords or contact support
-          </Text>
-        </View>
-      )}
-    </View>
 
-    {/* Additional Resources */}
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Additional Resources</Text>
-          
-          <TouchableOpacity style={styles.resourceItem} onPress={() => Linking.openURL(HELP_LINKS.userGuide)}>
+          {filteredFaqs.length === 0 && searchQuery && (
+            <View style={styles.noResults}>
+              <Ionicons
+                name='search'
+                size={48}
+                color={theme.colors.textTertiary}
+              />
+              <Text style={styles.noResultsText}>No results found</Text>
+              <Text style={styles.noResultsSubtext}>
+                Try different keywords or contact support
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Additional Resources */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Additional Resources</Text>
+
+          <TouchableOpacity
+            style={styles.resourceItem}
+            onPress={() => Linking.openURL(HELP_LINKS.userGuide)}
+          >
             <View style={styles.resourceLeft}>
-              <Ionicons name="book" size={20} color={theme.colors.primary} />
+              <Ionicons name='book' size={20} color={theme.colors.primary} />
               <Text style={styles.resourceText}>User Guide</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.resourceItem} onPress={() => Linking.openURL(HELP_LINKS.videos)}>
-            <View style={styles.resourceLeft}>
-              <Ionicons name="play-circle" size={20} color={theme.colors.primary} />
-              <Text style={styles.resourceText}>Video Tutorials</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.resourceItem} onPress={() => Linking.openURL(HELP_LINKS.knowledgeBase)}>
-            <View style={styles.resourceLeft}>
-              <Ionicons name="globe" size={20} color={theme.colors.primary} />
-              <Text style={styles.resourceText}>Knowledge Base</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.resourceItem} onPress={() => Linking.openURL(HELP_LINKS.community)}>
-            <View style={styles.resourceLeft}>
-              <Ionicons name="people" size={20} color={theme.colors.primary} />
-              <Text style={styles.resourceText}>Community Forum</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
-      <Button
-        variant="primary"
-        title="Contact Support"
-        onPress={handleContactSupport}
-        fullWidth
-        style={{ marginTop: 16 }}
-      />
-    </View>
+          <TouchableOpacity
+            style={styles.resourceItem}
+            onPress={() => Linking.openURL(HELP_LINKS.videos)}
+          >
+            <View style={styles.resourceLeft}>
+              <Ionicons
+                name='play-circle'
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.resourceText}>Video Tutorials</Text>
+            </View>
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resourceItem}
+            onPress={() => Linking.openURL(HELP_LINKS.knowledgeBase)}
+          >
+            <View style={styles.resourceLeft}>
+              <Ionicons name='globe' size={20} color={theme.colors.primary} />
+              <Text style={styles.resourceText}>Knowledge Base</Text>
+            </View>
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resourceItem}
+            onPress={() => Linking.openURL(HELP_LINKS.community)}
+          >
+            <View style={styles.resourceLeft}>
+              <Ionicons name='people' size={20} color={theme.colors.primary} />
+              <Text style={styles.resourceText}>Community Forum</Text>
+            </View>
+            <Ionicons
+              name='chevron-forward'
+              size={16}
+              color={theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+
+          <Button
+            variant='primary'
+            title='Contact Support'
+            onPress={handleContactSupport}
+            fullWidth
+            style={{ marginTop: 16 }}
+          />
+        </View>
 
         <View style={styles.bottomPadding} />
       </ScrollView>

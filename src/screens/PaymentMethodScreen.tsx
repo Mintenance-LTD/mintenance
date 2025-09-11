@@ -42,10 +42,11 @@ interface PaymentMethod {
 const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, amount, contractorId, jobTitle } = route.params || {};
   const haptics = useHaptics();
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodType | null>(null);
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentMethodType | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Card form state
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -113,8 +114,8 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
       `You've selected to pay $${amount.toFixed(2)} in cash directly to the contractor. Please coordinate with them for payment.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm', 
+        {
+          text: 'Confirm',
           onPress: () => {
             // Navigate to payment confirmation or job completion
             navigation.navigate('PaymentConfirmation', {
@@ -123,7 +124,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
               jobId,
               jobTitle,
             });
-          }
+          },
         },
       ]
     );
@@ -140,10 +141,10 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       // Simulate card processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       setShowCardModal(false);
-      
+
       Alert.alert(
         'Payment Successful',
         `Your payment of $${amount.toFixed(2)} has been processed successfully.`,
@@ -158,12 +159,15 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
                 jobTitle,
                 cardLast4: cardNumber.slice(-4),
               });
-            }
-          }
+            },
+          },
         ]
       );
     } catch (error) {
-      Alert.alert('Payment Failed', 'There was an error processing your payment. Please try again.');
+      Alert.alert(
+        'Payment Failed',
+        'There was an error processing your payment. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -175,8 +179,8 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
       'You will be redirected to PayPal to complete your payment.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Continue to PayPal', 
+        {
+          text: 'Continue to PayPal',
           onPress: () => {
             // In a real app, this would open PayPal SDK
             navigation.navigate('PaymentConfirmation', {
@@ -185,7 +189,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
               jobId,
               jobTitle,
             });
-          }
+          },
         },
       ]
     );
@@ -211,7 +215,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
   const formatExpiryDate = (text: string) => {
     const cleaned = text.replace(/\D/g, '');
     if (cleaned.length >= 2) {
-      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
+      return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
     }
     return cleaned;
   };
@@ -228,31 +232,39 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
       disabled={!method.available}
     >
       <View style={styles.paymentMethodIcon}>
-        <Ionicons 
-          name={method.icon} 
-          size={32} 
-          color={method.available ? theme.colors.primary : theme.colors.textTertiary} 
+        <Ionicons
+          name={method.icon}
+          size={32}
+          color={
+            method.available ? theme.colors.primary : theme.colors.textTertiary
+          }
         />
       </View>
       <View style={styles.paymentMethodDetails}>
-        <Text style={[
-          styles.paymentMethodName,
-          !method.available && styles.paymentMethodNameDisabled
-        ]}>
+        <Text
+          style={[
+            styles.paymentMethodName,
+            !method.available && styles.paymentMethodNameDisabled,
+          ]}
+        >
           {method.name}
         </Text>
-        <Text style={[
-          styles.paymentMethodDescription,
-          !method.available && styles.paymentMethodDescriptionDisabled
-        ]}>
+        <Text
+          style={[
+            styles.paymentMethodDescription,
+            !method.available && styles.paymentMethodDescriptionDisabled,
+          ]}
+        >
           {method.description}
         </Text>
       </View>
       <View style={styles.paymentMethodRadio}>
-        <View style={[
-          styles.radioOuter,
-          selectedMethod === method.type && styles.radioSelected
-        ]}>
+        <View
+          style={[
+            styles.radioOuter,
+            selectedMethod === method.type && styles.radioSelected,
+          ]}
+        >
           {selectedMethod === method.type && <View style={styles.radioInner} />}
         </View>
       </View>
@@ -262,14 +274,18 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
   const renderCardModal = () => (
     <Modal
       visible={showCardModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType='slide'
+      presentationStyle='pageSheet'
       onRequestClose={() => setShowCardModal(false)}
     >
       <View style={styles.cardModalContainer}>
         <View style={styles.cardModalHeader}>
           <TouchableOpacity onPress={() => setShowCardModal(false)}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
           <Text style={styles.cardModalTitle}>Add Card</Text>
           <View style={{ width: 24 }} />
@@ -291,9 +307,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
                 </View>
                 <View>
                   <Text style={styles.cardLabel}>Expiry date</Text>
-                  <Text style={styles.cardValue}>
-                    {expiryDate || '02/30'}
-                  </Text>
+                  <Text style={styles.cardValue}>{expiryDate || '02/30'}</Text>
                 </View>
               </View>
               <Text style={styles.cardBrand}>VISA</Text>
@@ -307,7 +321,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.textInput}
               value={cardholderName}
               onChangeText={setCardholderName}
-              placeholder="Esther Howard"
+              placeholder='Esther Howard'
               placeholderTextColor={theme.colors.textTertiary}
             />
 
@@ -316,9 +330,9 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.textInput}
               value={cardNumber}
               onChangeText={(text) => setCardNumber(formatCardNumber(text))}
-              placeholder="4716 9627 1635 8047"
+              placeholder='4716 9627 1635 8047'
               placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="numeric"
+              keyboardType='numeric'
               maxLength={19}
             />
 
@@ -329,9 +343,9 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
                   style={styles.textInput}
                   value={expiryDate}
                   onChangeText={(text) => setExpiryDate(formatExpiryDate(text))}
-                  placeholder="02/30"
+                  placeholder='02/30'
                   placeholderTextColor={theme.colors.textTertiary}
-                  keyboardType="numeric"
+                  keyboardType='numeric'
                   maxLength={5}
                 />
               </View>
@@ -341,9 +355,9 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
                   style={styles.textInput}
                   value={cvv}
                   onChangeText={setCvv}
-                  placeholder="000"
+                  placeholder='000'
                   placeholderTextColor={theme.colors.textTertiary}
-                  keyboardType="numeric"
+                  keyboardType='numeric'
                   maxLength={3}
                   secureTextEntry
                 />
@@ -351,19 +365,26 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.saveCardContainer}>
-              <Ionicons name="checkmark-circle" size={20} color={theme.colors.secondary} />
+              <Ionicons
+                name='checkmark-circle'
+                size={20}
+                color={theme.colors.secondary}
+              />
               <Text style={styles.saveCardText}>Save Card</Text>
             </View>
           </View>
         </ScrollView>
 
-        <TouchableOpacity 
-          style={[styles.addCardButton, loading && styles.addCardButtonDisabled]}
+        <TouchableOpacity
+          style={[
+            styles.addCardButton,
+            loading && styles.addCardButtonDisabled,
+          ]}
           onPress={handleCardPayment}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={theme.colors.textInverse} />
           ) : (
             <Text style={styles.addCardButtonText}>Add Card</Text>
           )}
@@ -377,7 +398,11 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Method</Text>
         <View style={{ width: 24 }} />
@@ -397,20 +422,20 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Pay on Cash Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pay on Cash</Text>
-          {renderPaymentMethod(paymentMethods.find(m => m.type === 'cash')!)}
+          {renderPaymentMethod(paymentMethods.find((m) => m.type === 'cash')!)}
         </View>
 
         {/* Credit & Debit Card Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Credit & Debit Card</Text>
-          {renderPaymentMethod(paymentMethods.find(m => m.type === 'card')!)}
+          {renderPaymentMethod(paymentMethods.find((m) => m.type === 'card')!)}
         </View>
 
         {/* More Payment Options Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>More Payment Options</Text>
           {paymentMethods
-            .filter(m => m.type === 'paypal' || m.type === 'apple_pay')
+            .filter((m) => m.type === 'paypal' || m.type === 'apple_pay')
             .map(renderPaymentMethod)}
         </View>
       </ScrollView>
@@ -553,7 +578,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: theme.colors.primary,
   },
-  
+
   // Card Modal Styles
   cardModalContainer: {
     flex: 1,

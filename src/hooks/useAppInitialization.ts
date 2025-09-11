@@ -61,9 +61,9 @@ const INITIALIZATION_STEPS: InitializationStep[] = [
       // Only sync if online
       const networkState = await NetInfo.fetch();
       if (networkState.isConnected && networkState.isInternetReachable) {
-        await SyncManager.syncAll({ 
-          strategy: 'background', 
-          direction: 'download' 
+        await SyncManager.syncAll({
+          strategy: 'background',
+          direction: 'download',
         });
       }
     },
@@ -88,8 +88,8 @@ export const useAppInitialization = () => {
 
   const initializeApp = React.useCallback(async () => {
     logger.info('Starting app initialization');
-    
-    setState(prev => ({
+
+    setState((prev) => ({
       ...prev,
       isInitializing: true,
       initializationError: null,
@@ -101,10 +101,10 @@ export const useAppInitialization = () => {
     }));
 
     const completedSteps: string[] = [];
-    
+
     try {
       for (const step of INITIALIZATION_STEPS) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           progress: {
             ...prev.progress,
@@ -119,8 +119,8 @@ export const useAppInitialization = () => {
         try {
           await step.execute();
           completedSteps.push(step.name);
-          
-          setState(prev => ({
+
+          setState((prev) => ({
             ...prev,
             progress: {
               ...prev.progress,
@@ -131,9 +131,11 @@ export const useAppInitialization = () => {
           logger.info(`Initialization step completed: ${step.name}`);
         } catch (error) {
           logger.error(`Initialization step failed: ${step.name}`, error);
-          
+
           if (step.critical) {
-            throw new Error(`Critical initialization step failed: ${step.description}`);
+            throw new Error(
+              `Critical initialization step failed: ${step.description}`
+            );
           } else {
             logger.warn(`Non-critical step failed, continuing: ${step.name}`, {
               error: (error as Error).message,
@@ -159,7 +161,7 @@ export const useAppInitialization = () => {
       });
     } catch (error) {
       const initError = error as Error;
-      
+
       setState({
         isInitializing: false,
         isReady: false,
@@ -193,29 +195,35 @@ export const useAppInitialization = () => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && state.isReady) {
         // App became active, persist current query cache
-        persistQueryClient().catch(error => {
+        persistQueryClient().catch((error) => {
           logger.error('Failed to persist query cache on app focus:', error);
         });
-        
+
         // Trigger background sync if online
         if (isOnline) {
-          SyncManager.syncAll({ 
-            strategy: 'background', 
-            direction: 'bidirectional' 
-          }).catch(error => {
+          SyncManager.syncAll({
+            strategy: 'background',
+            direction: 'bidirectional',
+          }).catch((error) => {
             logger.error('Background sync failed on app focus:', error);
           });
         }
       } else if (nextAppState === 'background' && state.isReady) {
         // App went to background, persist query cache
-        persistQueryClient().catch(error => {
-          logger.error('Failed to persist query cache on app background:', error);
+        persistQueryClient().catch((error) => {
+          logger.error(
+            'Failed to persist query cache on app background:',
+            error
+          );
         });
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
+
     return () => {
       subscription?.remove();
     };
@@ -225,10 +233,10 @@ export const useAppInitialization = () => {
   React.useEffect(() => {
     if (isOnline && state.isReady) {
       // Trigger sync when coming back online
-      SyncManager.syncAll({ 
-        strategy: 'background', 
-        direction: 'bidirectional' 
-      }).catch(error => {
+      SyncManager.syncAll({
+        strategy: 'background',
+        direction: 'bidirectional',
+      }).catch((error) => {
         logger.error('Sync failed after network reconnection:', error);
       });
     }
@@ -237,11 +245,15 @@ export const useAppInitialization = () => {
   return {
     ...state,
     retryInitialization,
-    
+
     // Progress helpers
-    progressPercentage: Math.round((state.progress.completedSteps.length / state.progress.totalSteps) * 100),
-    isStepCompleted: (stepName: string) => state.progress.completedSteps.includes(stepName),
-    remainingSteps: INITIALIZATION_STEPS.length - state.progress.completedSteps.length,
+    progressPercentage: Math.round(
+      (state.progress.completedSteps.length / state.progress.totalSteps) * 100
+    ),
+    isStepCompleted: (stepName: string) =>
+      state.progress.completedSteps.includes(stepName),
+    remainingSteps:
+      INITIALIZATION_STEPS.length - state.progress.completedSteps.length,
   };
 };
 
@@ -266,7 +278,10 @@ export const withAppInitialization = <P extends object>(
     }
 
     if (initialization.isReady) {
-      return React.createElement(Component as any, { ...(props as any), ref } as any);
+      return React.createElement(
+        Component as any,
+        { ...(props as any), ref } as any
+      );
     }
 
     return null;
@@ -285,7 +300,7 @@ export const createAppInitializationScreen = () => {
 };
 
 export const createInitializationErrorScreen = () => {
-  // This would return a proper React Native component  
+  // This would return a proper React Native component
   // Implementation would be in a separate screen component file
   return null;
 };

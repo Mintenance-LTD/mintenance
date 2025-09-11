@@ -37,8 +37,10 @@ const fs = require('fs');
   }
 
   if (offenders.length) {
-    console.error('\nHard-coded hex colors detected in styles (use theme tokens):');
-    offenders.forEach(o => {
+    console.error(
+      '\nHard-coded hex colors detected in styles (use theme tokens):'
+    );
+    offenders.forEach((o) => {
       console.error(`- ${o.file}:${o.line} -> ${o.lineText}`);
     });
     process.exit(1);
@@ -46,4 +48,3 @@ const fs = require('fs');
     console.log('No hard-coded hex color styles found.');
   }
 })();
-

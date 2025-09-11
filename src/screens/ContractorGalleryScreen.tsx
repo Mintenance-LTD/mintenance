@@ -59,7 +59,11 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const categories = [
     { id: 'all', name: 'All Work', icon: 'grid-outline' },
-    { id: 'before_after', name: 'Before/After', icon: 'swap-horizontal-outline' },
+    {
+      id: 'before_after',
+      name: 'Before/After',
+      icon: 'swap-horizontal-outline',
+    },
     { id: 'completed', name: 'Completed', icon: 'checkmark-circle-outline' },
     { id: 'process', name: 'In Progress', icon: 'construct-outline' },
     { id: 'tools', name: 'Tools & Setup', icon: 'build-outline' },
@@ -72,12 +76,13 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
   const loadGalleryImages = async () => {
     setLoading(true);
     try {
-      const posts: any[] = await ContractorSocialService.getPostsByContractor(contractorId);
-      
+      const posts: any[] =
+        await ContractorSocialService.getPostsByContractor(contractorId);
+
       // Transform contractor posts to gallery images
       const galleryImages: GalleryImage[] = posts
         .filter((post: any) => post.images && post.images.length > 0)
-        .flatMap((post: any) => 
+        .flatMap((post: any) =>
           post.images.map((imageUrl: any, index: number) => ({
             id: `${post.id}-${index}`,
             uri: imageUrl,
@@ -101,7 +106,9 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const mapPostTypeToCategory = (postType: string): 'before_after' | 'completed' | 'process' | 'tools' => {
+  const mapPostTypeToCategory = (
+    postType: string
+  ): 'before_after' | 'completed' | 'process' | 'tools' => {
     switch (postType) {
       case 'showcase':
         return 'completed';
@@ -114,9 +121,10 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const filteredImages = selectedCategory === 'all' 
-    ? images 
-    : images.filter(img => img.category === selectedCategory);
+  const filteredImages =
+    selectedCategory === 'all'
+      ? images
+      : images.filter((img) => img.category === selectedCategory);
 
   const handleImagePress = (image: GalleryImage) => {
     haptics.buttonPress();
@@ -126,11 +134,17 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleLike = (imageId: string) => {
     haptics.likePost();
-    setImages(prev => prev.map(img => 
-      img.id === imageId 
-        ? { ...img, liked: !img.liked, likes: img.liked ? img.likes - 1 : img.likes + 1 }
-        : img
-    ));
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === imageId
+          ? {
+              ...img,
+              liked: !img.liked,
+              likes: img.liked ? img.likes - 1 : img.likes + 1,
+            }
+          : img
+      )
+    );
   };
 
   const handleShare = async (image: GalleryImage) => {
@@ -145,27 +159,31 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const renderCategoryTab = (category: typeof categories[0]) => (
+  const renderCategoryTab = (category: (typeof categories)[0]) => (
     <TouchableOpacity
       key={category.id}
       style={[
         styles.categoryTab,
-        selectedCategory === category.id && styles.categoryTabActive
+        selectedCategory === category.id && styles.categoryTabActive,
       ]}
       onPress={() => {
         haptics.buttonPress();
         setSelectedCategory(category.id);
       }}
     >
-      <Ionicons 
-        name={category.icon as any} 
-        size={20} 
-        color={selectedCategory === category.id ? '#fff' : theme.colors.textSecondary} 
+      <Ionicons
+        name={category.icon as any}
+        size={20}
+        color={
+          selectedCategory === category.id ? '#fff' : theme.colors.textSecondary
+        }
       />
-      <Text style={[
-        styles.categoryTabText,
-        selectedCategory === category.id && styles.categoryTabTextActive
-      ]}>
+      <Text
+        style={[
+          styles.categoryTabText,
+          selectedCategory === category.id && styles.categoryTabTextActive,
+        ]}
+      >
         {category.name}
       </Text>
     </TouchableOpacity>
@@ -173,7 +191,7 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const renderImageItem = (image: GalleryImage, index: number) => {
     const itemWidth = (width - 60) / 2; // Account for padding and gap
-    
+
     return (
       <TouchableOpacity
         style={[styles.imageItem, { width: itemWidth }]}
@@ -181,11 +199,11 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
         activeOpacity={0.8}
       >
         <Image source={{ uri: image.uri }} style={styles.image} />
-        
+
         {/* Category Badge */}
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>
-            {categories.find(c => c.id === image.category)?.name || 'Work'}
+            {categories.find((c) => c.id === image.category)?.name || 'Work'}
           </Text>
         </View>
 
@@ -195,25 +213,25 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
             {image.title}
           </Text>
           <Text style={styles.imageDate}>{formatDate(image.date)}</Text>
-          
+
           <View style={styles.imageActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.likeButton}
               onPress={() => handleLike(image.id)}
             >
-              <Ionicons 
-                name={image.liked ? 'heart' : 'heart-outline'} 
-                size={16} 
-                color={image.liked ? '#FF6B6B' : '#fff'} 
+              <Ionicons
+                name={image.liked ? 'heart' : 'heart-outline'}
+                size={16}
+                color={image.liked ? '#FF6B6B' : '#fff'}
               />
               <Text style={styles.likeCount}>{image.likes}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.shareButton}
               onPress={() => handleShare(image)}
             >
-              <Ionicons name="share-outline" size={16} color="#fff" />
+              <Ionicons name='share-outline' size={16} color='#fff' />
             </TouchableOpacity>
           </View>
         </View>
@@ -223,46 +241,46 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
   const renderImageModal = () => (
     <Modal
       visible={showImageModal}
-      animationType="fade"
+      animationType='fade'
       statusBarTranslucent
       onRequestClose={() => setShowImageModal(false)}
     >
       <View style={styles.modalContainer}>
         {/* Modal Header */}
         <View style={styles.modalHeader}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.modalCloseButton}
             onPress={() => setShowImageModal(false)}
           >
-            <Ionicons name="close" size={24} color="#fff" />
+            <Ionicons name='close' size={24} color='#fff' />
           </TouchableOpacity>
-          
+
           <View style={styles.modalActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalActionButton}
               onPress={() => selectedImage && handleShare(selectedImage)}
             >
-              <Ionicons name="share-outline" size={24} color="#fff" />
+              <Ionicons name='share-outline' size={24} color='#fff' />
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.modalActionButton}
               onPress={() => selectedImage && handleLike(selectedImage.id)}
             >
-              <Ionicons 
-                name={selectedImage?.liked ? 'heart' : 'heart-outline'} 
-                size={24} 
-                color={selectedImage?.liked ? '#FF6B6B' : '#fff'} 
+              <Ionicons
+                name={selectedImage?.liked ? 'heart' : 'heart-outline'}
+                size={24}
+                color={selectedImage?.liked ? '#FF6B6B' : '#fff'}
               />
             </TouchableOpacity>
           </View>
@@ -271,10 +289,10 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Full Size Image */}
         {selectedImage && (
           <View style={styles.modalImageContainer}>
-            <Image 
-              source={{ uri: selectedImage.uri }} 
+            <Image
+              source={{ uri: selectedImage.uri }}
               style={styles.modalImage}
-              resizeMode="contain"
+              resizeMode='contain'
             />
           </View>
         )}
@@ -283,47 +301,78 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
         {selectedImage && (
           <View style={styles.modalDetails}>
             <Text style={styles.modalTitle}>{selectedImage.title}</Text>
-            <Text style={styles.modalDescription}>{selectedImage.description}</Text>
-            
+            <Text style={styles.modalDescription}>
+              {selectedImage.description}
+            </Text>
+
             <View style={styles.modalMeta}>
               <View style={styles.modalMetaItem}>
-                <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.modalMetaText}>{formatDate(selectedImage.date)}</Text>
+                <Ionicons
+                  name='calendar-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.modalMetaText}>
+                  {formatDate(selectedImage.date)}
+                </Text>
               </View>
-              
+
               <View style={styles.modalMetaItem}>
-                <Ionicons name="build-outline" size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.modalMetaText}>{selectedImage.projectType}</Text>
+                <Ionicons
+                  name='build-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.modalMetaText}>
+                  {selectedImage.projectType}
+                </Text>
               </View>
-              
+
               <View style={styles.modalMetaItem}>
-                <Ionicons name="heart-outline" size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.modalMetaText}>{selectedImage.likes} likes</Text>
+                <Ionicons
+                  name='heart-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.modalMetaText}>
+                  {selectedImage.likes} likes
+                </Text>
               </View>
             </View>
 
             {/* Contact Actions */}
             <View style={styles.modalContactActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.contactButton}
                 onPress={() => {
                   setShowImageModal(false);
                   navigation.navigate('Chat', { contractorId });
                 }}
               >
-                <Ionicons name="chatbubble-outline" size={18} color={theme.colors.primary} />
-                <Text style={styles.contactButtonText}>Ask about this work</Text>
+                <Ionicons
+                  name='chatbubble-outline'
+                  size={18}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.contactButtonText}>
+                  Ask about this work
+                </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.contactButton, styles.bookButton]}
                 onPress={() => {
                   setShowImageModal(false);
-                  navigation.navigate('ServiceBooking', { contractorId, contractorName });
+                  navigation.navigate('ServiceBooking', {
+                    contractorId,
+                    contractorName,
+                  });
                 }}
               >
-                <Ionicons name="calendar-outline" size={18} color="#fff" />
-                <Text style={[styles.contactButtonText, styles.bookButtonText]}>Book Service</Text>
+                <Ionicons name='calendar-outline' size={18} color='#fff' />
+                <Text style={[styles.contactButtonText, styles.bookButtonText]}>
+                  Book Service
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -337,24 +386,32 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gallery ({filteredImages.length})</Text>
+        <Text style={styles.headerTitle}>
+          Gallery ({filteredImages.length})
+        </Text>
         <TouchableOpacity>
-          <Ionicons name="filter" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='filter' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       {/* Contractor Info */}
       <View style={styles.contractorInfo}>
         <Text style={styles.contractorName}>{contractorName}</Text>
-        <Text style={styles.contractorSubtitle}>Professional Work Portfolio</Text>
+        <Text style={styles.contractorSubtitle}>
+          Professional Work Portfolio
+        </Text>
       </View>
 
       {/* Category Tabs */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
@@ -372,13 +429,16 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="images-outline" size={64} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='images-outline'
+              size={64}
+              color={theme.colors.textTertiary}
+            />
             <Text style={styles.emptyTitle}>No images found</Text>
             <Text style={styles.emptyText}>
-              {selectedCategory === 'all' 
-                ? 'This contractor hasn\'t uploaded any work photos yet.'
-                : `No ${categories.find(c => c.id === selectedCategory)?.name.toLowerCase()} images available.`
-              }
+              {selectedCategory === 'all'
+                ? "This contractor hasn't uploaded any work photos yet."
+                : `No ${categories.find((c) => c.id === selectedCategory)?.name.toLowerCase()} images available.`}
             </Text>
           </View>
         }
@@ -538,7 +598,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  
+
   // Modal Styles
   modalContainer: {
     flex: 1,
@@ -568,7 +628,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalImage: {
-    width: width,
+    width,
     height: '100%',
   },
   modalDetails: {

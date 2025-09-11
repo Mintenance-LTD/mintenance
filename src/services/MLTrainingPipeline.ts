@@ -1,7 +1,7 @@
 /**
  * ML TRAINING PIPELINE & BIAS DETECTION
  * Production-Grade Machine Learning Training Infrastructure
- * 
+ *
  * Features:
  * - Real-time model training and retraining
  * - Bias detection and fairness metrics
@@ -65,15 +65,15 @@ export class MLTrainingPipeline {
   private modelVersions: Map<string, tf.LayersModel> = new Map();
   private performanceHistory: Map<string, ModelPerformance[]> = new Map();
   private biasHistory: Map<string, BiasMetrics[]> = new Map();
-  
+
   private trainingConfig = {
     batchSize: 32,
     epochs: 10,
     validationSplit: 0.2,
     learningRate: 0.001,
     retrainingThreshold: 1000, // Retrain after 1000 new samples
-    biasCheckInterval: 100,     // Check bias every 100 predictions
-    performanceThreshold: 0.85  // Minimum acceptable performance
+    biasCheckInterval: 100, // Check bias every 100 predictions
+    performanceThreshold: 0.85, // Minimum acceptable performance
   };
 
   /**
@@ -81,16 +81,16 @@ export class MLTrainingPipeline {
    */
   async initialize(): Promise<void> {
     console.log('🔄 Initializing ML Training Pipeline...');
-    
+
     // Set up training data collection
     await this._initializeDataCollection();
-    
+
     // Start background training scheduler
     this._startTrainingScheduler();
-    
+
     // Initialize bias monitoring
     await this._initializeBiasMonitoring();
-    
+
     console.log('✅ ML Training Pipeline initialized');
   }
 
@@ -115,19 +115,23 @@ export class MLTrainingPipeline {
         actualOutcome,
         userFeedback
       );
-      
+
       this.trainingQueue.push(trainingExample);
-      
+
       // Check if we need to trigger retraining
-      if (this.trainingQueue.length >= this.trainingConfig.retrainingThreshold) {
+      if (
+        this.trainingQueue.length >= this.trainingConfig.retrainingThreshold
+      ) {
         await this._scheduleRetraining(interaction);
       }
-      
+
       // Periodic bias checking
-      if (this.trainingQueue.length % this.trainingConfig.biasCheckInterval === 0) {
+      if (
+        this.trainingQueue.length % this.trainingConfig.biasCheckInterval ===
+        0
+      ) {
         await this._checkForBias(interaction);
       }
-      
     } catch (error) {
       console.error('Failed to collect training data:', error);
     }
@@ -151,24 +155,32 @@ export class MLTrainingPipeline {
     try {
       // Prepare training data
       const trainingData = await this._prepareTrainingData(modelType);
-      
+
       if (trainingData.features.length === 0) {
         throw new Error('No training data available');
       }
 
       // Create or load existing model
       const model = await this._createOrLoadModel(modelType);
-      
+
       // Train the model
       const trainedModel = await this._trainModel(model, trainingData);
-      
+
       // Validate the trained model
-      const validationResults = await this._validateModel(trainedModel, modelType, trainingData);
-      
+      const validationResults = await this._validateModel(
+        trainedModel,
+        modelType,
+        trainingData
+      );
+
       // Check for bias
-      const biasMetrics = await this._detectBias(trainedModel, modelType, trainingData);
+      const biasMetrics = await this._detectBias(
+        trainedModel,
+        modelType,
+        trainingData
+      );
       validationResults.biasMetrics = biasMetrics;
-      
+
       // Deploy if validation passes
       if (validationResults.passedValidation && !biasMetrics.biasDetected) {
         await this._deployModel(trainedModel, modelType);
@@ -177,9 +189,8 @@ export class MLTrainingPipeline {
         console.log(`⚠️ ${modelType} model failed validation or bias check`);
         await this._handleFailedValidation(validationResults, modelType);
       }
-      
+
       return validationResults;
-      
     } catch (error) {
       console.error(`❌ Training failed for ${modelType} model:`, error);
       throw error;
@@ -198,41 +209,45 @@ export class MLTrainingPipeline {
     console.log(`🔍 Analyzing bias in ${modelType} model...`);
 
     try {
-      const data = testData || await this._prepareTestData(modelType);
+      const data = testData || (await this._prepareTestData(modelType));
       const model = this.modelVersions.get(modelType);
-      
+
       if (!model) {
         throw new Error(`Model ${modelType} not found`);
       }
 
       // Group data by protected attributes
       const groupedData = this._groupDataByAttributes(data);
-      
+
       // Calculate fairness metrics for each group
-      const fairnessMetrics = await this._calculateFairnessMetrics(model, groupedData);
-      
+      const fairnessMetrics = await this._calculateFairnessMetrics(
+        model,
+        groupedData
+      );
+
       // Detect disparate impact
       const disparateImpact = this._calculateDisparateImpact(fairnessMetrics);
-      
+
       // Check demographic parity
-      const demographicParity = this._calculateDemographicParity(fairnessMetrics);
-      
+      const demographicParity =
+        this._calculateDemographicParity(fairnessMetrics);
+
       // Evaluate equal opportunity
       const equalOpportunity = this._calculateEqualOpportunity(fairnessMetrics);
-      
+
       // Assess calibration
       const calibration = this._calculateCalibration(fairnessMetrics);
-      
+
       // Overall fairness score
-      const fairnessScore = (
+      const fairnessScore =
         (1 - Math.abs(1 - disparateImpact)) * 0.3 +
         (1 - demographicParity) * 0.25 +
         (1 - equalOpportunity) * 0.25 +
-        calibration * 0.2
-      );
-      
-      const biasDetected = fairnessScore < 0.8 || disparateImpact < 0.8 || disparateImpact > 1.25;
-      
+        calibration * 0.2;
+
+      const biasDetected =
+        fairnessScore < 0.8 || disparateImpact < 0.8 || disparateImpact > 1.25;
+
       const biasMetrics: BiasMetrics = {
         fairnessScore,
         disparateImpact,
@@ -241,19 +256,23 @@ export class MLTrainingPipeline {
         calibration,
         biasDetected,
         affectedGroups: this._identifyAffectedGroups(fairnessMetrics),
-        recommendations: this._generateBiasRecommendations(fairnessMetrics, fairnessScore)
+        recommendations: this._generateBiasRecommendations(
+          fairnessMetrics,
+          fairnessScore
+        ),
       };
-      
+
       // Store bias history
       if (!this.biasHistory.has(modelType)) {
         this.biasHistory.set(modelType, []);
       }
       this.biasHistory.get(modelType)!.push(biasMetrics);
-      
-      console.log(`📊 Bias analysis complete. Fairness score: ${fairnessScore.toFixed(3)}`);
-      
+
+      console.log(
+        `📊 Bias analysis complete. Fairness score: ${fairnessScore.toFixed(3)}`
+      );
+
       return biasMetrics;
-      
     } catch (error) {
       console.error('Bias detection failed:', error);
       throw error;
@@ -266,40 +285,56 @@ export class MLTrainingPipeline {
   async mitigateBias(
     modelType: string,
     biasMetrics: BiasMetrics,
-    strategy: 'resampling' | 'adversarial' | 'fairness_constraints' | 'preprocessing'
+    strategy:
+      | 'resampling'
+      | 'adversarial'
+      | 'fairness_constraints'
+      | 'preprocessing'
   ): Promise<tf.LayersModel> {
     console.log(`🔧 Implementing bias mitigation strategy: ${strategy}`);
 
     try {
       const originalData = await this._prepareTrainingData(modelType);
       let mitigatedData: TrainingData;
-      
+
       switch (strategy) {
         case 'resampling':
-          mitigatedData = await this._applyResampling(originalData, biasMetrics);
+          mitigatedData = await this._applyResampling(
+            originalData,
+            biasMetrics
+          );
           break;
-          
+
         case 'adversarial':
-          return await this._trainAdversarialFairModel(originalData, biasMetrics);
-          
+          return await this._trainAdversarialFairModel(
+            originalData,
+            biasMetrics
+          );
+
         case 'fairness_constraints':
-          return await this._trainWithFairnessConstraints(originalData, biasMetrics);
-          
+          return await this._trainWithFairnessConstraints(
+            originalData,
+            biasMetrics
+          );
+
         case 'preprocessing':
-          mitigatedData = await this._preprocessForFairness(originalData, biasMetrics);
+          mitigatedData = await this._preprocessForFairness(
+            originalData,
+            biasMetrics
+          );
           break;
-          
+
         default:
           throw new Error(`Unknown bias mitigation strategy: ${strategy}`);
       }
-      
+
       // Train new model with mitigated data
       const model = await this._createOrLoadModel(modelType);
       const mitigatedModel = await this._trainModel(model, mitigatedData);
-      
+
       // Validate bias mitigation effectiveness
       const newBiasMetrics = await this.detectBias(modelType);
-      
+
       if (newBiasMetrics.fairnessScore > biasMetrics.fairnessScore) {
         console.log('✅ Bias mitigation successful');
         return mitigatedModel;
@@ -307,7 +342,6 @@ export class MLTrainingPipeline {
         console.log('⚠️ Bias mitigation had limited effect');
         return mitigatedModel; // Still return the model for further analysis
       }
-      
     } catch (error) {
       console.error('Bias mitigation failed:', error);
       throw error;
@@ -330,29 +364,32 @@ export class MLTrainingPipeline {
     recommendation: string;
   }> {
     console.log(`🔬 Starting A/B test: ${modelTypeA} vs ${modelTypeB}`);
-    
+
     // Implementation would involve:
     // 1. Randomly assign users to model A or B
     // 2. Collect performance metrics over test duration
     // 3. Calculate statistical significance
     // 4. Determine winner and recommendation
-    
+
     // For now, return a simulated result
     const performanceA = await this._getModelPerformance(modelTypeA);
     const performanceB = await this._getModelPerformance(modelTypeB);
-    
-    const winner = performanceA.f1Score > performanceB.f1Score ? modelTypeA : modelTypeB;
-    const significance = Math.abs(performanceA.f1Score - performanceB.f1Score) / 
-                        Math.sqrt((performanceA.f1Score + performanceB.f1Score) / 2);
-    
+
+    const winner =
+      performanceA.f1Score > performanceB.f1Score ? modelTypeA : modelTypeB;
+    const significance =
+      Math.abs(performanceA.f1Score - performanceB.f1Score) /
+      Math.sqrt((performanceA.f1Score + performanceB.f1Score) / 2);
+
     return {
       winner,
       performanceA,
       performanceB,
       statisticalSignificance: significance,
-      recommendation: significance > 0.05 ? 
-        `Deploy ${winner} - statistically significant improvement` :
-        'No significant difference - keep current model'
+      recommendation:
+        significance > 0.05
+          ? `Deploy ${winner} - statistically significant improvement`
+          : 'No significant difference - keep current model',
     };
   }
 
@@ -373,20 +410,25 @@ export class MLTrainingPipeline {
     nextSteps: string[];
   }> {
     const performance = await this._getModelPerformance(modelType);
-    const biasMetrics = this.biasHistory.get(modelType)?.slice(-1)[0] || await this.detectBias(modelType);
-    
+    const biasMetrics =
+      this.biasHistory.get(modelType)?.slice(-1)[0] ||
+      (await this.detectBias(modelType));
+
     return {
       modelInfo: {
         version: '1.0.0',
         architecture: 'Deep Neural Network',
         parameters: 50000,
         trainingTime: 120, // minutes
-        dataSize: this.trainingQueue.length
+        dataSize: this.trainingQueue.length,
       },
       performance,
       biasAnalysis: biasMetrics,
-      recommendations: this._generateModelRecommendations(performance, biasMetrics),
-      nextSteps: this._generateNextSteps(performance, biasMetrics)
+      recommendations: this._generateModelRecommendations(
+        performance,
+        biasMetrics
+      ),
+      nextSteps: this._generateNextSteps(performance, biasMetrics),
     };
   }
 
@@ -399,15 +441,22 @@ export class MLTrainingPipeline {
 
   private _startTrainingScheduler(): void {
     // Start background scheduler for automatic retraining
-    setInterval(async () => {
-      if (this.trainingQueue.length >= this.trainingConfig.retrainingThreshold) {
-        console.log('🔄 Automatic retraining triggered');
-        // Schedule retraining for all model types
-        ['pricing', 'matching', 'complexity', 'sentiment'].forEach(async (modelType) => {
-          await this._scheduleRetraining(modelType);
-        });
-      }
-    }, 60 * 60 * 1000); // Check every hour
+    setInterval(
+      async () => {
+        if (
+          this.trainingQueue.length >= this.trainingConfig.retrainingThreshold
+        ) {
+          console.log('🔄 Automatic retraining triggered');
+          // Schedule retraining for all model types
+          ['pricing', 'matching', 'complexity', 'sentiment'].forEach(
+            async (modelType) => {
+              await this._scheduleRetraining(modelType);
+            }
+          );
+        }
+      },
+      60 * 60 * 1000
+    ); // Check every hour
   }
 
   private async _initializeBiasMonitoring(): Promise<void> {
@@ -423,17 +472,19 @@ export class MLTrainingPipeline {
     // Process interaction into training format
     const features = this._extractFeatures(inputData, interaction);
     const labels = this._extractLabels(actualOutcome, interaction);
-    const metadata = [{
-      timestamp: Date.now(),
-      location: inputData.location?.postcode || 'unknown',
-      category: inputData.category || 'general',
-      ...inputData
-    }];
+    const metadata = [
+      {
+        timestamp: Date.now(),
+        location: inputData.location?.postcode || 'unknown',
+        category: inputData.category || 'general',
+        ...inputData,
+      },
+    ];
 
     return {
       features: [features],
       labels: [labels],
-      metadata
+      metadata,
     };
   }
 
@@ -457,7 +508,10 @@ export class MLTrainingPipeline {
     // Label extraction logic
     switch (interaction) {
       case 'pricing':
-        return [actualOutcome.finalPrice / 1000, actualOutcome.customerSatisfaction];
+        return [
+          actualOutcome.finalPrice / 1000,
+          actualOutcome.customerSatisfaction,
+        ];
       case 'matching':
         return [actualOutcome.matchSuccess ? 1 : 0];
       case 'complexity':
@@ -466,7 +520,7 @@ export class MLTrainingPipeline {
         return [
           actualOutcome.sentiment === 'positive' ? 1 : 0,
           actualOutcome.sentiment === 'neutral' ? 1 : 0,
-          actualOutcome.sentiment === 'negative' ? 1 : 0
+          actualOutcome.sentiment === 'negative' ? 1 : 0,
         ];
       default:
         return [0];
@@ -506,14 +560,16 @@ export class MLTrainingPipeline {
 
   private async _prepareTrainingData(modelType: string): Promise<TrainingData> {
     // Filter and prepare training data for specific model type
-    const relevantData = this.trainingQueue.filter(data => 
-      data.metadata.some(meta => meta.timestamp > Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const relevantData = this.trainingQueue.filter((data) =>
+      data.metadata.some(
+        (meta) => meta.timestamp > Date.now() - 30 * 24 * 60 * 60 * 1000
+      )
     );
 
     return {
-      features: relevantData.flatMap(d => d.features),
-      labels: relevantData.flatMap(d => d.labels),
-      metadata: relevantData.flatMap(d => d.metadata)
+      features: relevantData.flatMap((d) => d.features),
+      labels: relevantData.flatMap((d) => d.labels),
+      metadata: relevantData.flatMap((d) => d.metadata),
     };
   }
 
@@ -521,22 +577,26 @@ export class MLTrainingPipeline {
     // Create new model architecture or load existing
     const inputShape = this._getInputShape(modelType);
     const outputShape = this._getOutputShape(modelType);
-    
+
     const model = tf.sequential({
       layers: [
-        tf.layers.dense({ inputShape: [inputShape], units: 128, activation: 'relu' }),
+        tf.layers.dense({
+          inputShape: [inputShape],
+          units: 128,
+          activation: 'relu',
+        }),
         tf.layers.dropout({ rate: 0.3 }),
         tf.layers.dense({ units: 64, activation: 'relu' }),
         tf.layers.dropout({ rate: 0.2 }),
         tf.layers.dense({ units: 32, activation: 'relu' }),
-        tf.layers.dense({ units: outputShape, activation: 'sigmoid' })
-      ]
+        tf.layers.dense({ units: outputShape, activation: 'sigmoid' }),
+      ],
     });
 
     model.compile({
       optimizer: tf.train.adam(this.trainingConfig.learningRate),
       loss: 'meanSquaredError',
-      metrics: ['accuracy', 'mae']
+      metrics: ['accuracy', 'mae'],
     });
 
     return model;
@@ -547,7 +607,7 @@ export class MLTrainingPipeline {
       pricing: 47,
       matching: 64,
       complexity: 32,
-      sentiment: 512
+      sentiment: 512,
     };
     return shapes[modelType as keyof typeof shapes] || 32;
   }
@@ -557,17 +617,20 @@ export class MLTrainingPipeline {
       pricing: 3,
       matching: 1,
       complexity: 5,
-      sentiment: 3
+      sentiment: 3,
     };
     return shapes[modelType as keyof typeof shapes] || 1;
   }
 
-  private async _trainModel(model: tf.LayersModel, data: TrainingData): Promise<tf.LayersModel> {
+  private async _trainModel(
+    model: tf.LayersModel,
+    data: TrainingData
+  ): Promise<tf.LayersModel> {
     console.log('🏋️ Training model...');
-    
+
     const xs = tf.tensor2d(data.features);
     const ys = tf.tensor2d(data.labels);
-    
+
     await model.fit(xs, ys, {
       epochs: this.trainingConfig.epochs,
       batchSize: this.trainingConfig.batchSize,
@@ -575,14 +638,16 @@ export class MLTrainingPipeline {
       verbose: 0,
       callbacks: {
         onEpochEnd: (epoch, logs) => {
-          console.log(`Epoch ${epoch + 1}: loss = ${logs?.loss?.toFixed(4)}, accuracy = ${logs?.acc?.toFixed(4)}`);
-        }
-      }
+          console.log(
+            `Epoch ${epoch + 1}: loss = ${logs?.loss?.toFixed(4)}, accuracy = ${logs?.acc?.toFixed(4)}`
+          );
+        },
+      },
     });
-    
+
     xs.dispose();
     ys.dispose();
-    
+
     return model;
   }
 
@@ -593,18 +658,24 @@ export class MLTrainingPipeline {
   ): Promise<ValidationResults> {
     // Validate model performance and return results
     const performance = await this._calculatePerformance(model, data);
-    
+
     return {
       performance,
       biasMetrics: await this.detectBias(modelType),
-      passedValidation: performance.accuracy >= this.trainingConfig.performanceThreshold,
-      issues: performance.accuracy < this.trainingConfig.performanceThreshold ? 
-        ['Low accuracy'] : [],
-      improvements: this._generateImprovements(performance)
+      passedValidation:
+        performance.accuracy >= this.trainingConfig.performanceThreshold,
+      issues:
+        performance.accuracy < this.trainingConfig.performanceThreshold
+          ? ['Low accuracy']
+          : [],
+      improvements: this._generateImprovements(performance),
     };
   }
 
-  private async _calculatePerformance(model: tf.LayersModel, data: TrainingData): Promise<ModelPerformance> {
+  private async _calculatePerformance(
+    model: tf.LayersModel,
+    data: TrainingData
+  ): Promise<ModelPerformance> {
     // Calculate comprehensive performance metrics
     return {
       accuracy: Math.random() * 0.1 + 0.85, // Simulated
@@ -614,13 +685,13 @@ export class MLTrainingPipeline {
       mse: Math.random() * 0.05 + 0.02,
       mae: Math.random() * 0.03 + 0.01,
       latency: Math.random() * 20 + 50, // ms
-      throughput: Math.random() * 100 + 500 // requests/second
+      throughput: Math.random() * 100 + 500, // requests/second
     };
   }
 
   private _generateImprovements(performance: ModelPerformance): string[] {
     const improvements = [];
-    
+
     if (performance.accuracy < 0.9) {
       improvements.push('Increase training data size');
     }
@@ -630,17 +701,23 @@ export class MLTrainingPipeline {
     if (performance.precision < 0.85) {
       improvements.push('Improve feature engineering');
     }
-    
+
     return improvements;
   }
 
-  private async _deployModel(model: tf.LayersModel, modelType: string): Promise<void> {
+  private async _deployModel(
+    model: tf.LayersModel,
+    modelType: string
+  ): Promise<void> {
     // Deploy trained model to production
     this.modelVersions.set(modelType, model);
     console.log(`🚀 Model ${modelType} deployed successfully`);
   }
 
-  private async _handleFailedValidation(results: ValidationResults, modelType: string): Promise<void> {
+  private async _handleFailedValidation(
+    results: ValidationResults,
+    modelType: string
+  ): Promise<void> {
     console.log(`⚠️ Model validation failed for ${modelType}`);
     console.log('Issues:', results.issues);
     console.log('Recommended improvements:', results.improvements);
@@ -657,7 +734,7 @@ export class MLTrainingPipeline {
         mse: 0.02,
         mae: 0.01,
         latency: 50,
-        throughput: 500
+        throughput: 500,
       },
       biasMetrics: {
         fairnessScore: 0.85,
@@ -667,31 +744,33 @@ export class MLTrainingPipeline {
         calibration: 0.9,
         biasDetected: false,
         affectedGroups: [],
-        recommendations: []
+        recommendations: [],
       },
       passedValidation: true,
       issues: [],
-      improvements: []
+      improvements: [],
     };
   }
 
   // Bias detection helper methods...
-  private _groupDataByAttributes(data: TrainingData): Map<string, TrainingData> {
+  private _groupDataByAttributes(
+    data: TrainingData
+  ): Map<string, TrainingData> {
     // Group data by protected attributes (location, category, etc.)
     const groups = new Map<string, TrainingData>();
-    
+
     data.metadata.forEach((meta, index) => {
       const groupKey = `${meta.location}_${meta.category}`;
-      
+
       if (!groups.has(groupKey)) {
         groups.set(groupKey, { features: [], labels: [], metadata: [] });
       }
-      
+
       groups.get(groupKey)!.features.push(data.features[index]);
       groups.get(groupKey)!.labels.push(data.labels[index]);
       groups.get(groupKey)!.metadata.push(meta);
     });
-    
+
     return groups;
   }
 
@@ -700,19 +779,21 @@ export class MLTrainingPipeline {
     groupedData: Map<string, TrainingData>
   ): Promise<Map<string, any>> {
     const metrics = new Map();
-    
+
     for (const [group, data] of groupedData) {
-      const predictions = model.predict(tf.tensor2d(data.features)) as tf.Tensor;
+      const predictions = model.predict(
+        tf.tensor2d(data.features)
+      ) as tf.Tensor;
       const predictionData = await predictions.data();
       predictions.dispose();
-      
+
       metrics.set(group, {
         predictions: Array.from(predictionData),
         labels: data.labels,
-        size: data.features.length
+        size: data.features.length,
       });
     }
-    
+
     return metrics;
   }
 
@@ -720,31 +801,39 @@ export class MLTrainingPipeline {
     // Calculate disparate impact ratio between groups
     const groups = Array.from(fairnessMetrics.values());
     if (groups.length < 2) return 1.0;
-    
-    const rates = groups.map(group => 
-      group.predictions.filter((p: number) => p > 0.5).length / group.predictions.length
+
+    const rates = groups.map(
+      (group) =>
+        group.predictions.filter((p: number) => p > 0.5).length /
+        group.predictions.length
     );
-    
+
     const minRate = Math.min(...rates);
     const maxRate = Math.max(...rates);
-    
+
     return minRate / maxRate;
   }
 
-  private _calculateDemographicParity(fairnessMetrics: Map<string, any>): number {
+  private _calculateDemographicParity(
+    fairnessMetrics: Map<string, any>
+  ): number {
     // Calculate demographic parity difference
     const groups = Array.from(fairnessMetrics.values());
     if (groups.length < 2) return 0.0;
-    
-    const rates = groups.map(group => 
-      group.predictions.filter((p: number) => p > 0.5).length / group.predictions.length
+
+    const rates = groups.map(
+      (group) =>
+        group.predictions.filter((p: number) => p > 0.5).length /
+        group.predictions.length
     );
-    
+
     const maxDiff = Math.max(...rates) - Math.min(...rates);
     return maxDiff;
   }
 
-  private _calculateEqualOpportunity(fairnessMetrics: Map<string, any>): number {
+  private _calculateEqualOpportunity(
+    fairnessMetrics: Map<string, any>
+  ): number {
     // Calculate equal opportunity difference
     return Math.random() * 0.2; // Simplified calculation
   }
@@ -756,49 +845,63 @@ export class MLTrainingPipeline {
 
   private _identifyAffectedGroups(fairnessMetrics: Map<string, any>): string[] {
     // Identify groups that may be affected by bias
-    return Array.from(fairnessMetrics.keys()).filter(group => 
-      Math.random() > 0.8 // Simplified - randomly identify some groups
+    return Array.from(fairnessMetrics.keys()).filter(
+      (group) => Math.random() > 0.8 // Simplified - randomly identify some groups
     );
   }
 
   private _generateBiasRecommendations(
-    fairnessMetrics: Map<string, any>, 
+    fairnessMetrics: Map<string, any>,
     fairnessScore: number
   ): string[] {
     const recommendations = [];
-    
+
     if (fairnessScore < 0.8) {
       recommendations.push('Implement bias mitigation techniques');
       recommendations.push('Collect more diverse training data');
     }
-    
+
     if (fairnessMetrics.size < 3) {
-      recommendations.push('Ensure representation across all demographic groups');
+      recommendations.push(
+        'Ensure representation across all demographic groups'
+      );
     }
-    
+
     return recommendations;
   }
 
   // Additional bias mitigation methods...
-  private async _applyResampling(data: TrainingData, biasMetrics: BiasMetrics): Promise<TrainingData> {
+  private async _applyResampling(
+    data: TrainingData,
+    biasMetrics: BiasMetrics
+  ): Promise<TrainingData> {
     // Implement resampling strategy to balance groups
     console.log('🔄 Applying resampling bias mitigation');
     return data; // Simplified - return original data
   }
 
-  private async _trainAdversarialFairModel(data: TrainingData, biasMetrics: BiasMetrics): Promise<tf.LayersModel> {
+  private async _trainAdversarialFairModel(
+    data: TrainingData,
+    biasMetrics: BiasMetrics
+  ): Promise<tf.LayersModel> {
     // Implement adversarial training for fairness
     console.log('🥊 Training adversarial fair model');
     return await this._createOrLoadModel('pricing'); // Simplified
   }
 
-  private async _trainWithFairnessConstraints(data: TrainingData, biasMetrics: BiasMetrics): Promise<tf.LayersModel> {
+  private async _trainWithFairnessConstraints(
+    data: TrainingData,
+    biasMetrics: BiasMetrics
+  ): Promise<tf.LayersModel> {
     // Implement fairness constraints during training
     console.log('⚖️ Training with fairness constraints');
     return await this._createOrLoadModel('pricing'); // Simplified
   }
 
-  private async _preprocessForFairness(data: TrainingData, biasMetrics: BiasMetrics): Promise<TrainingData> {
+  private async _preprocessForFairness(
+    data: TrainingData,
+    biasMetrics: BiasMetrics
+  ): Promise<TrainingData> {
     // Preprocess data to reduce bias
     console.log('🔧 Preprocessing data for fairness');
     return data; // Simplified
@@ -809,7 +912,9 @@ export class MLTrainingPipeline {
     return await this._prepareTrainingData(modelType);
   }
 
-  private async _getModelPerformance(modelType: string): Promise<ModelPerformance> {
+  private async _getModelPerformance(
+    modelType: string
+  ): Promise<ModelPerformance> {
     // Get current model performance metrics
     return {
       accuracy: Math.random() * 0.1 + 0.85,
@@ -819,40 +924,48 @@ export class MLTrainingPipeline {
       mse: Math.random() * 0.05 + 0.02,
       mae: Math.random() * 0.03 + 0.01,
       latency: Math.random() * 20 + 50,
-      throughput: Math.random() * 100 + 500
+      throughput: Math.random() * 100 + 500,
     };
   }
 
-  private _generateModelRecommendations(performance: ModelPerformance, biasMetrics: BiasMetrics): string[] {
+  private _generateModelRecommendations(
+    performance: ModelPerformance,
+    biasMetrics: BiasMetrics
+  ): string[] {
     const recommendations = [];
-    
+
     if (performance.accuracy < 0.9) {
       recommendations.push('Consider ensemble methods to improve accuracy');
     }
-    
+
     if (biasMetrics.biasDetected) {
       recommendations.push('Implement bias mitigation strategies');
     }
-    
+
     if (performance.latency > 100) {
-      recommendations.push('Optimize model for production latency requirements');
+      recommendations.push(
+        'Optimize model for production latency requirements'
+      );
     }
-    
+
     return recommendations;
   }
 
-  private _generateNextSteps(performance: ModelPerformance, biasMetrics: BiasMetrics): string[] {
+  private _generateNextSteps(
+    performance: ModelPerformance,
+    biasMetrics: BiasMetrics
+  ): string[] {
     const nextSteps = [];
-    
+
     nextSteps.push('Continue collecting training data');
     nextSteps.push('Monitor model performance in production');
-    
+
     if (biasMetrics.biasDetected) {
       nextSteps.push('Implement immediate bias mitigation');
     }
-    
+
     nextSteps.push('Schedule next model evaluation in 30 days');
-    
+
     return nextSteps;
   }
 }

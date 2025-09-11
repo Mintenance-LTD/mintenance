@@ -22,20 +22,22 @@ export class JobService {
 
     const { data, error } = await supabase
       .from('jobs')
-      .insert([{
-        title: safeTitle,
-        description: safeDescription,
-        location: safeLocation,
-        budget: jobData.budget,
-        homeowner_id: jobData.homeownerId,
-        category: jobData.category,
-        subcategory: jobData.subcategory,
-        priority: jobData.priority,
-        photos: jobData.photos,
-        status: 'posted',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
+      .insert([
+        {
+          title: safeTitle,
+          description: safeDescription,
+          location: safeLocation,
+          budget: jobData.budget,
+          homeowner_id: jobData.homeownerId,
+          category: jobData.category,
+          subcategory: jobData.subcategory,
+          priority: jobData.priority,
+          photos: jobData.photos,
+          status: 'posted',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
@@ -90,7 +92,11 @@ export class JobService {
     return this.formatJob(data);
   }
 
-  static async updateJobStatus(jobId: string, status: Job['status'], contractorId?: string): Promise<void> {
+  static async updateJobStatus(
+    jobId: string,
+    status: Job['status'],
+    contractorId?: string
+  ): Promise<void> {
     const updateData: any = {
       status,
       updated_at: new Date().toISOString(),
@@ -132,17 +138,19 @@ export class JobService {
     if (error) throw error;
   }
 
-  static async getJobsByStatus(status: Job['status'], userId?: string): Promise<Job[]> {
-    let query = supabase
-      .from('jobs')
-      .select('*')
-      .eq('status', status);
+  static async getJobsByStatus(
+    status: Job['status'],
+    userId?: string
+  ): Promise<Job[]> {
+    let query = supabase.from('jobs').select('*').eq('status', status);
 
     if (userId) {
       query = query.or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error) throw error;
     return data.map(this.formatJob);
@@ -157,14 +165,16 @@ export class JobService {
   }): Promise<Bid> {
     const { data, error } = await supabase
       .from('bids')
-      .insert([{
-        job_id: bidData.jobId,
-        contractor_id: bidData.contractorId,
-        amount: bidData.amount,
-        description: bidData.description,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      }])
+      .insert([
+        {
+          job_id: bidData.jobId,
+          contractor_id: bidData.contractorId,
+          amount: bidData.amount,
+          description: bidData.description,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
@@ -175,10 +185,12 @@ export class JobService {
   static async getBidsByJob(jobId: string): Promise<Bid[]> {
     const { data, error } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         contractor:users(first_name, last_name, email)
-      `)
+      `
+      )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false });
 
@@ -189,10 +201,12 @@ export class JobService {
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
     const { data, error } = await supabase
       .from('bids')
-      .select(`
+      .select(
+        `
         *,
         job:jobs(title, description, location, budget)
-      `)
+      `
+      )
       .eq('contractor_id', contractorId)
       .order('created_at', { ascending: false });
 
@@ -257,7 +271,9 @@ export class JobService {
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
-      .or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`)
+      .or(
+        `title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`
+      )
       .eq('status', 'posted')
       .order('created_at', { ascending: false })
       .limit(limit);

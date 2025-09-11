@@ -96,14 +96,14 @@ export class MemoryManager {
       // In a real React Native app, you'd use a native module to get actual memory usage
       // For now, we'll simulate memory usage
       const simulatedUsage = this.simulateMemoryUsage();
-      
+
       const usage: MemoryUsage = {
         used: simulatedUsage.used,
         total: simulatedUsage.total,
         percentage: (simulatedUsage.used / simulatedUsage.total) * 100,
         timestamp: Date.now(),
         componentCounts: this.getComponentCounts(),
-        listenerCounts: this.getListenerCounts()
+        listenerCounts: this.getListenerCounts(),
       };
 
       // Store in history
@@ -129,7 +129,7 @@ export class MemoryManager {
 
     return {
       used: Math.floor(baseUsage + variableUsage),
-      total: totalMemory
+      total: totalMemory,
     };
   }
 
@@ -139,23 +139,27 @@ export class MemoryManager {
   private async checkMemoryUsage(): Promise<void> {
     try {
       const usage = await this.getCurrentMemoryUsage();
-      
+
       logger.performance('Memory check', 0, {
         used: `${Math.round(usage.used / 1024 / 1024)}MB`,
-        percentage: `${usage.percentage.toFixed(1)}%`
+        percentage: `${usage.percentage.toFixed(1)}%`,
       });
 
       // Trigger warnings
       if (usage.used > this.CRITICAL_THRESHOLD) {
-        logger.error('Critical memory usage detected', new Error('Memory usage critical'), {
-          used: usage.used,
-          percentage: usage.percentage
-        });
+        logger.error(
+          'Critical memory usage detected',
+          new Error('Memory usage critical'),
+          {
+            used: usage.used,
+            percentage: usage.percentage,
+          }
+        );
         await this.performAggressiveCleanup();
       } else if (usage.used > this.WARNING_THRESHOLD) {
         logger.warn('High memory usage detected', {
           used: usage.used,
-          percentage: usage.percentage
+          percentage: usage.percentage,
         });
         this.notifyMemoryWarning(usage);
         await this.performCleanup();
@@ -168,13 +172,15 @@ export class MemoryManager {
   /**
    * Perform standard cleanup
    */
-  async performCleanup(options: Partial<MemoryCleanupOptions> = {}): Promise<void> {
+  async performCleanup(
+    options: Partial<MemoryCleanupOptions> = {}
+  ): Promise<void> {
     const cleanupOptions: MemoryCleanupOptions = {
       aggressive: false,
       clearCaches: true,
       removeListeners: false,
       gcSuggest: true,
-      ...options
+      ...options,
     };
 
     logger.debug('Starting memory cleanup', { options: cleanupOptions });
@@ -201,10 +207,9 @@ export class MemoryManager {
       }
 
       const cleanupTime = performance.now() - startTime;
-      logger.performance('Memory cleanup', cleanupTime, { 
-        type: cleanupOptions.aggressive ? 'aggressive' : 'standard'
+      logger.performance('Memory cleanup', cleanupTime, {
+        type: cleanupOptions.aggressive ? 'aggressive' : 'standard',
       });
-
     } catch (error) {
       logger.error('Memory cleanup failed:', error as Error);
     }
@@ -218,7 +223,7 @@ export class MemoryManager {
       aggressive: true,
       clearCaches: true,
       removeListeners: true,
-      gcSuggest: true
+      gcSuggest: true,
     });
 
     // Additional aggressive measures
@@ -257,7 +262,7 @@ export class MemoryManager {
    */
   private runCleanupCallbacks(): void {
     let callbackCount = 0;
-    this.cleanupCallbacks.forEach(callback => {
+    this.cleanupCallbacks.forEach((callback) => {
       try {
         callback();
         callbackCount++;
@@ -265,7 +270,7 @@ export class MemoryManager {
         logger.warn('Cleanup callback failed:', { data: error });
       }
     });
-    
+
     logger.debug(`Executed ${callbackCount} cleanup callbacks`);
   }
 
@@ -274,7 +279,7 @@ export class MemoryManager {
    */
   registerCleanupCallback(callback: () => void): () => void {
     this.cleanupCallbacks.add(callback);
-    
+
     // Return unregister function
     return () => {
       this.cleanupCallbacks.delete(callback);
@@ -284,9 +289,11 @@ export class MemoryManager {
   /**
    * Register memory warning callback
    */
-  registerMemoryWarningCallback(callback: (usage: MemoryUsage) => void): () => void {
+  registerMemoryWarningCallback(
+    callback: (usage: MemoryUsage) => void
+  ): () => void {
     this.memoryWarningCallbacks.add(callback);
-    
+
     return () => {
       this.memoryWarningCallbacks.delete(callback);
     };
@@ -297,7 +304,7 @@ export class MemoryManager {
    */
   trackComponent(componentName: string, action: 'mount' | 'unmount'): void {
     let tracker = this.componentTrackers.get(componentName);
-    
+
     if (!tracker) {
       tracker = {
         componentName,
@@ -305,7 +312,7 @@ export class MemoryManager {
         unmountCount: 0,
         currentInstances: 0,
         memoryLeaks: 0,
-        lastCleanup: Date.now()
+        lastCleanup: Date.now(),
       };
       this.componentTrackers.set(componentName, tracker);
     }
@@ -324,7 +331,7 @@ export class MemoryManager {
       tracker.currentInstances = 0;
       logger.warn(`Potential memory leak detected in ${componentName}`, {
         mountCount: tracker.mountCount,
-        unmountCount: tracker.unmountCount
+        unmountCount: tracker.unmountCount,
       });
     }
   }
@@ -333,8 +340,9 @@ export class MemoryManager {
    * Get component memory report
    */
   getComponentMemoryReport(): ComponentMemoryTracker[] {
-    return Array.from(this.componentTrackers.values())
-      .sort((a, b) => b.currentInstances - a.currentInstances);
+    return Array.from(this.componentTrackers.values()).sort(
+      (a, b) => b.currentInstances - a.currentInstances
+    );
   }
 
   /**
@@ -371,9 +379,9 @@ export class MemoryManager {
   private getListenerCounts(): Record<string, number> {
     // In a real app, this would track actual event listeners
     return {
-      'navigation': 5,
-      'network': 3,
-      'keyboard': 2
+      navigation: 5,
+      network: 3,
+      keyboard: 2,
     };
   }
 
@@ -381,7 +389,7 @@ export class MemoryManager {
    * Notify memory warning callbacks
    */
   private notifyMemoryWarning(usage: MemoryUsage): void {
-    this.memoryWarningCallbacks.forEach(callback => {
+    this.memoryWarningCallbacks.forEach((callback) => {
       try {
         callback(usage);
       } catch (error) {
@@ -425,21 +433,25 @@ export class MemoryManager {
         average: 0,
         peak: 0,
         trend: 'stable',
-        issues: ['No memory data available']
+        issues: ['No memory data available'],
       };
     }
 
     const current = this.memoryHistory[this.memoryHistory.length - 1];
-    const average = this.memoryHistory.reduce((sum, usage) => sum + usage.used, 0) / this.memoryHistory.length;
-    const peak = Math.max(...this.memoryHistory.map(usage => usage.used));
-    
+    const average =
+      this.memoryHistory.reduce((sum, usage) => sum + usage.used, 0) /
+      this.memoryHistory.length;
+    const peak = Math.max(...this.memoryHistory.map((usage) => usage.used));
+
     // Determine trend
     let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
     if (this.memoryHistory.length >= 5) {
       const recent = this.memoryHistory.slice(-5);
-      const firstHalf = recent.slice(0, 2).reduce((sum, usage) => sum + usage.used, 0) / 2;
-      const secondHalf = recent.slice(-2).reduce((sum, usage) => sum + usage.used, 0) / 2;
-      
+      const firstHalf =
+        recent.slice(0, 2).reduce((sum, usage) => sum + usage.used, 0) / 2;
+      const secondHalf =
+        recent.slice(-2).reduce((sum, usage) => sum + usage.used, 0) / 2;
+
       const change = ((secondHalf - firstHalf) / firstHalf) * 100;
       if (change > 10) trend = 'increasing';
       else if (change < -10) trend = 'decreasing';
@@ -453,11 +465,14 @@ export class MemoryManager {
     if (trend === 'increasing') {
       issues.push('Memory usage is trending upward');
     }
-    
-    const leakyComponents = Array.from(this.componentTrackers.values())
-      .filter(tracker => tracker.memoryLeaks > 0);
+
+    const leakyComponents = Array.from(this.componentTrackers.values()).filter(
+      (tracker) => tracker.memoryLeaks > 0
+    );
     if (leakyComponents.length > 0) {
-      issues.push(`Potential memory leaks in ${leakyComponents.length} components`);
+      issues.push(
+        `Potential memory leaks in ${leakyComponents.length} components`
+      );
     }
 
     return {
@@ -465,7 +480,7 @@ export class MemoryManager {
       average,
       peak,
       trend,
-      issues
+      issues,
     };
   }
 }
@@ -475,11 +490,11 @@ export const memoryManager = MemoryManager.getInstance();
 
 // React hook for memory management
 export const useMemoryCleanup = (cleanupFn?: () => void) => {
-  
-  
   React.useEffect(() => {
-    const unregister = cleanupFn ? memoryManager.registerCleanupCallback(cleanupFn) : null;
-    
+    const unregister = cleanupFn
+      ? memoryManager.registerCleanupCallback(cleanupFn)
+      : null;
+
     return () => {
       if (unregister) {
         unregister();
@@ -494,17 +509,21 @@ export const withMemoryTracking = <P extends object>(
   componentName?: string
 ) => {
   const React = require('react') as typeof import('react');
-  const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
-  
+  const name =
+    componentName ||
+    WrappedComponent.displayName ||
+    WrappedComponent.name ||
+    'Unknown';
+
   return React.forwardRef((props: any, ref: any) => {
     React.useEffect(() => {
       memoryManager.trackComponent(name, 'mount');
-      
+
       return () => {
         memoryManager.trackComponent(name, 'unmount');
       };
     }, []);
-    
+
     return React.createElement(WrappedComponent, { ...props, ref });
   });
 };

@@ -17,11 +17,11 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../services/MessagingService';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  useJobMessages, 
-  useSendMessage, 
-  useMarkMessagesAsRead, 
-  useRealTimeMessages 
+import {
+  useJobMessages,
+  useSendMessage,
+  useMarkMessagesAsRead,
+  useRealTimeMessages,
 } from '../hooks/useMessaging';
 
 interface MessagingScreenParams {
@@ -39,12 +39,16 @@ interface Props {
 const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle, otherUserId, otherUserName } = route.params;
   const { user } = useAuth();
-  
+
   const [newMessage, setNewMessage] = useState('');
   const flatListRef = useRef<FlatList>(null);
-  
+
   // Use messaging hooks
-  const { data: messages = [], isLoading: loading, error } = useJobMessages(jobId);
+  const {
+    data: messages = [],
+    isLoading: loading,
+    error,
+  } = useJobMessages(jobId);
   const sendMessageMutation = useSendMessage();
   const markAsReadMutation = useMarkMessagesAsRead();
 
@@ -56,7 +60,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
+
       // Mark as read if it's not from current user
       if (newMessage.senderId !== user?.id && user?.id) {
         markAsReadMutation.mutate({ jobId, userId: user.id });
@@ -69,7 +73,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Mark messages as read when screen is focused
   useEffect(() => {
     if (user?.id && messages.length > 0) {
-      const unreadMessages = messages.some((msg: any) => !msg.read && msg.receiverId === user.id);
+      const unreadMessages = messages.some(
+        (msg: any) => !msg.read && msg.receiverId === user.id
+      );
       if (unreadMessages) {
         markAsReadMutation.mutate({ jobId, userId: user.id });
       }
@@ -88,9 +94,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         receiverId: otherUserId,
         messageText,
         senderId: user.id,
-        messageType: 'text'
+        messageType: 'text',
       });
-      
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -105,48 +111,64 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     const date = new Date(timestamp);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+    const messageDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
     if (messageDate.getTime() === today.getTime()) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit' 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
       });
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
         day: 'numeric',
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     }
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isFromCurrentUser = item.senderId === user?.id;
-    
+
     return (
-      <View style={[
-        styles.messageContainer,
-        isFromCurrentUser ? styles.currentUserMessage : styles.otherUserMessage
-      ]}>
-        <View style={[
-          styles.messageBubble,
-          isFromCurrentUser ? styles.currentUserBubble : styles.otherUserBubble
-        ]}>
+      <View
+        style={[
+          styles.messageContainer,
+          isFromCurrentUser
+            ? styles.currentUserMessage
+            : styles.otherUserMessage,
+        ]}
+      >
+        <View
+          style={[
+            styles.messageBubble,
+            isFromCurrentUser
+              ? styles.currentUserBubble
+              : styles.otherUserBubble,
+          ]}
+        >
           {!isFromCurrentUser && (
             <Text style={styles.senderName}>{item.senderName}</Text>
           )}
-          <Text style={[
-            styles.messageText,
-            isFromCurrentUser ? styles.currentUserText : styles.otherUserText
-          ]}>
+          <Text
+            style={[
+              styles.messageText,
+              isFromCurrentUser ? styles.currentUserText : styles.otherUserText,
+            ]}
+          >
             {item.messageText}
           </Text>
-          <Text style={[
-            styles.messageTime,
-            isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime
-          ]}>
+          <Text
+            style={[
+              styles.messageTime,
+              isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime,
+            ]}
+          >
             {formatMessageTime(item.createdAt)}
           </Text>
         </View>
@@ -156,7 +178,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
+      <Ionicons name='chatbubbles-outline' size={48} color='#ccc' />
       <Text style={styles.emptyText}>No messages yet</Text>
       <Text style={styles.emptySubtext}>Start the conversation!</Text>
     </View>
@@ -165,7 +187,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size='large' color='#2563eb' />
         <Text style={styles.loadingText}>Loading messages...</Text>
       </View>
     );
@@ -174,10 +196,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   if (error) {
     return (
       <View style={styles.loadingContainer}>
-        <Ionicons name="warning-outline" size={48} color="#ef4444" />
+        <Ionicons name='warning-outline' size={48} color='#ef4444' />
         <Text style={styles.errorText}>Failed to load messages</Text>
-        <TouchableOpacity 
-          style={styles.retryButton} 
+        <TouchableOpacity
+          style={styles.retryButton}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.retryText}>Retry</Text>
@@ -187,7 +209,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -198,14 +220,14 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name='arrow-back' size={24} color='#333' />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>{otherUserName}</Text>
           <Text style={styles.headerSubtitle}>{jobTitle}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+          <Ionicons name='ellipsis-vertical' size={20} color='#666' />
         </TouchableOpacity>
       </View>
 
@@ -216,7 +238,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         style={styles.messagesList}
-        contentContainerStyle={messages.length === 0 ? styles.emptyList : undefined}
+        contentContainerStyle={
+          messages.length === 0 ? styles.emptyList : undefined
+        }
         ListEmptyComponent={renderEmpty}
         onContentSizeChange={() => {
           if (messages.length > 0) {
@@ -232,8 +256,8 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             style={styles.textInput}
             value={newMessage}
             onChangeText={setNewMessage}
-            placeholder="Type a message..."
-            placeholderTextColor="#999"
+            placeholder='Type a message...'
+            placeholderTextColor='#999'
             multiline
             maxLength={500}
             editable={!sendMessageMutation.isPending}
@@ -241,15 +265,16 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!newMessage.trim() || sendMessageMutation.isPending) && styles.sendButtonDisabled
+              (!newMessage.trim() || sendMessageMutation.isPending) &&
+                styles.sendButtonDisabled,
             ]}
             onPress={sendMessage}
             disabled={!newMessage.trim() || sendMessageMutation.isPending}
           >
             {sendMessageMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size='small' color='#fff' />
             ) : (
-              <Ionicons name="send" size={20} color="#fff" />
+              <Ionicons name='send' size={20} color='#fff' />
             )}
           </TouchableOpacity>
         </View>
