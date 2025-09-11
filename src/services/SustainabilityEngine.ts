@@ -296,7 +296,7 @@ class SustainabilityEngine {
   }
 
   // Get contractor sustainability ranking
-  async getContractorSustainabilityRanking(location: string, category?: string) : Promise<void> {
+  async getContractorSustainabilityRanking(location: string, category?: string) : Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('contractor_esg_profiles')
@@ -320,7 +320,18 @@ class SustainabilityEngine {
   }
 
   // Track sustainability improvements over time
-  async trackSustainabilityProgress(contractorId: string, timeframe: 'month' | 'quarter' | 'year') : Promise<void> {
+  async trackSustainabilityProgress(
+    contractorId: string,
+    timeframe: 'month' | 'quarter' | 'year'
+  ) : Promise<{
+    trend: 'improving' | 'declining' | 'stable' | 'insufficient_data' | 'error';
+    improvement?: number;
+    carbon_reduction_kg?: number;
+    waste_reduction_kg?: number;
+    renewable_increase_percent?: number;
+    timeframe: 'month' | 'quarter' | 'year';
+    data_points?: number;
+  }> {
     try {
       const endDate = new Date();
       const startDate = new Date();
@@ -349,7 +360,7 @@ class SustainabilityEngine {
 
       // Calculate trends and improvements
       if (!data || data.length < 2) {
-        return { trend: 'insufficient_data', improvement: 0 };
+        return { trend: 'insufficient_data', improvement: 0, timeframe };
       }
 
       const firstMetric = data[0];
@@ -369,7 +380,7 @@ class SustainabilityEngine {
       };
     } catch (error) {
       logger.error('Failed to track sustainability progress', error);
-      return { trend: 'error', improvement: 0 };
+      return { trend: 'error', improvement: 0, timeframe };
     }
   }
 
@@ -794,7 +805,7 @@ class SustainabilityEngine {
 
     if (error) return [];
 
-    return (data || []).map(item => ({
+    return (data || []).map((item: any) => ({
       original_material: material,
       sustainable_alternative: item.name,
       benefits: item.certification_labels,
@@ -832,7 +843,7 @@ class SustainabilityEngine {
       .limit(10);
 
     if (error) return [];
-    return (data || []).map(item => item.contractor_id);
+    return (data || []).map((item: any) => item.contractor_id);
   }
 }
 

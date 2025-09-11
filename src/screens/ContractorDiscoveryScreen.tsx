@@ -16,6 +16,7 @@ import { ContractorService } from '../services/ContractorService';
 import { ContractorProfile, LocationData } from '../types';
 import ContractorMapView from '../components/ContractorMapView';
 import ContractorDiscoverView from '../components/ContractorDiscoverView';
+import { theme } from '../theme';
 
 const { height: screenHeight } = Dimensions.get('window');
 

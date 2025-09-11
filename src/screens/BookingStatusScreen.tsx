@@ -94,7 +94,7 @@ const BookingStatusScreen: React.FC<Props> = ({ route, navigation }) => {
     setLoading(true);
     try {
       // Get all jobs for the current user (both as homeowner and contractor)
-      let allJobs = [];
+  let allJobs: any[] = [];
       
       if (user.role === 'homeowner') {
         allJobs = await JobService.getJobsByHomeowner(user.id);

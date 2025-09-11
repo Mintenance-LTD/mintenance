@@ -33,6 +33,7 @@ export interface ErrorContext {
   memoryUsage?: number;
   buildVersion?: string;
   deviceInfo?: DeviceInfo;
+  componentStack?: string;
 }
 
 export interface DeviceInfo {
@@ -562,7 +563,7 @@ export const withErrorMonitoring = <P extends object>(
         context: {
           component: name,
           props: this.props as any,
-          componentStack: errorInfo.componentStack
+          componentStack: errorInfo.componentStack || ''
         }
       });
     }

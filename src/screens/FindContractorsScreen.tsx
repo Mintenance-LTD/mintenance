@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
 import { ContractorProfile, LocationData } from '../types';
 import ContractorCard from '../components/ContractorCard';
+import { theme } from '../theme';
 
 const { height: screenHeight } = Dimensions.get('window');
 const MAP_HEIGHT = screenHeight * 0.4;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useNetworkState } from './useNetworkState';
 import { OfflineManager, OfflineAction } from '../services/OfflineManager';
 import { LocalDatabase } from '../services/LocalDatabase';
@@ -7,7 +7,7 @@ import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
 
 export interface OfflineQueryOptions {
-  queryKey: string[];
+  queryKey: QueryKey;
   queryFn: () => Promise<any>;
   staleTime?: number;
   gcTime?: number;
@@ -21,7 +21,7 @@ export interface OfflineMutationOptions<TVariables = any, TData = any> {
   entity: string;
   actionType: OfflineAction['type'];
   optimisticUpdate?: (variables: TVariables) => any;
-  getQueryKey?: (variables: TVariables) => string[];
+  getQueryKey?: (variables: TVariables) => QueryKey;
   retryCount?: number;
 }
 
@@ -72,7 +72,7 @@ export const useOfflineQuery = <T = any>({
         if (!isOnline || offlineFirst) {
           const localData = await tryLocalQuery(queryKey);
           if (localData !== null) {
-            logger.debug('Returning local data', { queryKey: queryKey.join('.') });
+            logger.debug('Returning local data', { queryKey: (queryKey as string[]).join('.') });
             return localData;
           }
         }
@@ -95,7 +95,7 @@ export const useOfflineQuery = <T = any>({
       } catch (error) {
         // Enhanced error logging
         logger.error('Query failed:', error, {
-          queryKey: queryKey.join('.'),
+          queryKey: (queryKey as string[]).join('.'),
           isOnline,
           connectionQuality,
           offlineFirst,
@@ -105,7 +105,7 @@ export const useOfflineQuery = <T = any>({
         if (isOnline && !offlineFirst) {
           const localData = await tryLocalQuery(queryKey);
           if (localData !== null) {
-            logger.info('Using local data as fallback', { queryKey: queryKey.join('.') });
+            logger.info('Using local data as fallback', { queryKey: (queryKey as string[]).join('.') });
             return localData;
           }
         }
@@ -179,7 +179,8 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
               entity,
               data: variables,
               maxRetries: retryCount,
-              queryKey: getQueryKey?.(variables),
+              // Persist a mutable copy for offline storage
+              queryKey: (getQueryKey?.(variables) as unknown as string[]),
             });
 
             logger.info('Mutation queued for offline sync', {
@@ -204,7 +205,8 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         entity,
         data: variables,
         maxRetries: retryCount,
-        queryKey: getQueryKey?.(variables),
+        // Persist a mutable copy for offline storage
+        queryKey: (getQueryKey?.(variables) as unknown as string[]),
       });
 
       logger.info('Offline mutation queued', {
@@ -269,11 +271,11 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
 };
 
 // Helper functions for local data handling
-const tryLocalQuery = async (queryKey: string[]): Promise<any> => {
+const tryLocalQuery = async (queryKey: QueryKey): Promise<any> => {
   try {
     await LocalDatabase.init();
     
-    const [entity, operation, ...params] = queryKey;
+    const [entity, operation, ...params] = queryKey as string[];
     
     switch (entity) {
       case 'jobs':
@@ -286,7 +288,7 @@ const tryLocalQuery = async (queryKey: string[]): Promise<any> => {
         return null;
     }
   } catch (error) {
-    logger.warn('Local query failed:', error, { queryKey });
+    logger.warn('Local query failed:', { error, queryKey });
     return null;
   }
 };
@@ -331,11 +333,11 @@ const handleMessagesQuery = async (operation: string, params: string[]): Promise
   }
 };
 
-const cacheLocalData = async (queryKey: string[], data: any): Promise<void> => {
+const cacheLocalData = async (queryKey: QueryKey, data: any): Promise<void> => {
   try {
     await LocalDatabase.init();
     
-    const [entity, operation, ...params] = queryKey;
+    const [entity, operation, ...params] = queryKey as string[];
     
     switch (entity) {
       case 'jobs':

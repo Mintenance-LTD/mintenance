@@ -40,7 +40,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     
     try {
       const statusFilter = selectedStatus === 'all' ? undefined : [selectedStatus as any];
-      const data = await QuoteBuilderService.getQuotes(user.id, { status: statusFilter });
+      const data = await QuoteBuilderService.getQuotes(user?.id || '', { status: statusFilter });
       setQuotes(data);
     } catch (error) {
       console.error('Error loading quotes:', error);
@@ -73,7 +73,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     
     try {
       const statusFilter = status === 'all' ? undefined : [status as any];
-      const data = await QuoteBuilderService.getQuotes(user.id, { status: statusFilter });
+      const data = await QuoteBuilderService.getQuotes(user?.id || '', { status: statusFilter });
       setQuotes(data);
     } catch (error) {
       Alert.alert('Error', 'Failed to filter quotes');

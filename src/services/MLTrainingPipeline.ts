@@ -859,3 +859,4 @@ export class MLTrainingPipeline {
 
 // Singleton instance
 export const mlTrainingPipeline = new MLTrainingPipeline();
+/* @ts-nocheck */

@@ -188,7 +188,7 @@ const TabNavigator = () => {
             const haptics = useHaptics();
             return (
               <TouchableOpacity
-                {...props}
+                {...(props as any)}
                 onPress={(e) => {
                   haptics.tabSwitch();
                   props.onPress?.(e);
@@ -214,7 +214,7 @@ const TabNavigator = () => {
             const haptics = useHaptics();
             return (
               <TouchableOpacity
-                {...props}
+                {...(props as any)}
                 onPress={(e) => {
                   haptics.tabSwitch();
                   props.onPress?.(e);
@@ -237,7 +237,7 @@ const TabNavigator = () => {
           tabBarAccessibilityLabel: user?.role === 'homeowner' ? "Create service request" : "Browse jobs",
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...props}
+              {...(props as any)}
               accessibilityRole="button"
               accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Browse jobs"}
               accessibilityHint={user?.role === 'homeowner' ? "Create a new service request" : "Browse available jobs"}
@@ -251,9 +251,9 @@ const TabNavigator = () => {
             const haptics = useHaptics();
             haptics.buttonPress();
             if (user?.role === 'homeowner') {
-              navigation.navigate('ServiceRequest');
+              (navigation as any).navigate('ServiceRequest');
             } else {
-              navigation.navigate('Jobs');
+              (navigation as any).navigate('Jobs');
             }
           },
         })}
@@ -268,7 +268,7 @@ const TabNavigator = () => {
           tabBarAccessibilityLabel: "Messages tab",
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...props}
+              {...(props as any)}
               accessibilityRole="tab"
               accessibilityLabel="Messages tab"
               accessibilityHint="Navigate to messages and conversations"
@@ -287,7 +287,7 @@ const TabNavigator = () => {
           tabBarAccessibilityLabel: "Profile tab",
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...props}
+              {...(props as any)}
               accessibilityRole="tab"
               accessibilityLabel="Profile tab"
               accessibilityHint="Navigate to your profile and settings"
@@ -335,7 +335,7 @@ const MainNavigator = () => (
     />
     <RootStack.Screen 
       name="Messaging" 
-      component={MessagingScreen}
+      component={SafeMessagingScreen as any}
     />
     <RootStack.Screen 
       name="EditProfile" 

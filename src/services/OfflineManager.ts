@@ -259,7 +259,7 @@ class OfflineManagerClass {
     
     switch (type) {
       case 'CREATE':
-        await MessagingService.sendMessage(data.jobId, data.senderId, data.message);
+        await MessagingService.sendMessage(data.jobId, data.receiverId, data.message, data.senderId);
         break;
       default:
         throw new Error(`Unsupported message action: ${type}`);
@@ -271,7 +271,7 @@ class OfflineManagerClass {
     
     switch (type) {
       case 'UPDATE':
-        await UserService.updateProfile(data.userId, data.updates);
+        await UserService.updateUserProfile(data.userId, data.updates);
         break;
       default:
         throw new Error(`Unsupported profile action: ${type}`);

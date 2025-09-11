@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { ContractorBusinessSuite, FinancialSummary } from '../services/ContractorBusinessSuite';
+import { contractorBusinessSuite, type FinancialSummary } from '../services/ContractorBusinessSuite';
 import { FinanceChart } from '../components/FinanceChart';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -40,7 +40,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     if (!user) return;
     
     try {
-      const data = await ContractorBusinessSuite.getFinancialSummary(user.id);
+      const data = await contractorBusinessSuite.getFinancialSummary(user.id);
       setFinancialData(data);
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -119,9 +119,9 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   const renderKPICard = (
     title: string,
     value: string,
-    change?: { value: number; isPositive: boolean },
     icon: string,
     color: string,
+    change?: { value: number; isPositive: boolean },
     onPress?: () => void
   ) => (
     <TouchableOpacity 
@@ -210,36 +210,36 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
               {renderKPICard(
                 'Total Revenue',
                 formatCurrency(financialData.monthly_revenue.reduce((sum, rev) => sum + rev, 0)),
-                { value: financialData.quarterly_growth, isPositive: financialData.quarterly_growth > 0 },
                 'cash',
                 theme.colors.primary,
+                { value: financialData.quarterly_growth, isPositive: financialData.quarterly_growth > 0 },
                 () => navigation.navigate('RevenueDetail')
               )}
               
               {renderKPICard(
                 'Outstanding',
                 formatCurrency(financialData.outstanding_invoices),
-                undefined,
                 'time',
                 theme.colors.warning,
+                undefined,
                 () => navigation.navigate('InvoiceManagement')
               )}
               
               {renderKPICard(
                 'Overdue',
                 formatCurrency(financialData.overdue_amount),
-                undefined,
                 'warning',
                 theme.colors.error,
+                undefined,
                 () => navigation.navigate('OverdueInvoices')
               )}
               
               {renderKPICard(
                 'Tax Due',
                 formatCurrency(financialData.tax_obligations),
-                undefined,
                 'receipt',
                 theme.colors.textSecondary,
+                undefined,
                 () => navigation.navigate('TaxCenter')
               )}
             </View>

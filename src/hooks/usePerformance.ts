@@ -3,7 +3,7 @@ import { performanceMonitor, PerformanceMetrics } from '../utils/performanceMoni
 import { logger } from '../utils/logger';
 
 export const usePerformance = () => {
-  const navigationStartRef = useRef<number>();
+  const navigationStartRef = useRef<number | undefined>(undefined);
   const apiTimersRef = useRef<Map<string, number>>(new Map());
 
   // Track navigation performance
@@ -55,7 +55,7 @@ export const usePerformance = () => {
 export const useFPSMonitoring = (enabled: boolean = __DEV__) => {
   const frameCount = useRef(0);
   const lastTime = useRef(Date.now());
-  const animationFrameId = useRef<number>();
+  const animationFrameId = useRef<number | null>(null);
 
   const measureFPS = useCallback(() => {
     frameCount.current++;

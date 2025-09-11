@@ -199,7 +199,7 @@ export class AuthService {
   }
 
   static onAuthStateChange(callback: (session: any) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((event: any, session: any) => {
       callback(session);
     });
   }

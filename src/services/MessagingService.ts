@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
+import { sanitizeText } from '../utils/sanitize';
 
 
 export interface Message {
@@ -45,13 +46,14 @@ export class MessagingService {
     attachmentUrl?: string
   ): Promise<Message> {
     try {
+      const safeMessageText = sanitizeText(messageText);
       const { data, error } = await supabase
         .from('messages')
         .insert([{
           job_id: jobId,
           sender_id: senderId,
           receiver_id: receiverId,
-          message_text: messageText,
+          message_text: safeMessageText,
           message_type: messageType,
           attachment_url: attachmentUrl,
           read: false,
@@ -224,7 +226,7 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload) => {
+          async (payload: any) => {
             try {
               // Fetch the complete message with sender info
               const { data, error } = await supabase
@@ -259,7 +261,7 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload) => {
+          async (payload: any) => {
             try {
               const { data, error } = await supabase
                 .from('messages')
@@ -285,7 +287,7 @@ export class MessagingService {
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === 'SUBSCRIBED') {
             logger.info(`Successfully subscribed to messages for job ${jobId}`);
           } else if (status === 'CLOSED') {

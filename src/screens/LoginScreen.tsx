@@ -53,7 +53,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!email || !password) {
       haptics.error();
-      Alert.alert(common.error(), t('auth.fillAllFields', 'Please fill in all fields'));
+      Alert.alert(String(common.error()), String(t('auth.fillAllFields', 'Please fill in all fields')));
       return;
     }
 
@@ -63,7 +63,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.loginSuccess();
     } catch (error: any) {
       haptics.loginFailed();
-      Alert.alert(t('auth.loginFailed', 'Login Failed'), getErrorMessage('loginFailed', error.message));
+      Alert.alert(String(t('auth.loginFailed', 'Login Failed')), String(getErrorMessage('loginFailed', error.message)));
     }
   };
 
@@ -104,15 +104,15 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               />
               <TextInput
                 style={styles.input}
-                placeholder={auth.email()}
+                placeholder={String(auth.email())}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel={auth.email()}
-                accessibilityHint={t('auth.emailHint', 'Enter your email address to sign in')}
+                accessibilityLabel={String(auth.email())}
+                accessibilityHint={String(t('auth.emailHint', 'Please enter your email address to sign in'))}
                 accessibilityRole="none"
                 textContentType="emailAddress"
                 autoComplete="email"
@@ -130,13 +130,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               />
               <TextInput
                 style={styles.input}
-                placeholder={auth.password()}
+                placeholder={String(auth.password())}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel={auth.password()}
-                accessibilityHint={t('auth.passwordHint', 'Enter your password to sign in')}
+                accessibilityLabel={String(auth.password())}
+                accessibilityHint={String(t('auth.passwordHint', 'Please enter your password to sign in'))}
                 accessibilityRole="none"
                 textContentType="password"
                 autoComplete="password"
@@ -190,10 +190,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   navigation.navigate('ForgotPassword');
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={auth.forgotPassword()}
-                accessibilityHint={t('auth.forgotPasswordHint', 'Double tap to reset your password')}
+                accessibilityLabel={String(auth.forgotPassword())}
+                accessibilityHint={String(t('auth.forgotPasswordHint', 'Double tap to reset your password'))}
               >
-                <Text style={[styles.linkText, linkText.textStyle]}>{auth.forgotPassword()}</Text>
+                <Text style={[styles.linkText, linkText.textStyle]}>{String(auth.forgotPassword())}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -203,10 +203,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   navigation.navigate('Register');
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={t('auth.signUpForAccount', 'Sign up for new account')}
-                accessibilityHint={t('auth.signUpHint', 'Double tap to create a new account')}
+                accessibilityLabel={String(t('auth.signUpForAccount', 'Sign up for new account'))}
+                accessibilityHint={String(t('auth.signUpHint', 'Double tap to create a new account'))}
               >
-                <Text style={[styles.linkText, linkText.textStyle]}>{auth.register()}</Text>
+                <Text style={[styles.linkText, linkText.textStyle]}>{String(auth.register())}</Text>
               </TouchableOpacity>
             </View>
           </View>

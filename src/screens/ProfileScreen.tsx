@@ -7,6 +7,7 @@ import { JobService } from '../services/JobService';
 import { Job } from '../types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import Button from '../components/ui/Button';
 
 
 const ProfileScreen: React.FC = () => {

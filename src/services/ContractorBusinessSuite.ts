@@ -332,10 +332,10 @@ class ContractorBusinessSuite {
       if (error) throw error;
 
       const totalJobs = jobs?.length || 0;
-      const completedJobs = jobs?.filter(job => job.status === 'completed').length || 0;
-      const cancelledJobs = jobs?.filter(job => job.status === 'cancelled').length || 0;
+      const completedJobs = jobs?.filter((job: any) => job.status === 'completed').length || 0;
+      const cancelledJobs = jobs?.filter((job: any) => job.status === 'cancelled').length || 0;
       
-      const totalRevenue = jobs?.reduce((sum, job) => {
+      const totalRevenue = jobs?.reduce((sum: number, job: any) => {
         return job.status === 'completed' ? sum + job.budget : sum;
       }, 0) || 0;
 
@@ -343,9 +343,9 @@ class ContractorBusinessSuite {
       const completionRate = totalJobs > 0 ? (completedJobs / totalJobs) * 100 : 0;
 
       // Calculate average client satisfaction
-      const ratings = jobs?.flatMap(job => job.reviews?.map(r => r.rating) || []) || [];
+      const ratings = jobs?.flatMap((job: any) => job.reviews?.map((r: any) => r.rating) || []) || [];
       const clientSatisfaction = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+        ? ratings.reduce((sum: number, rating: any) => sum + rating, 0) / ratings.length 
         : 0;
 
       // Calculate response time and other metrics
@@ -444,13 +444,13 @@ class ContractorBusinessSuite {
       const thisMonth = new Date();
       thisMonth.setDate(1);
       
-      const newClientsThisMonth = clients?.filter(client => 
+      const newClientsThisMonth = clients?.filter((client: any) => 
         new Date(client.created_at) >= thisMonth
       ).length || 0;
 
-      const repeatClients = clients?.filter(client => client.total_jobs > 1).length || 0;
+      const repeatClients = clients?.filter((client: any) => client.total_jobs > 1).length || 0;
       
-      const clientLifetimeValue = clients?.reduce((sum, client) => sum + client.total_spent, 0) || 0;
+      const clientLifetimeValue = clients?.reduce((sum: number, client: any) => sum + client.total_spent, 0) || 0;
       const avgLifetimeValue = totalClients > 0 ? clientLifetimeValue / totalClients : 0;
 
       // Calculate churn rate
@@ -910,10 +910,10 @@ class ContractorBusinessSuite {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const outstanding = invoices?.reduce((sum, inv) => sum + inv.total_amount, 0) || 0;
-    const overdue = invoices?.filter(inv => 
+    const outstanding = invoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+    const overdue = invoices?.filter((inv: any) => 
       new Date(inv.due_date) < new Date() && inv.status !== 'paid'
-    ).reduce((sum, inv) => sum + inv.total_amount, 0) || 0;
+    ).reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
 
     return {
       outstandingInvoices: outstanding,

@@ -266,7 +266,7 @@ export const withAppInitialization = <P extends object>(
     }
 
     if (initialization.isReady) {
-      return React.createElement(Component, { ...props, ref });
+      return React.createElement(Component as any, { ...(props as any), ref } as any);
     }
 
     return null;

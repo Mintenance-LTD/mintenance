@@ -38,20 +38,26 @@ export class IntegrationTestService {
     // Test 1: AI Analysis
     try {
       logger.debug('1️⃣ Testing AI Analysis...');
+      const nowIso = new Date().toISOString();
       const testJob: Job = {
         id: jobId,
         title: 'Kitchen Faucet Repair',
         description: 'Leaky kitchen faucet needs professional repair. Water dripping constantly.',
         location: 'Kitchen',
-        homeownerId: homeownerId,
-        contractorId: null,
+        homeowner_id: homeownerId,
+        contractor_id: undefined,
         status: 'posted',
         budget: jobAmount,
         category: 'plumbing',
         priority: 'high',
         photos: [], // Add test photo URLs if available
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        created_at: nowIso,
+        updated_at: nowIso,
+        // computed mirrors
+        homeownerId: homeownerId,
+        contractorId: undefined,
+        createdAt: nowIso,
+        updatedAt: nowIso,
       };
 
       const aiAnalysis = await RealAIAnalysisService.analyzeJobPhotos(testJob);
@@ -145,7 +151,7 @@ export class IntegrationTestService {
         success: true,
         notificationSent: true,
         unreadCount: notificationCount,
-        pushServiceReady: NotificationService.isAIServiceConfigured?.() || true,
+        pushServiceReady: true,
       };
       logger.debug('✅ Push Notifications completed');
     } catch (error) {
@@ -276,18 +282,24 @@ export class IntegrationTestService {
     // Test AI Analysis performance
     try {
       const start = Date.now();
+      const nowPerfIso = new Date().toISOString();
       const testJob: Job = {
         id: 'perf-test',
         title: 'Performance Test Job',
         description: 'Quick performance test',
         location: 'Test Location',
-        homeownerId: 'test-user',
-        contractorId: null,
+        homeowner_id: 'test-user',
+        contractor_id: undefined,
         status: 'posted',
         budget: 100,
         category: 'general',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        created_at: nowPerfIso,
+        updated_at: nowPerfIso,
+        // computed mirrors
+        homeownerId: 'test-user',
+        contractorId: undefined,
+        createdAt: nowPerfIso,
+        updatedAt: nowPerfIso,
       };
       
       await RealAIAnalysisService.analyzeJobPhotos(testJob);

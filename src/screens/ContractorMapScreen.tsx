@@ -138,8 +138,8 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
         address: contractor.address || 'Location not specified',
         distance: `${contractor.distance?.toFixed(1) || '0.0'} km`,
         pricing: 'Contact for pricing',
-        verified: contractor.totalJobsCompleted > 0,
-        responseTime: contractor.rating >= 4.5 ? '< 30 min' : '< 1 hour',
+        verified: (contractor.totalJobsCompleted ?? 0) > 0,
+        responseTime: (contractor.rating ?? 0) >= 4.5 ? '< 30 min' : '< 1 hour',
         phone: contractor.phone,
         profileImageUrl: contractor.profileImageUrl,
         skills: contractor.skills.map(skill => skill.skillName)
@@ -474,8 +474,6 @@ const styles = StyleSheet.create({
   },
   selectedMarker: {
     transform: [{ scale: 1.2 }],
-  },
-  selectedMarker: {
     backgroundColor: theme.colors.primary,
   },
   verifiedBadge: {
@@ -489,11 +487,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    bordercolor: theme.colors.textInverse,
+    borderColor: theme.colors.textInverse,
   },
   myLocationButton: {
     position: 'absolute',
-    bottom: selectedContractor ? 280 : 100,
+    bottom: 100,
     right: 20,
     width: 48,
     height: 48,

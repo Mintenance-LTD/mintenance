@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Job } from '../types';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 
 type BidSubmissionScreenRouteProp = RouteProp<RootStackParamList, 'BidSubmission'>;

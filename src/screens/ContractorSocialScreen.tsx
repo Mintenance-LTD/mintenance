@@ -184,7 +184,7 @@ const ContractorSocialScreen: React.FC = () => {
     try {
       const newPost = await ContractorSocialService.createPost({
         contractorId: user.id,
-        postType: selectedPostType,
+        type: selectedPostType as any,
         content: newPostContent.trim(),
         hashtags: extractHashtags(newPostContent),
       });

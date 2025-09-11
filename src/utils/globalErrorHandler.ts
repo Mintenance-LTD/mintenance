@@ -1,4 +1,7 @@
-import { ErrorUtils } from 'react-native';
+// Use the global ErrorUtils provided by React Native
+declare const ErrorUtils: {
+  setGlobalHandler: (handler: (error: any, isFatal?: boolean) => void) => void;
+};
 import { logger } from './logger';
 
 

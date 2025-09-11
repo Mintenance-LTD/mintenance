@@ -69,7 +69,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   // Mark messages as read when screen is focused
   useEffect(() => {
     if (user?.id && messages.length > 0) {
-      const unreadMessages = messages.some(msg => !msg.read && msg.receiverId === user.id);
+      const unreadMessages = messages.some((msg: any) => !msg.read && msg.receiverId === user.id);
       if (unreadMessages) {
         markAsReadMutation.mutate({ jobId, userId: user.id });
       }

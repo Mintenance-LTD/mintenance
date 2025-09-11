@@ -18,10 +18,9 @@ const StripeProvider: React.FC<Props> = ({ children }) => {
 
   return (
     <RNStripeProvider publishableKey={publishableKey}>
-      {children}
+      {children as any}
     </RNStripeProvider>
   );
 };
 
 export default StripeProvider;
-

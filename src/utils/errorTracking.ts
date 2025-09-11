@@ -429,7 +429,7 @@ export class ErrorTracker {
     ];
 
     criticalOperations.forEach(operation => {
-      Sentry.addGlobalEventProcessor((event) => {
+      Sentry.addGlobalEventProcessor((event: any) => {
         if (event.tags?.operation === operation) {
           event.level = 'error';
           event.contexts = event.contexts || {};

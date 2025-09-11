@@ -355,8 +355,8 @@ export class RealMLService {
           const contractorFeatures = this._extractContractorFeatures(contractor);
           const combinedFeatures = [...jobFeatures, ...contractorFeatures];
           
-          const inputTensor = tf.tensor2d([combinedFeatures]);
-          const prediction = matchingModel.predict(inputTensor) as tf.Tensor;
+      const inputTensor = tf.tensor2d([combinedFeatures]);
+      const prediction = matchingModel.predict(inputTensor) as MockTensor;
           const score = (await prediction.data())[0];
 
           inputTensor.dispose();
@@ -405,7 +405,7 @@ export class RealMLService {
         throw new Error('Sentiment model not available');
       }
 
-      const prediction = sentimentModel.predict(inputTensor) as tf.Tensor;
+      const prediction = sentimentModel.predict(inputTensor) as MockTensor;
       const results = await prediction.data();
 
       inputTensor.dispose();

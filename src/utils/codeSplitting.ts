@@ -354,7 +354,6 @@ export const useChunkPreloader = (chunkNames: string[]) => {
 
 // Performance monitoring hook
 export const useChunkPerformance = () => {
-  const React = require('react');
   const [metrics, setMetrics] = React.useState<ChunkMetrics[]>([]);
 
   React.useEffect(() => {

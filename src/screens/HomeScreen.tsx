@@ -849,12 +849,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.textInverse,
   },
-  contractorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
+  // contractorName style defined earlier; reuse existing to avoid duplicates
   contractorSpecialty: {
     fontSize: 13,
     color: theme.colors.textSecondary,

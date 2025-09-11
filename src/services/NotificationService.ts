@@ -234,8 +234,8 @@ export class NotificationService {
       if (error || !users?.length) return;
 
       const notifications = users
-        .filter(user => this.shouldSendNotification(type, user.notification_settings || {}))
-        .map(user => ({
+        .filter((user: any) => this.shouldSendNotification(type, user.notification_settings || {}))
+        .map((user: any) => ({
           to: user.push_token,
           title,
           body: message,
@@ -294,16 +294,16 @@ export class NotificationService {
     data?: any
   ): Promise<string> {
     try {
-      const identifier = await Notifications.scheduleNotificationAsync({
+    const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body: message,
           data,
           sound: 'default',
         },
-        trigger: typeof trigger === 'number' 
+        trigger: (typeof trigger === 'number' 
           ? { seconds: trigger }
-          : trigger,
+          : (trigger as any)) as any,
       });
 
       return identifier;
@@ -342,7 +342,7 @@ export class NotificationService {
 
       if (error) throw error;
 
-      return data.map(notification => ({
+      return data.map((notification: any) => ({
         id: notification.id,
         userId: notification.user_id,
         title: notification.title,

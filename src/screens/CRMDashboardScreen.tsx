@@ -13,10 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import { ContractorBusinessSuite, ClientAnalytics } from '../services/ContractorBusinessSuite';
+import { contractorBusinessSuite, type ClientAnalytics } from '../services/ContractorBusinessSuite';
 import { ClientCard, ClientData } from '../components/ClientCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { SearchBar } from '../components/SearchBar';
+import SearchBar from '../components/SearchBar';
 
 interface CRMDashboardScreenProps {
   navigation: StackNavigationProp<any>;
@@ -42,11 +42,8 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     if (!user) return;
     
     try {
-      const [clientsData, analyticsData] = await Promise.all([
-        ContractorBusinessSuite.getClients(user.id),
-        ContractorBusinessSuite.getClientAnalytics(user.id)
-      ]);
-      setClients(clientsData);
+      const analyticsData = await contractorBusinessSuite.getClientAnalytics(user.id);
+      setClients([]);
       setAnalytics(analyticsData);
     } catch (error) {
       console.error('Error loading CRM data:', error);

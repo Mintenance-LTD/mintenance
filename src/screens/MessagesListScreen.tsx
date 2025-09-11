@@ -79,8 +79,8 @@ const MessagesListScreen: React.FC = () => {
             <Text style={styles.emptySubtext}>Start messaging contractors about your projects!</Text>
           </View>
         ) : (
-          conversations.map((thread) => {
-            const otherParticipant = thread.participants.find(p => p.id !== thread.participants[0].id) || thread.participants[0];
+          conversations.map((thread: any) => {
+            const otherParticipant = thread.participants.find((p: any) => p.id !== thread.participants[0].id) || thread.participants[0];
             const formatTime = (timestamp: string) => {
               const date = new Date(timestamp);
               const now = new Date();
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary, // Green accent
     borderRadius: 6,
     borderWidth: 2,
-    bordercolor: theme.colors.textInverse,
+    borderColor: theme.colors.textInverse,
   },
   conversationContent: {
     flex: 1,

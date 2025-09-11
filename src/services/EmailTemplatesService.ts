@@ -378,7 +378,7 @@ export class EmailTemplatesService {
   }): Promise<{ success: boolean; email_id: string; error?: string }> {
     try {
       // If template_id is provided, process the template
-      let processedContent = {
+      let processedContent: { subject_line: string; text_content: string; html_content?: string } = {
         subject_line: emailData.subject_line,
         text_content: emailData.text_content,
         html_content: emailData.html_content
@@ -520,10 +520,10 @@ export class EmailTemplatesService {
 
       // Calculate basic metrics
       const totalSent = history?.length || 0;
-      const delivered = history?.filter(h => h.status === 'delivered').length || 0;
-      const opened = history?.filter(h => h.open_count > 0).length || 0;
-      const clicked = history?.filter(h => h.click_count > 0).length || 0;
-      const bounced = history?.filter(h => h.status === 'bounced').length || 0;
+      const delivered = history?.filter((h: any) => h.status === 'delivered').length || 0;
+      const opened = history?.filter((h: any) => h.open_count > 0).length || 0;
+      const clicked = history?.filter((h: any) => h.click_count > 0).length || 0;
+      const bounced = history?.filter((h: any) => h.status === 'bounced').length || 0;
 
       const summary: EmailAnalytics = {
         id: '',
@@ -535,9 +535,9 @@ export class EmailTemplatesService {
         emails_bounced: bounced,
         emails_failed: 0,
         unique_opens: opened,
-        total_opens: history?.reduce((sum, h) => sum + h.open_count, 0) || 0,
+        total_opens: history?.reduce((sum: number, h: any) => sum + h.open_count, 0) || 0,
         unique_clicks: clicked,
-        total_clicks: history?.reduce((sum, h) => sum + h.click_count, 0) || 0,
+        total_clicks: history?.reduce((sum: number, h: any) => sum + h.click_count, 0) || 0,
         unsubscribes: 0,
         complaints: 0,
         delivery_rate: totalSent > 0 ? (delivered / totalSent) * 100 : 0,

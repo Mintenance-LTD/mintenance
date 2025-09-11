@@ -76,22 +76,22 @@ export class UserService {
       if (todaysError) throw todaysError;
 
       // Calculate statistics
-      const activeJobs = jobs?.filter(job => ['assigned', 'in_progress'].includes(job.status)).length || 0;
-      const completedJobs = jobs?.filter(job => job.status === 'completed').length || 0;
+      const activeJobs = jobs?.filter((job: any) => ['assigned', 'in_progress'].includes(job.status)).length || 0;
+      const completedJobs = jobs?.filter((job: any) => job.status === 'completed').length || 0;
       
       // Calculate monthly earnings (current month)
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      const monthlyEarnings = jobs?.filter(job => {
+      const monthlyEarnings = (jobs as any[])?.filter((job: any) => {
         const jobDate = new Date(job.updated_at);
         return job.status === 'completed' && 
                jobDate.getMonth() === currentMonth && 
                jobDate.getFullYear() === currentYear;
-      }).reduce((total, job) => total + parseFloat(job.budget.toString()), 0) || 0;
+      }).reduce((total: number, job: any) => total + Number(job.budget || 0), 0) || 0;
 
       // Calculate average rating
-      const avgRating = reviews && reviews.length > 0 
-        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+      const avgRating = reviews && (reviews as any[]).length > 0 
+        ? (reviews as any[]).reduce((sum: number, review: any) => sum + Number(review.rating || 0), 0) / (reviews as any[]).length 
         : 0;
 
       // Calculate response time (mock for now - would need message timestamps)
@@ -183,7 +183,7 @@ export class UserService {
           .limit(10);
 
         if (!reviewError) {
-          reviews = reviewData.map(review => ({
+          reviews = reviewData.map((review: any) => ({
             rating: review.rating,
             comment: review.comment,
             reviewer: `${(review.reviewer as any)?.first_name || ''} ${(review.reviewer as any)?.last_name || ''}`.trim(),
@@ -312,7 +312,7 @@ export class UserService {
 
       // Calculate distances and filter by radius
       const nearbyContractors = contractors
-        .filter(contractor => {
+        .filter((contractor: any) => {
           const distance = this.calculateDistance(
             userLatitude,
             userLongitude,
@@ -321,7 +321,7 @@ export class UserService {
           );
           return distance <= radiusKm;
         })
-        .map(contractor => ({
+        .map((contractor: any) => ({
           id: contractor.id,
           email: contractor.email,
           first_name: contractor.first_name,
@@ -430,7 +430,7 @@ export class UserService {
             created_at: '',
             updated_at: '',
             skills: contractor.contractor_skills?.map((s: any) => ({ skillName: s.skill_name })) || [],
-            reviews: reviews?.map(review => ({
+            reviews: reviews?.map((review: any) => ({
               rating: review.rating,
               comment: review.comment,
               reviewer: 'You',

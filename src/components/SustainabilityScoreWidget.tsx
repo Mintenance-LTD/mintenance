@@ -384,7 +384,7 @@ export const SustainabilityScoreWidget: React.FC<SustainabilityScoreWidgetProps>
         {contractorId && (
           <TouchableOpacity
             style={styles.recalculateButton}
-            onPress={recalculate}
+            onPress={() => recalculate()}
             disabled={isRecalculating}
           >
             {isRecalculating ? (

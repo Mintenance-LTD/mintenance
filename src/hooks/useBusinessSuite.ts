@@ -537,10 +537,10 @@ export const useBusinessDashboard = (contractorId: string) => {
 
     // Quick actions needed
     actionItems: [
-      ...(financialSummary?.overdue_amount > 0 ? [{
+      ...(((financialSummary?.overdue_amount ?? 0) > 0) ? [{
         type: 'urgent' as const,
         title: 'Overdue Invoices',
-        description: `£${financialSummary.overdue_amount.toFixed(2)} in overdue payments`,
+        description: `£${(financialSummary?.overdue_amount ?? 0).toFixed(2)} in overdue payments`,
         action: 'Follow up with clients'
       }] : []),
       
@@ -606,7 +606,7 @@ export const businessSuiteUtils = {
       efficiency: Math.min(100, (metrics.completion_rate / 95) * 100), // 95% is excellent
       growth: Math.min(100, Math.max(0, (financialSummary.quarterly_growth + 20) / 40 * 100)), // -20% to +20% range
       satisfaction: (metrics.client_satisfaction / 5) * 100,
-      cashFlow: financialSummary.overdue_amount === 0 ? 100 : Math.max(0, 100 - (financialSummary.overdue_amount / 1000) * 10)
+      cashFlow: (financialSummary?.overdue_amount ?? 0) === 0 ? 100 : Math.max(0, 100 - ((financialSummary?.overdue_amount ?? 0) / 1000) * 10)
     };
 
     const overallScore = Object.values(scores).reduce((sum, score) => sum + score, 0) / 5;

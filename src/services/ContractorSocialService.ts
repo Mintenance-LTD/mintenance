@@ -48,9 +48,9 @@ export class ContractorSocialService {
         .select('post_id')
         .eq('contractor_id', contractorId);
 
-      const likedPostIds = new Set(userLikes?.map(like => like.post_id) || []);
+      const likedPostIds = new Set(userLikes?.map((like: any) => like.post_id) || []);
 
-      return posts?.map(post => this.mapToContractorPost(post, likedPostIds.has(post.id))) || [];
+      return posts?.map((post: any) => this.mapToContractorPost(post, likedPostIds.has(post.id))) || [];
     } catch (error) {
       logger.error('Error fetching feed posts:', error);
       throw error;
@@ -78,7 +78,7 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return posts?.map(post => this.mapToContractorPost(post, false)) || [];
+      return posts?.map((post: any) => this.mapToContractorPost(post, false)) || [];
     } catch (error) {
       logger.error('Error fetching contractor posts:', error);
       throw error;
@@ -87,31 +87,32 @@ export class ContractorSocialService {
 
   static async createPost(post: Partial<ContractorPost>): Promise<ContractorPost> {
     try {
+      const p: any = post as any;
       const { data, error } = await supabase
         .from('contractor_posts')
         .insert({
-          contractor_id: post.contractorId,
-          post_type: post.postType,
-          title: post.title,
-          content: post.content,
-          images: post.images || [],
-          job_id: post.jobId,
-          skills_used: post.skillsUsed,
-          materials_used: post.materialsUsed,
-          project_duration: post.projectDuration,
-          project_cost: post.projectCost,
-          help_category: post.helpCategory,
-          location_needed: post.locationNeeded,
-          urgency_level: post.urgencyLevel,
-          budget_range: post.budgetRange,
-          item_name: post.itemName,
-          item_condition: post.itemCondition,
-          rental_price: post.rentalPrice,
-          available_from: post.availableFrom,
-          available_until: post.availableUntil,
-          latitude: post.latitude,
-          longitude: post.longitude,
-          location_radius: post.locationRadius || 50
+          contractor_id: p.contractorId,
+          post_type: p.postType || p.type,
+          title: p.title,
+          content: p.content,
+          images: p.images || [],
+          job_id: p.jobId,
+          skills_used: p.skillsUsed,
+          materials_used: p.materialsUsed,
+          project_duration: p.projectDuration,
+          project_cost: p.projectCost,
+          help_category: p.helpCategory,
+          location_needed: p.locationNeeded,
+          urgency_level: p.urgencyLevel,
+          budget_range: p.budgetRange,
+          item_name: p.itemName,
+          item_condition: p.itemCondition,
+          rental_price: p.rentalPrice,
+          available_from: p.availableFrom,
+          available_until: p.availableUntil,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          location_radius: p.locationRadius || 50
         })
         .select()
         .single();
@@ -127,12 +128,13 @@ export class ContractorSocialService {
 
   static async updatePost(postId: string, updates: Partial<ContractorPost>): Promise<ContractorPost> {
     try {
+      const u: any = updates as any;
       const { data, error } = await supabase
         .from('contractor_posts')
         .update({
-          title: updates.title,
-          content: updates.content,
-          images: updates.images,
+          title: u.title,
+          content: u.content,
+          images: u.images,
           updated_at: new Date().toISOString()
         })
         .eq('id', postId)
@@ -224,7 +226,7 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return comments?.map(comment => this.mapToContractorPostComment(comment)) || [];
+      return comments?.map((comment: any) => this.mapToContractorPostComment(comment)) || [];
     } catch (error) {
       logger.error('Error fetching comments:', error);
       throw error;
@@ -326,7 +328,7 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return follows?.map(follow => ({
+      return follows?.map((follow: any) => ({
         id: follow.id,
         followerId: follow.follower_id,
         followingId: follow.following_id,
@@ -360,14 +362,14 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return {
+      return ({
         id: data.id,
         contractorId: data.contractor_id,
         endorserId: data.endorser_id,
         skillName: data.skill_name,
         endorsementNote: data.endorsement_note,
         createdAt: data.created_at
-      };
+      } as any) as ContractorEndorsement;
     } catch (error) {
       logger.error('Error creating endorsement:', error);
       throw error;
@@ -392,7 +394,7 @@ export class ContractorSocialService {
 
       if (error) throw error;
 
-      return endorsements?.map(endorsement => ({
+      return endorsements?.map((endorsement: any) => ({
         id: endorsement.id,
         contractorId: endorsement.contractor_id,
         endorserId: endorsement.endorser_id,
@@ -408,7 +410,7 @@ export class ContractorSocialService {
           role: 'contractor' as const,
           createdAt: ''
         } : undefined
-      })) || [];
+      }) as any) || [];
     } catch (error) {
       logger.error('Error fetching endorsements:', error);
       throw error;
@@ -418,10 +420,10 @@ export class ContractorSocialService {
   // ===== HELPER METHODS =====
 
   private static mapToContractorPost(data: any, isLikedByUser: boolean): ContractorPost {
-    return {
+    return ({
       id: data.id,
       contractorId: data.contractor_id,
-      postType: data.post_type,
+      type: data.post_type,
       title: data.title,
       content: data.content,
       images: data.images || [],
@@ -463,11 +465,11 @@ export class ContractorSocialService {
         role: 'contractor' as const,
         createdAt: ''
       } : undefined
-    };
+    } as any) as ContractorPost;
   }
 
   private static mapToContractorPostComment(data: any): ContractorPostComment {
-    return {
+    return ({
       id: data.id,
       postId: data.post_id,
       contractorId: data.contractor_id,
@@ -489,6 +491,6 @@ export class ContractorSocialService {
         role: 'contractor' as const,
         createdAt: ''
       } : undefined
-    };
+    } as any) as ContractorPostComment;
   }
 }

@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Job, Bid } from '../types';
+import { sanitizeText } from '../utils/sanitize';
 
 export class JobService {
   // Job management
@@ -14,12 +15,17 @@ export class JobService {
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
   }): Promise<Job> {
+    // Basic input sanitization
+    const safeTitle = sanitizeText(jobData.title).trim();
+    const safeDescription = sanitizeText(jobData.description).trim();
+    const safeLocation = sanitizeText(jobData.location).trim();
+
     const { data, error } = await supabase
       .from('jobs')
       .insert([{
-        title: jobData.title,
-        description: jobData.description,
-        location: jobData.location,
+        title: safeTitle,
+        description: safeDescription,
+        location: safeLocation,
         budget: jobData.budget,
         homeowner_id: jobData.homeownerId,
         category: jobData.category,

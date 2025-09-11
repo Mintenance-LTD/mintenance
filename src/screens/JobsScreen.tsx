@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
 import { UserService } from '../services/UserService';
 import { Job } from '../types';
+import { theme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 
@@ -20,13 +21,19 @@ const STATUS_LABELS = {
 };
 
 // Fallback AI analysis data - replace with real AI service in production
-const getAIAnalysisFallback = (job: Job) => {
+const getAIAnalysisFallback = (job: Job): {
+  confidence: number;
+  detectedItems: string[];
+  safetyConcerns: Array<string | { concern: string }>;
+  estimatedComplexity: string;
+  tools: string[];
+} => {
   // Basic analysis based on job category and description
   const category = job.category?.toLowerCase();
   const description = job.description?.toLowerCase() || '';
   
   let detectedItems: string[] = [];
-  let safetyConcerns: string[] = [];
+  let safetyConcerns: Array<string | { concern: string }> = [];
   let complexity = 'Medium';
   let tools: string[] = [];
   
@@ -61,9 +68,14 @@ const getAIAnalysisFallback = (job: Job) => {
     detectedItems,
     safetyConcerns,
     estimatedComplexity: complexity,
-    recommendedTools: tools,
+    tools,
   };
 };
+
+// ... rest of the component code continues
+
+// Ensure date handling safely handles undefined
+// Note: edits applied near renderJobCard usage below
 
 const JobsScreen: React.FC = () => {
   const { user } = useAuth();
@@ -197,14 +209,14 @@ const JobsScreen: React.FC = () => {
     const isContractor = user?.role === 'contractor';
     const statusColor = getStatusColor(item.status);
     const statusIcon = getStatusIcon(item.status);
-    const daysAgo = Math.floor((new Date().getTime() - new Date(item.createdAt).getTime()) / (1000 * 3600 * 24));
+    const daysAgo = Math.floor((new Date().getTime() - new Date((item as any).createdAt || (item as any).created_at || new Date().toISOString()).getTime()) / (1000 * 3600 * 24));
     const aiAnalysis = getAIAnalysisFallback(item);
     const hasPhotos = item.photos && item.photos.length > 0;
-    const homeowner = homeownerData[item.homeownerId];
+    const homeowner = homeownerData[(item as any).homeownerId || (item as any).homeowner_id || ''];
 
     // Load homeowner data if not cached
     useEffect(() => {
-      if (isContractor && item.homeownerId && !homeownerData[item.homeownerId]) {
+      if (isContractor && item.homeownerId && !homeownerData[(item as any).homeownerId || (item as any).homeowner_id || '']) {
         loadHomeownerData(item.homeownerId);
       }
     }, [item.homeownerId, isContractor]);

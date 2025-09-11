@@ -3,6 +3,7 @@
  * Advanced memory management for React Native applications
  */
 
+import React from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { logger } from './logger';
 
@@ -474,7 +475,7 @@ export const memoryManager = MemoryManager.getInstance();
 
 // React hook for memory management
 export const useMemoryCleanup = (cleanupFn?: () => void) => {
-  const React = require('react');
+  
   
   React.useEffect(() => {
     const unregister = cleanupFn ? memoryManager.registerCleanupCallback(cleanupFn) : null;
@@ -492,10 +493,10 @@ export const withMemoryTracking = <P extends object>(
   WrappedComponent: React.ComponentType<P>,
   componentName?: string
 ) => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
   
-  return React.forwardRef<any, P>((props, ref) => {
+  return React.forwardRef((props: any, ref: any) => {
     React.useEffect(() => {
       memoryManager.trackComponent(name, 'mount');
       

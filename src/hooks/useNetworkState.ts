@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import NetInfo, { NetInfoState, NetInfoStateType } from '@react-native-community/netinfo';
+import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { logger } from '../utils/logger';
 
 export interface NetworkState {
   isConnected: boolean;
   isInternetReachable: boolean;
-  type: NetInfoStateType;
+  type: NetInfoState['type'];
   isWifi: boolean;
   isCellular: boolean;
   isSlowConnection: boolean;
@@ -16,7 +16,7 @@ export const useNetworkState = () => {
   const [networkState, setNetworkState] = useState<NetworkState>({
     isConnected: true,
     isInternetReachable: true,
-    type: NetInfoStateType.wifi,
+    type: 'wifi',
     isWifi: false,
     isCellular: false,
     isSlowConnection: false,
@@ -30,8 +30,8 @@ export const useNetworkState = () => {
       const isConnected = state.isConnected ?? false;
       const isInternetReachable = state.isInternetReachable ?? false;
       const type = state.type;
-      const isWifi = type === NetInfoStateType.wifi;
-      const isCellular = type === NetInfoStateType.cellular;
+      const isWifi = type === 'wifi';
+      const isCellular = type === 'cellular';
 
       // Determine connection quality based on type and details
       let connectionQuality: NetworkState['connectionQuality'] = 'offline';

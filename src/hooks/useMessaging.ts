@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessagingService, Message, MessageThread } from '../services/MessagingService';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
@@ -216,7 +217,7 @@ export const useMessageThreadsWithRealTime = () => {
     const subscriptions: (() => void)[] = [];
 
     // Subscribe to each active conversation
-    threadsQuery.data.forEach((thread) => {
+    threadsQuery.data.forEach((thread: MessageThread) => {
       const unsubscribe = MessagingService.subscribeToJobMessages(
         thread.jobId,
         (newMessage) => {

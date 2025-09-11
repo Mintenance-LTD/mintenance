@@ -413,6 +413,16 @@ global.console = {
   error: jest.fn(),
 };
 
+// Ensure a stable online state in Node test environment
+// Prevents generic errors from being treated as network/offline
+if (typeof global.navigator === 'undefined') {
+  // @ts-ignore
+  global.navigator = { onLine: true };
+} else if (typeof global.navigator.onLine === 'undefined') {
+  // @ts-ignore
+  global.navigator.onLine = true;
+}
+
 // Provide ErrorUtils in Node test environment
 if (typeof global.ErrorUtils === 'undefined') {
   global.ErrorUtils = { setGlobalHandler: jest.fn() };

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ContractorPost, ContractorPostComment } from '../types';
 import { ContractorSocialService } from '../services/ContractorSocialService';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 

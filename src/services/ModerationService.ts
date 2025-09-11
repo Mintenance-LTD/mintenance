@@ -72,7 +72,7 @@ export class ModerationService {
 
       if (error) throw error;
 
-      return posts?.map(post => ({
+      return posts?.map((post: any) => ({
         id: post.id,
         contractorId: post.contractor_id,
         postType: post.post_type,
@@ -217,7 +217,7 @@ export class ModerationService {
     approved: boolean;
     reason?: string;
   }> {
-    const fullContent = `${post.title} ${post.content}`;
+    const fullContent = `${(post as any).title || ''} ${post.content || ''}`;
     const check = await this.checkContentForViolations(fullContent);
 
     if (check.isViolation) {
@@ -295,7 +295,7 @@ export class ModerationService {
 
       if (error) throw error;
 
-      const stats = data?.reduce((acc, post) => {
+      const stats = data?.reduce((acc: { totalPosts: number; activePosts: number; flaggedPosts: number; removedPosts: number }, post: any) => {
         acc.totalPosts++;
         if (post.is_active) acc.activePosts++;
         if (post.is_flagged) acc.flaggedPosts++;

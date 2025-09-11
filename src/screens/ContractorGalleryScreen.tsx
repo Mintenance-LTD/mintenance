@@ -72,13 +72,13 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
   const loadGalleryImages = async () => {
     setLoading(true);
     try {
-      const posts = await ContractorSocialService.getPostsByContractor(contractorId);
+      const posts: any[] = await ContractorSocialService.getPostsByContractor(contractorId);
       
       // Transform contractor posts to gallery images
       const galleryImages: GalleryImage[] = posts
-        .filter(post => post.images && post.images.length > 0)
-        .flatMap(post => 
-          post.images.map((imageUrl, index) => ({
+        .filter((post: any) => post.images && post.images.length > 0)
+        .flatMap((post: any) => 
+          post.images.map((imageUrl: any, index: number) => ({
             id: `${post.id}-${index}`,
             uri: imageUrl,
             title: post.title || 'Project Image',
@@ -158,7 +158,7 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
       }}
     >
       <Ionicons 
-        name={category.icon} 
+        name={category.icon as any} 
         size={20} 
         color={selectedCategory === category.id ? '#fff' : theme.colors.textSecondary} 
       />
@@ -486,7 +486,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+    // Use a semi-transparent overlay to improve text readability
+    backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 12,
   },
   imageTitle: {

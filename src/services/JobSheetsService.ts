@@ -838,20 +838,20 @@ export class JobSheetsService {
 
       const sheets = data || [];
       const totalSheets = sheets.length;
-      const completedSheets = sheets.filter(s => s.status === 'completed' || s.status === 'approved').length;
-      const pendingSheets = sheets.filter(s => ['created', 'in_progress', 'pending_review'].includes(s.status)).length;
+      const completedSheets = sheets.filter((s: any) => s.status === 'completed' || s.status === 'approved').length;
+      const pendingSheets = sheets.filter((s: any) => ['created', 'in_progress', 'pending_review'].includes(s.status)).length;
       
       const now = new Date();
-      const overdueSheets = sheets.filter(s => 
+      const overdueSheets = sheets.filter((s: any) => 
         s.due_date && 
         new Date(s.due_date) < now && 
         !['completed', 'approved'].includes(s.status)
       ).length;
 
       // Calculate average completion time (in hours)
-      const completedWithTimes = sheets.filter(s => s.started_at && s.completed_at);
+      const completedWithTimes = sheets.filter((s: any) => s.started_at && s.completed_at);
       const avgCompletionTime = completedWithTimes.length > 0
-        ? completedWithTimes.reduce((sum, s) => {
+        ? completedWithTimes.reduce((sum: number, s: any) => {
             const start = new Date(s.started_at!).getTime();
             const end = new Date(s.completed_at!).getTime();
             return sum + (end - start) / (1000 * 60 * 60); // Convert to hours
@@ -859,16 +859,16 @@ export class JobSheetsService {
         : 0;
 
       // Calculate average quality score
-      const sheetsWithQuality = sheets.filter(s => s.quality_score !== null);
+      const sheetsWithQuality = sheets.filter((s: any) => s.quality_score !== null);
       const avgQualityScore = sheetsWithQuality.length > 0
-        ? sheetsWithQuality.reduce((sum, s) => sum + (s.quality_score || 0), 0) / sheetsWithQuality.length
+        ? sheetsWithQuality.reduce((sum: number, s: any) => sum + (s.quality_score || 0), 0) / sheetsWithQuality.length
         : 0;
 
       // Calculate completion rate
       const completionRate = totalSheets > 0 ? (completedSheets / totalSheets) * 100 : 0;
 
       // Calculate on-time completion rate
-      const completedOnTime = sheets.filter(s => 
+      const completedOnTime = sheets.filter((s: any) => 
         s.completed_at && 
         s.due_date && 
         new Date(s.completed_at) <= new Date(s.due_date)

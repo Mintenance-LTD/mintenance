@@ -517,7 +517,7 @@ export class QuoteBuilderService {
       if (error) throw error;
 
       if (quoteData.status) {
-        await this.trackQuoteInteraction(quoteId, 'status_change', {
+        await this.trackQuoteInteraction(quoteId, 'shared', {
           new_status: quoteData.status,
           timestamp: new Date().toISOString()
         });
@@ -625,15 +625,15 @@ export class QuoteBuilderService {
 
       const quotes = data || [];
       const totalQuotes = quotes.length;
-      const draftQuotes = quotes.filter(q => q.status === 'draft').length;
-      const sentQuotes = quotes.filter(q => q.status === 'sent').length;
-      const acceptedQuotes = quotes.filter(q => q.status === 'accepted').length;
-      const rejectedQuotes = quotes.filter(q => q.status === 'rejected').length;
+      const draftQuotes = quotes.filter((q: any) => q.status === 'draft').length;
+      const sentQuotes = quotes.filter((q: any) => q.status === 'sent').length;
+      const acceptedQuotes = quotes.filter((q: any) => q.status === 'accepted').length;
+      const rejectedQuotes = quotes.filter((q: any) => q.status === 'rejected').length;
 
-      const totalValue = quotes.reduce((sum, q) => sum + q.total_amount, 0);
+      const totalValue = quotes.reduce((sum: number, q: any) => sum + (q.total_amount || 0), 0);
       const acceptedValue = quotes
-        .filter(q => q.status === 'accepted')
-        .reduce((sum, q) => sum + q.total_amount, 0);
+        .filter((q: any) => q.status === 'accepted')
+        .reduce((sum: number, q: any) => sum + (q.total_amount || 0), 0);
 
       const averageQuoteValue = totalQuotes > 0 ? totalValue / totalQuotes : 0;
       const acceptanceRate = sentQuotes > 0 ? (acceptedQuotes / sentQuotes) * 100 : 0;

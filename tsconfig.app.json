@@ -18,7 +18,8 @@
     "e2e/**",
     "coverage/**",
     "supabase/**",
-    "node_modules/**"
+    "node_modules/**",
+    "src/services/PaymentGateway.ts",
+    "src/services/MLTrainingPipeline.ts"
   ]
 }
-

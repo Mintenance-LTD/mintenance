@@ -10,6 +10,7 @@
  * - Resource utilization monitoring
  */
 
+import React from 'react';
 import { logger } from './logger';
 import { errorMonitoring } from './errorMonitoring';
 import { memoryManager } from './memoryManager';
@@ -524,7 +525,7 @@ export class PerformanceBudgetManager {
   exportMetrics(): {
     budgets: Record<string, PerformanceBudget>;
     metrics: Record<string, PerformanceMetrics[]>;
-    systemHealth: ReturnType<typeof this.getSystemHealth>;
+    systemHealth: ReturnType<PerformanceBudgetManager['getSystemHealth']>;
   } {
     const budgets: Record<string, PerformanceBudget> = {};
     const metrics: Record<string, PerformanceMetrics[]> = {};
@@ -796,7 +797,6 @@ export const withPerformanceEnforcement = <P extends object>(
   componentName?: string,
   performanceBudget?: Partial<PerformanceBudget['budgets']>
 ) => {
-  const React = require('react');
   const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
   
   return React.forwardRef<any, P>((props, ref) => {
@@ -817,7 +817,7 @@ export const withPerformanceEnforcement = <P extends object>(
       };
     }, []);
     
-    return React.createElement(WrappedComponent, { ...props, ref });
+    return React.createElement(WrappedComponent as any, { ...(props as any), ref } as any);
   });
 };
 
@@ -826,7 +826,6 @@ export const usePerformanceMonitoring = (
   componentName: string,
   performanceBudget?: number
 ) => {
-  const React = require('react');
   const [renderCount, setRenderCount] = React.useState(0);
   const mountTime = React.useRef(Date.now());
   

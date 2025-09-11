@@ -37,7 +37,7 @@ export class ContractorService {
       if (error) throw error;
 
       const contractorsWithDistance = contractors
-        .map(contractor => {
+        .map((contractor: any) => {
           const distance = this.calculateDistance(
             homeownerLocation.latitude,
             homeownerLocation.longitude,
@@ -50,8 +50,8 @@ export class ContractorService {
             distance
           };
         })
-        .filter(contractor => contractor.distance <= radiusKm)
-        .sort((a, b) => a.distance - b.distance);
+        .filter((contractor: any) => contractor.distance <= radiusKm)
+        .sort((a: any, b: any) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -69,7 +69,7 @@ export class ContractorService {
 
       if (matchError) throw matchError;
 
-      const matchedContractorIds = matches?.map(m => m.contractor_id) || [];
+      const matchedContractorIds = matches?.map((m: any) => m.contractor_id) || [];
 
       const { data: contractors, error } = await supabase
         .from('users')
@@ -96,7 +96,7 @@ export class ContractorService {
       if (error) throw error;
 
       const contractorsWithDistance = contractors
-        .map(contractor => ({
+        .map((contractor: any) => ({
           ...this.mapUserToContractorProfile(contractor),
           distance: this.calculateDistance(
             location.latitude,
@@ -105,8 +105,8 @@ export class ContractorService {
             contractor.longitude
           )
         }))
-        .filter(contractor => contractor.distance <= 25)
-        .sort((a, b) => a.distance - b.distance);
+        .filter((contractor: any) => contractor.distance <= 25)
+        .sort((a: any, b: any) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -172,7 +172,7 @@ export class ContractorService {
 
       if (error) throw error;
 
-      return matches?.map(match => this.mapUserToContractorProfile(match.contractor)) || [];
+      return matches?.map((match: any) => this.mapUserToContractorProfile(match.contractor)) || [];
     } catch (error) {
       logger.error('Error fetching liked contractors:', error);
       throw error;
@@ -253,6 +253,10 @@ export class ContractorService {
     return {
       id: user.id,
       email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,

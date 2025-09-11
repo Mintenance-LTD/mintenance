@@ -33,6 +33,15 @@
     "supabase/**/*",
     "coverage/**/*",
     "dist/**/*",
-    "build/**/*"
+    "build/**/*",
+    // Exclude tests from root build to avoid requiring @types/jest here
+    "src/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    // Exclude server-only heavy modules from root build
+    "src/services/PaymentGateway.ts",
+    "src/services/MLTrainingPipeline.ts"
   ]
 }

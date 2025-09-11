@@ -64,6 +64,12 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     refetchJob();
   };
 
+  const handleAcceptBid = (bidId: string) => {
+    logger.info('Accept bid pressed', { jobId, bidId });
+    // TODO: wire to bid acceptance service
+    Alert.alert('Bid', 'Accept bid action');
+  };
+
   const renderBidCard = ({ item: bid }: { item: Bid }) => {
     const isAccepted = bid.status === 'accepted';
     const isPending = bid.status === 'pending';
@@ -240,7 +246,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.sectionTitle}>Photos</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.photosList}>
-                  {job.photos.map((photo, index) => (
+                  {job.photos.map((photo: string, index: number) => (
                     <Image key={index} source={{ uri: photo }} style={styles.jobPhoto} />
                   ))}
                 </View>
@@ -284,8 +290,8 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 {aiAnalysis.safetyConcerns && aiAnalysis.safetyConcerns.length > 0 && (
                   <View style={styles.safetyConcerns}>
                     <Text style={styles.concernsTitle}>Safety Concerns:</Text>
-                    {aiAnalysis.safetyConcerns.map((concern, index) => (
-                      <Text key={index} style={styles.concernText}>• {concern}</Text>
+                    {aiAnalysis.safetyConcerns.map((c: { concern: string }, index: number) => (
+                      <Text key={index} style={styles.concernText}>• {c.concern}</Text>
                     ))}
                   </View>
                 )}
@@ -567,6 +573,126 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Added bid-related styles referenced in renderBidCard
+  bidCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    ...theme.shadows.base,
+  },
+  acceptedBidCard: {
+    borderColor: theme.colors.secondary,
+    backgroundColor: theme.colors.surface,
+  },
+  bidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  contractorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  contractorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contractorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  bidMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  contractorRating: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  bidDate: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+  },
+  bidAmountContainer: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  bidAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  acceptedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  acceptedText: {
+    fontSize: 12,
+    color: theme.colors.secondary,
+    fontWeight: '600',
+  },
+  bidDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  bidFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bidActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  acceptButton: {
+    backgroundColor: theme.colors.secondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  acceptButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rejectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  rejectedText: {
+    fontSize: 12,
+    color: theme.colors.error,
+    fontWeight: '600',
   },
 });
 
