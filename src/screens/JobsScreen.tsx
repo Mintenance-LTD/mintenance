@@ -21,13 +21,7 @@ import { logger } from '../utils/logger';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
 
-const STATUS_LABELS = {
-  all: 'All Jobs',
-  posted: 'Open',
-  assigned: 'Assigned',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-};
+// STATUS_LABELS constant removed as unused
 
 // Fallback AI analysis data - replace with real AI service in production
 const getAIAnalysisFallback = (
@@ -93,7 +87,7 @@ const JobsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');

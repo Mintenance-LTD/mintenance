@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { PaymentService } from '../services/PaymentService';
 import { useAuth } from '../contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
+// Removed unused Ionicons import
 import { theme } from '../theme';
 import { StripePaymentForm } from '../components/StripePaymentForm';
 import { config } from '../config/environment';

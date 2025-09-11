@@ -28,7 +28,7 @@ const ProfileScreen: React.FC = () => {
     responseTime: '< 2h',
     joinDate: '',
   });
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     loadUserStats();

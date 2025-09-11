@@ -17,7 +17,6 @@ import {
   QuoteBuilderService,
   CreateQuoteData,
   QuoteTemplate,
-  QuoteLineItemTemplate,
 } from '../services/QuoteBuilderService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -69,8 +68,8 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
 
   // Line items state
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [showLineItemModal, setShowLineItemModal] = useState(false);
-  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [, setShowLineItemModal] = useState(false);
+  const [, setEditingItemIndex] = useState<number | null>(null);
 
   // Template state
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
@@ -146,7 +145,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
     setLineItems(updatedItems);
   };
 
-  const saveLineItem = (item: LineItem) => {
+  /* const saveLineItem = (item: LineItem) => {
     if (editingItemIndex !== null) {
       const updatedItems = [...lineItems];
       updatedItems[editingItemIndex] = item;
@@ -159,7 +158,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
     }
     setShowLineItemModal(false);
     setEditingItemIndex(null);
-  };
+  }; */
 
   const applyTemplate = async (templateId: string) => {
     try {

@@ -16,10 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/AppNavigator';
 import { theme } from '../theme';
-import {
-  useAccessibleText,
-  useAccessibleColors,
-} from '../hooks/useAccessibleText';
+import { useAccessibleText } from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
 import Button from '../components/ui/Button';
@@ -46,7 +43,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
   useAccessibleText(16); // inputText (style uses fixed size)
-  const { colors } = useAccessibleColors();
+  // const { colors } = useAccessibleColors();
 
   // Haptic feedback
   const haptics = useHaptics();

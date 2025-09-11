@@ -6,13 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { JobService } from '../services/JobService';
 import {
   UserService,
   ContractorStats,

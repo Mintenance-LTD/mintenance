@@ -27,7 +27,7 @@ interface Props {
   navigation: RegisterScreenNavigationProp;
 }
 
-const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');

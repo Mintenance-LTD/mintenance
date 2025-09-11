@@ -55,10 +55,10 @@ interface CancellationReason {
   reason: string;
 }
 
-const BookingStatusScreen: React.FC<Props> = ({ route, navigation }) => {
+const BookingStatusScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const haptics = useHaptics();
-  const { jobId } = route?.params || {};
+  // jobId not currently used; omitted
 
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);

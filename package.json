@@ -47,8 +47,9 @@
     "performance:monitor": "node -e \"console.log('Performance monitoring integrated into app. Check logs during development.')\"",
     "performance:report": "node -e \"const fs = require('fs'); if (fs.existsSync('bundle-analysis-report.json')) { console.log(fs.readFileSync('bundle-analysis-report.json', 'utf8')); } else { console.log('No performance report found. Run npm run performance:check first.'); }\"",
     "fix:typescript": "node scripts/fix-typescript-warnings.js",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+    "lint:all": "eslint . --ext .ts,.tsx,.js,.jsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "quality:check": "npm run type-check && npm run lint && npm run format:check && npm test"

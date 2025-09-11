@@ -13,10 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  contractorBusinessSuite,
-  type Invoice,
-} from '../services/ContractorBusinessSuite';
+import { type Invoice } from '../services/ContractorBusinessSuite';
 import { InvoiceCard } from '../components/InvoiceCard';
 import Button from '../components/ui/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';

@@ -11,14 +11,13 @@ import {
   FlatList,
   Alert,
   Share,
-  ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext';
 import { ContractorSocialService } from '../services/ContractorSocialService';
 import { logger } from '../utils/logger';
 
@@ -48,14 +47,13 @@ interface GalleryImage {
 
 const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
   const { contractorId, contractorName } = route.params;
-  const { user } = useAuth();
   const haptics = useHaptics();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const categories = [
     { id: 'all', name: 'All Work', icon: 'grid-outline' },
@@ -83,8 +81,8 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
       const galleryImages: GalleryImage[] = posts
         .filter((post: any) => post.images && post.images.length > 0)
         .flatMap((post: any) =>
-          post.images.map((imageUrl: any, index: number) => ({
-            id: `${post.id}-${index}`,
+          post.images.map((imageUrl: any, _index: number) => ({
+            id: `${post.id}-${_index}`,
             uri: imageUrl,
             title: post.title || 'Project Image',
             description: post.content || 'No description available',
@@ -189,7 +187,7 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderImageItem = (image: GalleryImage, index: number) => {
+  const renderImageItem = (image: GalleryImage, _index: number) => {
     const itemWidth = (width - 60) / 2; // Account for padding and gap
 
     return (

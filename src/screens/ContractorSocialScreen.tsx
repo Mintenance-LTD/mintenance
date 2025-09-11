@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,9 +18,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
 import { SkeletonPostCard } from '../components/SkeletonLoader';
-import { AnimationUtils, AnimatedTouchableOpacity } from '../utils/animations';
+import { AnimationUtils } from '../utils/animations';
 import { ContractorSocialService } from '../services/ContractorSocialService';
-import { ContractorPost, ContractorPostType } from '../types';
+import { ContractorPostType } from '../types';
 
 interface FeedPost {
   id: string;
@@ -148,7 +148,7 @@ const ContractorSocialScreen: React.FC = () => {
     );
   };
 
-  const handleComment = (postId: string) => {
+  const handleComment = (_postId: string) => {
     haptics.buttonPress();
     Alert.alert(
       'Comments',
@@ -157,7 +157,7 @@ const ContractorSocialScreen: React.FC = () => {
     );
   };
 
-  const handleShare = (postId: string) => {
+  const handleShare = (_postId: string) => {
     haptics.buttonPress();
     setPosts(
       posts.map((post) =>

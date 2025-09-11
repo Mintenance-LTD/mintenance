@@ -19,7 +19,6 @@ import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
-import { ContractorProfile } from '../types';
 
 interface ContractorMapParams {
   contractorId?: string;
@@ -235,7 +234,7 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  const handleCall = (contractor: ContractorLocation) => {
+  const handleCall = (_contractor: ContractorLocation) => {
     // In a real app, this would use the contractor's phone number
     Linking.openURL('tel:+1234567890');
   };
@@ -255,13 +254,12 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
     setSearchQuery(query);
     // In a real app, this would filter contractors based on search
     if (query.trim()) {
-      const filtered = contractors.filter(
-        (contractor) =>
-          contractor.name.toLowerCase().includes(query.toLowerCase()) ||
-          contractor.specialty.toLowerCase().includes(query.toLowerCase()) ||
-          contractor.address.toLowerCase().includes(query.toLowerCase())
-      );
       // Could update map to show only filtered results
+      // const filtered = contractors.filter((c) =>
+      //   c.name.toLowerCase().includes(query.toLowerCase()) ||
+      //   c.specialty.toLowerCase().includes(query.toLowerCase()) ||
+      //   c.address.toLowerCase().includes(query.toLowerCase())
+      // );
     }
   };
 

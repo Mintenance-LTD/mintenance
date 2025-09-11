@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { PaymentService } from '../services/PaymentService';
+// Removed unused PaymentService import
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
 

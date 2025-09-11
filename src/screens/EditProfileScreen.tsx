@@ -18,7 +18,7 @@ import { AuthService } from '../services/AuthService';
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // Form state

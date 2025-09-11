@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { logger } from '../utils/logger';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +17,7 @@ import ContractorMapView from '../components/ContractorMapView';
 import ContractorDiscoverView from '../components/ContractorDiscoverView';
 import { theme } from '../theme';
 
-const { height: screenHeight } = Dimensions.get('window');
+// Removed unused screen height calculation
 
 type ViewMode = 'map' | 'discover';
 

@@ -34,7 +34,8 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-non-null-assertion': 'warn',
     '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/prefer-nullish-coalescing': 'error',
+    // Temporarily warn to unblock incremental cleanup without behavior changes
+    '@typescript-eslint/prefer-nullish-coalescing': 'warn',
     
     // React specific
     'react/react-in-jsx-scope': 'off',

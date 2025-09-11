@@ -40,7 +40,7 @@ interface PaymentMethod {
 }
 
 const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId, amount, contractorId, jobTitle } = route.params || {};
+  const { jobId, amount, jobTitle } = route.params || {};
   const haptics = useHaptics();
   const [selectedMethod, setSelectedMethod] =
     useState<PaymentMethodType | null>(null);

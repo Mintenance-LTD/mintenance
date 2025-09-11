@@ -5,8 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  FlatList,
   Image,
   ActivityIndicator,
 } from 'react-native';
@@ -14,11 +12,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AIAnalysisService, AIAnalysis } from '../services/AIAnalysisService';
 import { useAuth } from '../contexts/AuthContext';
-import { Job, Bid } from '../types';
+import { Job } from '../types';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
-import { useJob, useJobBids } from '../hooks/useJobs';
+import { useJob } from '../hooks/useJobs';
 import { JobStatusTracker } from '../components/JobStatusTracker';
 import { ContractorAssignment } from '../components/ContractorAssignment';
 import { theme } from '../theme';
@@ -47,11 +45,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     error: jobError,
     refetch: refetchJob,
   } = useJob(jobId);
-  const {
-    data: bids = [],
-    isLoading: bidsLoading,
-    error: bidsError,
-  } = useJobBids(jobId);
+  // Bids not used in this screen currently
 
   // Load AI analysis when job data is available
   useEffect(() => {
@@ -85,13 +79,12 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     refetchJob();
   };
 
-  const handleAcceptBid = (bidId: string) => {
-    logger.info('Accept bid pressed', { jobId, bidId });
-    // TODO: wire to bid acceptance service
-    Alert.alert('Bid', 'Accept bid action');
-  };
+  // const handleAcceptBid = (bidId: string) => {
+  //   logger.info('Accept bid pressed', { jobId, bidId });
+  //   Alert.alert('Bid', 'Accept bid action');
+  // };
 
-  const renderBidCard = ({ item: bid }: { item: Bid }) => {
+  /* const renderBidCard = ({ item: bid }: { item: Bid }) => {
     const isAccepted = bid.status === 'accepted';
     const isPending = bid.status === 'pending';
     const daysAgo = Math.floor(
@@ -167,9 +160,9 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </View>
     );
-  };
+  }; */
 
-  const getStatusColor = (status: string) => {
+  /* const getStatusColor = (status: string) => {
     switch (status) {
       case 'accepted':
         return '#34C759';
@@ -178,9 +171,9 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       default:
         return '#8E8E93';
     }
-  };
+  }; */
 
-  const getJobStatusColor = (status: string) => {
+  /* const getJobStatusColor = (status: string) => {
     switch (status) {
       case 'posted':
         return '#007AFF';
@@ -193,9 +186,9 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       default:
         return '#8E8E93';
     }
-  };
+  }; */
 
-  const getJobStatusIcon = (status: string) => {
+  /* const getJobStatusIcon = (status: string) => {
     switch (status) {
       case 'posted':
         return 'radio-button-on';
@@ -208,9 +201,9 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       default:
         return 'help-circle';
     }
-  };
+  }; */
 
-  const formatJobStatus = (status: string) => {
+  /* const formatJobStatus = (status: string) => {
     switch (status) {
       case 'posted':
         return 'Open for Bids';
@@ -223,7 +216,7 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       default:
         return status;
     }
-  };
+  }; */
 
   // Loading state
   if (jobLoading) {

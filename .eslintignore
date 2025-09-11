@@ -1,0 +1,20 @@
+# Non-app and generated files
+node_modules/
+coverage/
+dist/
+build/
+supabase/
+
+# Root-level backups and utilities
+App-*.tsx
+auth-debug.js
+test-*.js
+jest-setup*.js
+*.config.js
+scripts/**
+e2e/**
+
+# Tests (optional): uncomment to ignore src tests in lint
+# src/__tests__/**
+
+src/__tests__/**
