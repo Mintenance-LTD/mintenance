@@ -26,8 +26,9 @@ interface Props {
 
 const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
   const { user } = useAuth();
-  const [liked, setLiked] = useState(post.isLikedByUser || false);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
+  const p = post as any;
+  const [liked, setLiked] = useState<boolean>(p.isLikedByUser || false);
+  const [likesCount, setLikesCount] = useState<number>(p.likesCount || 0);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<ContractorPostComment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -39,7 +40,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
     try {
       const isNowLiked = await ContractorSocialService.toggleLike(post.id, user.id);
       setLiked(isNowLiked);
-      setLikesCount(prev => isNowLiked ? prev + 1 : prev - 1);
+      setLikesCount((prev: number) => (isNowLiked ? prev + 1 : Math.max(0, prev - 1)));
     } catch (error) {
       logger.error('Error toggling like:', error);
       Alert.alert('Error', 'Failed to update like status');
@@ -85,7 +86,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
   };
 
   const getPostTypeIcon = () => {
-    switch (post.postType) {
+    switch (p.postType) {
       case 'work_showcase':
         return 'camera-outline';
       case 'help_request':
@@ -102,13 +103,13 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
   };
 
   const getPostTypeColor = () => {
-    switch (post.postType) {
+    switch (p.postType) {
       case 'work_showcase':
         return '#4CD964';
       case 'help_request':
         return '#FF9500';
       case 'tip_share':
-        return '#007AFF';
+        return theme.colors.info;
       case 'equipment_share':
         return '#5856D6';
       case 'referral_request':
@@ -119,7 +120,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
   };
 
   const getPostTypeLabel = () => {
-    switch (post.postType) {
+    switch (p.postType) {
       case 'work_showcase':
         return 'Work Showcase';
       case 'help_request':
@@ -154,39 +155,39 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
       <View style={styles.header}>
         <View style={styles.authorInfo}>
           <View style={styles.avatar}>
-            {post.contractor?.profileImageUrl ? (
+            {p.contractor?.profileImageUrl ? (
               <Image
-                source={{ uri: post.contractor.profileImageUrl }}
+                source={{ uri: p.contractor.profileImageUrl }}
                 style={styles.avatarImage}
               />
             ) : (
               <Text style={styles.avatarText}>
-                {post.contractor?.firstName?.[0]}{post.contractor?.lastName?.[0]}
+                {p.contractor?.firstName?.[0]}{p.contractor?.lastName?.[0]}
               </Text>
             )}
           </View>
           <View style={styles.authorDetails}>
             <Text style={styles.authorName}>
-              {post.contractor?.firstName} {post.contractor?.lastName}
+              {p.contractor?.firstName} {p.contractor?.lastName}
             </Text>
             <View style={styles.postMeta}>
               <View style={[styles.postTypeBadge, { backgroundColor: getPostTypeColor() }]}>
                 <Ionicons name={getPostTypeIcon()} size={12} color="#fff" />
                 <Text style={styles.postTypeText}>{getPostTypeLabel()}</Text>
               </View>
-              <Text style={styles.timeText}>{formatTimeAgo(post.createdAt)}</Text>
+              <Text style={styles.timeText}>{formatTimeAgo(p.createdAt)}</Text>
             </View>
           </View>
         </View>
         
-        {post.urgencyLevel && (
+        {p.urgencyLevel && (
           <View style={[
             styles.urgencyBadge,
-            { backgroundColor: post.urgencyLevel === 'high' ? '#FF3B30' : 
-                               post.urgencyLevel === 'medium' ? '#FF9500' : '#4CD964' }
+            { backgroundColor: p.urgencyLevel === 'high' ? '#FF3B30' : 
+                               p.urgencyLevel === 'medium' ? '#FF9500' : '#4CD964' }
           ]}>
             <Text style={styles.urgencyText}>
-              {post.urgencyLevel.toUpperCase()}
+              {p.urgencyLevel.toUpperCase()}
             </Text>
           </View>
         )}
@@ -194,15 +195,15 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>{post.title}</Text>
-        <Text style={styles.description}>{post.content}</Text>
+        <Text style={styles.title}>{p.title}</Text>
+        <Text style={styles.description}>{p.content}</Text>
 
         {/* Skills Used */}
-        {post.skillsUsed && post.skillsUsed.length > 0 && (
+        {p.skillsUsed && p.skillsUsed.length > 0 && (
           <View style={styles.skillsContainer}>
             <Text style={styles.skillsLabel}>Skills used:</Text>
             <View style={styles.skillsRow}>
-              {post.skillsUsed.map((skill, index) => (
+              {p.skillsUsed.map((skill: string, index: number) => (
                 <View key={index} style={styles.skillTag}>
                   <Text style={styles.skillText}>{skill}</Text>
                 </View>
@@ -212,43 +213,43 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
         )}
 
         {/* Project Details */}
-        {post.postType === 'work_showcase' && (
+        {p.postType === 'work_showcase' && (
           <View style={styles.projectDetails}>
-            {post.projectDuration && (
+            {p.projectDuration && (
               <View style={styles.detailItem}>
                 <Ionicons name="time-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>{post.projectDuration}h duration</Text>
+                <Text style={styles.detailText}>{p.projectDuration}h duration</Text>
               </View>
             )}
-            {post.projectCost && (
+            {p.projectCost && (
               <View style={styles.detailItem}>
                 <Ionicons name="cash-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>${post.projectCost}</Text>
+                <Text style={styles.detailText}>${p.projectCost}</Text>
               </View>
             )}
           </View>
         )}
 
         {/* Equipment/Rental Details */}
-        {post.postType === 'equipment_share' && (
+        {p.postType === 'equipment_share' && (
           <View style={styles.equipmentDetails}>
             <View style={styles.detailItem}>
               <Ionicons name="build-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>{post.itemName}</Text>
+              <Text style={styles.detailText}>{p.itemName}</Text>
             </View>
-            {post.rentalPrice && (
+            {p.rentalPrice && (
               <View style={styles.detailItem}>
                 <Ionicons name="cash-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>${post.rentalPrice}/day</Text>
+                <Text style={styles.detailText}>${p.rentalPrice}/day</Text>
               </View>
             )}
           </View>
         )}
 
         {/* Images */}
-        {post.images && post.images.length > 0 && (
+        {p.images && p.images.length > 0 && (
           <ScrollView horizontal style={styles.imagesContainer} showsHorizontalScrollIndicator={false}>
-            {post.images.map((imageUrl, index) => (
+            {p.images.map((imageUrl: string, index: number) => (
               <Image
                 key={index}
                 source={{ uri: imageUrl }}
@@ -277,7 +278,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
 
         <TouchableOpacity style={styles.actionButton} onPress={handleShowComments}>
           <Ionicons name="chatbubble-outline" size={20} color="#666" />
-          <Text style={styles.actionText}>{post.commentsCount}</Text>
+          <Text style={styles.actionText}>{p.commentsCount || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
@@ -296,7 +297,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Comments</Text>
             <TouchableOpacity onPress={() => setShowComments(false)}>
-              <Ionicons name="close" size={24} color="#007AFF" />
+              <Ionicons name="close" size={24} color={theme.colors.info} />
             </TouchableOpacity>
           </View>
 
@@ -304,7 +305,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
             {loadingComments ? (
               <Text style={styles.loadingText}>Loading comments...</Text>
             ) : comments.length > 0 ? (
-              comments.map((comment) => (
+              comments.map((comment: any) => (
                 <View key={comment.id} style={styles.comment}>
                   <View style={styles.commentHeader}>
                     <Text style={styles.commentAuthor}>
@@ -345,7 +346,7 @@ const ContractorPostComponent: React.FC<Props> = ({ post, onUpdate }) => {
                 <Ionicons 
                   name="send" 
                   size={20} 
-                  color={newComment.trim() ? "#007AFF" : "#ccc"} 
+                  color={newComment.trim() ? theme.colors.info : '#ccc'} 
                 />
               </TouchableOpacity>
             </View>
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,

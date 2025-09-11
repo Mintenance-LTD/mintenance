@@ -174,7 +174,7 @@ export const isProduction = () => config.environment === 'production';
 
 // Log configuration on startup (development only)
 if (isDevelopment()) {
-  console.log('🔧 App Configuration:', {
+  console.log('App Configuration:', {
     environment: config.environment,
     version: config.version,
     apiBaseUrl: config.apiBaseUrl,
@@ -190,10 +190,10 @@ if (isDevelopment()) {
   // Validate configuration
   const validation = validateConfig();
   if (!validation.isValid) {
-    console.warn('⚠️ Configuration Validation Errors:');
+    console.warn('Configuration Validation Errors:');
     validation.errors.forEach(error => console.warn(`  - ${error}`));
   } else {
-    console.log('✅ Configuration is valid');
+    console.log('Configuration is valid');
   }
 }
 

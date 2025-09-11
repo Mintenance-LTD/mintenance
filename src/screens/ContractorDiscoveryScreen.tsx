@@ -90,7 +90,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
 
   const serviceFilters = [
     { id: null, name: 'All', icon: 'grid-outline', color: '#8E8E93' },
-    { id: 'plumbing', name: 'Plumbing', icon: 'water-outline', color: '#007AFF' },
+    { id: 'plumbing', name: 'Plumbing', icon: 'water-outline', color: theme.colors.info },
     { id: 'electrical', name: 'Electrical', icon: 'flash-outline', color: '#FF9500' },
     { id: 'hvac', name: 'HVAC', icon: 'thermometer-outline', color: '#4CD964' },
     { id: 'general', name: 'General', icon: 'hammer-outline', color: '#5856D6' },
@@ -100,7 +100,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.colors.info} />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -142,7 +142,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
           <Ionicons 
             name="person-outline" 
             size={20} 
-            color={viewMode === 'discover' ? '#fff' : '#007AFF'} 
+            color={viewMode === 'discover' ? theme.colors.textInverse : theme.colors.info} 
           />
           <Text style={[
             styles.toggleText,
@@ -162,7 +162,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
           <Ionicons 
             name="map-outline" 
             size={20} 
-            color={viewMode === 'map' ? '#fff' : '#007AFF'} 
+            color={viewMode === 'map' ? theme.colors.textInverse : theme.colors.info} 
           />
           <Text style={[
             styles.toggleText,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingTop: 60,
     paddingBottom: 15,
     paddingHorizontal: 20,
@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   toggleButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
   },
   toggleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: theme.colors.info,
     marginLeft: 6,
   },
   toggleTextActive: {
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 8,

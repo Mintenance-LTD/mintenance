@@ -7,6 +7,10 @@ import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useHaptics } from '../utils/haptics';
 
 import { useAuth } from '../contexts/AuthContext';
+import { 
+  AppErrorBoundary,
+  withScreenErrorBoundary 
+} from '../components/ErrorBoundaryProvider';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
@@ -22,7 +26,27 @@ import ContractorDiscoveryScreen from '../screens/ContractorDiscoveryScreen';
 import ContractorSocialScreen from '../screens/ContractorSocialScreen';
 import MessagesListScreen from '../screens/MessagesListScreen';
 import MessagingScreen from '../screens/MessagingScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
+import HelpCenterScreen from '../screens/HelpCenterScreen';
+import InvoiceManagementScreen from '../screens/InvoiceManagementScreen';
+import CRMDashboardScreen from '../screens/CRMDashboardScreen';
+import FinanceDashboardScreen from '../screens/FinanceDashboardScreen';
+import ServiceAreasScreen from '../screens/ServiceAreasScreen';
+import QuoteBuilderScreen from '../screens/QuoteBuilderScreen';
+import CreateQuoteScreen from '../screens/CreateQuoteScreen';
 import { theme } from '../theme';
+
+// Wrap screens with error boundaries
+const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
+const SafeJobsScreen = withScreenErrorBoundary(JobsScreen, 'Jobs');
+const SafeProfileScreen = withScreenErrorBoundary(ProfileScreen, 'Profile');
+const SafeJobPostingScreen = withScreenErrorBoundary(JobPostingScreen, 'Job Posting', { fallbackRoute: 'Home' });
+const SafeJobDetailsScreen = withScreenErrorBoundary(JobDetailsScreen, 'Job Details', { fallbackRoute: 'Jobs' });
+const SafeMessagingScreen = withScreenErrorBoundary(MessagingScreen, 'Messaging', { fallbackRoute: 'Inbox' });
+const SafeContractorDiscoveryScreen = withScreenErrorBoundary(ContractorDiscoveryScreen, 'Contractor Discovery', { fallbackRoute: 'Home' });
+const SafePaymentMethodsScreen = withScreenErrorBoundary(PaymentMethodsScreen, 'Payment Methods', { fallbackRoute: 'Profile' });
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -40,6 +64,7 @@ export type HomeTabParamList = {
 
 export type RootStackParamList = {
   Main: undefined;
+  Jobs: undefined;
   JobPosting: undefined;
   ServiceRequest: undefined;
   JobDetails: { jobId: string };
@@ -52,6 +77,39 @@ export type RootStackParamList = {
     otherUserId: string;
     otherUserName: string;
   };
+  EditProfile: undefined;
+  NotificationSettings: undefined;
+  PaymentMethods: undefined;
+  HelpCenter: undefined;
+  InvoiceManagement: undefined;
+  CRMDashboard: undefined;
+  FinanceDashboard: undefined;
+  CreateInvoice: undefined;
+  InvoiceDetail: { invoiceId: string };
+  ClientDetail: { clientId: string };
+  AddClient: undefined;
+  ClientChat: { clientId: string };
+  FinanceReports: undefined;
+  ServiceAreas: undefined;
+  CreateServiceArea: undefined;
+  EditServiceArea: { areaId: string };
+  ServiceAreaDetail: { areaId: string };
+  ServiceAreaAnalytics: undefined;
+  RouteOptimization: undefined;
+  CoverageMap: undefined;
+  EmailTemplates: undefined;
+  CreateEmailTemplate: undefined;
+  EditEmailTemplate: { templateId: string };
+  EmailTemplatePreview: { templateId: string };
+  EmailAnalytics: undefined;
+  QuoteBuilder: undefined;
+  CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
+  EditQuote: { quoteId: string };
+  QuoteDetail: { quoteId: string };
+  QuoteTemplates: undefined;
+  CreateQuoteTemplate: undefined;
+  EditQuoteTemplate: { templateId: string };
+  QuoteAnalytics: undefined;
 };
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -76,7 +134,8 @@ const AddButton = () => {
     if (user?.role === 'homeowner') {
       navigation.navigate('ServiceRequest');
     } else {
-      navigation.navigate('JobPosting');
+      // For contractors, navigate to Jobs screen to browse available work
+      navigation.navigate('Jobs');
     }
   };
 
@@ -85,10 +144,10 @@ const AddButton = () => {
       style={styles.addButton} 
       onPress={handleAddPress}
       accessibilityRole="button"
-      accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Post a job"}
-      accessibilityHint={user?.role === 'homeowner' ? "Double tap to create a new service request" : "Double tap to post a new job"}
+      accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Browse jobs"}
+      accessibilityHint={user?.role === 'homeowner' ? "Double tap to create a new service request" : "Double tap to browse available jobs"}
     >
-      <Ionicons name="add" size={24} color="#fff" />
+      <Ionicons name="add" size={24} color={theme.colors.textInverse} />
     </TouchableOpacity>
   );
 };
@@ -103,22 +162,23 @@ const TabNavigator = () => {
         tabBarInactiveTintColor: theme.colors.textTertiary,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          paddingBottom: Platform.OS === 'ios' ? 34 : 8,  // iOS safe area
-          paddingTop: 8,
-          height: Platform.OS === 'ios' ? 83 : 56,        // Platform-specific heights
+          paddingBottom: Platform.OS === 'ios' ? 34 : 12,  // More padding for text
+          paddingTop: 12,                                   // More top padding
+          height: Platform.OS === 'ios' ? 90 : 72,         // Increased heights
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '500',
-          marginTop: 4,
+          marginTop: 2,
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,  // Extra margin for Android
         },
       }}
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen}
+        component={SafeHomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size} color={color} />
@@ -174,13 +234,13 @@ const TabNavigator = () => {
         options={{
           tabBarIcon: ({ focused }) => <AddButton />,
           tabBarLabel: '',
-          tabBarAccessibilityLabel: user?.role === 'homeowner' ? "Create service request" : "Post a job",
+          tabBarAccessibilityLabel: user?.role === 'homeowner' ? "Create service request" : "Browse jobs",
           tabBarButton: (props) => (
             <TouchableOpacity
               {...props}
               accessibilityRole="button"
-              accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Post a job"}
-              accessibilityHint={user?.role === 'homeowner' ? "Create a new service request" : "Post a new job"}
+              accessibilityLabel={user?.role === 'homeowner' ? "Create service request" : "Browse jobs"}
+              accessibilityHint={user?.role === 'homeowner' ? "Create a new service request" : "Browse available jobs"}
               style={[props.style, { minHeight: 56, minWidth: 56 }]} // Larger touch target for FAB
             />
           ),
@@ -193,7 +253,7 @@ const TabNavigator = () => {
             if (user?.role === 'homeowner') {
               navigation.navigate('ServiceRequest');
             } else {
-              navigation.navigate('JobPosting');
+              navigation.navigate('Jobs');
             }
           },
         })}
@@ -219,7 +279,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen}
+        component={SafeProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
@@ -244,8 +304,12 @@ const MainNavigator = () => (
   <RootStack.Navigator screenOptions={{ headerShown: false }}>
     <RootStack.Screen name="Main" component={TabNavigator} />
     <RootStack.Screen 
+      name="Jobs" 
+      component={SafeJobsScreen}
+    />
+    <RootStack.Screen 
       name="JobPosting" 
-      component={JobPostingScreen}
+      component={SafeJobPostingScreen}
       options={{ presentation: 'modal' }}
     />
     <RootStack.Screen 
@@ -254,7 +318,7 @@ const MainNavigator = () => (
     />
     <RootStack.Screen 
       name="JobDetails" 
-      component={JobDetailsScreen}
+      component={SafeJobDetailsScreen}
     />
     <RootStack.Screen 
       name="BidSubmission" 
@@ -273,6 +337,47 @@ const MainNavigator = () => (
       name="Messaging" 
       component={MessagingScreen}
     />
+    <RootStack.Screen 
+      name="EditProfile" 
+      component={EditProfileScreen}
+    />
+    <RootStack.Screen 
+      name="NotificationSettings" 
+      component={NotificationSettingsScreen}
+    />
+    <RootStack.Screen 
+      name="PaymentMethods" 
+      component={SafePaymentMethodsScreen}
+    />
+    <RootStack.Screen 
+      name="HelpCenter" 
+      component={HelpCenterScreen}
+    />
+    <RootStack.Screen 
+      name="InvoiceManagement" 
+      component={InvoiceManagementScreen}
+    />
+    <RootStack.Screen 
+      name="CRMDashboard" 
+      component={CRMDashboardScreen}
+    />
+    <RootStack.Screen 
+      name="FinanceDashboard" 
+      component={FinanceDashboardScreen}
+    />
+    <RootStack.Screen 
+      name="ServiceAreas" 
+      component={ServiceAreasScreen}
+    />
+    <RootStack.Screen 
+      name="QuoteBuilder" 
+      component={QuoteBuilderScreen}
+    />
+    <RootStack.Screen 
+      name="CreateQuote" 
+      component={CreateQuoteScreen}
+      options={{ presentation: 'modal' }}
+    />
   </RootStack.Navigator>
 );
 
@@ -284,9 +389,11 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
-      {user ? <MainNavigator /> : <AuthNavigator />}
-    </NavigationContainer>
+    <AppErrorBoundary>
+      <NavigationContainer>
+        {user ? <MainNavigator /> : <AuthNavigator />}
+      </NavigationContainer>
+    </AppErrorBoundary>
   );
 };
 

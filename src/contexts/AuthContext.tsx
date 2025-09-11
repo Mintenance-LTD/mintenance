@@ -4,8 +4,29 @@ import { NotificationService } from '../services/NotificationService';
 import { BiometricService } from '../services/BiometricService';
 import { User } from '../types';
 import { handleError } from '../utils/errorHandler';
-import { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } from '../config/sentry';
 import { logger } from '../utils/logger';
+
+// Safe Sentry imports
+let sentryFunctions: any = {};
+try {
+  const sentry = require('../config/sentry');
+  sentryFunctions = {
+    setUserContext: sentry.setUserContext || (() => {}),
+    trackUserAction: sentry.trackUserAction || (() => {}),
+    addBreadcrumb: sentry.addBreadcrumb || (() => {}),
+    measureAsyncPerformance: sentry.measureAsyncPerformance || ((fn: any) => fn()),
+  };
+} catch (error) {
+  console.log('Sentry not available, using no-op functions');
+  sentryFunctions = {
+    setUserContext: () => {},
+    trackUserAction: () => {},
+    addBreadcrumb: () => {},
+    measureAsyncPerformance: (fn: any) => fn(),
+  };
+}
+
+const { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } = sentryFunctions;
 
 
 interface AuthContextType {
@@ -104,13 +125,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     trackUserAction('auth.sign_in_attempt', { email });
     
     try {
-      await measureAsyncPerformance(
+      const result = await measureAsyncPerformance(
         () => AuthService.signIn(email, password),
         'auth.sign_in',
         'auth'
       );
       
-      const user = await AuthService.getCurrentUser();
+      // If signIn returns user data directly, use it
+      let user;
+      if (result && result.user) {
+        user = result.user;
+      } else {
+        // Fallback to getCurrentUser if needed
+        user = await AuthService.getCurrentUser();
+      }
+      
       setUser(user);
       setUserContext(user);
       

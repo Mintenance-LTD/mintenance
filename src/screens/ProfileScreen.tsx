@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../services/JobService';
@@ -9,6 +10,7 @@ import { logger } from '../utils/logger';
 
 
 const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { user, signOut } = useAuth();
   const [userStats, setUserStats] = useState({
     totalJobs: 0,
@@ -96,7 +98,7 @@ const ProfileScreen: React.FC = () => {
               </View>
               {user?.role === 'contractor' && (
                 <View style={styles.licensedBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color="#007AFF" />
+                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.info} />
                 </View>
               )}
             </View>
@@ -188,7 +190,7 @@ const ProfileScreen: React.FC = () => {
               
               <View style={styles.performanceItem}>
                 <View style={styles.performanceHeader}>
-                  <Ionicons name="briefcase" size={18} color="#007AFF" />
+                  <Ionicons name="briefcase" size={18} color={theme.colors.info} />
                   <Text style={styles.performanceValue}>85</Text>
                 </View>
                 <Text style={styles.performanceLabel}>Jobs Done</Text>
@@ -222,83 +224,170 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="person-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Edit Profile</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('NotificationSettings')}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="notifications-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="notifications-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('PaymentMethods')}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="card-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="card-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Payment Methods</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
           {user?.role === 'contractor' && (
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <Ionicons name="document-text-outline" size={20} color="#666" />
-                <Text style={styles.menuText}>Business Documents</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#ccc" />
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => navigation.navigate('FinanceDashboard')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name="analytics-outline" size={20} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.menuText}>Finance Dashboard</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => navigation.navigate('InvoiceManagement')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name="receipt-outline" size={20} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.menuText}>Invoice Management</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => navigation.navigate('CRMDashboard')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.menuText}>Client Management</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+              </TouchableOpacity>
+            </>
           )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('HelpCenter')}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="help-circle-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="help-circle-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Help Center</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              Alert.alert(
+                'Contact Us',
+                'Email: support@mintenance.com\nPhone: 1-800-MINT-HELP',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="mail-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Contact Us</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              Alert.alert(
+                'Terms of Service',
+                'Please visit our website or app store listing to view the full Terms of Service.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="document-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="document-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Terms of Service</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              Alert.alert(
+                'Privacy Policy',
+                'Please visit our website or app store listing to view the full Privacy Policy.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
             <View style={styles.menuItemLeft}>
-              <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.primary} />
+              </View>
               <Text style={styles.menuText}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.signOutButton}
+        <Button
+          variant="danger"
+          title="Sign Out"
           onPress={handleSignOut}
-        >
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
+          fullWidth
+          style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 50 }}
+        />
       </ScrollView>
     </View>
   );
@@ -318,13 +407,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   content: {
     flex: 1,
   },
   profileInfo: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginTop: -16, // Overlap with header
     padding: 24,
@@ -353,7 +442,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   verificationBadges: {
     position: 'absolute',
@@ -362,14 +451,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   verifiedBadge: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 15,
     padding: 3,
     marginLeft: 2,
     ...theme.shadows.sm,
   },
   licensedBadge: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 4,
     marginLeft: 2,
@@ -442,7 +531,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statsSection: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 20,
@@ -507,7 +596,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: theme.colors.borderLight,
   },
   verificationTitle: {
     fontSize: 18,
@@ -527,7 +616,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 20,
     paddingHorizontal: 20,
@@ -553,6 +642,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   menuText: {
     fontSize: 17,
     color: theme.colors.textPrimary,
@@ -572,7 +669,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
 });
 

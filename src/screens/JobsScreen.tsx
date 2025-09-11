@@ -586,12 +586,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: theme.colors.textInverseMuted,
     fontWeight: '500',
   },
   addButton: {
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   addButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
     fontSize: 16,
     marginLeft: 6,
@@ -635,15 +635,15 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: theme.colors.textInverse,
     marginBottom: 2,
   },
   statNumberActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.colors.textInverseMuted,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -665,12 +665,12 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.colors.textInverseMuted,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   filtersContainer: {
     flexDirection: 'row',
@@ -694,12 +694,12 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: theme.colors.textInverse,
     fontWeight: '500',
     marginLeft: 6,
   },
   filterChipTextActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   statusTab: {
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statusTabTextActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   listContainer: {
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   jobCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     borderRadius: 16,
     marginBottom: 16,
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   priorityText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
     letterSpacing: 0.5,
   },
   clientInfo: {
@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   confidenceText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   detectedItemsContainer: {
     flexDirection: 'row',
@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   bidCount: {
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: 14,
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   emptyContainer: {

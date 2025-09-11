@@ -11,6 +11,7 @@ import {
 import Swiper from 'react-native-deck-swiper';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '../types';
+import { theme } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -30,20 +31,20 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={16} color="#FFD700" />
+        <Ionicons key={i} name="star" size={16} color={theme.colors.ratingGold} />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={16} color="#FFD700" />
+        <Ionicons key="half" name="star-half" size={16} color={theme.colors.ratingGold} />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color="#FFD700" />
+        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color={theme.colors.ratingGold} />
       );
     }
 
@@ -65,7 +66,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
                 />
               ) : (
                 <View style={[styles.profileImage, styles.placeholderImage]}>
-                  <Ionicons name="person" size={50} color="#666" />
+                  <Ionicons name="person" size={50} color={theme.colors.textSecondary} />
                 </View>
               )}
             </View>
@@ -133,7 +134,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
             <Ionicons 
               name={showDetails ? "chevron-up" : "chevron-down"} 
               size={16} 
-              color="#007AFF" 
+              color={theme.colors.info} 
             />
           </TouchableOpacity>
 
@@ -302,11 +303,11 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   distanceText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   bioSection: {
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.textPrimary,
     lineHeight: 22,
   },
   skillsSection: {
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
   skillsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   skillsContainer: {
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   skillTag: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   locationSection: {
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginLeft: 5,
     flex: 1,
   },
@@ -360,12 +361,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
     marginBottom: 10,
   },
   detailsButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: theme.colors.info,
     fontWeight: '500',
     marginRight: 5,
   },
@@ -375,14 +376,14 @@ const styles = StyleSheet.create({
   reviewsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   reviewsContainer: {
     maxHeight: 200,
   },
   reviewCard: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surfaceSecondary,
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -395,11 +396,11 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   reviewComment: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.textPrimary,
     lineHeight: 18,
   },
   actionButtons: {
@@ -407,15 +408,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 60,
     paddingVertical: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
   },
   passButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
     borderColor: '#FF3B30',
     alignItems: 'center',
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
     borderColor: '#4CD964',
     alignItems: 'center',

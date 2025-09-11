@@ -22,17 +22,20 @@ jest.mock('expo-notifications', () => mockNotifications);
 jest.mock('expo-device', () => mockDevice);
 
 // Mock Supabase with comprehensive chain support  
-const createMockChain = (): any => ({
-  eq: jest.fn(() => createMockChain()),
-  order: jest.fn(() => createMockChain()),
-  range: jest.fn(() => createMockChain()),
-  single: jest.fn(() => createMockChain()),
-  in: jest.fn(() => createMockChain()),
-  not: jest.fn(() => createMockChain()),
-  select: jest.fn(() => createMockChain()),
-  update: jest.fn(() => createMockChain()),
-  insert: jest.fn(() => createMockChain()),
-});
+const createMockChain = (): any => {
+  const chain = {
+    eq: jest.fn(() => chain),
+    order: jest.fn(() => chain),
+    range: jest.fn(() => chain),
+    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    in: jest.fn(() => chain),
+    not: jest.fn(() => chain),
+    select: jest.fn(() => chain),
+    update: jest.fn(() => chain),
+    insert: jest.fn(() => chain),
+  };
+  return chain;
+};
 
 const mockSupabase = {
   from: jest.fn(() => createMockChain()),
@@ -112,16 +115,17 @@ describe('NotificationService', () => {
 
   describe('savePushToken', () => {
     it('should save push token to user profile', async () => {
-      mockSupabase.from().update().eq.mockResolvedValueOnce({
-        error: null,
-      });
+      const mockChain = createMockChain();
+      mockChain.eq.mockResolvedValueOnce({ error: null });
+      mockSupabase.from.mockReturnValueOnce(mockChain);
 
       await NotificationService.savePushToken('user-1', 'test-token');
 
       expect(mockSupabase.from).toHaveBeenCalledWith('users');
-      expect(mockSupabase.from().update).toHaveBeenCalledWith({
+      expect(mockChain.update).toHaveBeenCalledWith({
         push_token: 'test-token',
       });
+      expect(mockChain.eq).toHaveBeenCalledWith('id', 'user-1');
     });
   });
 
@@ -132,10 +136,12 @@ describe('NotificationService', () => {
         notification_settings: { jobUpdates: true },
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
+      const mockChain = createMockChain();
+      mockChain.single.mockResolvedValueOnce({
         data: mockUser,
         error: null,
       });
+      mockSupabase.from.mockReturnValue(mockChain);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -143,6 +149,11 @@ describe('NotificationService', () => {
           data: [{ status: 'ok', id: 'notification-id' }],
         }),
       });
+
+      // Mock notification save to database
+      const saveChain = createMockChain();
+      saveChain.insert.mockResolvedValueOnce({ data: null, error: null });
+      mockSupabase.from.mockReturnValueOnce(mockChain).mockReturnValueOnce(saveChain);
 
       await NotificationService.sendNotificationToUser(
         'user-1',

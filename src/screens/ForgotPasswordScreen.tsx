@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import Button from '../components/ui/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthService } from '../services/AuthService';
@@ -66,7 +67,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={styles.headerTitle}>MintEnance</Text>
+            <Text style={styles.headerTitle}>Mintenance</Text>
           </View>
         </View>
 
@@ -99,7 +100,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Go back"
           accessibilityHint="Return to login screen"
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>
         
         <View style={styles.headerContent}>
@@ -158,19 +159,16 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             
             {/* Send Reset Link Button */}
-            <TouchableOpacity 
-              style={[styles.resetButton, loading && styles.buttonDisabled]} 
+            <Button
+              variant="primary"
+              title={loading ? 'Sending...' : 'Send Reset Link'}
               onPress={handleResetPassword}
               disabled={loading}
-              accessibilityRole="button"
-              accessibilityLabel={loading ? "Sending reset email" : "Send reset email"}
-              accessibilityHint="Double tap to send password reset email"
-              accessibilityState={{ disabled: loading, busy: loading }}
-            >
-              <Text style={styles.resetButtonText}>
-                {loading ? 'Sending...' : 'Send Reset Link'}
-              </Text>
-            </TouchableOpacity>
+              loading={loading}
+              accessibilityLabel={loading ? 'Sending reset email' : 'Send reset email'}
+              fullWidth
+              style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 24 }}
+            />
             
             {/* Back to Login Link */}
             <TouchableOpacity 
@@ -222,7 +220,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   keyboardContainer: {
     flex: 1,
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xxl,
     backgroundColor: theme.colors.surface,
     marginBottom: 24,
     paddingHorizontal: 16,
@@ -278,7 +276,7 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xxl,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
@@ -298,7 +296,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   resetButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -335,12 +333,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xxl,
     paddingVertical: 16,
     paddingHorizontal: 32,
   },
   backButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

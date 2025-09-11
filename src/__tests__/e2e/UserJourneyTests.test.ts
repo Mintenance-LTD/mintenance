@@ -321,15 +321,13 @@ describe('End-to-End User Journeys', () => {
       AuthService.signUp = jest.fn().mockResolvedValueOnce(undefined);
       AuthService.getCurrentUser = jest.fn().mockResolvedValueOnce(mockHomeowner);
 
-      await AuthService.signUp(
-        'newuser@test.com',
-        'securepassword123',
-        {
-          firstName: 'New',
-          lastName: 'User',
-          role: 'homeowner'
-        }
-      );
+      await AuthService.signUp({
+        email: 'newuser@test.com',
+        password: 'securepassword123',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'homeowner'
+      });
 
       const currentUser = await AuthService.getCurrentUser();
       expect(currentUser!.email).toBe('homeowner@test.com');

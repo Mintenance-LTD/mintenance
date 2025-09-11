@@ -2,7 +2,7 @@
 -- Run this in your Supabase SQL Editor to create test accounts
 
 -- First, disable email confirmation temporarily for development
-UPDATE auth.users SET email_confirmed_at = now(), confirmed_at = now() WHERE email_confirmed_at IS NULL;
+UPDATE auth.users SET email_confirmed_at = now() WHERE email_confirmed_at IS NULL;
 
 -- Create test users in auth.users (Supabase Auth)
 -- Note: You need to run this in Supabase SQL Editor as it requires special permissions
@@ -24,11 +24,10 @@ INSERT INTO auth.users (
   recovery_token,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  confirmed_at
+  is_super_admin
 ) VALUES (
   '00000000-0000-0000-0000-000000000000',
-  'test-homeowner-uuid-1234567890',
+  '11111111-1111-1111-1111-111111111111',
   'authenticated',
   'authenticated',
   'test@homeowner.com',
@@ -42,9 +41,8 @@ INSERT INTO auth.users (
   '',
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "John", "last_name": "Doe", "role": "homeowner"}',
-  false,
-  now()
-) ON CONFLICT (email) DO NOTHING;
+  false
+) ON CONFLICT (id) DO NOTHING;
 
 -- Test Contractor Account  
 INSERT INTO auth.users (
@@ -63,11 +61,10 @@ INSERT INTO auth.users (
   recovery_token,
   raw_app_meta_data,
   raw_user_meta_data,
-  is_super_admin,
-  confirmed_at
+  is_super_admin
 ) VALUES (
   '00000000-0000-0000-0000-000000000000',
-  'test-contractor-uuid-1234567890',
+  '22222222-2222-2222-2222-222222222222',
   'authenticated',
   'authenticated',
   'test@contractor.com',
@@ -81,14 +78,13 @@ INSERT INTO auth.users (
   '',
   '{"provider": "email", "providers": ["email"]}',
   '{"first_name": "Jane", "last_name": "Smith", "role": "contractor"}',
-  false,
-  now()
-) ON CONFLICT (email) DO NOTHING;
+  false
+) ON CONFLICT (id) DO NOTHING;
 
 -- Create corresponding profiles in public.users table
 INSERT INTO public.users (id, email, first_name, last_name, role) VALUES
-  ('test-homeowner-uuid-1234567890', 'test@homeowner.com', 'John', 'Doe', 'homeowner'),
-  ('test-contractor-uuid-1234567890', 'test@contractor.com', 'Jane', 'Smith', 'contractor')
+  ('11111111-1111-1111-1111-111111111111', 'test@homeowner.com', 'John', 'Doe', 'homeowner'),
+  ('22222222-2222-2222-2222-222222222222', 'test@contractor.com', 'Jane', 'Smith', 'contractor')
 ON CONFLICT (id) DO NOTHING;
 
 -- Verify the test users were created

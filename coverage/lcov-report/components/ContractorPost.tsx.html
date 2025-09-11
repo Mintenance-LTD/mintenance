@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/86</span>
+                <span class='fraction'>0/87</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/78</span>
+                <span class='fraction'>0/82</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/78</span>
+                <span class='fraction'>0/79</span>
             </div>
         
             
@@ -689,7 +689,9 @@
 <a name='L624'></a><a href='#L624'>624</a>
 <a name='L625'></a><a href='#L625'>625</a>
 <a name='L626'></a><a href='#L626'>626</a>
-<a name='L627'></a><a href='#L627'>627</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -723,6 +725,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1048,6 +1051,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1343,8 +1347,9 @@ interface Props {
 &nbsp;
 const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span> post, onUpdate }) =&gt; {</span>
   const { user } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
-  const [liked, setLiked] = <span class="cstat-no" title="statement not covered" >useState(post.isLikedByUser || false);</span>
-  const [likesCount, setLikesCount] = <span class="cstat-no" title="statement not covered" >useState(post.likesCount);</span>
+  const p = <span class="cstat-no" title="statement not covered" >post as any;</span>
+  const [liked, setLiked] = <span class="cstat-no" title="statement not covered" >useState&lt;boolean&gt;(p.isLikedByUser || false);</span>
+  const [likesCount, setLikesCount] = <span class="cstat-no" title="statement not covered" >useState&lt;number&gt;(p.likesCount || 0);</span>
   const [showComments, setShowComments] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
   const [comments, setComments] = <span class="cstat-no" title="statement not covered" >useState&lt;ContractorPostComment[]&gt;([]);</span>
   const [newComment, setNewComment] = <span class="cstat-no" title="statement not covered" >useState('');</span>
@@ -1356,7 +1361,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const isNowLiked = <span class="cstat-no" title="statement not covered" >await ContractorSocialService.toggleLike(post.id, user.id);</span>
 <span class="cstat-no" title="statement not covered" >      setLiked(isNowLiked);</span>
-<span class="cstat-no" title="statement not covered" >      setLikesCount(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; <span class="cstat-no" title="statement not covered" >isNowLiked ? prev + 1 : prev - 1)</span>;</span>
+<span class="cstat-no" title="statement not covered" >      setLikesCount(<span class="fstat-no" title="function not covered" >(p</span>rev: number) =&gt; (<span class="cstat-no" title="statement not covered" >isNowLiked ? prev + 1 : Math.max(0, prev - 1))</span>);</span>
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      logger.error('Error toggling like:', error);</span>
 <span class="cstat-no" title="statement not covered" >      Alert.alert('Error', 'Failed to update like status');</span>
@@ -1402,7 +1407,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
   };
 &nbsp;
   const getPostTypeIcon = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    switch (post.postType) {</span>
+<span class="cstat-no" title="statement not covered" >    switch (p.postType) {</span>
       case 'work_showcase':
 <span class="cstat-no" title="statement not covered" >        return 'camera-outline';</span>
       case 'help_request':
@@ -1419,7 +1424,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
   };
 &nbsp;
   const getPostTypeColor = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    switch (post.postType) {</span>
+<span class="cstat-no" title="statement not covered" >    switch (p.postType) {</span>
       case 'work_showcase':
 <span class="cstat-no" title="statement not covered" >        return '#4CD964';</span>
       case 'help_request':
@@ -1436,7 +1441,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
   };
 &nbsp;
   const getPostTypeLabel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    switch (post.postType) {</span>
+<span class="cstat-no" title="statement not covered" >    switch (p.postType) {</span>
       case 'work_showcase':
 <span class="cstat-no" title="statement not covered" >        return 'Work Showcase';</span>
       case 'help_request':
@@ -1471,39 +1476,39 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
       &lt;View style={styles.header}&gt;
         &lt;View style={styles.authorInfo}&gt;
           &lt;View style={styles.avatar}&gt;
-            {post.contractor?.profileImageUrl ? (
+            {p.contractor?.profileImageUrl ? (
               &lt;Image
-                source={{ uri: post.contractor.profileImageUrl }}
+                source={{ uri: p.contractor.profileImageUrl }}
                 style={styles.avatarImage}
               /&gt;
             ) : (
               &lt;Text style={styles.avatarText}&gt;
-                {post.contractor?.firstName?.[0]}{post.contractor?.lastName?.[0]}
+                {p.contractor?.firstName?.[0]}{p.contractor?.lastName?.[0]}
               &lt;/Text&gt;
             )}
           &lt;/View&gt;
           &lt;View style={styles.authorDetails}&gt;
             &lt;Text style={styles.authorName}&gt;
-              {post.contractor?.firstName} {post.contractor?.lastName}
+              {p.contractor?.firstName} {p.contractor?.lastName}
             &lt;/Text&gt;
             &lt;View style={styles.postMeta}&gt;
               &lt;View style={[styles.postTypeBadge, { backgroundColor: getPostTypeColor() }]}&gt;
                 &lt;Ionicons name={getPostTypeIcon()} size={12} color="#fff" /&gt;
                 &lt;Text style={styles.postTypeText}&gt;{getPostTypeLabel()}&lt;/Text&gt;
               &lt;/View&gt;
-              &lt;Text style={styles.timeText}&gt;{formatTimeAgo(post.createdAt)}&lt;/Text&gt;
+              &lt;Text style={styles.timeText}&gt;{formatTimeAgo(p.createdAt)}&lt;/Text&gt;
             &lt;/View&gt;
           &lt;/View&gt;
         &lt;/View&gt;
         
-        {post.urgencyLevel &amp;&amp; (
+        {p.urgencyLevel &amp;&amp; (
           &lt;View style={[
             styles.urgencyBadge,
-            { backgroundColor: post.urgencyLevel === 'high' ? '#FF3B30' : 
-                               post.urgencyLevel === 'medium' ? '#FF9500' : '#4CD964' }
+            { backgroundColor: p.urgencyLevel === 'high' ? '#FF3B30' : 
+                               p.urgencyLevel === 'medium' ? '#FF9500' : '#4CD964' }
           ]}&gt;
             &lt;Text style={styles.urgencyText}&gt;
-              {post.urgencyLevel.toUpperCase()}
+              {p.urgencyLevel.toUpperCase()}
             &lt;/Text&gt;
           &lt;/View&gt;
         )}
@@ -1511,15 +1516,15 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
 &nbsp;
       {/* Content */}
       &lt;View style={styles.content}&gt;
-        &lt;Text style={styles.title}&gt;{post.title}&lt;/Text&gt;
-        &lt;Text style={styles.description}&gt;{post.content}&lt;/Text&gt;
+        &lt;Text style={styles.title}&gt;{p.title}&lt;/Text&gt;
+        &lt;Text style={styles.description}&gt;{p.content}&lt;/Text&gt;
 &nbsp;
         {/* Skills Used */}
-        {post.skillsUsed &amp;&amp; post.skillsUsed.length &gt; 0 &amp;&amp; (
+        {p.skillsUsed &amp;&amp; p.skillsUsed.length &gt; 0 &amp;&amp; (
           &lt;View style={styles.skillsContainer}&gt;
             &lt;Text style={styles.skillsLabel}&gt;Skills used:&lt;/Text&gt;
             &lt;View style={styles.skillsRow}&gt;
-              {post.skillsUsed.map(<span class="fstat-no" title="function not covered" >(s</span>kill, index) =&gt; (
+              {p.skillsUsed.map(<span class="fstat-no" title="function not covered" >(s</span>kill: string, index: number) =&gt; (
 <span class="cstat-no" title="statement not covered" >                &lt;View key={index} style={styles.skillTag}&gt;</span>
                   &lt;Text style={styles.skillText}&gt;{skill}&lt;/Text&gt;
                 &lt;/View&gt;
@@ -1529,43 +1534,43 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
         )}
 &nbsp;
         {/* Project Details */}
-        {post.postType === 'work_showcase' &amp;&amp; (
+        {p.postType === 'work_showcase' &amp;&amp; (
           &lt;View style={styles.projectDetails}&gt;
-            {post.projectDuration &amp;&amp; (
+            {p.projectDuration &amp;&amp; (
               &lt;View style={styles.detailItem}&gt;
                 &lt;Ionicons name="time-outline" size={16} color="#666" /&gt;
-                &lt;Text style={styles.detailText}&gt;{post.projectDuration}h duration&lt;/Text&gt;
+                &lt;Text style={styles.detailText}&gt;{p.projectDuration}h duration&lt;/Text&gt;
               &lt;/View&gt;
             )}
-            {post.projectCost &amp;&amp; (
+            {p.projectCost &amp;&amp; (
               &lt;View style={styles.detailItem}&gt;
                 &lt;Ionicons name="cash-outline" size={16} color="#666" /&gt;
-                &lt;Text style={styles.detailText}&gt;${post.projectCost}&lt;/Text&gt;
+                &lt;Text style={styles.detailText}&gt;${p.projectCost}&lt;/Text&gt;
               &lt;/View&gt;
             )}
           &lt;/View&gt;
         )}
 &nbsp;
         {/* Equipment/Rental Details */}
-        {post.postType === 'equipment_share' &amp;&amp; (
+        {p.postType === 'equipment_share' &amp;&amp; (
           &lt;View style={styles.equipmentDetails}&gt;
             &lt;View style={styles.detailItem}&gt;
               &lt;Ionicons name="build-outline" size={16} color="#666" /&gt;
-              &lt;Text style={styles.detailText}&gt;{post.itemName}&lt;/Text&gt;
+              &lt;Text style={styles.detailText}&gt;{p.itemName}&lt;/Text&gt;
             &lt;/View&gt;
-            {post.rentalPrice &amp;&amp; (
+            {p.rentalPrice &amp;&amp; (
               &lt;View style={styles.detailItem}&gt;
                 &lt;Ionicons name="cash-outline" size={16} color="#666" /&gt;
-                &lt;Text style={styles.detailText}&gt;${post.rentalPrice}/day&lt;/Text&gt;
+                &lt;Text style={styles.detailText}&gt;${p.rentalPrice}/day&lt;/Text&gt;
               &lt;/View&gt;
             )}
           &lt;/View&gt;
         )}
 &nbsp;
         {/* Images */}
-        {post.images &amp;&amp; post.images.length &gt; 0 &amp;&amp; (
+        {p.images &amp;&amp; p.images.length &gt; 0 &amp;&amp; (
           &lt;ScrollView horizontal style={styles.imagesContainer} showsHorizontalScrollIndicator={false}&gt;
-            {post.images.map(<span class="fstat-no" title="function not covered" >(i</span>mageUrl, index) =&gt; (
+            {p.images.map(<span class="fstat-no" title="function not covered" >(i</span>mageUrl: string, index: number) =&gt; (
 <span class="cstat-no" title="statement not covered" >              &lt;Image</span>
                 key={index}
                 source={{ uri: imageUrl }}
@@ -1594,7 +1599,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
 &nbsp;
         &lt;TouchableOpacity style={styles.actionButton} onPress={handleShowComments}&gt;
           &lt;Ionicons name="chatbubble-outline" size={20} color="#666" /&gt;
-          &lt;Text style={styles.actionText}&gt;{post.commentsCount}&lt;/Text&gt;
+          &lt;Text style={styles.actionText}&gt;{p.commentsCount || 0}&lt;/Text&gt;
         &lt;/TouchableOpacity&gt;
 &nbsp;
         &lt;TouchableOpacity style={styles.actionButton}&gt;
@@ -1621,7 +1626,7 @@ const ContractorPostComponent: React.FC&lt;Props&gt; = <span class="cstat-no" ti
             {loadingComments ? (
               &lt;Text style={styles.loadingText}&gt;Loading comments...&lt;/Text&gt;
             ) : comments.length &gt; 0 ? (
-              comments.map(<span class="fstat-no" title="function not covered" >(c</span>omment) =&gt; (
+              comments.map(<span class="fstat-no" title="function not covered" >(c</span>omment: any) =&gt; (
 <span class="cstat-no" title="statement not covered" >                &lt;View key={comment.id} style={styles.comment}&gt;</span>
                   &lt;View style={styles.commentHeader}&gt;
                     &lt;Text style={styles.commentAuthor}&gt;
@@ -1941,14 +1946,15 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
 });
 &nbsp;
-export default ContractorPostComponent;</pre></td></tr></table></pre>
+export default ContractorPostComponent;
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-01T08:25:37.972Z
+                at 2025-09-07T16:28:41.771Z
             </div>
         <script src="../prettify.js"></script>
         <script>

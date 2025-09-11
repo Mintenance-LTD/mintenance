@@ -16,8 +16,8 @@ try {
   });
   console.log('✅ Supabase client initialized successfully');
 } catch (error) {
-  console.error('❌ Supabase client initialization failed:', error);
-  
+  console.error('Supabase client initialization failed:', error);
+
   // Create a mock client for development
   supabase = {
     auth: {
@@ -30,16 +30,17 @@ try {
     from: () => ({
       select: () => ({
         eq: () => ({
-          single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-        })
+          single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        }),
       }),
       insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
       update: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-      delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-    })
+      delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    }),
   };
-  
-  console.log('⚠️ Using mock Supabase client for development');
+
+  console.log('Using mock Supabase client for development');
 }
 
 export { supabase };
+

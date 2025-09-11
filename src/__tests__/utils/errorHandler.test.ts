@@ -1,14 +1,23 @@
 import React from 'react';
-import { ErrorHandler, handleError, safeAsync } from '../../utils/errorHandler';
-import { Alert } from 'react-native';
 
-jest.mock('react-native', () => ({
-  Alert: {
-    alert: jest.fn(),
-  },
-}));
+let ErrorHandler: any, handleError: any, safeAsync: any;
+let Alert: any;
+let logger: any;
 
-const mockAlert = Alert.alert as jest.MockedFunction<typeof Alert.alert>;
+beforeAll(() => {
+  jest.resetModules();
+  jest.doMock('react-native', () => ({
+    Alert: { alert: jest.fn() },
+  }));
+  jest.doMock('../../utils/logger', () => ({
+    logger: { error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
+  }));
+  ({ ErrorHandler, handleError, safeAsync } = require('../../utils/errorHandler'));
+  Alert = require('react-native').Alert;
+  logger = require('../../utils/logger').logger;
+});
+
+const mockAlert = () => Alert.alert as jest.MockedFunction<typeof Alert.alert>;
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
@@ -22,8 +31,8 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handle(error, 'test context');
       
-      expect(mockAlert).toHaveBeenCalledWith('Error', 'Please check your connection');
-      expect(console.error).toHaveBeenCalledWith('Error in test context:', error);
+      expect(mockAlert()).toHaveBeenCalledWith('Error', 'Please check your connection');
+      expect(logger.error).toHaveBeenCalledWith('Error in test context:', error);
     });
 
     it('should handle database duplicate key errors', () => {
@@ -31,7 +40,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handle(error);
       
-      expect(mockAlert).toHaveBeenCalledWith('Error', 'This record already exists.');
+      expect(mockAlert()).toHaveBeenCalledWith('Error', 'This record already exists.');
     });
 
     it('should handle permission denied errors', () => {
@@ -39,7 +48,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handle(error);
       
-      expect(mockAlert).toHaveBeenCalledWith('Error', 'You do not have permission to perform this action.');
+      expect(mockAlert()).toHaveBeenCalledWith('Error', 'You do not have permission to perform this action.');
     });
 
     it('should handle HTTP status code errors', () => {
@@ -47,7 +56,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handle(error);
       
-      expect(mockAlert).toHaveBeenCalledWith('Error', 'The requested item was not found.');
+      expect(mockAlert()).toHaveBeenCalledWith('Error', 'The requested item was not found.');
     });
 
     it('should provide generic fallback message', () => {
@@ -55,7 +64,7 @@ describe('ErrorHandler', () => {
       
       ErrorHandler.handle(error);
       
-      expect(mockAlert).toHaveBeenCalledWith('Error', 'An unexpected error occurred. Please try again.');
+      expect(mockAlert()).toHaveBeenCalledWith('Error', 'An unexpected error occurred. Please try again.');
     });
   });
 

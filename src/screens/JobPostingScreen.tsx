@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import Button from '../components/ui/Button';
 import { Picker } from '@react-native-picker/picker';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
 import { AIPricingWidget } from '../components/AIPricingWidget';
 import { PricingAnalysis } from '../services/AIPricingEngine';
 import { theme } from '../theme';
+import { useCreateJob } from '../hooks/useJobs';
+import { logger } from '../utils/logger';
 
 interface Props {
   navigation: StackNavigationProp<any>;
@@ -20,8 +22,10 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [category, setCategory] = useState('handyman');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
   const [budget, setBudget] = useState('');
-  const [loading, setLoading] = useState(false);
   const [aiPricingAnalysis, setAIPricingAnalysis] = useState<PricingAnalysis | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  const createJobMutation = useCreateJob();
 
   const jobCategories = [
     { label: 'Handyman', value: 'handyman' },
@@ -44,9 +48,84 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  // Real-time validation
+  const validateField = (fieldName: string, value: string): string => {
+    switch (fieldName) {
+      case 'title':
+        if (!value.trim()) return 'Job title is required';
+        if (value.trim().length < 10) return 'Job title must be at least 10 characters';
+        if (value.trim().length > 100) return 'Job title cannot exceed 100 characters';
+        return '';
+      
+      case 'description':
+        if (!value.trim()) return 'Description is required';
+        if (value.trim().length < 20) return 'Description must be at least 20 characters';
+        if (value.trim().length > 500) return 'Description cannot exceed 500 characters';
+        return '';
+      
+      case 'location':
+        if (!value.trim()) return 'Location is required';
+        if (value.trim().length < 5) return 'Please provide a more specific location';
+        return '';
+      
+      case 'budget':
+        if (!value.trim()) return 'Budget is required';
+        const budgetNumber = parseFloat(value);
+        if (isNaN(budgetNumber) || budgetNumber <= 0) return 'Budget must be a valid positive number';
+        if (budgetNumber > 50000) return 'Budget cannot exceed £50,000';
+        if (budgetNumber < 10) return 'Minimum budget is £10';
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  const handleFieldChange = (fieldName: string, value: string) => {
+    // Update the field value
+    switch (fieldName) {
+      case 'title':
+        setTitle(value);
+        break;
+      case 'description':
+        setDescription(value);
+        break;
+      case 'location':
+        setLocation(value);
+        break;
+      case 'budget':
+        setBudget(value);
+        break;
+    }
+
+    // Clear or set validation error for this field
+    const error = validateField(fieldName, value);
+    setValidationErrors(prev => ({
+      ...prev,
+      [fieldName]: error
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!title || !description || !location || !budget) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // Validate all fields
+    const titleError = validateField('title', title);
+    const descriptionError = validateField('description', description);
+    const locationError = validateField('location', location);
+    const budgetError = validateField('budget', budget);
+
+    const errors = {
+      title: titleError,
+      description: descriptionError,
+      location: locationError,
+      budget: budgetError,
+    };
+
+    setValidationErrors(errors);
+
+    // Check if there are any validation errors
+    const hasErrors = Object.values(errors).some(error => error !== '');
+    if (hasErrors) {
+      Alert.alert('Validation Error', 'Please fix the errors in the form before submitting');
       return;
     }
 
@@ -56,10 +135,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     const budgetNumber = parseFloat(budget);
-    if (isNaN(budgetNumber) || budgetNumber <= 0) {
-      Alert.alert('Error', 'Please enter a valid budget amount');
-      return;
-    }
 
     // Warn if budget is significantly different from AI recommendation
     if (aiPricingAnalysis && Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) > aiPricingAnalysis.suggestedPrice.optimal * 0.3) {
@@ -76,12 +151,20 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       if (!proceed) return;
     }
 
-    setLoading(true);
     try {
-      await JobService.createJob({
+      logger.info('Submitting job posting', {
         title,
-        description,
-        location,
+        category,
+        urgency,
+        budget: budgetNumber,
+        locationLength: location.length,
+        descriptionLength: description.length,
+      });
+
+      await createJobMutation.mutateAsync({
+        title: title.trim(),
+        description: description.trim(),
+        location: location.trim(),
         budget: budgetNumber,
         homeownerId: user.id,
         category,
@@ -92,9 +175,8 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to post job');
-    } finally {
-      setLoading(false);
+      logger.error('Job posting failed:', error);
+      Alert.alert('Error', error.message || 'Failed to post job. Please try again.');
     }
   };
 
@@ -115,12 +197,18 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.form}>
           <Text style={styles.label}>Job Title *</Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              validationErrors.title && styles.inputError
+            ]}
             placeholder="e.g., Kitchen Sink Repair"
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(value) => handleFieldChange('title', value)}
             maxLength={100}
           />
+          {validationErrors.title && (
+            <Text style={styles.errorText}>{validationErrors.title}</Text>
+          )}
 
           <Text style={styles.label}>Category *</Text>
           <View style={styles.pickerContainer}>
@@ -137,24 +225,40 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
           <Text style={styles.label}>Description *</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[
+              styles.input, 
+              styles.textArea,
+              validationErrors.description && styles.inputError
+            ]}
             placeholder="Describe the job in detail..."
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(value) => handleFieldChange('description', value)}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
             maxLength={500}
           />
+          <Text style={styles.characterCount}>
+            {description.length}/500 characters
+          </Text>
+          {validationErrors.description && (
+            <Text style={styles.errorText}>{validationErrors.description}</Text>
+          )}
 
           <Text style={styles.label}>Location *</Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              validationErrors.location && styles.inputError
+            ]}
             placeholder="e.g., Central London, Manchester City Centre"
             value={location}
-            onChangeText={setLocation}
+            onChangeText={(value) => handleFieldChange('location', value)}
             maxLength={100}
           />
+          {validationErrors.location && (
+            <Text style={styles.errorText}>{validationErrors.location}</Text>
+          )}
 
           <Text style={styles.label}>Urgency</Text>
           <View style={styles.urgencyContainer}>
@@ -194,16 +298,22 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <Text style={styles.label}>Your Budget *</Text>
-          <View style={styles.budgetInputContainer}>
+          <View style={[
+            styles.budgetInputContainer,
+            validationErrors.budget && styles.inputError
+          ]}>
             <Text style={styles.currencySymbol}>£</Text>
             <TextInput
               style={styles.budgetInput}
               placeholder="Enter amount"
               value={budget}
-              onChangeText={setBudget}
+              onChangeText={(value) => handleFieldChange('budget', value)}
               keyboardType="numeric"
             />
           </View>
+          {validationErrors.budget && (
+            <Text style={styles.errorText}>{validationErrors.budget}</Text>
+          )}
 
           {aiPricingAnalysis && (
             <View style={styles.budgetComparisonContainer}>
@@ -222,15 +332,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        <Button
+          variant="primary"
+          title={createJobMutation.isPending ? 'Posting…' : 'Post Job'}
           onPress={handleSubmit}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Posting...' : 'Post Job'}
-          </Text>
-        </TouchableOpacity>
+          disabled={createJobMutation.isPending}
+          loading={createJobMutation.isPending}
+          fullWidth
+        />
       </View>
     </View>
   );
@@ -255,12 +364,12 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 18,
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   placeholder: {
     width: 50,
@@ -328,7 +437,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   urgencyButtonTextActive: {
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   budgetInputContainer: {
     flexDirection: 'row',
@@ -391,9 +500,25 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
   submitButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
+  },
+  inputError: {
+    borderColor: theme.colors.priorityHigh,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: 12,
+    color: theme.colors.priorityHigh,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  characterCount: {
+    fontSize: 11,
+    color: theme.colors.textTertiary,
+    textAlign: 'right',
+    marginTop: 4,
   },
 });
 

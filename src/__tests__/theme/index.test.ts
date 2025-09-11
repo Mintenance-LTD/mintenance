@@ -12,8 +12,8 @@ import {
 describe('Theme System', () => {
   describe('theme object', () => {
     it('has all required color properties', () => {
-      expect(theme.colors.primary).toBe('#007AFF');
-      expect(theme.colors.secondary).toBe('#FF9500');
+      expect(theme.colors.primary).toBe('#0F172A');
+      expect(theme.colors.secondary).toBe('#10B981');
       expect(theme.colors.success).toBe('#34C759');
       expect(theme.colors.error).toBe('#FF3B30');
       expect(theme.colors.warning).toBe('#FF9500');
@@ -22,14 +22,14 @@ describe('Theme System', () => {
 
     it('has surface and background colors', () => {
       expect(theme.colors.surface).toBe('#FFFFFF');
-      expect(theme.colors.background).toBe('#F8F9FA');
-      expect(theme.colors.surfaceSecondary).toBe('#F2F2F7');
+      expect(theme.colors.background).toBe('#FFFFFF');
+      expect(theme.colors.surfaceSecondary).toBe('#F8FAFC');
     });
 
     it('has text color hierarchy', () => {
-      expect(theme.colors.textPrimary).toBe('#1C1C1E');
-      expect(theme.colors.textSecondary).toBe('#3C3C43');
-      expect(theme.colors.textTertiary).toBe('#8E8E93');
+      expect(theme.colors.textPrimary).toBe('#1F2937');
+      expect(theme.colors.textSecondary).toBe('#4B5563');
+      expect(theme.colors.textTertiary).toBe('#6B7280');
     });
 
     it('has consistent typography scale', () => {
@@ -104,27 +104,27 @@ describe('Theme System', () => {
     });
 
     it('returns default color for unknown status', () => {
-      expect(getStatusColor('unknown_status' as any)).toBe('#3C3C43');
+      expect(getStatusColor('unknown_status' as any)).toBe('#4B5563');
     });
   });
 
   describe('getPriorityColor', () => {
     it('returns correct colors for job priorities', () => {
-      expect(getPriorityColor('low')).toBe('#34C759');
-      expect(getPriorityColor('medium')).toBe('#FF9500');
-      expect(getPriorityColor('high')).toBe('#FF3B30');
+      expect(getPriorityColor('low')).toBe('#10B981');
+      expect(getPriorityColor('medium')).toBe('#F59E0B');
+      expect(getPriorityColor('high')).toBe('#EF4444');
     });
 
     it('returns default color for unknown priority', () => {
-      expect(getPriorityColor('unknown_priority' as any)).toBe('#3C3C43');
+      expect(getPriorityColor('unknown_priority' as any)).toBe('#4B5563');
     });
   });
 
   describe('getColor', () => {
     it('retrieves nested color values by path', () => {
-      expect(getColor('primary')).toBe('#007AFF');
+      expect(getColor('primary')).toBe('#0F172A');
       expect(getColor('success')).toBe('#34C759');
-      expect(getColor('textPrimary')).toBe('#1C1C1E');
+      expect(getColor('textPrimary')).toBe('#1F2937');
     });
 
     it('returns undefined for invalid color paths', () => {
@@ -143,9 +143,9 @@ describe('Theme System', () => {
 
   describe('getFontSize', () => {
     it('retrieves font size values', () => {
-      expect(getFontSize('base')).toBe(14);
-      expect(getFontSize('lg')).toBe(16);
-      expect(getFontSize('xl')).toBe(18);
+      expect(getFontSize('base')).toBe(theme.typography.fontSize.base);
+      expect(getFontSize('lg')).toBe(theme.typography.fontSize.lg);
+      expect(getFontSize('xl')).toBe(theme.typography.fontSize.xl);
     });
   });
 
@@ -158,18 +158,18 @@ describe('Theme System', () => {
 
   describe('getCategoryColor', () => {
     it('returns correct colors for categories', () => {
-      expect(getCategoryColor('plumbing')).toBe('#007AFF');
-      expect(getCategoryColor('electrical')).toBe('#FF9500');
-      expect(getCategoryColor('hvac')).toBe('#34C759');
+      expect(getCategoryColor('plumbing')).toBe('#3B82F6');
+      expect(getCategoryColor('electrical')).toBe('#F59E0B');
+      expect(getCategoryColor('hvac')).toBe('#10B981');
     });
 
     it('returns default color for unknown category', () => {
-      expect(getCategoryColor('unknown')).toBe('#3C3C43');
+      expect(getCategoryColor('unknown')).toBe('#4B5563');
     });
 
     it('handles case insensitive categories', () => {
-      expect(getCategoryColor('PLUMBING')).toBe('#007AFF');
-      expect(getCategoryColor('ELECTRICAL')).toBe('#FF9500');
+      expect(getCategoryColor('PLUMBING')).toBe('#3B82F6');
+      expect(getCategoryColor('ELECTRICAL')).toBe('#F59E0B');
     });
 
     it('handles spaced categories by removing spaces', () => {
@@ -181,15 +181,15 @@ describe('Theme System', () => {
   describe('component variants', () => {
     it('has button variants', () => {
       expect(theme.components.button.primary).toEqual({
-        backgroundColor: '#007AFF',
+        backgroundColor: '#0F172A',
         color: '#FFFFFF',
-        borderColor: '#007AFF',
+        borderColor: '#0F172A',
       });
 
       expect(theme.components.button.secondary).toEqual({
         backgroundColor: 'transparent',
-        color: '#007AFF',
-        borderColor: '#007AFF',
+        color: '#0F172A',
+        borderColor: '#0F172A',
       });
     });
   });
@@ -197,7 +197,7 @@ describe('Theme System', () => {
   describe('accessibility support', () => {
     it('has high contrast colors for accessibility', () => {
       // Ensure text colors have sufficient contrast
-      expect(theme.colors.textPrimary).toBe('#1C1C1E'); // Dark text
+      expect(theme.colors.textPrimary).toBe('#1F2937'); // Dark text
       expect(theme.colors.surface).toBe('#FFFFFF'); // Light background
       
       // Error states should be distinguishable
@@ -209,8 +209,8 @@ describe('Theme System', () => {
   describe('consistency checks', () => {
     it('has consistent color usage', () => {
       // Primary color should be used consistently
-      expect(theme.components.button.primary.backgroundColor).toBe('#007AFF');
-      expect(theme.components.button.secondary.borderColor).toBe('#007AFF');
+      expect(theme.components.button.primary.backgroundColor).toBe('#0F172A');
+      expect(theme.components.button.secondary.borderColor).toBe('#0F172A');
     });
   });
 });

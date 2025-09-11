@@ -1,34 +1,51 @@
 import * as Sentry from '@sentry/react-native';
 import { init } from 'sentry-expo';
 import { User } from '../types';
-import { logger } from '../utils/logger';
-
-const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+import { setSentryFunctions } from '../utils/logger';
+import { config, isFeatureEnabled } from './environment';
 
 export const initSentry = () => {
-  if (!SENTRY_DSN) {
-    logger.warn('Sentry DSN not configured. Error reporting disabled.');
+  // Check if crash reporting is enabled and if we have a DSN
+  if (!isFeatureEnabled('enableCrashReporting') || !config.sentryDsn) {
+    console.log('Sentry disabled:', {
+      crashReportingEnabled: isFeatureEnabled('enableCrashReporting'),
+      hasDsn: !!config.sentryDsn
+    });
+    // Set up no-op functions for logger
+    setSentryFunctions({
+      captureMessage: () => {},
+      captureException: () => {},
+      addBreadcrumb: () => {},
+    });
     return;
   }
 
   // Use sentry-expo for initialization
   init({
-    dsn: SENTRY_DSN,
-    environment: process.env.NODE_ENV || 'development',
+    dsn: config.sentryDsn,
+    environment: config.environment,
     enableInExpoDevelopment: false,
-    debug: __DEV__,
+    debug: config.environment === 'development',
     beforeSend(event) {
-      if (__DEV__) {
+      // Don't send events in development unless explicitly enabled
+      if (config.environment === 'development') {
         return null;
       }
       return event;
     }
   });
+
+  // Set up Sentry functions for logger after initialization
+  setSentryFunctions({
+    captureMessage: Sentry.captureMessage,
+    captureException: Sentry.captureException,
+    addBreadcrumb: Sentry.addBreadcrumb,
+  });
 };
 
 export const captureException = (error: Error, extra?: Record<string, any>) => {
-  if (__DEV__) {
-    logger.error('Error:', error, extra);
+  if (!isFeatureEnabled('enableCrashReporting') || config.environment === 'development') {
+    console.error('Error:', error, extra);
     return;
   }
 
@@ -38,8 +55,8 @@ export const captureException = (error: Error, extra?: Record<string, any>) => {
 };
 
 export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
-  if (__DEV__) {
-    logger.debug('[${level.toUpperCase()}] ${message}');
+  if (!isFeatureEnabled('enableCrashReporting') || config.environment === 'development') {
+    console.log(`[${level.toUpperCase()}] ${message}`);
     return;
   }
 
@@ -77,8 +94,8 @@ export const addBreadcrumb = (message: string, category?: string, data?: Record<
 
 // Performance monitoring utilities
 export const startTransaction = (name: string, op: string) => {
-  if (__DEV__) {
-    logger.debug(`Transaction started: ${name} (${op})`);
+  if (!isFeatureEnabled('enablePerformanceMonitoring') || config.environment === 'development') {
+    console.log(`Transaction started: ${name} (${op})`);
     return null;
   }
   // Use breadcrumbs for tracking instead of transactions in sentry-expo
@@ -102,7 +119,7 @@ export const measureAsyncPerformance = async <T>(
     const result = await operation();
     const duration = Date.now() - startTime;
     
-    if (!__DEV__) {
+    if (isFeatureEnabled('enablePerformanceMonitoring') && config.environment !== 'development') {
       Sentry.addBreadcrumb({
         message: `${name} completed in ${duration}ms`,
         level: 'info',
@@ -115,7 +132,7 @@ export const measureAsyncPerformance = async <T>(
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    if (!__DEV__) {
+    if (isFeatureEnabled('enablePerformanceMonitoring') && config.environment !== 'development') {
       Sentry.addBreadcrumb({
         message: `${name} failed after ${duration}ms`,
         level: 'error',

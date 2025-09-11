@@ -65,16 +65,82 @@ export const useSearchJobs = (query: string, limit: number = 20) => {
 // Mutation hooks
 export const useCreateJob = () => {
   return useOfflineMutation({
-    mutationFn: JobService.createJob,
+    mutationFn: async (jobData: {
+      title: string;
+      description: string;
+      location: string;
+      budget: number;
+      homeownerId: string;
+      category?: string;
+      subcategory?: string;
+      priority?: 'low' | 'medium' | 'high';
+      photos?: string[];
+    }) => {
+      // Server-side validation (backup for client validation)
+      if (!jobData.title.trim()) {
+        throw new Error('Job title is required');
+      }
+      if (jobData.title.trim().length < 10) {
+        throw new Error('Job title must be at least 10 characters long');
+      }
+      if (jobData.title.trim().length > 100) {
+        throw new Error('Job title cannot exceed 100 characters');
+      }
+
+      if (!jobData.description.trim()) {
+        throw new Error('Job description is required');
+      }
+      if (jobData.description.trim().length < 20) {
+        throw new Error('Job description must be at least 20 characters long');
+      }
+      if (jobData.description.trim().length > 500) {
+        throw new Error('Job description cannot exceed 500 characters');
+      }
+
+      if (!jobData.location.trim()) {
+        throw new Error('Job location is required');
+      }
+      if (jobData.location.trim().length < 5) {
+        throw new Error('Please provide a more specific location');
+      }
+
+      if (!jobData.budget || jobData.budget <= 0) {
+        throw new Error('Budget must be greater than 0');
+      }
+      if (jobData.budget > 50000) {
+        throw new Error('Budget cannot exceed £50,000');
+      }
+
+      if (!jobData.homeownerId) {
+        throw new Error('User authentication is required');
+      }
+
+      return JobService.createJob({
+        ...jobData,
+        title: jobData.title.trim(),
+        description: jobData.description.trim(),
+        location: jobData.location.trim(),
+      });
+    },
     entity: 'job',
     actionType: 'CREATE',
-    getQueryKey: () => queryKeys.jobs.all,
+    getQueryKey: (variables) => queryKeys.jobs.list(`homeowner:${variables.homeownerId}`),
     optimisticUpdate: (variables) => ({
-      id: `temp_${Date.now()}`,
-      ...variables,
+      id: `temp_job_${Date.now()}`,
+      title: variables.title.trim(),
+      description: variables.description.trim(),
+      location: variables.location.trim(),
+      budget: variables.budget,
+      homeownerId: variables.homeownerId,
+      contractorId: null,
+      category: variables.category || 'handyman',
+      subcategory: variables.subcategory,
+      priority: variables.priority || 'medium',
       status: 'posted' as const,
+      photos: variables.photos || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      bids: [],
     }),
   });
 };

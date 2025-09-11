@@ -165,7 +165,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -179,19 +179,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
   },
   backButton: {
     padding: 5,
   },
   backButtonText: {
     fontSize: 18,
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   placeholder: {
     width: 50,
@@ -200,50 +200,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     marginBottom: 15,
   },
   jobTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   jobDescription: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 15,
     lineHeight: 22,
   },
   jobLocation: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
   },
   jobBudget: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.colors.info,
   },
   form: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     padding: 20,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 15,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.base,
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     fontSize: 16,
   },
   textArea: {
@@ -269,14 +269,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
   },
   submitButton: {
     height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: theme.colors.info,
+    borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   submitButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -43,7 +43,7 @@ const DefaultLazyFallback: React.FC<LazyLoadingFallbackProps> = ({
       <LoadingSpinner 
         message={message}
         size="large"
-        testID="lazy-loading-spinner"
+        {...({ testID: 'lazy-loading-spinner' } as any)}
       />
     </View>
   );

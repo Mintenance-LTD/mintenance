@@ -116,7 +116,7 @@ export class ErrorTracker {
       if (Sentry) {
         Sentry.init({
           ...SENTRY_CONFIG,
-          beforeSend(event) {
+          beforeSend(event: any) {
             // Filter out development errors in production
             if (SENTRY_CONFIG.environment === 'production') {
               if (event.exception?.values?.[0]?.value?.includes('__DEV__')) {
@@ -127,7 +127,7 @@ export class ErrorTracker {
             // Add custom processing
             return tracker.processEvent(event);
           },
-          beforeBreadcrumb(breadcrumb) {
+          beforeBreadcrumb(breadcrumb: any) {
             // Filter sensitive information from breadcrumbs
             if (breadcrumb.message?.includes('password') || 
                 breadcrumb.message?.includes('token')) {
@@ -348,7 +348,7 @@ export class ErrorTracker {
   /**
    * Process events before sending to Sentry
    */
-  private processEvent(event: Sentry.Event): Sentry.Event | null {
+  private processEvent(event: any): any | null {
     // Add custom fingerprinting for better error grouping
     if (event.exception?.values?.[0]) {
       const error = event.exception.values[0];

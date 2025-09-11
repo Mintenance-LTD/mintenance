@@ -58,8 +58,12 @@ describe('HomeScreen', () => {
         id: 'job-1',
         title: 'Fix leaky faucet',
         description: 'Kitchen faucet is leaking',
+        location: 'San Francisco, CA',
+        homeowner_id: 'homeowner-1',
+        budget: 150,
         status: 'posted',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     ];
 
@@ -89,6 +93,11 @@ describe('HomeScreen', () => {
       signIn: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
+      signInWithBiometrics: jest.fn(),
+      isBiometricAvailable: false,
+      isBiometricEnabled: false,
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
     });
 
     const mockStats = {
@@ -97,6 +106,11 @@ describe('HomeScreen', () => {
       activeJobs: 2,
       rating: 4.8,
       totalEarnings: 2500,
+      monthlyEarnings: 800,
+      totalJobsCompleted: 12,
+      responseTime: 2.5,
+      successRate: 95,
+      todaysAppointments: 3,
     };
 
     mockUserService.getContractorStats.mockResolvedValue(mockStats);
@@ -118,6 +132,11 @@ describe('HomeScreen', () => {
       signIn: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
+      signInWithBiometrics: jest.fn(),
+      isBiometricAvailable: false,
+      isBiometricEnabled: false,
+      enableBiometric: jest.fn(),
+      disableBiometric: jest.fn(),
     });
 
     const { getByTestId } = render(<HomeScreen />);
@@ -125,6 +144,7 @@ describe('HomeScreen', () => {
   });
 
   it('handles error state', async () => {
+    const mockJobs: any[] = [];
     mockJobService.getUserJobs.mockRejectedValue(new Error('Failed to load jobs'));
 
     const { getByText } = render(<HomeScreen />);

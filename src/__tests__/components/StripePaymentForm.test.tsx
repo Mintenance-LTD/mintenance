@@ -55,9 +55,7 @@ describe('StripePaymentForm', () => {
     );
 
     const payButton = getByText('Pay $150.00 Securely');
-    expect(payButton.parent?.props.style).toContainEqual(
-      expect.objectContaining({ backgroundColor: '#d1d5db' })
-    );
+    expect(payButton.parent?.props.disabled).toBe(true);
   });
 
   it('enables pay button when card is complete', async () => {
@@ -70,9 +68,7 @@ describe('StripePaymentForm', () => {
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
-      expect(payButton.parent?.props.style).not.toContainEqual(
-        expect.objectContaining({ backgroundColor: '#d1d5db' })
-      );
+      expect(payButton.parent?.props.disabled).toBe(false);
     });
   });
 

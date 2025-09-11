@@ -1,0 +1,13 @@
+{
+  // VS Code task to run hex color lint locally
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Lint: No Hex Colors",
+      "type": "shell",
+      "command": "node scripts/ci/check-no-hex.js",
+      "problemMatcher": []
+    }
+  ]
+}
+

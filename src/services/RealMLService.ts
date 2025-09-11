@@ -22,6 +22,7 @@ interface MockTensor {
 interface MockModel {
   predict(input: any): MockTensor;
   dispose?(): void;
+  compile?: (config: any) => void;
 }
 
 // Mock tf for development
@@ -215,7 +216,7 @@ export class RealMLService {
     });
 
     // Initialize with random weights (better than nothing)
-    fallbackModel.compile({
+    fallbackModel.compile?.({
       optimizer: 'adam',
       loss: 'meanSquaredError'
     });
@@ -255,7 +256,7 @@ export class RealMLService {
         throw new Error('Pricing model not available');
       }
 
-      const prediction = pricingModel.predict(inputTensor) as tf.Tensor;
+      const prediction = pricingModel.predict(inputTensor) as any;
       const results = await prediction.data();
 
       // Clean up tensors
@@ -309,7 +310,7 @@ export class RealMLService {
         throw new Error('Complexity model not available');
       }
 
-      const prediction = complexityModel.predict(inputTensor) as tf.Tensor;
+      const prediction = complexityModel.predict(inputTensor) as any;
       const results = await prediction.data();
 
       inputTensor.dispose();

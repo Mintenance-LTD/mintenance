@@ -1,6 +1,9 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNetworkState } from './useNetworkState';
 import { OfflineManager, OfflineAction } from '../services/OfflineManager';
+import { LocalDatabase } from '../services/LocalDatabase';
+import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
 
 export interface OfflineQueryOptions {
@@ -32,36 +35,98 @@ export const useOfflineQuery = <T = any>({
 }: OfflineQueryOptions) => {
   const { isOnline, connectionQuality } = useNetworkState();
 
+  // Calculate dynamic stale time based on network conditions
+  const dynamicStaleTime = React.useMemo(() => {
+    if (offlineFirst) return Infinity;
+    if (connectionQuality === 'poor') return 30 * 60 * 1000; // 30 minutes on poor connection
+    if (!isOnline) return Infinity; // Never stale when offline
+    return staleTime;
+  }, [offlineFirst, connectionQuality, isOnline, staleTime]);
+
+  // Calculate retry configuration
+  const retryConfig = React.useMemo(() => {
+    return {
+      retry: (failureCount: number, error: any) => {
+        // Don't retry if offline
+        if (!isOnline) return false;
+        
+        // Don't retry on client errors (4xx)
+        if (error?.status >= 400 && error?.status < 500) return false;
+        
+        // Limit retries on slow connections
+        const maxRetries = connectionQuality === 'poor' ? 1 : 3;
+        return failureCount < maxRetries;
+      },
+      retryDelay: (attemptIndex: number) => {
+        const baseDelay = connectionQuality === 'poor' ? 2000 : 1000;
+        return Math.min(baseDelay * Math.pow(2, attemptIndex), 30000);
+      },
+    };
+  }, [isOnline, connectionQuality]);
+
   return useQuery<T>({
     queryKey,
-    queryFn,
-    staleTime: offlineFirst ? Infinity : staleTime,
+    queryFn: async () => {
+      try {
+        // Try local database first if offline or offlineFirst is enabled
+        if (!isOnline || offlineFirst) {
+          const localData = await tryLocalQuery(queryKey);
+          if (localData !== null) {
+            logger.debug('Returning local data', { queryKey: queryKey.join('.') });
+            return localData;
+          }
+        }
+
+        // Fallback to remote query
+        if (!isOnline && !offlineFirst) {
+          throw new Error('No internet connection and no local data available');
+        }
+
+        const remoteData = await queryFn();
+        
+        // Cache successful remote data locally
+        if (remoteData && isOnline) {
+          await cacheLocalData(queryKey, remoteData).catch(error => {
+            logger.warn('Failed to cache local data:', error);
+          });
+        }
+
+        return remoteData;
+      } catch (error) {
+        // Enhanced error logging
+        logger.error('Query failed:', error, {
+          queryKey: queryKey.join('.'),
+          isOnline,
+          connectionQuality,
+          offlineFirst,
+        });
+
+        // If online query failed, try local data as fallback
+        if (isOnline && !offlineFirst) {
+          const localData = await tryLocalQuery(queryKey);
+          if (localData !== null) {
+            logger.info('Using local data as fallback', { queryKey: queryKey.join('.') });
+            return localData;
+          }
+        }
+
+        throw error;
+      }
+    },
+    staleTime: dynamicStaleTime,
     gcTime,
     enabled,
-    retry: (failureCount, error: any) => {
-      // Don't retry if offline
-      if (!isOnline) {
-        return false;
-      }
-      
-      // Don't retry on client errors (4xx)
-      if (error?.status >= 400 && error?.status < 500) {
-        return false;
-      }
-      
-      // Limit retries on slow connections
-      const maxRetries = connectionQuality === 'poor' ? 1 : 3;
-      return failureCount < maxRetries;
+    ...retryConfig,
+    // Enhanced refetch configuration
+    refetchOnWindowFocus: isOnline,
+    refetchOnReconnect: true,
+    refetchOnMount: (query) => {
+      // Only refetch on mount if data is stale or we're online with fresh connection
+      return query.state.isInvalidated || (isOnline && !query.state.data);
     },
-    retryDelay: (attemptIndex) => {
-      // Longer delay on slow connections
-      const baseDelay = connectionQuality === 'poor' ? 2000 : 1000;
-      return Math.min(baseDelay * 2 ** attemptIndex, 30000);
-    },
-    // Prefer cached data on slow connections
-    staleTime: connectionQuality === 'poor' ? Infinity : staleTime,
     meta: {
       offline: true,
+      networkDependency: true,
     },
   });
 };
@@ -75,30 +140,41 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
   getQueryKey,
   retryCount = 3,
 }: OfflineMutationOptions<TVariables, TData>) => {
-  const { isOnline } = useNetworkState();
+  const { isOnline, connectionQuality } = useNetworkState();
   const queryClient = useQueryClient();
 
+  const mutationConfig = React.useMemo(() => ({
+    retry: onlineOnly ? (isOnline ? 2 : 0) : 1,
+    retryDelay: connectionQuality === 'poor' ? 3000 : 1000,
+  }), [onlineOnly, isOnline, connectionQuality]);
+
   return useMutation<TData, Error, TVariables>({
+    ...mutationConfig,
     mutationFn: async (variables: TVariables) => {
-      // If online-only and we're offline, throw error
+      // Enhanced validation
       if (onlineOnly && !isOnline) {
-        throw new Error('This action requires an internet connection');
+        const error = new Error('This action requires an internet connection');
+        logger.warn('Offline mutation blocked:', { entity, actionType });
+        throw error;
       }
 
-      // If online, try to execute immediately
+      // Try online execution first
       if (isOnline) {
         try {
-          return await mutationFn(variables);
+          const result = await mutationFn(variables);
+          logger.info('Mutation executed successfully', { entity, actionType });
+          return result;
         } catch (error) {
-          // If immediate execution fails and we support offline, queue it
+          // Enhanced error handling
+          logger.error('Mutation failed online:', error, {
+            entity,
+            actionType,
+            willQueue: !onlineOnly,
+          });
+
+          // Queue for offline sync if supported
           if (!onlineOnly) {
-            logger.warn('Online mutation failed, queueing for offline sync', {
-              entity,
-              actionType,
-              error: (error as Error).message,
-            });
-            
-            await OfflineManager.queueAction({
+            const actionId = await OfflineManager.queueAction({
               type: actionType,
               entity,
               data: variables,
@@ -106,20 +182,24 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
               queryKey: getQueryKey?.(variables),
             });
 
+            logger.info('Mutation queued for offline sync', {
+              entity,
+              actionType,
+              actionId,
+            });
+
             // Return optimistic data if available
             if (optimisticUpdate) {
               return optimisticUpdate(variables) as TData;
             }
-            
-            // Re-throw if no optimistic update
-            throw error;
           }
+          
           throw error;
         }
       }
 
-      // If offline, queue the action
-      await OfflineManager.queueAction({
+      // Handle offline execution
+      const actionId = await OfflineManager.queueAction({
         type: actionType,
         entity,
         data: variables,
@@ -127,9 +207,10 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         queryKey: getQueryKey?.(variables),
       });
 
-      logger.info('Action queued for offline sync', {
+      logger.info('Offline mutation queued', {
         entity,
         actionType,
+        actionId,
       });
 
       // Return optimistic data if available
@@ -137,8 +218,10 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         return optimisticUpdate(variables) as TData;
       }
 
-      // If no optimistic update, we can't return data
-      throw new Error('Action queued for when connection is restored');
+      // Create a more informative error for offline actions without optimistic updates
+      const error = new Error(`${entity} ${actionType.toLowerCase()} has been queued and will sync when connection is restored`);
+      error.name = 'OfflineQueuedError';
+      throw error;
     },
     onMutate: async (variables: TVariables) => {
       // Apply optimistic update to cache if provided
@@ -185,15 +268,133 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
   });
 };
 
+// Helper functions for local data handling
+const tryLocalQuery = async (queryKey: string[]): Promise<any> => {
+  try {
+    await LocalDatabase.init();
+    
+    const [entity, operation, ...params] = queryKey;
+    
+    switch (entity) {
+      case 'jobs':
+        return await handleJobsQuery(operation, params);
+      case 'user':
+        return await handleUserQuery(operation, params);
+      case 'messages':
+        return await handleMessagesQuery(operation, params);
+      default:
+        return null;
+    }
+  } catch (error) {
+    logger.warn('Local query failed:', error, { queryKey });
+    return null;
+  }
+};
+
+const handleJobsQuery = async (operation: string, params: string[]): Promise<any> => {
+  switch (operation) {
+    case 'list':
+      if (params[0] === 'available') {
+        return await LocalDatabase.getJobsByStatus('posted');
+      } else if (params[0]?.startsWith('homeowner:')) {
+        const homeownerId = params[0].split(':')[1];
+        return await LocalDatabase.getJobsByHomeowner(homeownerId);
+      } else if (params[0]?.startsWith('status:')) {
+        const status = params[0].split(':')[1];
+        const userId = params[0].includes('user:') ? params[0].split('user:')[1] : undefined;
+        return await LocalDatabase.getJobsByStatus(status, userId);
+      }
+      break;
+    case 'detail':
+      return await LocalDatabase.getJob(params[0]);
+    default:
+      return null;
+  }
+  return null;
+};
+
+const handleUserQuery = async (operation: string, params: string[]): Promise<any> => {
+  switch (operation) {
+    case 'profile':
+      return await LocalDatabase.getUser(params[0]);
+    default:
+      return null;
+  }
+};
+
+const handleMessagesQuery = async (operation: string, params: string[]): Promise<any> => {
+  switch (operation) {
+    case 'conversation':
+      return await LocalDatabase.getMessagesByJob(params[0]);
+    default:
+      return null;
+  }
+};
+
+const cacheLocalData = async (queryKey: string[], data: any): Promise<void> => {
+  try {
+    await LocalDatabase.init();
+    
+    const [entity, operation, ...params] = queryKey;
+    
+    switch (entity) {
+      case 'jobs':
+        await cacheJobsData(operation, params, data);
+        break;
+      case 'user':
+        await cacheUserData(operation, params, data);
+        break;
+      case 'messages':
+        await cacheMessagesData(operation, params, data);
+        break;
+    }
+  } catch (error) {
+    logger.error('Failed to cache local data:', error, { queryKey });
+  }
+};
+
+const cacheJobsData = async (operation: string, params: string[], data: any): Promise<void> => {
+  if (Array.isArray(data)) {
+    for (const job of data) {
+      await LocalDatabase.saveJob(job, false);
+    }
+  } else if (data) {
+    await LocalDatabase.saveJob(data, false);
+  }
+};
+
+const cacheUserData = async (operation: string, params: string[], data: any): Promise<void> => {
+  if (data) {
+    await LocalDatabase.saveUser(data, false);
+  }
+};
+
+const cacheMessagesData = async (operation: string, params: string[], data: any): Promise<void> => {
+  if (Array.isArray(data)) {
+    for (const message of data) {
+      const { senderName, senderRole, ...messageData } = message;
+      await LocalDatabase.saveMessage(messageData, false);
+    }
+  }
+};
+
 // Hook to get offline sync status
 export const useOfflineSyncStatus = () => {
   const { isOnline } = useNetworkState();
+  const [syncStatus, setSyncStatus] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const unsubscribe = SyncManager.onSyncStatusChange(setSyncStatus);
+    return unsubscribe;
+  }, []);
   
   return {
     isOnline,
+    syncStatus,
     hasPendingActions: async () => await OfflineManager.hasPendingActions(),
     getPendingCount: async () => await OfflineManager.getPendingActionsCount(),
-    syncNow: () => OfflineManager.syncQueue(),
+    syncNow: () => SyncManager.forcSync(),
     clearQueue: () => OfflineManager.clearQueue(),
+    resetAndResync: () => SyncManager.resetAndResync(),
   };
 };

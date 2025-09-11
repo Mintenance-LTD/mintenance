@@ -68,10 +68,17 @@ export const queryClient = new QueryClient({
       // Cache time - how long data stays in cache when not used
       gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
       
+      // Network mode - for better offline handling
+      networkMode: 'offlineFirst',
+      
       // Retry configuration
       retry: (failureCount, error: any) => {
         // Don't retry on 4xx errors (client errors)
         if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Don't retry if the error indicates offline state
+        if (error?.name === 'NetworkError' || error?.message?.includes('fetch')) {
           return false;
         }
         // Retry up to 3 times for other errors
@@ -79,23 +86,35 @@ export const queryClient = new QueryClient({
       },
       
       // Retry delay with exponential backoff
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
       
-      // Refetch on window focus (useful for mobile apps when returning to foreground)
-      refetchOnWindowFocus: true,
+      // Refetch configuration for better mobile experience
+      refetchOnWindowFocus: false, // Disabled for mobile - use manual refresh
+      refetchOnReconnect: 'always', // Always refetch when coming back online
+      refetchOnMount: (query) => {
+        // Smart refetch: only if data is stale or error state
+        return query.state.isInvalidated || query.state.status === 'error' || !query.state.data;
+      },
       
-      // Refetch on reconnect
-      refetchOnReconnect: true,
-      
-      // Don't refetch on mount if data is fresh
-      refetchOnMount: true,
+      // Prevent infinite loading loops
+      refetchInterval: false,
+      refetchIntervalInBackground: false,
     },
     mutations: {
-      // Retry mutations once on failure
-      retry: 1,
+      // More aggressive retry for mutations
+      retry: (failureCount, error: any) => {
+        // Don't retry client errors
+        if (error?.status >= 400 && error?.status < 500) return false;
+        // Don't retry offline queued errors
+        if (error?.name === 'OfflineQueuedError') return false;
+        return failureCount < 2;
+      },
+      
+      // Network mode for mutations
+      networkMode: 'online',
       
       // Retry delay for mutations
-      retryDelay: 1000,
+      retryDelay: (attemptIndex) => Math.min(1500 * Math.pow(2, attemptIndex), 10000),
     },
   },
 });

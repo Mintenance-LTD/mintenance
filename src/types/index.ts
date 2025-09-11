@@ -153,6 +153,32 @@ export interface ContractorEndorsement {
   createdAt: string;
 }
 
+export interface Message {
+  id: string;
+  jobId: string;
+  senderId: string;
+  receiverId: string;
+  messageText: string;
+  messageType: 'text' | 'image' | 'file';
+  attachmentUrl?: string;
+  read: boolean;
+  createdAt: string;
+  senderName?: string;
+  senderRole?: string;
+}
+
+export interface MessageThread {
+  jobId: string;
+  jobTitle: string;
+  lastMessage?: Message;
+  unreadCount: number;
+  participants: Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>;
+}
+
 // Additional types for biometric authentication
 export interface BiometricCredentials {
   email: string;

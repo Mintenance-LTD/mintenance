@@ -17,7 +17,15 @@ export class JobService {
     const { data, error } = await supabase
       .from('jobs')
       .insert([{
-        ...jobData,
+        title: jobData.title,
+        description: jobData.description,
+        location: jobData.location,
+        budget: jobData.budget,
+        homeowner_id: jobData.homeownerId,
+        category: jobData.category,
+        subcategory: jobData.subcategory,
+        priority: jobData.priority,
+        photos: jobData.photos,
         status: 'posted',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -264,14 +272,19 @@ export class JobService {
       title: data.title,
       description: data.description,
       location: data.location,
-      homeownerId: data.homeowner_id,
-      contractorId: data.contractor_id,
+      homeowner_id: data.homeowner_id,
+      contractor_id: data.contractor_id,
       status: data.status,
       budget: data.budget,
       category: data.category,
       subcategory: data.subcategory,
       priority: data.priority,
       photos: data.photos,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      // Computed fields for backward compatibility
+      homeownerId: data.homeowner_id,
+      contractorId: data.contractor_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
     };

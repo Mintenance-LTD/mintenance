@@ -61,7 +61,7 @@ describe('PaymentService', () => {
 
       expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('create-payment-intent', {
         body: {
-          amount: 150,
+          amount: 15000,
           jobId: 'job-1',
           contractorId: 'contractor-1'
         }
@@ -227,7 +227,7 @@ describe('PaymentService', () => {
         amount: 150
       });
 
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('release-escrow', {
+      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('release-escrow-payment', {
         body: {
           paymentIntentId: 'pi_test_123',
           jobId: 'job-1',

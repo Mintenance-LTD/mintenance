@@ -142,7 +142,7 @@ const FindContractorsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.colors.info} />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -236,10 +236,10 @@ const FindContractorsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -247,11 +247,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#fff',
+    color: theme.colors.textInverse,
     opacity: 0.9,
     marginTop: 4,
   },
@@ -269,34 +269,34 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   loadingText: {
     marginTop: 20,
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
     padding: 20,
   },
   errorText: {
     fontSize: 18,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 40,
     elevation: 2,
@@ -316,24 +316,24 @@ const styles = StyleSheet.create({
   noContractorsTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 15,
   },
   noContractorsText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 30,
   },
   refreshButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 8,
   },
   refreshButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
   },

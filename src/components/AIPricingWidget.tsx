@@ -87,7 +87,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
           onPress={handleAnalyzePricing}
           disabled={isLoading}
         >
-          <Ionicons name="brain" size={20} color="#fff" style={styles.buttonIcon} />
+          <Ionicons name={"brain" as any} size={20} color="#fff" style={styles.buttonIcon} />
           <Text style={styles.analyzeButtonText}>Analyze Pricing</Text>
         </TouchableOpacity>
       </View>

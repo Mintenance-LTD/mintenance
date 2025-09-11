@@ -1,23 +1,26 @@
-import React from 'react';
 import { AuthService } from '../../services/AuthService';
 import { supabase } from '../../config/supabase';
 import { User } from '../../types';
 
-// Mock Supabase
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    auth: {
-      signUp: jest.fn(),
-      signInWithPassword: jest.fn(),
-      signOut: jest.fn(),
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn()
-    },
-    from: jest.fn()
-  }
+// Get mocked modules from jest-setup.js
+const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+
+// Mock ErrorHandler
+jest.mock('../../utils/errorHandler', () => ({
+  ErrorHandler: {
+    validateEmail: jest.fn(),
+    validatePassword: jest.fn(),
+    validateRequired: jest.fn(),
+    getUserMessage: jest.fn((error) => error.userMessage || error.message || 'An error occurred'),
+    createError: jest.fn((message, code, userMessage) => {
+      const error = new Error(userMessage || message);
+      error.name = code || 'Error';
+      return error;
+    }),
+  },
 }));
 
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+const { ErrorHandler } = require('../../utils/errorHandler');
 
 const mockUser: User = {
   id: 'user-1',
@@ -68,7 +71,8 @@ describe('AuthService', () => {
           data: {
             first_name: signUpData.firstName,
             last_name: signUpData.lastName,
-            role: signUpData.role
+            role: signUpData.role,
+            full_name: `${signUpData.firstName} ${signUpData.lastName}`
           }
         }
       });
@@ -89,30 +93,46 @@ describe('AuthService', () => {
 
     it('validates email format', async () => {
       const invalidData = { ...signUpData, email: 'invalid-email' };
+      ErrorHandler.validateEmail.mockImplementationOnce(() => {
+        throw new Error('Please enter a valid email address.');
+      });
 
       await expect(AuthService.signUp(invalidData))
-        .rejects.toThrow('Invalid email format');
+        .rejects.toThrow('Please enter a valid email address.');
+      
+      expect(ErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email');
     });
 
     it('validates password strength', async () => {
       const weakPasswordData = { ...signUpData, password: '123' };
+      ErrorHandler.validatePassword.mockImplementationOnce(() => {
+        throw new Error('Password must be at least 8 characters long.');
+      });
 
       await expect(AuthService.signUp(weakPasswordData))
-        .rejects.toThrow('Password must be at least 8 characters');
+        .rejects.toThrow('Password must be at least 8 characters long.');
+      
+      expect(ErrorHandler.validatePassword).toHaveBeenCalledWith('123');
     });
 
     it('validates required fields', async () => {
       const incompleteData = { ...signUpData, firstName: '' };
+      ErrorHandler.validateRequired.mockImplementationOnce(() => {
+        throw new Error('First name is required.');
+      });
 
       await expect(AuthService.signUp(incompleteData))
-        .rejects.toThrow('First name is required');
+        .rejects.toThrow('First name is required.');
+      
+      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith('', 'First name');
     });
   });
 
   describe('signIn', () => {
     it('signs in user successfully', async () => {
+      const mockSession = { user: mockAuthUser, access_token: 'token123' };
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: { user: mockAuthUser },
+        data: { user: mockAuthUser, session: mockSession },
         error: null
       });
 
@@ -129,7 +149,14 @@ describe('AuthService', () => {
         password: 'password123'
       });
 
-      expect(result).toEqual({ user: mockUser, session: expect.any(Object) });
+      const expectedUser = {
+        ...mockUser,
+        firstName: mockUser.first_name,
+        lastName: mockUser.last_name,
+        createdAt: mockUser.created_at,
+      };
+
+      expect(result).toEqual({ user: expectedUser, session: mockSession });
     });
 
     it('handles invalid credentials', async () => {
@@ -144,13 +171,25 @@ describe('AuthService', () => {
     });
 
     it('validates email format', async () => {
+      ErrorHandler.validateEmail.mockImplementationOnce(() => {
+        throw new Error('Please enter a valid email address.');
+      });
+
       await expect(AuthService.signIn('invalid-email', 'password123'))
-        .rejects.toThrow('Invalid email format');
+        .rejects.toThrow('Please enter a valid email address.');
+      
+      expect(ErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email');
     });
 
     it('requires password', async () => {
+      ErrorHandler.validateRequired.mockImplementationOnce(() => {
+        throw new Error('Password is required.');
+      });
+
       await expect(AuthService.signIn('test@example.com', ''))
-        .rejects.toThrow('Password is required');
+        .rejects.toThrow('Password is required.');
+      
+      expect(ErrorHandler.validateRequired).toHaveBeenCalledWith('', 'Password');
     });
   });
 
@@ -164,7 +203,7 @@ describe('AuthService', () => {
     });
 
     it('handles signout errors', async () => {
-      const error = { message: 'Signout failed' };
+      const error = new Error('Signout failed');
       mockSupabase.auth.signOut.mockResolvedValue({ error });
 
       await expect(AuthService.signOut())
@@ -212,7 +251,14 @@ describe('AuthService', () => {
 
       const result = await AuthService.getCurrentUser();
 
-      expect(result).toEqual(mockUser);
+      const expectedUser = {
+        ...mockUser,
+        firstName: mockUser.first_name,
+        lastName: mockUser.last_name,
+        createdAt: mockUser.created_at,
+      };
+
+      expect(result).toEqual(expectedUser);
     });
 
     it('returns null when not authenticated', async () => {

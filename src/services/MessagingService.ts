@@ -203,73 +203,116 @@ export class MessagingService {
   static subscribeToJobMessages(
     jobId: string,
     onNewMessage: (message: Message) => void,
-    onMessageUpdate: (message: Message) => void = () => {}
+    onMessageUpdate: (message: Message) => void = () => {},
+    onError: (error: any) => void = (error) => logger.error('Real-time subscription error:', error)
   ): () => void {
     const channelKey = `messages_${jobId}`;
     
-    // Clean up existing channel if any
-    if (this.activeChannels.has(channelKey)) {
-      this.activeChannels.get(channelKey)?.unsubscribe();
+    try {
+      // Clean up existing channel if any
+      if (this.activeChannels.has(channelKey)) {
+        this.activeChannels.get(channelKey)?.unsubscribe();
+      }
+
+      const channel = supabase
+        .channel(`messages:job_id=eq.${jobId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `job_id=eq.${jobId}`,
+          },
+          async (payload) => {
+            try {
+              // Fetch the complete message with sender info
+              const { data, error } = await supabase
+                .from('messages')
+                .select(`
+                  *,
+                  sender:users!messages_sender_id_fkey(first_name, last_name, role)
+                `)
+                .eq('id', payload.new.id)
+                .single();
+
+              if (error) {
+                logger.error('Error fetching new message:', error);
+                onError(error);
+                return;
+              }
+
+              if (data) {
+                onNewMessage(this.formatMessage(data));
+              }
+            } catch (error) {
+              logger.error('Error processing new message:', error);
+              onError(error);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `job_id=eq.${jobId}`,
+          },
+          async (payload) => {
+            try {
+              const { data, error } = await supabase
+                .from('messages')
+                .select(`
+                  *,
+                  sender:users!messages_sender_id_fkey(first_name, last_name, role)
+                `)
+                .eq('id', payload.new.id)
+                .single();
+
+              if (error) {
+                logger.error('Error fetching updated message:', error);
+                onError(error);
+                return;
+              }
+
+              if (data) {
+                onMessageUpdate(this.formatMessage(data));
+              }
+            } catch (error) {
+              logger.error('Error processing message update:', error);
+              onError(error);
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            logger.info(`Successfully subscribed to messages for job ${jobId}`);
+          } else if (status === 'CLOSED') {
+            logger.warn(`Real-time subscription closed for job ${jobId}`);
+          } else if (status === 'CHANNEL_ERROR') {
+            logger.error(`Real-time subscription error for job ${jobId}`);
+            onError(new Error('Real-time subscription failed'));
+          }
+        });
+
+      this.activeChannels.set(channelKey, channel);
+
+      // Return cleanup function
+      return () => {
+        try {
+          channel.unsubscribe();
+          this.activeChannels.delete(channelKey);
+          logger.info(`Unsubscribed from messages for job ${jobId}`);
+        } catch (error) {
+          logger.error('Error unsubscribing from messages:', error);
+        }
+      };
+    } catch (error) {
+      logger.error('Error setting up real-time subscription:', error);
+      onError(error);
+      return () => {}; // Return no-op cleanup function
     }
-
-    const channel = supabase
-      .channel(`messages:job_id=eq.${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `job_id=eq.${jobId}`,
-        },
-        async (payload) => {
-          // Fetch the complete message with sender info
-          const { data } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!messages_sender_id_fkey(first_name, last_name, role)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (data) {
-            onNewMessage(this.formatMessage(data));
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `job_id=eq.${jobId}`,
-        },
-        async (payload) => {
-          const { data } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!messages_sender_id_fkey(first_name, last_name, role)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (data) {
-            onMessageUpdate(this.formatMessage(data));
-          }
-        }
-      )
-      .subscribe();
-
-    this.activeChannels.set(channelKey, channel);
-
-    // Return cleanup function
-    return () => {
-      channel.unsubscribe();
-      this.activeChannels.delete(channelKey);
-    };
   }
 
   /**

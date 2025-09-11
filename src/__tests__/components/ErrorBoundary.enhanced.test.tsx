@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, Text, TouchableOpacity } from 'react-native';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 // Mock Alert
@@ -24,7 +24,7 @@ const ThrowingComponent = ({ shouldThrow = true }: { shouldThrow?: boolean }) =>
   if (shouldThrow) {
     throw new Error('Test error');
   }
-  return <text>No error</text>;
+  return <Text>No error</Text>;
 };
 
 describe('ErrorBoundary', () => {
@@ -76,8 +76,8 @@ describe('ErrorBoundary', () => {
 
   it('shows debug info in development mode', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const originalDev = global.__DEV__;
-    global.__DEV__ = true;
+    const originalDev = (global as any).__DEV__;
+    (global as any).__DEV__ = true;
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -88,14 +88,14 @@ describe('ErrorBoundary', () => {
     expect(getByText('Debug Info:')).toBeTruthy();
     expect(getByText('Test error')).toBeTruthy();
 
-    global.__DEV__ = originalDev;
+    (global as any).__DEV__ = originalDev;
     consoleSpy.mockRestore();
   });
 
   it('hides debug info in production mode', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const originalDev = global.__DEV__;
-    global.__DEV__ = false;
+    const originalDev = (global as any).__DEV__;
+    (global as any).__DEV__ = false;
 
     const { queryByText } = render(
       <ErrorBoundary>
@@ -105,7 +105,7 @@ describe('ErrorBoundary', () => {
 
     expect(queryByText('Debug Info:')).toBeFalsy();
 
-    global.__DEV__ = originalDev;
+    (global as any).__DEV__ = originalDev;
     consoleSpy.mockRestore();
   });
 
@@ -131,12 +131,16 @@ describe('ErrorBoundary', () => {
 
   it('uses custom fallback when provided', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const customFallback = (error: Error, resetError: () => void) => (
-      <>
-        <text>Custom error message</text>
-        <text onPress={resetError}>Reset</text>
-      </>
-    );
+    const customFallback = (error: Error, resetError: () => void) => {
+      const React = require('react');
+      const { Text, TouchableOpacity } = require('react-native');
+      return React.createElement(
+        React.Fragment,
+        {},
+        React.createElement(Text, {}, 'Custom error message'),
+        React.createElement(TouchableOpacity, { onPress: resetError }, React.createElement(Text, {}, 'Reset'))
+      );
+    };
 
     const { getByText } = render(
       <ErrorBoundary fallback={customFallback}>
@@ -158,7 +162,9 @@ describe('ErrorBoundary', () => {
       
       return (
         <ErrorBoundary>
-          <text onPress={() => setShouldThrow(false)}>Fix Error</text>
+          <TouchableOpacity onPress={() => setShouldThrow(false)}>
+            <Text>Fix Error</Text>
+          </TouchableOpacity>
           <ThrowingComponent shouldThrow={shouldThrow} />
         </ErrorBoundary>
       );

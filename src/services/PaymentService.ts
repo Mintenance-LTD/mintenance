@@ -33,8 +33,15 @@ export class PaymentService {
       throw new Error('Amount cannot exceed $10,000');
     }
 
+    // Stripe expects amounts in the smallest currency unit (cents)
+    const amountInCents = Math.round(params.amount * 100);
+
     const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-      body: params
+      body: {
+        amount: amountInCents,
+        jobId: params.jobId,
+        contractorId: params.contractorId,
+      }
     });
 
     if (error) throw new Error(error.message);
@@ -91,8 +98,16 @@ export class PaymentService {
     contractorId: string;
     amount: number;
   }): Promise<{ success: boolean; transfer_id?: string }> {
-    const { data, error } = await supabase.functions.invoke('release-escrow', {
-      body: params
+    // Align with deployed function name
+    const { data, error } = await supabase.functions.invoke('release-escrow-payment', {
+      body: {
+        // Note: For full correctness, escrow release should be driven by a transactionId.
+        // This legacy method forwards known fields; your edge function should resolve by paymentIntentId.
+        paymentIntentId: params.paymentIntentId,
+        jobId: params.jobId,
+        contractorId: params.contractorId,
+        amount: params.amount,
+      }
     });
 
     if (error) throw new Error(error.message);

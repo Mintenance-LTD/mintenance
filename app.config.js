@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    version: "1.1.0",
+    version: "1.1.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -17,14 +17,16 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
-      buildNumber: "6",
+      buildNumber: "8",
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs access to location to find contractors near you.",
         ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription: "This app needs access to camera to take photos for job postings.",
         NSPhotoLibraryUsageDescription: "This app needs access to photo library to attach images to job postings.",
         NSFaceIDUsageDescription: "This app uses Face ID for secure authentication."
-      }
+      },
+      associatedDomains: ["applinks:mintenance.app", "applinks:www.mintenance.app"]
     },
     android: {
       adaptiveIcon: {
@@ -32,15 +34,31 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "com.mintenance.app",
-      versionCode: 6,
+      versionCode: 8,
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: "mintenance.app"
+            },
+            {
+              scheme: "https", 
+              host: "www.mintenance.app"
+            }
+          ],
+          category: ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       permissions: [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "VIBRATE",
@@ -59,19 +77,7 @@ export default {
       policy: "appVersion"
     },
     plugins: [
-      [
-        "expo-build-properties",
-        {
-          android: {
-            compileSdkVersion: 35,
-            targetSdkVersion: 35,
-            buildToolsVersion: "34.0.0"
-          },
-          ios: {
-            deploymentTarget: "15.1"
-          }
-        }
-      ]
+      "sentry-expo"
     ],
     extra: {
       eas: {

@@ -1,5 +1,3 @@
-import { MessagingService } from '../../services/MessagingService';
-
 // Mock Supabase with comprehensive chain support
 const createMockChain = (): any => ({
   eq: jest.fn(() => createMockChain()),
@@ -28,13 +26,21 @@ const mockSupabase = {
   })),
 };
 
-jest.mock('../../config/supabase', () => ({
-  supabase: mockSupabase,
-}));
+let MessagingService: any;
 
 describe('MessagingService', () => {
   beforeEach(() => {
+    jest.resetModules();
     jest.clearAllMocks();
+    // Reset mock chain per test
+    mockSupabase.from.mockReturnValue(createMockChain());
+    mockSupabase.channel.mockReturnValue({
+      on: jest.fn(() => ({ on: jest.fn(() => ({ subscribe: jest.fn() })) })),
+      unsubscribe: jest.fn(),
+    } as any);
+    // Mock supabase before requiring service
+    jest.doMock('../../config/supabase', () => ({ supabase: mockSupabase }));
+    ({ MessagingService } = require('../../services/MessagingService'));
   });
 
   describe('sendMessage', () => {

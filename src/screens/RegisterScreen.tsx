@@ -5,6 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/AppNavigator';
 import { theme } from '../theme';
+import Button from '../components/ui/Button';
 
 type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -68,7 +69,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.headerLogo}
             resizeMode="contain"
           />
-          <Text style={styles.headerTitle}>MintEnance</Text>
+          <Text style={styles.headerTitle}>Mintenance</Text>
         </View>
       </View>
 
@@ -238,19 +239,16 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             
             {/* Green Create Account Button */}
-            <TouchableOpacity 
-              style={[styles.createAccountButton, loading && styles.buttonDisabled]} 
+            <Button
+              variant="success"
+              title={loading ? 'Creating Account...' : 'Create Account'}
               onPress={handleRegister}
               disabled={loading}
-              accessibilityRole="button"
-              accessibilityLabel={loading ? "Creating account" : "Create account"}
-              accessibilityHint="Double tap to create your new account"
-              accessibilityState={{ disabled: loading, busy: loading }}
-            >
-              <Text style={styles.createAccountButtonText}>
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Text>
-            </TouchableOpacity>
+              loading={loading}
+              accessibilityLabel={loading ? 'Creating account' : 'Create account'}
+              fullWidth
+              style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 24 }}
+            />
             
             {/* Terms & Privacy Note */}
             <Text style={styles.termsText}>
@@ -288,7 +286,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   keyboardContainer: {
     flex: 1,
@@ -303,7 +301,7 @@ const styles = StyleSheet.create({
   },
   roleSelectionContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: theme.colors.surfaceTertiary,
     borderRadius: 20,
     padding: 4,
     marginBottom: 32,
@@ -316,12 +314,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roleToggleActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadows.sm,
   },
   roleToggleText: {
     fontSize: 16,
@@ -337,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: theme.colors.border, // Subtle gray outline
-    borderRadius: 20, // Large rounded input fields
+    borderRadius: theme.borderRadius.xxl, // Large rounded input fields
     backgroundColor: theme.colors.surface,
     marginBottom: 20,
     paddingHorizontal: 16,
@@ -354,20 +348,13 @@ const styles = StyleSheet.create({
   },
   createAccountButton: {
     backgroundColor: theme.colors.secondary, // Green rounded button
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xxl,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
     marginBottom: 24,
-    shadowColor: theme.colors.secondary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...theme.shadows.lg,
   },
   buttonDisabled: {
     backgroundColor: theme.colors.textTertiary,
@@ -375,7 +362,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   createAccountButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 18,
     fontWeight: '600',
   },

@@ -9,13 +9,15 @@
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleDebug",
-        "buildType": "apk"
+        "buildType": "apk",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Debug"
       },
       "env": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64"
       },
       "channel": "development"
     },
@@ -23,14 +25,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Release"
       },
       "env": {
         "NODE_ENV": "development",
-        "EXPO_USE_FAST_RESOLVER": "1"
+        "EXPO_USE_FAST_RESOLVER": "1",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64"
       },
       "channel": "stable"
     },
@@ -38,13 +42,15 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "staging"
+        "NODE_ENV": "staging",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64"
       },
       "channel": "staging"
     },
@@ -52,7 +58,8 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Release"
@@ -72,8 +79,7 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "production",
-        "EXPO_USE_FAST_RESOLVER": "1"
+        "NODE_ENV": "production"
       },
       "channel": "production"
     },
@@ -87,8 +93,7 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "production",
-        "EXPO_USE_FAST_RESOLVER": "1"
+        "NODE_ENV": "production"
       },
       "channel": "production"
     }

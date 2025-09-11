@@ -1,11 +1,12 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import HomeScreen from '../../screens/HomeScreen';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
+import { renderWithProviders } from '../utils/renderWithProviders';
 
 // Mock dependencies
-jest.mock('../../hooks/useAuth');
+jest.mock('../../contexts/AuthContext');
 jest.mock('../../services/JobService');
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
@@ -73,7 +74,7 @@ describe('HomeScreen', () => {
     it('renders welcome message with user name', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue(mockJobs);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Welcome back, John!')).toBeTruthy();
@@ -83,7 +84,7 @@ describe('HomeScreen', () => {
     it('shows post job button for homeowners', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue([]);
 
-      const { getByTestId } = render(<HomeScreen />);
+      const { getByTestId } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByTestId('post-job-button')).toBeTruthy();
@@ -93,7 +94,7 @@ describe('HomeScreen', () => {
     it('displays recent jobs section', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue(mockJobs);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Your Recent Jobs')).toBeTruthy();
@@ -105,7 +106,7 @@ describe('HomeScreen', () => {
     it('shows quick actions section', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue([]);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Quick Actions')).toBeTruthy();
@@ -123,7 +124,7 @@ describe('HomeScreen', () => {
 
       mockJobService.getJobsByHomeowner.mockResolvedValue([]);
 
-      const { getByTestId } = render(<HomeScreen />);
+      const { getByTestId } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         fireEvent.press(getByTestId('post-job-button'));
@@ -148,7 +149,7 @@ describe('HomeScreen', () => {
     it('shows browse jobs button for contractors', async () => {
       mockJobService.getJobs.mockResolvedValue(mockJobs);
 
-      const { getByTestId } = render(<HomeScreen />);
+      const { getByTestId } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByTestId('browse-jobs-button')).toBeTruthy();
@@ -158,7 +159,7 @@ describe('HomeScreen', () => {
     it('displays available jobs section', async () => {
       mockJobService.getJobs.mockResolvedValue(mockJobs);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Available Jobs')).toBeTruthy();
@@ -169,7 +170,7 @@ describe('HomeScreen', () => {
     it('shows contractor-specific quick actions', async () => {
       mockJobService.getJobs.mockResolvedValue([]);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Find Jobs')).toBeTruthy();
@@ -216,7 +217,7 @@ describe('HomeScreen', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockJobService.getJobsByHomeowner.mockRejectedValue(new Error('Network error'));
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('Unable to load jobs')).toBeTruthy();
@@ -256,7 +257,7 @@ describe('HomeScreen', () => {
     it('refreshes data when pulled down', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue(mockJobs);
 
-      const { getByTestId } = render(<HomeScreen />);
+      const { getByTestId } = renderWithProviders(<HomeScreen />, render);
 
       const scrollView = getByTestId('home-scroll-view');
       fireEvent(scrollView, 'refresh');
@@ -271,7 +272,7 @@ describe('HomeScreen', () => {
     it('shows empty state for homeowners with no jobs', async () => {
       mockJobService.getJobsByHomeowner.mockResolvedValue([]);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('No jobs posted yet')).toBeTruthy();
@@ -292,7 +293,7 @@ describe('HomeScreen', () => {
 
       mockJobService.getJobs.mockResolvedValue([]);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderWithProviders(<HomeScreen />, render);
 
       await waitFor(() => {
         expect(getByText('No jobs available')).toBeTruthy();

@@ -18,6 +18,17 @@ export const useAccessibleFontSize = (baseFontSize: number, maxScale: number = 1
   return normalize(baseFontSize, maxScale);
 };
 
+type BorderRadiusMap = {
+  none: number;
+  sm: number;
+  base: number;
+  lg: number;
+  xl: number;
+  '2xl': number;
+  full: number;
+  [key: string]: number; // allow additional aliases like 'md' without changing visuals
+};
+
 export const theme = {
   // Color Palette
   colors: {
@@ -26,10 +37,15 @@ export const theme = {
     primaryLight: '#1E293B',   // Lighter but still dark blue
     primaryDark: '#020617',    // Darkest blue for pressed states
     
-    // Secondary Colors (Updated to mint green)
-    secondary: '#4ECDC4',      // Mint green - fresh and modern
-    secondaryLight: '#7FDDD4', // Lighter mint for secondary elements
-    secondaryDark: '#26A69A',  // Darker mint for pressed states
+    // Secondary Colors (Updated to vibrant mint green)
+    secondary: '#10B981',      // Vibrant emerald green - modern and fresh
+    secondaryLight: '#34D399', // Lighter emerald for secondary elements  
+    secondaryDark: '#059669',  // Darker emerald for pressed states
+    
+    // Accent Colors for variety
+    accent: '#F59E0B',         // Warm amber
+    accentLight: '#FCD34D',    // Light amber
+    accentDark: '#D97706',     // Dark amber
     
     // Success/Error States
     success: '#34C759',
@@ -54,12 +70,17 @@ export const theme = {
     surfaceSecondary: '#F8FAFC',
     surfaceTertiary: '#F1F5F9',
     
+    // Common utility colors
+    white: '#FFFFFF',
+    black: '#000000',
+    
     // Text Colors (WCAG AA Compliant)
     textPrimary: '#1F2937',    // 4.5:1 contrast on white
     textSecondary: '#4B5563',  // 4.5:1 contrast on white
     textTertiary: '#6B7280',   // 4.5:1 contrast on white (was #8E8E93 - failed)
     textQuaternary: '#9CA3AF', // For less important text, still passes AA
     textInverse: '#FFFFFF',
+    textInverseMuted: 'rgba(255, 255, 255, 0.8)',
     
     // Placeholder Text (WCAG Compliant)
     placeholder: '#6B7280',    // Meets WCAG AA standard (4.5:1)
@@ -70,10 +91,11 @@ export const theme = {
     borderDark: '#D1D5DB',
     borderFocus: '#0F172A',   // Very dark blue for focused states
     
-    // Priority Colors
-    priorityHigh: '#FF3B30',
-    priorityMedium: '#FF9500',
-    priorityLow: '#34C759',
+    // Priority Colors (Enhanced)
+    priorityHigh: '#EF4444',    // Vibrant red
+    priorityMedium: '#F59E0B',  // Warm amber 
+    priorityLow: '#10B981',     // Vibrant green
+    priorityUrgent: '#DC2626',  // Dark red
     
     // Status Colors
     statusPosted: '#007AFF',
@@ -82,13 +104,23 @@ export const theme = {
     statusCompleted: '#34C759',
     statusCancelled: '#8E8E93',
     
-    // Category Colors
-    plumbing: '#007AFF',
-    electrical: '#FF9500',
-    hvac: '#34C759',
-    handyman: '#8E8E93',
-    cleaning: '#FF3B30',
-    landscaping: '#34C759',
+    // Special purpose colors
+    ratingGold: '#FFD700',
+    
+    // Overlay helpers
+    overlayWhite10: 'rgba(255, 255, 255, 0.10)',
+    overlayWhite15: 'rgba(255, 255, 255, 0.15)',
+    overlayWhite20: 'rgba(255, 255, 255, 0.20)',
+    
+    // Category Colors (More vibrant)
+    plumbing: '#3B82F6',       // Bright blue
+    electrical: '#F59E0B',     // Warm amber
+    hvac: '#10B981',           // Vibrant green  
+    handyman: '#8B5CF6',       // Purple
+    cleaning: '#EF4444',       // Vibrant red
+    landscaping: '#10B981',    // Vibrant green
+    appliance: '#EC4899',      // Pink
+    painting: '#F97316',       // Orange
   },
 
   // Typography
@@ -172,6 +204,13 @@ export const theme = {
     16: 64,
     20: 80,
     24: 96,
+    // Aliases for convenience
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    '2xl': 32,
   },
 
   // Border Radius
@@ -179,11 +218,13 @@ export const theme = {
     none: 0,
     sm: 4,
     base: 8,
+    md: 8,
     lg: 12,
     xl: 16,
     '2xl': 24,
+    xxl: 20,
     full: 9999,
-  },
+  } as BorderRadiusMap,
 
   // Shadows
   shadows: {
@@ -230,6 +271,11 @@ export const theme = {
         backgroundColor: 'transparent',
         color: '#0F172A',
         borderColor: '#0F172A',
+      },
+      tertiary: {
+        backgroundColor: 'transparent',
+        color: '#007AFF',
+        borderColor: 'transparent',
       },
       success: {
         backgroundColor: '#4ECDC4',  // Mint green accent
@@ -318,12 +364,14 @@ export const theme = {
     },
   },
 
-  // Animation Timings
+  // Animation Timings & Micro-interactions
   animation: {
     duration: {
+      instant: 100,
       fast: 150,
       normal: 300,
       slow: 500,
+      slower: 750,
     },
     easing: {
       linear: 'linear' as const,
@@ -331,6 +379,33 @@ export const theme = {
       easeIn: 'ease-in' as const,
       easeOut: 'ease-out' as const,
       easeInOut: 'ease-in-out' as const,
+      bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' as const,
+      spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' as const,
+    },
+    // Micro-interaction configs
+    buttonPress: {
+      scale: 0.96,
+      duration: 100,
+    },
+    cardHover: {
+      scale: 1.02,
+      duration: 200,
+    },
+    iconBounce: {
+      scale: 1.2,
+      duration: 150,
+    },
+    slideIn: {
+      translateX: 50,
+      duration: 300,
+    },
+    fadeIn: {
+      opacity: [0, 1],
+      duration: 300,
+    },
+    pulse: {
+      scale: [1, 1.05, 1],
+      duration: 1000,
     },
   },
 };

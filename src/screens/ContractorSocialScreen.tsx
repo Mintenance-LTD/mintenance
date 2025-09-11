@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,16 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
 import { SkeletonPostCard } from '../components/SkeletonLoader';
-// import { ContractorSocialService } from '../services/ContractorSocialService';
-// import { ContractorPost, ContractorPostType } from '../types';
-// import ContractorPostComponent from '../components/ContractorPost';
+import { AnimationUtils, AnimatedTouchableOpacity } from '../utils/animations';
+import { ContractorSocialService } from '../services/ContractorSocialService';
+import { ContractorPost, ContractorPostType } from '../types';
 
 interface FeedPost {
   id: string;
@@ -85,6 +86,10 @@ const ContractorSocialScreen: React.FC = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPostContent, setNewPostContent] = useState('');
+  const [selectedPostType, setSelectedPostType] = useState<ContractorPostType>('project_showcase');
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
 
 
   useEffect(() => {
@@ -108,6 +113,13 @@ const ContractorSocialScreen: React.FC = () => {
 
   const toggleLike = (postId: string) => {
     haptics.likePost();
+    
+    // Create animated scale value for the specific post
+    const scaleValue = new Animated.Value(1);
+    
+    // Animate the like action
+    AnimationUtils.createLikeAnimation(scaleValue, new Animated.Value(0)).start();
+    
     setPosts(posts.map(post => 
       post.id === postId 
         ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
@@ -122,6 +134,111 @@ const ContractorSocialScreen: React.FC = () => {
         ? { ...post, saved: !post.saved }
         : post
     ));
+  };
+
+  const handleComment = (postId: string) => {
+    haptics.buttonPress();
+    Alert.alert(
+      'Comments',
+      'Comments feature is coming soon! You can like and save posts for now.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleShare = (postId: string) => {
+    haptics.buttonPress();
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, shares: post.shares + 1 }
+        : post
+    ));
+    Alert.alert(
+      'Shared!',
+      'Post shared to your network!',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleCreatePost = () => {
+    haptics.buttonPress();
+    if (user?.role === 'contractor') {
+      setShowCreateModal(true);
+    } else {
+      Alert.alert(
+        'Access Restricted',
+        'Only contractors can create posts in the community feed.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const submitPost = async () => {
+    if (!newPostContent.trim() || !user?.id) {
+      Alert.alert('Error', 'Please enter some content for your post.');
+      return;
+    }
+
+    setIsCreatingPost(true);
+    haptics.buttonPress();
+
+    try {
+      const newPost = await ContractorSocialService.createPost({
+        contractorId: user.id,
+        postType: selectedPostType,
+        content: newPostContent.trim(),
+        hashtags: extractHashtags(newPostContent),
+      });
+
+      // Add to local state for immediate UI update
+      const mappedPost: FeedPost = {
+        id: newPost.id,
+        contractorName: `${user.firstName} ${user.lastName}`,
+        role: getPostTypeDisplayName(selectedPostType),
+        verified: true,
+        timestamp: 'now',
+        content: newPost.content,
+        hashtags: newPost.hashtags || [],
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        liked: false,
+        saved: false,
+      };
+
+      setPosts(prev => [mappedPost, ...prev]);
+      setShowCreateModal(false);
+      setNewPostContent('');
+      
+      Alert.alert(
+        'Success!',
+        'Your post has been shared with the contractor community.',
+        [{ text: 'Great!' }]
+      );
+    } catch (error) {
+      console.error('Error creating post:', error);
+      Alert.alert(
+        'Error',
+        'Failed to create your post. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const extractHashtags = (content: string): string[] => {
+    const hashtags = content.match(/#[a-zA-Z0-9_]+/g) || [];
+    return hashtags.map(tag => tag.toLowerCase());
+  };
+
+  const getPostTypeDisplayName = (type: ContractorPostType): string => {
+    switch (type) {
+      case 'project_showcase': return 'Project Showcase';
+      case 'tip': return 'Pro Tip';
+      case 'before_after': return 'Before/After';
+      case 'milestone': return 'Milestone';
+      default: return 'Update';
+    }
   };
 
 
@@ -187,6 +304,7 @@ const ContractorSocialScreen: React.FC = () => {
 
         <TouchableOpacity 
           style={styles.engagementButton}
+          onPress={() => handleComment(item.id)}
           accessibilityRole="button"
           accessibilityLabel="View comments"
           accessibilityHint={`Double tap to view ${item.comments} comments on this post`}
@@ -197,6 +315,7 @@ const ContractorSocialScreen: React.FC = () => {
 
         <TouchableOpacity 
           style={styles.engagementButton}
+          onPress={() => handleShare(item.id)}
           accessibilityRole="button"
           accessibilityLabel="Share post"
           accessibilityHint="Double tap to share this post with others"
@@ -277,6 +396,97 @@ const ContractorSocialScreen: React.FC = () => {
         }
       />
 
+      {/* Create Post Modal */}
+      <Modal
+        visible={showCreateModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCreateModal(false)}
+      >
+        <View style={styles.createPostContainer}>
+          <View style={styles.createPostHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowCreateModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.createPostTitle}>Create Post</Text>
+            <TouchableOpacity 
+              onPress={submitPost}
+              style={[styles.modalSubmitButton, { opacity: isCreatingPost ? 0.6 : 1 }]}
+              disabled={isCreatingPost}
+            >
+              {isCreatingPost ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.modalSubmitText}>Share</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.createPostContent}>
+            {/* Post Type Selection */}
+            <Text style={styles.sectionLabel}>Post Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.postTypeContainer}>
+              {(['project_showcase', 'tip', 'before_after', 'milestone'] as ContractorPostType[]).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.postTypeOption,
+                    selectedPostType === type && styles.postTypeSelected
+                  ]}
+                  onPress={() => setSelectedPostType(type)}
+                >
+                  <Text style={[
+                    styles.postTypeText,
+                    selectedPostType === type && styles.postTypeTextSelected
+                  ]}>
+                    {getPostTypeDisplayName(type)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Content Input */}
+            <Text style={styles.sectionLabel}>What's happening in your work?</Text>
+            <TextInput
+              style={styles.postContentInput}
+              multiline
+              placeholder="Share your project updates, tips, or achievements with the contractor community..."
+              placeholderTextColor={theme.colors.textTertiary}
+              value={newPostContent}
+              onChangeText={setNewPostContent}
+              maxLength={500}
+              autoFocus
+            />
+            <Text style={styles.characterCount}>{newPostContent.length}/500</Text>
+
+            {/* Tips */}
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsTitle}>💡 Tips for great posts:</Text>
+              <Text style={styles.tipText}>• Use hashtags like #plumbing #electrical #hvac</Text>
+              <Text style={styles.tipText}>• Share your expertise and help other contractors</Text>
+              <Text style={styles.tipText}>• Show before/after photos of your work</Text>
+              <Text style={styles.tipText}>• Celebrate your achievements and milestones</Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Floating Action Button */}
+      {user?.role === 'contractor' && (
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={handleCreatePost}
+          accessibilityRole="button"
+          accessibilityLabel="Create new post"
+          accessibilityHint="Double tap to create a new post in the community feed"
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
+
     </View>
   );
 };
@@ -298,7 +508,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   searchButton: {
     padding: 8,
@@ -311,7 +521,7 @@ const styles = StyleSheet.create({
   },
   // Post Card Styles
   postCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 20, // Rounded cards
@@ -423,6 +633,130 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 40,
+  },
+  // Create Post Modal Styles
+  createPostContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  createPostHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: theme.colors.primary,
+  },
+  createPostTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  modalCloseButton: {
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: theme.colors.textInverse,
+  },
+  modalSubmitButton: {
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  createPostContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  postTypeContainer: {
+    marginBottom: 24,
+  },
+  postTypeOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  postTypeSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  postTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  postTypeTextSelected: {
+    color: theme.colors.textInverse,
+  },
+  postContentInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    backgroundColor: theme.colors.surface,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    textAlign: 'right',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  tipsContainer: {
+    backgroundColor: theme.colors.surfaceSecondary,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  // Floating Action Button
+  fab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.lg,
+    zIndex: 1000,
   },
 });
 

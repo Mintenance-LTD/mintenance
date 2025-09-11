@@ -9,12 +9,12 @@ jest.mock('../../utils/logger', () => ({
 // Mock expo-haptics
 jest.mock('expo-haptics');
 
-import { HapticsService } from '../../utils/haptics';
+import { HapticService } from '../../utils/haptics';
 import * as Haptics from 'expo-haptics';
 
 const mockHaptics = Haptics as jest.Mocked<typeof Haptics>;
 
-describe('HapticsService', () => {
+describe('HapticService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -23,7 +23,7 @@ describe('HapticsService', () => {
     it('should call Haptics.impactAsync with light impact', async () => {
       mockHaptics.impactAsync.mockResolvedValue(undefined);
 
-      await HapticsService.light();
+      await HapticService.light();
 
       expect(mockHaptics.impactAsync).toHaveBeenCalledWith(
         Haptics.ImpactFeedbackStyle.Light
@@ -34,7 +34,7 @@ describe('HapticsService', () => {
       mockHaptics.impactAsync.mockRejectedValue(new Error('Haptics not available'));
 
       // Should not throw
-      await expect(HapticsService.light()).resolves.not.toThrow();
+      await expect(HapticService.light()).resolves.not.toThrow();
     });
   });
 
@@ -42,7 +42,7 @@ describe('HapticsService', () => {
     it('should call Haptics.impactAsync with medium impact', async () => {
       mockHaptics.impactAsync.mockResolvedValue(undefined);
 
-      await HapticsService.medium();
+      await HapticService.medium();
 
       expect(mockHaptics.impactAsync).toHaveBeenCalledWith(
         Haptics.ImpactFeedbackStyle.Medium
@@ -54,7 +54,7 @@ describe('HapticsService', () => {
     it('should call Haptics.impactAsync with heavy impact', async () => {
       mockHaptics.impactAsync.mockResolvedValue(undefined);
 
-      await HapticsService.heavy();
+      await HapticService.heavy();
 
       expect(mockHaptics.impactAsync).toHaveBeenCalledWith(
         Haptics.ImpactFeedbackStyle.Heavy
@@ -66,7 +66,7 @@ describe('HapticsService', () => {
     it('should call Haptics.notificationAsync with success type', async () => {
       mockHaptics.notificationAsync.mockResolvedValue(undefined);
 
-      await HapticsService.success();
+      await HapticService.success();
 
       expect(mockHaptics.notificationAsync).toHaveBeenCalledWith(
         Haptics.NotificationFeedbackType.Success
@@ -78,7 +78,7 @@ describe('HapticsService', () => {
     it('should call Haptics.notificationAsync with warning type', async () => {
       mockHaptics.notificationAsync.mockResolvedValue(undefined);
 
-      await HapticsService.warning();
+      await HapticService.warning();
 
       expect(mockHaptics.notificationAsync).toHaveBeenCalledWith(
         Haptics.NotificationFeedbackType.Warning
@@ -90,7 +90,7 @@ describe('HapticsService', () => {
     it('should call Haptics.notificationAsync with error type', async () => {
       mockHaptics.notificationAsync.mockResolvedValue(undefined);
 
-      await HapticsService.error();
+      await HapticService.error();
 
       expect(mockHaptics.notificationAsync).toHaveBeenCalledWith(
         Haptics.NotificationFeedbackType.Error
@@ -102,32 +102,32 @@ describe('HapticsService', () => {
     it('should call Haptics.selectionAsync', async () => {
       mockHaptics.selectionAsync.mockResolvedValue(undefined);
 
-      await HapticsService.selection();
+      await HapticService.selection();
 
       expect(mockHaptics.selectionAsync).toHaveBeenCalled();
     });
   });
 
-  describe('rigidImpact', () => {
-    it('should call Haptics.impactAsync with rigid impact', async () => {
+  describe('longPress', () => {
+    it('should call medium impact for long press', async () => {
       mockHaptics.impactAsync.mockResolvedValue(undefined);
 
-      await HapticsService.rigidImpact();
+      await HapticService.longPress();
 
       expect(mockHaptics.impactAsync).toHaveBeenCalledWith(
-        Haptics.ImpactFeedbackStyle.Rigid
+        Haptics.ImpactFeedbackStyle.Medium
       );
     });
   });
 
-  describe('softImpact', () => {
-    it('should call Haptics.impactAsync with soft impact', async () => {
+  describe('buttonPress', () => {
+    it('should call light impact for button press', async () => {
       mockHaptics.impactAsync.mockResolvedValue(undefined);
 
-      await HapticsService.softImpact();
+      await HapticService.buttonPress();
 
       expect(mockHaptics.impactAsync).toHaveBeenCalledWith(
-        Haptics.ImpactFeedbackStyle.Soft
+        Haptics.ImpactFeedbackStyle.Light
       );
     });
   });

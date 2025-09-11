@@ -367,4 +367,87 @@ export class UserService {
   private static toRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
+
+  /**
+   * Get contractors that previously worked with a homeowner
+   */
+  static async getPreviousContractors(homeownerId: string): Promise<UserProfile[]> {
+    try {
+      // Get completed jobs for this homeowner with contractor info
+      const { data: completedJobs, error } = await supabase
+        .from('jobs')
+        .select(`
+          contractor_id,
+          contractor:contractor_id (
+            id,
+            first_name,
+            last_name,
+            bio,
+            profile_image_url,
+            phone,
+            address,
+            contractor_skills (
+              skill_name
+            )
+          )
+        `)
+        .eq('homeowner_id', homeownerId)
+        .eq('status', 'completed')
+        .not('contractor_id', 'is', null)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!completedJobs || completedJobs.length === 0) {
+        return [];
+      }
+
+      // Get unique contractors (avoid duplicates if they worked multiple jobs)
+      const uniqueContractors = new Map();
+      
+      for (const job of completedJobs) {
+        const contractor = job.contractor as any;
+        if (contractor && !uniqueContractors.has(contractor.id)) {
+          // Get reviews for this contractor
+          const { data: reviews } = await supabase
+            .from('reviews')
+            .select('rating, comment, created_at')
+            .eq('reviewed_id', contractor.id)
+            .eq('reviewer_id', homeownerId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          const contractorProfile: UserProfile = {
+            id: contractor.id,
+            email: '', // Not needed for display
+            first_name: contractor.first_name,
+            last_name: contractor.last_name,
+            role: 'contractor',
+            phone: contractor.phone,
+            address: contractor.address,
+            bio: contractor.bio,
+            profileImageUrl: contractor.profile_image_url,
+            created_at: '',
+            updated_at: '',
+            skills: contractor.contractor_skills?.map((s: any) => ({ skillName: s.skill_name })) || [],
+            reviews: reviews?.map(review => ({
+              rating: review.rating,
+              comment: review.comment,
+              reviewer: 'You',
+              createdAt: review.created_at
+            })) || []
+          };
+
+          uniqueContractors.set(contractor.id, contractorProfile);
+        }
+      }
+
+      return Array.from(uniqueContractors.values()).slice(0, 5); // Return max 5 previous contractors
+
+    } catch (error) {
+      const errorInstance = error instanceof Error ? error : new Error(String(error));
+      logger.error('Error fetching previous contractors:', errorInstance);
+      return [];
+    }
+  }
 }

@@ -1,26 +1,32 @@
-import React from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { BiometricService } from '../../services/BiometricService';
 import { Alert } from 'react-native';
+import { logger } from '../../utils/logger';
 
-// Mock dependencies
-jest.mock('expo-local-authentication');
-jest.mock('expo-secure-store');
-jest.mock('react-native', () => ({
-  Alert: {
-    alert: jest.fn(),
-  },
-}));
-jest.mock('../../config/sentry');
-
+// Get mocked modules
 const mockLocalAuth = LocalAuthentication as jest.Mocked<typeof LocalAuthentication>;
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
-const mockAlert = Alert as jest.Mocked<typeof Alert>;
+const mockLogger = logger as jest.Mocked<typeof logger>;
+
+// Create a spy for Alert.alert  
+const mockAlert = {
+  alert: jest.fn(),
+};
+
+// Mock sentry functions
+jest.mock('../../config/sentry', () => ({
+  trackUserAction: jest.fn(),
+  addBreadcrumb: jest.fn(),
+}));
+
+const { trackUserAction, addBreadcrumb } = require('../../config/sentry');
 
 describe('BiometricService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Override Alert.alert with our mock
+    Alert.alert = mockAlert.alert;
   });
 
   describe('isAvailable', () => {
@@ -294,7 +300,9 @@ describe('BiometricService', () => {
       const mockOnEnable = jest.fn();
       mockAlert.alert.mockImplementation((title, message, buttons) => {
         // Simulate user pressing "Enable"
-        buttons![1].onPress!();
+        if (buttons && buttons[1] && buttons[1].onPress) {
+          buttons[1].onPress();
+        }
       });
 
       await BiometricService.promptEnableBiometric('test@example.com', mockOnEnable);

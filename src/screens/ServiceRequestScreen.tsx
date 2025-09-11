@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
 
 interface Props {
   navigation: StackNavigationProp<any>;
@@ -440,7 +441,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   backButton: {
     padding: 5,
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   placeholder: {
     width: 40,
@@ -471,17 +472,17 @@ const styles = StyleSheet.create({
   section: {
     padding: 20,
     borderBottomWidth: 8,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.borderLight,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 20,
   },
   categoriesGrid: {
@@ -491,17 +492,13 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
     padding: 20,
     alignItems: 'center',
     marginBottom: 15,
     borderWidth: 2,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...theme.shadows.base,
   },
   categoryIcon: {
     width: 60,
@@ -514,7 +511,7 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   subcategoriesContainer: {
@@ -526,34 +523,35 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
     marginRight: 10,
     marginBottom: 10,
   },
   subcategoryText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   subcategoryTextSelected: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 15,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.base,
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     fontSize: 16,
+    color: theme.colors.textPrimary,
   },
   textArea: {
     height: 120,
@@ -564,9 +562,9 @@ const styles = StyleSheet.create({
   },
   priorityCard: {
     padding: 15,
-    borderRadius: 8,
+    borderRadius: theme.borderRadius.base,
     borderWidth: 2,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     marginBottom: 10,
   },
   priorityName: {
@@ -600,35 +598,35 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
-    borderRadius: 8,
+    borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   addPhotoText: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 5,
   },
   footer: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
   },
   submitButton: {
     height: 50,
-    borderRadius: 8,
+    borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.colors.textTertiary,
   },
   submitButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: 'bold',
   },

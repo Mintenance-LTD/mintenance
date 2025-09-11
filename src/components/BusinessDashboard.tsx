@@ -56,7 +56,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     title: string,
     value: string | number,
     subtitle: string,
-    trend?: { trend: string; percentage: number } | null,
+    trend: { trend: string; percentage: number } | null = null,
     icon: string,
     color: string,
     onPress?: () => void

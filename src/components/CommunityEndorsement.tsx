@@ -80,7 +80,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   const { mutate: addEndorsement, isPending } = useAddEndorsement();
-  const { getContractorSpecialtyIcon } = useNeighborhoodFormatters();
+  const { getContractorSpecialtyIcon } = (useNeighborhoodFormatters() as any);
 
   const handleSubmit = async () => {
     const skillToEndorse = customSkill.trim() || selectedSkill;

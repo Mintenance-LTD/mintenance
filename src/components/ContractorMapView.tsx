@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Image } fr
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile, LocationData } from '../types';
+import { theme } from '../theme';
 
 interface Props {
   userLocation: LocationData;
@@ -29,20 +30,20 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={14} color="#FFD700" />
+        <Ionicons key={i} name="star" size={14} color={theme.colors.ratingGold} />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={14} color="#FFD700" />
+        <Ionicons key="half" name="star-half" size={14} color={theme.colors.ratingGold} />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={14} color="#FFD700" />
+        <Ionicons key={`empty-${i}`} name="star-outline" size={14} color={theme.colors.ratingGold} />
       );
     }
 
@@ -84,7 +85,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
           >
             <View style={styles.customMarker}>
               <View style={styles.markerContent}>
-                <Ionicons name="person" size={16} color="#fff" />
+                <Ionicons name="person" size={16} color={theme.colors.textInverse} />
               </View>
               <View style={styles.markerPointer} />
             </View>
@@ -108,7 +109,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                     onPress={() => setSelectedContractor(null)}
                     style={styles.closeButton}
                   >
-                    <Ionicons name="close" size={24} color="#666" />
+                    <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
@@ -121,7 +122,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                           style={styles.avatarImage}
                         />
                       ) : (
-                        <Ionicons name="person" size={30} color="#007AFF" />
+                        <Ionicons name="person" size={30} color={theme.colors.info} />
                       )}
                     </View>
                     
@@ -223,14 +224,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerContent: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     borderRadius: 15,
     width: 30,
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: theme.colors.textInverse,
   },
   markerPointer: {
     width: 0,
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#007AFF',
+    borderTopColor: theme.colors.info,
   },
   modalOverlay: {
     flex: 1,
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -261,12 +262,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.borderLight,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   closeButton: {
     padding: 5,
@@ -283,7 +284,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surfaceTertiary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -299,7 +300,7 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   ratingRow: {
@@ -312,11 +313,11 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   distanceText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   bioSection: {
@@ -325,12 +326,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   bioText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
   },
   skillsSection: {
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   skillTag: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   performanceSection: {
@@ -367,18 +368,18 @@ const styles = StyleSheet.create({
   performanceValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.colors.info,
   },
   performanceLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   modalActions: {
     flexDirection: 'row',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
   },
   contactButton: {
     flex: 1,
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   contactButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -401,13 +402,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingVertical: 12,
     borderRadius: 8,
     marginLeft: 10,
   },
   hireButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

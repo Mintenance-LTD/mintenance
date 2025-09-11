@@ -15,8 +15,14 @@ import { logger } from '../utils/logger';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { MessagingService, Message } from '../services/MessagingService';
+import { Message } from '../services/MessagingService';
 import { useAuth } from '../contexts/AuthContext';
+import { 
+  useJobMessages, 
+  useSendMessage, 
+  useMarkMessagesAsRead, 
+  useRealTimeMessages 
+} from '../hooks/useMessaging';
 
 interface MessagingScreenParams {
   jobId: string;
@@ -34,82 +40,56 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle, otherUserId, otherUserName } = route.params;
   const { user } = useAuth();
   
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  
   const flatListRef = useRef<FlatList>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  
+  // Use messaging hooks
+  const { data: messages = [], isLoading: loading, error } = useJobMessages(jobId);
+  const sendMessageMutation = useSendMessage();
+  const markAsReadMutation = useMarkMessagesAsRead();
 
+  // Real-time message subscription
+  useRealTimeMessages(
+    jobId,
+    (newMessage) => {
+      // Auto-scroll to new messages
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      
+      // Mark as read if it's not from current user
+      if (newMessage.senderId !== user?.id && user?.id) {
+        markAsReadMutation.mutate({ jobId, userId: user.id });
+      }
+    },
+    () => {}, // onMessageUpdate - handled by React Query cache
+    true // enabled
+  );
+
+  // Mark messages as read when screen is focused
   useEffect(() => {
-    loadMessages();
-    markMessagesAsRead();
-    subscribeToMessages();
-
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
+    if (user?.id && messages.length > 0) {
+      const unreadMessages = messages.some(msg => !msg.read && msg.receiverId === user.id);
+      if (unreadMessages) {
+        markAsReadMutation.mutate({ jobId, userId: user.id });
       }
-    };
-  }, [jobId]);
-
-  const loadMessages = async () => {
-    try {
-      const jobMessages = await MessagingService.getJobMessages(jobId);
-      setMessages(jobMessages);
-    } catch (error) {
-      logger.error('Error loading messages:', error);
-      Alert.alert('Error', 'Failed to load messages');
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const markMessagesAsRead = async () => {
-    if (!user) return;
-    try {
-      await MessagingService.markMessagesAsRead(jobId, user.id);
-    } catch (error) {
-      logger.error('Error marking messages as read:', error);
-    }
-  };
-
-  const subscribeToMessages = () => {
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-    }
-
-    unsubscribeRef.current = MessagingService.subscribeToJobMessages(
-      jobId,
-      (newMessage) => {
-        setMessages(prev => [...prev, newMessage]);
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-        
-        // Mark as read if it's not from current user
-        if (newMessage.senderId !== user?.id) {
-          markMessagesAsRead();
-        }
-      }
-    );
-  };
+  }, [messages, user?.id, jobId]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || sending) return;
+    if (!newMessage.trim() || !user || sendMessageMutation.isPending) return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
-    setSending(true);
 
     try {
-      await MessagingService.sendMessage(
+      await sendMessageMutation.mutateAsync({
         jobId,
-        otherUserId,
+        receiverId: otherUserId,
         messageText,
-        user.id
-      );
+        senderId: user.id,
+        messageType: 'text'
+      });
       
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -118,8 +98,6 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       logger.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
       setNewMessage(messageText); // Restore message on failure
-    } finally {
-      setSending(false);
     }
   };
 
@@ -193,6 +171,21 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="warning-outline" size={48} color="#ef4444" />
+        <Text style={styles.errorText}>Failed to load messages</Text>
+        <TouchableOpacity 
+          style={styles.retryButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -243,17 +236,17 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             placeholderTextColor="#999"
             multiline
             maxLength={500}
-            editable={!sending}
+            editable={!sendMessageMutation.isPending}
           />
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!newMessage.trim() || sending) && styles.sendButtonDisabled
+              (!newMessage.trim() || sendMessageMutation.isPending) && styles.sendButtonDisabled
             ]}
             onPress={sendMessage}
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim() || sendMessageMutation.isPending}
           >
-            {sending ? (
+            {sendMessageMutation.isPending ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Ionicons name="send" size={20} color="#fff" />
@@ -421,6 +414,24 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#cbd5e1',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

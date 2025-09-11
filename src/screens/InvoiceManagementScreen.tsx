@@ -1,0 +1,400 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  Modal,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { theme } from '../theme';
+import { useAuth } from '../contexts/AuthContext';
+import { ContractorBusinessSuite, Invoice } from '../services/ContractorBusinessSuite';
+import { InvoiceCard } from '../components/InvoiceCard';
+import Button from '../components/ui/Button';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+interface InvoiceManagementScreenProps {
+  navigation: StackNavigationProp<any>;
+}
+
+export const InvoiceManagementScreen: React.FC<InvoiceManagementScreenProps> = ({
+  navigation
+}) => {
+  const { user } = useAuth();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'draft' | 'sent' | 'overdue' | 'paid'>('all');
+  const [reminderModalVisible, setReminderModalVisible] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  useEffect(() => {
+    loadInvoices();
+  }, []);
+
+  const loadInvoices = async () => {
+    if (!user) return;
+    
+    try {
+      const data = await ContractorBusinessSuite.getInvoices(user.id);
+      setInvoices(data);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+      Alert.alert('Error', 'Failed to load invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadInvoices();
+    setRefreshing(false);
+  };
+
+  const handleSendReminder = async (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setReminderModalVisible(true);
+  };
+
+  const sendReminderConfirm = async () => {
+    if (!selectedInvoice || !user) return;
+
+    try {
+      await ContractorBusinessSuite.sendInvoiceReminder(selectedInvoice.id, user.id);
+      Alert.alert('Success', 'Reminder sent successfully');
+      await loadInvoices(); // Refresh to update reminder count
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send reminder');
+    } finally {
+      setReminderModalVisible(false);
+      setSelectedInvoice(null);
+    }
+  };
+
+  const handleMarkPaid = async (invoice: Invoice) => {
+    Alert.alert(
+      'Mark as Paid',
+      `Mark invoice #${invoice.invoice_number} as paid?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark Paid',
+          onPress: async () => {
+            try {
+              await ContractorBusinessSuite.markInvoicePaid(invoice.id);
+              Alert.alert('Success', 'Invoice marked as paid');
+              await loadInvoices();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to update invoice');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const filteredInvoices = invoices.filter(invoice => {
+    if (selectedFilter === 'all') return true;
+    return invoice.status === selectedFilter;
+  });
+
+  const getFilterCounts = () => {
+    const counts = {
+      all: invoices.length,
+      draft: invoices.filter(i => i.status === 'draft').length,
+      sent: invoices.filter(i => i.status === 'sent').length,
+      overdue: invoices.filter(i => i.status === 'overdue').length,
+      paid: invoices.filter(i => i.status === 'paid').length,
+    };
+    return counts;
+  };
+
+  const filterCounts = getFilterCounts();
+
+  const renderFilterButton = (
+    filter: typeof selectedFilter,
+    label: string,
+    count: number,
+    color: string
+  ) => (
+    <TouchableOpacity
+      style={[
+        styles.filterButton,
+        selectedFilter === filter && { backgroundColor: color }
+      ]}
+      onPress={() => setSelectedFilter(filter)}
+    >
+      <Text style={[
+        styles.filterText,
+        selectedFilter === filter && { color: theme.colors.textInverse }
+      ]}>
+        {label} ({count})
+      </Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return <LoadingSpinner message="Loading invoices..." />;
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Invoice Management</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('CreateInvoice')}
+        >
+          <Ionicons name="add" size={24} color={theme.colors.textInverse} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Statistics Cards */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>
+            £{invoices.reduce((sum, inv) => sum + inv.total_amount, 0).toFixed(2)}
+          </Text>
+          <Text style={styles.statLabel}>Total Outstanding</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: theme.colors.error }]}>
+            {filterCounts.overdue}
+          </Text>
+          <Text style={styles.statLabel}>Overdue</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: theme.colors.success }]}>
+            {filterCounts.paid}
+          </Text>
+          <Text style={styles.statLabel}>Paid This Month</Text>
+        </View>
+      </View>
+
+      {/* Filter Tabs */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersContainer}
+      >
+        {renderFilterButton('all', 'All', filterCounts.all, theme.colors.primary)}
+        {renderFilterButton('draft', 'Draft', filterCounts.draft, theme.colors.textSecondary)}
+        {renderFilterButton('sent', 'Sent', filterCounts.sent, theme.colors.warning)}
+        {renderFilterButton('overdue', 'Overdue', filterCounts.overdue, theme.colors.error)}
+        {renderFilterButton('paid', 'Paid', filterCounts.paid, theme.colors.success)}
+      </ScrollView>
+
+      {/* Invoice List */}
+      <ScrollView
+        style={styles.invoiceList}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredInvoices.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-outline" size={64} color={theme.colors.textTertiary} />
+            <Text style={styles.emptyTitle}>No invoices found</Text>
+            <Text style={styles.emptyText}>
+              {selectedFilter === 'all' 
+                ? 'Create your first invoice to get started'
+                : `No ${selectedFilter} invoices at the moment`
+              }
+            </Text>
+            {selectedFilter === 'all' && (
+              <Button
+                variant="primary"
+                title="Create Invoice"
+                onPress={() => navigation.navigate('CreateInvoice')}
+              />
+            )}
+          </View>
+        ) : (
+          filteredInvoices.map((invoice) => (
+            <InvoiceCard
+              key={invoice.id}
+              invoice={invoice}
+              onPress={() => navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })}
+              onSendReminder={() => handleSendReminder(invoice)}
+              onMarkPaid={() => handleMarkPaid(invoice)}
+            />
+          ))
+        )}
+      </ScrollView>
+
+      {/* Reminder Confirmation Modal */}
+      <Modal
+        visible={reminderModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReminderModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Send Reminder</Text>
+            {selectedInvoice && (
+              <Text style={styles.modalText}>
+                Send payment reminder for invoice #{selectedInvoice.invoice_number} to {selectedInvoice.client_name}?
+              </Text>
+            )}
+            <View style={styles.modalActions}>
+              <Button
+                variant="secondary"
+                title="Cancel"
+                onPress={() => setReminderModalVisible(false)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                variant="primary"
+                title="Send Reminder"
+                onPress={sendReminderConfirm}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: theme.colors.primary,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  addButton: {
+    padding: 8,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    alignItems: 'center',
+    ...theme.shadows.base,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  filtersContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginRight: 8,
+    backgroundColor: theme.colors.background,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+  },
+  invoiceList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 32,
+  },
+  // createButton styles replaced by shared Button
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.xl,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  // modal buttons replaced by shared Button
+});
+
+export default InvoiceManagementScreen;

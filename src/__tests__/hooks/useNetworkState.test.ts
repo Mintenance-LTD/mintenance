@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react-native';
-import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
+import NetInfo from '@react-native-community/netinfo';
 import { useNetworkState } from '../../hooks/useNetworkState';
 
 // Mock NetInfo

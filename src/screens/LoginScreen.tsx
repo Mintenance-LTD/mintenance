@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/AppNavigator';
-import { theme, scaledFontSize } from '../theme';
+import { theme } from '../theme';
 import { useAccessibleText, useAccessibleColors } from '../hooks/useAccessibleText';
 import { useHaptics } from '../utils/haptics';
 import { useI18n } from '../hooks/useI18n';
+import Button from '../components/ui/Button';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -19,27 +31,26 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, loading } = useAuth();
-  
+
   // Development mode test credentials
   const isDev = __DEV__ || process.env.NODE_ENV === 'development';
-  
+
   // Dynamic text scaling for accessibility
   const headerTitleText = useAccessibleText(28);
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
-  const inputText = useAccessibleText(16);
+  useAccessibleText(16); // inputText (style uses fixed size)
   const { colors } = useAccessibleColors();
-  
+
   // Haptic feedback
   const haptics = useHaptics();
-  
+
   // Internationalization
   const { t, auth, common, getErrorMessage } = useI18n();
 
   const handleLogin = async () => {
-    // Haptic feedback for button press
     haptics.buttonPress();
-    
+
     if (!email || !password) {
       haptics.error();
       Alert.alert(common.error(), t('auth.fillAllFields', 'Please fill in all fields'));
@@ -61,21 +72,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       {/* Dark Blue Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Image 
-            source={require('../../assets/icon.png')} 
+          <Image
+            source={require('../../assets/icon.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
-          <Text style={[styles.headerTitle, headerTitleText.textStyle]}>MintEnance</Text>
+          <Text style={[styles.headerTitle, headerTitleText.textStyle]}>Mintenance</Text>
         </View>
         <Text style={styles.headerSubtitle}>Connect homeowners and contractors easily</Text>
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -84,10 +95,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.formContainer}>
             {/* Email Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="mail-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
@@ -107,13 +118,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 autoComplete="email"
               />
             </View>
-            
+
             {/* Password Input with Icon */}
             <View style={styles.inputContainer}>
-              <Ionicons 
-                name="lock-closed-outline" 
-                size={20} 
-                color={theme.colors.placeholder} 
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={theme.colors.placeholder}
                 style={styles.inputIcon}
                 accessibilityHidden={true}
               />
@@ -131,50 +142,48 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 autoComplete="password"
               />
             </View>
-            
+
             {/* Green Log In Button */}
-            <TouchableOpacity 
-              style={[styles.loginButton, loading && styles.buttonDisabled]} 
+            <Button
+              variant="success"
+              title={loading ? String(t('auth.loggingIn')) : String(auth.login())}
               onPress={handleLogin}
               disabled={loading}
-              accessibilityRole="button"
-              accessibilityLabel={loading ? t('auth.loggingIn') : auth.login()}
-              accessibilityHint={t('auth.loginHint', 'Double tap to sign in to your account')}
-              accessibilityState={{ disabled: loading, busy: loading }}
-            >
-              <Text style={[styles.loginButtonText, buttonText.textStyle]}>
-                {loading ? t('auth.loggingIn') : auth.login()}
-              </Text>
-            </TouchableOpacity>
-            
+              loading={loading}
+              accessibilityLabel={loading ? String(t('auth.loggingIn')) : String(auth.login())}
+              fullWidth
+              style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 32 }}
+              textStyle={buttonText.textStyle as any}
+            />
+
             {/* Development Test Login Buttons */}
             {isDev && (
               <View style={styles.devSection}>
-                <Text style={styles.devTitle}>🧪 Development Login</Text>
-                <TouchableOpacity 
-                  style={styles.devButton} 
+                <Text style={styles.devTitle}>Development Login</Text>
+                <TouchableOpacity
+                  style={styles.devButton}
                   onPress={() => {
                     setEmail('test@homeowner.com');
                     setPassword('password123');
                   }}
                 >
-                  <Text style={styles.devButtonText}>👤 Test Homeowner</Text>
+                  <Text style={styles.devButtonText}>Test Homeowner</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.devButton} 
+                <TouchableOpacity
+                  style={styles.devButton}
                   onPress={() => {
                     setEmail('test@contractor.com');
                     setPassword('password123');
                   }}
                 >
-                  <Text style={styles.devButtonText}>🔧 Test Contractor</Text>
+                  <Text style={styles.devButtonText}>Test Contractor</Text>
                 </TouchableOpacity>
               </View>
             )}
-            
+
             {/* Links */}
             <View style={styles.linksContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.linkButton}
                 onPress={() => {
                   haptics.buttonPress();
@@ -186,8 +195,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Text style={[styles.linkText, linkText.textStyle]}>{auth.forgotPassword()}</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.linkButton}
                 onPress={() => {
                   haptics.buttonPress();
@@ -210,10 +219,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background, // Clean white background
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary, // Dark blue header
+    backgroundColor: theme.colors.primary,
     paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 24,
@@ -232,11 +241,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     // fontSize handled by useAccessibleText hook
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: theme.colors.textInverseMuted,
     textAlign: 'center',
   },
   keyboardContainer: {
@@ -255,17 +264,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border, // Subtle gray outline
-    borderRadius: 20, // Large rounded input fields
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.xxl,
     backgroundColor: theme.colors.surface,
     marginBottom: 20,
     paddingHorizontal: 16,
     height: 60,
-    // Focus styles for accessibility
-    ':focus': {
-      borderColor: theme.colors.borderFocus,
-      borderWidth: 2,
-    },
   },
   inputIcon: {
     marginRight: 12,
@@ -277,18 +281,15 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   loginButton: {
-    backgroundColor: theme.colors.secondary, // Green rounded button
-    borderRadius: 20,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: theme.borderRadius.xxl,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
     marginBottom: 32,
     shadowColor: theme.colors.secondary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
@@ -299,8 +300,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   loginButtonText: {
-    color: '#fff',
-    // fontSize handled by useAccessibleText hook
+    color: theme.colors.textInverse,
     fontWeight: '600',
   },
   linksContainer: {
@@ -313,37 +313,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   linkText: {
-    color: theme.colors.primary, // Better contrast for links
-    // fontSize handled by useAccessibleText hook
+    color: theme.colors.primary,
     fontWeight: '500',
-    textDecorationLine: 'underline' as const,
+    textDecorationLine: 'underline',
   },
   // Development styles
   devSection: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
   },
   devTitle: {
     textAlign: 'center',
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#6c757d',
+    color: theme.colors.textSecondary,
     marginBottom: 10,
   },
   devButton: {
-    backgroundColor: '#6c757d',
+    backgroundColor: theme.colors.textSecondary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
     marginVertical: 4,
   },
   devButtonText: {
-    color: 'white',
+    color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Husky hook (requires `npx husky install` in your repo to activate)
+# See https://typicode.github.io/husky
+
+node scripts/ci/check-no-hex.js
+

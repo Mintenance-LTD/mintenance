@@ -160,8 +160,39 @@ jobs:
       - name: Performance report
         run: npm run performance:report
 
-  # Production Deployment
-  deploy:
+  # Staging Deployment (develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [quality, test, security, build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Deploy OTA Updates to Staging
+        run: |
+          echo "Publishing staging updates via EAS..."
+          npx eas update --channel staging --message "Staging deploy: ${{ github.sha }}" --non-interactive
+
+  # Production Deployment (main branch)
+  deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [quality, test, security, build, performance]
@@ -186,22 +217,48 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build for production
+      - name: Deploy OTA Updates to Production
         run: |
-          echo "Building production release..."
-          npx eas build --platform android --profile production --non-interactive --auto-submit
-          npx eas build --platform ios --profile production --non-interactive --auto-submit
+          echo "Publishing production updates via EAS..."
+          npx eas update --channel production --message "Production deploy: ${{ github.sha }}" --non-interactive
 
-      - name: Deploy to Expo
+  # Store Builds (on release tags)
+  build-store:
+    name: Build for App Stores
+    runs-on: ubuntu-latest
+    needs: [quality, test, security, performance]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build for App Stores
         run: |
-          echo "Publishing to Expo..."
-          npx expo publish --non-interactive
+          echo "Building store releases..."
+          npx eas build --platform android --profile production-store --non-interactive --auto-submit
+          npx eas build --platform ios --profile production --non-interactive --auto-submit
 
   # Notification
   notify:
     name: Notify Results
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: [deploy-staging, deploy-production, build-store]
     if: always()
     steps:
       - name: Notify deployment status

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '../types';
+import { theme } from '../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth - 40;
@@ -30,20 +31,20 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons key={i} name="star" size={16} color="#FFD700" />
+        <Ionicons key={i} name="star" size={16} color={theme.colors.ratingGold} />
       );
     }
 
     if (hasHalfStar) {
       stars.push(
-        <Ionicons key="half" name="star-half" size={16} color="#FFD700" />
+        <Ionicons key="half" name="star-half" size={16} color={theme.colors.ratingGold} />
       );
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color="#FFD700" />
+        <Ionicons key={`empty-${i}`} name="star-outline" size={16} color={theme.colors.ratingGold} />
       );
     }
 
@@ -66,13 +67,13 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
             />
           ) : (
             <View style={styles.placeholderImage}>
-              <Ionicons name="person" size={40} color="#666" />
+              <Ionicons name="person" size={40} color={theme.colors.textSecondary} />
             </View>
           )}
           
           {/* Verified Badge */}
           <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
+            <Ionicons name="checkmark-circle" size={16} color={theme.colors.success} />
           </View>
         </View>
 
@@ -97,13 +98,13 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
           {/* Distance and Response Time */}
           <View style={styles.quickInfo}>
             <View style={styles.quickInfoItem}>
-              <Ionicons name="location-outline" size={14} color="#666" />
+              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
               <Text style={styles.quickInfoText}>
                 {contractor.distance?.toFixed(1)} km away
               </Text>
             </View>
             <View style={styles.quickInfoItem}>
-              <Ionicons name="time-outline" size={14} color="#666" />
+              <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
               <Text style={styles.quickInfoText}>&lt; 2h response</Text>
             </View>
           </View>
@@ -156,7 +157,7 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
           
           {/* Featured Specialty */}
           <View style={styles.featuredSpecialty}>
-            <Ionicons name="flash" size={16} color="#FF9500" />
+            <Ionicons name="flash" size={16} color={theme.colors.warning} />
             <Text style={styles.featuredSpecialtyText}>Emergency Repairs</Text>
           </View>
         </View>
@@ -173,11 +174,11 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
         
         <View style={styles.businessDetails}>
           <View style={styles.businessDetailItem}>
-            <Ionicons name="shield-checkmark" size={16} color="#4CD964" />
+            <Ionicons name="shield-checkmark" size={16} color={theme.colors.success} />
             <Text style={styles.businessDetailText}>Licensed & Insured</Text>
           </View>
           <View style={styles.businessDetailItem}>
-            <Ionicons name="calendar" size={16} color="#007AFF" />
+            <Ionicons name="calendar" size={16} color={theme.colors.info} />
             <Text style={styles.businessDetailText}>Available 7 days/week</Text>
           </View>
         </View>
@@ -186,12 +187,12 @@ const ContractorDiscoverView: React.FC<Props> = ({ contractors, onContractorSele
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.messageButton}>
-          <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
+          <Ionicons name="chatbubble-outline" size={20} color={theme.colors.info} />
           <Text style={styles.messageButtonText}>Message</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.hireButton}>
-          <Ionicons name="checkmark-outline" size={20} color="#fff" />
+          <Ionicons name="checkmark-outline" size={20} color={theme.colors.textInverse} />
           <Text style={styles.hireButtonText}>Hire Now</Text>
         </TouchableOpacity>
       </View>
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   contractorCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 20,
     elevation: 4,
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surfaceTertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 10,
     padding: 2,
   },
@@ -292,12 +293,12 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   contractorTitle: {
     fontSize: 16,
-    color: '#007AFF',
+    color: theme.colors.info,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   quickInfo: {
     flexDirection: 'row',
@@ -323,19 +324,19 @@ const styles = StyleSheet.create({
   },
   quickInfoText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginLeft: 4,
   },
   performanceSection: {
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.borderLight,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   performanceGrid: {
@@ -349,12 +350,12 @@ const styles = StyleSheet.create({
   performanceValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.colors.info,
     marginBottom: 4,
   },
   performanceLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   specialtiesSection: {
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   specialtyTag: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -378,13 +379,13 @@ const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: 14,
-    color: '#1976d2',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   featuredSpecialty: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff3e0',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
   },
   featuredSpecialtyText: {
     fontSize: 14,
-    color: '#f57c00',
+    color: theme.colors.warning,
     fontWeight: '600',
     marginLeft: 6,
   },
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
   },
   aboutText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
   },
   businessDetailText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginLeft: 6,
   },
   actionButtons: {
@@ -427,15 +428,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingVertical: 12,
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: theme.colors.info,
   },
   messageButtonText: {
-    color: '#007AFF',
+    color: theme.colors.info,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 6,
@@ -445,13 +446,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
     paddingVertical: 12,
     borderRadius: 8,
     marginLeft: 8,
   },
   hireButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 6,
@@ -466,7 +467,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   scrollText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -479,13 +480,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 20,
     marginBottom: 10,
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     lineHeight: 22,
   },

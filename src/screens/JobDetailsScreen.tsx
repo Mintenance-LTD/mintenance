@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, FlatList, Image, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { JobService } from '../services/JobService';
 import { AIAnalysisService, AIAnalysis } from '../services/AIAnalysisService';
 import { useAuth } from '../contexts/AuthContext';
 import { Job, Bid } from '../types';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
+import { useJob, useJobBids } from '../hooks/useJobs';
+import { JobStatusTracker } from '../components/JobStatusTracker';
+import { ContractorAssignment } from '../components/ContractorAssignment';
+import { theme } from '../theme';
 
 
 type JobDetailsScreenRouteProp = RouteProp<RootStackParamList, 'JobDetails'>;
@@ -22,37 +25,19 @@ interface Props {
 const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
   const { user } = useAuth();
-  const [job, setJob] = useState<Job | null>(null);
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [loading, setLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  
+  // Use React Query hooks
+  const { data: job, isLoading: jobLoading, error: jobError, refetch: refetchJob } = useJob(jobId);
+  const { data: bids = [], isLoading: bidsLoading, error: bidsError } = useJobBids(jobId);
 
+  // Load AI analysis when job data is available
   useEffect(() => {
-    loadJobDetails();
-  }, [jobId]);
-
-  const loadJobDetails = async () => {
-    try {
-      const [jobData, bidsData] = await Promise.all([
-        JobService.getJobById(jobId),
-        JobService.getBidsByJob(jobId)
-      ]);
-      
-      setJob(jobData);
-      setBids(bidsData);
-      
-      // Load AI analysis for contractors if job has photos
-      if (user?.role === 'contractor' && jobData?.photos && jobData.photos.length > 0) {
-        loadAIAnalysis(jobData);
-      }
-    } catch (error) {
-      logger.error('Failed to load job details:', error);
-      Alert.alert('Error', 'Failed to load job details');
-    } finally {
-      setLoading(false);
+    if (user?.role === 'contractor' && job?.photos && job.photos.length > 0) {
+      loadAIAnalysis(job);
     }
-  };
+  }, [user, job]);
 
   const loadAIAnalysis = async (jobData: Job) => {
     try {
@@ -67,73 +52,16 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const handleAcceptBid = async (bidId: string) => {
-    Alert.alert(
-      'Accept Bid',
-      'Are you sure you want to accept this bid? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Accept',
-          style: 'default',
-          onPress: async () => {
-            try {
-              await JobService.acceptBid(bidId);
-              Alert.alert('Success', 'Bid accepted successfully!');
-              loadJobDetails(); // Refresh data
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to accept bid');
-            }
-          }
-        }
-      ]
-    );
+  const handleContractorAssigned = (contractorId: string, bidId: string) => {
+    logger.info('Contractor assigned to job', { jobId, contractorId, bidId });
+    // Refetch job data to get updated status
+    refetchJob();
   };
 
-  const handleStartJob = async () => {
-    Alert.alert(
-      'Start Job',
-      'Mark this job as started?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Start Job',
-          style: 'default',
-          onPress: async () => {
-            try {
-              await JobService.startJob(jobId);
-              Alert.alert('Success', 'Job marked as in progress!');
-              loadJobDetails();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to update job status');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleCompleteJob = async () => {
-    Alert.alert(
-      'Complete Job',
-      'Mark this job as completed?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete Job',
-          style: 'default',
-          onPress: async () => {
-            try {
-              await JobService.completeJob(jobId);
-              Alert.alert('Success', 'Job marked as completed!');
-              loadJobDetails();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to update job status');
-            }
-          }
-        }
-      ]
-    );
+  const handleJobStatusUpdate = (updatedJob: Job) => {
+    logger.info('Job status updated', { jobId, status: updatedJob.status });
+    // Refetch to get fresh data
+    refetchJob();
   };
 
   const renderBidCard = ({ item: bid }: { item: Bid }) => {
@@ -239,18 +167,27 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
 
-  if (loading) {
+  // Loading state
+  if (jobLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading job details...</Text>
       </View>
     );
   }
 
-  if (!job) {
+  // Error state
+  if (jobError || !job) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Job not found</Text>
+      <View style={styles.errorContainer}>
+        <Ionicons name="warning-outline" size={48} color="#ef4444" />
+        <Text style={styles.errorText}>
+          {jobError ? 'Failed to load job details' : 'Job not found'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => refetchJob()}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -269,259 +206,141 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Job Status Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressStep, job.status !== 'posted' && styles.progressStepActive]}>
-              <Ionicons name={job.status !== 'posted' ? "checkmark-circle" : "radio-button-on"} size={20} color={job.status !== 'posted' ? "#34C759" : "#007AFF"} />
-              <Text style={styles.progressLabel}>Posted</Text>
-            </View>
-            <View style={[styles.progressLine, (job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed') && styles.progressLineActive]} />
-            <View style={[styles.progressStep, (job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed') && styles.progressStepActive]}>
-              <Ionicons name={(job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed') ? "checkmark-circle" : "ellipse-outline"} size={20} color={(job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed') ? "#34C759" : "#CCC"} />
-              <Text style={styles.progressLabel}>Assigned</Text>
-            </View>
-            <View style={[styles.progressLine, (job.status === 'in_progress' || job.status === 'completed') && styles.progressLineActive]} />
-            <View style={[styles.progressStep, (job.status === 'in_progress' || job.status === 'completed') && styles.progressStepActive]}>
-              <Ionicons name={(job.status === 'in_progress' || job.status === 'completed') ? "checkmark-circle" : "ellipse-outline"} size={20} color={(job.status === 'in_progress' || job.status === 'completed') ? "#34C759" : "#CCC"} />
-              <Text style={styles.progressLabel}>In Progress</Text>
-            </View>
-            <View style={[styles.progressLine, job.status === 'completed' && styles.progressLineActive]} />
-            <View style={[styles.progressStep, job.status === 'completed' && styles.progressStepActive]}>
-              <Ionicons name={job.status === 'completed' ? "checkmark-circle" : "ellipse-outline"} size={20} color={job.status === 'completed' ? "#34C759" : "#CCC"} />
-              <Text style={styles.progressLabel}>Completed</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Job Information Card */}
-        <View style={styles.jobInfo}>
-          <View style={styles.jobHeader}>
-            <View style={styles.jobTitleSection}>
-              <Text style={styles.jobTitle}>{job.title}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getJobStatusColor(job.status) }]}>
-                <Ionicons name={getJobStatusIcon(job.status)} size={14} color="#fff" style={styles.statusIcon} />
-                <Text style={styles.statusText}>{formatJobStatus(job.status)}</Text>
-              </View>
-            </View>
-            <Text style={styles.jobBudget}>${job.budget.toLocaleString()}</Text>
-          </View>
-          
+        {/* Job Information */}
+        <View style={styles.jobCard}>
+          <Text style={styles.jobTitle}>{job.title}</Text>
           <Text style={styles.jobDescription}>{job.description}</Text>
           
           <View style={styles.jobMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={16} color="#666" />
+            <View style={styles.metaRow}>
+              <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.metaText}>{job.location}</Text>
             </View>
-            
+            <View style={styles.metaRow}>
+              <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.metaText}>£{job.budget}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.metaText}>
+                {new Date(job.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
             {job.category && (
-              <View style={styles.metaItem}>
-                <Ionicons name="pricetag-outline" size={16} color="#666" />
+              <View style={styles.metaRow}>
+                <Ionicons name="pricetag-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.metaText}>{job.category}</Text>
               </View>
             )}
-            
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={16} color="#666" />
-              <Text style={styles.metaText}>Posted {new Date(job.createdAt).toLocaleDateString()}</Text>
-            </View>
           </View>
-          
+
           {/* Job Photos */}
           {job.photos && job.photos.length > 0 && (
-            <View style={styles.photosSection}>
-              <Text style={styles.photosTitle}>Problem Photos ({job.photos.length})</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosContainer}>
-                {job.photos.map((photo, index) => (
-                  <TouchableOpacity key={index} style={styles.photoContainer}>
-                    <Image source={{ uri: photo }} style={styles.jobPhoto} />
-                    <View style={styles.photoOverlay}>
-                      <Ionicons name="expand-outline" size={16} color="#fff" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
+            <View style={styles.photosContainer}>
+              <Text style={styles.sectionTitle}>Photos</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.photosList}>
+                  {job.photos.map((photo, index) => (
+                    <Image key={index} source={{ uri: photo }} style={styles.jobPhoto} />
+                  ))}
+                </View>
               </ScrollView>
             </View>
           )}
         </View>
 
-        {/* Enhanced AI Analysis Section */}
-        {user?.role === 'contractor' && (job?.photos && job.photos.length > 0) && (
-          <View style={styles.aiAnalysisDetailedSection}>
-            <View style={styles.aiAnalysisDetailedHeader}>
-              <View style={styles.aiTitleRow}>
-                <Ionicons name="bulb" size={24} color="#FF9500" />
-                <Text style={styles.aiAnalysisDetailedTitle}>AI Analysis Report</Text>
-              </View>
-              {aiLoading ? (
-                <View style={styles.loadingBadge}>
-                  <Text style={styles.loadingBadgeText}>Analyzing...</Text>
-                </View>
-              ) : aiAnalysis ? (
-                <View style={styles.confidenceDetailedBadge}>
-                  <Text style={styles.confidenceDetailedText}>{aiAnalysis.confidence}% confident</Text>
-                </View>
-              ) : null}
+        {/* Job Status Tracker */}
+        <JobStatusTracker 
+          job={job} 
+          onStatusUpdate={handleJobStatusUpdate}
+          showActions={true}
+        />
+
+        {/* AI Analysis for Contractors */}
+        {user?.role === 'contractor' && job.photos && job.photos.length > 0 && (
+          <View style={styles.aiAnalysisCard}>
+            <View style={styles.aiAnalysisHeader}>
+              <Ionicons name="bulb-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.aiAnalysisTitle}>AI Analysis</Text>
             </View>
             
-            {aiAnalysis && !aiLoading && (
-              <>
-                {/* Detected Equipment */}
-                {aiAnalysis.detectedEquipment && aiAnalysis.detectedEquipment.length > 0 && (
-                  <View style={styles.analysisSubsection}>
-                    <View style={styles.analysisSubsectionHeader}>
-                      <Ionicons name="construct" size={18} color="#007AFF" />
-                      <Text style={styles.analysisSubsectionTitle}>Detected Equipment</Text>
-                    </View>
-                    {aiAnalysis.detectedEquipment.map((item, index) => (
-                      <View key={index} style={styles.equipmentItem}>
-                        <View style={styles.equipmentInfo}>
-                          <Text style={styles.equipmentName}>{item.name}</Text>
-                          <Text style={styles.equipmentLocation}>Location: {item.location}</Text>
-                        </View>
-                        <View style={styles.equipmentConfidence}>
-                          <Text style={styles.equipmentConfidenceText}>{item.confidence}%</Text>
-                        </View>
-                      </View>
+            {aiLoading ? (
+              <View style={styles.aiLoadingContainer}>
+                <ActivityIndicator color={theme.colors.primary} />
+                <Text style={styles.aiLoadingText}>Analyzing job photos...</Text>
+              </View>
+            ) : aiAnalysis ? (
+              <View style={styles.aiAnalysisContent}>
+                <Text style={styles.aiConfidence}>
+                  Confidence: {aiAnalysis.confidence}%
+                </Text>
+                
+                {aiAnalysis.estimatedComplexity && (
+                  <Text style={styles.aiComplexity}>
+                    Complexity: {aiAnalysis.estimatedComplexity}
+                  </Text>
+                )}
+                
+                {aiAnalysis.safetyConcerns && aiAnalysis.safetyConcerns.length > 0 && (
+                  <View style={styles.safetyConcerns}>
+                    <Text style={styles.concernsTitle}>Safety Concerns:</Text>
+                    {aiAnalysis.safetyConcerns.map((concern, index) => (
+                      <Text key={index} style={styles.concernText}>• {concern}</Text>
                     ))}
                   </View>
                 )}
-            
-                {/* Safety Concerns */}
-                <View style={styles.analysisSubsection}>
-                  <View style={styles.analysisSubsectionHeader}>
-                    <Ionicons name="warning" size={18} color="#FF3B30" />
-                    <Text style={styles.analysisSubsectionTitle}>Safety Concerns</Text>
-                  </View>
-                  {aiAnalysis.safetyConcerns.map((concern, index) => (
-                    <View key={index} style={styles.safetyConcernDetailedItem}>
-                      <View style={styles.concernHeader}>
-                        <Text style={styles.concernTitle}>{concern.concern}</Text>
-                        <View style={[styles.severityBadge, { 
-                          backgroundColor: concern.severity === 'High' ? '#FF3B30' : 
-                                           concern.severity === 'Medium' ? '#FF9500' : '#34C759' 
-                        }]}>
-                          <Text style={styles.severityText}>{concern.severity}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.concernDescription}>{concern.description}</Text>
-                    </View>
-                  ))}
-                </View>
-            
-                {/* Recommended Actions */}
-                <View style={styles.analysisSubsection}>
-                  <View style={styles.analysisSubsectionHeader}>
-                    <Ionicons name="list" size={18} color="#34C759" />
-                    <Text style={styles.analysisSubsectionTitle}>Recommended Actions</Text>
-                  </View>
-                  {aiAnalysis.recommendedActions.map((action, index) => (
-                    <View key={index} style={styles.actionItem}>
-                      <View style={styles.actionBullet}>
-                        <Text style={styles.actionBulletText}>{index + 1}</Text>
-                      </View>
-                      <Text style={styles.actionText}>{action}</Text>
-                    </View>
-                  ))}
-                </View>
-            
-                {/* Job Complexity & Tools */}
-                <View style={styles.jobComplexitySection}>
-                  <View style={styles.complexityRow}>
-                    <View style={styles.complexityItem}>
-                      <Ionicons name="speedometer" size={16} color="#FF9500" />
-                      <Text style={styles.complexityLabel}>Complexity</Text>
-                      <Text style={styles.complexityValue}>{aiAnalysis.estimatedComplexity}</Text>
-                    </View>
-                    
-                    <View style={styles.complexityItem}>
-                      <Ionicons name="time" size={16} color="#007AFF" />
-                      <Text style={styles.complexityLabel}>Duration</Text>
-                      <Text style={styles.complexityValue}>{aiAnalysis.estimatedDuration}</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.toolsSection}>
-                    <Text style={styles.toolsTitle}>Suggested Tools:</Text>
-                    <View style={styles.toolsList}>
-                      {aiAnalysis.suggestedTools.map((tool, index) => (
-                        <View key={index} style={styles.toolTag}>
-                          <Text style={styles.toolText}>{tool}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </>
-            )}
+              </View>
+            ) : null}
           </View>
         )}
 
-        {/* Action Buttons */}
+        {/* Contractor Assignment / Bidding */}
+        {user?.role === 'homeowner' && (
+          <ContractorAssignment 
+            job={job}
+            onContractorAssigned={handleContractorAssigned}
+          />
+        )}
+
+        {/* Bidding Button for Contractors */}
         {user?.role === 'contractor' && job.status === 'posted' && (
-          <View style={styles.contractorActionButtons}>
+          <View style={styles.contractorActions}>
             <TouchableOpacity
               style={styles.bidButton}
-              onPress={() => navigation.navigate('BidSubmission', { jobId })}
+              onPress={() => navigation.navigate('BidSubmission', { jobId: job.id })}
             >
               <Ionicons name="hammer-outline" size={20} color="#fff" />
-              <Text style={styles.bidButtonText}>Apply for Job</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.chatButton}>
-              <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
-              <Text style={styles.chatButtonText}>Chat with Client</Text>
+              <Text style={styles.bidButtonText}>Submit Bid</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {user?.role === 'contractor' && job.contractorId === user.id && job.status === 'assigned' && (
-          <TouchableOpacity
-            style={styles.startJobButton}
-            onPress={handleStartJob}
-          >
-            <Ionicons name="play-outline" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Start Job</Text>
-          </TouchableOpacity>
-        )}
-
-        {user?.role === 'contractor' && job.contractorId === user.id && job.status === 'in_progress' && (
-          <TouchableOpacity
-            style={styles.completeJobButton}
-            onPress={handleCompleteJob}
-          >
-            <Ionicons name="checkmark-outline" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Mark as Complete</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Homeowner Actions */}
-        {user?.role === 'homeowner' && (job.status === 'in_progress' || job.status === 'assigned') && (
-          <View style={styles.homeownerActions}>
-            <TouchableOpacity style={styles.messageContractorButton}>
-              <Ionicons name="chatbubble-outline" size={20} color="#007AFF" />
-              <Text style={styles.messageContractorText}>Message Contractor</Text>
+        {/* Contact Options */}
+        {job.status !== 'posted' && (
+          <View style={styles.contactCard}>
+            <Text style={styles.contactTitle}>Communication</Text>
+            <TouchableOpacity
+              style={styles.messageButton}
+              onPress={() => {
+                // Navigate to messaging
+                const otherUserId = user?.role === 'homeowner' ? job.contractorId : job.homeownerId;
+                const otherUserName = user?.role === 'homeowner' ? 'Contractor' : 'Homeowner';
+                
+                if (otherUserId) {
+                  navigation.navigate('Messaging', {
+                    jobId: job.id,
+                    jobTitle: job.title,
+                    otherUserId,
+                    otherUserName
+                  });
+                }
+              }}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.messageButtonText}>Send Message</Text>
             </TouchableOpacity>
           </View>
         )}
-
-        <View style={styles.bidsSection}>
-          <Text style={styles.bidsTitle}>Bids ({bids.length})</Text>
-          
-          {bids.length > 0 ? (
-            <FlatList
-              data={bids}
-              renderItem={renderBidCard}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          ) : (
-            <View style={styles.noBidsContainer}>
-              <Text style={styles.noBidsText}>No bids yet</Text>
-            </View>
-          )}
-        </View>
       </ScrollView>
     </View>
   );
@@ -530,12 +349,43 @@ const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -544,7 +394,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   backButton: {
     padding: 5,
@@ -563,372 +413,161 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    padding: 16,
   },
-  progressContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 2,
-  },
-  progressBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  progressStep: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  progressStepActive: {
-    // Active state handled by icon color
-  },
-  progressLine: {
-    height: 2,
-    backgroundColor: '#E5E5EA',
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  progressLineActive: {
-    backgroundColor: '#34C759',
-  },
-  progressLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 6,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  jobInfo: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 2,
-  },
-  jobHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  jobCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
-  },
-  jobTitleSection: {
-    flex: 1,
-    marginRight: 16,
+    ...theme.shadows.base,
   },
   jobTitle: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 12,
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
   },
   jobDescription: {
-    fontSize: 17,
-    color: '#444',
-    marginBottom: 20,
-    lineHeight: 26,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 16,
   },
   jobMeta: {
-    marginBottom: 20,
+    gap: 8,
   },
-  metaItem: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 8,
   },
   metaText: {
-    fontSize: 15,
-    color: '#666',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  jobBudget: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  photosSection: {
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 20,
-  },
-  photosTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
   },
   photosContainer: {
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  photosList: {
     flexDirection: 'row',
+    gap: 12,
   },
   jobPhoto: {
     width: 100,
     height: 100,
     borderRadius: 8,
-    marginRight: 12,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-  },
-  statusIcon: {
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 13,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  contractorActionButtons: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 15,
-    gap: 12,
-  },
-  bidButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
+  aiAnalysisCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chatButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 16,
-    borderRadius: 12,
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  chatButtonText: {
-    color: '#007AFF',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  bidButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  startJobButton: {
-    backgroundColor: '#FF9500',
-    marginHorizontal: 20,
-    marginBottom: 15,
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeJobButton: {
-    backgroundColor: '#34C759',
-    marginHorizontal: 20,
-    marginBottom: 15,
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  homeownerActions: {
-    marginHorizontal: 20,
-    marginBottom: 15,
-  },
-  messageContractorButton: {
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  messageContractorText: {
-    color: '#007AFF',
-    fontSize: 17,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  bidsSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-  },
-  bidsTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 20,
-  },
-  bidCard: {
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
-    borderRadius: 12,
-    padding: 20,
+    padding: 16,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    ...theme.shadows.base,
   },
-  acceptedBidCard: {
-    borderColor: '#34C759',
-    backgroundColor: '#f8fff8',
-  },
-  bidHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  contractorInfo: {
+  aiAnalysisHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 8,
+    marginBottom: 12,
   },
-  contractorAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f0f8ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  contractorName: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  bidMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  contractorRating: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 4,
-  },
-  bidAmountContainer: {
-    alignItems: 'flex-end',
-  },
-  bidAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 8,
-  },
-  acceptedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0fff0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  acceptedText: {
-    fontSize: 12,
-    color: '#34C759',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  bidDescription: {
+  aiAnalysisTitle: {
     fontSize: 16,
-    color: '#555',
-    marginBottom: 16,
-    lineHeight: 24,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
-  bidFooter: {
+  aiLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  aiLoadingText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  aiAnalysisContent: {
+    gap: 8,
+  },
+  aiConfidence: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.primary,
+  },
+  aiComplexity: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  safetyConcerns: {
     marginTop: 8,
   },
-  bidActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+  concernsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginBottom: 4,
   },
-  bidDate: {
-    fontSize: 13,
-    color: '#999',
+  concernText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginLeft: 8,
+  },
+  contractorActions: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...theme.shadows.base,
+  },
+  bidButton: {
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  bidButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  contactCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...theme.shadows.base,
+  },
+  contactTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
   },
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    gap: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 12,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: theme.colors.primary,
+    borderRadius: 8,
+    justifyContent: 'center',
   },
   messageButtonText: {
-    color: '#007AFF',
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  acceptButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#34C759',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  acceptButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  rejectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff5f5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  rejectedText: {
-    fontSize: 13,
-    color: '#FF3B30',
+    color: theme.colors.primary,
+    fontSize: 14,
     fontWeight: '500',
-    marginLeft: 6,
-  },
-  noBidsContainer: {
-    padding: 60,
-    alignItems: 'center',
-  },
-  noBidsText: {
-    fontSize: 17,
-    color: '#999',
-    textAlign: 'center',
-  },
-  loadingBadge: {
-    backgroundColor: '#666',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  loadingBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
   },
 });
-
-// Quick action buttons for job progress updates
 
 export default JobDetailsScreen;

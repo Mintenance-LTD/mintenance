@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/116</span>
+                <span class='fraction'>0/125</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/24</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/116</span>
+                <span class='fraction'>0/125</span>
             </div>
         
             
@@ -362,7 +362,26 @@
 <a name='L297'></a><a href='#L297'>297</a>
 <a name='L298'></a><a href='#L298'>298</a>
 <a name='L299'></a><a href='#L299'>299</a>
-<a name='L300'></a><a href='#L300'>300</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -474,7 +493,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -574,12 +601,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -767,13 +805,21 @@ export const AuthProvider: React.FC&lt;AuthProviderProps&gt; = <span class="csta
 <span class="cstat-no" title="statement not covered" >    trackUserAction('auth.sign_in_attempt', { email });</span>
     
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await measureAsyncPerformance(</span>
+      const result = <span class="cstat-no" title="statement not covered" >await measureAsyncPerformance(</span>
 <span class="fstat-no" title="function not covered" >        ()</span> =&gt; <span class="cstat-no" title="statement not covered" >AuthService.signIn(email, password),</span>
         'auth.sign_in',
         'auth'
       );
       
-      const user = <span class="cstat-no" title="statement not covered" >await AuthService.getCurrentUser();</span>
+      // If signIn returns user data directly, use it
+      let user;
+<span class="cstat-no" title="statement not covered" >      if (result &amp;&amp; result.user) {</span>
+<span class="cstat-no" title="statement not covered" >        user = result.user;</span>
+      } else {
+        // Fallback to getCurrentUser if needed
+<span class="cstat-no" title="statement not covered" >        user = await AuthService.getCurrentUser();</span>
+      }
+      
 <span class="cstat-no" title="statement not covered" >      setUser(user);</span>
 <span class="cstat-no" title="statement not covered" >      setUserContext(user);</span>
       
@@ -880,6 +926,17 @@ export const AuthProvider: React.FC&lt;AuthProviderProps&gt; = <span class="csta
 <span class="cstat-no" title="statement not covered" >      setUser(null);</span>
 <span class="cstat-no" title="statement not covered" >      setUserContext(null);</span>
       
+      // Clear query cache and offline queue when user logs out
+<span class="cstat-no" title="statement not covered" >      try {</span>
+        const { queryClient } = <span class="cstat-no" title="statement not covered" >await import('../lib/queryClient');</span>
+        const { OfflineManager } = <span class="cstat-no" title="statement not covered" >await import('../services/OfflineManager');</span>
+<span class="cstat-no" title="statement not covered" >        queryClient.clear();</span>
+<span class="cstat-no" title="statement not covered" >        OfflineManager.clearQueue();</span>
+<span class="cstat-no" title="statement not covered" >        logger.info('User logged out, cleared cache and offline queue');</span>
+      } catch (e) {
+<span class="cstat-no" title="statement not covered" >        logger.warn('Could not clear cache on logout:', e);</span>
+      }
+      
 <span class="cstat-no" title="statement not covered" >      trackUserAction('auth.sign_out_success', { </span>
         userId: currentUser?.id 
       });
@@ -967,7 +1024,7 @@ export const AuthProvider: React.FC&lt;AuthProviderProps&gt; = <span class="csta
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-01T08:25:37.972Z
+                at 2025-09-07T16:28:41.771Z
             </div>
         <script src="../prettify.js"></script>
         <script>

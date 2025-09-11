@@ -1,514 +1,433 @@
-import React from 'react';
-import { LocationService, UserLocation } from '../../services/LocationService';
+import { LocationService } from '../../services/LocationService';
 import * as Location from 'expo-location';
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 
-// Mock dependencies
-jest.mock('expo-location', () => ({
-  requestForegroundPermissionsAsync: jest.fn(),
-  getCurrentPositionAsync: jest.fn(),
-  reverseGeocodeAsync: jest.fn(),
-  geocodeAsync: jest.fn(),
-  LocationAccuracy: {
-    High: 'High'
-  }
-}));
-
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          data: null,
-          error: null
-        }))
-      })),
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(() => ({
-            data: null,
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }
-}));
-
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
+// Get mocked modules
+const mockLocation = Location as jest.Mocked<typeof Location>;
+const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('LocationService', () => {
-  const mockLocation: Location.LocationObject = {
-    coords: {
-      latitude: 40.7128,
-      longitude: -74.0060,
-      altitude: null,
-      accuracy: 5,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null
-    },
-    timestamp: Date.now()
-  };
-
-  const mockGeocodingResult: Location.LocationGeocodedAddress = {
-    city: 'New York',
-    country: 'United States',
-    district: 'Manhattan',
-    isoCountryCode: 'US',
-    name: '123 Main St',
-    postalCode: '10001',
-    region: 'NY',
-    street: 'Main St',
-    streetNumber: '123',
-    subregion: 'New York County',
-    timezone: 'America/New_York'
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('requestLocationPermission', () => {
-    it('should request and return location permission status', async () => {
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-        status: 'granted'
+    it('should return true when permission is granted', async () => {
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
       });
 
       const result = await LocationService.requestLocationPermission();
 
       expect(result).toBe(true);
-      expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
+      expect(mockLocation.requestForegroundPermissionsAsync).toHaveBeenCalled();
     });
 
     it('should return false when permission is denied', async () => {
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-        status: 'denied'
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'denied',
+        canAskAgain: false,
+        granted: false,
       });
 
       const result = await LocationService.requestLocationPermission();
 
       expect(result).toBe(false);
+      expect(mockLocation.requestForegroundPermissionsAsync).toHaveBeenCalled();
     });
 
-    it('should handle permission request error', async () => {
+    it('should return false and log error when permission request fails', async () => {
       const error = new Error('Permission request failed');
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockRejectedValue(error);
+      mockLocation.requestForegroundPermissionsAsync.mockRejectedValueOnce(error);
 
       const result = await LocationService.requestLocationPermission();
 
       expect(result).toBe(false);
-      expect(logger.error).toHaveBeenCalledWith('Error requesting location permission:', error);
+      expect(mockLogger.error).toHaveBeenCalledWith('Error requesting location permission:', error);
+    });
+
+    it('should handle undefined status gracefully', async () => {
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'undetermined',
+        canAskAgain: true,
+        granted: false,
+      });
+
+      const result = await LocationService.requestLocationPermission();
+
+      expect(result).toBe(false);
     });
   });
 
   describe('getCurrentLocation', () => {
-    it('should get current location with address', async () => {
-      (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue(mockLocation);
-      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([mockGeocodingResult]);
+    it('should return location with address when everything succeeds', async () => {
+      // Mock permission granted
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
+      });
+
+      // Mock location coordinates
+      mockLocation.getCurrentPositionAsync.mockResolvedValueOnce({
+        coords: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          altitude: 10,
+          accuracy: 10,
+          altitudeAccuracy: 10,
+          heading: 0,
+          speed: 0,
+        },
+        timestamp: Date.now(),
+      });
+
+      // Mock reverse geocoding
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce([
+        {
+          streetNumber: '123',
+          street: 'Main St',
+          city: 'San Francisco',
+          region: 'CA',
+          postalCode: '94103',
+          country: 'US',
+        },
+      ]);
 
       const result = await LocationService.getCurrentLocation();
 
       expect(result).toEqual({
-        latitude: 40.7128,
-        longitude: -74.0060,
+        latitude: 37.7749,
+        longitude: -122.4194,
         address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001'
+        city: 'San Francisco',
+        state: 'CA',
+        postalCode: '94103',
       });
 
-      expect(Location.getCurrentPositionAsync).toHaveBeenCalledWith({
-        accuracy: Location.LocationAccuracy.High
-      });
-      expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
-        latitude: 40.7128,
-        longitude: -74.0060
+      expect(mockLocation.getCurrentPositionAsync).toHaveBeenCalledWith({
+        accuracy: mockLocation.LocationAccuracy.Balanced,
       });
     });
 
-    it('should get current location without address when geocoding fails', async () => {
-      (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue(mockLocation);
-      (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(new Error('Geocoding failed'));
+    it('should return location without address when reverse geocoding fails', async () => {
+      // Mock permission granted
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
+      });
+
+      // Mock location coordinates
+      mockLocation.getCurrentPositionAsync.mockResolvedValueOnce({
+        coords: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          altitude: 10,
+          accuracy: 10,
+          altitudeAccuracy: 10,
+          heading: 0,
+          speed: 0,
+        },
+        timestamp: Date.now(),
+      });
+
+      // Mock reverse geocoding failure
+      mockLocation.reverseGeocodeAsync.mockRejectedValueOnce(new Error('Geocoding failed'));
 
       const result = await LocationService.getCurrentLocation();
 
       expect(result).toEqual({
-        latitude: 40.7128,
-        longitude: -74.0060
+        latitude: 37.7749,
+        longitude: -122.4194,
       });
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Error getting address for location:',
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error reverse geocoding:',
         expect.any(Error)
       );
     });
 
-    it('should handle location request error', async () => {
-      const error = new Error('Location unavailable');
-      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(error);
+    it('should return null when permission is denied', async () => {
+      // Mock permission denied
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'denied',
+        canAskAgain: false,
+        granted: false,
+      });
 
-      await expect(LocationService.getCurrentLocation()).rejects.toThrow('Location unavailable');
-      expect(logger.error).toHaveBeenCalledWith('Error getting current location:', error);
+      const result = await LocationService.getCurrentLocation();
+
+      expect(result).toBeNull();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error getting current location:',
+        expect.any(Error)
+      );
     });
 
-    it('should handle empty geocoding results', async () => {
-      (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue(mockLocation);
-      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
+    it('should return null when location retrieval fails', async () => {
+      // Mock permission granted
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
+      });
+
+      // Mock location failure
+      const locationError = new Error('Location unavailable');
+      mockLocation.getCurrentPositionAsync.mockRejectedValueOnce(locationError);
+
+      const result = await LocationService.getCurrentLocation();
+
+      expect(result).toBeNull();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Error getting current location:',
+        locationError
+      );
+    });
+
+    it('should handle empty address components gracefully', async () => {
+      // Mock permission granted
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
+      });
+
+      // Mock location coordinates
+      mockLocation.getCurrentPositionAsync.mockResolvedValueOnce({
+        coords: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          altitude: 10,
+          accuracy: 10,
+          altitudeAccuracy: 10,
+          heading: 0,
+          speed: 0,
+        },
+        timestamp: Date.now(),
+      });
+
+      // Mock reverse geocoding with empty/null values
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce([
+        {
+          streetNumber: null,
+          street: '',
+          city: 'San Francisco',
+          region: null,
+          postalCode: '94103',
+          country: 'US',
+        },
+      ]);
 
       const result = await LocationService.getCurrentLocation();
 
       expect(result).toEqual({
-        latitude: 40.7128,
-        longitude: -74.0060
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: '',
+        city: 'San Francisco',
+        postalCode: '94103',
       });
     });
   });
 
-  describe('geocodeAddress', () => {
-    it('should geocode address successfully', async () => {
-      const mockGeocodeResult: Location.LocationGeocodedLocation = {
-        latitude: 40.7128,
-        longitude: -74.0060,
-        altitude: null,
-        accuracy: null
-      };
+  describe('reverseGeocode', () => {
+    it('should return formatted address information', async () => {
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce([
+        {
+          streetNumber: '456',
+          street: 'Oak Ave',
+          city: 'Berkeley',
+          region: 'CA',
+          postalCode: '94704',
+          country: 'US',
+        },
+      ]);
 
-      (Location.geocodeAsync as jest.Mock).mockResolvedValue([mockGeocodeResult]);
-
-      const result = await LocationService.geocodeAddress('123 Main St, New York, NY 10001');
+      const result = await LocationService.reverseGeocode(37.8715, -122.2730);
 
       expect(result).toEqual({
-        latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main St, New York, NY 10001'
+        address: '456 Oak Ave',
+        city: 'Berkeley',
+        state: 'CA',
+        postalCode: '94704',
       });
 
-      expect(Location.geocodeAsync).toHaveBeenCalledWith('123 Main St, New York, NY 10001');
-    });
-
-    it('should return null for invalid address', async () => {
-      (Location.geocodeAsync as jest.Mock).mockResolvedValue([]);
-
-      const result = await LocationService.geocodeAddress('Invalid Address');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle geocoding error', async () => {
-      const error = new Error('Geocoding service error');
-      (Location.geocodeAsync as jest.Mock).mockRejectedValue(error);
-
-      const result = await LocationService.geocodeAddress('123 Main St');
-
-      expect(result).toBeNull();
-      expect(logger.error).toHaveBeenCalledWith('Error geocoding address:', error);
-    });
-  });
-
-  describe('updateUserLocation', () => {
-    it('should update user location in database', async () => {
-      const userLocation: UserLocation = {
-        latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001'
-      };
-
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        update: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => ({
-          data: { id: 'user-1', ...userLocation },
-          error: null
-        }))
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      await LocationService.updateUserLocation('user-1', userLocation);
-
-      expect(mockSupabaseChain.update).toHaveBeenCalledWith({
-        latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postal_code: '10001',
-        updated_at: expect.any(String)
+      expect(mockLocation.reverseGeocodeAsync).toHaveBeenCalledWith({
+        latitude: 37.8715,
+        longitude: -122.2730,
       });
-      expect(mockSupabaseChain.eq).toHaveBeenCalledWith('id', 'user-1');
     });
 
-    it('should handle database update error', async () => {
-      const userLocation: UserLocation = {
-        latitude: 40.7128,
-        longitude: -74.0060
-      };
+    it('should return empty object when no results found', async () => {
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce([]);
 
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        update: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => ({
-          data: null,
-          error: { message: 'Update failed' }
-        }))
-      };
+      const result = await LocationService.reverseGeocode(0, 0);
 
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      await expect(LocationService.updateUserLocation('user-1', userLocation))
-        .rejects.toThrow('Update failed');
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Error updating user location:',
-        expect.any(Object)
-      );
-    });
-  });
-
-  describe('getUserLocation', () => {
-    it('should get user location from database', async () => {
-      const mockUserData = {
-        id: 'user-1',
-        latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postal_code: '10001'
-      };
-
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        single: jest.fn(() => ({
-          data: mockUserData,
-          error: null
-        }))
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await LocationService.getUserLocation('user-1');
-
-      expect(result).toEqual({
-        latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postalCode: '10001'
-      });
-
-      expect(mockSupabaseChain.select).toHaveBeenCalledWith(
-        'latitude, longitude, address, city, state, postal_code'
-      );
-      expect(mockSupabaseChain.eq).toHaveBeenCalledWith('id', 'user-1');
+      expect(result).toEqual({});
     });
 
-    it('should return null when user location not found', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        single: jest.fn(() => ({
-          data: null,
-          error: { code: 'PGRST116' } // Not found error code
-        }))
-      };
+    it('should return empty object when reverse geocoding fails', async () => {
+      const error = new Error('Reverse geocoding failed');
+      mockLocation.reverseGeocodeAsync.mockRejectedValueOnce(error);
 
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
+      const result = await LocationService.reverseGeocode(37.7749, -122.4194);
 
-      const result = await LocationService.getUserLocation('user-1');
-
-      expect(result).toBeNull();
+      expect(result).toEqual({});
+      expect(mockLogger.error).toHaveBeenCalledWith('Error reverse geocoding:', error);
     });
 
-    it('should handle database query error', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        single: jest.fn(() => ({
-          data: null,
-          error: { message: 'Database error' }
-        }))
-      };
+    it('should handle null results gracefully', async () => {
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce(null);
 
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
+      const result = await LocationService.reverseGeocode(37.7749, -122.4194);
 
-      await expect(LocationService.getUserLocation('user-1'))
-        .rejects.toThrow('Database error');
+      expect(result).toEqual({});
     });
   });
 
   describe('calculateDistance', () => {
-    it('should calculate distance between two locations', () => {
-      const location1: UserLocation = { latitude: 40.7128, longitude: -74.0060 }; // NYC
-      const location2: UserLocation = { latitude: 40.7589, longitude: -73.9851 }; // Times Square
+    it('should calculate distance between two points correctly', () => {
+      // Distance between San Francisco and Berkeley (approximately 13.5 km)
+      const distance = LocationService.calculateDistance(
+        37.7749, -122.4194, // San Francisco
+        37.8715, -122.2730  // Berkeley
+      );
 
-      const distance = LocationService.calculateDistance(location1, location2);
-
-      expect(distance).toBeGreaterThan(0);
-      expect(distance).toBeLessThan(10); // Should be less than 10km
-      expect(typeof distance).toBe('number');
+      expect(distance).toBeCloseTo(16.8, 0); // Within 1 km accuracy
     });
 
-    it('should return 0 for same location', () => {
-      const location: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
+    it('should return 0 for identical coordinates', () => {
+      const distance = LocationService.calculateDistance(
+        37.7749, -122.4194,
+        37.7749, -122.4194
+      );
 
-      const distance = LocationService.calculateDistance(location, location);
-
-      expect(distance).toBe(0);
+      expect(distance).toBeCloseTo(0, 3);
     });
 
-    it('should calculate large distances correctly', () => {
-      const nyc: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
-      const la: UserLocation = { latitude: 34.0522, longitude: -118.2437 };
+    it('should handle coordinates on opposite sides of the world', () => {
+      // Distance between San Francisco and Sydney (approximately 11,935 km)
+      const distance = LocationService.calculateDistance(
+        37.7749, -122.4194, // San Francisco
+        -33.8688, 151.2093  // Sydney
+      );
 
-      const distance = LocationService.calculateDistance(nyc, la);
-
-      expect(distance).toBeGreaterThan(3000); // Should be > 3000km
-      expect(distance).toBeLessThan(5000); // Should be < 5000km
+      expect(distance).toBeCloseTo(11935, -2); // Within 100 km accuracy for long distances
     });
 
-    it('should handle edge coordinates', () => {
-      const northPole: UserLocation = { latitude: 90, longitude: 0 };
-      const southPole: UserLocation = { latitude: -90, longitude: 0 };
-
-      const distance = LocationService.calculateDistance(northPole, southPole);
-
-      expect(distance).toBeCloseTo(20015, 0); // Approximately half Earth's circumference
+    it('should handle edge cases with extreme coordinates', () => {
+      // North pole to south pole
+      const distance = LocationService.calculateDistance(90, 0, -90, 0);
+      expect(distance).toBeCloseTo(20015, -2); // Approximately half Earth circumference
     });
   });
 
-  describe('isLocationWithinRadius', () => {
-    it('should return true for locations within radius', () => {
-      const center: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
-      const nearby: UserLocation = { latitude: 40.7589, longitude: -73.9851 }; // ~5km away
-
-      const result = LocationService.isLocationWithinRadius(center, nearby, 10);
-
-      expect(result).toBe(true);
+  describe('formatDistance', () => {
+    it('should format distances less than 1km in meters', () => {
+      expect(LocationService.formatDistance(0.5)).toBe('500m away');
+      expect(LocationService.formatDistance(0.123)).toBe('123m away');
+      expect(LocationService.formatDistance(0.999)).toBe('999m away');
     });
 
-    it('should return false for locations outside radius', () => {
-      const center: UserLocation = { latitude: 40.7128, longitude: -74.0060 }; // NYC
-      const distant: UserLocation = { latitude: 34.0522, longitude: -118.2437 }; // LA
-
-      const result = LocationService.isLocationWithinRadius(center, distant, 1000);
-
-      expect(result).toBe(false);
+    it('should format distances between 1-10km with 1 decimal place', () => {
+      expect(LocationService.formatDistance(1.5)).toBe('1.5km away');
+      expect(LocationService.formatDistance(5.67)).toBe('5.7km away');
+      expect(LocationService.formatDistance(9.99)).toBe('10.0km away');
     });
 
-    it('should return true for exact same location', () => {
-      const location: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
-
-      const result = LocationService.isLocationWithinRadius(location, location, 1);
-
-      expect(result).toBe(true);
+    it('should format distances over 10km as rounded integers', () => {
+      expect(LocationService.formatDistance(15.4)).toBe('15km away');
+      expect(LocationService.formatDistance(99.7)).toBe('100km away');
+      expect(LocationService.formatDistance(1234.56)).toBe('1235km away');
     });
 
-    it('should handle zero radius', () => {
-      const center: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
-      const nearby: UserLocation = { latitude: 40.7129, longitude: -74.0061 }; // Very close
-
-      const result = LocationService.isLocationWithinRadius(center, nearby, 0);
-
-      expect(result).toBe(false);
+    it('should handle edge cases', () => {
+      expect(LocationService.formatDistance(0)).toBe('0m away');
+      expect(LocationService.formatDistance(1.0)).toBe('1.0km away');
+      expect(LocationService.formatDistance(10.0)).toBe('10km away');
     });
   });
 
   describe('error handling and edge cases', () => {
-    it('should handle invalid coordinates in distance calculation', () => {
-      const invalidLocation1: UserLocation = { latitude: NaN, longitude: -74.0060 };
-      const validLocation2: UserLocation = { latitude: 40.7589, longitude: -73.9851 };
-
-      const distance = LocationService.calculateDistance(invalidLocation1, validLocation2);
-
-      expect(distance).toBeNaN();
+    it('should handle negative coordinates correctly', () => {
+      const distance = LocationService.calculateDistance(
+        -37.7749, -122.4194,
+        -37.8715, -122.2730
+      );
+      expect(distance).toBeGreaterThan(0);
     });
 
-    it('should handle null/undefined locations gracefully', () => {
-      const location: UserLocation = { latitude: 40.7128, longitude: -74.0060 };
-
-      expect(() => {
-        LocationService.calculateDistance(null as any, location);
-      }).toThrow();
-
-      expect(() => {
-        LocationService.calculateDistance(location, undefined as any);
-      }).toThrow();
+    it('should handle coordinates at the international date line', () => {
+      const distance = LocationService.calculateDistance(
+        0, 179,
+        0, -179
+      );
+      expect(distance).toBeCloseTo(222, 0); // Approximately 222 km across date line
     });
 
-    it('should handle extreme latitude/longitude values', () => {
-      const extreme1: UserLocation = { latitude: 180, longitude: 360 }; // Invalid
-      const extreme2: UserLocation = { latitude: -180, longitude: -360 }; // Invalid
-
-      // Should not throw, but may return unexpected results
-      const distance = LocationService.calculateDistance(extreme1, extreme2);
-      expect(typeof distance).toBe('number');
+    it('should handle very small distances accurately', () => {
+      const distance = LocationService.calculateDistance(
+        37.7749, -122.4194,
+        37.7750, -122.4195
+      );
+      expect(distance).toBeLessThan(0.1); // Very small distance
     });
   });
 
   describe('integration scenarios', () => {
-    it('should handle complete location workflow', async () => {
-      // Mock permission granted
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-        status: 'granted'
+    it('should handle complete location workflow with all services', async () => {
+      // Setup mocks for complete workflow
+      mockLocation.requestForegroundPermissionsAsync.mockResolvedValueOnce({
+        status: 'granted',
+        canAskAgain: true,
+        granted: true,
       });
 
-      // Mock location retrieval
-      (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue(mockLocation);
-      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([mockGeocodingResult]);
-
-      // Mock database update
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        update: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => ({
-          data: { id: 'user-1' },
-          error: null
-        }))
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      // Execute workflow
-      const hasPermission = await LocationService.requestLocationPermission();
-      expect(hasPermission).toBe(true);
-
-      const currentLocation = await LocationService.getCurrentLocation();
-      expect(currentLocation).toBeDefined();
-
-      await LocationService.updateUserLocation('user-1', currentLocation);
-
-      // Verify all steps were executed
-      expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
-      expect(Location.getCurrentPositionAsync).toHaveBeenCalled();
-      expect(mockSupabaseChain.update).toHaveBeenCalled();
-    });
-
-    it('should handle permission denied gracefully', async () => {
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-        status: 'denied'
+      mockLocation.getCurrentPositionAsync.mockResolvedValueOnce({
+        coords: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          altitude: 10,
+          accuracy: 10,
+          altitudeAccuracy: 10,
+          heading: 0,
+          speed: 0,
+        },
+        timestamp: Date.now(),
       });
 
-      const hasPermission = await LocationService.requestLocationPermission();
-      expect(hasPermission).toBe(false);
+      mockLocation.reverseGeocodeAsync.mockResolvedValueOnce([
+        {
+          streetNumber: '100',
+          street: 'Market St',
+          city: 'San Francisco',
+          region: 'CA',
+          postalCode: '94105',
+          country: 'US',
+        },
+      ]);
 
-      // Should not attempt to get location without permission
-      expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
+      const location = await LocationService.getCurrentLocation();
+      
+      expect(location).toBeTruthy();
+      if (location) {
+        const distance = LocationService.calculateDistance(
+          location.latitude,
+          location.longitude,
+          37.8715, -122.2730 // Berkeley
+        );
+        
+        const formattedDistance = LocationService.formatDistance(distance);
+        
+        expect(distance).toBeGreaterThan(0);
+        expect(formattedDistance).toContain('away');
+        expect(location.address).toBe('100 Market St');
+        expect(location.city).toBe('San Francisco');
+      }
     });
   });
 });
