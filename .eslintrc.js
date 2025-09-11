@@ -2,7 +2,7 @@ module.exports = {
   extends: [
     'expo',
     '@react-native-community',
-    '@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended',
     'prettier'
   ],
   plugins: [
@@ -75,6 +75,7 @@ module.exports = {
     'build/',
     'dist/',
     'coverage/',
+    '.eslintrc.js',
     '*.config.js',
     '*.d.ts'
   ],
