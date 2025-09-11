@@ -159,11 +159,7 @@ const ContractorSocialScreen: React.FC = () => {
 
   const handleShare = (_postId: string) => {
     haptics.buttonPress();
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, shares: post.shares + 1 } : post
-      )
-    );
+    setPosts(posts.map((post) => (post.id === _postId ? { ...post, shares: post.shares + 1 } : post)));
     Alert.alert('Shared!', 'Post shared to your network!', [{ text: 'OK' }]);
   };
 

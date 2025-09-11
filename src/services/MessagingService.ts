@@ -435,20 +435,21 @@ export class MessagingService {
    * Format message data for consistent interface
    */
   private static formatMessage(data: any): Message {
+    const d = data || {};
     return {
-      id: data.id,
-      jobId: data.job_id,
-      senderId: data.sender_id,
-      receiverId: data.receiver_id,
-      messageText: data.message_text,
-      messageType: data.message_type,
-      attachmentUrl: data.attachment_url,
-      read: data.read,
-      createdAt: data.created_at,
-      senderName: data.sender
-        ? `${data.sender.first_name || ''} ${data.sender.last_name || ''}`.trim()
+      id: d.id || '',
+      jobId: d.job_id || '',
+      senderId: d.sender_id || '',
+      receiverId: d.receiver_id || '',
+      messageText: d.message_text || '',
+      messageType: d.message_type || 'text',
+      attachmentUrl: d.attachment_url,
+      read: Boolean(d.read),
+      createdAt: d.created_at || new Date().toISOString(),
+      senderName: d.sender
+        ? `${d.sender.first_name || ''} ${d.sender.last_name || ''}`.trim()
         : 'Unknown User',
-      senderRole: data.sender?.role,
+      senderRole: d.sender?.role,
     };
   }
 
