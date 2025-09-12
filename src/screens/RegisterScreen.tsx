@@ -28,7 +28,8 @@ interface Props {
 }
 
 const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
@@ -37,8 +38,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const { signUp, loading } = useAuth();
 
   const validateForm = () => {
-    if (!fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+    if (!firstName.trim()) {
+      Alert.alert('Error', 'Please enter your first name');
+      return false;
+    }
+    if (!lastName.trim()) {
+      Alert.alert('Error', 'Please enter your last name');
       return false;
     }
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -64,9 +69,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     if (!validateForm()) return;
 
     try {
-      const [firstName, ...lastNameParts] = fullName.trim().split(' ');
-      const lastName = lastNameParts.join(' ') || '';
-      await signUp(email, password, { firstName, lastName, role });
+      await signUp(email, password, { firstName: firstName.trim(), lastName: lastName.trim(), role });
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message);
     }
@@ -103,6 +106,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
               accessibilityLabel='Account type selection'
             >
               <TouchableOpacity
+                testID="role-homeowner"
                 style={[
                   styles.roleToggle,
                   role === 'homeowner' && styles.roleToggleActive,
@@ -124,6 +128,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
+                testID="role-contractor"
                 style={[
                   styles.roleToggle,
                   role === 'contractor' && styles.roleToggleActive,
@@ -145,7 +150,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Full Name Input with Icon */}
+            {/* First Name Input with Icon */}
             <View style={styles.inputContainer}>
               <Ionicons
                 name='person-outline'
@@ -155,17 +160,43 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="first-name-input"
                 style={styles.input}
-                placeholder='Full Name'
-                value={fullName}
-                onChangeText={setFullName}
+                placeholder='First Name'
+                value={firstName}
+                onChangeText={setFirstName}
                 autoCapitalize='words'
                 placeholderTextColor={theme.colors.placeholder}
-                accessibilityLabel='Full name'
-                accessibilityHint='Enter your first and last name'
+                accessibilityLabel='First name'
+                accessibilityHint='Enter your first name'
                 accessibilityRole='none'
-                textContentType='name'
-                autoComplete='name'
+                textContentType='givenName'
+                autoComplete='given-name'
+              />
+            </View>
+
+            {/* Last Name Input with Icon */}
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name='person-outline'
+                size={20}
+                color={theme.colors.placeholder}
+                style={styles.inputIcon}
+                accessibilityHidden={true}
+              />
+              <TextInput
+                testID="last-name-input"
+                style={styles.input}
+                placeholder='Last Name'
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize='words'
+                placeholderTextColor={theme.colors.placeholder}
+                accessibilityLabel='Last name'
+                accessibilityHint='Enter your last name'
+                accessibilityRole='none'
+                textContentType='familyName'
+                autoComplete='family-name'
               />
             </View>
 
@@ -179,6 +210,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="email-input"
                 style={styles.input}
                 placeholder='Email'
                 value={email}
@@ -229,6 +261,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="password-input"
                 style={styles.input}
                 placeholder='Password'
                 value={password}
@@ -253,6 +286,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="confirm-password-input"
                 style={styles.input}
                 placeholder='Confirm Password'
                 value={confirmPassword}
@@ -269,6 +303,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
             {/* Green Create Account Button */}
             <Button
+              testID={loading ? 'loading-spinner' : 'register-button'}
               variant='success'
               title={loading ? 'Creating Account...' : 'Create Account'}
               onPress={handleRegister}

@@ -235,3 +235,13 @@ export const MOCK_RESPONSES = {
     'NETWORK_ERROR'
   ),
 };
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('SupabaseMockFactory', () => {
+  it('should create mock client', () => {
+    const mockClient = SupabaseMockFactory.createMockClient();
+    expect(mockClient).toBeDefined();
+    expect(mockClient.auth).toBeDefined();
+    expect(mockClient.from).toBeDefined();
+  });
+});

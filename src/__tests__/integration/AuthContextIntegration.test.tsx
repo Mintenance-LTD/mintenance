@@ -1,10 +1,12 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { BiometricService } from '../../services/BiometricService';
+import { createTestQueryClient } from '../utils/test-utils';
 
 // Mock services
 jest.mock('../../services/AuthService', () => ({
@@ -106,9 +108,11 @@ const TestAuthComponent = () => {
 };
 
 const TestWrapper = () => (
-  <AuthProvider>
-    <TestAuthComponent />
-  </AuthProvider>
+  <QueryClientProvider client={createTestQueryClient()}>
+    <AuthProvider>
+      <TestAuthComponent />
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 describe('Auth Context Integration', () => {
@@ -124,12 +128,16 @@ describe('Auth Context Integration', () => {
     const getCurrentUserPromise = new Promise<null>((resolve) => {
       resolveGetCurrentUser = resolve;
     });
+    
+    // Set up the mock BEFORE rendering to ensure loading state is captured
     mockAuthService.getCurrentUser.mockReturnValue(getCurrentUserPromise);
 
     const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
-    // Should show loading initially
-    expect(getByTestId('loading')).toBeTruthy();
+    // Should show loading initially (need to wait for first render)
+    await waitFor(() => {
+      expect(getByTestId('loading')).toBeTruthy();
+    });
 
     // Resolve the getCurrentUser promise
     resolveGetCurrentUser!(null);
@@ -324,8 +332,14 @@ describe('Auth Context Integration', () => {
       updated_at: new Date().toISOString(),
     };
 
+    // Use delayed promise to capture loading state
+    let resolveGetCurrentUser: (value: typeof mockUser) => void;
+    const getCurrentUserPromise = new Promise<typeof mockUser>((resolve) => {
+      resolveGetCurrentUser = resolve;
+    });
+
     // Mock to return existing user from the start
-    mockAuthService.getCurrentUser.mockResolvedValue(mockUser);
+    mockAuthService.getCurrentUser.mockReturnValue(getCurrentUserPromise);
     mockAuthService.getCurrentSession.mockResolvedValue({
       user: mockUser,
       access_token: 'existing-token',
@@ -334,7 +348,12 @@ describe('Auth Context Integration', () => {
     const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
     // Should show loading initially
-    expect(getByTestId('loading')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByTestId('loading')).toBeTruthy();
+    });
+
+    // Resolve to existing user
+    resolveGetCurrentUser!(mockUser);
 
     // Should load existing user and skip to authenticated state
     await waitFor(() => {

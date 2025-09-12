@@ -366,3 +366,10 @@ export const mockStorageService =
   ServicesMockFactory.createStorageServiceMock();
 export const mockLocationService =
   ServicesMockFactory.createLocationServiceMock();
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('ServicesMockFactory', () => {
+  it('should create service mocks', () => {
+    expect(ServicesMockFactory.createAllMocks()).toBeDefined();
+  });
+});

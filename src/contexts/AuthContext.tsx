@@ -42,6 +42,7 @@ const {
 
 interface AuthContextType {
   user: User | null;
+  session: any | null; // Add session for compatibility with tests
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -54,6 +55,7 @@ interface AuthContextType {
     }
   ) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (userData: Partial<User>) => Promise<void>;
   // Biometric methods
   signInWithBiometrics: () => Promise<void>;
   isBiometricAvailable: () => Promise<boolean>;
@@ -78,6 +80,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
@@ -353,10 +356,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value = {
     user,
+    session,
     loading,
     signIn,
     signUp,
     signOut,
+    updateProfile: async (userData: Partial<User>) => {
+      // Placeholder implementation
+      if (user) {
+        setUser({ ...user, ...userData });
+      }
+    },
     // Biometric methods
     signInWithBiometrics,
     isBiometricAvailable,

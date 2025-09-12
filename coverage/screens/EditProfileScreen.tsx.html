@@ -491,7 +491,22 @@
 <a name='L426'></a><a href='#L426'>426</a>
 <a name='L427'></a><a href='#L427'>427</a>
 <a name='L428'></a><a href='#L428'>428</a>
-<a name='L429'></a><a href='#L429'>429</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -733,7 +748,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -939,9 +969,9 @@ import { AuthService } from '../services/AuthService';
 &nbsp;
 const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
   const navigation = <span class="cstat-no" title="statement not covered" >useNavigation();</span>
-  const { user, signOut } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
+  const { user } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
   const [loading, setLoading] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  
+&nbsp;
   // Form state
   const [firstName, setFirstName] = <span class="cstat-no" title="statement not covered" >useState(user?.firstName || '');</span>
   const [lastName, setLastName] = <span class="cstat-no" title="statement not covered" >useState(user?.lastName || '');</span>
@@ -953,23 +983,23 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
   const handleSave = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      setLoading(true);</span>
-      
+&nbsp;
       const updates = <span class="cstat-no" title="statement not covered" >{</span>
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
         bio: bio.trim(),
       };
-      
+&nbsp;
       // Only update non-empty fields
       const filteredUpdates = <span class="cstat-no" title="statement not covered" >Object.fromEntries(</span>
         Object.entries(updates).filter(<span class="fstat-no" title="function not covered" >([</span>_, value]) =&gt; <span class="cstat-no" title="statement not covered" >value !== '')</span>
       );
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      if (user &amp;&amp; Object.keys(filteredUpdates).length &gt; 0) {</span>
 <span class="cstat-no" title="statement not covered" >        await AuthService.updateUserProfile(user.id, filteredUpdates);</span>
 <span class="cstat-no" title="statement not covered" >        Alert.alert('Success', 'Profile updated successfully!', [</span>
-          { text: 'OK', onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack() </span>}
+          { text: 'OK', onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack() </span>},
         ]);
       } else {
 <span class="cstat-no" title="statement not covered" >        navigation.goBack();</span>
@@ -984,15 +1014,19 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;View style={styles.container}&gt;
       &lt;View style={styles.header}&gt;
-        &lt;TouchableOpacity 
-          style={styles.backButton} 
+        &lt;TouchableOpacity
+          style={styles.backButton}
           onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack()}</span>
         &gt;
-          &lt;Ionicons name="arrow-back" size={24} color="#fff" /&gt;
+          &lt;Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textInverse}
+          /&gt;
         &lt;/TouchableOpacity&gt;
         &lt;Text style={styles.headerTitle}&gt;Edit Profile&lt;/Text&gt;
-        &lt;TouchableOpacity 
-          style={styles.saveButton} 
+        &lt;TouchableOpacity
+          style={styles.saveButton}
           onPress={handleSave}
           disabled={loading}
         &gt;
@@ -1007,7 +1041,10 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
         &lt;View style={styles.photoSection}&gt;
           &lt;View style={styles.avatarContainer}&gt;
             {user?.profileImageUrl ? (
-              &lt;Image source={{ uri: user.profileImageUrl }} style={styles.avatar} /&gt;
+              &lt;Image
+                source={{ uri: user.profileImageUrl }}
+                style={styles.avatar}
+              /&gt;
             ) : (
               &lt;View style={styles.avatarPlaceholder}&gt;
                 &lt;Text style={styles.avatarText}&gt;
@@ -1017,7 +1054,7 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
               &lt;/View&gt;
             )}
             &lt;TouchableOpacity style={styles.photoEditButton}&gt;
-              &lt;Ionicons name="camera" size={20} color="#007AFF" /&gt;
+              &lt;Ionicons name='camera' size={20} color={theme.colors.info} /&gt;
             &lt;/TouchableOpacity&gt;
           &lt;/View&gt;
           &lt;TouchableOpacity style={styles.changePhotoButton}&gt;
@@ -1028,51 +1065,51 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
         {/* Basic Information */}
         &lt;View style={styles.section}&gt;
           &lt;Text style={styles.sectionTitle}&gt;Basic Information&lt;/Text&gt;
-          
+&nbsp;
           &lt;View style={styles.inputGroup}&gt;
             &lt;Text style={styles.label}&gt;First Name&lt;/Text&gt;
             &lt;TextInput
               style={styles.input}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Enter your first name"
-              placeholderTextColor="#999"
+              placeholder='Enter your first name'
+              placeholderTextColor='#999'
             /&gt;
           &lt;/View&gt;
-          
+&nbsp;
           &lt;View style={styles.inputGroup}&gt;
             &lt;Text style={styles.label}&gt;Last Name&lt;/Text&gt;
             &lt;TextInput
               style={styles.input}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Enter your last name"
-              placeholderTextColor="#999"
+              placeholder='Enter your last name'
+              placeholderTextColor='#999'
             /&gt;
           &lt;/View&gt;
-          
+&nbsp;
           &lt;View style={styles.inputGroup}&gt;
             &lt;Text style={styles.label}&gt;Email Address&lt;/Text&gt;
             &lt;TextInput
               style={[styles.input, styles.disabledInput]}
               value={user?.email || ''}
               editable={false}
-              placeholderTextColor="#999"
+              placeholderTextColor='#999'
             /&gt;
             &lt;Text style={styles.helperText}&gt;
               Email cannot be changed. Contact support if needed.
             &lt;/Text&gt;
           &lt;/View&gt;
-          
+&nbsp;
           &lt;View style={styles.inputGroup}&gt;
             &lt;Text style={styles.label}&gt;Phone Number&lt;/Text&gt;
             &lt;TextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone number"
-              placeholderTextColor="#999"
-              keyboardType="phone-pad"
+              placeholder='Enter your phone number'
+              placeholderTextColor='#999'
+              keyboardType='phone-pad'
             /&gt;
           &lt;/View&gt;
         &lt;/View&gt;
@@ -1080,31 +1117,30 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
         {/* Bio Section */}
         &lt;View style={styles.section}&gt;
           &lt;Text style={styles.sectionTitle}&gt;About You&lt;/Text&gt;
-          
+&nbsp;
           &lt;View style={styles.inputGroup}&gt;
             &lt;Text style={styles.label}&gt;Bio&lt;/Text&gt;
             &lt;TextInput
               style={[styles.input, styles.textArea]}
               value={bio}
               onChangeText={setBio}
-              placeholder={user?.role === 'contractor' ? 
-                'Tell homeowners about your experience and expertise...' : 
-                'Tell contractors about your project preferences...'
+              placeholder={
+                user?.role === 'contractor'
+                  ? 'Tell homeowners about your experience and expertise...'
+                  : 'Tell contractors about your project preferences...'
               }
-              placeholderTextColor="#999"
+              placeholderTextColor='#999'
               multiline
               numberOfLines={4}
             /&gt;
-            &lt;Text style={styles.helperText}&gt;
-              {bio.length}/200 characters
-            &lt;/Text&gt;
+            &lt;Text style={styles.helperText}&gt;{bio.length}/200 characters&lt;/Text&gt;
           &lt;/View&gt;
         &lt;/View&gt;
 &nbsp;
         {/* Notification Preferences */}
         &lt;View style={styles.section}&gt;
           &lt;Text style={styles.sectionTitle}&gt;Notification Preferences&lt;/Text&gt;
-          
+&nbsp;
           &lt;View style={styles.switchRow}&gt;
             &lt;View style={styles.switchInfo}&gt;
               &lt;Text style={styles.switchLabel}&gt;Email Notifications&lt;/Text&gt;
@@ -1115,11 +1151,14 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
             &lt;Switch
               value={emailNotifications}
               onValueChange={setEmailNotifications}
-              trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-              thumbColor="#fff"
+              trackColor={{
+                false: theme.colors.borderLight,
+                true: theme.colors.success,
+              }}
+              thumbColor={theme.colors.textInverse}
             /&gt;
           &lt;/View&gt;
-          
+&nbsp;
           &lt;View style={styles.switchRow}&gt;
             &lt;View style={styles.switchInfo}&gt;
               &lt;Text style={styles.switchLabel}&gt;Push Notifications&lt;/Text&gt;
@@ -1130,8 +1169,11 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
             &lt;Switch
               value={pushNotifications}
               onValueChange={setPushNotifications}
-              trackColor={{ false: '#E5E5EA', true: '#34C759' }}
-              thumbColor="#fff"
+              trackColor={{
+                false: theme.colors.borderLight,
+                true: theme.colors.success,
+              }}
+              thumbColor={theme.colors.textInverse}
             /&gt;
           &lt;/View&gt;
         &lt;/View&gt;
@@ -1139,21 +1181,23 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
         {/* Account Actions */}
         &lt;View style={styles.section}&gt;
           &lt;Text style={styles.sectionTitle}&gt;Account&lt;/Text&gt;
-          
+&nbsp;
           &lt;TouchableOpacity style={styles.actionItem}&gt;
             &lt;View style={styles.actionLeft}&gt;
-              &lt;Ionicons name="key-outline" size={20} color="#666" /&gt;
+              &lt;Ionicons name='key-outline' size={20} color='#666' /&gt;
               &lt;Text style={styles.actionText}&gt;Change Password&lt;/Text&gt;
             &lt;/View&gt;
-            &lt;Ionicons name="chevron-forward" size={16} color="#ccc" /&gt;
+            &lt;Ionicons name='chevron-forward' size={16} color='#ccc' /&gt;
           &lt;/TouchableOpacity&gt;
-          
+&nbsp;
           &lt;TouchableOpacity style={[styles.actionItem, styles.dangerAction]}&gt;
             &lt;View style={styles.actionLeft}&gt;
-              &lt;Ionicons name="trash-outline" size={20} color="#FF3B30" /&gt;
-              &lt;Text style={[styles.actionText, styles.dangerText]}&gt;Delete Account&lt;/Text&gt;
+              &lt;Ionicons name='trash-outline' size={20} color='#FF3B30' /&gt;
+              &lt;Text style={[styles.actionText, styles.dangerText]}&gt;
+                Delete Account
+              &lt;/Text&gt;
             &lt;/View&gt;
-            &lt;Ionicons name="chevron-forward" size={16} color="#FF3B30" /&gt;
+            &lt;Ionicons name='chevron-forward' size={16} color='#FF3B30' /&gt;
           &lt;/TouchableOpacity&gt;
         &lt;/View&gt;
       &lt;/ScrollView&gt;
@@ -1164,7 +1208,7 @@ const EditProfileScreen: React.FC = <span class="cstat-no" title="statement not 
 const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
     backgroundColor: theme.colors.primary,
@@ -1178,7 +1222,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: theme.borderRadius.xxl,
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1186,7 +1230,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.textInverse,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -1206,7 +1250,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     flex: 1,
   },
   photoSection: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     paddingVertical: 32,
     marginBottom: 16,
@@ -1231,7 +1275,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   avatarText: {
     fontSize: 36,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   photoEditButton: {
     position: 'absolute',
@@ -1240,11 +1284,11 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#E5E5EA',
+    borderColor: theme.colors.border,
   },
   changePhotoButton: {
     paddingVertical: 8,
@@ -1255,7 +1299,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     fontWeight: '500',
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 12,
@@ -1264,7 +1308,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1C1C1E',
+    color: theme.colors.textPrimary,
     marginBottom: 20,
   },
   inputGroup: {
@@ -1273,22 +1317,22 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   label: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1C1C1E',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#1C1C1E',
+    backgroundColor: theme.colors.surface,
+    color: theme.colors.textPrimary,
   },
   disabledInput: {
-    backgroundColor: '#F8F9FA',
-    color: '#8E8E93',
+    backgroundColor: theme.colors.surfaceSecondary,
+    color: theme.colors.textTertiary,
   },
   textArea: {
     height: 80,
@@ -1296,7 +1340,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
   helperText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
     marginTop: 6,
   },
   switchRow: {
@@ -1305,7 +1349,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: theme.colors.borderLight,
   },
   switchInfo: {
     flex: 1,
@@ -1314,12 +1358,12 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   switchLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1C1C1E',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   switchDescription: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: theme.colors.textTertiary,
   },
   actionItem: {
     flexDirection: 'row',
@@ -1327,7 +1371,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: theme.colors.borderLight,
   },
   actionLeft: {
     flexDirection: 'row',
@@ -1335,7 +1379,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
   actionText: {
     fontSize: 16,
-    color: '#1C1C1E',
+    color: theme.colors.textPrimary,
     marginLeft: 12,
     fontWeight: '500',
   },
@@ -1347,14 +1391,15 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
 });
 &nbsp;
-export default EditProfileScreen;</pre></td></tr></table></pre>
+export default EditProfileScreen;
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:44.617Z
+                at 2025-09-12T08:52:23.852Z
             </div>
         <script src="../prettify.js"></script>
         <script>

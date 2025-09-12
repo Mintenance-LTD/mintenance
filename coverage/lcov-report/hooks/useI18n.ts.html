@@ -303,7 +303,17 @@
 <a name='L238'></a><a href='#L238'>238</a>
 <a name='L239'></a><a href='#L239'>239</a>
 <a name='L240'></a><a href='#L240'>240</a>
-<a name='L241'></a><a href='#L241'>241</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -321,6 +331,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -377,6 +388,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -386,6 +401,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -428,6 +447,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -437,15 +457,14 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -541,27 +560,29 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { I18nManager } from 'react-native';
-import { 
-  changeLanguage, 
-  getCurrentLanguage, 
-  isRTL, 
-  formatCurrency, 
-  formatDate, 
+import {
+  changeLanguage,
+  getCurrentLanguage,
+  isRTL,
+  formatCurrency,
+  formatDate,
   formatRelativeTime,
   availableLanguages,
-  Language 
+  Language,
 } from '../i18n';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';
 &nbsp;
 export const useI18n = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
   const { t, i18n } = <span class="cstat-no" title="statement not covered" >useTranslation();</span>
-  const [currentLanguage, setCurrentLanguage] = <span class="cstat-no" title="statement not covered" >useState&lt;Language&gt;(getCurrentLanguage());</span>
+  const [currentLanguage, setCurrentLanguage] =
+<span class="cstat-no" title="statement not covered" >    useState&lt;Language&gt;(getCurrentLanguage());</span>
   const [isRTLLayout, setIsRTLLayout] = <span class="cstat-no" title="statement not covered" >useState(isRTL());</span>
   const haptics = <span class="cstat-no" title="statement not covered" >useHaptics();</span>
 &nbsp;
@@ -570,7 +591,7 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
       const lang = <span class="cstat-no" title="statement not covered" >language as Language;</span>
 <span class="cstat-no" title="statement not covered" >      setCurrentLanguage(lang);</span>
 <span class="cstat-no" title="statement not covered" >      setIsRTLLayout(isRTL(lang));</span>
-      
+&nbsp;
       // Handle RTL layout changes
 <span class="cstat-no" title="statement not covered" >      if (isRTL(lang) !== I18nManager.isRTL) {</span>
 <span class="cstat-no" title="statement not covered" >        I18nManager.allowRTL(isRTL(lang));</span>
@@ -581,7 +602,7 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
     };
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    i18n.on('languageChanged', handleLanguageChange);</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return <span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      i18n.off('languageChanged', handleLanguageChange);</span>
     };
@@ -616,16 +637,24 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
   };
 &nbsp;
   // Context-aware translations
-  const translateWithContext = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(k</span>ey: string, context: string, options?: any) =&gt; {</span>
+  const translateWithContext = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span>
+    key: string,
+    context: string,
+    options?: any
+  ) =&gt; {
     const contextKey = <span class="cstat-no" title="statement not covered" >`${key}_${context}`;</span>
     const translation = <span class="cstat-no" title="statement not covered" >t(contextKey, { defaultValue: '', ...options });</span>
-    
+&nbsp;
     // Fallback to base key if context-specific translation doesn't exist
 <span class="cstat-no" title="statement not covered" >    return translation || t(key, options);</span>
   };
 &nbsp;
   // Helper for getting localized strings with interpolation
-  const getString = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(n</span>amespace: string, key: string, values?: Record&lt;string, any&gt;) =&gt; {</span>
+  const getString = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span>
+    namespace: string,
+    key: string,
+    values?: Record&lt;string, any&gt;
+  ) =&gt; {
     const fullKey = <span class="cstat-no" title="statement not covered" >`${namespace}.${key}`;</span>
 <span class="cstat-no" title="statement not covered" >    return translate(fullKey, values);</span>
   };
@@ -668,23 +697,23 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
   // Accessibility helpers
   const accessibility = <span class="cstat-no" title="statement not covered" >{</span>
     button: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >translate('accessibility.button'),</span>
-    doubleTabTo: <span class="fstat-no" title="function not covered" >(a</span>ction: string) =&gt; <span class="cstat-no" title="statement not covered" >translate('accessibility.doubleTabTo', { action }),</span>
+    doubleTabTo: <span class="fstat-no" title="function not covered" >(a</span>ction: string) =&gt;
+<span class="cstat-no" title="statement not covered" >      translate('accessibility.doubleTabTo', { action }),</span>
     selected: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >translate('accessibility.selected'),</span>
     loading: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >translate('accessibility.loading'),</span>
   };
 &nbsp;
   // Format helpers that respect current locale
   const formatters = <span class="cstat-no" title="statement not covered" >{</span>
-    currency: <span class="fstat-no" title="function not covered" >(a</span>mount: number, currency = <span class="branch-0 cbranch-no" title="branch not covered" >'USD')</span> =&gt; 
+    currency: <span class="fstat-no" title="function not covered" >(a</span>mount: number, currency = <span class="branch-0 cbranch-no" title="branch not covered" >'USD')</span> =&gt;
 <span class="cstat-no" title="statement not covered" >      formatCurrency(amount, currency, currentLanguage),</span>
-    date: <span class="fstat-no" title="function not covered" >(d</span>ate: Date) =&gt; 
-<span class="cstat-no" title="statement not covered" >      formatDate(date, currentLanguage),</span>
-    relativeTime: <span class="fstat-no" title="function not covered" >(d</span>ate: Date) =&gt; 
-<span class="cstat-no" title="statement not covered" >      formatRelativeTime(date, currentLanguage),</span>
+    date: <span class="fstat-no" title="function not covered" >(d</span>ate: Date) =&gt; <span class="cstat-no" title="statement not covered" >formatDate(date, currentLanguage),</span>
+    relativeTime: <span class="fstat-no" title="function not covered" >(d</span>ate: Date) =&gt; <span class="cstat-no" title="statement not covered" >formatRelativeTime(date, currentLanguage),</span>
     number: <span class="fstat-no" title="function not covered" >(n</span>um: number) =&gt; {
 <span class="cstat-no" title="statement not covered" >      try {</span>
-<span class="cstat-no" title="statement not covered" >        return new Intl.NumberFormat(currentLanguage === 'en' ? 'en-US' : currentLanguage)</span>
-          .format(num);
+<span class="cstat-no" title="statement not covered" >        return new Intl.NumberFormat(</span>
+          currentLanguage === 'en' ? 'en-US' : currentLanguage
+        ).format(num);
       } catch {
 <span class="cstat-no" title="statement not covered" >        return num.toString();</span>
       }
@@ -695,12 +724,12 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
   const getErrorMessage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(e</span>rrorCode: string, fallback?: string) =&gt; {</span>
     const errorKey = <span class="cstat-no" title="statement not covered" >`errors.${errorCode}`;</span>
     const translation = <span class="cstat-no" title="statement not covered" >translate(errorKey);</span>
-    
+&nbsp;
     // If translation is the same as key, it means translation is missing
 <span class="cstat-no" title="statement not covered" >    if (translation === errorKey) {</span>
 <span class="cstat-no" title="statement not covered" >      return fallback || translate('errors.somethingWentWrong');</span>
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return translation;</span>
   };
 &nbsp;
@@ -708,11 +737,11 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
   const getSuccessMessage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(a</span>ctionCode: string, fallback?: string) =&gt; {</span>
     const successKey = <span class="cstat-no" title="statement not covered" >`success.${actionCode}`;</span>
     const translation = <span class="cstat-no" title="statement not covered" >translate(successKey);</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (translation === successKey) {</span>
 <span class="cstat-no" title="statement not covered" >      return fallback || translate('success.actionCompleted');</span>
     }
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return translation;</span>
   };
 &nbsp;
@@ -735,26 +764,26 @@ export const useI18n = <span class="cstat-no" title="statement not covered" ><sp
     translatePlural,
     translateWithContext,
     getString,
-    
+&nbsp;
     // Language management
     switchLanguage,
     currentLanguage,
     languageInfo,
     isRTL: isRTLLayout,
-    
+&nbsp;
     // Predefined translation helpers
     common,
     auth,
     navigation,
     accessibility,
-    
+&nbsp;
     // Formatting helpers
     formatters,
-    
+&nbsp;
     // Error and success helpers
     getErrorMessage,
     getSuccessMessage,
-    
+&nbsp;
     // Raw i18n instance for advanced usage
     i18n,
   };
@@ -766,11 +795,11 @@ export const useRTLStyles = <span class="cstat-no" title="statement not covered"
   rtlStyles?: Partial&lt;T&gt;
 ) =&gt; {
   const { isRTL } = <span class="cstat-no" title="statement not covered" >useI18n();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  if (!isRTL || !rtlStyles) {</span>
 <span class="cstat-no" title="statement not covered" >    return ltrStyles;</span>
   }
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  return {</span>
     ...ltrStyles,
     ...rtlStyles,
@@ -783,14 +812,15 @@ export const useDirectionValue = <span class="cstat-no" title="statement not cov
 <span class="cstat-no" title="statement not covered" >  return isRTL ? rtlValue : ltrValue;</span>
 };
 &nbsp;
-export default useI18n;</pre></td></tr></table></pre>
+export default useI18n;
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:41.771Z
+                at 2025-09-12T08:52:20.760Z
             </div>
         <script src="../prettify.js"></script>
         <script>

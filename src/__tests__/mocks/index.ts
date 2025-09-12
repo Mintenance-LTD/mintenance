@@ -45,3 +45,14 @@ export const setupTestMocks = () => {
     services: ServicesMockFactory.createAllMocks(),
   };
 };
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('Mock factories', () => {
+  it('should export all mock factories', () => {
+    expect(SupabaseMockFactory).toBeDefined();
+    expect(ExpoMockFactory).toBeDefined();
+    expect(ReactNativeMockFactory).toBeDefined();
+    expect(NavigationMockFactory).toBeDefined();
+    expect(ServicesMockFactory).toBeDefined();
+  });
+});

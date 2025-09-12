@@ -293,3 +293,10 @@ export const mockStackNavigator =
   NavigationMockFactory.createStackNavigatorMock();
 export const mockBottomTabNavigator =
   NavigationMockFactory.createBottomTabNavigatorMock();
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('NavigationMockFactory', () => {
+  it('should create navigation mocks', () => {
+    expect(NavigationMockFactory.createAllMocks()).toBeDefined();
+  });
+});

@@ -138,7 +138,14 @@
 <a name='L73'></a><a href='#L73'>73</a>
 <a name='L74'></a><a href='#L74'>74</a>
 <a name='L75'></a><a href='#L75'>75</a>
-<a name='L76'></a><a href='#L76'>76</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -162,6 +169,31 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -189,36 +221,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect, useRef } from 'react';
 import { RealtimeService, RealtimeCallback } from '../services/RealtimeService';
 &nbsp;
 export const useJobUpdates = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(j</span>obId: string, callback: RealtimeCallback) =&gt; {</span>
   const callbackRef = <span class="cstat-no" title="statement not covered" >useRef(callback);</span>
-  
+&nbsp;
   // Update callback ref when callback changes
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    callbackRef.current = callback;</span>
@@ -236,9 +250,12 @@ export const useJobUpdates = <span class="cstat-no" title="statement not covered
   }, [jobId]);
 };
 &nbsp;
-export const useContractorBids = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(c</span>ontractorId: string, callback: RealtimeCallback) =&gt; {</span>
+export const useContractorBids = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span>
+  contractorId: string,
+  callback: RealtimeCallback
+) =&gt; {
   const callbackRef = <span class="cstat-no" title="statement not covered" >useRef(callback);</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    callbackRef.current = callback;</span>
   }, [callback]);
@@ -255,9 +272,12 @@ export const useContractorBids = <span class="cstat-no" title="statement not cov
   }, [contractorId]);
 };
 &nbsp;
-export const useHomeownerJobs = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(h</span>omeownerId: string, callback: RealtimeCallback) =&gt; {</span>
+export const useHomeownerJobs = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span>
+  homeownerId: string,
+  callback: RealtimeCallback
+) =&gt; {
   const callbackRef = <span class="cstat-no" title="statement not covered" >useRef(callback);</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    callbackRef.current = callback;</span>
   }, [callback]);
@@ -276,26 +296,27 @@ export const useHomeownerJobs = <span class="cstat-no" title="statement not cove
 &nbsp;
 export const useAvailableJobs = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(c</span>allback: RealtimeCallback) =&gt; {</span>
   const callbackRef = <span class="cstat-no" title="statement not covered" >useRef(callback);</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    callbackRef.current = callback;</span>
   }, [callback]);
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-    const unsubscribe = <span class="cstat-no" title="statement not covered" >RealtimeService.subscribeToAvailableJobs(</span>
-<span class="fstat-no" title="function not covered" >      (p</span>ayload) =&gt; <span class="cstat-no" title="statement not covered" >callbackRef.current(payload)</span>
+    const unsubscribe = <span class="cstat-no" title="statement not covered" >RealtimeService.subscribeToAvailableJobs(<span class="fstat-no" title="function not covered" >(p</span>ayload) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >      callbackRef.current(payload)</span>
     );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return unsubscribe;</span>
   }, []);
-};</pre></td></tr></table></pre>
+};
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:41.771Z
+                at 2025-09-12T08:52:20.760Z
             </div>
         <script src="../prettify.js"></script>
         <script>

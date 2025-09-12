@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import { captureException } from '../config/sentry';
 
 interface QueryErrorBoundaryProps {
   children: React.ReactNode;
@@ -24,14 +25,12 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
 
     // Track query-specific errors
     try {
-      import('../config/sentry').then(({ captureException }) => {
-        captureException(error, {
-          tags: {
-            errorBoundary: 'query',
-            queryName,
-          },
-          extra: errorInfo,
-        });
+      captureException(error, {
+        tags: {
+          errorBoundary: 'query',
+          queryName,
+        },
+        extra: errorInfo,
       });
     } catch (sentryError) {
       console.warn('Sentry tracking failed:', sentryError);

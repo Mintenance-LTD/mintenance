@@ -52,9 +52,12 @@ describe('Theme', () => {
     });
 
     it('should have progressive spacing scale', () => {
-      const spacingValues = Object.values(theme.spacing);
-      for (let i = 1; i < spacingValues.length; i++) {
-        expect(spacingValues[i]).toBeGreaterThanOrEqual(spacingValues[i - 1]);
+      const numeric = Object.entries(theme.spacing)
+        .filter(([k]) => !isNaN(Number(k)))
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([, v]) => v as number);
+      for (let i = 1; i < numeric.length; i++) {
+        expect(numeric[i]).toBeGreaterThanOrEqual(numeric[i - 1]);
       }
     });
   });

@@ -1,10 +1,13 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { JobService } from '../../services/JobService';
+import { createTestQueryClient } from '../utils/test-utils';
+import { JobBidMockFactory } from '../mocks/jobBidMockFactory';
 
 // Mock all necessary services
 jest.mock('../../services/AuthService', () => ({
@@ -70,7 +73,15 @@ const MockJobPostingScreen = ({
 }: {
   onJobPosted?: (job: any) => void;
 }) => {
-  const { user } = useAuth();
+  // Use mock user directly instead of auth context to avoid complexity
+  const mockUser = {
+    id: 'homeowner-123',
+    email: 'homeowner@example.com',
+    first_name: 'John',
+    last_name: 'Doe',
+    role: 'homeowner' as const,
+  };
+  
   const [jobData, setJobData] = React.useState({
     title: '',
     description: '',
@@ -87,7 +98,7 @@ const MockJobPostingScreen = ({
         description: jobData.description,
         location: jobData.location,
         budget: parseFloat(jobData.budget),
-        homeownerId: user?.id || '',
+        homeownerId: mockUser.id,
         category: jobData.category,
         priority: jobData.priority,
       });
@@ -334,9 +345,11 @@ const TestNavigator = ({
 };
 
 const TestWrapper = (props: any) => (
-  <AuthProvider>
-    <TestNavigator {...props} />
-  </AuthProvider>
+  <QueryClientProvider client={createTestQueryClient()}>
+    <AuthProvider>
+      <TestNavigator {...props} />
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 describe('Job Posting and Discovery Workflow Integration', () => {
@@ -363,19 +376,17 @@ describe('Job Posting and Discovery Workflow Integration', () => {
 
   describe('Job Posting Flow (Homeowner)', () => {
     it('should complete the full job posting workflow', async () => {
-      const mockJob = {
+      const mockJob = JobBidMockFactory.createCompleteJob({
         id: 'job-123',
         title: 'Kitchen Faucet Repair',
         description: 'My kitchen faucet is leaking and needs repair',
         location: '123 Main St, Anytown, USA',
         budget: 200,
         category: 'Plumbing',
-        priority: 'high',
-        status: 'posted',
+        priority: 'high' as const,
+        status: 'posted' as const,
         homeowner_id: 'homeowner-123',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      });
 
       mockJobService.createJob.mockResolvedValue(mockJob);
 
@@ -462,20 +473,20 @@ describe('Job Posting and Discovery Workflow Integration', () => {
   describe('Job Discovery Flow (Contractor)', () => {
     it('should display available jobs for contractors', async () => {
       const mockJobs = [
-        {
+        JobBidMockFactory.createCompleteJob({
           id: 'job-1',
           title: 'Kitchen Faucet Repair',
           budget: 200,
-          status: 'posted',
+          status: 'posted' as const,
           homeowner_id: 'homeowner-123',
-        },
-        {
+        }),
+        JobBidMockFactory.createCompleteJob({
           id: 'job-2',
           title: 'Bathroom Tile Installation',
           budget: 500,
-          status: 'posted',
+          status: 'posted' as const,
           homeowner_id: 'homeowner-456',
-        },
+        }),
       ];
 
       mockJobService.getAvailableJobs.mockResolvedValue(mockJobs);
@@ -533,20 +544,20 @@ describe('Job Posting and Discovery Workflow Integration', () => {
   describe('Job Management Flow (Homeowner)', () => {
     it('should display homeowner jobs', async () => {
       const mockJobs = [
-        {
+        JobBidMockFactory.createCompleteJob({
           id: 'job-1',
           title: 'Kitchen Faucet Repair',
           budget: 200,
-          status: 'posted',
+          status: 'posted' as const,
           homeowner_id: 'homeowner-123',
-        },
-        {
+        }),
+        JobBidMockFactory.createCompleteJob({
           id: 'job-2',
           title: 'Garden Maintenance',
           budget: 150,
-          status: 'in_progress',
+          status: 'in_progress' as const,
           homeowner_id: 'homeowner-123',
-        },
+        }),
       ];
 
       mockJobService.getUserJobs.mockResolvedValue(mockJobs);
@@ -596,14 +607,14 @@ describe('Job Posting and Discovery Workflow Integration', () => {
         homeowner_id: 'homeowner-123',
       };
 
-      const mockBid = {
+      const mockBid = JobBidMockFactory.createCompleteBid({
         id: 'bid-123',
         jobId: 'job-123',
         contractorId: 'contractor-123',
         amount: 150,
         description: 'I can fix this for you',
-        status: 'pending',
-      };
+        status: 'pending' as const,
+      });
 
       mockJobService.submitBid.mockResolvedValue(mockBid);
       mockJobService.getBidsByJob.mockResolvedValue([]);
@@ -650,22 +661,22 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       };
 
       const mockBids = [
-        {
+        JobBidMockFactory.createCompleteBid({
           id: 'bid-1',
           jobId: 'job-123',
           contractorId: 'contractor-1',
           amount: 150,
           description: 'I can fix this quickly',
-          status: 'pending',
-        },
-        {
+          status: 'pending' as const,
+        }),
+        JobBidMockFactory.createCompleteBid({
           id: 'bid-2',
           jobId: 'job-123',
           contractorId: 'contractor-2',
           amount: 180,
           description: 'Professional service guaranteed',
-          status: 'pending',
-        },
+          status: 'pending' as const,
+        }),
       ];
 
       mockJobService.getBidsByJob.mockResolvedValue(mockBids);

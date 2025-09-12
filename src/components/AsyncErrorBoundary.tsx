@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import { captureException } from '../config/sentry';
 
 interface AsyncErrorBoundaryProps {
   children: React.ReactNode;
@@ -28,14 +29,12 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
 
     // Track async operation errors
     try {
-      import('../config/sentry').then(({ captureException }) => {
-        captureException(error, {
-          tags: {
-            errorBoundary: 'async',
-            operationName,
-          },
-          extra: errorInfo,
-        });
+      captureException(error, {
+        tags: {
+          errorBoundary: 'async',
+          operationName,
+        },
+        extra: errorInfo,
       });
     } catch (sentryError) {
       console.warn('Sentry tracking failed:', sentryError);

@@ -389,3 +389,10 @@ export const mockAlert = ReactNativeMockFactory.createAlertMock();
 export const mockNetInfo = ReactNativeMockFactory.createNetInfoMock();
 export const mockAsyncStorage = ReactNativeMockFactory.createAsyncStorageMock();
 export const mockPermissions = ReactNativeMockFactory.createPermissionsMock();
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('ReactNativeMockFactory', () => {
+  it('should create react native mocks', () => {
+    expect(ReactNativeMockFactory.createReactNativeMock()).toBeDefined();
+  });
+});

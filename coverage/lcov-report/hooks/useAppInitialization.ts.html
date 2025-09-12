@@ -353,7 +353,23 @@
 <a name='L288'></a><a href='#L288'>288</a>
 <a name='L289'></a><a href='#L289'>289</a>
 <a name='L290'></a><a href='#L290'>290</a>
-<a name='L291'></a><a href='#L291'>291</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -490,6 +506,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -565,11 +583,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -595,7 +619,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -624,6 +652,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -643,6 +674,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -706,9 +738,9 @@ const INITIALIZATION_STEPS: InitializationStep[] = <span class="cstat-no" title=
       // Only sync if online
       const networkState = <span class="cstat-no" title="statement not covered" >await NetInfo.fetch();</span>
 <span class="cstat-no" title="statement not covered" >      if (networkState.isConnected &amp;&amp; networkState.isInternetReachable) {</span>
-<span class="cstat-no" title="statement not covered" >        await SyncManager.syncAll({ </span>
-          strategy: 'background', 
-          direction: 'download' 
+<span class="cstat-no" title="statement not covered" >        await SyncManager.syncAll({</span>
+          strategy: 'background',
+          direction: 'download',
         });
       }
     },
@@ -733,8 +765,8 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
 &nbsp;
   const initializeApp = <span class="cstat-no" title="statement not covered" >React.useCallback(<span class="fstat-no" title="function not covered" >as</span>ync () =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    logger.info('Starting app initialization');</span>
-    
-<span class="cstat-no" title="statement not covered" >    setState(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    setState(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
       ...prev,
       isInitializing: true,
       initializationError: null,
@@ -746,10 +778,10 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
     }));
 &nbsp;
     const completedSteps: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    try {</span>
 <span class="cstat-no" title="statement not covered" >      for (const step of INITIALIZATION_STEPS) {</span>
-<span class="cstat-no" title="statement not covered" >        setState(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+<span class="cstat-no" title="statement not covered" >        setState(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
           ...prev,
           progress: {
             ...prev.progress,
@@ -764,8 +796,8 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          await step.execute();</span>
 <span class="cstat-no" title="statement not covered" >          completedSteps.push(step.name);</span>
-          
-<span class="cstat-no" title="statement not covered" >          setState(<span class="fstat-no" title="function not covered" >pr</span>ev =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          setState(<span class="fstat-no" title="function not covered" >(p</span>rev) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
             ...prev,
             progress: {
               ...prev.progress,
@@ -776,9 +808,11 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
 <span class="cstat-no" title="statement not covered" >          logger.info(`Initialization step completed: ${step.name}`);</span>
         } catch (error) {
 <span class="cstat-no" title="statement not covered" >          logger.error(`Initialization step failed: ${step.name}`, error);</span>
-          
+&nbsp;
 <span class="cstat-no" title="statement not covered" >          if (step.critical) {</span>
-<span class="cstat-no" title="statement not covered" >            throw new Error(`Critical initialization step failed: ${step.description}`);</span>
+<span class="cstat-no" title="statement not covered" >            throw new Error(</span>
+              `Critical initialization step failed: ${step.description}`
+            );
           } else {
 <span class="cstat-no" title="statement not covered" >            logger.warn(`Non-critical step failed, continuing: ${step.name}`, {</span>
               error: (error as Error).message,
@@ -804,7 +838,7 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
       });
     } catch (error) {
       const initError = <span class="cstat-no" title="statement not covered" >error as Error;</span>
-      
+&nbsp;
 <span class="cstat-no" title="statement not covered" >      setState({</span>
         isInitializing: false,
         isReady: false,
@@ -838,29 +872,35 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
     const handleAppStateChange = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(n</span>extAppState: AppStateStatus) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      if (nextAppState === 'active' &amp;&amp; state.isReady) {</span>
         // App became active, persist current query cache
-<span class="cstat-no" title="statement not covered" >        persistQueryClient().catch(<span class="fstat-no" title="function not covered" >er</span>ror =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        persistQueryClient().catch(<span class="fstat-no" title="function not covered" >(e</span>rror) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >          logger.error('Failed to persist query cache on app focus:', error);</span>
         });
-        
+&nbsp;
         // Trigger background sync if online
 <span class="cstat-no" title="statement not covered" >        if (isOnline) {</span>
-<span class="cstat-no" title="statement not covered" >          SyncManager.syncAll({ </span>
-            strategy: 'background', 
-            direction: 'bidirectional' 
-          }).catch(<span class="fstat-no" title="function not covered" >er</span>ror =&gt; {
+<span class="cstat-no" title="statement not covered" >          SyncManager.syncAll({</span>
+            strategy: 'background',
+            direction: 'bidirectional',
+          }).catch(<span class="fstat-no" title="function not covered" >(e</span>rror) =&gt; {
 <span class="cstat-no" title="statement not covered" >            logger.error('Background sync failed on app focus:', error);</span>
           });
         }
       } else <span class="cstat-no" title="statement not covered" >if (nextAppState === 'background' &amp;&amp; state.isReady) {</span>
         // App went to background, persist query cache
-<span class="cstat-no" title="statement not covered" >        persistQueryClient().catch(<span class="fstat-no" title="function not covered" >er</span>ror =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >          logger.error('Failed to persist query cache on app background:', error);</span>
+<span class="cstat-no" title="statement not covered" >        persistQueryClient().catch(<span class="fstat-no" title="function not covered" >(e</span>rror) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >          logger.error(</span>
+            'Failed to persist query cache on app background:',
+            error
+          );
         });
       }
     };
 &nbsp;
-    const subscription = <span class="cstat-no" title="statement not covered" >AppState.addEventListener('change', handleAppStateChange);</span>
-    
+    const subscription = <span class="cstat-no" title="statement not covered" >AppState.addEventListener(</span>
+      'change',
+      handleAppStateChange
+    );
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    return <span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      subscription?.remove();</span>
     };
@@ -870,10 +910,10 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
 <span class="cstat-no" title="statement not covered" >  React.useEffect(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    if (isOnline &amp;&amp; state.isReady) {</span>
       // Trigger sync when coming back online
-<span class="cstat-no" title="statement not covered" >      SyncManager.syncAll({ </span>
-        strategy: 'background', 
-        direction: 'bidirectional' 
-      }).catch(<span class="fstat-no" title="function not covered" >er</span>ror =&gt; {
+<span class="cstat-no" title="statement not covered" >      SyncManager.syncAll({</span>
+        strategy: 'background',
+        direction: 'bidirectional',
+      }).catch(<span class="fstat-no" title="function not covered" >(e</span>rror) =&gt; {
 <span class="cstat-no" title="statement not covered" >        logger.error('Sync failed after network reconnection:', error);</span>
       });
     }
@@ -882,11 +922,15 @@ export const useAppInitialization = <span class="cstat-no" title="statement not 
 <span class="cstat-no" title="statement not covered" >  return {</span>
     ...state,
     retryInitialization,
-    
+&nbsp;
     // Progress helpers
-    progressPercentage: Math.round((state.progress.completedSteps.length / state.progress.totalSteps) * 100),
-    isStepCompleted: <span class="fstat-no" title="function not covered" >(s</span>tepName: string) =&gt; <span class="cstat-no" title="statement not covered" >state.progress.completedSteps.includes(stepName),</span>
-    remainingSteps: INITIALIZATION_STEPS.length - state.progress.completedSteps.length,
+    progressPercentage: Math.round(
+      (state.progress.completedSteps.length / state.progress.totalSteps) * 100
+    ),
+    isStepCompleted: <span class="fstat-no" title="function not covered" >(s</span>tepName: string) =&gt;
+<span class="cstat-no" title="statement not covered" >      state.progress.completedSteps.includes(stepName),</span>
+    remainingSteps:
+      INITIALIZATION_STEPS.length - state.progress.completedSteps.length,
   };
 };
 &nbsp;
@@ -911,7 +955,10 @@ export const withAppInitialization = <span class="cstat-no" title="statement not
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    if (initialization.isReady) {</span>
-<span class="cstat-no" title="statement not covered" >      return React.createElement(Component, { ...props, ref });</span>
+<span class="cstat-no" title="statement not covered" >      return React.createElement(</span>
+        Component as any,
+        { ...(props as any), ref } as any
+      );
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return null;</span>
@@ -930,17 +977,18 @@ export const createAppInitializationScreen = <span class="cstat-no" title="state
 };
 &nbsp;
 export const createInitializationErrorScreen = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-  // This would return a proper React Native component  
+  // This would return a proper React Native component
   // Implementation would be in a separate screen component file
 <span class="cstat-no" title="statement not covered" >  return null;</span>
-};</pre></td></tr></table></pre>
+};
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:41.771Z
+                at 2025-09-12T08:52:20.760Z
             </div>
         <script src="../prettify.js"></script>
         <script>

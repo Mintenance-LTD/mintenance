@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/68</span>
+                <span class='fraction'>0/69</span>
             </div>
         
             
@@ -296,7 +296,14 @@
 <a name='L231'></a><a href='#L231'>231</a>
 <a name='L232'></a><a href='#L232'>232</a>
 <a name='L233'></a><a href='#L233'>233</a>
-<a name='L234'></a><a href='#L234'>234</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -319,7 +326,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -473,6 +479,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -510,7 +520,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -526,6 +538,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -534,7 +548,6 @@ import { initReactI18next } from 'react-i18next';
 import * as RNLocalize from 'react-native-localize';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
-&nbsp;
 &nbsp;
 // Import translations
 import en from './locales/en.json';
@@ -575,14 +588,14 @@ export type Language = keyof typeof availableLanguages;
 // Detect device language
 const getDeviceLanguage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span>: Language =&gt; {</span>
   const locales = <span class="cstat-no" title="statement not covered" >RNLocalize.getLocales();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  for (const locale of locales) {</span>
     const languageCode = <span class="cstat-no" title="statement not covered" >locale.languageCode as Language;</span>
 <span class="cstat-no" title="statement not covered" >    if (availableLanguages[languageCode]) {</span>
 <span class="cstat-no" title="statement not covered" >      return languageCode;</span>
     }
   }
-  
+&nbsp;
   // Fallback to English if no supported language is found
 <span class="cstat-no" title="statement not covered" >  return 'en';</span>
 };
@@ -620,7 +633,7 @@ const languageDetector = <span class="cstat-no" title="statement not covered" >{
 <span class="cstat-no" title="statement not covered" >        callback(savedLanguage);</span>
 <span class="cstat-no" title="statement not covered" >        return;</span>
       }
-      
+&nbsp;
       // Fall back to device language
       const deviceLanguage = <span class="cstat-no" title="statement not covered" >getDeviceLanguage();</span>
 <span class="cstat-no" title="statement not covered" >      callback(deviceLanguage);</span>
@@ -642,13 +655,13 @@ const languageDetector = <span class="cstat-no" title="statement not covered" >{
   .init({
     // Debug mode in development
     debug: __DEV__,
-    
+&nbsp;
     // Default language
     fallbackLng: 'en',
-    
+&nbsp;
     // Supported languages
     supportedLngs: Object.keys(availableLanguages) as Language[],
-    
+&nbsp;
     // Language resources
     resources: {
       en: { translation: en },
@@ -666,17 +679,17 @@ const languageDetector = <span class="cstat-no" title="statement not covered" >{
       ar: { translation: ar },
       hi: { translation: hi },
     },
-    
+&nbsp;
     // Interpolation settings
     interpolation: {
       escapeValue: false, // React already escapes values
     },
-    
+&nbsp;
     // React settings
     react: {
       useSuspense: false, // Important for React Native
     },
-    
+&nbsp;
     // Cache settings
     cache: {
       enabled: true,
@@ -689,7 +702,7 @@ const languageDetector = <span class="cstat-no" title="statement not covered" >{
 export const changeLanguage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >as</span>ync (language: Language) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  await i18n.changeLanguage(language);</span>
 <span class="cstat-no" title="statement not covered" >  await saveLanguagePreference(language);</span>
-  
+&nbsp;
   // Force app to re-render with new language
   // This can trigger a haptic feedback
   const HapticService = <span class="cstat-no" title="statement not covered" >require('../utils/haptics').default;</span>
@@ -705,9 +718,13 @@ export const isRTL = <span class="cstat-no" title="statement not covered" ><span
 <span class="cstat-no" title="statement not covered" >  return availableLanguages[lang]?.isRTL || false;</span>
 };
 &nbsp;
-export const formatCurrency = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(a</span>mount: number, currency = <span class="branch-0 cbranch-no" title="branch not covered" >'USD',</span> language?: Language): string =&gt; {</span>
+export const formatCurrency = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span></span>
+  amount: number,
+  currency = <span class="branch-0 cbranch-no" title="branch not covered" >'USD',</span>
+  language?: Language
+): string =&gt; {
   const lang = <span class="cstat-no" title="statement not covered" >language || getCurrentLanguage();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
 <span class="cstat-no" title="statement not covered" >    return new Intl.NumberFormat(lang === 'en' ? 'en-US' : lang, {</span>
       style: 'currency',
@@ -723,7 +740,7 @@ export const formatCurrency = <span class="cstat-no" title="statement not covere
 &nbsp;
 export const formatDate = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(d</span>ate: Date, language?: Language): string =&gt; {</span>
   const lang = <span class="cstat-no" title="statement not covered" >language || getCurrentLanguage();</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
 <span class="cstat-no" title="statement not covered" >    return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : lang, {</span>
       year: 'numeric',
@@ -740,10 +757,12 @@ export const formatRelativeTime = <span class="cstat-no" title="statement not co
   const lang = <span class="cstat-no" title="statement not covered" >language || getCurrentLanguage();</span>
   const now = <span class="cstat-no" title="statement not covered" >new Date();</span>
   const diffInSeconds = <span class="cstat-no" title="statement not covered" >Math.floor((now.getTime() - date.getTime()) / 1000);</span>
-  
+&nbsp;
 <span class="cstat-no" title="statement not covered" >  try {</span>
-    const rtf = <span class="cstat-no" title="statement not covered" >new Intl.RelativeTimeFormat(lang === 'en' ? 'en-US' : lang, { numeric: 'auto' });</span>
-    
+    const rtf = <span class="cstat-no" title="statement not covered" >new Intl.RelativeTimeFormat(lang === 'en' ? 'en-US' : lang, {</span>
+      numeric: 'auto',
+    });
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    if (diffInSeconds &lt; 60) {</span>
 <span class="cstat-no" title="statement not covered" >      return rtf.format(-diffInSeconds, 'second');</span>
     } else <span class="cstat-no" title="statement not covered" >if (diffInSeconds &lt; 3600) {</span>
@@ -757,19 +776,21 @@ export const formatRelativeTime = <span class="cstat-no" title="statement not co
     // Fallback to simple formatting
 <span class="cstat-no" title="statement not covered" >    if (diffInSeconds &lt; 60) <span class="cstat-no" title="statement not covered" >return 'just now';</span></span>
 <span class="cstat-no" title="statement not covered" >    if (diffInSeconds &lt; 3600) <span class="cstat-no" title="statement not covered" >return `${Math.floor(diffInSeconds / 60)}m ago`;</span></span>
-<span class="cstat-no" title="statement not covered" >    if (diffInSeconds &lt; 86400) <span class="cstat-no" title="statement not covered" >return `${Math.floor(diffInSeconds / 3600)}h ago`;</span></span>
+<span class="cstat-no" title="statement not covered" >    if (diffInSeconds &lt; 86400)</span>
+<span class="cstat-no" title="statement not covered" >      return `${Math.floor(diffInSeconds / 3600)}h ago`;</span>
 <span class="cstat-no" title="statement not covered" >    return `${Math.floor(diffInSeconds / 86400)}d ago`;</span>
   }
 };
 &nbsp;
-export default i18n;</pre></td></tr></table></pre>
+export default i18n;
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:41.771Z
+                at 2025-09-12T08:52:20.760Z
             </div>
         <script src="../prettify.js"></script>
         <script>

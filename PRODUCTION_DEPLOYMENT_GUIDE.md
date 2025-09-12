@@ -1,132 +1,109 @@
-# Mintenance App - Production Deployment Guide
+# 🚀 Production Deployment Guide
 
-## 🚨 CRITICAL: Before Production Deployment
+## Pre-Deployment Checklist
 
-### 1. Environment Configuration
+### ✅ **Code Quality Verification**
+- [ ] All tests passing (`npm run test`)
+- [ ] TypeScript compilation successful (`npm run type-check`)
+- [ ] Linting passed (`npm run lint`)
+- [ ] Test coverage > 80% (`npm run test:coverage`)
+- [ ] No security vulnerabilities (`npm audit`)
 
-**Required Steps:**
-1. Copy `.env.production` to `.env`
-2. Replace ALL placeholder values with actual production credentials:
-   - `EXPO_PUBLIC_SUPABASE_URL`: Your production Supabase project URL
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Your production Supabase anonymous key
-   - `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Your live Stripe publishable key
-   - `STRIPE_SECRET_KEY`: Your live Stripe secret key (store securely)
-   - `EXPO_PUBLIC_SENTRY_DSN`: Your production Sentry DSN
+### ✅ **Environment Configuration**
+- [ ] Production environment variables configured
+- [ ] Database migrations applied
+- [ ] API endpoints updated to production
+- [ ] Stripe keys updated to live keys
+- [ ] Sentry DSN configured for production
 
-### 2. EAS Configuration (eas.json)
+### ✅ **Build Verification**
+- [ ] Production build successful (`npx expo build`)
+- [ ] Bundle size within limits (< 3MB)
+- [ ] No development dependencies in production build
+- [ ] Source maps generated for debugging
 
-**Update these values:**
-- `appleId`: Replace `YOUR_APPLE_ID_EMAIL_HERE` with your Apple ID
-- `ascAppId`: Replace `YOUR_APP_STORE_CONNECT_APP_ID_HERE` with your App Store Connect app ID
-- `appleTeamId`: Replace `YOUR_APPLE_TEAM_ID_HERE` with your Apple Team ID
+## Deployment Steps
 
-### 3. Database Setup
-
-**Production Database:**
-1. Create a production Supabase project
-2. Run `supabase-setup.sql` in the SQL Editor
-3. **IMPORTANT**: The sample data is commented out - DO NOT uncomment for production
-4. Enable Realtime for tables: `jobs`, `bids`, `escrow_transactions`
-
-### 4. App Store Credentials
-
-**Android:**
-- Place your Google Play service account JSON file at: `./credentials/play-store-service-account.json`
-
-**iOS:**
-- Configure Apple Developer account credentials in EAS
-
-## 🔧 Development vs Production
-
-### Development Mode Features
-- Detailed error messages displayed to users
-- Console logging enabled
-- Sentry disabled
-- Mock payment mode available
-
-### Production Mode Features
-- User-friendly error messages only
-- Comprehensive error reporting via Sentry
-- Real payment processing
-- Performance optimizations enabled
-
-## 📋 Pre-Launch Checklist
-
-- [ ] All environment variables configured with production values
-- [ ] Database schema deployed to production Supabase project
-- [ ] Sentry project created and DSN configured
-- [ ] Stripe account verified and live keys configured
-- [ ] App Store credentials configured in EAS
-- [ ] Test payment flow with live Stripe keys in staging
-- [ ] App icons and splash screens finalized
-- [ ] Privacy policy and terms of service implemented
-- [ ] App Store listings prepared
-
-## 🚀 Deployment Commands
-
-### Build for Production
+### **1. iOS Deployment**
 ```bash
-# Android
-npm run build:android:store
+# Build for iOS
+npx eas build --platform ios --profile production
 
-# iOS  
-npm run build:ios:prod
+# Submit to App Store
+npx eas submit --platform ios
 ```
 
-### Submit to Stores
+### **2. Android Deployment**
 ```bash
-# Android
-npm run submit:android
+# Build for Android
+npx eas build --platform android --profile production
 
-# iOS
-npm run submit:ios
+# Submit to Google Play
+npx eas submit --platform android
 ```
 
-## 🧪 Testing Strategy
+### **3. Web Deployment**
+```bash
+# Build for web
+npx expo build:web
 
-### Before Production:
-1. Run tests: `npm run test:coverage`
-2. Type checking: `npm run type-check`
-3. Build validation: Test builds on both platforms
-4. Payment testing: Verify escrow flow with live Stripe keys in staging
-5. Error reporting: Trigger test errors to verify Sentry integration
+# Deploy to hosting provider
+npm run deploy:web
+```
 
-## 🔒 Security Notes
+## Post-Deployment
 
-- Never commit production credentials to version control
-- Rotate API keys regularly
-- Monitor Sentry for unusual error patterns
-- Review Supabase RLS policies before launch
-- Test authentication flows thoroughly
+### **Monitoring Setup**
+- [ ] Error tracking active (Sentry)
+- [ ] Performance monitoring enabled
+- [ ] User analytics configured
+- [ ] Push notification service active
 
-## 📈 Post-Launch Monitoring
+### **Health Checks**
+- [ ] App launches successfully
+- [ ] User authentication working
+- [ ] Payment processing functional
+- [ ] Push notifications delivering
+- [ ] Offline functionality working
 
-### Key Metrics to Monitor:
-- App crashes (via Sentry)
-- Payment success rates
-- API response times
-- User registration/authentication issues
-- Database performance (Supabase dashboard)
+## Rollback Procedure
 
-### Recommended Tools:
-- Sentry: Error tracking and performance monitoring
-- Supabase: Database and API monitoring
-- Stripe: Payment monitoring and dispute management
-- App Store Connect: App performance metrics
+If issues are detected:
 
-## 🆘 Emergency Procedures
+1. **Immediate Actions**
+   - Stop new deployments
+   - Monitor error rates
+   - Check user reports
 
-### If Critical Issues Occur:
-1. **App Crashes**: Check Sentry dashboard for error details
-2. **Payment Issues**: Review Stripe dashboard and webhook logs
-3. **Database Issues**: Check Supabase logs and connection limits
-4. **Build Issues**: Verify EAS build logs
+2. **Rollback Steps**
+   ```bash
+   # Revert to previous version
+   npx eas update --branch production --message "Rollback to stable version"
+   ```
 
-### Rollback Plan:
-- Keep previous working build available
-- Document all configuration changes
-- Maintain staging environment that mirrors production
+3. **Investigation**
+   - Check error logs in Sentry
+   - Review deployment diff
+   - Run post-mortem analysis
 
----
+## Environment-Specific Configurations
 
-**Remember**: Test everything in staging with production-like data before deploying to live users.
+### **Production**
+- Database: Production Supabase instance
+- Payments: Live Stripe keys
+- Push: Production FCM/APN certificates
+- Analytics: Production tracking IDs
+
+### **Staging**
+- Database: Staging Supabase instance
+- Payments: Test Stripe keys
+- Push: Development certificates
+- Analytics: Test tracking IDs
+
+## Security Considerations
+
+- [ ] API keys are environment-specific
+- [ ] No hardcoded secrets in code
+- [ ] HTTPS enforced for all endpoints
+- [ ] User data encryption enabled
+- [ ] Regular security audits scheduled

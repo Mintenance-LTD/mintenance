@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -116,6 +117,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="email-input"
                 style={styles.input}
                 placeholder={String(auth.email())}
                 value={email}
@@ -147,6 +149,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 accessibilityHidden={true}
               />
               <TextInput
+                testID="password-input"
                 style={styles.input}
                 placeholder={String(auth.password())}
                 value={password}
@@ -165,6 +168,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 autoComplete='password'
               />
             </View>
+
+            {/* Loading Spinner */}
+            {loading && (
+              <ActivityIndicator 
+                testID="loading-spinner"
+                size="large" 
+                color={theme.colors.primary} 
+                style={{ marginVertical: 20 }}
+              />
+            )}
 
             {/* Green Log In Button */}
             <Button

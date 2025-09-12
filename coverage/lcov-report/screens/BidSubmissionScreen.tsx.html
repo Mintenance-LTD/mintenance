@@ -355,7 +355,47 @@
 <a name='L290'></a><a href='#L290'>290</a>
 <a name='L291'></a><a href='#L291'>291</a>
 <a name='L292'></a><a href='#L292'>292</a>
-<a name='L293'></a><a href='#L293'>293</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -519,7 +559,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -648,7 +700,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
@@ -656,10 +716,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { Job } from '../types';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 &nbsp;
-&nbsp;
-type BidSubmissionScreenRouteProp = RouteProp&lt;RootStackParamList, 'BidSubmission'&gt;;
-type BidSubmissionScreenNavigationProp = StackNavigationProp&lt;RootStackParamList, 'BidSubmission'&gt;;
+type BidSubmissionScreenRouteProp = RouteProp&lt;
+  RootStackParamList,
+  'BidSubmission'
+&gt;;
+type BidSubmissionScreenNavigationProp = StackNavigationProp&lt;
+  RootStackParamList,
+  'BidSubmission'
+&gt;;
 &nbsp;
 interface Props {
   route: BidSubmissionScreenRouteProp;
@@ -718,7 +784,7 @@ const BidSubmissionScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title=
       });
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      Alert.alert('Success', 'Your bid has been submitted!', [</span>
-        { text: 'OK', onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack() </span>}
+        { text: 'OK', onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack() </span>},
       ]);
     } catch (error: any) {
 <span class="cstat-no" title="statement not covered" >      Alert.alert('Error', error.message || 'Failed to submit bid');</span>
@@ -746,7 +812,7 @@ const BidSubmissionScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title=
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;View style={styles.container}&gt;
       &lt;View style={styles.header}&gt;
-        &lt;TouchableOpacity 
+        &lt;TouchableOpacity
           style={styles.backButton}
           onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack()}</span>
         &gt;
@@ -768,10 +834,10 @@ const BidSubmissionScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title=
           &lt;Text style={styles.label}&gt;Your Bid Amount *&lt;/Text&gt;
           &lt;TextInput
             style={styles.input}
-            placeholder="Enter your bid amount"
+            placeholder='Enter your bid amount'
             value={amount}
             onChangeText={setAmount}
-            keyboardType="numeric"
+            keyboardType='numeric'
           /&gt;
 &nbsp;
           &lt;Text style={styles.label}&gt;Proposal Description *&lt;/Text&gt;
@@ -782,23 +848,34 @@ const BidSubmissionScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title=
             onChangeText={setDescription}
             multiline
             numberOfLines={6}
-            textAlignVertical="top"
+            textAlignVertical='top'
             maxLength={1000}
           /&gt;
 &nbsp;
           &lt;View style={styles.tipBox}&gt;
             &lt;Text style={styles.tipTitle}&gt;💡 Bidding Tips:&lt;/Text&gt;
-            &lt;Text style={styles.tipText}&gt;• Be competitive but fair with your pricing&lt;/Text&gt;
-            &lt;Text style={styles.tipText}&gt;• Include your timeline and availability&lt;/Text&gt;
-            &lt;Text style={styles.tipText}&gt;• Mention relevant experience or certifications&lt;/Text&gt;
-            &lt;Text style={styles.tipText}&gt;• Be professional and detailed in your proposal&lt;/Text&gt;
+            &lt;Text style={styles.tipText}&gt;
+              • Be competitive but fair with your pricing
+            &lt;/Text&gt;
+            &lt;Text style={styles.tipText}&gt;
+              • Include your timeline and availability
+            &lt;/Text&gt;
+            &lt;Text style={styles.tipText}&gt;
+              • Mention relevant experience or certifications
+            &lt;/Text&gt;
+            &lt;Text style={styles.tipText}&gt;
+              • Be professional and detailed in your proposal
+            &lt;/Text&gt;
           &lt;/View&gt;
         &lt;/View&gt;
       &lt;/ScrollView&gt;
 &nbsp;
       &lt;View style={styles.footer}&gt;
         &lt;TouchableOpacity
-          style={[styles.submitButton, submitting &amp;&amp; styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            submitting &amp;&amp; styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
         &gt;
@@ -814,7 +891,7 @@ const BidSubmissionScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title=
 const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -828,19 +905,19 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.info,
   },
   backButton: {
     padding: 5,
   },
   backButtonText: {
     fontSize: 18,
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.textInverse,
   },
   placeholder: {
     width: 50,
@@ -849,50 +926,50 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     marginBottom: 15,
   },
   jobTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   jobDescription: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 15,
     lineHeight: 22,
   },
   jobLocation: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
   },
   jobBudget: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.colors.info,
   },
   form: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     padding: 20,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     marginTop: 15,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.base,
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     fontSize: 16,
   },
   textArea: {
@@ -918,14 +995,14 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
   footer: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.colors.borderLight,
   },
   submitButton: {
     height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: theme.colors.info,
+    borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -933,20 +1010,21 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     backgroundColor: '#ccc',
   },
   submitButtonText: {
-    color: '#fff',
+    color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
 &nbsp;
-export default BidSubmissionScreen;</pre></td></tr></table></pre>
+export default BidSubmissionScreen;
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-07T16:28:41.771Z
+                at 2025-09-12T08:52:20.760Z
             </div>
         <script src="../prettify.js"></script>
         <script>

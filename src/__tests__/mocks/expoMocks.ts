@@ -308,3 +308,11 @@ export const mockExpoLocalAuth = ExpoMockFactory.createLocalAuthMock();
 export const mockExpoConstants = ExpoMockFactory.createConstantsMock();
 export const mockExpoFont = ExpoMockFactory.createFontMock();
 export const mockExpoVectorIcons = ExpoMockFactory.createVectorIconsMock();
+
+// Dummy test to prevent Jest from complaining about no tests
+describe('ExpoMockFactory', () => {
+  it('should create expo mocks', () => {
+    const mocks = ExpoMockFactory.createAllMocks();
+    expect(mocks).toBeDefined();
+  });
+});

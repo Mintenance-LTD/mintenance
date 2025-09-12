@@ -44,7 +44,7 @@ describe('StripePaymentForm', () => {
     );
 
     expect(getByText('Payment Information')).toBeTruthy();
-    expect(getByText('🔒 Your payment information is secure')).toBeTruthy();
+    expect(getByText('Your payment information is secure')).toBeTruthy();
     expect(getByText('Pay $150.00 Securely')).toBeTruthy();
     expect(getByTestId('card-field')).toBeTruthy();
   });
@@ -53,7 +53,10 @@ describe('StripePaymentForm', () => {
     const { getByText } = render(<StripePaymentForm {...mockProps} />);
 
     const payButton = getByText('Pay $150.00 Securely');
-    expect(payButton.parent?.props.disabled).toBe(true);
+    // Check if button is disabled (either through disabled prop or accessibilityState)
+    const isDisabled = payButton.parent?.props.disabled === true || 
+                      payButton.parent?.props.accessibilityState?.disabled === true;
+    expect(isDisabled).toBe(true);
   });
 
   it('enables pay button when card is complete', async () => {
@@ -66,7 +69,10 @@ describe('StripePaymentForm', () => {
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
-      expect(payButton.parent?.props.disabled).toBe(false);
+      // Check if button is enabled (not disabled)
+      const isDisabled = payButton.parent?.props.disabled === true || 
+                        payButton.parent?.props.accessibilityState?.disabled === true;
+      expect(isDisabled).toBe(false);
     });
   });
 
@@ -189,7 +195,7 @@ describe('StripePaymentForm', () => {
   it('shows security information', () => {
     const { getByText } = render(<StripePaymentForm {...mockProps} />);
 
-    expect(getByText('🔒 Your payment information is secure')).toBeTruthy();
+    expect(getByText('Your payment information is secure')).toBeTruthy();
     expect(getByText('Powered by Stripe - PCI DSS compliant')).toBeTruthy();
   });
 

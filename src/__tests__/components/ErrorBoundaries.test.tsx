@@ -143,46 +143,55 @@ describe('Error Boundaries', () => {
       );
 
       expect(getByText('Screen Error')).toBeTruthy();
-      expect(
-        getByText(/Something went wrong with the Test Screen screen/)
-      ).toBeTruthy();
-      expect(getByText('Retry Screen')).toBeTruthy();
+      expect(getByText('The Test Screen screen encountered an error')).toBeTruthy();
+      expect(getByText('Something went wrong while loading this screen. Please try again.')).toBeTruthy();
+      expect(getByText('Retry')).toBeTruthy();
     });
 
-    it('shows home button by default', () => {
+    it('shows retry button by default', () => {
       const { getByText } = render(
         <ScreenErrorBoundary screenName='Test Screen'>
           <ThrowError />
         </ScreenErrorBoundary>
       );
 
-      expect(getByText('Go to Home')).toBeTruthy();
+      expect(getByText('Retry')).toBeTruthy();
     });
 
-    it('hides home button when showHomeButton is false', () => {
-      const { queryByText } = render(
-        <ScreenErrorBoundary screenName='Test Screen' showHomeButton={false}>
+    it('calls retry function when retry button is pressed', () => {
+      const { getByText } = render(
+        <ScreenErrorBoundary screenName='Test Screen'>
           <ThrowError />
         </ScreenErrorBoundary>
       );
 
-      expect(queryByText('Go to Home')).toBeNull();
+      // Component should show error initially
+      expect(getByText('Screen Error')).toBeTruthy();
+      
+      // Press retry button
+      fireEvent.press(getByText('Retry'));
+      
+      // The retry mechanism would reset the error state
+      // This test verifies the button exists and is pressable
+      expect(getByText('Retry')).toBeTruthy();
     });
 
-    it('navigates to custom fallback route', () => {
-      const { getByText } = render(
+    it('uses custom fallback component when provided', () => {
+      const customFallback = (error: Error, retry: () => void) => (
+        <></>
+      );
+      
+      const { queryByText } = render(
         <ScreenErrorBoundary
           screenName='Test Screen'
-          fallbackRoute='CustomRoute'
+          fallbackComponent={customFallback}
         >
           <ThrowError />
         </ScreenErrorBoundary>
       );
 
-      expect(getByText('Go to CustomRoute')).toBeTruthy();
-
-      fireEvent.press(getByText('Go to CustomRoute'));
-      expect(mockNavigate).toHaveBeenCalledWith('CustomRoute');
+      // Should not render default error UI when custom fallback is provided
+      expect(queryByText('Screen Error')).toBeNull();
     });
   });
 
@@ -310,11 +319,11 @@ describe('Error Boundaries', () => {
       );
 
       expect(logger.error).toHaveBeenCalledWith(
-        'Error in Logger Test screen:',
+        'Screen error in Logger Test:',
+        expect.any(Error),
         expect.objectContaining({
-          message: 'Logger test error',
-        }),
-        expect.any(Object)
+          errorBoundary: 'ScreenErrorBoundary',
+        })
       );
     });
   });

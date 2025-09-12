@@ -1,178 +1,162 @@
-import { supabase } from '../config/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { logger } from '../utils/logger';
+import { z } from 'zod';
 
-export type RealtimeCallback = (payload: any) => void;
+// ============================================================================
+// REAL-TIME EVENT SCHEMAS
+// ============================================================================
 
-export class RealtimeService {
-  private static channels: Map<string, RealtimeChannel> = new Map();
+const RealTimeEventSchema = z.object({
+  type: z.enum([
+    'job_created',
+    'job_updated', 
+    'bid_received',
+    'message_received',
+    'notification_sent',
+    'user_online',
+    'user_offline',
+  ]),
+  payload: z.any(),
+  timestamp: z.number(),
+  userId: z.string().optional(),
+});
 
-  // Subscribe to job updates
-  static subscribeToJobUpdates(
-    jobId: string,
-    callback: RealtimeCallback
-  ): () => void {
-    const channelName = `job_updates_${jobId}`;
+export type RealTimeEvent = z.infer<typeof RealTimeEventSchema>;
 
-    // Remove existing subscription if any
-    this.unsubscribe(channelName);
+export type EventListener<T = any> = (data: T) => void;
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          filter: `id=eq.${jobId}`,
-        },
-        callback
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bids',
-          filter: `job_id=eq.${jobId}`,
-        },
-        callback
-      )
-      .subscribe();
+export interface RealTimeEventHandlers {
+  onJobCreated?: EventListener<{ job: any }>;
+  onJobUpdated?: EventListener<{ job: any; changes: any }>;
+  onBidReceived?: EventListener<{ bid: any; job: any }>;
+  onMessageReceived?: EventListener<{ message: any; conversation: any }>;
+  onNotificationSent?: EventListener<{ notification: any }>;
+  onUserOnline?: EventListener<{ userId: string; userInfo: any }>;
+  onUserOffline?: EventListener<{ userId: string }>;
+  onConnectionChange?: EventListener<{ connected: boolean; latency?: number }>;
+  onError?: EventListener<{ error: string; code?: string }>;
+}
 
-    this.channels.set(channelName, channel);
+// ============================================================================
+// REAL-TIME SERVICE CLASS
+// ============================================================================
 
-    // Return unsubscribe function
-    return () => this.unsubscribe(channelName);
+export class RealTimeService {
+  private eventHandlers: RealTimeEventHandlers = {};
+  private isConnected = false;
+  private currentUserId: string | null = null;
+  private mockSocket: any = null;
+
+  async initialize(userId: string, token: string): Promise<void> {
+    this.currentUserId = userId;
+    console.log('🔗 Initializing real-time service for user:', userId);
+    
+    // Mock WebSocket connection for development
+    this.mockSocket = {
+      connected: true,
+      emit: (event: string, data: any) => {
+        console.log('📤 Emitting event:', event, data);
+      },
+      on: (event: string, handler: Function) => {
+        console.log('👂 Listening for event:', event);
+      },
+      disconnect: () => {
+        console.log('🔌 Disconnecting mock socket');
+        this.isConnected = false;
+      }
+    };
+
+    this.isConnected = true;
+    this.eventHandlers.onConnectionChange?.({ connected: true });
   }
 
-  // Subscribe to contractor's bid updates
-  static subscribeToContractorBids(
-    contractorId: string,
-    callback: RealtimeCallback
-  ): () => void {
-    const channelName = `contractor_bids_${contractorId}`;
-
-    this.unsubscribe(channelName);
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bids',
-          filter: `contractor_id=eq.${contractorId}`,
-        },
-        callback
-      )
-      .subscribe();
-
-    this.channels.set(channelName, channel);
-
-    return () => this.unsubscribe(channelName);
+  setEventHandlers(handlers: RealTimeEventHandlers): void {
+    this.eventHandlers = { ...this.eventHandlers, ...handlers };
   }
 
-  // Subscribe to homeowner's job updates
-  static subscribeToHomeownerJobs(
-    homeownerId: string,
-    callback: RealtimeCallback
-  ): () => void {
-    const channelName = `homeowner_jobs_${homeownerId}`;
-
-    this.unsubscribe(channelName);
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jobs',
-          filter: `homeowner_id=eq.${homeownerId}`,
-        },
-        callback
-      )
-      .subscribe();
-
-    this.channels.set(channelName, channel);
-
-    return () => this.unsubscribe(channelName);
+  // Simulate real-time events for development
+  simulateJobCreated(job: any): void {
+    console.log('📡 Simulating job created event');
+    this.eventHandlers.onJobCreated?.({ job });
   }
 
-  // Subscribe to new available jobs (for contractors)
-  static subscribeToAvailableJobs(callback: RealtimeCallback): () => void {
-    const channelName = 'available_jobs';
-
-    this.unsubscribe(channelName);
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'jobs',
-          filter: 'status=eq.posted',
-        },
-        callback
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'jobs',
-          filter: 'status=eq.posted',
-        },
-        callback
-      )
-      .subscribe();
-
-    this.channels.set(channelName, channel);
-
-    return () => this.unsubscribe(channelName);
+  simulateJobUpdated(job: any, changes: any): void {
+    console.log('📡 Simulating job updated event');
+    this.eventHandlers.onJobUpdated?.({ job, changes });
   }
 
-  // Unsubscribe from a specific channel
-  static unsubscribe(channelName: string): void {
-    const channel = this.channels.get(channelName);
-    if (channel) {
-      supabase.removeChannel(channel);
-      this.channels.delete(channelName);
-    }
+  simulateBidReceived(bid: any, job: any): void {
+    console.log('📡 Simulating bid received event');
+    this.eventHandlers.onBidReceived?.({ bid, job });
   }
 
-  // Unsubscribe from all channels
-  static unsubscribeAll(): void {
-    for (const [channelName, channel] of this.channels) {
-      supabase.removeChannel(channel);
-    }
-    this.channels.clear();
+  simulateMessageReceived(message: any, conversation: any): void {
+    console.log('📡 Simulating message received event');
+    this.eventHandlers.onMessageReceived?.({ message, conversation });
   }
 
-  // Get connection status
-  static getConnectionStatus(): string {
-    // This is a simplified status check
-    return supabase.realtime.isConnected() ? 'connected' : 'disconnected';
+  simulateNotification(notification: any): void {
+    console.log('📡 Simulating notification event');
+    this.eventHandlers.onNotificationSent?.({ notification });
   }
 
-  // Manual reconnect
-  static reconnect(): void {
-    // Resubscribe to all existing channels
-    const existingChannels = Array.from(this.channels.keys());
+  // Public methods for WebSocket operations
+  emitTypingStart(conversationId: string): void {
+    this.mockSocket?.emit('typing:start', { conversationId });
+  }
 
-    // Clear current channels
-    this.unsubscribeAll();
+  emitTypingStop(conversationId: string): void {
+    this.mockSocket?.emit('typing:stop', { conversationId });
+  }
 
-    // Note: In a real implementation, you'd need to store callback references
-    // to properly resubscribe. This is a simplified version.
-    logger.debug('Realtime reconnection initiated for channels:', {
-      data: existingChannels,
-    });
+  emitUserPresence(status: 'online' | 'away' | 'busy'): void {
+    this.mockSocket?.emit('user:presence', { status });
+  }
+
+  joinJobRoom(jobId: string): void {
+    this.mockSocket?.emit('join:job', { jobId });
+  }
+
+  leaveJobRoom(jobId: string): void {
+    this.mockSocket?.emit('leave:job', { jobId });
+  }
+
+  joinConversationRoom(conversationId: string): void {
+    this.mockSocket?.emit('join:conversation', { conversationId });
+  }
+
+  leaveConversationRoom(conversationId: string): void {
+    this.mockSocket?.emit('leave:conversation', { conversationId });
+  }
+
+  async disconnect(): Promise<void> {
+    this.mockSocket?.disconnect();
+    this.isConnected = false;
+    this.currentUserId = null;
+    this.eventHandlers.onConnectionChange?.({ connected: false });
+  }
+
+  getConnectionStatus(): { connected: boolean; latency?: number } {
+    return { 
+      connected: this.isConnected,
+      latency: this.isConnected ? 50 : undefined // Mock latency
+    };
+  }
+
+  isSocketConnected(): boolean {
+    return this.isConnected;
   }
 }
+
+// ============================================================================
+// SINGLETON INSTANCE
+// ============================================================================
+
+let realTimeServiceInstance: RealTimeService | null = null;
+
+export const getRealTimeService = (): RealTimeService => {
+  if (!realTimeServiceInstance) {
+    realTimeServiceInstance = new RealTimeService();
+  }
+  return realTimeServiceInstance;
+};
+
+export default RealTimeService;

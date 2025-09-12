@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { RegisterScreen } from '../../screens/RegisterScreen';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Mock dependencies
-jest.mock('../../hooks/useAuth');
+jest.mock('../../contexts/AuthContext');
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseAuth = jest.mocked(useAuth);
 const mockNavigate = jest.fn();
 
 describe('RegisterScreen', () => {

@@ -22,10 +22,18 @@ export interface ButtonProps {
   style?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle | TextStyle[];
   accessibilityLabel?: string;
+  accessibilityState?: {
+    disabled?: boolean;
+    selected?: boolean;
+    checked?: boolean | 'mixed';
+    busy?: boolean;
+    expanded?: boolean;
+  };
   fullWidth?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   iconOnly?: boolean;
+  testID?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -37,11 +45,13 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   accessibilityLabel,
+  accessibilityState,
   fullWidth = false,
   size = 'md',
   icon,
   iconPosition = 'left',
   iconOnly = false,
+  testID,
 }) => {
   const v = theme.components.button[variant] as any;
   const backgroundColor = v?.backgroundColor ?? theme.colors.primary;
@@ -55,7 +65,8 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
       accessibilityRole='button'
       accessibilityLabel={accessibilityLabel || title}
-      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      accessibilityState={accessibilityState || { disabled: disabled || loading, busy: loading }}
+      testID={testID}
       style={[
         styles.base,
         size === 'sm' ? styles.sm : styles.md,

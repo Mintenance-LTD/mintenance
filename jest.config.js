@@ -10,7 +10,7 @@ module.exports = {
     '.*/contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@testing-library/react-native|expo|expo-.*|@expo|@expo/.*|expo-modules-core|@supabase|@stripe|@tanstack|@sentry|@react-native-community|@react-navigation|react-native-deck-swiper|react-native-maps)/)',
+    'node_modules/(?!(react-native|@react-native|@testing-library/react-native|expo|expo-.*|@expo|@expo/.*|expo-modules-core|@supabase|@stripe|@tanstack|@sentry|@react-native-community|@react-navigation|react-native-deck-swiper|react-native-maps|react-native-gesture-handler|react-native-vector-icons|react-native-reanimated)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

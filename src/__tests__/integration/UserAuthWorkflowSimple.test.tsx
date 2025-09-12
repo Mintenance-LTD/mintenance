@@ -1,10 +1,12 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { BiometricService } from '../../services/BiometricService';
+import { createTestQueryClient } from '../utils/test-utils';
 
 // Mock all necessary services
 jest.mock('../../services/AuthService', () => ({
@@ -235,7 +237,14 @@ const MockNavigator = ({
 
   // Navigate to home if user is authenticated
   if (user) {
-    return <MockLoginScreen />;
+    return (
+      <View testID="home-screen">
+        <Text testID="welcome-message">Welcome, {user.first_name}!</Text>
+        <TouchableOpacity testID="sign-out-button">
+          <Text>Sign Out</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   if (currentScreen === 'register') {
@@ -246,9 +255,11 @@ const MockNavigator = ({
 };
 
 const TestWrapper = ({ initialScreen }: { initialScreen?: string }) => (
-  <AuthProvider>
-    <MockNavigator initialScreen={initialScreen} />
-  </AuthProvider>
+  <QueryClientProvider client={createTestQueryClient()}>
+    <AuthProvider>
+      <MockNavigator initialScreen={initialScreen} />
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 describe('User Authentication Workflow Integration', () => {
