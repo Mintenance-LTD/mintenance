@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # 🏠 Mintenance - Enterprise-Grade Maintenance Booking Platform
+=======
+# 🏠 Mintenance -  Maintenance Booking App
+>>>>>>> 2c712467a7268b7f010afd467803e6c86bbd29ba
 
 A production-ready React Native application that connects homeowners with contractors for maintenance jobs. **Completely rebuilt with enterprise-grade architecture, advanced ML capabilities, and systematic security.**
 
@@ -20,6 +24,7 @@ A production-ready React Native application that connects homeowners with contra
 
 ---
 
+<<<<<<< HEAD
 ## 🚀 **ENTERPRISE FEATURES**
 
 ### **🤖 Advanced ML & AI Capabilities**
@@ -419,3 +424,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 **Built with:** React Native • Expo • TypeScript • Supabase • Stripe • Advanced ML • Real-time Analytics
 
 **Enterprise Grade** | **Production Ready** | **Systematically Validated** | **Zero Critical Issues**
+=======
+**Built with:** React Native, Expo, Supabase, TypeScript, Stripe
+>>>>>>> 2c712467a7268b7f010afd467803e6c86bbd29ba
