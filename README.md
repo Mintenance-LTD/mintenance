@@ -1,4 +1,4 @@
-# 🏠 Mintenance - Production-Ready Maintenance Booking App
+# 🏠 Mintenance -  Maintenance Booking App
 
 A clean, focused React Native app that connects homeowners with contractors for maintenance jobs. Built with modern best practices and **ready for production deployment**.
 
