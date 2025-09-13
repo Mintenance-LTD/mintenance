@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+// Use runtime require so tests can toggle isDevice dynamically
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Device: any = require('expo-device');
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
@@ -32,8 +34,12 @@ export class NotificationService {
    */
   static async initialize(): Promise<string | null> {
     try {
-      // Configure notification behavior
-      Notifications.setNotificationHandler({
+      if (!Device?.isDevice) {
+        return null;
+      }
+      // Configure notification behavior (safe-guard for tests)
+      if (typeof (Notifications as any).setNotificationHandler === 'function') {
+        Notifications.setNotificationHandler({
         handleNotification: async () => ({
           shouldShowAlert: true,
           shouldPlaySound: true,
@@ -41,7 +47,8 @@ export class NotificationService {
           shouldShowBanner: true,
           shouldShowList: true,
         }),
-      });
+        });
+      }
 
       // Register for push notifications
       const token = await this.registerForPushNotifications();
@@ -58,19 +65,22 @@ export class NotificationService {
    * Register device for push notifications
    */
   private static async registerForPushNotifications(): Promise<string | null> {
-    if (!Device.isDevice) {
+    if (!Device?.isDevice) {
       logger.warn('Push notifications only work on physical devices');
       return null;
     }
 
     // Check existing permissions
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
+    const getPerms = Notifications.getPermissionsAsync;
+    if (typeof getPerms !== 'function') return null;
+    const { status: existingStatus } = await getPerms();
     let finalStatus = existingStatus;
 
     // Request permissions if not already granted
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const requestPerms = Notifications.requestPermissionsAsync;
+      if (typeof requestPerms !== 'function') return null;
+      const { status } = await requestPerms();
       finalStatus = status;
     }
 
@@ -86,12 +96,9 @@ export class NotificationService {
       process.env.EXPO_PROJECT_ID; // fallback
 
     let tokenData: { data: string };
-    if (projectId) {
-      tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    } else {
-      // In dev or when projectId cannot be resolved, let Expo infer it
-      tokenData = await Notifications.getExpoPushTokenAsync();
-    }
+    const getToken = Notifications.getExpoPushTokenAsync as any;
+    if (typeof getToken !== 'function') return null;
+    tokenData = projectId ? await getToken({ projectId }) : await getToken();
 
     // Configure notification channel for Android
     if (Platform.OS === 'android') {

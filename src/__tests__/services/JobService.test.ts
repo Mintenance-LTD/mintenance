@@ -3,15 +3,56 @@ import { JobService } from '../../services/JobService';
 import { supabase } from '../../config/supabase';
 import { Job, JobData } from '../../types';
 
-// Mock Supabase
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-    storage: {
-      from: jest.fn(),
+// Mock Supabase with proper chaining
+jest.mock('../../config/supabase', () => {
+  const createMockChain = () => {
+    const chain = {
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      gt: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
+      like: jest.fn().mockReturnThis(),
+      ilike: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      and: jest.fn().mockReturnThis(),
+      not: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    };
+    
+    // Make all methods return the chain for method chaining
+    Object.keys(chain).forEach(key => {
+      if (key !== 'single' && key !== 'maybeSingle') {
+        chain[key].mockReturnValue(chain);
+      }
+    });
+    
+    return chain;
+  };
+
+  return {
+    supabase: {
+      from: jest.fn(() => createMockChain()),
+      storage: {
+        from: jest.fn(() => ({
+          upload: jest.fn().mockResolvedValue({ data: null, error: null }),
+          download: jest.fn().mockResolvedValue({ data: null, error: null }),
+          remove: jest.fn().mockResolvedValue({ data: null, error: null }),
+        })),
+      },
     },
-  },
-}));
+  };
+});
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
 
@@ -43,8 +84,11 @@ describe('JobService', () => {
     mockSupabase.from.mockReturnValue({
       insert: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
+      textSearch: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({ data: mockJob, error: null }),
       eq: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),

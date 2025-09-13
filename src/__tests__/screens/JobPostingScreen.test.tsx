@@ -6,8 +6,8 @@ import { JobService } from '../../services/JobService';
 import { useAuth } from '../../contexts/AuthContext';
 import { createTestQueryClient } from '../utils/test-utils';
 import { useCreateJob } from '../../hooks/useJobs';
-import { AuthMockFactory } from '../mocks/authMockFactory';
-import { NavigationMockFactory } from '../mocks/navigationMockFactory';
+import { AuthMockFactory } from '../../test-utils/authMockFactory';
+import { NavigationMockFactory } from '../../test-utils/navigationMockFactory';
 
 // Mock dependencies
 jest.mock('../../services/JobService');

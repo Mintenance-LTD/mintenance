@@ -15,15 +15,11 @@ export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({
   const handleGlobalError = (error: Error, errorInfo: any) => {
     console.error('Global app error:', error);
 
-    // Send to crash reporting service
     try {
-      import('../config/sentry').then(({ captureException }) => {
-        captureException(error, {
-          tags: {
-            errorBoundary: 'global',
-          },
-          extra: errorInfo,
-        });
+      const { captureException } = require('../config/sentry');
+      captureException(error, {
+        tags: { errorBoundary: 'global' },
+        extra: errorInfo,
       });
     } catch (sentryError) {
       console.warn('Failed to report global error:', sentryError);

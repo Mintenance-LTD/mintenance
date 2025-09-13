@@ -9,12 +9,7 @@ import { UserService } from '../../services/UserService';
 jest.mock('../../contexts/AuthContext');
 jest.mock('../../services/JobService');
 jest.mock('../../services/UserService');
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
-  }),
-}));
+// Use global navigation mock from jest-setup.js
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockJobService = JobService as jest.Mocked<typeof JobService>;
@@ -24,13 +19,6 @@ const mockNavigate = jest.fn();
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    jest
-      .mocked(require('@react-navigation/native').useNavigation)
-      .mockReturnValue({
-        navigate: mockNavigate,
-        goBack: jest.fn(),
-      });
 
     mockUseAuth.mockReturnValue({
       user: {
@@ -146,9 +134,8 @@ describe('HomeScreen', () => {
   });
 
   it('handles error state', async () => {
-    const mockJobs: any[] = [];
-    mockJobService.getUserJobs.mockRejectedValue(
-      new Error('Failed to load jobs')
+    mockUserService.getPreviousContractors.mockRejectedValue(
+      new Error('Failed to load dashboard data')
     );
 
     const { getByText } = render(<HomeScreen />);
@@ -163,7 +150,7 @@ describe('HomeScreen', () => {
 
     fireEvent.press(getByText('Post a Job'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('PostJob');
+    expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('PostJob');
   });
 
   it('navigates to find contractors screen', () => {
@@ -171,7 +158,7 @@ describe('HomeScreen', () => {
 
     fireEvent.press(getByText('Find Contractors'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('FindContractors');
+    expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('FindContractors');
   });
 
   it('refreshes data on pull to refresh', async () => {

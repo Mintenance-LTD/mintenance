@@ -1,7 +1,10 @@
-// Arrange mocks BEFORE importing the module under test
+// Create mock for ErrorUtils
 const mockErrorUtils = { setGlobalHandler: jest.fn() };
+
+// Override the global ErrorUtils 
+global.ErrorUtils = mockErrorUtils;
+
 jest.mock('react-native', () => ({
-  ErrorUtils: mockErrorUtils,
   Platform: { OS: 'ios' },
 }));
 
@@ -28,6 +31,8 @@ describe('GlobalErrorHandler', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    // Reset the mock
+    mockErrorUtils.setGlobalHandler.mockClear();
     // eslint-disable-next-line no-undef
     // @ts-ignore
     global.__DEV__ = false;

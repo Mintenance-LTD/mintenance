@@ -75,7 +75,7 @@ const JobsScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="jobs-screen">
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>

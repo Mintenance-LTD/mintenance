@@ -10,20 +10,10 @@ enum JobStatus {
   CANCELLED = 'cancelled',
 }
 
-// Mock dependencies
+// Mock dependencies with simple pattern
 jest.mock('../../config/supabase', () => ({
   supabase: {
-    channel: jest.fn(() => ({
-      on: jest.fn(() => ({
-        on: jest.fn(() => ({
-          on: jest.fn(() => ({
-            subscribe: jest.fn(),
-          })),
-        })),
-      })),
-      unsubscribe: jest.fn(),
-      send: jest.fn(),
-    })),
+    channel: jest.fn(),
     removeChannel: jest.fn(),
     getChannels: jest.fn(() => []),
   },
@@ -37,6 +27,7 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
 
 describe('RealtimeService', () => {
   const mockMessage: Message = {
@@ -78,12 +69,13 @@ describe('RealtimeService', () => {
     jest.clearAllMocks();
 
     mockChannel = {
-      on: jest.fn(() => mockChannel),
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn(),
       unsubscribe: jest.fn(),
       send: jest.fn(),
     };
 
-    (supabase.channel as jest.Mock).mockReturnValue(mockChannel);
+    supabase.channel.mockReturnValue(mockChannel);
   });
 
   describe('subscribeToMessages', () => {

@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { JobService } from '../../services/JobService';
 import { createTestQueryClient } from '../utils/test-utils';
-import { JobBidMockFactory } from '../mocks/jobBidMockFactory';
+import { JobBidMockFactory } from '../../test-utils/jobBidMockFactory';
 
 // Mock all necessary services
 jest.mock('../../services/AuthService', () => ({

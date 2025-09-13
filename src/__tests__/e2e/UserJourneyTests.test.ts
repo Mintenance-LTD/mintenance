@@ -184,17 +184,31 @@ describe('End-to-End User Journeys', () => {
       // Step 6: Real-time messaging
       logger.debug('💬 Step 6: Real-time messaging');
 
-      MessagingService.sendMessage = jest.fn().mockResolvedValueOnce({
-        id: 'msg-1',
-        jobId: testJobId,
-        senderId: mockHomeowner.id,
-        receiverId: mockContractor.id,
-        messageText: 'Hi! When can you start the repair?',
-        messageType: 'text',
-        read: false,
-        createdAt: new Date().toISOString(),
-        senderName: 'Jane Homeowner',
-      });
+      const sendMessageMock = jest.fn()
+        .mockResolvedValueOnce({
+          id: 'msg-1',
+          jobId: testJobId,
+          senderId: mockHomeowner.id,
+          receiverId: mockContractor.id,
+          messageText: 'Hi! When can you start the repair?',
+          messageType: 'text',
+          read: false,
+          createdAt: new Date().toISOString(),
+          senderName: 'Jane Homeowner',
+        })
+        .mockResolvedValueOnce({
+          id: 'msg-2',
+          jobId: testJobId,
+          senderId: mockContractor.id,
+          receiverId: mockHomeowner.id,
+          messageText: 'I can start tomorrow at 9 AM. Will that work?',
+          messageType: 'text',
+          read: false,
+          createdAt: new Date().toISOString(),
+          senderName: 'John Contractor',
+        });
+
+      MessagingService.sendMessage = sendMessageMock;
 
       const message1 = await MessagingService.sendMessage(
         testJobId,
@@ -202,18 +216,6 @@ describe('End-to-End User Journeys', () => {
         'Hi! When can you start the repair?',
         mockHomeowner.id
       );
-
-      MessagingService.sendMessage = jest.fn().mockResolvedValueOnce({
-        id: 'msg-2',
-        jobId: testJobId,
-        senderId: mockContractor.id,
-        receiverId: mockHomeowner.id,
-        messageText: 'I can start tomorrow at 9 AM. Will that work?',
-        messageType: 'text',
-        read: false,
-        createdAt: new Date().toISOString(),
-        senderName: 'John Contractor',
-      });
 
       const message2 = await MessagingService.sendMessage(
         testJobId,

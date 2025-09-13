@@ -1,30 +1,25 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { RegisterScreen } from '../../screens/RegisterScreen';
+import RegisterScreen from '../../screens/RegisterScreen';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
-    navigate: jest.fn(),
+    navigate: mockNavigate,
     goBack: jest.fn(),
   }),
 }));
 
 const mockUseAuth = jest.mocked(useAuth);
-const mockNavigate = jest.fn();
+
+// RegisterScreen import should now work correctly with default import
 
 describe('RegisterScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    jest
-      .mocked(require('@react-navigation/native').useNavigation)
-      .mockReturnValue({
-        navigate: mockNavigate,
-        goBack: jest.fn(),
-      });
 
     mockUseAuth.mockReturnValue({
       user: null,

@@ -478,13 +478,14 @@ describe('Navigation Structure', () => {
         loading: true,
       });
 
-      const { container } = render(
+      const { toJSON } = render(
         <TestWrapper>
           <RootNavigator />
         </TestWrapper>
       );
 
-      expect(container.children).toHaveLength(0);
+      // When loading, RootNavigator should render null or empty
+      expect(toJSON()).toBeNull();
     });
   });
 

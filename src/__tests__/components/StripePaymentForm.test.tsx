@@ -50,9 +50,9 @@ describe('StripePaymentForm', () => {
   });
 
   it('disables pay button when card is incomplete', () => {
-    const { getByText } = render(<StripePaymentForm {...mockProps} />);
+    const { getByText, getByTestId } = render(<StripePaymentForm {...mockProps} />);
 
-    const payButton = getByText('Pay $150.00 Securely');
+    const payButton = getByTestId('pay-button');
     // Check if button is disabled (either through disabled prop or accessibilityState)
     const isDisabled = payButton.parent?.props.disabled === true || 
                       payButton.parent?.props.accessibilityState?.disabled === true;
@@ -68,7 +68,7 @@ describe('StripePaymentForm', () => {
     fireEvent.press(getByTestId('card-field'));
 
     await waitFor(() => {
-      const payButton = getByText('Pay $150.00 Securely');
+      const payButton = getByTestId('pay-button');
       // Check if button is enabled (not disabled)
       const isDisabled = payButton.parent?.props.disabled === true || 
                         payButton.parent?.props.accessibilityState?.disabled === true;

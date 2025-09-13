@@ -48,7 +48,7 @@ jest.mock('../../config/sentry', () => ({
   setUserContext: jest.fn(),
   trackUserAction: jest.fn(),
   addBreadcrumb: jest.fn(),
-  measureAsyncPerformance: jest.fn((fn) => fn()),
+  measureAsyncPerformance: jest.fn(async (fn) => await fn()),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -63,6 +63,8 @@ const mockAuthService = AuthService as jest.Mocked<typeof AuthService>;
 const mockBiometricService = BiometricService as jest.Mocked<
   typeof BiometricService
 >;
+const { NotificationService } = require('../../services/NotificationService');
+const mockNotificationService = NotificationService as jest.Mocked<typeof NotificationService>;
 
 // Test component that uses AuthContext
 const TestAuthComponent = () => {
@@ -118,8 +120,12 @@ const TestWrapper = () => (
 describe('Auth Context Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Ensure default resolved values for all async methods
     mockAuthService.getCurrentUser.mockResolvedValue(null);
     mockAuthService.getCurrentSession.mockResolvedValue(null);
+    mockBiometricService.isAvailable.mockResolvedValue(false);
+    mockBiometricService.isBiometricEnabled.mockResolvedValue(false);
+    mockNotificationService.initialize.mockResolvedValue('mock-token');
   });
 
   it('should show loading state initially', async () => {

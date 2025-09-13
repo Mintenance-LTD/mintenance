@@ -10,28 +10,6 @@ const mockSupabase = supabase as any;
 describe('JobService - Comprehensive Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Default mock setup
-    const mockQuery = {
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      or: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      single: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      mockResolvedValue: jest
-        .fn()
-        .mockResolvedValue({ data: null, error: null }),
-      mockResolvedValueOnce: jest
-        .fn()
-        .mockResolvedValue({ data: null, error: null }),
-    };
-
-    mockSupabase.from.mockReturnValue(mockQuery);
   });
 
   describe('createJob', () => {
@@ -81,14 +59,15 @@ describe('JobService - Comprehensive Tests', () => {
     });
 
     it('should throw error when creation fails', async () => {
-      mockSupabase
-        .from()
-        .insert()
-        .select()
-        .single.mockResolvedValue({
+      const mockChain = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
           data: null,
           error: { message: 'Creation failed' },
-        });
+        }),
+      };
+      mockSupabase.from.mockReturnValue(mockChain);
 
       await expect(JobService.createJob(mockJobData)).rejects.toThrow(
         'Creation failed'

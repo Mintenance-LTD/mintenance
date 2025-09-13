@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">64% </span>
+                <span class="strong">84% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>16/25</span>
+                <span class='fraction'>21/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">53.84% </span>
+                <span class="strong">69.23% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/13</span>
+                <span class='fraction'>9/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">64% </span>
+                <span class="strong">84% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>16/25</span>
+                <span class='fraction'>21/25</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -169,27 +169,27 @@
 <span class="cline-any cline-yes">21x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -264,11 +264,11 @@ declare const ErrorUtils: {
 // Global error handler for unhandled JS errors
 export const setupGlobalErrorHandler = () =&gt; {
   // Handle JS errors
-  ErrorUtils.setGlobalHandler(<span class="fstat-no" title="function not covered" >(e</span>rror, isFatal) =&gt; {
-<span class="cstat-no" title="statement not covered" >    logger.error('Global JS Error:', error);</span>
+  ErrorUtils.setGlobalHandler((error, isFatal) =&gt; {
+    logger.error('Global JS Error:', error);
 &nbsp;
     // Import Sentry dynamically
-<span class="cstat-no" title="statement not covered" >    import('@sentry/react-native')</span>
+    import('@sentry/react-native')
       .then(<span class="fstat-no" title="function not covered" >({</span> captureException }) =&gt; {
 <span class="cstat-no" title="statement not covered" >        captureException(error, {</span>
           contexts: {
@@ -279,13 +279,13 @@ export const setupGlobalErrorHandler = () =&gt; {
           },
         });
       })
-      .catch(<span class="fstat-no" title="function not covered" >(e</span>) =&gt; {
-<span class="cstat-no" title="statement not covered" >        logger.warn('Sentry not available for global error:', { data: e });</span>
+      .catch((e) =&gt; {
+        logger.warn('Sentry not available for global error:', { data: e });
       });
 &nbsp;
     // In development, throw the error to show the red screen
-<span class="cstat-no" title="statement not covered" >    if (__DEV__ &amp;&amp; !isFatal) {</span>
-<span class="cstat-no" title="statement not covered" >      logger.warn('Non-fatal error handled globally:', { data: error });</span>
+    if (__DEV__ &amp;&amp; !isFatal) {
+      logger.warn('Non-fatal error handled globally:', { data: error });
     }
   });
 &nbsp;
@@ -358,7 +358,7 @@ export const trackPerformance = (operation: string, duration: number) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-12T08:52:23.852Z
+                at 2025-09-13T11:33:31.293Z
             </div>
         <script src="../prettify.js"></script>
         <script>

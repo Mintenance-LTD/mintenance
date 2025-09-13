@@ -3,6 +3,18 @@ import { render } from '@testing-library/react-native';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { Text } from 'react-native';
 
+// Mock logger
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+const { logger } = require('../../utils/logger');
+
 // Component that throws an error
 const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
   if (shouldThrow) {
@@ -12,6 +24,10 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 };
 
 describe('ErrorBoundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render children when no error occurs', () => {
     const { getByText } = render(
       <ErrorBoundary>
@@ -44,23 +60,17 @@ describe('ErrorBoundary', () => {
   });
 
   it('should log error to console', () => {
-    const consoleSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
 
-    expect(consoleSpy).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       'Error caught by boundary:',
       expect.any(Error),
       expect.any(Object)
     );
-
-    consoleSpy.mockRestore();
   });
 
   it('should show debug info in development mode', () => {

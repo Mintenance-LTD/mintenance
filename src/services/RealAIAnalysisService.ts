@@ -8,9 +8,17 @@ import { logger } from '../utils/logger';
  * Remove the original AIAnalysisService and use this one for production
  */
 export class RealAIAnalysisService {
-  private static readonly OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  private static readonly AWS_ACCESS_KEY = process.env.AWS_ACCESS_KEY_ID;
-  private static readonly GOOGLE_CLOUD_KEY = process.env.GOOGLE_CLOUD_API_KEY;
+  private static get OPENAI_API_KEY() {
+    return process.env.OPENAI_API_KEY;
+  }
+  
+  private static get AWS_ACCESS_KEY() {
+    return process.env.AWS_ACCESS_KEY_ID;
+  }
+  
+  private static get GOOGLE_CLOUD_KEY() {
+    return process.env.GOOGLE_CLOUD_API_KEY;
+  }
 
   /**
    * Analyze job photos using real AI service

@@ -2,8 +2,8 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../../screens/LoginScreen';
 import { useAuth } from '../../contexts/AuthContext';
-import { NavigationMockFactory } from '../mocks/navigationMockFactory';
-import { AuthMockFactory } from '../mocks/authMockFactory';
+import { NavigationMockFactory } from '../../test-utils/navigationMockFactory';
+import { AuthMockFactory } from '../../test-utils/authMockFactory';
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');

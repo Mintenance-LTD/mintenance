@@ -80,6 +80,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
       </View>
 
       <TouchableOpacity
+        testID='pay-button'
         accessibilityState={{ disabled: !cardComplete || loading }}
         accessible
         style={[

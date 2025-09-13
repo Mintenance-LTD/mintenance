@@ -33,13 +33,24 @@ describe('Theme System', () => {
     });
 
     it('has consistent typography scale', () => {
-      expect(theme.typography.fontSize.xs).toBe(10);
-      expect(theme.typography.fontSize.sm).toBe(12);
-      expect(theme.typography.fontSize.base).toBe(14);
-      expect(theme.typography.fontSize.lg).toBe(16);
-      expect(theme.typography.fontSize.xl).toBe(18);
-      expect(theme.typography.fontSize['2xl']).toBe(20);
-      expect(theme.typography.fontSize['3xl']).toBe(24);
+      // Test that normalized font sizes are numbers and in correct order
+      expect(typeof theme.typography.fontSize.xs).toBe('number');
+      expect(typeof theme.typography.fontSize.sm).toBe('number');
+      expect(typeof theme.typography.fontSize.base).toBe('number');
+      expect(typeof theme.typography.fontSize.lg).toBe('number');
+      expect(typeof theme.typography.fontSize.xl).toBe('number');
+      
+      // Test font size progression (each size should be larger than previous)
+      expect(theme.typography.fontSize.xs).toBeLessThan(theme.typography.fontSize.sm);
+      expect(theme.typography.fontSize.sm).toBeLessThan(theme.typography.fontSize.base);
+      expect(theme.typography.fontSize.base).toBeLessThan(theme.typography.fontSize.lg);
+      expect(theme.typography.fontSize.lg).toBeLessThan(theme.typography.fontSize.xl);
+      
+      // Test raw font sizes match expected static values
+      expect(theme.typography.rawFontSize.xs).toBe(10);
+      expect(theme.typography.rawFontSize.sm).toBe(12);
+      expect(theme.typography.rawFontSize.base).toBe(14);
+      expect(theme.typography.rawFontSize.lg).toBe(16);
     });
 
     it('has font weight scale', () => {
@@ -173,8 +184,8 @@ describe('Theme System', () => {
     });
 
     it('handles spaced categories by removing spaces', () => {
-      expect(getCategoryColor('electrical work')).toBe('#3C3C43'); // becomes 'electricalwork' - no match, returns default
-      expect(getCategoryColor('electrical')).toBe('#FF9500'); // direct match
+      expect(getCategoryColor('electrical work')).toBe('#4B5563'); // becomes 'electricalwork' - no match, returns textSecondary
+      expect(getCategoryColor('electrical')).toBe('#F59E0B'); // direct match
     });
   });
 

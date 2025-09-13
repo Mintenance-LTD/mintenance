@@ -137,7 +137,7 @@ describe('RealAIAnalysisService', () => {
       expect(result?.safetyConcerns.some((c) => c.severity === 'High')).toBe(
         true
       );
-      expect(result?.suggestedTools).toContain('Multimeter');
+      expect(result?.suggestedTools).toContain('Digital multimeter');
     });
 
     it('should handle jobs without photos', async () => {

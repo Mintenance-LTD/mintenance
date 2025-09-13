@@ -1,49 +1,49 @@
 import { NotificationService } from '../../services/NotificationService';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
-// Mock Expo modules
-const mockNotifications = {
-  setNotificationHandler: jest.fn(),
-  getPermissionsAsync: jest.fn(),
-  requestPermissionsAsync: jest.fn(),
-  getExpoPushTokenAsync: jest.fn(),
-  setNotificationChannelAsync: jest.fn(),
-  scheduleNotificationAsync: jest.fn(),
-  cancelScheduledNotificationAsync: jest.fn(),
-  addNotificationReceivedListener: jest.fn(),
-  addNotificationResponseReceivedListener: jest.fn(),
-  setBadgeCountAsync: jest.fn(),
-};
-
-const mockDevice = {
+// Mock Device to override jest-setup.js
+jest.mock('expo-device', () => ({
   isDevice: true,
-};
-
-jest.mock('expo-notifications', () => mockNotifications);
-jest.mock('expo-device', () => mockDevice);
-
-// Mock Supabase with comprehensive chain support
-const createMockChain = (): any => {
-  const chain = {
-    eq: jest.fn(() => chain),
-    order: jest.fn(() => chain),
-    range: jest.fn(() => chain),
-    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    in: jest.fn(() => chain),
-    not: jest.fn(() => chain),
-    select: jest.fn(() => chain),
-    update: jest.fn(() => chain),
-    insert: jest.fn(() => chain),
-  };
-  return chain;
-};
-
-const mockSupabase = {
-  from: jest.fn(() => createMockChain()),
-};
-
-jest.mock('../../config/supabase', () => ({
-  supabase: mockSupabase,
 }));
+
+// Mock Constants
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: null,
+    easConfig: null,
+  },
+}));
+
+// Mock Platform
+jest.mock('react-native', () => ({
+  Platform: {
+    OS: 'ios',
+  },
+}));
+
+// Get mocked modules
+const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
+const mockDeviceModule = Device as jest.Mocked<typeof Device>;
+
+// Mock logger
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+// Mock Supabase with simple pattern
+jest.mock('../../config/supabase', () => ({
+  supabase: {
+    from: jest.fn(),
+  },
+}));
+
+const { supabase } = require('../../config/supabase');
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -51,18 +51,24 @@ global.fetch = jest.fn();
 describe('NotificationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockDevice.isDevice = true;
+    
+    // Reset Device mock to true by default
+    jest.mocked(Device).isDevice = true;
+    
+    // Set up default mocks
+    mockNotifications.setNotificationHandler.mockImplementation(() => {});
+    mockNotifications.setNotificationChannelAsync.mockResolvedValue();
   });
 
   describe('initialize', () => {
     it('should initialize push notifications successfully', async () => {
       mockNotifications.getPermissionsAsync.mockResolvedValueOnce({
         status: 'granted',
-      });
+      } as any);
 
       mockNotifications.getExpoPushTokenAsync.mockResolvedValueOnce({
         data: 'ExponentPushToken[test-token]',
-      });
+      } as any);
 
       const token = await NotificationService.initialize();
 
@@ -74,15 +80,15 @@ describe('NotificationService', () => {
     it('should request permissions if not already granted', async () => {
       mockNotifications.getPermissionsAsync.mockResolvedValueOnce({
         status: 'undetermined',
-      });
+      } as any);
 
       mockNotifications.requestPermissionsAsync.mockResolvedValueOnce({
         status: 'granted',
-      });
+      } as any);
 
       mockNotifications.getExpoPushTokenAsync.mockResolvedValueOnce({
         data: 'ExponentPushToken[test-token]',
-      });
+      } as any);
 
       const token = await NotificationService.initialize();
 
@@ -105,23 +111,30 @@ describe('NotificationService', () => {
     });
 
     it('should return null on non-device platforms', async () => {
-      mockDevice.isDevice = false;
-
+      jest.mocked(Device).isDevice = false;
+      
+      // Don't set up any mock return values since these methods shouldn't be called
+      
       const token = await NotificationService.initialize();
 
       expect(token).toBeNull();
+      // Should not call any notification methods when not on device
+      expect(mockNotifications.getPermissionsAsync).not.toHaveBeenCalled();
+      expect(mockNotifications.getExpoPushTokenAsync).not.toHaveBeenCalled();
     });
   });
 
   describe('savePushToken', () => {
     it('should save push token to user profile', async () => {
-      const mockChain = createMockChain();
-      mockChain.eq.mockResolvedValueOnce({ error: null });
-      mockSupabase.from.mockReturnValueOnce(mockChain);
+      const mockChain = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       await NotificationService.savePushToken('user-1', 'test-token');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('users');
+      expect(supabase.from).toHaveBeenCalledWith('users');
       expect(mockChain.update).toHaveBeenCalledWith({
         push_token: 'test-token',
       });
@@ -136,12 +149,24 @@ describe('NotificationService', () => {
         notification_settings: { jobUpdates: true },
       };
 
-      const mockChain = createMockChain();
-      mockChain.single.mockResolvedValueOnce({
-        data: mockUser,
-        error: null,
-      });
-      mockSupabase.from.mockReturnValue(mockChain);
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: mockUser,
+          error: null,
+        }),
+      };
+      
+      const saveChain = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      
+      supabase.from
+        .mockReturnValueOnce(mockChain)
+        .mockReturnValueOnce(saveChain);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -149,13 +174,6 @@ describe('NotificationService', () => {
           data: [{ status: 'ok', id: 'notification-id' }],
         }),
       });
-
-      // Mock notification save to database
-      const saveChain = createMockChain();
-      saveChain.insert.mockResolvedValueOnce({ data: null, error: null });
-      mockSupabase.from
-        .mockReturnValueOnce(mockChain)
-        .mockReturnValueOnce(saveChain);
 
       await NotificationService.sendNotificationToUser(
         'user-1',
@@ -182,10 +200,15 @@ describe('NotificationService', () => {
         notification_settings: { jobUpdates: false },
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
-        data: mockUser,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: mockUser,
+          error: null,
+        }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       await NotificationService.sendNotificationToUser(
         'user-1',
@@ -203,10 +226,20 @@ describe('NotificationService', () => {
         notification_settings: { jobUpdates: true },
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
-        data: mockUser,
-        error: null,
-      });
+      const getUserChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
+      };
+      
+      const updateTokenChain = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      };
+      
+      supabase.from
+        .mockReturnValueOnce(getUserChain)
+        .mockReturnValueOnce(updateTokenChain);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -217,11 +250,6 @@ describe('NotificationService', () => {
         }),
       });
 
-      // Mock the token removal
-      mockSupabase.from().update().eq.mockResolvedValueOnce({
-        error: null,
-      });
-
       await NotificationService.sendNotificationToUser(
         'user-1',
         'Test Notification',
@@ -230,7 +258,7 @@ describe('NotificationService', () => {
       );
 
       // Should attempt to remove invalid token
-      expect(mockSupabase.from().update).toHaveBeenCalledWith({
+      expect(updateTokenChain.update).toHaveBeenCalledWith({
         push_token: null,
       });
     });
@@ -251,10 +279,12 @@ describe('NotificationService', () => {
         },
       ];
 
-      mockSupabase.from().select().in().not.mockResolvedValueOnce({
-        data: mockUsers,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        in: jest.fn().mockReturnThis(),
+        not: jest.fn().mockResolvedValue({ data: mockUsers, error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -348,10 +378,13 @@ describe('NotificationService', () => {
         },
       ];
 
-      mockSupabase.from().select().eq().order().range.mockResolvedValueOnce({
-        data: mockNotifications,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({ data: mockNotifications, error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       const result = await NotificationService.getUserNotifications(
         'user-1',
@@ -367,23 +400,33 @@ describe('NotificationService', () => {
 
   describe('markNotificationAsRead', () => {
     it('should mark a notification as read', async () => {
-      mockSupabase.from().update().eq.mockResolvedValueOnce({
-        error: null,
-      });
+      const mockChain = {
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       await NotificationService.markNotificationAsRead('notif-1');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('notifications');
-      expect(mockSupabase.from().update).toHaveBeenCalledWith({ read: true });
+      expect(supabase.from).toHaveBeenCalledWith('notifications');
+      expect(mockChain.update).toHaveBeenCalledWith({ read: true });
     });
   });
 
   describe('getUnreadNotificationCount', () => {
     it('should return unread notification count', async () => {
-      mockSupabase.from().select().eq().eq.mockResolvedValueOnce({
-        count: 7,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn((column: string, value: any) => {
+          if (column === 'read') {
+            return mockChain;
+          }
+          return {
+            eq: jest.fn().mockResolvedValue({ count: 7, error: null }),
+          };
+        }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       const count =
         await NotificationService.getUnreadNotificationCount('user-1');
@@ -392,14 +435,21 @@ describe('NotificationService', () => {
     });
 
     it('should return 0 on error', async () => {
-      mockSupabase
-        .from()
-        .select()
-        .eq()
-        .eq.mockResolvedValueOnce({
-          count: null,
-          error: { message: 'Database error' },
-        });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn((column: string, value: any) => {
+          if (column === 'read') {
+            return mockChain;
+          }
+          return {
+            eq: jest.fn().mockResolvedValue({
+              count: null,
+              error: { message: 'Database error' },
+            }),
+          };
+        }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       const count =
         await NotificationService.getUnreadNotificationCount('user-1');
@@ -427,10 +477,12 @@ describe('NotificationService', () => {
         },
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: mockUser,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       (fetch as jest.Mock).mockResolvedValue({
         ok: true,
@@ -475,10 +527,12 @@ describe('NotificationService', () => {
         notification_settings: { jobUpdates: true },
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValueOnce({
-        data: mockUser,
-        error: null,
-      });
+      const mockChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
+      };
+      supabase.from.mockReturnValue(mockChain);
 
       (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 

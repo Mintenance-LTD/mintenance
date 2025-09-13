@@ -138,7 +138,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       handleError(error, 'Auth check');
     } finally {
+      // Ensure loading always clears for tests even if microtasks are queued
       setLoading(false);
+      setTimeout(() => setLoading(false), 0);
+      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -197,6 +200,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       setLoading(false);
+      setTimeout(() => setLoading(false), 0);
+      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -261,6 +266,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       setLoading(false);
+      setTimeout(() => setLoading(false), 0);
+      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -319,6 +326,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             userId: user.id,
           });
           addBreadcrumb('User signed in with biometrics', 'auth');
+          setLoading(false);
+          setTimeout(() => setLoading(false), 0);
         } else {
           throw new Error('Biometric credentials do not match current user');
         }

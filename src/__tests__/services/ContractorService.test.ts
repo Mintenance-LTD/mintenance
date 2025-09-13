@@ -3,49 +3,10 @@ import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
 
-// Mock dependencies
+// Mock dependencies with simple pattern
 jest.mock('../../config/supabase', () => ({
   supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            not: jest.fn(() => ({
-              not: jest.fn(() => ({
-                data: [],
-                error: null,
-              })),
-            })),
-          })),
-        })),
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({
-            data: null,
-            error: null,
-          })),
-        })),
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() => ({
-              data: null,
-              error: null,
-            })),
-          })),
-        })),
-      })),
-      delete: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            data: null,
-            error: null,
-          })),
-        })),
-      })),
-    })),
+    from: jest.fn(),
   },
 }));
 
@@ -57,6 +18,7 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
+
 
 describe('ContractorService', () => {
   const mockHomeownerLocation: LocationData = {

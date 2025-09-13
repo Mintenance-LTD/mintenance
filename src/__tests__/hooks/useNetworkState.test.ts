@@ -1,12 +1,25 @@
 import React from 'react';
-import { renderHook } from '@testing-library/react-native';
+import { renderHook, act } from '@testing-library/react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useNetworkState } from '../../hooks/useNetworkState';
 
-// Mock NetInfo
+// Mock NetInfo with NetInfoStateType enum
+const NetInfoStateType = {
+  wifi: 'wifi',
+  cellular: 'cellular',
+  ethernet: 'ethernet',
+  bluetooth: 'bluetooth',
+  wimax: 'wimax',
+  vpn: 'vpn',
+  other: 'other',
+  unknown: 'unknown',
+  none: 'none',
+};
+
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(),
   fetch: jest.fn(),
+  NetInfoStateType,
 }));
 
 const mockNetInfo = NetInfo as jest.Mocked<typeof NetInfo>;
@@ -39,11 +52,13 @@ describe('useNetworkState', () => {
     const { result } = renderHook(() => useNetworkState());
 
     // Simulate network change to cellular
-    networkListener!({
-      isConnected: true,
-      isInternetReachable: true,
-      type: NetInfoStateType.cellular,
-      details: { cellularGeneration: '4g' },
+    act(() => {
+      networkListener!({
+        isConnected: true,
+        isInternetReachable: true,
+        type: NetInfoStateType.cellular,
+        details: { cellularGeneration: '4g' },
+      });
     });
 
     expect(result.current.type).toBe(NetInfoStateType.cellular);
@@ -62,10 +77,12 @@ describe('useNetworkState', () => {
     const { result } = renderHook(() => useNetworkState());
 
     // Simulate going offline
-    networkListener!({
-      isConnected: false,
-      isInternetReachable: false,
-      type: NetInfoStateType.none,
+    act(() => {
+      networkListener!({
+        isConnected: false,
+        isInternetReachable: false,
+        type: NetInfoStateType.none,
+      });
     });
 
     expect(result.current.isConnected).toBe(false);
@@ -83,11 +100,13 @@ describe('useNetworkState', () => {
     const { result } = renderHook(() => useNetworkState());
 
     // Simulate 3G connection
-    networkListener!({
-      isConnected: true,
-      isInternetReachable: true,
-      type: NetInfoStateType.cellular,
-      details: { cellularGeneration: '3g' },
+    act(() => {
+      networkListener!({
+        isConnected: true,
+        isInternetReachable: true,
+        type: NetInfoStateType.cellular,
+        details: { cellularGeneration: '3g' },
+      });
     });
 
     expect(result.current.isCellular).toBe(true);
@@ -105,10 +124,12 @@ describe('useNetworkState', () => {
     const { result } = renderHook(() => useNetworkState());
 
     // Simulate WiFi connection
-    networkListener!({
-      isConnected: true,
-      isInternetReachable: true,
-      type: NetInfoStateType.wifi,
+    act(() => {
+      networkListener!({
+        isConnected: true,
+        isInternetReachable: true,
+        type: NetInfoStateType.wifi,
+      });
     });
 
     expect(result.current.isWifi).toBe(true);
@@ -127,11 +148,13 @@ describe('useNetworkState', () => {
     const { result } = renderHook(() => useNetworkState());
 
     // Simulate 5G connection
-    networkListener!({
-      isConnected: true,
-      isInternetReachable: true,
-      type: NetInfoStateType.cellular,
-      details: { cellularGeneration: '5g' },
+    act(() => {
+      networkListener!({
+        isConnected: true,
+        isInternetReachable: true,
+        type: NetInfoStateType.cellular,
+        details: { cellularGeneration: '5g' },
+      });
     });
 
     expect(result.current.isCellular).toBe(true);

@@ -49,7 +49,7 @@ jest.mock('../../config/sentry', () => ({
   setUserContext: jest.fn(),
   trackUserAction: jest.fn(),
   addBreadcrumb: jest.fn(),
-  measureAsyncPerformance: jest.fn((fn) => fn()),
+  measureAsyncPerformance: jest.fn(async (fn) => await fn()),
 }));
 
 jest.mock('../../utils/logger', () => ({

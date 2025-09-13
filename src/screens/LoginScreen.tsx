@@ -78,7 +78,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="login-screen">
       {/* Dark Blue Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
