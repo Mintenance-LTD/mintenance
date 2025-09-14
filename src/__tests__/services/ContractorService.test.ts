@@ -3,24 +3,24 @@ import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
 
-// Mock dependencies with simple pattern
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-  },
-}));
+// Use global Supabase mock from jest-setup.js
+jest.mock('../../config/supabase');
 
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// Logger is not mocked - using real implementation
 
 
 describe('ContractorService', () => {
+  // Spy on logger methods for testing
+  let loggerErrorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const mockHomeownerLocation: LocationData = {
     latitude: 40.7128,
     longitude: -74.006,
@@ -183,7 +183,7 @@ describe('ContractorService', () => {
         ContractorService.getNearbyContractors(mockHomeownerLocation, 25)
       ).rejects.toThrow('Database error');
 
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error fetching nearby contractors:',
         expect.any(Object)
       );

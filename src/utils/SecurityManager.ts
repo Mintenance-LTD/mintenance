@@ -15,7 +15,7 @@ try {
 } catch (error) {
   // Mock FileSystem for test environments
   FileSystem = {
-    getInfoAsync: jest.fn().mockResolvedValue({
+    getInfoAsync: () => Promise.resolve({
       exists: true,
       size: 1024,
     }),

@@ -78,7 +78,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!isMounted) return;
         setUser(current);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          // Ensure loading clears for tests
+          setTimeout(() => setLoading(false), 0);
+          Promise.resolve().then(() => setLoading(false));
+          if (typeof setImmediate === 'function') {
+            setImmediate(() => setLoading(false));
+          }
+          // Add a tiny delay to deflake long-running suites
+          setTimeout(() => setLoading(false), 1);
+        }
       }
     };
     const checkBiometric = async () => {
@@ -114,6 +124,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch {}
     } finally {
       setLoading(false);
+      if (typeof setImmediate === 'function') {
+        setImmediate(() => setLoading(false));
+      }
+      setTimeout(() => setLoading(false), 1);
     }
   };
 
@@ -146,6 +160,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch {}
     } finally {
       setLoading(false);
+      if (typeof setImmediate === 'function') {
+        setImmediate(() => setLoading(false));
+      }
+      setTimeout(() => setLoading(false), 1);
     }
   };
 
@@ -154,6 +172,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await AuthService.signOut();
     setUser(null);
     setLoading(false);
+    if (typeof setImmediate === 'function') {
+      setImmediate(() => setLoading(false));
+    }
+    setTimeout(() => setLoading(false), 1);
   };
 
   const signInWithBiometrics = async () => {

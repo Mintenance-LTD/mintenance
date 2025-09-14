@@ -38,22 +38,24 @@ export interface Job {
   title: string;
   description: string;
   location: string;
-  homeowner_id: string;
-  contractor_id?: string;
+  homeowner_id: string; // Database field (snake_case)
+  contractor_id?: string; // Database field (snake_case)
   status: 'posted' | 'assigned' | 'in_progress' | 'completed';
   budget: number;
-  created_at: string;
-  updated_at: string;
+  created_at: string; // Database field (snake_case)
+  updated_at: string; // Database field (snake_case)
   // Core MVP fields
   category?: string;
   subcategory?: string;
   priority?: 'low' | 'medium' | 'high';
   photos?: string[]; // Max 3 photos for MVP
-  // Computed fields for service layer
-  homeownerId?: string;
-  contractorId?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  // Computed/alias fields for UI layer (camelCase)
+  homeownerId?: string; // Alias for homeowner_id
+  contractorId?: string; // Alias for contractor_id
+  createdAt?: string; // Alias for created_at
+  updatedAt?: string; // Alias for updated_at
+  // Additional relationships for display
+  bids?: Bid[];
 }
 
 // AI Analysis interfaces moved to post-MVP phase

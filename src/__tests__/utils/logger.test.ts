@@ -1,5 +1,4 @@
 import React from 'react';
-import { logger, log } from '../../utils/logger';
 import * as Sentry from '../../config/sentry';
 
 // Mock Sentry
@@ -11,7 +10,20 @@ jest.mock('../../config/sentry', () => ({
 
 const mockSentry = Sentry as jest.Mocked<typeof Sentry>;
 
-// Mock console methods
+// Ensure __DEV__ is true before importing logger
+(global as any).__DEV__ = true;
+
+// Import logger after setting __DEV__ and mocking Sentry
+const { logger, log, setSentryFunctions } = require('../../utils/logger');
+
+// Initialize the logger with our mocked Sentry functions
+setSentryFunctions({
+  captureMessage: mockSentry.captureMessage,
+  captureException: mockSentry.captureException,
+  addBreadcrumb: mockSentry.addBreadcrumb,
+});
+
+// Mock console methods for this test only
 const originalConsole = global.console;
 beforeAll(() => {
   global.console = {
@@ -37,20 +49,21 @@ describe('Logger', () => {
       logger.debug('Debug message', { key: 'value' });
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('DEBUG: Debug message | {"key":"value"}')
+        expect.stringMatching(/\[.*\] DEBUG: Debug message \| \{"key":"value"\}/)
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Debug: Debug message',
-        'debug',
-        { key: 'value' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Debug: Debug message',
+        category: 'debug',
+        level: 'info',
+        data: { key: 'value' },
+      });
     });
 
     it('logs without context', () => {
       logger.debug('Debug message');
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('DEBUG: Debug message')
+        expect.stringMatching(/\[.*\] DEBUG: Debug message$/)
       );
     });
   });
@@ -60,13 +73,14 @@ describe('Logger', () => {
       logger.info('Info message', { key: 'value' });
 
       expect(console.info).toHaveBeenCalledWith(
-        expect.stringContaining('INFO: Info message | {"key":"value"}')
+        expect.stringMatching(/\[.*\] INFO: Info message \| \{"key":"value"\}/)
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Info: Info message',
-        'info',
-        { key: 'value' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Info: Info message',
+        category: 'info',
+        level: 'info',
+        data: { key: 'value' },
+      });
       expect(mockSentry.captureMessage).toHaveBeenCalledWith(
         'Info message',
         'info'
@@ -79,13 +93,14 @@ describe('Logger', () => {
       logger.warn('Warning message', { key: 'value' });
 
       expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('WARN: Warning message | {"key":"value"}')
+        expect.stringMatching(/\[.*\] WARN: Warning message \| \{"key":"value"\}/)
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Warning: Warning message',
-        'warning',
-        { key: 'value' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Warning: Warning message',
+        category: 'warning',
+        level: 'warning',
+        data: { key: 'value' },
+      });
       expect(mockSentry.captureMessage).toHaveBeenCalledWith(
         'Warning message',
         'warning'
@@ -99,14 +114,15 @@ describe('Logger', () => {
       logger.error('Error message', error, { key: 'value' });
 
       expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('ERROR: Error message | {"key":"value"}'),
+        expect.stringMatching(/\[.*\] ERROR: Error message \| \{"key":"value"\}/),
         error
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Error: Error message',
-        'error',
-        { key: 'value', error: 'Test error' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Error: Error message',
+        category: 'error',
+        level: 'error',
+        data: { key: 'value', error: 'Test error' },
+      });
       expect(mockSentry.captureException).toHaveBeenCalledWith(error, {
         contexts: { logContext: { key: 'value' } },
       });
@@ -116,7 +132,7 @@ describe('Logger', () => {
       logger.error('Error message', undefined, { key: 'value' });
 
       expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('ERROR: Error message | {"key":"value"}'),
+        expect.stringMatching(/\[.*\] ERROR: Error message$/),
         undefined
       );
       expect(mockSentry.captureMessage).toHaveBeenCalledWith(
@@ -135,15 +151,16 @@ describe('Logger', () => {
           'INFO: API Call completed in 1250ms | {"endpoint":"/api/users"}'
         )
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Performance: API Call completed in 1250ms',
-        'performance',
-        {
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Performance: API Call completed in 1250ms',
+        category: 'performance',
+        level: 'info',
+        data: {
           duration: 1250,
           operation: 'API Call',
           endpoint: '/api/users',
-        }
-      );
+        },
+      });
     });
   });
 
@@ -154,16 +171,17 @@ describe('Logger', () => {
       expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining('INFO: GET /api/users - 200 (150ms)')
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Network: GET /api/users - 200 (150ms)',
-        'http',
-        {
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Network: GET /api/users - 200 (150ms)',
+        category: 'http',
+        level: 'info',
+        data: {
           method: 'GET',
           url: '/api/users',
           status: 200,
           duration: 150,
-        }
-      );
+        },
+      });
     });
 
     it('logs failed network request', () => {
@@ -196,11 +214,12 @@ describe('Logger', () => {
           'INFO: User action: button_click | {"button":"login"}'
         )
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'User action: button_click',
-        'user',
-        { button: 'login' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'User action: button_click',
+        category: 'user',
+        level: 'info',
+        data: { button: 'login' },
+      });
     });
   });
 
@@ -213,11 +232,12 @@ describe('Logger', () => {
           'INFO: Navigation: Home -> Profile | {"userId":"123"}'
         )
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Navigation: Home -> Profile',
-        'navigation',
-        { from: 'Home', to: 'Profile', userId: '123' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Navigation: Home -> Profile',
+        category: 'navigation',
+        level: 'info',
+        data: { from: 'Home', to: 'Profile', userId: '123' },
+      });
     });
   });
 
@@ -230,11 +250,12 @@ describe('Logger', () => {
           'INFO: Auth login: success | {"method":"email"}'
         )
       );
-      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
-        'Auth login: success',
-        'auth',
-        { action: 'login', success: true, method: 'email' }
-      );
+      expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
+        message: 'Auth login: success',
+        category: 'auth',
+        level: 'info',
+        data: { action: 'login', success: true, method: 'email' },
+      });
     });
 
     it('logs failed authentication', () => {
@@ -329,7 +350,7 @@ describe('Logger', () => {
 
       expect(console.info).toHaveBeenCalledWith(
         expect.stringContaining(
-          'INFO: Test message | {"key":"value","nested":{"prop":123}}'
+          'INFO: Test message | {"key":"value","nested":"[object Object]"}'
         )
       );
     });

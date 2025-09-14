@@ -154,7 +154,9 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
 }));
 
-// Do not globally mock expo-device here; tests control it per-suite
+// Mock expo-device with a shared, mutable object so tests can toggle isDevice
+const __deviceState = { isDevice: true };
+jest.mock('expo-device', () => __deviceState);
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -224,20 +226,8 @@ jest.mock('expo', () => ({
   // minimal surface used in tests
 }));
 
-// Mock logger service
-jest.mock('./src/utils/logger', () => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    performance: jest.fn(),
-    network: jest.fn(),
-    userAction: jest.fn(),
-    navigation: jest.fn(),
-    auth: jest.fn(),
-  },
-}));
+// Note: Logger is not mocked here to allow actual console logging in tests
+// Individual tests can mock logger methods as needed
 
 // Mock sentry config
 jest.mock('./src/config/sentry', () => ({
@@ -246,43 +236,97 @@ jest.mock('./src/config/sentry', () => ({
   addBreadcrumb: jest.fn(),
 }));
 
+// Ensure local config/supabase module resolves to a chainable mock even when tests call jest.mock('../../config/supabase')
+try {
+  const path = require('path');
+  const supabaseConfigPath = path.resolve(__dirname, 'src', 'config', 'supabase.ts');
+  // Map the module to our manual mock implementation
+  jest.mock(supabaseConfigPath, () => require('./src/config/__mocks__/supabase'));
+} catch {}
 
 
 
-// Mock Supabase
-jest.mock('@supabase/supabase-js', () => {
-  const buildSharedChain = () => {
-    const chain: any = {};
-    const methods = [
-      'select', 'insert', 'update', 'delete', 'upsert',
-      'eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'like', 'ilike', 'in', 'or', 'and', 'not',
-      'order', 'limit', 'range', 'textSearch'
-    ];
-    methods.forEach((m) => {
-      chain[m] = jest.fn().mockReturnValue(chain);
+
+// Simplified Supabase mock - let individual tests override as needed
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      signUp: jest.fn(),
+      signInWithPassword: jest.fn(),
+      signOut: jest.fn(),
+      getUser: jest.fn(() => Promise.resolve({ data: { user: null } })),
+      getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      gt: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
+      like: jest.fn().mockReturnThis(),
+      ilike: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      and: jest.fn().mockReturnThis(),
+      not: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      textSearch: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+    functions: { invoke: jest.fn() },
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+      unsubscribe: jest.fn(),
+      send: jest.fn(),
+    })),
+    removeChannel: jest.fn(),
+    getChannels: jest.fn(() => []),
+  })),
+}));
+
+// Provide a persistent, chainable mock for config/supabase even when tests call jest.mock('../../config/supabase') without a factory
+try {
+  const { supabase } = require('./src/config/supabase');
+  const makeChain = () => {
+    const chain = {
+      select: jest.fn(), insert: jest.fn(), update: jest.fn(), upsert: jest.fn(), delete: jest.fn(),
+      eq: jest.fn(), neq: jest.fn(), gt: jest.fn(), gte: jest.fn(), lt: jest.fn(), lte: jest.fn(),
+      like: jest.fn(), ilike: jest.fn(), in: jest.fn(), or: jest.fn(), and: jest.fn(), not: jest.fn(),
+      order: jest.fn(), limit: jest.fn(), range: jest.fn(), textSearch: jest.fn(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    };
+    Object.keys(chain).forEach((k) => {
+      if (k !== 'single' && k !== 'maybeSingle') {
+        chain[k].mockReturnValue(chain);
+      }
     });
-    chain.single = jest.fn().mockResolvedValue({ data: null, error: null });
-    chain.maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
     return chain;
   };
-  const sharedChain = buildSharedChain();
-
-  return {
-    createClient: jest.fn(() => ({
-      auth: {
-        signUp: jest.fn(),
-        signInWithPassword: jest.fn(),
-        signOut: jest.fn(),
-        getUser: jest.fn(() => Promise.resolve({ data: { user: null } })),
-        getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      },
-      from: jest.fn(() => sharedChain),
-      functions: {
-        invoke: jest.fn(),
-      },
-    })),
-  };
-});
+  // Persistent instance so tests can modify leaf mocks before service calls
+  const persistentChain = makeChain();
+  if (supabase && supabase.from && typeof supabase.from.mockImplementation === 'function') {
+    supabase.from.mockImplementation(() => persistentChain);
+  }
+  if (supabase && typeof supabase.channel === 'function' && 'mockImplementation' in supabase.channel) {
+    supabase.channel.mockImplementation(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+      unsubscribe: jest.fn(),
+      send: jest.fn(),
+    }));
+  }
+} catch {}
 
 // Mock expo-sqlite (stateful in-memory implementation for tests)
 jest.mock('expo-sqlite', () => {
@@ -622,15 +666,11 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-// Add global __DEV__ for tests
-global.__DEV__ = process.env.NODE_ENV === 'development';
+// Add global __DEV__ for tests (always true in test env for logger)
+global.__DEV__ = true;
 
-// Silence console warnings in tests
-global.console = {
-  ...console,
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+// Don't override console globally - let logger tests work naturally
+// Individual tests can spy on console methods as needed
 
 // Ensure a stable online state in Node test environment
 // Prevents generic errors from being treated as network/offline

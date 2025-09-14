@@ -2,15 +2,38 @@ import { JobService } from '../../services/JobService';
 import { Job, Bid } from '../../types';
 import { supabase } from '../../config/supabase';
 
-// Mock supabase
-jest.mock('../../config/supabase');
+// Use global Supabase mock from jest-setup.js
+// Use a chainable manual mock to ensure method chaining works when mutating leaf fns
+const configPath = require.resolve('../../config/supabase');
+jest.mock(configPath, () => require('../../config/__mocks__/supabase'));
 
-const mockSupabase = supabase as any;
+const mockSupabase = supabase as jest.Mocked<typeof supabase>;
 
 describe('JobService - Comprehensive Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
+  // Test helper: setup mock responses
+  const setupMockChain = (returnValue: any) => {
+    const mockChain = {
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue(returnValue),
+      maybeSingle: jest.fn().mockResolvedValue(returnValue),
+    };
+    (mockSupabase.from as jest.Mock).mockReturnValue(mockChain);
+    return mockChain;
+  };
 
   describe('createJob', () => {
     const mockJobData = {
@@ -40,10 +63,11 @@ describe('JobService - Comprehensive Tests', () => {
         updated_at: '2024-01-01T00:00:00Z',
       };
 
-      mockSupabase.from().insert().select().single.mockResolvedValue({
-        data: mockCreatedJob,
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue({
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({ data: mockCreatedJob, error: null }),
+      } as any);
 
       const result = await JobService.createJob(mockJobData);
 
@@ -52,7 +76,7 @@ describe('JobService - Comprehensive Tests', () => {
         expect.objectContaining({
           id: 'job-1',
           title: 'Kitchen Repair',
-          homeownerId: 'user-1',
+          homeowner_id: 'user-1',
           status: 'posted',
         })
       );
@@ -92,10 +116,11 @@ describe('JobService - Comprehensive Tests', () => {
         },
       ];
 
-      mockSupabase.from().select().eq().order.mockResolvedValue({
-        data: mockJobs,
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
+      } as any);
 
       const result = await JobService.getJobsByHomeowner('user-1');
 
@@ -106,14 +131,14 @@ describe('JobService - Comprehensive Tests', () => {
     });
 
     it('should throw error when fetch fails', async () => {
-      mockSupabase
-        .from()
-        .select()
-        .eq()
-        .order.mockResolvedValue({
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({
           data: null,
           error: { message: 'Fetch failed' },
-        });
+        }),
+      } as any);
 
       await expect(JobService.getJobsByHomeowner('user-1')).rejects.toThrow(
         'Fetch failed'
@@ -131,17 +156,15 @@ describe('JobService - Comprehensive Tests', () => {
         },
       ];
 
-      mockSupabase.from().select().eq().order.mockResolvedValue({
-        data: mockJobs,
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
+      } as any);
 
       const result = await JobService.getAvailableJobs();
 
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith(
-        'status',
-        'posted'
-      );
+      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('posted');
     });
@@ -155,10 +178,7 @@ describe('JobService - Comprehensive Tests', () => {
         status: 'posted',
       };
 
-      mockSupabase.from().select().eq().single.mockResolvedValue({
-        data: mockJob,
-        error: null,
-      });
+      setupMockChain({ data: mockJob, error: null });
 
       const result = await JobService.getJobById('job-1');
 
@@ -202,9 +222,7 @@ describe('JobService - Comprehensive Tests', () => {
 
   describe('updateJobStatus', () => {
     it('should update job status', async () => {
-      mockSupabase.from().update().eq.mockResolvedValue({
-        error: null,
-      });
+      setupMockChain({ data: { id: 'job-1', status: 'in_progress', title: 'Kitchen Repair', homeowner_id: 'user-1', budget: 150 }, error: null });
 
       await JobService.updateJobStatus('job-1', 'in_progress', 'contractor-1');
 
@@ -221,9 +239,9 @@ describe('JobService - Comprehensive Tests', () => {
     });
 
     it('should update status without contractor', async () => {
-      mockSupabase.from().update().eq.mockResolvedValue({
-        error: null,
-      });
+      setupMockChain({ data: { id: 'job-1', status: 'in_progress', title: 'Kitchen Repair', homeowner_id: 'user-1', budget: 150 }, error: null });
+
+      setupMockChain({ data: { id: 'job-1', status: 'completed', title: 'Kitchen Repair', homeowner_id: 'user-1', budget: 150 }, error: null });
 
       await JobService.updateJobStatus('job-1', 'completed');
 
@@ -240,12 +258,8 @@ describe('JobService - Comprehensive Tests', () => {
     });
 
     it('should throw error when update fails', async () => {
-      mockSupabase
-        .from()
-        .update()
-        .eq.mockResolvedValue({
-          error: { message: 'Update failed' },
-        });
+      const ch = setupMockChain({ data: null, error: null }) as any;
+      ch.single.mockResolvedValue({ data: null, error: { message: 'Update failed' } });
 
       await expect(
         JobService.updateJobStatus('job-1', 'completed')
@@ -308,10 +322,8 @@ describe('JobService - Comprehensive Tests', () => {
           },
         ];
 
-        mockSupabase.from().select().eq().order.mockResolvedValue({
-          data: mockBids,
-          error: null,
-        });
+        const chB = setupMockChain({ data: null, error: null }) as any;
+        chB.order.mockResolvedValue({ data: mockBids, error: null });
 
         const result = await JobService.getBidsByJob('job-1');
 
@@ -325,27 +337,20 @@ describe('JobService - Comprehensive Tests', () => {
     describe('acceptBid', () => {
       it('should accept bid and update job status', async () => {
         // Mock the bid fetch
-        mockSupabase
-          .from()
-          .select()
-          .eq()
-          .single.mockResolvedValueOnce({
-            data: { job_id: 'job-1', contractor_id: 'contractor-1' },
-            error: null,
-          });
+        const ch2 = setupMockChain({ data: { job_id: 'job-1', contractor_id: 'contractor-1' }, error: null }) as any;
 
         // Mock bid status update
-        mockSupabase.from().update().eq.mockResolvedValueOnce({
-          error: null,
-        });
+        // eq resolves implicitly via await on chain
+        // (no explicit mock needed)
+        //
 
         // Mock job update
-        mockSupabase.from().update().eq.mockResolvedValueOnce({
-          error: null,
-        });
+        // eq resolves implicitly via await on chain
+        // (no explicit mock needed)
+        //
 
         // Mock reject other bids
-        mockSupabase.from().update().eq().neq.mockResolvedValueOnce({
+        (ch2.neq as any).mockResolvedValue({
           error: null,
         });
 
@@ -356,14 +361,7 @@ describe('JobService - Comprehensive Tests', () => {
       });
 
       it('should throw error if bid not found', async () => {
-        mockSupabase
-          .from()
-          .select()
-          .eq()
-          .single.mockResolvedValue({
-            data: null,
-            error: { message: 'Bid not found' },
-          });
+        setupMockChain({ data: null, error: { message: 'Bid not found' } });
 
         await expect(JobService.acceptBid('nonexistent')).rejects.toThrow(
           'Bid not found'
@@ -384,10 +382,8 @@ describe('JobService - Comprehensive Tests', () => {
         },
       ];
 
-      mockSupabase.from().select().or().eq().order().limit.mockResolvedValue({
-        data: mockJobs,
-        error: null,
-      });
+      const ch3 = setupMockChain({ data: null, error: null }) as any;
+      ch3.limit.mockResolvedValue({ data: mockJobs, error: null });
 
       const result = await JobService.searchJobs('kitchen', 10);
 
@@ -406,10 +402,8 @@ describe('JobService - Comprehensive Tests', () => {
         { id: 'job-2', title: 'Job 2' },
       ];
 
-      mockSupabase.from().select().order().range.mockResolvedValue({
-        data: mockJobs,
-        error: null,
-      });
+      const ch4 = setupMockChain({ data: null, error: null }) as any;
+      ch4.range.mockResolvedValue({ data: mockJobs, error: null });
 
       const result = await JobService.getJobs(20, 10);
 
@@ -423,9 +417,7 @@ describe('JobService - Comprehensive Tests', () => {
 
   describe('Job lifecycle methods', () => {
     it('should start job', async () => {
-      mockSupabase.from().update().eq.mockResolvedValue({
-        error: null,
-      });
+      setupMockChain({ data: { id: 'job-1', status: 'in_progress', title: 'Kitchen Repair', homeowner_id: 'user-1', budget: 150 }, error: null });
 
       await JobService.startJob('job-1');
 
@@ -437,9 +429,7 @@ describe('JobService - Comprehensive Tests', () => {
     });
 
     it('should complete job', async () => {
-      mockSupabase.from().update().eq.mockResolvedValue({
-        error: null,
-      });
+      setupMockChain({ data: { id: 'job-1', status: 'in_progress', title: 'Kitchen Repair', homeowner_id: 'user-1', budget: 150 }, error: null });
 
       await JobService.completeJob('job-1');
 
@@ -474,10 +464,8 @@ describe('JobService - Comprehensive Tests', () => {
         { id: 'job-1', status: 'in_progress', homeowner_id: 'user-1' },
       ];
 
-      mockSupabase.from().select().eq().or().order.mockResolvedValue({
-        data: mockJobs,
-        error: null,
-      });
+      const ch6 = setupMockChain({ data: null, error: null }) as any;
+      ch6.order.mockResolvedValue({ data: mockJobs, error: null });
 
       const result = await JobService.getJobsByStatus('in_progress', 'user-1');
 
@@ -488,3 +476,8 @@ describe('JobService - Comprehensive Tests', () => {
     });
   });
 });
+
+
+
+
+

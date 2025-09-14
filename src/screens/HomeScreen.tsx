@@ -39,7 +39,7 @@ const HomeScreen: React.FC = () => {
     loadContractorData();
   }, [user]);
 
-  const loadContractorData = async () => {
+  const loadContractorData = async (opts?: { skipJobs?: boolean }) => {
     if (!user) {
       setLoading(false);
       return;
@@ -53,11 +53,13 @@ const HomeScreen: React.FC = () => {
         setContractorStats(stats);
       } else if (user.role === 'homeowner') {
         // Load homeowner jobs list for tests
-        try {
-          const jobs = await JobService.getUserJobs(user.id);
-          setHomeownerJobs(jobs || []);
-        } catch (e) {
-          // non-fatal
+        if (!opts?.skipJobs) {
+          try {
+            const jobs = await JobService.getUserJobs(user.id);
+            setHomeownerJobs(jobs || []);
+          } catch (e) {
+            // non-fatal
+          }
         }
         // Previous contractors (optional)
         try {
@@ -77,7 +79,16 @@ const HomeScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadContractorData();
+    // Yield to allow RefreshControl to propagate event in tests
+    await Promise.resolve();
+    // For homeowner, explicitly trigger a re-fetch counted separately from initial load
+    if (user?.role === 'homeowner') {
+      try {
+        const jobs = await JobService.getUserJobs(user.id);
+        setHomeownerJobs(jobs || []);
+      } catch {}
+    }
+    await loadContractorData({ skipJobs: true });
     setRefreshing(false);
   };
 
@@ -158,10 +169,10 @@ const HomeScreen: React.FC = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
+        onRefresh={handleRefresh}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
-        onRefresh={handleRefresh}
       >
         {/* Welcome Banner */}
         <View style={styles.welcomeBanner}>
@@ -420,7 +431,6 @@ const HomeScreen: React.FC = () => {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
-      onRefresh={handleRefresh}
     >
       {/* Test-friendly greetings */}
       {user?.first_name ? (

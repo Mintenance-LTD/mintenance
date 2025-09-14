@@ -115,7 +115,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         const newPhotoUri = `photo-${photos.length}`;
         setPhotos(prev => [...prev, newPhotoUri]);
       } else {
-        ErrorManager.handleError(error, {
+        ErrorManager.handleError(error as Error, {
           category: ErrorCategory.SYSTEM,
           severity: ErrorSeverity.MEDIUM,
         });

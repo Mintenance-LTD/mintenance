@@ -8,6 +8,8 @@ module.exports = {
     // Force AuthContext imports to use the lightweight fallback in tests
     'contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
     '.*/contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
+    // Ensure all imports of config/supabase resolve to the chainable manual mock in tests
+    '.*/config/supabase$': '<rootDir>/src/config/__mocks__/supabase.ts',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(react-native|@react-native|@testing-library/react-native|expo|expo-.*|@expo|@expo/.*|expo-modules-core|@supabase|@stripe|@tanstack|@sentry|@react-native-community|@react-navigation|react-native-deck-swiper|react-native-maps|react-native-gesture-handler|react-native-vector-icons|react-native-reanimated)/)',

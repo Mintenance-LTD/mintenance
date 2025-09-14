@@ -7,7 +7,7 @@ import { Job } from '../types';
 export const useJobs = (limit: number = 20, offset: number = 0) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`limit:${limit},offset:${offset}`),
-    queryFn: () => JobService.getJobs(limit, offset),
+    queryFn: () => JobService.getJobs(undefined, limit),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -56,7 +56,7 @@ export const useJobBids = (jobId: string) => {
 export const useSearchJobs = (query: string, limit: number = 20) => {
   return useOfflineQuery({
     queryKey: queryKeys.search.jobs(query),
-    queryFn: () => JobService.searchJobs(query, limit),
+    queryFn: () => JobService.searchJobs(query, {}, limit),
     enabled: query.length > 2, // Only search if query is meaningful
     staleTime: 5 * 60 * 1000, // 5 minutes for search results
   });

@@ -1,5 +1,15 @@
 import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
-import { User, Job, Notification } from '../types/schemas';
+import { User, Job } from '../types/schemas';
+
+// Define Notification type locally since it's not in schemas
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  read: boolean;
+  createdAt: string;
+}
 
 // ============================================================================
 // STATE TYPES
@@ -413,7 +423,7 @@ export const useAppState = (): AppStateContextType => {
 // SELECTORS
 // ============================================================================
 
-export const useAppSelector = <T>(selector: (state: AppState) => T): T => {
+export const useAppSelector = <T extends any>(selector: (state: AppState) => T): T => {
   const { state } = useAppState();
   return useMemo(() => selector(state), [selector, state]);
 };

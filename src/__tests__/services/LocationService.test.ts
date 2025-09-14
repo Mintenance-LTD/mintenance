@@ -4,11 +4,18 @@ import { logger } from '../../utils/logger';
 
 // Get mocked modules
 const mockLocation = Location as jest.Mocked<typeof Location>;
-const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('LocationService', () => {
+  // Spy on logger methods for testing
+  let loggerErrorSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('requestLocationPermission', () => {
@@ -47,7 +54,7 @@ describe('LocationService', () => {
       const result = await LocationService.requestLocationPermission();
 
       expect(result).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error requesting location permission:',
         error
       );
@@ -151,7 +158,7 @@ describe('LocationService', () => {
         longitude: -122.4194,
       });
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error reverse geocoding:',
         expect.any(Error)
       );
@@ -168,7 +175,7 @@ describe('LocationService', () => {
       const result = await LocationService.getCurrentLocation();
 
       expect(result).toBeNull();
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error getting current location:',
         expect.any(Error)
       );
@@ -189,7 +196,7 @@ describe('LocationService', () => {
       const result = await LocationService.getCurrentLocation();
 
       expect(result).toBeNull();
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error getting current location:',
         locationError
       );
@@ -284,7 +291,7 @@ describe('LocationService', () => {
       const result = await LocationService.reverseGeocode(37.7749, -122.4194);
 
       expect(result).toEqual({});
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Error reverse geocoding:',
         error
       );

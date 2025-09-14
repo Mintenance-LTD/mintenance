@@ -265,10 +265,11 @@ const TestWrapper = ({ initialScreen }: { initialScreen?: string }) => (
 describe('User Authentication Workflow Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAuthService.getCurrentUser.mockResolvedValue(null);
-    mockAuthService.getCurrentSession.mockResolvedValue(null);
-    mockBiometricService.isAvailable.mockResolvedValue(false);
-    mockBiometricService.isBiometricEnabled.mockResolvedValue(false);
+    // Ensure these promises resolve immediately
+    mockAuthService.getCurrentUser.mockImplementation(() => Promise.resolve(null));
+    mockAuthService.getCurrentSession.mockImplementation(() => Promise.resolve(null));
+    mockBiometricService.isAvailable.mockImplementation(() => Promise.resolve(false));
+    mockBiometricService.isBiometricEnabled.mockImplementation(() => Promise.resolve(false));
   });
 
   describe('User Registration Flow', () => {
@@ -298,9 +299,16 @@ describe('User Authentication Workflow Integration', () => {
       );
 
       // Wait for initial loading to complete
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Let auth context initialize
       });
+
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Should show registration form
       expect(getByTestId('register-screen')).toBeTruthy();
@@ -361,9 +369,12 @@ describe('User Authentication Workflow Integration', () => {
         <TestWrapper initialScreen='register' />
       );
 
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
-      });
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Fill in form with existing email
       const firstNameInput = getByTestId('first-name-input');
@@ -416,9 +427,12 @@ describe('User Authentication Workflow Integration', () => {
 
       const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
-      });
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Should show login form
       expect(getByTestId('login-screen')).toBeTruthy();
@@ -466,9 +480,12 @@ describe('User Authentication Workflow Integration', () => {
 
       const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
-      });
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Fill in invalid credentials
       const emailInput = getByTestId('email-input');
@@ -518,9 +535,12 @@ describe('User Authentication Workflow Integration', () => {
 
       const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
-      });
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Complete login
       const emailInput = getByTestId('email-input');
@@ -577,9 +597,12 @@ describe('User Authentication Workflow Integration', () => {
 
       const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
-      await waitFor(() => {
-        expect(queryByTestId('loading')).toBeNull();
-      });
+      await waitFor(
+        () => {
+          expect(queryByTestId('loading')).toBeNull();
+        },
+        { timeout: 3000 }
+      );
 
       // Should show biometric login button when available
       expect(getByTestId('biometric-login-button')).toBeTruthy();

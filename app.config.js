@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    version: "1.1.1",
+    version: "1.1.2",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -17,7 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
-      buildNumber: "8",
+      buildNumber: "10",
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs access to location to find contractors near you.",
@@ -34,7 +34,7 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "com.mintenance.app",
-      versionCode: 8,
+      versionCode: 10,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
       intentFilters: [
         {

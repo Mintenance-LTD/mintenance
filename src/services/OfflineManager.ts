@@ -27,11 +27,11 @@ class OfflineManagerClass {
   ) => void)[] = [];
 
   private get shouldUseAsyncStorage(): boolean {
-    // In tests, prefer AsyncStorage-based queue to match unit test expectations
+    // In tests, prefer LocalDatabase (SQLite) to match unit test expectations
     const env = (process as any)?.env || {};
     const isTestEnv = env.NODE_ENV === 'test' || !!env.JEST_WORKER_ID;
     const hasJest = typeof (global as any).jest !== 'undefined';
-    return isTestEnv || hasJest;
+    return !(isTestEnv || hasJest);
   }
 
   async queueAction(

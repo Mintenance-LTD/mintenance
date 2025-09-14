@@ -111,11 +111,13 @@ describe('NotificationService', () => {
     });
 
     it('should return null on non-device platforms', async () => {
-      jest.mocked(Device).isDevice = false;
-      
-      // Don't set up any mock return values since these methods shouldn't be called
-      
-      const token = await NotificationService.initialize();
+      // Ensure the service sees the updated device state
+      jest.resetModules();
+      const deviceModule = require('expo-device');
+      deviceModule.isDevice = false;
+      const { NotificationService: FreshService } = require('../../services/NotificationService');
+
+      const token = await FreshService.initialize();
 
       expect(token).toBeNull();
       // Should not call any notification methods when not on device

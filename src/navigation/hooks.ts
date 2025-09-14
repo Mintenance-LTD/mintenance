@@ -83,7 +83,7 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
   params?: RootStackParamList[T]
 ) => {
   if (params) {
-    navigation.navigate(screen, params);
+    navigation.navigate(screen as any, params);
   } else {
     navigation.navigate(screen as any);
   }

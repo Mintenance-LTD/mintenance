@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabase';
 import { User } from '../types';
 import { ErrorHandler } from '../utils/errorHandler';
+import { NetworkDiagnosticsService } from '../utils/networkDiagnostics';
+import { logger } from '../utils/logger';
 
 export interface SignUpData {
   email: string;
@@ -46,68 +48,113 @@ export class AuthService {
     email: string,
     password: string
   ): Promise<{ user: any; session: any } | any> {
-    // Validation using ErrorHandler
-    ErrorHandler.validateEmail(email);
-    ErrorHandler.validateRequired(password, 'Password');
+    try {
+      // Validation using ErrorHandler
+      ErrorHandler.validateEmail(email);
+      ErrorHandler.validateRequired(password, 'Password');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      console.log('🔐 Attempting login with Supabase...', { email, timestamp: new Date().toISOString() });
 
-    if (error) {
-      const userMessage = ErrorHandler.getUserMessage(error);
-      throw ErrorHandler.createError(error.message, error.code, userMessage);
-    }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    // Get user profile
-    if (data.user) {
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      if (error) {
+        console.error('❌ Supabase auth error:', error);
 
-      if (profileError) {
-        console.warn('Profile fetch error:', profileError);
-        // Return user data from auth even if profile fetch fails
-        const fallbackUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          first_name: data.user.user_metadata?.first_name || '',
-          last_name: data.user.user_metadata?.last_name || '',
-          role: data.user.user_metadata?.role || 'homeowner',
-          created_at: data.user.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          // Computed fields for backward compatibility
-          firstName: data.user.user_metadata?.first_name || '',
-          lastName: data.user.user_metadata?.last_name || '',
-          createdAt: data.user.created_at || new Date().toISOString(),
-        };
+        // Handle specific network errors
+        if (error.message?.toLowerCase().includes('network request failed') ||
+            error.message?.toLowerCase().includes('fetch')) {
+          throw ErrorHandler.createError(
+            'Network connection failed. Please check your internet connection and try again.',
+            'NETWORK_ERROR',
+            'Unable to connect to the server. Please check your internet connection.'
+          );
+        }
+
+        const userMessage = ErrorHandler.getUserMessage(error);
+        throw ErrorHandler.createError(error.message, error.code, userMessage);
+      }
+
+      console.log('✅ Supabase auth successful');
+
+      // Get user profile
+      if (data.user) {
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError) {
+          console.warn('Profile fetch error:', profileError);
+          // Return user data from auth even if profile fetch fails
+          const fallbackUser = {
+            id: data.user.id,
+            email: data.user.email || '',
+            first_name: data.user.user_metadata?.first_name || '',
+            last_name: data.user.user_metadata?.last_name || '',
+            role: data.user.user_metadata?.role || 'homeowner',
+            created_at: data.user.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            // Computed fields for backward compatibility
+            firstName: data.user.user_metadata?.first_name || '',
+            lastName: data.user.user_metadata?.last_name || '',
+            createdAt: data.user.created_at || new Date().toISOString(),
+          };
+
+          return {
+            user: fallbackUser,
+            session: data.session,
+          };
+        }
+
+        // Add computed fields for backward compatibility
+        const enhancedProfile = userProfile
+          ? {
+              ...userProfile,
+              firstName: userProfile.first_name,
+              lastName: userProfile.last_name,
+              createdAt: userProfile.created_at,
+            }
+          : null;
 
         return {
-          user: fallbackUser,
+          user: enhancedProfile,
           session: data.session,
         };
       }
 
-      // Add computed fields for backward compatibility
-      const enhancedProfile = userProfile
-        ? {
-            ...userProfile,
-            firstName: userProfile.first_name,
-            lastName: userProfile.last_name,
-            createdAt: userProfile.created_at,
-          }
-        : null;
+      return data;
+    } catch (networkError: any) {
+      logger.error('🌐 Network error during login:', networkError);
 
-      return {
-        user: enhancedProfile,
-        session: data.session,
-      };
+      // Check if it's a network connectivity issue
+      if (networkError.message?.includes('Network request failed') ||
+          networkError.name === 'TypeError' ||
+          networkError.message?.includes('fetch')) {
+
+        // Run network diagnostics for better troubleshooting
+        try {
+          logger.info('🔍 Running network diagnostics after login failure...');
+          const diagnostics = await NetworkDiagnosticsService.runDiagnostics();
+          const diagnosticsReport = NetworkDiagnosticsService.formatDiagnosticsForDisplay(diagnostics);
+          logger.info('📊 Network Diagnostics Report:\n' + diagnosticsReport);
+        } catch (diagError) {
+          logger.warn('⚠️ Could not run network diagnostics:', diagError);
+        }
+
+        throw ErrorHandler.createError(
+          'Network connection failed. Please check your internet connection and try again.',
+          'NETWORK_ERROR',
+          'Unable to connect to the server. Please check your internet connection and try again.'
+        );
+      }
+
+      // Re-throw if it's already a handled error
+      throw networkError;
     }
-
-    return data;
   }
 
   static async signOut(): Promise<void> {
