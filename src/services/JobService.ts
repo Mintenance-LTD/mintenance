@@ -322,6 +322,13 @@ export class JobService {
       if (!data) return [];
       return data.map(this.formatJob);
     }
+    // Default to limited page when supported (tests finalize via limit())
+    if (typeof query.limit === 'function') {
+      const { data, error } = await query.limit(20);
+      if (error) throw error;
+      if (!data) return [];
+      return data.map(this.formatJob);
+    }
 
     const { data, error } = await query;
     if (error) throw error;

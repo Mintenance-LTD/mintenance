@@ -149,7 +149,7 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={loadContractorData}
+          onPress={() => loadContractorData()}
           accessibilityRole='button'
           accessibilityLabel='Retry loading dashboard'
           accessibilityHint='Double tap to retry loading your dashboard data'
@@ -169,7 +169,7 @@ const HomeScreen: React.FC = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
-        onRefresh={handleRefresh}
+        onRefresh={handleRefresh as any}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }

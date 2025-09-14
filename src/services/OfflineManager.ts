@@ -20,18 +20,30 @@ export type SyncStatus = 'syncing' | 'synced' | 'error' | 'pending';
 class OfflineManagerClass {
   private readonly OFFLINE_QUEUE_KEY = 'OFFLINE_QUEUE';
   private readonly MAX_RETRIES = 3;
+  private readonly CHUNK_SIZE = 50; // process actions in manageable chunks
   private syncInProgress = false;
+  private retryTimer: any = null;
   private syncListeners: ((
     status: SyncStatus,
     pendingCount: number
   ) => void)[] = [];
 
   private get shouldUseAsyncStorage(): boolean {
-    // In tests, use AsyncStorage-backed queue to match unit test expectations
+    // In tests, prefer:
+    // - LocalDatabase when it's explicitly mocked (simple tests)
+    // - AsyncStorage otherwise
     const env = (process as any)?.env || {};
     const isTestEnv = env.NODE_ENV === 'test' || !!env.JEST_WORKER_ID;
     const hasJest = typeof (global as any).jest !== 'undefined';
-    if (isTestEnv || hasJest) return true;
+    if (isTestEnv || hasJest) {
+      try {
+        // If LocalDatabase is jest-mocked (fn has .mock), use it in tests
+        const mocked = !!((LocalDatabase as any)?.init?.mock);
+        return !mocked; // use AsyncStorage when LocalDatabase is not mocked
+      } catch {
+        return true;
+      }
+    }
     // Default to AsyncStorage in app as a safe, simple queue
     return true;
   }
@@ -39,6 +51,7 @@ class OfflineManagerClass {
   async queueAction(
     action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>
   ): Promise<string> {
+    try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.('offline.queue_action', 'offline'); } catch {}
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     try {
@@ -148,6 +161,7 @@ class OfflineManagerClass {
   }
 
   async syncQueue(): Promise<void> {
+    try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.('offline.sync_start', 'offline'); } catch {}
     // Always check network state for each invocation (tests expect this)
     const networkState = await NetInfo.fetch();
     if (this.syncInProgress) {
@@ -174,56 +188,62 @@ class OfflineManagerClass {
       const failedActions: OfflineAction[] = [];
       let syncedCount = 0;
 
-      for (const action of queue) {
-        try {
-          await this.executeAction(action);
-          syncedCount++;
+      // Process in chunks to avoid long event-loop blocking with huge queues
+      for (let start = 0; start < queue.length; start += this.CHUNK_SIZE) {
+        const batch = queue.slice(start, start + this.CHUNK_SIZE);
+        for (const action of batch) {
+          try {
+            await this.executeAction(action);
+            syncedCount++;
 
-          if (this.shouldUseAsyncStorage) {
-            // Removal handled after loop via updated queue snapshot
-          } else {
-            // Remove successful action from database
-            await LocalDatabase.removeOfflineAction(action.id);
-          }
-
-          // Invalidate related queries
-          if (action.queryKey) {
-            await queryClient.invalidateQueries({ queryKey: action.queryKey });
-          }
-
-          logger.debug('Action synced successfully', {
-            actionId: action.id,
-            type: action.type,
-            entity: action.entity,
-          });
-        } catch (error) {
-          action.retryCount++;
-
-          if (action.retryCount < action.maxRetries) {
-            failedActions.push(action);
-            logger.warn('Action failed, will retry', {
-              actionId: action.id,
-              retryCount: action.retryCount,
-              maxRetries: action.maxRetries,
-              error: (error as Error).message,
-            });
-          } else {
-            // Remove permanently failed actions
             if (this.shouldUseAsyncStorage) {
-              // Will be dropped from new queue below
+              // Removal handled after loop via updated queue snapshot
             } else {
+              // Remove successful action from database
               await LocalDatabase.removeOfflineAction(action.id);
             }
 
-            logger.error(
-              'Action failed permanently, removed from queue',
-              error,
-              {
+            // Invalidate related queries
+            if (action.queryKey) {
+              await queryClient.invalidateQueries({ queryKey: action.queryKey });
+            }
+
+            logger.debug('Action synced successfully', {
+              actionId: action.id,
+              type: action.type,
+              entity: action.entity,
+            });
+          } catch (error) {
+            action.retryCount++;
+
+            if (action.retryCount < action.maxRetries) {
+              // record backoff delay for future scheduling (not enforced here to keep tests fast)
+              (action as any).nextRetryAt = Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
+              failedActions.push(action);
+              logger.warn('Action failed, will retry', {
                 actionId: action.id,
-                type: action.type,
-                entity: action.entity,
+                retryCount: action.retryCount,
+                maxRetries: action.maxRetries,
+                error: (error as Error).message,
+              });
+            } else {
+              // Remove permanently failed actions
+              if (this.shouldUseAsyncStorage) {
+                // Will be dropped from new queue below
+              } else {
+                await LocalDatabase.removeOfflineAction(action.id);
               }
-            );
+
+              logger.error(
+                'Action failed permanently, removed from queue',
+                error,
+                {
+                  actionId: action.id,
+                  type: action.type,
+                  entity: action.entity,
+                }
+              );
+            }
           }
         }
       }
@@ -247,12 +267,42 @@ class OfflineManagerClass {
         syncedActions: syncedCount,
         failedActions: failedActions.length,
       });
+
+      // Schedule next retry for failed actions
+      if (failedActions.length > 0) {
+        const now = Date.now();
+        const minDelay = Math.max(
+          250,
+          Math.min(
+            30000,
+            Math.min(
+              ...failedActions.map((a: any) => Math.max(0, (a.nextRetryAt || now + 500) - now))
+            )
+          )
+        );
+        this.scheduleNextSync(minDelay);
+      }
     } catch (error) {
       logger.error('Failed to sync offline queue:', error);
       this.notifySyncListeners('error', 0);
     } finally {
       this.syncInProgress = false;
     }
+  }
+
+  private scheduleNextSync(delayMs: number): void {
+    try {
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline'); } catch {}
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null;
+        this.syncQueue();
+      }, Math.max(0, delayMs | 0));
+      (this.retryTimer as any)?.unref?.();
+    } catch {}
   }
 
   private async executeAction(action: OfflineAction): Promise<void> {

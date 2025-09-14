@@ -490,5 +490,4 @@ export class RealtimeService {
 }
 
 // Export both the class and instance-based service
-export { RealTimeService, RealtimeService };
 export default RealTimeService;

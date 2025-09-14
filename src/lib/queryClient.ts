@@ -129,6 +129,9 @@ export const queryClient = new QueryClient({
 });
 
 // Persistence utilities for offline support
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_MAX_ENTRIES = 500; // keep most recent 500 entries
+
 export const persistQueryClient = async () => {
   try {
     const clientState = queryClient
@@ -138,17 +141,31 @@ export const persistQueryClient = async () => {
         (acc, query) => {
           const { queryKey, state } = query;
           if (state.status === 'success' && state.data) {
-            acc[JSON.stringify(queryKey)] = {
+            acc.push({
+              key: JSON.stringify(queryKey),
               data: state.data,
               dataUpdatedAt: state.dataUpdatedAt,
-            };
+            });
           }
           return acc;
         },
-        {} as Record<string, any>
+        [] as Array<{ key: string; data: any; dataUpdatedAt: number }>
       );
 
-    await AsyncStorage.setItem('QUERY_CACHE', JSON.stringify(clientState));
+    // Apply TTL filter
+    const now = Date.now();
+    const fresh = clientState.filter((e) => now - e.dataUpdatedAt <= CACHE_TTL_MS);
+    // Sort by recency and cap entries
+    fresh.sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt);
+    const limited = fresh.slice(0, CACHE_MAX_ENTRIES);
+
+    // Rehydrate to object shape for storage
+    const payload = limited.reduce((obj, e) => {
+      (obj as any)[e.key] = { data: e.data, dataUpdatedAt: e.dataUpdatedAt };
+      return obj;
+    }, {} as Record<string, any>);
+
+    await AsyncStorage.setItem('QUERY_CACHE', JSON.stringify(payload));
   } catch (error) {
     logger.error('Failed to persist query cache:', error);
   }
@@ -158,12 +175,18 @@ export const restoreQueryClient = async () => {
   try {
     const cachedData = await AsyncStorage.getItem('QUERY_CACHE');
     if (cachedData) {
-      const parsedData = JSON.parse(cachedData);
+      const parsedData = JSON.parse(cachedData) as Record<string, { data: any; dataUpdatedAt: number }>;
 
-      Object.entries(parsedData).forEach(([key, value]: [string, any]) => {
-        const queryKey = JSON.parse(key);
-        queryClient.setQueryData(queryKey, value.data, {
-          updatedAt: value.dataUpdatedAt,
+      const entries = Object.entries(parsedData)
+        .map(([key, value]) => ({ key, ...value }))
+        .filter((e) => Date.now() - e.dataUpdatedAt <= CACHE_TTL_MS)
+        .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)
+        .slice(0, CACHE_MAX_ENTRIES);
+
+      entries.forEach((e) => {
+        const queryKey = JSON.parse(e.key);
+        queryClient.setQueryData(queryKey, e.data, {
+          updatedAt: e.dataUpdatedAt,
         });
       });
     }

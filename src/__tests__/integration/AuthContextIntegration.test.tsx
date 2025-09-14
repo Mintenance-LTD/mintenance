@@ -185,6 +185,11 @@ describe('Auth Context Integration', () => {
 
     const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
+    // Give React a tick to process initial effects
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     // Wait for loading to complete
     await waitFor(() => {
       expect(queryByTestId('loading')).toBeNull();
@@ -248,6 +253,11 @@ describe('Auth Context Integration', () => {
 
     const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
+    // Give React a tick to process initial effects
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     // Wait for loading to complete
     await waitFor(() => {
       expect(queryByTestId('loading')).toBeNull();
@@ -305,6 +315,9 @@ describe('Auth Context Integration', () => {
     const { getByTestId, queryByTestId } = render(<TestWrapper />);
 
     // Wait for loading to complete and user to be loaded
+    await act(async () => {
+      await Promise.resolve();
+    });
     await waitFor(() => {
       expect(queryByTestId('loading')).toBeNull();
       expect(getByTestId('user-info')).toBeTruthy();
@@ -362,6 +375,9 @@ describe('Auth Context Integration', () => {
     resolveGetCurrentUser!(mockUser);
 
     // Should load existing user and skip to authenticated state
+    await act(async () => {
+      await Promise.resolve();
+    });
     await waitFor(() => {
       expect(queryByTestId('loading')).toBeNull();
       expect(getByTestId('user-info')).toBeTruthy();

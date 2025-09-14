@@ -1,24 +1,26 @@
-import { NotificationService } from '../../services/NotificationService';
+// Mock notifications bridge BEFORE requiring the service so hoisting is safe
+jest.mock('../../utils/notificationsBridge', () => ({
+  __esModule: true,
+  default: {
+    setNotificationHandler: jest.fn(),
+    getPermissionsAsync: jest.fn(),
+    requestPermissionsAsync: jest.fn(),
+    getExpoPushTokenAsync: jest.fn(),
+    setNotificationChannelAsync: jest.fn(),
+    scheduleNotificationAsync: jest.fn(),
+    cancelScheduledNotificationAsync: jest.fn(),
+    addNotificationReceivedListener: jest.fn(),
+    addNotificationResponseReceivedListener: jest.fn(),
+    setBadgeCountAsync: jest.fn(),
+    AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
+  },
+}));
 
-// Mock only external dependencies - Expo Notifications
-const mockNotifications = {
-  setNotificationHandler: jest.fn(),
-  getPermissionsAsync: jest.fn(),
-  requestPermissionsAsync: jest.fn(),
-  getExpoPushTokenAsync: jest.fn(),
-  setNotificationChannelAsync: jest.fn(),
-  scheduleNotificationAsync: jest.fn(),
-  cancelScheduledNotificationAsync: jest.fn(),
-  addNotificationReceivedListener: jest.fn(),
-  addNotificationResponseReceivedListener: jest.fn(),
-  setBadgeCountAsync: jest.fn(),
-};
+// Now get the shared mock instance
+const { default: mockNotifications } = require('../../utils/notificationsBridge');
 
-const mockDevice = {
-  isDevice: true,
-};
-
-jest.mock('expo-notifications', () => mockNotifications);
+// Mock only external dependencies - Device
+const mockDevice = { isDevice: true };
 jest.mock('expo-device', () => mockDevice);
 
 // Simple Supabase mock
@@ -36,6 +38,9 @@ jest.mock('../../utils/logger', () => ({
 global.fetch = jest.fn();
 
 const { supabase } = require('../../config/supabase');
+
+// Import service after mocks are in place
+const { NotificationService } = require('../../services/NotificationService');
 
 describe('NotificationService - Simple Tests', () => {
   beforeEach(() => {

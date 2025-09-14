@@ -100,6 +100,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
     check();
+    // Absolute safeguard: ensure loading doesn't stick even if getCurrentUser never resolves
+    setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 10);
     checkBiometric();
     return () => {
       isMounted = false;

@@ -149,7 +149,7 @@ export class ContractorService {
         .not('id', 'in', `(${matchedContractorIds.join(',')})`);
 
       if (error) throw new Error((error as any)?.message || 'Insert failed');
-      if (!data) throw new Error('Insert failed');
+      if (!contractors) throw new Error('Insert failed');
 
       const contractorsWithDistance = contractors
         .map((contractor: any) => ({
