@@ -27,11 +27,13 @@ class OfflineManagerClass {
   ) => void)[] = [];
 
   private get shouldUseAsyncStorage(): boolean {
-    // In tests, prefer LocalDatabase (SQLite) to match unit test expectations
+    // In tests, use AsyncStorage-backed queue to match unit test expectations
     const env = (process as any)?.env || {};
     const isTestEnv = env.NODE_ENV === 'test' || !!env.JEST_WORKER_ID;
     const hasJest = typeof (global as any).jest !== 'undefined';
-    return !(isTestEnv || hasJest);
+    if (isTestEnv || hasJest) return true;
+    // Default to AsyncStorage in app as a safe, simple queue
+    return true;
   }
 
   async queueAction(
