@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +17,7 @@ import { Job } from '../types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';
+import { TERMS_URL, PRIVACY_URL } from '../config/legal';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -236,7 +238,7 @@ const ProfileScreen: React.FC = () => {
                   />
                   <Text style={styles.performanceValue}>85</Text>
                 </View>
-                <Text style={styles.performanceLabel}>Jobs Done</Text>
+                <Text style={styles.performanceLabel}>Jobs Completed</Text>
                 <Text style={styles.performanceSubtext}>Total completed</Text>
               </View>
             </View>
@@ -322,6 +324,23 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Connections')}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <Ionicons
+                  name='people-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <Text style={styles.menuText}>My Connections</Text>
+            </View>
+            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
+          </TouchableOpacity>
+
           {user?.role === 'contractor' && (
             <>
               <TouchableOpacity
@@ -371,6 +390,23 @@ const ProfileScreen: React.FC = () => {
                     />
                   </View>
                   <Text style={styles.menuText}>Client Management</Text>
+                </View>
+                <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => navigation.navigate('ContractorCardEditor')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons
+                      name='card'
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <Text style={styles.menuText}>Edit Discovery Card</Text>
                 </View>
                 <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
               </TouchableOpacity>
@@ -424,12 +460,15 @@ const ProfileScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
-              Alert.alert(
-                'Terms of Service',
-                'Please visit our website or app store listing to view the full Terms of Service.',
-                [{ text: 'OK' }]
+              Linking.openURL(TERMS_URL).catch(() =>
+                Alert.alert(
+                  'Terms of Service',
+                  'Unable to open the Terms right now. Please try again later.'
+                )
               );
             }}
+            accessibilityRole='link'
+            accessibilityLabel='Open Terms of Service in browser'
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -447,12 +486,15 @@ const ProfileScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => {
-              Alert.alert(
-                'Privacy Policy',
-                'Please visit our website or app store listing to view the full Privacy Policy.',
-                [{ text: 'OK' }]
+              Linking.openURL(PRIVACY_URL).catch(() =>
+                Alert.alert(
+                  'Privacy Policy',
+                  'Unable to open the Privacy Policy right now. Please try again later.'
+                )
               );
             }}
+            accessibilityRole='link'
+            accessibilityLabel='Open Privacy Policy in browser'
           >
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -468,13 +510,15 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <Button
-          variant='danger'
-          title='Sign Out'
-          onPress={handleSignOut}
-          fullWidth
-          style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 50 }}
-        />
+        <View style={styles.signOutContainer}>
+          <Button
+            variant='secondary'
+            title='Sign Out'
+            onPress={handleSignOut}
+            fullWidth
+            style={styles.signOutButton}
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -743,20 +787,15 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     fontWeight: '500',
   },
-  signOutButton: {
-    backgroundColor: theme.colors.error, // Red sign out button
-    marginHorizontal: 16,
+  signOutContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
     marginTop: 8,
-    marginBottom: 50,
-    paddingVertical: 16,
-    borderRadius: 20, // Rounded button
-    alignItems: 'center',
-    ...theme.shadows.base,
   },
-  signOutText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
+  signOutButton: {
+    backgroundColor: theme.colors.secondary, // Mint green sign out button
+    marginTop: 0,
+    marginBottom: 0,
   },
 });
 

@@ -175,15 +175,17 @@ export const isRTL = (language?: Language): boolean => {
 
 export const formatCurrency = (
   amount: number,
-  currency = 'USD',
+  currency?: string,
   language?: Language
 ): string => {
   const lang = language || getCurrentLanguage();
+  const deviceCurrency = (RNLocalize as any)?.getCurrencies?.()?.[0] || 'USD';
+  const resolvedCurrency = currency || deviceCurrency;
 
   try {
     return new Intl.NumberFormat(lang === 'en' ? 'en-US' : lang, {
       style: 'currency',
-      currency,
+      currency: resolvedCurrency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(amount);

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
+import { useI18n } from '../hooks/useI18n';
 import { useAuth } from '../contexts/AuthContext';
 import {
   contractorBusinessSuite,
@@ -30,6 +31,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const { formatters } = useI18n();
   const [financialData, setFinancialData] = useState<FinancialSummary | null>(
     null
   );
@@ -63,14 +65,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     setRefreshing(false);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatters.currency(amount);
 
   const getRevenueChartData = () => {
     if (!financialData) return { labels: [], datasets: [{ data: [] }] };

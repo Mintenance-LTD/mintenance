@@ -12,16 +12,18 @@ import Swiper from 'react-native-deck-swiper';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '../types';
 import { theme } from '../theme';
+import ConnectButton from './ConnectButton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface Props {
   contractor: ContractorProfile;
+  currentUserId?: string;
   onLike: () => void;
   onPass: () => void;
 }
 
-const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
+const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, onPass }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   const renderStars = (rating: number) => {
@@ -72,6 +74,16 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
       type: 'profile',
       content: (
         <View style={styles.cardContent}>
+          {/* Company Logo Header */}
+          {contractor.companyLogo && (
+            <View style={styles.companyLogoContainer}>
+              <Image
+                source={{ uri: contractor.companyLogo }}
+                style={styles.companyLogo}
+              />
+            </View>
+          )}
+
           <View style={styles.profileHeader}>
             <View style={styles.profileImageContainer}>
               {contractor.profileImageUrl ? (
@@ -91,9 +103,17 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
             </View>
 
             <View style={styles.profileInfo}>
+              {/* Company Name or Personal Name */}
               <Text style={styles.contractorName}>
-                {contractor.firstName} {contractor.lastName}
+                {contractor.companyName || `${contractor.firstName} ${contractor.lastName}`}
               </Text>
+
+              {/* Personal name if company name is shown */}
+              {contractor.companyName && (
+                <Text style={styles.personalName}>
+                  {contractor.firstName} {contractor.lastName}
+                </Text>
+              )}
 
               <View style={styles.ratingContainer}>
                 <View style={styles.starsContainer}>
@@ -118,6 +138,41 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
               <Text style={styles.bioText}>{contractor.bio}</Text>
             </View>
           )}
+
+          {/* Enhanced Profile Information */}
+          <View style={styles.detailsGrid}>
+            {contractor.hourlyRate && (
+              <View style={styles.detailItem}>
+                <Ionicons name="cash-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.detailText}>${contractor.hourlyRate}/hr</Text>
+              </View>
+            )}
+
+            {contractor.yearsExperience && (
+              <View style={styles.detailItem}>
+                <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.detailText}>{contractor.yearsExperience} years exp</Text>
+              </View>
+            )}
+
+            {contractor.availability && (
+              <View style={styles.detailItem}>
+                <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.detailText}>
+                  {contractor.availability.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </Text>
+              </View>
+            )}
+
+            {contractor.businessAddress && (
+              <View style={styles.detailItem}>
+                <Ionicons name="location-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.detailText} numberOfLines={1}>
+                  {contractor.businessAddress}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {contractor.skills && contractor.skills.length > 0 && (
             <View style={styles.skillsSection}>
@@ -189,6 +244,49 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
         </View>
       ),
     },
+
+    // Portfolio card (if portfolio images exist)
+    ...(contractor.portfolioImages && contractor.portfolioImages.length > 0 ? [{
+      type: 'portfolio',
+      content: (
+        <View style={styles.cardContent}>
+          <View style={styles.portfolioHeader}>
+            <Text style={styles.portfolioTitle}>Previous Work</Text>
+            <Text style={styles.portfolioSubtitle}>Swipe through project photos</Text>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.portfolioScroll}
+            pagingEnabled
+          >
+            {contractor.portfolioImages.map((imageUri, index) => (
+              <View key={index} style={styles.portfolioImageContainer}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.portfolioImage}
+                  resizeMode="cover"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {contractor.specialties && contractor.specialties.length > 0 && (
+            <View style={styles.portfolioSpecialties}>
+              <Text style={styles.specialtiesTitle}>Specialties</Text>
+              <View style={styles.specialtiesContainer}>
+                {contractor.specialties.slice(0, 6).map((specialty, index) => (
+                  <View key={index} style={styles.specialtyTag}>
+                    <Text style={styles.specialtyText}>{specialty}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      ),
+    }] : []),
   ];
 
   return (
@@ -255,6 +353,17 @@ const ContractorCard: React.FC<Props> = ({ contractor, onLike, onPass }) => {
         <TouchableOpacity style={styles.passButton} onPress={onPass}>
           <Ionicons name='close' size={30} color='#FF3B30' />
         </TouchableOpacity>
+
+        {currentUserId && (
+          <ConnectButton
+            currentUserId={currentUserId}
+            targetUserId={contractor.id}
+            targetUserName={`${contractor.firstName || contractor.first_name} ${contractor.lastName || contractor.last_name}`}
+            targetUserRole="contractor"
+            size="medium"
+            style={styles.connectButton}
+          />
+        )}
 
         <TouchableOpacity style={styles.likeButton} onPress={onLike}>
           <Ionicons name='leaf' size={30} color='#4CD964' />
@@ -463,6 +572,100 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  // Enhanced profile styles
+  companyLogoContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  companyLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+  },
+  personalName: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 15,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+    marginBottom: 8,
+    minWidth: '45%',
+  },
+  detailText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginLeft: 6,
+    flex: 1,
+  },
+  // Portfolio styles
+  portfolioHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  portfolioTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  portfolioSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 5,
+  },
+  portfolioScroll: {
+    marginBottom: 20,
+  },
+  portfolioImageContainer: {
+    width: screenWidth - 80,
+    marginRight: 10,
+  },
+  portfolioImage: {
+    width: '100%',
+    height: 250,
+    borderRadius: theme.borderRadius.lg,
+  },
+  portfolioSpecialties: {
+    marginTop: 10,
+  },
+  specialtiesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  specialtiesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  specialtyTag: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
+  },
+  specialtyText: {
+    fontSize: 12,
+    color: theme.colors.textInverse,
+    fontWeight: '500',
+  },
+  connectButton: {
+    marginHorizontal: 10,
   },
 });
 

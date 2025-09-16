@@ -7,6 +7,8 @@ import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
 import FindContractorsScreen from '../../screens/FindContractorsScreen';
 import ContractorDiscoveryScreen from '../../screens/ContractorDiscoveryScreen';
 import CreateQuoteScreen from '../../screens/CreateQuoteScreen';
+import MeetingScheduleScreen from '../../screens/MeetingScheduleScreen';
+import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -36,6 +38,18 @@ const SafeContractorDiscoveryScreen = withScreenErrorBoundary(
 const SafeCreateQuoteScreen = withScreenErrorBoundary(
   CreateQuoteScreen,
   'Create Quote',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeMeetingScheduleScreen = withScreenErrorBoundary(
+  MeetingScheduleScreen,
+  'Schedule Meeting',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeMeetingDetailsScreen = withScreenErrorBoundary(
+  MeetingDetailsScreen,
+  'Meeting Details',
   { fallbackRoute: 'Main' }
 );
 
@@ -106,6 +120,24 @@ export const ModalNavigator: React.FC = () => {
           title: route.params?.jobId ? 'Quote for Job' : 'Create Quote',
           gestureEnabled: true,
         })}
+      />
+
+      <ModalStack.Screen
+        name="MeetingSchedule"
+        component={SafeMeetingScheduleScreen}
+        options={{
+          title: 'Schedule Meeting',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name="MeetingDetails"
+        component={SafeMeetingDetailsScreen}
+        options={{
+          title: 'Meeting Details',
+          gestureEnabled: true,
+        }}
       />
     </ModalStack.Navigator>
   );

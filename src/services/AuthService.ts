@@ -268,46 +268,74 @@ export class AuthService {
     });
   }
 
-  // Validate JWT token
-  static validateToken(token: string): boolean {
+  // Validate JWT token with proper signature verification
+  static async validateToken(token: string): Promise<{ valid: boolean; userId?: string; error?: string }> {
     try {
-      // Simple JWT format validation
-      const parts = token.split('.');
-      if (parts.length !== 3) return false;
+      if (!token) {
+        return { valid: false, error: 'No token provided' };
+      }
 
-      // Safe base64 decode that works in Node (tests) and RN
+      // Simple JWT format validation first
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return { valid: false, error: 'Invalid token format' };
+      }
+
+      // Use Supabase's built-in JWT verification which validates signature
+      const { data: user, error } = await supabase.auth.getUser(token);
+
+      if (error) {
+        return { valid: false, error: error.message };
+      }
+
+      if (!user?.user) {
+        return { valid: false, error: 'Invalid or expired token' };
+      }
+
+      // Additional security checks
+      const payload = this.decodeJWTPayload(token);
+      if (!payload) {
+        return { valid: false, error: 'Cannot decode token payload' };
+      }
+
+      // Verify token is not expired (extra check beyond Supabase validation)
+      if (payload.exp && Number(payload.exp) < Date.now() / 1000) {
+        return { valid: false, error: 'Token expired' };
+      }
+
+      // Verify issuer if configured
+      if (payload.iss && !payload.iss.includes('supabase')) {
+        return { valid: false, error: 'Invalid token issuer' };
+      }
+
+      return { valid: true, userId: user.user.id };
+    } catch (error) {
+      return { valid: false, error: 'Token validation failed' };
+    }
+  }
+
+  // Helper method to safely decode JWT payload without signature verification (for additional checks)
+  private static decodeJWTPayload(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+
+      // Safe base64 decode
       const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       let decoded = '';
-      try {
-        // Prefer global atob when available (some RN envs polyfill it)
-        const g: any = globalThis as any;
-        if (typeof g.atob === 'function') {
-          decoded = g.atob(base64Url);
-        } else if (typeof Buffer !== 'undefined') {
-          decoded = Buffer.from(base64Url, 'base64').toString('utf8');
-        } else {
-          // Last resort: manual decode failure -> consider invalid
-          return false;
-        }
-      } catch {
-        return false;
+
+      const g: any = globalThis as any;
+      if (typeof g.atob === 'function') {
+        decoded = g.atob(base64Url);
+      } else if (typeof Buffer !== 'undefined') {
+        decoded = Buffer.from(base64Url, 'base64').toString('utf8');
+      } else {
+        return null;
       }
 
-      let payload: any;
-      try {
-        payload = JSON.parse(decoded);
-      } catch {
-        return false;
-      }
-
-      // Check expiry (exp is in seconds)
-      if (payload?.exp && Number(payload.exp) < Date.now() / 1000) {
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      return false;
+      return JSON.parse(decoded);
+    } catch {
+      return null;
     }
   }
 

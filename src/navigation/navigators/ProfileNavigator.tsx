@@ -7,6 +7,7 @@ import ProfileScreen from '../../screens/ProfileScreen';
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../../screens/NotificationSettingsScreen';
 import PaymentMethodsScreen from '../../screens/PaymentMethodsScreen';
+import AddPaymentMethodScreen from '../../screens/AddPaymentMethodScreen';
 import HelpCenterScreen from '../../screens/HelpCenterScreen';
 import InvoiceManagementScreen from '../../screens/InvoiceManagementScreen';
 import CRMDashboardScreen from '../../screens/CRMDashboardScreen';
@@ -14,6 +15,8 @@ import FinanceDashboardScreen from '../../screens/FinanceDashboardScreen';
 import ServiceAreasScreen from '../../screens/ServiceAreasScreen';
 import QuoteBuilderScreen from '../../screens/QuoteBuilderScreen';
 import CreateQuoteScreen from '../../screens/CreateQuoteScreen';
+import ContractorCardEditorScreen from '../../screens/ContractorCardEditorScreen';
+import ConnectionsScreen from '../../screens/ConnectionsScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -44,6 +47,12 @@ const SafePaymentMethodsScreen = withScreenErrorBoundary(
   PaymentMethodsScreen,
   'Payment Methods',
   { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeAddPaymentMethodScreen = withScreenErrorBoundary(
+  AddPaymentMethodScreen,
+  'Add Payment Method',
+  { fallbackRoute: 'PaymentMethods' }
 );
 
 const SafeHelpCenterScreen = withScreenErrorBoundary(
@@ -86,6 +95,18 @@ const SafeCreateQuoteScreen = withScreenErrorBoundary(
   CreateQuoteScreen,
   'Create Quote',
   { fallbackRoute: 'QuoteBuilder' }
+);
+
+const SafeContractorCardEditorScreen = withScreenErrorBoundary(
+  ContractorCardEditorScreen,
+  'Edit Discovery Card',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeConnectionsScreen = withScreenErrorBoundary(
+  ConnectionsScreen,
+  'Connections',
+  { fallbackRoute: 'ProfileMain' }
 );
 
 // ============================================================================
@@ -149,6 +170,16 @@ export const ProfileNavigator: React.FC = () => {
         component={SafePaymentMethodsScreen}
         options={{
           title: 'Payment Methods',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="AddPaymentMethod"
+        component={SafeAddPaymentMethodScreen}
+        options={{
+          title: 'Add Payment Method',
           headerShown: false,
           gestureEnabled: true,
         }}
@@ -233,6 +264,26 @@ export const ProfileNavigator: React.FC = () => {
               ],
             },
           }),
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="ContractorCardEditor"
+        component={SafeContractorCardEditorScreen}
+        options={{
+          title: 'Edit Discovery Card',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Connections"
+        component={SafeConnectionsScreen}
+        options={{
+          title: 'Connections',
+          headerShown: false,
+          gestureEnabled: true,
         }}
       />
     </ProfileStack.Navigator>

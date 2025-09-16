@@ -386,6 +386,12 @@ export class MessagingService {
     limit: number = 20
   ): Promise<Message[]> {
     try {
+      // Sanitize search input to prevent SQL injection
+      const sanitizedSearchTerm = sanitizeText(searchTerm).trim();
+      if (!sanitizedSearchTerm) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('messages')
         .select(
@@ -395,7 +401,7 @@ export class MessagingService {
         `
         )
         .eq('job_id', jobId)
-        .ilike('message_text', `%${searchTerm}%`)
+        .ilike('message_text', `%${sanitizedSearchTerm}%`)
         .order('created_at', { ascending: false })
         .limit(limit);
 

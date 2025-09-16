@@ -107,6 +107,23 @@ export interface ContractorProfile extends User {
   skills: ContractorSkill[];
   reviews: Review[];
   distance?: number;
+  // Enhanced profile fields for discovery card
+  companyName?: string;
+  companyLogo?: string;
+  businessAddress?: string;
+  licenseNumber?: string;
+  yearsExperience?: number;
+  hourlyRate?: number;
+  portfolioImages?: string[];
+  specialties?: string[];
+  serviceRadius?: number; // in kilometers
+  availability?: 'immediate' | 'this_week' | 'this_month' | 'busy';
+  certifications?: string[];
+  insurance?: {
+    provider: string;
+    policyNumber: string;
+    expiryDate: string;
+  };
 }
 
 export interface LocationData {
@@ -159,6 +176,30 @@ export interface ContractorEndorsement {
   createdAt: string;
 }
 
+// Mutual Connections Types
+export type ConnectionStatus = 'pending' | 'accepted' | 'blocked';
+
+export interface MutualConnection {
+  id: string;
+  requesterId: string;
+  receiverId: string;
+  status: ConnectionStatus;
+  requestedAt: string;
+  acceptedAt?: string;
+  requester?: User;
+  receiver?: User;
+}
+
+export interface ConnectionRequest {
+  id: string;
+  requesterId: string;
+  receiverId: string;
+  message?: string;
+  status: ConnectionStatus;
+  createdAt: string;
+  requester: User;
+}
+
 export interface Message {
   id: string;
   jobId: string;
@@ -198,6 +239,50 @@ export interface NotificationBehavior {
   shouldSetBadge: boolean;
   shouldShowBanner: boolean;
   shouldShowList: boolean;
+}
+
+// Meeting and Scheduling types
+export interface ContractorMeeting {
+  id: string;
+  jobId: string;
+  homeownerId: string;
+  contractorId: string;
+  scheduledDateTime: string;
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rescheduled';
+  meetingType: 'site_visit' | 'consultation' | 'work_session';
+  location: LocationData;
+  duration: number; // Duration in minutes
+  notes?: string;
+  estimatedArrival?: string;
+  actualArrival?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Expanded details
+  homeowner?: User;
+  contractor?: User;
+  job?: Job;
+}
+
+export interface MeetingUpdate {
+  id: string;
+  meetingId: string;
+  updateType: 'schedule_change' | 'location_update' | 'status_change' | 'arrival_notification';
+  message: string;
+  updatedBy: string;
+  timestamp: string;
+  oldValue?: any;
+  newValue?: any;
+}
+
+export interface ContractorLocation {
+  id: string;
+  contractorId: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: string;
+  isActive: boolean;
+  meetingId?: string;
 }
 
 // Global declarations

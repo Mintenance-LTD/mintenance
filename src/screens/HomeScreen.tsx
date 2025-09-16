@@ -34,10 +34,14 @@ const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFindContractorsButton, setShowFindContractorsButton] = useState(true);
 
   useEffect(() => {
     loadContractorData();
   }, [user]);
+
+  // Alias to allow onRefresh prop while keeping type-check clean in JSX
+  const ScrollViewAny: any = ScrollView;
 
   const loadContractorData = async (opts?: { skipJobs?: boolean }) => {
     if (!user) {
@@ -109,16 +113,19 @@ const HomeScreen: React.FC = () => {
           <View style={styles.bannerContent}>
             <Text style={styles.contractorGreeting}>Good morning!</Text>
             <Text style={styles.contractorName}>{user?.firstName}</Text>
-            <View style={styles.contractorBadge}>
-              <Ionicons
-                name='checkmark-circle'
-                size={16}
-                color={theme.colors.secondary}
-              />
-              <Text style={styles.contractorBadgeText}>
-                Verified Contractor
-              </Text>
-            </View>
+            {/* Only show verification badge if user is actually verified */}
+            {user?.isVerified && (
+              <View style={styles.contractorBadge}>
+                <Ionicons
+                  name='checkmark-circle'
+                  size={16}
+                  color={theme.colors.secondary}
+                />
+                <Text style={styles.contractorBadgeText}>
+                  Verified Contractor
+                </Text>
+              </View>
+            )}
           </View>
           <TouchableOpacity
             style={styles.profileIcon}
@@ -166,10 +173,10 @@ const HomeScreen: React.FC = () => {
       {user?.first_name ? (
         <Text style={{ fontSize: 1 }}>{`Welcome back, ${user.first_name}!`}</Text>
       ) : null}
-      <ScrollView
+      <ScrollViewAny
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
-        onRefresh={handleRefresh as any}
+        onRefresh={handleRefresh}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -196,6 +203,105 @@ const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.homeownerContent}>
+          {/* Quick Service Shortcuts */}
+          <View style={styles.quickServicesSection}>
+            <Text style={styles.sectionTitle}>Need Help With?</Text>
+            <Text style={styles.sectionSubtitle}>Quick access to common services</Text>
+
+            <View style={styles.quickServicesGrid}>
+              <TouchableOpacity
+                style={styles.quickServiceCard}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('ContractorDiscovery', {
+                    serviceCategory: 'plumbing',
+                    filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] }
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Find plumbing contractors"
+              >
+                <View style={[styles.quickServiceIcon, { backgroundColor: '#E3F2FD' }]}>
+                  <Ionicons name="water" size={24} color="#1976D2" />
+                </View>
+                <Text style={styles.quickServiceText}>Plumbing</Text>
+                <Text style={styles.quickServiceSubtext}>Leaks, pipes, drains</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickServiceCard}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('ContractorDiscovery', {
+                    serviceCategory: 'electrical',
+                    filter: { skills: ['Electrical', 'Wiring', 'Electrical Repair'] }
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Find electrical contractors"
+              >
+                <View style={[styles.quickServiceIcon, { backgroundColor: '#FFF3E0' }]}>
+                  <Ionicons name="flash" size={24} color="#F57C00" />
+                </View>
+                <Text style={styles.quickServiceText}>Electrical</Text>
+                <Text style={styles.quickServiceSubtext}>Wiring, outlets, lights</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickServiceCard}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('ContractorDiscovery', {
+                    serviceCategory: 'appliance',
+                    filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] }
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Find appliance repair contractors"
+              >
+                <View style={[styles.quickServiceIcon, { backgroundColor: '#F3E5F5' }]}>
+                  <Ionicons name="home" size={24} color="#7B1FA2" />
+                </View>
+                <Text style={styles.quickServiceText}>Appliances</Text>
+                <Text style={styles.quickServiceSubtext}>Washer, fridge, oven</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickServiceCard}
+                onPress={() => {
+                  haptics.buttonPress();
+                  navigation.navigate('ContractorDiscovery', {
+                    serviceCategory: 'hvac',
+                    filter: { skills: ['HVAC', 'Air Conditioning', 'Heating'] }
+                  });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Find HVAC contractors"
+              >
+                <View style={[styles.quickServiceIcon, { backgroundColor: '#E8F5E8' }]}>
+                  <Ionicons name="snow" size={24} color="#388E3C" />
+                </View>
+                <Text style={styles.quickServiceText}>HVAC</Text>
+                <Text style={styles.quickServiceSubtext}>AC, heating, vents</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Browse All Services Button */}
+            <TouchableOpacity
+              style={styles.browseAllButton}
+              onPress={() => {
+                haptics.buttonPress();
+                navigation.navigate('FindContractors');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Browse all services"
+            >
+              <Ionicons name="grid-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.browseAllText}>Browse All Services</Text>
+              <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
+
           {/* Recent Jobs header for tests */}
           <Text style={styles.sectionTitle}>Your Recent Jobs</Text>
           {homeownerJobs && homeownerJobs.length > 0 ? (
@@ -278,12 +384,12 @@ const HomeScreen: React.FC = () => {
                         color={theme.colors.ratingGold}
                       />
                       <Text style={styles.contractorRatingText}>
-                        {contractor.reviews?.[0]?.rating?.toFixed(1) || '5.0'}
+                        {contractor.reviews?.[0]?.rating?.toFixed(1) || 'New'}
                       </Text>
                     </View>
                     <Text style={styles.contractorReview}>
                       {contractor.reviews?.[0]?.comment ||
-                        'Great work, professional service'}
+                        'No reviews yet'}
                     </Text>
                     <View style={styles.contractorActions}>
                       <TouchableOpacity
@@ -395,31 +501,40 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         </View>
-      </ScrollView>
+      </ScrollViewAny>
 
-      {/* Find Contractors Button - Bottom Right */}
-      <TouchableOpacity
-        style={styles.findContractorsButton}
-        onPress={() => {
-          haptics.buttonPress();
-          navigation.navigate('FindContractors');
-        }}
-        accessibilityRole='button'
-        accessibilityLabel='Find contractors'
-        accessibilityHint='Double tap to browse and find contractors for your project'
-      >
-        <Ionicons name='search' size={20} color={theme.colors.textInverse} />
-        <Text style={styles.findContractorsText}>Find Contractors</Text>
-      </TouchableOpacity>
+      {/* Find Contractors Button - Dismissible */}
+      {showFindContractorsButton && (
+        <View style={styles.findContractorsContainer}>
+          <TouchableOpacity
+            style={styles.findContractorsButton}
+            onPress={() => {
+              haptics.buttonPress();
+              navigation.navigate('FindContractors');
+            }}
+            accessibilityRole='button'
+            accessibilityLabel='Find contractors'
+            accessibilityHint='Double tap to browse and find contractors for your project'
+          >
+            <Ionicons name='search' size={20} color={theme.colors.textInverse} />
+            <Text style={styles.findContractorsText}>Find Contractors</Text>
+          </TouchableOpacity>
 
-      {/* Post a Job CTA for tests */}
-      <TouchableOpacity
-        style={[styles.findContractorsButton, { bottom: 40, backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('PostJob')}
-        accessibilityRole='button'
-      >
-        <Text style={styles.findContractorsText}>Post a Job</Text>
-      </TouchableOpacity>
+          {/* Dismiss Button */}
+          <TouchableOpacity
+            style={styles.dismissButton}
+            onPress={() => {
+              haptics.buttonPress();
+              setShowFindContractorsButton(false);
+            }}
+            accessibilityRole='button'
+            accessibilityLabel='Dismiss find contractors button'
+          >
+            <Ionicons name='close' size={16} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
     </View>
   );
 
@@ -444,14 +559,17 @@ const HomeScreen: React.FC = () => {
         <View style={styles.bannerContent}>
           <Text style={styles.contractorGreeting}>Good morning!</Text>
           <Text style={styles.contractorName}>{user?.firstName}</Text>
-          <View style={styles.contractorBadge}>
-            <Ionicons
-              name='checkmark-circle'
-              size={16}
-              color={theme.colors.secondary}
-            />
-            <Text style={styles.contractorBadgeText}>Verified Contractor</Text>
-          </View>
+          {/* Only show verification badge if user is actually verified */}
+          {user?.isVerified && (
+            <View style={styles.contractorBadge}>
+              <Ionicons
+                name='checkmark-circle'
+                size={16}
+                color={theme.colors.secondary}
+              />
+              <Text style={styles.contractorBadgeText}>Verified Contractor</Text>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           style={styles.profileIcon}
@@ -499,7 +617,7 @@ const HomeScreen: React.FC = () => {
 
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {contractorStats?.rating?.toFixed(1) || '0.0'}
+              {contractorStats?.rating?.toFixed(1) || 'New'}
             </Text>
             <Text style={styles.statLabel}>Rating</Text>
             <Ionicons
@@ -525,7 +643,7 @@ const HomeScreen: React.FC = () => {
 
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {(contractorStats as any)?.totalJobs ?? 15}
+              {contractorStats?.totalJobs || 0}
             </Text>
             <Text style={styles.statLabel}>Total Jobs</Text>
             <Ionicons
@@ -693,13 +811,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary, // Dark blue header extending full width
     paddingTop: 60,
     paddingBottom: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0, // Remove white gaps on sides
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   welcomeContent: {
     flex: 1,
+    paddingLeft: 20, // Restore content padding
   },
   welcomeGreeting: {
     fontSize: 14,
@@ -792,6 +911,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+    marginTop: 24, // Ensure clear separation between sections
   },
   sectionTitle: {
     fontSize: 18,
@@ -809,13 +929,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary, // Dark blue header
     paddingTop: 60,
     paddingBottom: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0, // Remove white gaps on sides
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   bannerContent: {
     flex: 1,
+    paddingLeft: 20, // Restore content padding
   },
   contractorGreeting: {
     fontSize: 16,
@@ -845,12 +966,14 @@ const styles = StyleSheet.create({
   },
   profileIcon: {
     padding: 4,
+    paddingRight: 20, // Add right padding to prevent touching screen edge
   },
 
   // Stats Section
   statsSection: {
-    marginTop: -16,
+    marginTop: 16, // Prevent text overlap with banner
     marginBottom: 24,
+    paddingHorizontal: 20, // Add horizontal padding back for content
   },
   statsGrid: {
     flexDirection: 'row',
@@ -1214,10 +1337,14 @@ const styles = StyleSheet.create({
   },
 
   // Find Contractors Button
-  findContractorsButton: {
+  findContractorsContainer: {
     position: 'absolute',
     bottom: 100,
     right: 20,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  findContractorsButton: {
     backgroundColor: theme.colors.secondary,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -1225,13 +1352,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 8,
     ...theme.shadows.lg,
-    zIndex: 1000,
   },
   findContractorsText: {
     color: theme.colors.textInverse,
     fontSize: 14,
     fontWeight: '600',
+  },
+  dismissButton: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
   },
 
   // Empty contractor state
@@ -1240,6 +1378,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 40,
     paddingHorizontal: 20,
+    marginBottom: 16, // Extra space to prevent overlap with next section
   },
   emptyContractorText: {
     fontSize: 16,
@@ -1254,6 +1393,66 @@ const styles = StyleSheet.create({
     color: theme.colors.textTertiary,
     textAlign: 'center',
     lineHeight: 18,
+  },
+
+  // Quick Services Section
+  quickServicesSection: {
+    marginBottom: 32,
+  },
+  quickServicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  quickServiceCard: {
+    backgroundColor: theme.colors.surface,
+    width: '48%',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+    ...theme.shadows.base,
+  },
+  quickServiceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  quickServiceText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  quickServiceSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  browseAllButton: {
+    backgroundColor: theme.colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    gap: 8,
+  },
+  browseAllText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    flex: 1,
+    textAlign: 'center',
   },
 });
 

@@ -8,6 +8,7 @@ interface Props {
   children: ReactNode;
   fallback?: (error: Error, resetError: () => void) => ReactNode;
   onError?: (error: Error, errorInfo: any) => void;
+  onRetry?: () => void; // optional: re-executes last action
 }
 
 interface State {
@@ -78,6 +79,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
+    // If a caller provided onRetry, call it so the last action can be re-run
+    try {
+      this.props.onRetry?.();
+    } catch (e) {
+      console.warn('onRetry handler threw:', e);
+    }
     this.setState({ hasError: false, error: undefined });
   };
 
@@ -98,6 +105,38 @@ export class ErrorBoundary extends Component<Props, State> {
         ]
       );
     }
+  };
+
+  handleCopyId = () => {
+    if (!this.state.errorId) return;
+    try {
+      // Try community Clipboard first (no-op if not installed)
+      const Clipboard = require('@react-native-clipboard/clipboard');
+      if (Clipboard?.setString) {
+        Clipboard.setString(this.state.errorId);
+        Alert.alert('Copied', 'Error ID copied to clipboard');
+        return;
+      }
+    } catch {}
+
+    try {
+      // Expo Clipboard fallback
+      const ExpoClipboard = require('expo-clipboard');
+      if (ExpoClipboard?.setStringAsync) {
+        ExpoClipboard.setStringAsync(this.state.errorId);
+        Alert.alert('Copied', 'Error ID copied to clipboard');
+        return;
+      }
+    } catch {}
+
+    // Final fallback: show the ID so users can copy manually
+    Alert.alert('Error ID', this.state.errorId);
+  };
+
+  handleViewDetails = () => {
+    const message = this.state.error?.message || 'No message available';
+    const stack = this.state.error?.stack?.substring(0, 600) || 'No stack trace';
+    Alert.alert('Error Details', `${message}\n\n${stack}`);
   };
 
   render() {
@@ -160,6 +199,36 @@ export class ErrorBoundary extends Component<Props, State> {
               />
               <Text style={styles.reportButtonText}>Report Issue</Text>
             </TouchableOpacity>
+
+            {this.state.errorId && (
+              <TouchableOpacity
+                style={styles.reportButton}
+                onPress={this.handleCopyId}
+              >
+                <Ionicons
+                  name='copy-outline'
+                  size={16}
+                  color={theme.colors.primary}
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.reportButtonText}>Copy ID</Text>
+              </TouchableOpacity>
+            )}
+
+            {this.state.error && (
+              <TouchableOpacity
+                style={styles.reportButton}
+                onPress={this.handleViewDetails}
+              >
+                <Ionicons
+                  name='information-circle-outline'
+                  size={16}
+                  color={theme.colors.primary}
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.reportButtonText}>View Details</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       );
@@ -224,6 +293,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: theme.spacing[3],
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   retryButton: {
     backgroundColor: theme.colors.primary,

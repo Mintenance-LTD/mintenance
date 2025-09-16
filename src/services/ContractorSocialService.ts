@@ -110,36 +110,62 @@ export class ContractorSocialService {
   ): Promise<ContractorPost> {
     try {
       const p: any = post as any;
+
+      // Prepare the insert data with proper field mapping
+      const insertData: any = {
+        contractor_id: p.contractorId,
+        post_type: p.type || p.postType || 'project_showcase',
+        content: p.content,
+        images: p.photos || p.images || [],
+        hashtags: p.hashtags || [],
+        is_active: true,
+        is_flagged: false,
+        likes_count: 0,
+        comments_count: 0,
+        shares_count: 0,
+        views_count: 0,
+      };
+
+      // Add optional fields if they exist
+      if (p.title) insertData.title = p.title;
+      if (p.jobId) insertData.job_id = p.jobId;
+      if (p.skillsUsed) insertData.skills_used = p.skillsUsed;
+      if (p.materialsUsed) insertData.materials_used = p.materialsUsed;
+      if (p.projectDuration) insertData.project_duration = p.projectDuration;
+      if (p.projectCost) insertData.project_cost = p.projectCost;
+      if (p.helpCategory) insertData.help_category = p.helpCategory;
+      if (p.locationNeeded) insertData.location_needed = p.locationNeeded;
+      if (p.urgencyLevel) insertData.urgency_level = p.urgencyLevel;
+      if (p.budgetRange) insertData.budget_range = p.budgetRange;
+      if (p.itemName) insertData.item_name = p.itemName;
+      if (p.itemCondition) insertData.item_condition = p.itemCondition;
+      if (p.rentalPrice) insertData.rental_price = p.rentalPrice;
+      if (p.availableFrom) insertData.available_from = p.availableFrom;
+      if (p.availableUntil) insertData.available_until = p.availableUntil;
+      if (p.latitude) insertData.latitude = p.latitude;
+      if (p.longitude) insertData.longitude = p.longitude;
+      if (p.locationRadius) insertData.location_radius = p.locationRadius;
+
       const { data, error } = await supabase
         .from('contractor_posts')
-        .insert({
-          contractor_id: p.contractorId,
-          post_type: p.postType || p.type,
-          title: p.title,
-          content: p.content,
-          images: p.images || [],
-          job_id: p.jobId,
-          skills_used: p.skillsUsed,
-          materials_used: p.materialsUsed,
-          project_duration: p.projectDuration,
-          project_cost: p.projectCost,
-          help_category: p.helpCategory,
-          location_needed: p.locationNeeded,
-          urgency_level: p.urgencyLevel,
-          budget_range: p.budgetRange,
-          item_name: p.itemName,
-          item_condition: p.itemCondition,
-          rental_price: p.rentalPrice,
-          available_from: p.availableFrom,
-          available_until: p.availableUntil,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          location_radius: p.locationRadius || 50,
-        })
-        .select()
+        .insert(insertData)
+        .select(`
+          *,
+          contractor:contractor_id (
+            id,
+            first_name,
+            last_name,
+            profile_image_url,
+            rating,
+            total_jobs_completed
+          )
+        `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Database error creating post:', error);
+        throw new Error(`Failed to create post: ${error.message}`);
+      }
 
       return this.mapToContractorPost(data, false);
     } catch (error) {
@@ -483,9 +509,16 @@ export class ContractorSocialService {
       id: data.id,
       contractorId: data.contractor_id,
       type: data.post_type,
-      title: data.title,
       content: data.content,
-      images: data.images || [],
+      photos: data.images || [],
+      likes: data.likes_count || 0,
+      comments: data.comments_count || 0,
+      shares: data.shares_count || 0,
+      hashtags: data.hashtags || [],
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      // Extended fields for compatibility
+      title: data.title,
       jobId: data.job_id,
       skillsUsed: data.skills_used,
       materialsUsed: data.materials_used,
@@ -500,9 +533,6 @@ export class ContractorSocialService {
       rentalPrice: data.rental_price,
       availableFrom: data.available_from,
       availableUntil: data.available_until,
-      likesCount: data.likes_count || 0,
-      commentsCount: data.comments_count || 0,
-      sharesCount: data.shares_count || 0,
       viewsCount: data.views_count || 0,
       isActive: data.is_active,
       isFlagged: data.is_flagged,
@@ -510,8 +540,6 @@ export class ContractorSocialService {
       latitude: data.latitude,
       longitude: data.longitude,
       locationRadius: data.location_radius,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
       isLikedByUser,
       contractor: data.contractor
         ? {

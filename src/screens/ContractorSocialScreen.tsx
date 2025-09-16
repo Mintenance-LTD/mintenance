@@ -20,6 +20,7 @@ import { useHaptics } from '../utils/haptics';
 import { SkeletonPostCard } from '../components/SkeletonLoader';
 import { AnimationUtils } from '../utils/animations';
 import { ContractorSocialService } from '../services/ContractorSocialService';
+import { MutualConnectionsService } from '../services/MutualConnectionsService';
 import { ContractorPostType } from '../types';
 
 interface FeedPost {

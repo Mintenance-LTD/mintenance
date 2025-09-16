@@ -345,31 +345,46 @@ describe('AuthService', () => {
   });
 
   describe('validateToken', () => {
-    it('validates JWT token successfully', () => {
+    it('validates JWT token successfully', async () => {
       const validToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
-      const result = AuthService.validateToken(validToken);
+      // Mock successful Supabase getUser response
+      mockSupabase.auth.getUser.mockResolvedValueOnce({
+        data: { user: { id: 'user-123' } },
+        error: null
+      });
 
-      expect(result).toBe(true);
+      const result = await AuthService.validateToken(validToken);
+
+      expect(result.valid).toBe(true);
+      expect(result.userId).toBe('user-123');
     });
 
-    it('rejects invalid token format', () => {
+    it('rejects invalid token format', async () => {
       const invalidToken = 'invalid-token';
 
-      const result = AuthService.validateToken(invalidToken);
+      const result = await AuthService.validateToken(invalidToken);
 
-      expect(result).toBe(false);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid token format');
     });
 
-    it('rejects expired tokens', () => {
+    it('rejects expired tokens', async () => {
       // Mock expired token
       const expiredToken =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid';
 
-      const result = AuthService.validateToken(expiredToken);
+      // Mock Supabase error response for invalid token
+      mockSupabase.auth.getUser.mockResolvedValueOnce({
+        data: { user: null },
+        error: { message: 'Invalid JWT token' }
+      });
 
-      expect(result).toBe(false);
+      const result = await AuthService.validateToken(expiredToken);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid JWT token');
     });
   });
 });

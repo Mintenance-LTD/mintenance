@@ -14,6 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { theme } from '../../theme';
+import { useI18n } from '../../hooks/useI18n';
 import { PerformanceOptimizer } from '../../utils/PerformanceOptimizer';
 
 const { width } = Dimensions.get('window');
@@ -77,13 +78,8 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
     };
   }, []);
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  const { formatters } = useI18n();
+  const formatCurrency = (amount: number): string => formatters.currency(amount);
 
   const formatPercentage = (value: number): string => {
     return `${value.toFixed(1)}%`;

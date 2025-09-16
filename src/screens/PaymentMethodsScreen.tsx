@@ -86,11 +86,7 @@ const PaymentMethodsScreen: React.FC = () => {
   };
 
   const handleAddPaymentMethod = () => {
-    Alert.alert(
-      'Add Payment Method',
-      'This would open a form to add a new payment method',
-      [{ text: 'OK' }]
-    );
+    navigation.navigate('AddPaymentMethod');
   };
 
   const handleDeletePaymentMethod = (methodId: string) => {

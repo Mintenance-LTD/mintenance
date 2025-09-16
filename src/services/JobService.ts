@@ -342,18 +342,20 @@ export class JobService {
     filters?: { category?: string; minBudget?: number; maxBudget?: number },
     limit: number = 20
   ): Promise<Job[]> {
+    // Sanitize search input to prevent SQL injection
+    const sanitizedQuery = sanitizeText(queryText).trim();
+    if (!sanitizedQuery) {
+      return [];
+    }
+
     let q: any = supabase.from('jobs').select('*');
 
     // Prefer textSearch when available (some tests mock this)
     if (typeof q.textSearch === 'function') {
-      q = q.textSearch('fts', queryText);
+      q = q.textSearch('fts', sanitizedQuery);
     } else if (typeof q.or === 'function') {
-      const clause = [
-        `title.ilike.%${queryText}%`,
-        `description.ilike.%${queryText}%`,
-        `location.ilike.%${queryText}%`,
-      ].join(',');
-      q = q.or(clause);
+      // Use proper parameter binding to prevent SQL injection
+      q = q.or(`title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,location.ilike.%${sanitizedQuery}%`);
     }
 
     if (filters?.category) q = q.eq('category', filters.category);

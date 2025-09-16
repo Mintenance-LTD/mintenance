@@ -417,7 +417,13 @@ export class ContractorService {
     try {
       // Simple signature used by basic tests: searchContractors('plumbing')
       if (typeof params === 'string') {
-        let q: any = supabase.from('contractor_profiles').select('*').ilike('skills', `%${params}%`).order('created_at', { ascending: false });
+        // Sanitize search input to prevent SQL injection
+        const { sanitizeText } = require('../utils/sanitize');
+        const sanitizedParams = sanitizeText(params).trim();
+        if (!sanitizedParams) {
+          return [];
+        }
+        let q: any = supabase.from('contractor_profiles').select('*').ilike('skills', `%${sanitizedParams}%`).order('created_at', { ascending: false });
         if (typeof q.limit === 'function') {
           const { data, error } = await q.limit(20);
           if (error) throw error;
@@ -450,8 +456,13 @@ export class ContractorService {
         .eq('is_available', true);
 
       if (adv.query) {
-        // Simple name search to satisfy tests
-        query = (query as any).ilike('first_name', `%${adv.query}%`);
+        // Sanitize search input to prevent SQL injection
+        const { sanitizeText } = require('../utils/sanitize');
+        const sanitizedQuery = sanitizeText(adv.query).trim();
+        if (sanitizedQuery) {
+          // Simple name search to satisfy tests
+          query = (query as any).ilike('first_name', `%${sanitizedQuery}%`);
+        }
       }
 
       if (adv.minRating) {
@@ -534,6 +545,120 @@ export class ContractorService {
           comment: review.comment,
           createdAt: review.created_at,
         })) || [],
+    };
+  }
+
+  // Update contractor profile for discovery card
+  static async updateContractorProfile(
+    userId: string,
+    profileData: Partial<ContractorProfile>
+  ): Promise<ContractorProfile> {
+    try {
+      // Update main user profile
+      const userUpdateData = {
+        bio: profileData.bio,
+        profile_image_url: profileData.profileImageUrl,
+        business_address: profileData.businessAddress,
+        latitude: profileData.latitude,
+        longitude: profileData.longitude,
+      };
+
+      const { error: userError } = await supabase
+        .from('users')
+        .update(userUpdateData)
+        .eq('id', userId);
+
+      if (userError) throw userError;
+
+      // Update or create contractor profile
+      const contractorProfileData = {
+        user_id: userId,
+        company_name: profileData.companyName,
+        company_logo: profileData.companyLogo,
+        hourly_rate: profileData.hourlyRate,
+        years_experience: profileData.yearsExperience,
+        service_radius: profileData.serviceRadius,
+        availability: profileData.availability,
+        portfolio_images: profileData.portfolioImages,
+        specialties: profileData.specialties,
+        certifications: profileData.certifications,
+        license_number: profileData.licenseNumber,
+        insurance_provider: profileData.insurance?.provider,
+        insurance_policy: profileData.insurance?.policyNumber,
+        insurance_expiry: profileData.insurance?.expiryDate,
+      };
+
+      const { data, error } = await supabase
+        .from('contractor_profiles')
+        .upsert(contractorProfileData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logger.info('Contractor profile updated successfully');
+      return this.mapDatabaseToContractorProfile(data);
+    } catch (error) {
+      logger.error('Error updating contractor profile:', error);
+      throw error;
+    }
+  }
+
+  // Upload and store contractor images (logo and portfolio)
+  static async uploadContractorImage(
+    userId: string,
+    imageUri: string,
+    type: 'logo' | 'portfolio'
+  ): Promise<string> {
+    try {
+      // For now, return the imageUri as-is
+      // In production, this would upload to Supabase storage and return the public URL
+      logger.info(`Uploading ${type} image for contractor ${userId}`);
+
+      // TODO: Implement actual file upload to Supabase storage
+      // const fileName = `contractors/${userId}/${type}_${Date.now()}.jpg`;
+      // const { data, error } = await supabase.storage
+      //   .from('contractor-images')
+      //   .upload(fileName, imageFile);
+
+      return imageUri;
+    } catch (error) {
+      logger.error('Error uploading contractor image:', error);
+      throw error;
+    }
+  }
+
+  // Map database fields to ContractorProfile interface
+  private static mapDatabaseToContractorProfile(data: any): ContractorProfile {
+    return {
+      id: data.user_id,
+      email: data.user?.email || '',
+      first_name: data.user?.first_name || '',
+      last_name: data.user?.last_name || '',
+      role: 'contractor',
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      firstName: data.user?.first_name,
+      lastName: data.user?.last_name,
+      bio: data.bio,
+      companyName: data.company_name,
+      companyLogo: data.company_logo,
+      businessAddress: data.business_address,
+      hourlyRate: data.hourly_rate,
+      yearsExperience: data.years_experience,
+      serviceRadius: data.service_radius,
+      availability: data.availability,
+      portfolioImages: data.portfolio_images || [],
+      specialties: data.specialties || [],
+      certifications: data.certifications || [],
+      licenseNumber: data.license_number,
+      insurance: data.insurance_provider ? {
+        provider: data.insurance_provider,
+        policyNumber: data.insurance_policy,
+        expiryDate: data.insurance_expiry,
+      } : undefined,
+      skills: [],
+      reviews: [],
     };
   }
 }

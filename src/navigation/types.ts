@@ -38,6 +38,7 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   NotificationSettings: undefined;
   PaymentMethods: undefined;
+  AddPaymentMethod: undefined;
   HelpCenter: undefined;
   InvoiceManagement: undefined;
   CRMDashboard: undefined;
@@ -45,6 +46,8 @@ export type ProfileStackParamList = {
   ServiceAreas: undefined;
   QuoteBuilder: undefined;
   CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
+  ContractorCardEditor: undefined;
+  Connections: undefined;
 };
 
 // Modal Stack Types
@@ -53,6 +56,14 @@ export type ModalStackParamList = {
   FindContractors: undefined;
   ContractorDiscovery: undefined;
   CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
+  MeetingSchedule: {
+    contractorId: string;
+    jobId: string;
+    contractor?: any;
+    job?: any;
+    rescheduleMeetingId?: string;
+  };
+  MeetingDetails: { meetingId: string };
 };
 
 // Root Tab Types

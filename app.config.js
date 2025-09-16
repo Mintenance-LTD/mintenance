@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    version: "1.1.3",
+    version: "1.1.4",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -17,7 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
-      buildNumber: "11",
+      buildNumber: "12",
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs access to location to find contractors near you.",
@@ -34,7 +34,7 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "com.mintenance.app",
-      versionCode: 11,
+      versionCode: 12,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
       intentFilters: [
         {
@@ -82,7 +82,12 @@ export default {
     extra: {
       eas: {
         projectId: "671d1323-6979-465f-91db-e61471746ab3"
-      }
+      },
+      // Supabase runtime config (read by src/config/supabase.ts)
+      // Prefer setting EXPO_PUBLIC_SUPABASE_URL/EXPO_PUBLIC_SUPABASE_ANON_KEY in env.
+      // We provide a safe default for URL here; DO NOT commit your anon key.
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ukrjudtlvapiajkjbcrd.supabase.co',
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || undefined,
     }
   }
 };

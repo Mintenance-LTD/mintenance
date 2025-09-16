@@ -14,6 +14,7 @@ import {
   BusinessGoal,
 } from '../services/ContractorBusinessSuite';
 import { logger } from '../utils/logger';
+import { useI18n } from './useI18n';
 
 // Query Keys for React Query
 export const BUSINESS_SUITE_KEYS = {
@@ -380,11 +381,10 @@ export const useBusinessGoals = (contractorId: string) => {
 
 // Hook for business suite formatters and utilities
 export const useBusinessSuiteFormatters = () => {
-  const formatCurrency = (amount: number, currency: string = 'GBP') => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency,
-    }).format(amount);
+  const { formatters } = useI18n();
+
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatters.currency(amount, currency);
   };
 
   const formatPercentage = (value: number, decimals: number = 1) => {

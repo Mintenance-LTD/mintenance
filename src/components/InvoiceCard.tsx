@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { Invoice } from '../services/ContractorBusinessSuite';
+import { useI18n } from '../hooks/useI18n';
 
 interface InvoiceCardProps {
   invoice: Invoice;
@@ -17,6 +18,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   onSendReminder,
   onMarkPaid,
 }) => {
+  const { formatters } = useI18n();
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
@@ -79,11 +81,9 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
       <View style={styles.details}>
         <View style={styles.amountContainer}>
           <Text style={styles.amount}>
-            {invoice.currency} {invoice.total_amount.toFixed(2)}
+            {formatters.currency(invoice.total_amount, invoice.currency?.toUpperCase?.() || undefined)}
           </Text>
-          <Text style={styles.dueDate}>
-            Due: {new Date(invoice.due_date).toLocaleDateString()}
-          </Text>
+          <Text style={styles.dueDate}>Due: {formatters.date(new Date(invoice.due_date))}</Text>
         </View>
 
         {isOverdue && (

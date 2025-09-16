@@ -113,6 +113,16 @@ describe('HomeScreen', () => {
     });
 
     it('shows greeting and verification badge for contractors', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { ...mockUser, role: 'contractor', isVerified: true },
+        session: null,
+        loading: false,
+        signIn: jest.fn(),
+        signUp: jest.fn(),
+        signOut: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
       mockUserService.getContractorStats.mockResolvedValue({} as any);
 
       const { getByText } = render(<HomeScreen />);
