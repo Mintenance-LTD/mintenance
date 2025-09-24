@@ -1654,7 +1654,7 @@ import { RouteProp } from '@react-navigation/native';
 import { AIAnalysisService, AIAnalysis } from '../services/AIAnalysisService';
 import { useAuth } from '../contexts/AuthContext';
 import { Job } from '../types';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { JobsStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 import { useJob } from '../hooks/useJobs';
@@ -1662,9 +1662,9 @@ import { JobStatusTracker } from '../components/JobStatusTracker';
 import { ContractorAssignment } from '../components/ContractorAssignment';
 import { theme } from '../theme';
 &nbsp;
-type JobDetailsScreenRouteProp = RouteProp&lt;RootStackParamList, 'JobDetails'&gt;;
+type JobDetailsScreenRouteProp = RouteProp&lt;JobsStackParamList, 'JobDetails'&gt;;
 type JobDetailsScreenNavigationProp = StackNavigationProp&lt;
-  RootStackParamList,
+  JobsStackParamList,
   'JobDetails'
 &gt;;
 &nbsp;
@@ -1738,7 +1738,7 @@ const JobDetailsScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title="st
         &lt;View style={styles.bidHeader}&gt;
           &lt;View style={styles.contractorInfo}&gt;
             &lt;View style={styles.contractorAvatar}&gt;
-              &lt;Ionicons name='person' size={20} color='#007AFF' /&gt;
+              &lt;Ionicons name='person' size={20} color={theme.colors.info} /&gt;
             &lt;/View&gt;
             &lt;View&gt;
               &lt;Text style={styles.contractorName}&gt;
@@ -1777,7 +1777,7 @@ const JobDetailsScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title="st
                     &lt;Ionicons
                       name='chatbubble-outline'
                       size={16}
-                      color='#007AFF'
+                      color={theme.colors.info}
                     /&gt;
                     &lt;Text style={styles.messageButtonText}&gt;Message&lt;/Text&gt;
                   &lt;/TouchableOpacity&gt;
@@ -1785,7 +1785,7 @@ const JobDetailsScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title="st
                     style={styles.acceptButton}
                     onPress={() =&gt; handleAcceptBid(bid.id)}
                   &gt;
-                    &lt;Ionicons name='checkmark-outline' size={16} color='#fff' /&gt;
+                    &lt;Ionicons name='checkmark-outline' size={16} color={theme.colors.white} /&gt;
                     &lt;Text style={styles.acceptButtonText}&gt;Accept Bid&lt;/Text&gt;
                   &lt;/TouchableOpacity&gt;
                 &lt;/&gt;
@@ -1817,7 +1817,7 @@ const JobDetailsScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title="st
   /* const getJobStatusColor = (status: string) =&gt; {
     switch (status) {
       case 'posted':
-        return '#007AFF';
+        return theme.colors.info;
       case 'assigned':
         return '#5856D6';
       case 'in_progress':
@@ -2037,7 +2037,7 @@ const JobDetailsScreen: React.FC&lt;Props&gt; = <span class="cstat-no" title="st
 <span class="cstat-no" title="statement not covered" >                navigation.navigate('BidSubmission', { jobId: job.id })</span>
               }
             &gt;
-              &lt;Ionicons name='hammer-outline' size={20} color='#fff' /&gt;
+              &lt;Ionicons name='hammer-outline' size={20} color={theme.colors.white} /&gt;
               &lt;Text style={styles.bidButtonText}&gt;Submit Bid&lt;/Text&gt;
             &lt;/TouchableOpacity&gt;
           &lt;/View&gt;
@@ -2119,7 +2119,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -2137,12 +2137,12 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
   backButtonText: {
     fontSize: 18,
-    color: '#fff',
+    color: theme.colors.white,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.white,
   },
   placeholder: {
     width: 50,
@@ -2152,7 +2152,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     padding: 16,
   },
   jobCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -2201,7 +2201,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     borderRadius: 8,
   },
   aiAnalysisCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -2255,7 +2255,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     marginLeft: 8,
   },
   contractorActions: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -2271,12 +2271,12 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
     borderRadius: 8,
   },
   bidButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   contactCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -2306,7 +2306,7 @@ const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.
   },
   // Added bid-related styles referenced in renderBidCard
   bidCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -2434,7 +2434,7 @@ export default JobDetailsScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T11:33:28.262Z
+                at 2025-09-22T22:45:49.031Z
             </div>
         <script src="../prettify.js"></script>
         <script>

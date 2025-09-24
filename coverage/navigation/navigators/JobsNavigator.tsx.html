@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">70% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/10</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/4</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">70% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/10</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -214,25 +214,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -242,10 +242,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -348,25 +348,25 @@ import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider'
 // SCREEN WRAPPERS WITH ERROR BOUNDARIES
 // ============================================================================
 &nbsp;
-const SafeJobsScreen = withScreenErrorBoundary(
+const SafeJobsScreen = <span class="cstat-no" title="statement not covered" >withScreenErrorBoundary(</span>
   JobsScreen,
   'Jobs List',
   { fallbackRoute: 'Main' }
 );
 &nbsp;
-const SafeJobDetailsScreen = withScreenErrorBoundary(
+const SafeJobDetailsScreen = <span class="cstat-no" title="statement not covered" >withScreenErrorBoundary(</span>
   JobDetailsScreen,
   'Job Details',
   { fallbackRoute: 'JobsList' }
 );
 &nbsp;
-const SafeJobPostingScreen = withScreenErrorBoundary(
+const SafeJobPostingScreen = <span class="cstat-no" title="statement not covered" >withScreenErrorBoundary(</span>
   JobPostingScreen,
   'Job Posting',
   { fallbackRoute: 'JobsList' }
 );
 &nbsp;
-const SafeBidSubmissionScreen = withScreenErrorBoundary(
+const SafeBidSubmissionScreen = <span class="cstat-no" title="statement not covered" >withScreenErrorBoundary(</span>
   BidSubmissionScreen,
   'Bid Submission',
   { fallbackRoute: 'JobDetails' }
@@ -376,10 +376,10 @@ const SafeBidSubmissionScreen = withScreenErrorBoundary(
 // JOBS NAVIGATOR
 // ============================================================================
 &nbsp;
-const JobsStack = createStackNavigator&lt;JobsStackParamList&gt;();
+const JobsStack = <span class="cstat-no" title="statement not covered" >createStackNavigator&lt;JobsStackParamList&gt;();</span>
 &nbsp;
-export const JobsNavigator: React.FC = () =&gt; {
-  return (
+export const JobsNavigator: React.FC = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;JobsStack.Navigator
       screenOptions={{
         headerShown: false,
@@ -472,7 +472,7 @@ export default JobsNavigator;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T11:33:31.293Z
+                at 2025-09-22T22:45:57.466Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

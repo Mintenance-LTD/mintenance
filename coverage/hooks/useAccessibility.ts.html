@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/85</span>
+                <span class='fraction'>0/83</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/61</span>
+                <span class='fraction'>0/59</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/76</span>
+                <span class='fraction'>0/74</span>
             </div>
         
             
@@ -534,11 +534,8 @@
 <a name='L469'></a><a href='#L469'>469</a>
 <a name='L470'></a><a href='#L470'>470</a>
 <a name='L471'></a><a href='#L471'>471</a>
-<a name='L472'></a><a href='#L472'>472</a>
-<a name='L473'></a><a href='#L473'>473</a>
-<a name='L474'></a><a href='#L474'>474</a>
-<a name='L475'></a><a href='#L475'>475</a>
-<a name='L476'></a><a href='#L476'>476</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L472'></a><a href='#L472'>472</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -622,12 +619,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -804,7 +797,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1014,7 +1006,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AccessibilityInfo, Platform } from 'react-native';
+import { AccessibilityInfo, Platform, AccessibilityRole } from 'react-native';
 &nbsp;
 // ============================================================================
 // ACCESSIBILITY TYPES
@@ -1035,7 +1027,8 @@ export interface AccessibilityPreferences {
   announceForAccessibility: (message: string) =&gt; void;
   setAccessibilityFocus: (reactTag: number) =&gt; void;
   isAccessibilityElement: boolean;
-  accessibilityRole: string;
+  accessible?: boolean;
+  accessibilityRole: AccessibilityRole;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityState?: {
@@ -1097,12 +1090,8 @@ export const useAccessibility = <span class="cstat-no" title="statement not cove
 &nbsp;
         let screenReaderName: string | undefined;
 <span class="cstat-no" title="statement not covered" >        if (isScreenReaderEnabled) {</span>
-<span class="cstat-no" title="statement not covered" >          try {</span>
-<span class="cstat-no" title="statement not covered" >            screenReaderName = await AccessibilityInfo.getRecommendedTimeoutMillis();</span>
-          } catch {
-            // Fallback for older RN versions
-<span class="cstat-no" title="statement not covered" >            screenReaderName = Platform.OS === 'ios' ? 'VoiceOver' : 'TalkBack';</span>
-          }
+          // Set screen reader name based on platform
+<span class="cstat-no" title="statement not covered" >          screenReaderName = Platform.OS === 'ios' ? 'VoiceOver' : 'TalkBack';</span>
         }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >        setAccessibilityState({</span>
@@ -1282,7 +1271,6 @@ export const useAccessibility = <span class="cstat-no" title="statement not cove
     accessibilityRole: 'header',
     accessibilityLabel: text,
     accessible: true,
-    accessibilityTraits: Platform.OS === 'ios' ? ['header'] : undefined,
   }), []);
 &nbsp;
   const getListProps = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >(</span></span>
@@ -1327,7 +1315,7 @@ export const useAccessibility = <span class="cstat-no" title="statement not cove
   const getTabPanelProps = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >(</span></span>
     label: string
   ): Partial&lt;AccessibilityPreferences&gt; =&gt; (<span class="cstat-no" title="statement not covered" >{</span>
-    accessibilityRole: 'tabpanel',
+    accessibilityRole: 'none',
     accessibilityLabel: `${label} panel`,
     accessible: true,
   }), []);
@@ -1495,7 +1483,7 @@ export default useAccessibility;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T11:33:31.293Z
+                at 2025-09-22T22:45:57.466Z
             </div>
         <script src="../prettify.js"></script>
         <script>

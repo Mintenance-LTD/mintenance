@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/66</span>
+                <span class='fraction'>0/67</span>
             </div>
         
             
@@ -686,12 +686,8 @@
 <a name='L621'></a><a href='#L621'>621</a>
 <a name='L622'></a><a href='#L622'>622</a>
 <a name='L623'></a><a href='#L623'>623</a>
-<a name='L624'></a><a href='#L624'>624</a>
-<a name='L625'></a><a href='#L625'>625</a>
-<a name='L626'></a><a href='#L626'>626</a>
-<a name='L627'></a><a href='#L627'>627</a>
-<a name='L628'></a><a href='#L628'>628</a>
-<a name='L629'></a><a href='#L629'>629</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L624'></a><a href='#L624'>624</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -722,6 +718,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -757,13 +754,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1333,11 +1323,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
+import { useI18n } from '../hooks/useI18n';
 import { useAuth } from '../contexts/AuthContext';
 import {
   contractorBusinessSuite,
   type FinancialSummary,
-} from '../services/ContractorBusinessSuite';
+} from '../services/contractor-business';
 import { FinanceChart } from '../components/FinanceChart';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 &nbsp;
@@ -1351,6 +1342,7 @@ export const FinanceDashboardScreen: React.FC&lt;FinanceDashboardScreenProps&gt;
   navigation,
 }) =&gt; {
   const { user } = <span class="cstat-no" title="statement not covered" >useAuth();</span>
+  const { formatters } = <span class="cstat-no" title="statement not covered" >useI18n();</span>
   const [financialData, setFinancialData] = <span class="cstat-no" title="statement not covered" >useState&lt;FinancialSummary | null&gt;(</span>
     null
   );
@@ -1384,14 +1376,7 @@ export const FinanceDashboardScreen: React.FC&lt;FinanceDashboardScreenProps&gt;
 <span class="cstat-no" title="statement not covered" >    setRefreshing(false);</span>
   };
 &nbsp;
-  const formatCurrency = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(a</span>mount: number) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    return new Intl.NumberFormat('en-GB', {</span>
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatCurrency = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(a</span>mount: number) =&gt; <span class="cstat-no" title="statement not covered" >formatters.currency(amount);</span></span>
 &nbsp;
   const getRevenueChartData = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    if (!financialData) <span class="cstat-no" title="statement not covered" >return { labels: [], datasets: [{ data: [] }] };</span></span>
@@ -1454,7 +1439,7 @@ export const FinanceDashboardScreen: React.FC&lt;FinanceDashboardScreenProps&gt;
       {
         name: 'Materials',
         value: 45,
-        color: '#007AFF',
+        color: theme.colors.info,
         legendFontColor: theme.colors.textSecondary,
       },
       {
@@ -1553,14 +1538,14 @@ export const FinanceDashboardScreen: React.FC&lt;FinanceDashboardScreenProps&gt;
           style={styles.backButton}
           onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.goBack()}</span>
         &gt;
-          &lt;Ionicons name='arrow-back' size={24} color='#fff' /&gt;
+          &lt;Ionicons name='arrow-back' size={24} color={theme.colors.white} /&gt;
         &lt;/TouchableOpacity&gt;
         &lt;Text style={styles.headerTitle}&gt;Finance Dashboard&lt;/Text&gt;
         &lt;TouchableOpacity
           style={styles.exportButton}
           onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >navigation.navigate('FinanceReports')}</span>
         &gt;
-          &lt;Ionicons name='document-text' size={24} color='#fff' /&gt;
+          &lt;Ionicons name='document-text' size={24} color={theme.colors.white} /&gt;
         &lt;/TouchableOpacity&gt;
       &lt;/View&gt;
 &nbsp;
@@ -1954,7 +1939,7 @@ export default FinanceDashboardScreen;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T11:33:31.293Z
+                at 2025-09-22T22:45:57.466Z
             </div>
         <script src="../prettify.js"></script>
         <script>

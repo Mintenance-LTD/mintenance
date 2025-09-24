@@ -1,0 +1,5 @@
+{
+  "common": { "ok": "ठीक है", "cancel": "रद्द करें", "loading": "लोड हो रहा है..." },
+  "auth": { "login": "लॉग इन करें", "register": "पंजीकरण करें" },
+  "navigation": { "home": "होम", "profile": "प्रोफ़ाइल" }
+}

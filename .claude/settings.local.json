@@ -19,7 +19,9 @@
       "Bash(chmod:*)",
       "Bash(timeout 10s npm start)",
       "Bash(npx expo:*)",
-      "Bash(git bundle create:*)"
+      "Bash(git bundle create:*)",
+      "mcp__playwright__browser_install",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">62.22% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>28/45</span>
+                <span class='fraction'>0/45</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -267,7 +267,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -284,13 +284,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">151x</span>
-<span class="cline-any cline-yes">151x</span>
-<span class="cline-any cline-yes">151x</span>
-<span class="cline-any cline-yes">151x</span>
-<span class="cline-any cline-yes">151x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">151x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -340,7 +340,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -433,7 +433,7 @@ export interface ButtonProps {
   testID?: string;
 }
 &nbsp;
-export const Button: React.FC&lt;ButtonProps&gt; = ({
+export const Button: React.FC&lt;ButtonProps&gt; = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >({</span></span>
   title,
   onPress,
   variant = <span class="branch-0 cbranch-no" title="branch not covered" >'primary',</span>
@@ -444,19 +444,19 @@ export const Button: React.FC&lt;ButtonProps&gt; = ({
   accessibilityLabel,
   accessibilityState,
   fullWidth = <span class="branch-0 cbranch-no" title="branch not covered" >false,</span>
-  size = 'md',
+  size = <span class="branch-0 cbranch-no" title="branch not covered" >'md',</span>
   icon,
-  iconPosition = 'left',
-  iconOnly = false,
+  iconPosition = <span class="branch-0 cbranch-no" title="branch not covered" >'left',</span>
+  iconOnly = <span class="branch-0 cbranch-no" title="branch not covered" >false,</span>
   testID,
 }) =&gt; {
-  const v = theme.components.button[variant] as any;
-  const backgroundColor = v?.backgroundColor ?? <span class="branch-1 cbranch-no" title="branch not covered" >theme.colors.primary;</span>
-  const borderColor = v?.borderColor ?? <span class="branch-1 cbranch-no" title="branch not covered" >'transparent';</span>
-  const color = v?.color ?? <span class="branch-1 cbranch-no" title="branch not covered" >theme.colors.textInverse;</span>
-  const isTertiary = variant === 'tertiary';
+  const v = <span class="cstat-no" title="statement not covered" >theme.components.button[variant] as any;</span>
+  const backgroundColor = <span class="cstat-no" title="statement not covered" >v?.backgroundColor ?? theme.colors.primary;</span>
+  const borderColor = <span class="cstat-no" title="statement not covered" >v?.borderColor ?? 'transparent';</span>
+  const color = <span class="cstat-no" title="statement not covered" >v?.color ?? theme.colors.textInverse;</span>
+  const isTertiary = <span class="cstat-no" title="statement not covered" >variant === 'tertiary';</span>
 &nbsp;
-  return (
+<span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
@@ -466,39 +466,39 @@ export const Button: React.FC&lt;ButtonProps&gt; = ({
       testID={testID}
       style={[
         styles.base,
-        size === 'sm' ? <span class="branch-0 cbranch-no" title="branch not covered" >styles.sm </span>: styles.md,
-        iconOnly &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >styles.iconOnly,</span>
+        size === 'sm' ? styles.sm : styles.md,
+        iconOnly &amp;&amp; styles.iconOnly,
         {
           backgroundColor,
           borderColor,
-          width: fullWidth ? ('100%' as const) : <span class="branch-1 cbranch-no" title="branch not covered" >undefined,</span>
+          width: fullWidth ? ('100%' as const) : undefined,
         },
         disabled ? styles.disabled : null,
-        backgroundColor === 'transparent' &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >styles.noShadow,</span>
+        backgroundColor === 'transparent' &amp;&amp; styles.noShadow,
         style,
       ]}
     &gt;
       {loading ? (
         &lt;ActivityIndicator color={theme.colors.textInverse} size='small' /&gt;
       ) : iconOnly ? (
-<span class="branch-0 cbranch-no" title="branch not covered" >        &lt;View&gt;{icon}&lt;/View&gt;</span>
+        &lt;View&gt;{icon}&lt;/View&gt;
       ) : (
         &lt;View style={styles.contentRow}&gt;
-          {icon &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >iconPosition === 'left' </span>? (
-<span class="branch-0 cbranch-no" title="branch not covered" >            &lt;View style={styles.iconLeft}&gt;{icon}&lt;/View&gt;</span>
+          {icon &amp;&amp; iconPosition === 'left' ? (
+            &lt;View style={styles.iconLeft}&gt;{icon}&lt;/View&gt;
           ) : null}
           &lt;Text
             style={[
               styles.text,
               { color },
-              isTertiary &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >styles.linkText,</span>
+              isTertiary &amp;&amp; styles.linkText,
               textStyle,
             ]}
           &gt;
             {title}
           &lt;/Text&gt;
-          {icon &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >iconPosition === 'right' </span>? (
-<span class="branch-0 cbranch-no" title="branch not covered" >            &lt;View style={styles.iconRight}&gt;{icon}&lt;/View&gt;</span>
+          {icon &amp;&amp; iconPosition === 'right' ? (
+            &lt;View style={styles.iconRight}&gt;{icon}&lt;/View&gt;
           ) : null}
         &lt;/View&gt;
       )}
@@ -506,7 +506,7 @@ export const Button: React.FC&lt;ButtonProps&gt; = ({
   );
 };
 &nbsp;
-const styles = StyleSheet.create({
+const styles = <span class="cstat-no" title="statement not covered" >StyleSheet.create({</span>
   base: {
     borderWidth: 1,
     justifyContent: 'center',
@@ -568,7 +568,7 @@ export default Button;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T11:33:31.293Z
+                at 2025-09-22T22:45:57.466Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

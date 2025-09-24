@@ -1,0 +1,137 @@
+{
+    "cli":  {
+                "version":  "\u003e= 16.17.4",
+                "appVersionSource":  "local"
+            },
+    "build":  {
+                  "development":  {
+                                      "developmentClient":  true,
+                                      "distribution":  "internal",
+                                      "android":  {
+                                                      "gradleCommand":  ":app:assembleDebug",
+                                                      "buildType":  "apk",
+                                                      "image":  "ubuntu-22.04-jdk-17-ndk-r26b"
+                                                  },
+                                      "ios":  {
+                                                  "buildConfiguration":  "Debug"
+                                              },
+                                      "env":  {
+                                                  "NODE_ENV":  "development",
+                                                  "JAVA_HOME":  "/usr/lib/jvm/java-17-openjdk-amd64",
+                                                  "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                                  "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                                  "EXPO_PUBLIC_USE_MOCK":  "false"
+                                              },
+                                      "channel":  "development"
+                                  },
+                  "stable":  {
+                                 "distribution":  "internal",
+                                 "android":  {
+                                                 "buildType":  "apk",
+                                                 "gradleCommand":  ":app:assembleRelease",
+                                                 "image":  "ubuntu-22.04-jdk-17-ndk-r26b"
+                                             },
+                                 "ios":  {
+                                             "buildConfiguration":  "Release"
+                                         },
+                                 "env":  {
+                                             "NODE_ENV":  "production",
+                                             "EXPO_USE_FAST_RESOLVER":  "1",
+                                             "EXPO_USE_HERMES":  "1",
+                                             "EXPO_OPTIMIZE":  "1",
+                                             "JAVA_HOME":  "/usr/lib/jvm/java-17-openjdk-amd64",
+                                             "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                             "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                             "EXPO_PUBLIC_USE_MOCK":  "false"
+                                         },
+                                 "channel":  "stable"
+                             },
+                  "staging":  {
+                                  "distribution":  "internal",
+                                  "android":  {
+                                                  "buildType":  "apk",
+                                                  "gradleCommand":  ":app:assembleRelease",
+                                                  "image":  "ubuntu-22.04-jdk-17-ndk-r26b"
+                                              },
+                                  "ios":  {
+                                              "buildConfiguration":  "Release"
+                                          },
+                                  "env":  {
+                                              "NODE_ENV":  "staging",
+                                              "JAVA_HOME":  "/usr/lib/jvm/java-17-openjdk-amd64",
+                                              "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                              "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                              "EXPO_PUBLIC_USE_MOCK":  "false"
+                                          },
+                                  "channel":  "staging"
+                              },
+                  "preview":  {
+                                  "distribution":  "internal",
+                                  "android":  {
+                                                  "buildType":  "apk",
+                                                  "gradleCommand":  ":app:assembleRelease",
+                                                  "image":  "ubuntu-22.04-jdk-17-ndk-r26b"
+                                              },
+                                  "ios":  {
+                                              "buildConfiguration":  "Release"
+                                          },
+                                  "env":  {
+                                              "NODE_ENV":  "production",
+                                              "EXPO_USE_FAST_RESOLVER":  "1",
+                                              "EXPO_USE_HERMES":  "1",
+                                              "EXPO_OPTIMIZE":  "1",
+                                              "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                              "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                              "EXPO_PUBLIC_USE_MOCK":  "false"
+                                          },
+                                  "channel":  "preview"
+                              },
+                  "production":  {
+                                     "android":  {
+                                                     "buildType":  "app-bundle",
+                                                     "gradleCommand":  ":app:bundleRelease"
+                                                 },
+                                     "ios":  {
+                                                 "buildConfiguration":  "Release"
+                                             },
+                                     "env":  {
+                                                 "NODE_ENV":  "production",
+                                                 "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                                 "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                                 "EXPO_PUBLIC_USE_MOCK":  "false"
+                                             },
+                                     "channel":  "production"
+                                 },
+                  "production-store":  {
+                                           "distribution":  "store",
+                                           "android":  {
+                                                           "buildType":  "app-bundle",
+                                                           "gradleCommand":  ":app:bundleRelease"
+                                                       },
+                                           "ios":  {
+                                                       "buildConfiguration":  "Release"
+                                                   },
+                                           "env":  {
+                                                       "NODE_ENV":  "production",
+                                                       "EXPO_PUBLIC_SUPABASE_URL":  "https://ukrjudtlvapiajkjbcrd.supabase.co",
+                                                       "EXPO_PUBLIC_SUPABASE_ANON_KEY":  "",
+                                                       "EXPO_PUBLIC_USE_MOCK":  "false"
+                                                   },
+                                           "channel":  "production"
+                                       }
+              },
+    "submit":  {
+                   "production":  {
+                                      "android":  {
+                                                      "serviceAccountKeyPath":  "./credentials/play-store-service-account.json",
+                                                      "track":  "production",
+                                                      "releaseStatus":  "draft"
+                                                  },
+                                      "ios":  {
+                                                  "appleId":  "YOUR_APPLE_ID_EMAIL_HERE",
+                                                  "ascAppId":  "YOUR_APP_STORE_CONNECT_APP_ID_HERE",
+                                                  "appleTeamId":  "YOUR_APPLE_TEAM_ID_HERE"
+                                              }
+                                  }
+               }
+}

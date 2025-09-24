@@ -1,15 +1,13 @@
 module.exports = {
   extends: [
-    'expo',
-    '@react-native-community',
+    'next',
+    'next/core-web-vitals',
     'plugin:@typescript-eslint/recommended',
     'prettier'
   ],
   plugins: [
     '@typescript-eslint',
-    'react',
-    'react-native',
-    'react-hooks'
+    'react'
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -21,12 +19,21 @@ module.exports = {
     project: './tsconfig.json',
   },
   env: {
-    'react-native/react-native': true,
+    browser: true,
     es6: true,
     node: true,
     jest: true,
   },
   rules: {
+    // Prevent importing server-only modules in web client
+    'no-restricted-imports': ['error', {
+      'patterns': [
+        {
+          'group': ['apps/web/lib/database', 'apps/web/lib/database.ts', 'apps/web/server/**'],
+          'message': 'Do not import server-only modules into client code.'
+        }
+      ]
+    }],
     // TypeScript specific
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/no-explicit-any': 'warn',
@@ -40,13 +47,6 @@ module.exports = {
     // React specific
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn',
-    'react-native/no-unused-styles': 'warn',
-    'react-native/split-platform-components': 'warn',
-    'react-native/no-inline-styles': 'warn',
-    'react-native/no-color-literals': 'warn',
-    
     // General code quality
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'prefer-const': 'error',
@@ -81,3 +81,4 @@ module.exports = {
     '*.d.ts'
   ],
 };
+

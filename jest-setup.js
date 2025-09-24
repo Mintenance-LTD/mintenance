@@ -636,7 +636,7 @@ jest.mock('@react-navigation/bottom-tabs', () => {
   };
 });
 
-// Mock React Native Maps
+// Mock React Native Maps (optional dependency)
 jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -652,7 +652,7 @@ jest.mock('react-native-maps', () => {
     Marker,
     Region,
   };
-});
+}, { virtual: true });
 
 // Mock Expo Vector Icons
 jest.mock('@expo/vector-icons', () => {

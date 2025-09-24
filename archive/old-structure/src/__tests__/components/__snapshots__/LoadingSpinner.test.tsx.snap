@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`LoadingSpinner matches snapshot 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "justifyContent": "center",
+      "padding": 20,
+    }
+  }
+  testID="loading-spinner"
+>
+  <ActivityIndicator
+    color="#007AFF"
+    size="large"
+  />
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "marginTop": 15,
+          "textAlign": "center",
+        },
+        {
+          "color": "#007AFF",
+        },
+      ]
+    }
+    testID="loading-text"
+  >
+    Loading...
+  </Text>
+</View>
+`;

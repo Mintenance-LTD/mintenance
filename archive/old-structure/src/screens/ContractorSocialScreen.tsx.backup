@@ -1,0 +1,1019 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  Modal,
+  TextInput,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Input } from '../components/ui/Input';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { theme } from '../theme';
+import { useHaptics } from '../utils/haptics';
+import { logger } from '../utils/logger';
+import { SkeletonPostCard } from '../components/SkeletonLoader';
+import { ContractorSocialService } from '../services/ContractorSocialService';
+import { ContractorPostType } from '../types';
+import type { ContractorPost } from '../types';
+
+type FeedPost = ContractorPost & {
+  contractor?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl?: string;
+    rating?: number;
+    totalJobsCompleted?: number;
+  };
+  isLikedByUser?: boolean;
+  liked?: boolean;
+  saved?: boolean;
+};
+
+const ContractorSocialScreen: React.FC = () => {
+  const { user } = useAuth();
+  const haptics = useHaptics();
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPostContent, setNewPostContent] = useState('');
+  const [selectedPostType, setSelectedPostType] =
+    useState<ContractorPostType>('project_showcase');
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+
+  const postsRef = useRef<FeedPost[]>([]);
+  const updatePostsState = (updater: (prev: FeedPost[]) => FeedPost[]) => {
+    setPosts((prev) => {
+      const next = updater(prev);
+      postsRef.current = next;
+      return next;
+    });
+  };
+
+  useEffect(() => {
+
+    if (user?.id) {
+
+      void loadPosts();
+
+    } else {
+
+      updatePostsState(() => []);
+
+      setLoading(false);
+
+    }
+
+  }, [user?.id]);
+
+
+
+  const normalizeFeedPost = (post: ContractorPost): FeedPost => {
+
+    const enriched = post as FeedPost;
+
+    return {
+
+      ...post,
+
+      contractor: enriched.contractor,
+
+      hashtags: post.hashtags || [],
+
+      likes: post.likes ?? 0,
+
+      comments: post.comments ?? 0,
+
+      shares: post.shares ?? 0,
+
+      liked: enriched.liked ?? enriched.isLikedByUser ?? false,
+
+      saved: enriched.saved ?? false,
+
+    };
+
+  };
+
+
+
+  const loadPosts = async (options?: { skipLoadingState?: boolean; silent?: boolean }) => {
+
+    if (!user?.id) {
+
+      updatePostsState(() => []);
+
+      setLoading(false);
+
+      setRefreshing(false);
+
+      return;
+
+    }
+
+
+
+    if (!options?.skipLoadingState) {
+
+      setLoading(true);
+
+    }
+
+
+
+    try {
+
+      const feed = await ContractorSocialService.getFeedPosts(user.id);
+
+      updatePostsState((prev) => {
+
+        const next = feed.map((post) => {
+
+          const normalized = normalizeFeedPost(post);
+
+          const existing = prev.find((existingPost) => existingPost.id === normalized.id);
+
+          return existing ? { ...normalized, saved: existing.saved } : normalized;
+
+        });
+
+        return next;
+
+      });
+
+    } catch (error) {
+
+      logger.error('Error loading contractor feed:', error);
+
+      if (!options?.silent) {
+
+        Alert.alert('Error', 'Unable to load the contractor feed right now.');
+
+      }
+
+    } finally {
+
+      if (!options?.skipLoadingState) {
+
+        setLoading(false);
+
+      }
+
+      setRefreshing(false);
+
+    }
+
+  };
+
+
+
+  const onRefresh = async () => {
+
+    if (!user?.id) {
+
+      return;
+
+    }
+
+    haptics.pullToRefresh();
+
+    setRefreshing(true);
+
+    await loadPosts({ skipLoadingState: true, silent: true });
+
+  };
+
+
+
+  const toggleLike = async (postId: string) => {
+
+    if (!user?.id) {
+
+      return;
+
+    }
+
+
+
+    haptics.likePost();
+
+
+
+    updatePostsState((prev) =>
+
+      prev.map((post) =>
+
+        post.id === postId
+
+          ? {
+
+              ...post,
+
+              liked: !post.liked,
+
+              likes: !post.liked ? post.likes + 1 : Math.max(post.likes - 1, 0),
+
+            }
+
+          : post
+
+      )
+
+    );
+
+
+
+    try {
+
+      await ContractorSocialService.toggleLike(postId, user.id);
+
+      await loadPosts({ skipLoadingState: true, silent: true });
+
+    } catch (error) {
+
+      logger.error('Error toggling like:', error);
+
+      Alert.alert('Error', 'We could not update your like. Please try again.');
+
+      await loadPosts({ skipLoadingState: true, silent: true });
+
+    }
+
+  };
+
+
+
+  const toggleSave = (postId: string) => {
+
+    haptics.savePost();
+
+    updatePostsState((prev) =>
+
+      prev.map((post) =>
+
+        post.id === postId ? { ...post, saved: !post.saved } : post
+
+      )
+
+    );
+
+  };
+
+
+
+  const handleComment = (_postId: string) => {
+    haptics.buttonPress();
+    Alert.alert(
+      'Comments',
+      'Comments feature is coming soon! You can like and save posts for now.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleShare = (postId: string) => {
+    haptics.buttonPress();
+    updatePostsState((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, shares: post.shares + 1 } : post
+      )
+    );
+    Alert.alert('Shared!', 'Post shared to your network!', [{ text: 'OK' }]);
+  };
+
+  const handleCreatePost = () => {
+    haptics.buttonPress();
+    if (user?.role === 'contractor') {
+      setShowCreateModal(true);
+    } else {
+      Alert.alert(
+        'Access Restricted',
+        'Only contractors can create posts in the community feed.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const submitPost = async () => {
+    if (!newPostContent.trim() || !user?.id) {
+      Alert.alert('Error', 'Please enter some content for your post.');
+      return;
+    }
+
+    setIsCreatingPost(true);
+    haptics.buttonPress();
+
+    try {
+      const newPost = await ContractorSocialService.createPost({
+        contractorId: user.id,
+        type: selectedPostType,
+        content: newPostContent.trim(),
+        hashtags: extractHashtags(newPostContent),
+      });
+
+      const mappedPost = normalizeFeedPost({
+        ...newPost,
+        contractor: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      } as ContractorPost);
+
+      updatePostsState((prev) => [mappedPost, ...prev]);
+      setShowCreateModal(false);
+      setNewPostContent('');
+
+      Alert.alert(
+        'Success!',
+        'Your post has been shared with the contractor community.',
+        [{ text: 'Great!' }]
+      );
+
+      await loadPosts({ skipLoadingState: true, silent: true });
+    } catch (error) {
+      logger.error('Error creating post:', error);
+      Alert.alert('Error', 'Failed to create your post. Please try again.', [
+        { text: 'OK' },
+      ]);
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const extractHashtags = (content: string): string[] => {
+    const hashtags = content.match(/#[a-zA-Z0-9_]+/g) || [];
+    return hashtags.map((tag) => tag.toLowerCase());
+  };
+
+  const getPostTypeDisplayName = (type: ContractorPostType): string => {
+    switch (type) {
+      case 'project_showcase':
+        return 'Project Showcase';
+      case 'tip':
+        return 'Pro Tip';
+      case 'before_after':
+        return 'Before/After';
+      case 'milestone':
+        return 'Milestone';
+      default:
+        return 'Update';
+    }
+  };
+
+  const formatRelativeTime = (isoDate: string) => {
+    const date = isoDate ? new Date(isoDate) : null;
+    if (!date || Number.isNaN(date.getTime())) {
+      return 'Just now';
+    }
+
+    const diffMs = Date.now() - date.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    if (diffSeconds < 60) {
+      return 'Just now';
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) {
+      return `${diffDays}d ago`;
+    }
+
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks < 4) {
+      return `${diffWeeks}w ago`;
+    }
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) {
+      return `${diffMonths}mo ago`;
+    }
+
+    const diffYears = Math.floor(diffDays / 365);
+    return `${diffYears}y ago`;
+  };
+
+  const getContractorName = (post: FeedPost) => {
+    const first = post.contractor?.firstName ?? '';
+    const last = post.contractor?.lastName ?? '';
+    const fullName = `${first} ${last}`.trim();
+    if (fullName) {
+      return fullName;
+    }
+
+    if (post.contractorId === user?.id) {
+      const fallback = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      return fallback || 'You';
+    }
+
+    return 'Community Member';
+  };
+
+  const isContractorVerified = (post: FeedPost) =>
+    Boolean(post.contractor?.totalJobsCompleted && post.contractor.totalJobsCompleted >= 5);
+
+  const renderPost = ({ item }: { item: FeedPost }) => {
+    const contractorName = getContractorName(item);
+    const roleLabel = getPostTypeDisplayName(item.type);
+    const timestampLabel = formatRelativeTime(item.createdAt);
+    const hashtags = item.hashtags || [];
+    const liked = item.liked ?? false;
+    const likeCount = item.likes ?? 0;
+    const commentCount = item.comments ?? 0;
+    const shareCount = item.shares ?? 0;
+    const verified = isContractorVerified(item);
+
+    return (
+      <View style={styles.postCard}>
+        {/* Post Header */}
+        <View style={styles.postHeader}>
+          <View style={styles.contractorInfo}>
+            <Ionicons
+              name='person-circle'
+              size={48}
+              color={theme.colors.textTertiary}
+            />
+            <View style={styles.contractorDetails}>
+              <View style={styles.contractorNameRow}>
+                <Text style={styles.contractorName}>{contractorName}</Text>
+                {verified && (
+                  <Ionicons
+                    name='checkmark-circle'
+                    size={16}
+                    color={theme.colors.secondary}
+                  />
+                )}
+              </View>
+              <View style={styles.roleRow}>
+                <Text style={styles.contractorRole}>{roleLabel}</Text>
+                <Text style={styles.postTime}> | {timestampLabel}</Text>
+              </View>
+            </View>
+          </View>
+          <TouchableOpacity>
+            <Ionicons
+              name='ellipsis-horizontal'
+              size={20}
+              color={theme.colors.textTertiary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Post Content */}
+        <Text style={styles.postContent}>{item.content}</Text>
+
+        {/* Hashtags */}
+        {hashtags.length > 0 && (
+          <View style={styles.hashtagsContainer}>
+            {hashtags.map((hashtag, index) => (
+              <TouchableOpacity
+                key={`${item.id}-hashtag-${index}`}
+                style={styles.hashtag}
+                accessibilityRole='button'
+                accessibilityLabel={`Hashtag ${hashtag}`}
+                accessibilityHint={`Double tap to view posts with ${hashtag} hashtag`}
+              >
+                <Text style={styles.hashtagText}>{hashtag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Engagement Actions */}
+        <View style={styles.engagementRow}>
+          <TouchableOpacity
+            style={styles.engagementButton}
+            onPress={() => toggleLike(item.id)}
+            accessibilityRole='button'
+            accessibilityLabel={liked ? 'Unlike post' : 'Like post'}
+            accessibilityHint={
+              liked
+                ? 'Double tap to unlike this post'
+                : 'Double tap to like this post'
+            }
+            accessibilityState={{ selected: liked }}
+          >
+            <Ionicons
+              name={liked ? 'heart' : 'heart-outline'}
+              size={20}
+              color={liked ? '#FF3B30' : theme.colors.textSecondary}
+            />
+            <Text style={styles.engagementText}>{likeCount}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.engagementButton}
+            onPress={() => handleComment(item.id)}
+            accessibilityRole='button'
+            accessibilityLabel='View comments'
+            accessibilityHint={`Double tap to view ${commentCount} comments on this post`}
+          >
+            <Ionicons
+              name='chatbubble-outline'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
+            <Text style={styles.engagementText}>{commentCount}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.engagementButton}
+            onPress={() => handleShare(item.id)}
+            accessibilityRole='button'
+            accessibilityLabel='Share post'
+            accessibilityHint='Double tap to share this post with others'
+          >
+            <Ionicons
+              name='share-outline'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
+            <Text style={styles.engagementText}>{shareCount}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.engagementButton, styles.saveButton]}
+            onPress={() => toggleSave(item.id)}
+            accessibilityRole='button'
+            accessibilityLabel={item.saved ? 'Unsave post' : 'Save post'}
+            accessibilityHint={
+              item.saved
+                ? 'Double tap to remove this post from saved'
+                : 'Double tap to save this post'
+            }
+            accessibilityState={{ selected: item.saved }}
+          >
+            <Ionicons
+              name={item.saved ? 'bookmark' : 'bookmark-outline'}
+              size={20}
+              color={item.saved ? theme.colors.secondary : theme.colors.textSecondary}
+            />
+            <Text style={styles.engagementText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Community Feed</Text>
+        <TouchableOpacity
+          style={styles.searchButton}
+          accessibilityRole='button'
+          accessibilityLabel='Search community posts'
+          accessibilityHint='Double tap to search posts in the community feed'
+        >
+          <Ionicons name='search' size={24} color='#fff' />
+        </TouchableOpacity>
+      </View>
+
+      {/* Posts Feed */}
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary} // iOS spinner color
+            colors={[theme.colors.primary]} // Android spinner colors
+            progressBackgroundColor={theme.colors.surface} // Android background
+          />
+        }
+        style={styles.feed}
+        contentContainerStyle={styles.feedContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          loading ? null : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name='people-outline' size={50} color='#ccc' />
+              <Text style={styles.emptyTitle}>No posts yet</Text>
+              <Text style={styles.emptyText}>
+                Be the first to share with the contractor community!
+              </Text>
+            </View>
+          )
+        }
+        ListHeaderComponent={
+          loading && posts.length === 0 ? (
+            <View>
+              <SkeletonPostCard />
+              <SkeletonPostCard />
+              <SkeletonPostCard />
+            </View>
+          ) : null
+        }
+      />
+
+      {/* Create Post Modal */}
+      <Modal
+        visible={showCreateModal}
+        animationType='slide'
+        presentationStyle='pageSheet'
+        onRequestClose={() => setShowCreateModal(false)}
+      >
+        <View style={styles.createPostContainer}>
+          <View style={styles.createPostHeader}>
+            <TouchableOpacity
+              onPress={() => setShowCreateModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.createPostTitle}>Create Post</Text>
+            <TouchableOpacity
+              onPress={submitPost}
+              style={[
+                styles.modalSubmitButton,
+                { opacity: isCreatingPost ? 0.6 : 1 },
+              ]}
+              disabled={isCreatingPost}
+            >
+              {isCreatingPost ? (
+                <ActivityIndicator size='small' color='#fff' />
+              ) : (
+                <Text style={styles.modalSubmitText}>Share</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.createPostContent}>
+            {/* Post Type Selection */}
+            <Text style={styles.sectionLabel}>Post Type</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.postTypeContainer}
+            >
+              {(
+                [
+                  'project_showcase',
+                  'tip',
+                  'before_after',
+                  'milestone',
+                ] as ContractorPostType[]
+              ).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.postTypeOption,
+                    selectedPostType === type && styles.postTypeSelected,
+                  ]}
+                  onPress={() => setSelectedPostType(type)}
+                >
+                  <Text
+                    style={[
+                      styles.postTypeText,
+                      selectedPostType === type && styles.postTypeTextSelected,
+                    ]}
+                  >
+                    {getPostTypeDisplayName(type)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Content Input */}
+            <Input
+              label="What's happening in your work?"
+              placeholder='Share your project updates, tips, or achievements with the contractor community...'
+              value={newPostContent}
+              onChangeText={setNewPostContent}
+              maxLength={500}
+              multiline
+              numberOfLines={6}
+              autoFocus
+              leftIcon='create-outline'
+              variant='outline'
+              size='lg'
+              fullWidth
+            />
+            <Text style={styles.characterCount}>
+              {newPostContent.length}/500
+            </Text>
+
+            {/* Tips */}
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsTitle}>💡 Tips for great posts:</Text>
+              <Text style={styles.tipText}>
+                • Use hashtags like #plumbing #electrical #hvac
+              </Text>
+              <Text style={styles.tipText}>
+                • Share your expertise and help other contractors
+              </Text>
+              <Text style={styles.tipText}>
+                • Show before/after photos of your work
+              </Text>
+              <Text style={styles.tipText}>
+                • Celebrate your achievements and milestones
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Floating Action Button */}
+      {user?.role === 'contractor' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleCreatePost}
+          accessibilityRole='button'
+          accessibilityLabel='Create new post'
+          accessibilityHint='Double tap to create a new post in the community feed'
+        >
+          <Ionicons name='add' size={24} color='#fff' />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background, // Pure white background
+  },
+  header: {
+    backgroundColor: theme.colors.primary, // Dark blue header
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.textInverse,
+  },
+  searchButton: {
+    padding: 8,
+  },
+  feed: {
+    flex: 1,
+  },
+  feedContent: {
+    paddingBottom: 100,
+  },
+  // Post Card Styles
+  postCard: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 20, // Rounded cards
+    padding: 20,
+    ...theme.shadows.base,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  contractorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  contractorDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  contractorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  contractorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginRight: 6,
+  },
+  roleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contractorRole: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.primary, // Dark blue role
+  },
+  postTime: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+  },
+  postContent: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: theme.colors.textPrimary,
+    marginBottom: 16,
+  },
+  hashtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  hashtag: {
+    backgroundColor: theme.colors.surfaceSecondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  hashtagText: {
+    fontSize: 14,
+    color: theme.colors.primary, // Dark blue hashtags
+    fontWeight: '500',
+  },
+  engagementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderLight,
+  },
+  engagementButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  engagementText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  saveButton: {
+    marginLeft: 'auto',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginTop: 15,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
+  },
+  // Create Post Modal Styles
+  createPostContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  createPostHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: theme.colors.primary,
+  },
+  createPostTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  modalCloseButton: {
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: theme.colors.textInverse,
+  },
+  modalSubmitButton: {
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  createPostContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  postTypeContainer: {
+    marginBottom: 24,
+  },
+  postTypeOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  postTypeSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  postTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  postTypeTextSelected: {
+    color: theme.colors.textInverse,
+  },
+  postContentInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    backgroundColor: theme.colors.surface,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    textAlign: 'right',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  tipsContainer: {
+    backgroundColor: theme.colors.surfaceSecondary,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  // Floating Action Button
+  fab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.lg,
+    zIndex: 1000,
+  },
+});
+
+export default ContractorSocialScreen;

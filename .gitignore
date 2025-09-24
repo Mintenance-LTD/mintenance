@@ -1,3 +1,61 @@
+# Node / Yarn / NPM
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+
+# Build artifacts
+.next/
+.out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Expo / React Native
+.expo/
+.expo-shared/
+android/
+ios/
+*.keystore
+*.jks
+
+# EAS
+*.ipa
+*.apk
+*.aab
+
+# Env & credentials
+.env*
+!.env.example
+credentials/
+*.pem
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# Editor/OS files
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Cache
+.cache/
+.tmp/
+.expo/web/cache/
+
+# Generated
+apps/web/tsconfig.tsbuildinfo
+apps/mobile/tsconfig.tsbuildinfo
+packages/*/tsconfig.tsbuildinfo
+
+# Misc
+mintenance-complete.bundle
+
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -30,21 +88,82 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Environment and Configuration Files
 .env
+.env.local
 .env.development
+.env.staging
+.env.production
 .env*.local
+.env.backup*
+.cursor/mcp.local.json
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 
-# Credentials and secrets
+# Security & Credentials - CRITICAL: Never commit these
 credentials/*.p8
 credentials/*.json
 credentials/*.env
 !credentials/README.md
 !credentials/.gitkeep
-.env.production
-.env.staging
 service-account*.json
 AuthKey_*.p8
+*.key
+*.pem
+*.p12
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# API Keys and Tokens
+**/config/**/secrets.json
+**/config/**/private.json
+**/*-key.json
+**/*-secret.json
+
+# Stripe Keys
+stripe-keys.json
+stripe-secret.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs with potential sensitive data
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ⚠️ SECURITY CRITICAL: Server-side environment files
+.env.server
+.env.server.local
+.env.server.*
+
+# Security audit reports
+security-audit-report.txt
+audit-log.txt
+vulnerability-report.*
+
+# Additional sensitive directories
+secrets/
+private-keys/
+server-credentials/
