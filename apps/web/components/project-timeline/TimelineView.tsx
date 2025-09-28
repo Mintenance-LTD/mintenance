@@ -312,7 +312,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               flexDirection: 'column',
               gap: theme.spacing.lg
             }}>
-              {sortedMilestones.map((milestone, index) => {
+              {sortedMilestones.map(milestone => {
                 const overdue = isOverdue(milestone);
                 const statusColor = overdue ? theme.colors.error : getStatusColor(milestone.status);
 
@@ -336,7 +336,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       borderRadius: '50%',
                       backgroundColor: statusColor,
                       border: `2px solid ${theme.colors.white}`,
-                      boxShadow: '0 0 0 2px ' + statusColor
+                      boxShadow: `0 0 0 2px ${statusColor}`
                     }} />
 
                     {/* Milestone card */}
@@ -459,8 +459,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() => {
                                 onCompleteMilestone?.(milestone.id);
                               }}
                               style={{

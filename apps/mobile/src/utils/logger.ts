@@ -25,6 +25,21 @@ interface LogContext {
 class Logger {
   private isDevelopment = __DEV__;
 
+  // Normalize arguments to support both styles:
+  // 1) message, context
+  // 2) tag, message, context
+  private normalizeMessageArgs(
+    first: string,
+    second?: string | LogContext | unknown,
+    third?: LogContext | unknown
+  ): { message: string; context?: LogContext | unknown } {
+    if (typeof second === 'string') {
+      const message = `[${first}] ${second}`;
+      return { message, context: third };
+    }
+    return { message: first, context: second };
+  }
+
   private safeStringify(obj: any): string {
     try {
       return JSON.stringify(obj, (key, value) => {
@@ -63,7 +78,12 @@ class Logger {
     }
   }
 
-  debug(message: string, context?: LogContext | unknown): void {
+  debug(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+    const { message, context } = this.normalizeMessageArgs(
+      messageOrTag,
+      contextOrMessage as any,
+      maybeContext
+    );
     if (this.isDevelopment) {
       console.log(
         this.formatMessage('debug', message, this.toContext(context))
@@ -78,7 +98,12 @@ class Logger {
     });
   }
 
-  info(message: string, context?: LogContext | unknown): void {
+  info(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+    const { message, context } = this.normalizeMessageArgs(
+      messageOrTag,
+      contextOrMessage as any,
+      maybeContext
+    );
     if (this.isDevelopment) {
       console.info(
         this.formatMessage('info', message, this.toContext(context))
@@ -94,7 +119,12 @@ class Logger {
     sentryFunctions.captureMessage(message, 'info');
   }
 
-  warn(message: string, context?: LogContext | unknown): void {
+  warn(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+    const { message, context } = this.normalizeMessageArgs(
+      messageOrTag,
+      contextOrMessage as any,
+      maybeContext
+    );
     if (this.isDevelopment) {
       console.warn(
         this.formatMessage('warn', message, this.toContext(context))
@@ -132,12 +162,21 @@ class Logger {
     }
   }
 
-  error(message: string, errorOrContext?: unknown, context?: LogContext): void {
-    const isErr = errorOrContext instanceof Error;
+  error(
+    messageOrTag: string,
+    errorOrContextOrMessage?: unknown | string,
+    maybeContext?: LogContext
+  ): void {
+    const { message, context } = this.normalizeMessageArgs(
+      messageOrTag,
+      errorOrContextOrMessage as any,
+      maybeContext
+    );
+    const isErr = errorOrContextOrMessage instanceof Error;
     const err: Error | undefined = isErr
-      ? (errorOrContext as Error)
+      ? (errorOrContextOrMessage as Error)
       : undefined;
-    const ctx = isErr ? context : this.toContext(errorOrContext);
+    const ctx = isErr ? context : this.toContext(errorOrContextOrMessage as any);
     const sanitizedContext = this.sanitizeContext(ctx);
     const formattedMessage = this.formatMessage(
       'error',
@@ -293,14 +332,26 @@ export const logger = new Logger();
 
 // Convenience methods for backward compatibility
 export const log = {
-  debug: (message: string, context?: LogContext | unknown) =>
-    logger.debug(message, context),
-  info: (message: string, context?: LogContext | unknown) =>
-    logger.info(message, context),
-  warn: (message: string, context?: LogContext | unknown) =>
-    logger.warn(message, context),
-  error: (message: string, errorOrContext?: unknown, context?: LogContext) =>
-    logger.error(message, errorOrContext, context),
+  debug: (
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ) => logger.debug(messageOrTag, contextOrMessage as any, maybeContext),
+  info: (
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ) => logger.info(messageOrTag, contextOrMessage as any, maybeContext),
+  warn: (
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ) => logger.warn(messageOrTag, contextOrMessage as any, maybeContext),
+  error: (
+    messageOrTag: string,
+    errorOrContextOrMessage?: unknown | string,
+    maybeContext?: LogContext
+  ) => logger.error(messageOrTag, errorOrContextOrMessage as any, maybeContext),
   performance: (
     operation: string,
     duration: number,

@@ -85,9 +85,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'background-color 0.2s ease',
-          ':hover': !disabled && {
-            backgroundColor: theme.colors.backgroundSecondary,
-          },
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
@@ -138,9 +135,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             maxHeight: '96px',
             overflow: 'auto',
             fontFamily: theme.typography.fontFamily.regular,
-            '::placeholder': {
-              color: theme.colors.textSecondary,
-            },
           }}
           rows={1}
         />

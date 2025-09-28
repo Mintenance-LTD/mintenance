@@ -60,12 +60,11 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           participantId: call.participantId,
           title: call.title,
           description: call.description,
-          type: call.type,
-          priority: call.priority
+          type: call.type
         });
       }
 
-      await VideoCallService.joinCall(call.id, currentUserId);
+      await VideoCallService.joinCall(call.id);
 
       // Set up local video stream
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -122,7 +121,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const handleToggleAudio = async () => {
     try {
-      await VideoCallService.toggleAudio(call.id);
+      VideoCallService.toggleAudio(!isAudioEnabled);
       setIsAudioEnabled(!isAudioEnabled);
       onToggleAudio?.();
     } catch (error) {
@@ -132,7 +131,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   const handleToggleVideo = async () => {
     try {
-      await VideoCallService.toggleVideo(call.id);
+      VideoCallService.toggleVideo(!isVideoEnabled);
       setIsVideoEnabled(!isVideoEnabled);
       onToggleVideo?.();
     } catch (error) {
@@ -143,9 +142,9 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
   const handleToggleScreenShare = async () => {
     try {
       if (isScreenSharing) {
-        await VideoCallService.stopScreenShare(call.id);
+        await VideoCallService.stopScreenShare();
       } else {
-        await VideoCallService.startScreenShare(call.id);
+        await VideoCallService.startScreenShare();
       }
       setIsScreenSharing(!isScreenSharing);
       onToggleScreenShare?.();

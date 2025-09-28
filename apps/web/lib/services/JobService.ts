@@ -1,12 +1,12 @@
 import type { JobDetail as Job, JobSummary } from '@mintenance/types/src/contracts';
 
 async function api<T>(input: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set('Content-Type', 'application/json');
+
   const res = await fetch(input, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init && init.headers ? (init.headers as Record<string, string>) : {}),
-    },
+    headers,
     credentials: 'same-origin',
   });
   if (!res.ok) {
@@ -16,18 +16,20 @@ async function api<T>(input: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+const mapSummaryToJob = (summary: JobSummary): Job => ({
+  id: summary.id,
+  title: summary.title,
+  status: summary.status,
+  createdAt: summary.createdAt,
+  updatedAt: summary.updatedAt,
+});
+
 export class JobService {
   static async getAvailableJobs(): Promise<Job[]> {
     try {
       const params = new URLSearchParams({ limit: '20', status: 'posted' });
       const { jobs } = await api<{ jobs: JobSummary[] }>(`/api/jobs?${params.toString()}`);
-      return jobs.map(j => ({
-        id: j.id,
-        title: j.title,
-        status: j.status,
-        createdAt: j.createdAt,
-        updatedAt: j.updatedAt,
-      })) as unknown as Job[];
+      return jobs.map(mapSummaryToJob);
     } catch (error) {
       console.error('Job service error:', error);
       return this.getMockJobs();
@@ -37,13 +39,7 @@ export class JobService {
   static async getJobsByHomeowner(_homeownerId: string): Promise<Job[]> {
     try {
       const { jobs } = await api<{ jobs: JobSummary[] }>(`/api/jobs?limit=50`);
-      return jobs.map(j => ({
-        id: j.id,
-        title: j.title,
-        status: j.status,
-        createdAt: j.createdAt,
-        updatedAt: j.updatedAt,
-      })) as unknown as Job[];
+      return jobs.map(mapSummaryToJob);
     } catch (error) {
       console.error('Job service error:', error);
       return this.getMockJobs();
@@ -93,21 +89,11 @@ export class JobService {
         id: '1',
         title: 'Kitchen Faucet Repair',
         description: 'Kitchen faucet is leaking and needs immediate attention. The drip is constant and wasting water.',
-        location: 'Downtown Seattle, WA' as any,
-        // @ts-expect-error legacy fields retained for compatibility
-        homeowner_id: 'user1',
         status: 'posted',
-        // @ts-expect-error legacy fields retained for compatibility
-        budget: 150,
         createdAt: new Date(Date.now() - 86400000).toISOString(),
         updatedAt: new Date().toISOString(),
-        // @ts-expect-error legacy
-        category: 'plumbing',
-        // @ts-expect-error legacy
-        priority: 'medium',
-        // @ts-expect-error legacy
-        photos: ['https://via.placeholder.com/300x200/3B82F6/FFFFFF?text=Kitchen+Faucet'],
-      } as unknown as Job,
+        location: 'Downtown Seattle, WA',
+      },
     ];
   }
 }

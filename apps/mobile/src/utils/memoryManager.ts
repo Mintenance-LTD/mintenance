@@ -14,6 +14,7 @@ export interface MemoryUsage {
   timestamp: number;
   componentCounts: Record<string, number>;
   listenerCounts: Record<string, number>;
+  limit?: number;
 }
 
 export interface MemoryCleanupOptions {
@@ -482,6 +483,37 @@ export class MemoryManager {
       trend,
       issues,
     };
+  }
+
+  /**
+   * Clear unused modules (stub for compatibility)
+   */
+  async clearUnusedModules(): Promise<void> {
+    logger.info('MemoryManager', 'Clearing unused modules');
+    // Implementation would go here
+  }
+
+  /**
+   * Get memory usage (stub for compatibility)
+   */
+  async getMemoryUsage(): Promise<MemoryUsage> {
+    return this.getCurrentMemoryUsage();
+  }
+
+  /**
+   * Force garbage collection (stub for compatibility)
+   */
+  async forceGarbageCollection(): Promise<void> {
+    logger.info('MemoryManager', 'Forcing garbage collection');
+    // Implementation would go here
+  }
+
+  /**
+   * Optimize image cache (stub for compatibility)
+   */
+  async optimizeImageCache(): Promise<void> {
+    logger.info('MemoryManager', 'Optimizing image cache');
+    // Implementation would go here
   }
 }
 

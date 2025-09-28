@@ -6,8 +6,7 @@ import type {
   SavedSearch,
   SearchAnalytics,
   Job,
-  Contractor,
-  LocationRadius
+  ContractorProfile
 } from '@mintenance/types';
 
 export class AdvancedSearchService {
@@ -89,7 +88,7 @@ export class AdvancedSearchService {
         totalCount: count || 0,
         hasMore: (count || 0) > offset + limit,
         facets,
-        suggestions: this.generateSearchSuggestions(query, data || [])
+        suggestions: this.generateSearchSuggestions(query)
       };
     } catch (error) {
       console.error('Advanced job search error:', error);
@@ -105,7 +104,7 @@ export class AdvancedSearchService {
     filters: AdvancedSearchFilters,
     page: number = 1,
     limit: number = 20
-  ): Promise<SearchResult<Contractor>> {
+  ): Promise<SearchResult<ContractorProfile>> {
     try {
       const offset = (page - 1) * limit;
 
@@ -183,7 +182,8 @@ export class AdvancedSearchService {
         availability: profile.availability || 'flexible',
         rating: profile.rating || 0,
         total_jobs: profile.total_jobs || 0,
-        portfolio_images: profile.portfolio_images || []
+        portfolioImages: profile.portfolio_images || [],
+        reviews: (profile as any).reviews ?? []
       }));
 
       // Calculate facets for refined search
@@ -194,7 +194,7 @@ export class AdvancedSearchService {
         totalCount: count || 0,
         hasMore: (count || 0) > offset + limit,
         facets,
-        suggestions: this.generateSearchSuggestions(query, contractors)
+        suggestions: this.generateSearchSuggestions(query)
       };
     } catch (error) {
       console.error('Advanced contractor search error:', error);
@@ -329,7 +329,7 @@ export class AdvancedSearchService {
   /**
    * Calculate facets for job search refinement
    */
-  private static async calculateJobFacets(filters: AdvancedSearchFilters): Promise<SearchFacets> {
+  private static async calculateJobFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
     try {
       // This would typically be calculated from the database
       // For now, return mock facets
@@ -374,7 +374,7 @@ export class AdvancedSearchService {
   /**
    * Calculate facets for contractor search refinement
    */
-  private static async calculateContractorFacets(filters: AdvancedSearchFilters): Promise<SearchFacets> {
+  private static async calculateContractorFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
     try {
       // This would typically be calculated from the database
       return {
@@ -418,7 +418,7 @@ export class AdvancedSearchService {
   /**
    * Generate search suggestions based on query and results
    */
-  private static generateSearchSuggestions(query: string, results: any[]): string[] {
+  private static generateSearchSuggestions(query: string): string[] {
     const suggestions = [
       `${query} near me`,
       `experienced ${query}`,
@@ -445,46 +445,61 @@ export class AdvancedSearchService {
         title: 'Kitchen Sink Repair',
         description: 'Leaking kitchen sink needs immediate repair',
         location: 'Downtown District',
-        homeownerId: 'homeowner_1',
-        contractorId: null,
+        homeowner_id: 'homeowner_1',
+        contractor_id: undefined,
         status: 'posted',
         budget: 250,
+        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
         category: 'plumbing',
         priority: 'high',
+        photos: ['https://example.com/sink1.jpg'],
+        // Computed fields
+        homeownerId: 'homeowner_1',
+        contractorId: undefined,
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-        photos: ['https://example.com/sink1.jpg']
-      },
+      } as Job,
       {
         id: 'job_search_2',
         title: 'Bathroom Electrical Work',
         description: 'Install new lighting fixtures in master bathroom',
         location: 'Suburban Area',
-        homeownerId: 'homeowner_2',
-        contractorId: null,
+        homeowner_id: 'homeowner_2',
+        contractor_id: undefined,
         status: 'posted',
         budget: 450,
+        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
         category: 'electrical',
         priority: 'medium',
+        photos: [],
+        // Computed fields
+        homeownerId: 'homeowner_2',
+        contractorId: undefined,
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-        photos: []
-      },
+      } as Job,
       {
         id: 'job_search_3',
         title: 'Deck Painting',
         description: 'Large deck needs complete repainting',
         location: 'North Side',
-        homeownerId: 'homeowner_3',
-        contractorId: null,
+        homeowner_id: 'homeowner_3',
+        contractor_id: undefined,
         status: 'posted',
         budget: 800,
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
         category: 'painting',
         priority: 'low',
+        photos: ['https://example.com/deck1.jpg', 'https://example.com/deck2.jpg'],
+        // Computed fields
+        homeownerId: 'homeowner_3',
+        contractorId: undefined,
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-        photos: ['https://example.com/deck1.jpg', 'https://example.com/deck2.jpg']
-      }
+      } as Job
     ];
 
     return {
@@ -510,8 +525,8 @@ export class AdvancedSearchService {
     filters: AdvancedSearchFilters,
     page: number,
     limit: number
-  ): SearchResult<Contractor> {
-    const mockContractors: Contractor[] = [
+  ): SearchResult<ContractorProfile> {
+    const mockContractors: ContractorProfile[] = [
       {
         id: 'contractor_search_1',
         email: 'mike.plumber@email.com',
@@ -519,17 +534,22 @@ export class AdvancedSearchService {
         last_name: 'Johnson',
         phone: '(555) 123-4567',
         role: 'contractor',
-        avatar_url: 'https://example.com/mike.jpg',
+        profileImageUrl: 'https://example.com/mike.jpg',
         created_at: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
-        bio: 'Licensed plumber with 10+ years experience specializing in residential repairs',
-        skills: ['plumbing', 'water heaters', 'drain cleaning'],
-        hourly_rate: 85,
-        experience_years: 10,
+        companyName: 'Mike Johnson Plumbing',
+        skills: [
+          { id: '1', contractorId: 'contractor_search_1', skillName: 'plumbing', createdAt: new Date().toISOString() },
+          { id: '2', contractorId: 'contractor_search_1', skillName: 'water heaters', createdAt: new Date().toISOString() },
+          { id: '3', contractorId: 'contractor_search_1', skillName: 'drain cleaning', createdAt: new Date().toISOString() }
+        ],
+        reviews: [],
+        totalJobsCompleted: 127,
+        hourlyRate: 85,
+        yearsExperience: 10,
         availability: 'immediate',
         rating: 4.8,
-        total_jobs: 127,
-        portfolio_images: ['https://example.com/portfolio1.jpg']
+        portfolioImages: ['https://example.com/portfolio1.jpg']
       },
       {
         id: 'contractor_search_2',
@@ -538,17 +558,23 @@ export class AdvancedSearchService {
         last_name: 'Williams',
         phone: '(555) 234-5678',
         role: 'contractor',
-        avatar_url: 'https://example.com/sarah.jpg',
+        profileImageUrl: 'https://example.com/sarah.jpg',
         created_at: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
-        bio: 'Master electrician offering comprehensive electrical services',
-        skills: ['electrical', 'wiring', 'lighting', 'smart home'],
-        hourly_rate: 95,
-        experience_years: 8,
+        companyName: 'Sarah Williams Electrical',
+        skills: [
+          { id: '4', contractorId: 'contractor_search_2', skillName: 'electrical', createdAt: new Date().toISOString() },
+          { id: '5', contractorId: 'contractor_search_2', skillName: 'wiring', createdAt: new Date().toISOString() },
+          { id: '6', contractorId: 'contractor_search_2', skillName: 'lighting', createdAt: new Date().toISOString() },
+          { id: '7', contractorId: 'contractor_search_2', skillName: 'smart home', createdAt: new Date().toISOString() }
+        ],
+        reviews: [],
+        totalJobsCompleted: 89,
+        hourlyRate: 95,
+        yearsExperience: 8,
         availability: 'this_week',
         rating: 4.9,
-        total_jobs: 89,
-        portfolio_images: ['https://example.com/portfolio2.jpg', 'https://example.com/portfolio3.jpg']
+        portfolioImages: ['https://example.com/portfolio2.jpg', 'https://example.com/portfolio3.jpg']
       }
     ];
 

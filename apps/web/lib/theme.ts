@@ -38,6 +38,9 @@ export const theme = {
 
     // Neutral Colors
     background: '#FFFFFF',
+    backgroundSecondary: '#F8FAFC',
+    backgroundTertiary: '#F1F5F9',
+    backgroundDark: '#1F2937',
     surface: '#FFFFFF',
     surfaceSecondary: '#F8FAFC',
     surfaceTertiary: '#F1F5F9',
@@ -53,6 +56,8 @@ export const theme = {
     textQuaternary: '#9CA3AF',
     textInverse: '#FFFFFF',
     textInverseMuted: 'rgba(255, 255, 255, 0.8)',
+    // Legacy aliases
+    text: '#1F2937',
 
     // Placeholder Text
     placeholder: '#6B7280',
@@ -102,6 +107,7 @@ export const theme = {
 
     // Font Weights
     fontWeight: {
+      normal: '400',
       regular: '400',
       medium: '500',
       semibold: '600',
@@ -113,6 +119,7 @@ export const theme = {
       xs: '10px',
       sm: '12px',
       base: '14px',
+      md: '16px',
       lg: '16px',
       xl: '18px',
       '2xl': '20px',
@@ -208,6 +215,11 @@ export const theme = {
         color: '#0F172A',
         borderColor: 'transparent',
       },
+      outline: {
+        backgroundColor: 'transparent',
+        color: '#0F172A',
+        borderColor: '#E5E7EB',
+      },
     },
 
     // Card Variants
@@ -242,12 +254,15 @@ export const theme = {
       focused: {
         borderColor: '#0F172A',
         backgroundColor: '#FFFFFF',
+        color: '#1F2937',
+        placeholderColor: '#6B7280',
         boxShadow: '0 0 0 3px rgba(15, 23, 42, 0.1)',
       },
       error: {
         borderColor: '#DC2626',
         backgroundColor: '#FEF2F2',
         color: '#DC2626',
+        placeholderColor: '#DC2626',
       },
     },
   },

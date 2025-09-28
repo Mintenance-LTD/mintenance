@@ -6,7 +6,8 @@ export default async function DashboardPage() {
   const headersList = headers();
 
   // Try to get user from headers first (middleware approach)
-  let user = getCurrentUserFromHeaders(headersList);
+  // headers() returns ReadonlyHeaders (compatible for reads)
+  let user = getCurrentUserFromHeaders(headersList as unknown as Headers);
 
   // Fallback to cookies if headers don't contain user info (more reliable)
   if (!user) {

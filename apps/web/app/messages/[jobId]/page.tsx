@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { MessageBubble } from '@/components/messaging/MessageBubble';
@@ -76,7 +76,7 @@ export default function ChatPage({ params }: ChatPageProps) {
   const loadUserAndMessages = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
         router.push('/login');

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { ContractorService } from '@/lib/services/ContractorService';
 import { SwipeableCard } from '@/components/SwipeableCard';
 import { Button } from '@/components/ui';
@@ -20,7 +20,7 @@ export default function DiscoverPage() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
       setUser(currentUser);
     };
     loadUser();
@@ -157,7 +157,7 @@ export default function DiscoverPage() {
               lineHeight: theme.typography.lineHeight.relaxed,
               marginBottom: '24px'
             }}>
-              You've seen all available contractors in your area.
+              You&apos;ve seen all available contractors in your area.
             </p>
             <Button
               onClick={() => {

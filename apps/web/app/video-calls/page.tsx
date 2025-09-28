@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getCurrentUser } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { VideoCallHistory, VideoCallScheduler, VideoCallInterface } from '@/components/video-call';
 import { theme } from '@/lib/theme';
-import type { VideoCall } from '@mintenance/types';
+import type { VideoCall, User } from '@mintenance/types';
 
 export default function VideoCallsPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const [activeCall, setActiveCall] = useState<VideoCall | null>(null);
   const [selectedParticipant, setSelectedParticipant] = useState<{
@@ -18,7 +18,7 @@ export default function VideoCallsPage() {
   React.useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await getCurrentUser();
+        const user = await fetchCurrentUser();
         setCurrentUser(user);
       } catch (error) {
         console.error('Failed to load user:', error);

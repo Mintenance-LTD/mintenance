@@ -1,13 +1,55 @@
 import { supabase } from '@/lib/supabase';
 import type {
   VideoCall,
-  VideoCallParticipant,
-  VideoCallSettings,
   VideoCallInvitation,
   CallQualityMetrics
 } from '@mintenance/types';
 
 // WebRTC configuration for optimal performance
+type SupabaseVideoCallProfile = {
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+};
+
+type SupabaseVideoCallJob = {
+  title?: string | null;
+  category?: string | null;
+};
+
+type VideoCallRow = {
+  id: string;
+  job_id?: string | null;
+  initiator_id: string;
+  participant_id: string;
+  title: string;
+  description?: string | null;
+  status: VideoCall['status'];
+  scheduled_at?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration?: number | null;
+  recording_url?: string | null;
+  room_id?: string | null;
+  access_token?: string | null;
+  type: VideoCall['type'];
+  priority: VideoCall['priority'];
+  created_at: string;
+  updated_at: string;
+  initiator?: SupabaseVideoCallProfile | null;
+  participant?: SupabaseVideoCallProfile | null;
+  job?: SupabaseVideoCallJob | null;
+};
+
+type VideoCallFallbackParams = Partial<{
+  jobId: string;
+  participantId: string;
+  title: string;
+  description?: string;
+  scheduledAt?: string;
+  type: VideoCall['type'];
+}>;
+
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
@@ -274,7 +316,8 @@ export class VideoCallService {
         return this.getMockUserCalls(userId);
       }
 
-      return (data || []).map(this.formatVideoCall);
+      const rows = data ?? [];
+      return rows.map(call => this.formatVideoCall(call));
     } catch (error) {
       console.error('Get user calls error:', error);
       return this.getMockUserCalls(userId);
@@ -442,7 +485,7 @@ export class VideoCallService {
       .eq('id', callId);
   }
 
-  private static startQualityMonitoring(callId: string): void {
+  private static startQualityMonitoring(_callId: string): void {
     if (this.qualityCheckInterval) {
       clearInterval(this.qualityCheckInterval);
     }
@@ -464,7 +507,7 @@ export class VideoCallService {
 
       stats.forEach(report => {
         if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-          packetsLost += report.packetsLost || 0;
+          packetsLost += report.packetsLost ?? 0;
         }
         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
           latency = report.currentRoundTripTime ? report.currentRoundTripTime * 1000 : 0;
@@ -500,50 +543,64 @@ export class VideoCallService {
     }
   }
 
-  private static formatVideoCall(data: any): VideoCall {
+  private static formatVideoCall(data: VideoCallRow): VideoCall {
     return {
       id: data.id,
-      jobId: data.job_id,
+      jobId: data.job_id ?? undefined,
       initiatorId: data.initiator_id,
       participantId: data.participant_id,
       title: data.title,
-      description: data.description,
+      description: data.description ?? undefined,
       status: data.status,
-      scheduledAt: data.scheduled_at,
-      startedAt: data.started_at,
-      endedAt: data.ended_at,
-      duration: data.duration,
-      recordingUrl: data.recording_url,
-      roomId: data.room_id,
-      accessToken: data.access_token,
+      scheduledAt: data.scheduled_at ?? undefined,
+      startedAt: data.started_at ?? undefined,
+      endedAt: data.ended_at ?? undefined,
+      duration: data.duration ?? undefined,
+      recordingUrl: data.recording_url ?? undefined,
+      roomId: data.room_id ?? undefined,
+      accessToken: data.access_token ?? undefined,
       type: data.type,
       priority: data.priority,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      initiator: data.initiator,
-      participant: data.participant,
-      job: data.job
+      initiator: data.initiator ? {
+        first_name: data.initiator.first_name as string,
+        last_name: data.initiator.last_name as string,
+        avatar_url: data.initiator.avatar_url ?? undefined
+      } : undefined,
+      participant: data.participant ? {
+        first_name: data.participant.first_name as string,
+        last_name: data.participant.last_name as string,
+        avatar_url: data.participant.avatar_url ?? undefined
+      } : undefined,
+      job: data.job ? {
+        title: data.job.title as string,
+        category: data.job.category as string
+      } : undefined
     };
   }
 
   /**
    * Mock data for demo/fallback
    */
-  private static getMockVideoCall(params: any): VideoCall {
+  private static getMockVideoCall(params: VideoCallFallbackParams = {}): VideoCall {
+    const now = new Date();
+    const fallbackType: VideoCall['type'] = params.type ?? 'consultation';
+
     return {
       id: `call_${Date.now()}`,
       jobId: params.jobId,
       initiatorId: 'user_1',
-      participantId: params.participantId,
-      title: params.title,
-      description: params.description,
+      participantId: params.participantId ?? 'user_2',
+      title: params.title ?? 'Video Call',
+      description: params.description ?? 'Mock video call',
       status: params.scheduledAt ? 'scheduled' : 'pending',
       scheduledAt: params.scheduledAt,
-      type: params.type,
+      type: fallbackType,
       priority: 'medium',
       roomId: `room_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
       initiator: {
         first_name: 'John',
         last_name: 'Doe',
@@ -610,5 +667,107 @@ export class VideoCallService {
         }
       }
     ];
+  }
+
+  /**
+   * Get call history for a user
+   */
+  static async getCallHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<VideoCall[]> {
+    try {
+      const limit = options.limit ?? 20;
+      const offset = options.offset ?? 0;
+
+      const { data, error } = await supabase
+        .from('video_calls')
+        .select('*')
+        .or(`initiator_id.eq.${userId},participant_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('Error fetching call history:', error);
+        return this.getMockCallHistory();
+      }
+
+      return data ?? [];
+    } catch (error) {
+      console.error('Get call history error:', error);
+      return this.getMockCallHistory();
+    }
+  }
+
+  /**
+   * Cancel a scheduled call
+   */
+  static async cancelCall(callId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('video_calls')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', callId);
+
+      if (error) {
+        console.error('Error cancelling call:', error);
+        throw new Error('Failed to cancel call');
+      }
+    } catch (error) {
+      console.error('Cancel call error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get call quality metrics
+   */
+  static async getCallQuality(callId: string): Promise<CallQualityMetrics | null> {
+    try {
+      const { data, error } = await supabase
+        .from('call_quality_metrics')
+        .select('*')
+        .eq('call_id', callId)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching call quality:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Get call quality error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Stop screen sharing
+   */
+  static async stopScreenShare(): Promise<void> {
+    try {
+      if (this.localStream) {
+        const screenTrack = this.localStream.getVideoTracks().find(track => 
+          track.label.includes('screen') || track.label.includes('desktop')
+        );
+        
+        if (screenTrack) {
+          screenTrack.stop();
+        }
+      }
+    } catch (error) {
+      console.error('Stop screen share error:', error);
+    }
+  }
+
+  /**
+   * Get mock call history for fallback
+   */
+  private static getMockCallHistory(): VideoCall[] {
+    return [this.getMockVideoCall({})];
   }
 }

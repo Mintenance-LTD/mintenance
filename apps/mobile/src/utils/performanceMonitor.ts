@@ -7,6 +7,7 @@ export interface PerformanceMetrics {
   navigationTime?: number;
   apiResponseTime?: number;
   fps?: number;
+  customMetrics?: Map<string, number>;
 }
 
 export interface PerformanceBudget {

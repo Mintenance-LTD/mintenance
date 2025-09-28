@@ -20,10 +20,42 @@ const createJobSchema = z.object({
 
 const jobSelectFields = 'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
 
+type JobRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  homeowner_id: string;
+  contractor_id?: string | null;
+  category?: string | null;
+  budget?: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const mapRowToJobSummary = (row: JobRow): JobSummary => ({
+  id: row.id,
+  title: row.title,
+  status: (row.status as JobSummary['status']) ?? 'posted',
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const mapRowToJobDetail = (row: JobRow): JobDetail => ({
+  id: row.id,
+  title: row.title,
+  description: row.description ?? undefined,
+  status: (row.status as JobSummary['status']) ?? 'posted',
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const url = new URL(request.url);
     const parsed = listQuerySchema.safeParse({
@@ -45,7 +77,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(limit + 1);
 
-    if (status && status.length > 0) {
+    if (status?.length) {
       query = query.in('status', status);
     }
 
@@ -59,18 +91,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 });
     }
 
-    const rows = (data ?? []) as any[];
+    const rows = (data ?? []) as JobRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const nextCursor = hasMore ? limitedRows[limitedRows.length - 1]?.created_at : undefined;
+    const nextCursor = hasMore ? limitedRows.at(-1)?.created_at ?? undefined : undefined;
 
-    const items: JobSummary[] = limitedRows.map((row: any) => ({
-      id: row.id,
-      title: row.title,
-      status: row.status,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    const items: JobSummary[] = limitedRows.map(mapRowToJobSummary);
 
     return NextResponse.json({ jobs: items, nextCursor });
   } catch (err) {
@@ -82,7 +108,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await request.json();
     const parsed = createJobSchema.safeParse(body);
@@ -91,14 +119,25 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = parsed.data;
-    const insertPayload: Record<string, any> = {
+    const insertPayload: {
+      title: string;
+      homeowner_id: string;
+      status: string;
+      description?: string;
+      category?: string | null;
+      budget?: number;
+    } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
-      status: (payload.status ?? 'posted').trim(),
+      status: (payload.status ? payload.status.trim() : 'posted'),
     };
 
-    if (payload.description) insertPayload.description = payload.description.trim();
-    if (payload.category) insertPayload.category = payload.category.trim();
+    if (typeof payload.description === 'string') {
+      insertPayload.description = payload.description.trim();
+    }
+    if (payload.category !== undefined) {
+      insertPayload.category = payload.category?.trim() ?? null;
+    }
     if (payload.budget !== undefined) insertPayload.budget = payload.budget;
 
     const { data, error } = await serverSupabase
@@ -112,15 +151,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
     }
 
-    const jobRow: any = data;
-    const job: JobDetail = {
-      id: jobRow.id,
-      title: jobRow.title,
-      description: jobRow.description ?? undefined,
-      status: jobRow.status,
-      createdAt: jobRow.created_at,
-      updatedAt: jobRow.updated_at,
-    };
+    const jobRow = data as JobRow;
+    const job = mapRowToJobDetail(jobRow);
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {

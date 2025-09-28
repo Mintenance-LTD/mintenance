@@ -73,7 +73,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       lineHeight: theme.typography.lineHeight.normal,
 
       backgroundColor: variantStyles.backgroundColor,
-      color: variantStyles.color,
+      color: variantStyles.color || theme.colors.textPrimary,
       border: `1px solid ${variantStyles.borderColor}`,
       borderRadius: theme.borderRadius.lg,
 

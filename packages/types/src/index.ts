@@ -167,6 +167,10 @@ export interface ContractorProfile extends User {
   serviceRadius?: number; // in kilometers
   availability?: 'immediate' | 'this_week' | 'this_month' | 'busy';
   certifications?: string[];
+  // Additional fields for UI compatibility
+  rating?: number;
+  profileImageUrl?: string;
+  totalJobsCompleted?: number;
 }
 
 // Messaging types

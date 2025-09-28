@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+// import { Button } from '@/components/ui/Button';
 import type { MonthlyTrend } from '@/lib/services/ContractorAnalyticsService';
 
 interface PerformanceTrendsProps {
@@ -273,7 +273,9 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
                     r="12"
                     fill="transparent"
                     style={{ cursor: 'pointer' }}
-                    title={`${trend.month} ${trend.year}: ${formatValue(trend.value, selectedTrend)}`}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.setAttribute('title', `${trend.month} ${trend.year}: ${formatValue(trend.value, selectedTrend)}`);
+                    }}
                   />
                 </g>
               );

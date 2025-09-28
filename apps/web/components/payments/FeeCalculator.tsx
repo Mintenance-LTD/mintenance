@@ -7,6 +7,7 @@ interface FeeCalculatorProps {
   fees: FeeCalculation;
   showDetails?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
@@ -14,6 +15,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
   fees,
   showDetails = true,
   className = '',
+  style = {},
 }) => {
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -35,6 +37,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
         borderRadius: theme.borderRadius.lg,
         padding: theme.spacing.lg,
         border: `1px solid ${theme.colors.border}`,
+        ...style,
       }}
     >
       {/* Header */}
@@ -255,7 +258,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: theme.spacing.md,
-              backgroundColor: theme.colors.success + '15',
+              backgroundColor: `${theme.colors.success}15`,
               borderRadius: theme.borderRadius.md,
               border: `1px solid ${theme.colors.success}`,
             }}
@@ -286,7 +289,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
           {/* Fee Info */}
           <div
             style={{
-              backgroundColor: theme.colors.info + '10',
+              backgroundColor: `${theme.colors.info}10`,
               border: `1px solid ${theme.colors.info}`,
               borderRadius: theme.borderRadius.md,
               padding: theme.spacing.sm,

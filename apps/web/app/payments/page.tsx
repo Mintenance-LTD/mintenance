@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { PaymentCard } from '@/components/payments/PaymentCard';
@@ -24,7 +24,7 @@ export default function PaymentsPage() {
   const loadUserAndPayments = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
         router.push('/login');

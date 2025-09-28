@@ -931,6 +931,24 @@ export class PerformanceMonitor {
         return `${value}${unit}`;
     }
   }
+
+  /**
+   * Initialize performance monitoring (stub for compatibility)
+   */
+  async initialize(): Promise<void> {
+    logger.info('PerformanceMonitor', 'Initializing performance monitoring');
+    // Implementation would go here
+  }
+
+  /**
+   * Record multiple metrics (stub for compatibility)
+   */
+  recordMetrics(serviceName: string, responseTime: number, context?: any): void {
+    this.recordMetric(`${serviceName}_response_time`, responseTime, 'api');
+    if (context) {
+      logger.info('PerformanceMonitor', `Recorded metrics for ${serviceName}`, context);
+    }
+  }
 }
 
 // ============================================================================

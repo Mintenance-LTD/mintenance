@@ -10,7 +10,7 @@ import { securityAuditService } from './securityAuditAndPenetrationTesting';
 import { performanceMonitor } from './performanceMonitor';
 import { enhancedErrorAnalytics } from './enhancedErrorTracking';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
-import { webOptimizationService } from './webOptimizations';
+import { WebOptimizations } from './webOptimizations';
 import { logger } from './logger';
 
 /**
@@ -232,7 +232,7 @@ export const webPlatform = {
   // Get Core Web Vitals (web only)
   getCoreWebVitals: () => {
     if (webPlatform.isWeb()) {
-      return webOptimizationService.getCoreWebVitals();
+      return WebOptimizations.getInstance().getCoreWebVitals();
     }
     return null;
   },
@@ -240,7 +240,7 @@ export const webPlatform = {
   // Check web optimization status
   isOptimized: () => {
     if (webPlatform.isWeb()) {
-      return webOptimizationService.isInitialized();
+      return WebOptimizations.getInstance().isInitialized();
     }
     return true; // Not applicable on mobile
   },

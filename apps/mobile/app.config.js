@@ -58,8 +58,10 @@ export default {
       buildNumber: "15",
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
-        NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations."\n        ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "This app needs camera access to take photos of jobs and upload project images."\n        NSPhotoLibraryUsageDescription: "This app needs photo library access to select images for job posts and project galleries.",
+        NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
+        ITSAppUsesNonExemptEncryption: false,
+        NSCameraUsageDescription: "This app needs camera access to take photos of jobs and upload project images.",
+        NSPhotoLibraryUsageDescription: "This app needs photo library access to select images for job posts and project galleries.",
         NSFaceIDUsageDescription: "This app uses Face ID for secure authentication."
       },
       associatedDomains: ["applinks:mintenance.app", "applinks:www.mintenance.app"]
@@ -68,7 +70,12 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#0EA5E9"
-      , config: { googleMaps: { apiKey: process.env.GOOGLE_MAPS_API_KEY } }},
+      },
+      config: { 
+        googleMaps: { 
+          apiKey: process.env.GOOGLE_MAPS_API_KEY 
+        } 
+      },
       package: "com.mintenance.app",
       versionCode: 15,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
@@ -120,8 +127,8 @@ export default {
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables
       // No defaults provided to prevent silent deployment failures
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || "https://ukrjudtlvapiajkjbcrd.supabase.co",
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcmp1ZHRsdmFwaWFqa2piY3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTYyNjcsImV4cCI6MjA3MTY5MjI2N30.R8r7pr1fPTPlK0RIB4s9KcJrjDsTfXazpG8-YC3qJXw",
     }
   }
 };

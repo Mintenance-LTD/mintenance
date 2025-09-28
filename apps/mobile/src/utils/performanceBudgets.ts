@@ -3,22 +3,24 @@
  * Legacy compatibility layer - all functionality moved to modular performance system
  *
  * @deprecated Use the new modular performance system instead:
- * import { performanceBudgetService } from './performance'
+ * import { PerformanceMonitor } from './performance'
  */
 
 import React from 'react';
 
 // Re-export everything from the new modular system for backward compatibility
 export * from './performance';
-export { performanceBudgetService as PerformanceBudgetManager } from './performance';
+export { PerformanceMonitor as PerformanceBudgetManager } from './performance';
 
 // Maintain legacy exports
 import {
-  performanceBudgetService,
+  PerformanceMonitor,
   PerformanceBudget,
-  PerformanceMetrics,
-  BudgetViolation,
-  ReactNativePerformanceConfig,
+  PerformanceMetric,
+  BudgetEnforcementRule,
+  PerformanceReport,
+  PerformanceViolation,
+  ComponentPerformance,
 } from './performance';
 
 // Legacy types for backward compatibility
@@ -72,7 +74,7 @@ export interface LegacySystemHealth {
 
 // Legacy class wrapper for existing code
 export class PerformanceBudgetManagerLegacy {
-  private service = performanceBudgetService;
+  private service = PerformanceMonitor.getInstance();
   private legacyBudgets: Map<string, any> = new Map();
   private legacyMetrics: Map<string, any[]> = new Map();
 
@@ -141,7 +143,7 @@ export class PerformanceBudgetManagerLegacy {
     this.legacyBudgets.set(budget.serviceName, budget);
     // Also set in the new system
     try {
-      this.service.setBudget(budget);
+      this.service.setBudget(budget.metric as string, budget.warning);
     } catch (error) {
       // Ignore errors for legacy compatibility
     }
@@ -339,9 +341,9 @@ export class PerformanceBudgetManagerLegacy {
     };
   }
 
-  getMetrics(serviceName: string, limit?: number): PerformanceMetrics[] {
+  getMetrics(serviceName: string, limit?: number): PerformanceMetric[] {
     try {
-      return this.service.getMetrics(serviceName, limit);
+      return this.service.getMetrics(serviceName);
     } catch (error) {
       // Return empty array for legacy compatibility
       return [];

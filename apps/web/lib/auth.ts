@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { DatabaseManager } from './database';
 import { generateJWT, verifyJWT, ConfigManager } from '@mintenance/auth';
 import type { User, JWTPayload } from '@mintenance/types';
 
@@ -106,3 +107,32 @@ export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'em
     return null;
   }
 }
+
+/**
+ * Get current user from available request context
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  const { headers } = await import('next/headers');
+  const headersList = await headers();
+
+  let userInfo = getCurrentUserFromHeaders(headersList);
+  if (!userInfo) {
+    userInfo = await getCurrentUserFromCookies();
+  }
+
+  if (!userInfo) {
+    return null;
+  }
+
+  try {
+    const dbUser = await DatabaseManager.getUserById(userInfo.id);
+    if (dbUser) {
+      return dbUser;
+    }
+  } catch (error) {
+    console.error('[Auth] Failed to load user from database:', error);
+  }
+
+  return null;
+}
+

@@ -27,6 +27,9 @@ export interface SystemHealth {
   overall: 'healthy' | 'degraded' | 'critical';
   services: Map<string, HealthStatus>;
   lastUpdated: number;
+  status?: 'healthy' | 'degraded' | 'critical';
+  uptime?: number;
+  timestamp?: number;
 }
 
 export interface AlertRule {
@@ -744,6 +747,25 @@ export class MonitoringAndAlerting {
 
     this.isInitialized = false;
     logger.info('MonitoringAndAlerting', 'Monitoring system disposed');
+  }
+
+  /**
+   * Check system health (alias for getSystemHealth)
+   */
+  async checkSystemHealth(): Promise<SystemHealth> {
+    return this.getSystemHealth();
+  }
+
+  /**
+   * Get alert statistics (stub for compatibility)
+   */
+  getAlertStatistics(): any {
+    return {
+      totalAlerts: this.activeAlerts.size,
+      criticalAlerts: Array.from(this.activeAlerts.values()).filter(alert => alert.severity === 'critical').length,
+      warningAlerts: Array.from(this.activeAlerts.values()).filter(alert => alert.severity === 'warning').length,
+      infoAlerts: Array.from(this.activeAlerts.values()).filter(alert => alert.severity === 'info').length,
+    };
   }
 }
 

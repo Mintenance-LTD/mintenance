@@ -214,8 +214,10 @@ export function getClientIP(request: NextRequest): string {
     }
   }
 
-  // Fallback to request IP
-  return request.ip || '127.0.0.1';
+  // Fallback to request IP (Next 15 may not expose request.ip)
+  // Try connection info via headers or default to localhost
+  const fallbackIp = (request as any)?.ip as string | undefined;
+  return fallbackIp || '127.0.0.1';
 }
 
 /**

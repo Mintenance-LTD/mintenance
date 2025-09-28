@@ -1,11 +1,11 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'success' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'success' | 'danger' | 'ghost' | 'outline';
 
 export interface ButtonProps {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   variant?: ButtonVariant;
   size?: 'sm' | 'md';
   disabled?: boolean;
@@ -16,6 +16,7 @@ export interface ButtonProps {
   iconPosition?: 'left' | 'right';
   iconOnly?: boolean;
   type?: 'button' | 'submit' | 'reset';
+  style?: React.CSSProperties;
   'aria-label'?: string;
   'data-testid'?: string;
 }
@@ -33,6 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   iconOnly = false,
   type = 'button',
+  style = {},
   'aria-label': ariaLabel,
   'data-testid': testId,
 }) => {
@@ -99,11 +101,12 @@ export const Button: React.FC<ButtonProps> = ({
     ...baseStyles,
     ...(disabled || loading ? disabledStyles : {}),
     ...linkStyles,
+    ...style,
   };
 
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent) => {
     if (!disabled && !loading && onClick) {
-      onClick();
+      onClick(e);
     }
   };
 

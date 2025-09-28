@@ -14,7 +14,7 @@
 
 import { logger } from './logger';
 import { performanceMonitor } from './performanceMonitor';
-import { webOptimizationService } from './webOptimizations';
+import { WebOptimizations } from './webOptimizations';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
 import { enhancedErrorAnalytics } from './enhancedErrorTracking';
 import { securityAuditService } from './securityAuditAndPenetrationTesting';
@@ -76,7 +76,7 @@ export class ProductionReadinessOrchestrator {
     try {
       // Initialize web platform optimizations if on web
       if (Platform.OS === 'web') {
-        await webOptimizationService.initializeEnhanced(
+        await WebOptimizations.getInstance().initializeEnhanced(
           {
             name: 'Mintenance',
             shortName: 'Mintenance',
@@ -122,7 +122,7 @@ export class ProductionReadinessOrchestrator {
       this.isInitialized = true;
       logger.info('ProductionReadiness', 'Production readiness orchestrator initialized successfully');
     } catch (error) {
-      logger.error('ProductionReadiness', 'Failed to initialize orchestrator', error);
+      logger.error('ProductionReadiness', 'Failed to initialize orchestrator', { error: error as Error });
       throw error;
     }
   }
@@ -192,8 +192,8 @@ export class ProductionReadinessOrchestrator {
       }
 
       // Check web optimizations
-      const isOptimized = webOptimizationService.isInitialized();
-      const webMetrics = webOptimizationService.getCoreWebVitals();
+      const isOptimized = WebOptimizations.getInstance().isInitialized();
+      const webMetrics = WebOptimizations.getInstance().getCoreWebVitals();
 
       let score = 100;
       let status: 'healthy' | 'warning' | 'error' = 'healthy';
@@ -235,7 +235,7 @@ export class ProductionReadinessOrchestrator {
         },
       };
     } catch (error) {
-      logger.error('ProductionReadiness', 'Web platform readiness check failed', error);
+      logger.error('ProductionReadiness', 'Web platform readiness check failed', { error: error as Error });
       return {
         status: 'error',
         score: 0,
@@ -560,8 +560,8 @@ export class ProductionReadinessOrchestrator {
 
       if (Platform.OS === 'web') {
         webCompatibility = {
-          coreWebVitals: webOptimizationService.getCoreWebVitals(),
-          optimizationStatus: webOptimizationService.isInitialized(),
+          coreWebVitals: WebOptimizations.getInstance().getCoreWebVitals(),
+          optimizationStatus: WebOptimizations.getInstance().isInitialized(),
         };
       }
     }

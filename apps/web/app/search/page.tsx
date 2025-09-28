@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { AdvancedSearchService } from '@/lib/services/AdvancedSearchService';
 import { AdvancedSearchFiltersComponent } from '@/components/search/AdvancedSearchFilters';
 import { SearchBar } from '@/components/SearchBar';
@@ -11,10 +11,11 @@ import { theme } from '@/lib/theme';
 import type {
   User,
   Job,
-  Contractor,
+  ContractorProfile,
+  ContractorSkill,
   AdvancedSearchFilters,
-  SearchResult,
-  SearchFacets
+  SavedSearch,
+  SearchResult
 } from '@mintenance/types';
 
 type SearchType = 'jobs' | 'contractors';
@@ -33,16 +34,16 @@ export default function SearchPage() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<SearchResult<Job | Contractor>>({
+  const [results, setResults] = useState<SearchResult<Job | ContractorProfile>>({
     items: [],
     totalCount: 0,
     hasMore: false
   });
-  const [savedSearches, setSavedSearches] = useState<any[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
 
   useEffect(() => {
     const loadUser = async () => {
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
       setUser(currentUser);
 
       if (currentUser) {
@@ -58,18 +59,26 @@ export default function SearchPage() {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    if (query || Object.values(filters).some(v => Array.isArray(v) ? v.length > 0 : v)) {
-      performSearch();
-    }
-  }, [query, filters, searchType]);
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(filters.priceRange) ||
+           filters.skills.length > 0 ||
+           filters.projectTypes.length > 0 ||
+           filters.availability !== 'flexible' ||
+           Boolean(filters.urgency) ||
+           Boolean(filters.projectComplexity) ||
+           Boolean(filters.hasInsurance) ||
+           Boolean(filters.isBackgroundChecked) ||
+           Boolean(filters.hasPortfolio);
+  }, [filters]);
 
-  const performSearch = async () => {
-    if (!query.trim() && !hasActiveFilters) return;
+  const performSearch = useCallback(async () => {
+    if (!query.trim() && !hasActiveFilters) {
+      return;
+    }
 
     setLoading(true);
     try {
-      let searchResults: SearchResult<Job | Contractor>;
+      let searchResults: SearchResult<Job | ContractorProfile>;
 
       if (searchType === 'jobs') {
         searchResults = await AdvancedSearchService.searchJobs(query, filters);
@@ -79,14 +88,13 @@ export default function SearchPage() {
 
       setResults(searchResults);
 
-      // Track analytics
       if (user) {
         await AdvancedSearchService.trackSearchAnalytics(
           user.id,
           query,
           filters,
           searchResults.totalCount,
-          'session_' + Date.now()
+          `session_${Date.now()}`
         );
       }
     } catch (error) {
@@ -94,30 +102,35 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, hasActiveFilters, query, searchType, user]);
 
-  const hasActiveFilters = useMemo(() => {
-    return filters.priceRange ||
-           filters.skills.length > 0 ||
-           filters.projectTypes.length > 0 ||
-           filters.availability !== 'flexible' ||
-           filters.urgency ||
-           filters.projectComplexity ||
-           filters.hasInsurance ||
-           filters.isBackgroundChecked ||
-           filters.hasPortfolio;
-  }, [filters]);
+  useEffect(() => {
+    if (!query && !hasActiveFilters) {
+      return;
+    }
+
+    void performSearch();
+  }, [hasActiveFilters, performSearch, query]);
 
   const handleSaveSearch = async () => {
-    if (!user || !query.trim()) return;
+    const trimmedQuery = query.trim();
+    if (!user || !trimmedQuery) {
+      return;
+    }
 
-    const name = prompt('Name for saved search:') || `Search: ${query}`;
+    const defaultName = `Search: ${trimmedQuery}`;
+    const nameInput = prompt('Name for saved search:', defaultName)?.trim() ?? '';
+    const name = nameInput.length > 0 ? nameInput : defaultName;
+
+    if (savedSearches.some(saved => saved.name.trim().toLowerCase() === name.toLowerCase())) {
+      alert('You already have a saved search with this name.');
+      return;
+    }
 
     try {
       await AdvancedSearchService.saveSearch(user.id, name, filters, false);
       alert('Search saved successfully!');
 
-      // Reload saved searches
       const saved = await AdvancedSearchService.getSavedSearches(user.id);
       setSavedSearches(saved);
     } catch (error) {
@@ -203,7 +216,7 @@ export default function SearchPage() {
           fontSize: theme.typography.fontSize.xs,
           color: theme.colors.textSecondary
         }}>
-          Posted {new Date(job.createdAt).toLocaleDateString()}
+          Posted {new Date(job.createdAt || job.created_at || new Date()).toLocaleDateString()}
         </span>
         <div style={{
           backgroundColor: theme.colors.primary,
@@ -219,7 +232,7 @@ export default function SearchPage() {
     </Card>
   );
 
-  const renderContractorResult = (contractor: Contractor) => (
+  const renderContractorResult = (contractor: ContractorProfile) => (
     <Card
       key={contractor.id}
       style={{
@@ -246,9 +259,9 @@ export default function SearchPage() {
           fontSize: theme.typography.fontSize['2xl'],
           flexShrink: 0
         }}>
-          {contractor.avatar_url ? (
+          {contractor.profileImageUrl ? (
             <img
-              src={contractor.avatar_url}
+              src={contractor.profileImageUrl}
               alt={contractor.first_name}
               style={{
                 width: '100%',
@@ -294,7 +307,7 @@ export default function SearchPage() {
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary
                 }}>
-                  {contractor.total_jobs} jobs completed
+                  {contractor.totalJobsCompleted} jobs completed
                 </span>
               </div>
             </div>
@@ -303,7 +316,7 @@ export default function SearchPage() {
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.success
             }}>
-              ${contractor.hourly_rate}/hr
+              ${contractor.hourlyRate}/hr
             </div>
           </div>
 
@@ -318,7 +331,7 @@ export default function SearchPage() {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden'
           }}>
-            {contractor.bio}
+            {contractor.first_name} {contractor.last_name} - Licensed contractor
           </p>
 
           <div style={{
@@ -327,9 +340,9 @@ export default function SearchPage() {
             gap: theme.spacing.xs,
             marginBottom: theme.spacing.sm
           }}>
-            {contractor.skills?.slice(0, 4).map(skill => (
+            {contractor.skills?.slice(0, 4).map((skill: ContractorSkill) => (
               <span
-                key={skill}
+                key={skill.id}
                 style={{
                   backgroundColor: `${theme.colors.primary}15`,
                   color: theme.colors.primary,
@@ -339,7 +352,7 @@ export default function SearchPage() {
                   fontWeight: theme.typography.fontWeight.medium
                 }}
               >
-                {skill}
+                {skill.skillName}
               </span>
             ))}
             {(contractor.skills?.length || 0) > 4 && (
@@ -368,7 +381,7 @@ export default function SearchPage() {
               color: theme.colors.info,
               fontWeight: theme.typography.fontWeight.medium
             }}>
-              {contractor.experience_years} years experience
+              {contractor.yearsExperience} years experience
             </span>
           </div>
         </div>
@@ -619,7 +632,7 @@ export default function SearchPage() {
             {results.items.map(item =>
               searchType === 'jobs'
                 ? renderJobResult(item as Job)
-                : renderContractorResult(item as Contractor)
+                : renderContractorResult(item as ContractorProfile)
             )}
 
             {results.hasMore && (

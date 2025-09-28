@@ -17,6 +17,11 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     (p) => p.id !== currentUserId
   );
 
+  const displayName = otherParticipant?.name ?? 'Unknown User';
+  const avatarInitial = otherParticipant?.name
+    ? otherParticipant.name.charAt(0).toUpperCase()
+    : '?';
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -34,7 +39,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 
   const truncateMessage = (text: string, maxLength: number = 60) => {
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    return `${text.substring(0, maxLength)}...`;
   };
 
   const getRoleIcon = (role: string) => {
@@ -48,12 +53,14 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     }
   };
 
+  const roleIcon = getRoleIcon(otherParticipant?.role ?? '');
+
   const getLastMessagePreview = () => {
     if (!conversation.lastMessage) {
       return 'No messages yet';
     }
 
-    const { messageText, messageType, senderName } = conversation.lastMessage;
+    const { messageText, messageType } = conversation.lastMessage;
     const isCurrentUserSender = conversation.lastMessage.senderId === currentUserId;
     const prefix = isCurrentUserSender ? 'You: ' : '';
 
@@ -86,9 +93,6 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         cursor: 'pointer',
         backgroundColor: theme.colors.white,
         transition: 'background-color 0.2s ease',
-        ':hover': {
-          backgroundColor: theme.colors.backgroundSecondary,
-        },
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
@@ -114,7 +118,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
           flexShrink: 0,
         }}
       >
-        {otherParticipant?.name?.charAt(0).toUpperCase() || '?'}
+        {avatarInitial}
       </div>
 
       {/* Conversation Details */}
@@ -142,10 +146,10 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              {otherParticipant?.name || 'Unknown User'}
+              {displayName}
             </span>
             <span style={{ fontSize: '12px' }}>
-              {getRoleIcon(otherParticipant?.role || '')}
+              {roleIcon}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>

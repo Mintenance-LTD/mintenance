@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { ConversationCard } from '@/components/messaging/ConversationCard';
@@ -23,7 +23,7 @@ export default function MessagesPage() {
   const loadUserAndMessages = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
         router.push('/login');
@@ -200,7 +200,7 @@ export default function MessagesPage() {
               textAlign: 'center'
             }}>
               <div style={{
-                fontSize: theme.typography.fontSize['6xl'],
+                fontSize: theme.typography.fontSize['5xl'],
                 marginBottom: theme.spacing.lg
               }}>
                 💬

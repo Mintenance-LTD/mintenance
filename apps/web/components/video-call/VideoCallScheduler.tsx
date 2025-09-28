@@ -203,7 +203,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             {callTypeOptions.map(option => (
               <button
                 key={option.value}
-                onClick={() => setCallType(option.value)}
+                onClick={() => setCallType(option.value as 'consultation' | 'assessment' | 'project_review' | 'emergency' | 'follow_up')}
                 style={{
                   padding: theme.spacing.md,
                   borderRadius: theme.borderRadius.md,
@@ -258,7 +258,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             {priorityOptions.map(option => (
               <button
                 key={option.value}
-                onClick={() => setPriority(option.value)}
+                onClick={() => setPriority(option.value as 'high' | 'medium' | 'low' | 'urgent')}
                 style={{
                   padding: theme.spacing.sm,
                   borderRadius: theme.borderRadius.md,

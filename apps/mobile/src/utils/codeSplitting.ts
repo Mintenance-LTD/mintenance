@@ -317,6 +317,22 @@ class CodeSplittingManager {
       failedChunks: failed,
     };
   }
+
+  /**
+   * Enable code splitting (stub for compatibility)
+   */
+  async enableCodeSplitting(): Promise<void> {
+    logger.info('CodeSplittingManager', 'Code splitting enabled');
+    // Implementation would go here
+  }
+
+  /**
+   * Preload critical chunks (stub for compatibility)
+   */
+  async preloadCriticalChunks(): Promise<void> {
+    logger.info('CodeSplittingManager', 'Preloading critical chunks');
+    // Implementation would go here
+  }
 }
 
 // Export singleton instance

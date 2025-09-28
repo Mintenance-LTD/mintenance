@@ -1,5 +1,45 @@
 import { supabase } from '@/lib/supabase';
-import type { User } from '@mintenance/types';
+
+type JobMetricsRow = {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type CompletedJobRow = {
+  id: string;
+  budget: number | null;
+  created_at: string;
+  status: string;
+};
+
+type TransactionRow = {
+  amount: number;
+  status?: string | null;
+  created_at?: string;
+};
+
+type ReviewRow = {
+  rating: number;
+  comment?: string | null;
+  created_at: string;
+};
+
+type ContractorSkillRow = {
+  skill_name: string;
+};
+
+type SkillJobRow = {
+  budget: number | null;
+  reviews?: { rating: number }[] | null;
+};
+
+type BidWithJobRow = {
+  created_at: string;
+  status: string;
+  jobs?: { created_at: string }[] | null;
+};
 
 export interface ContractorAnalytics {
   // Performance Metrics
@@ -122,14 +162,16 @@ export class ContractorAnalyticsService {
     const { data: jobs, error } = await supabase
       .from('jobs')
       .select('id, status, created_at, updated_at')
-      .eq('contractor_id', contractorId);
+      .eq('contractor_id', contractorId)
+      .returns<JobMetricsRow[]>();
 
     if (error) throw error;
 
-    const totalJobs = jobs?.length || 0;
-    const completedJobs = jobs?.filter(job => job.status === 'completed').length || 0;
-    const activeJobs = jobs?.filter(job => job.status === 'in_progress').length || 0;
-    const pendingJobs = jobs?.filter(job => job.status === 'assigned').length || 0;
+    const jobRows = jobs ?? [];
+    const totalJobs = jobRows.length;
+    const completedJobs = jobRows.filter(job => job.status === 'completed').length;
+    const activeJobs = jobRows.filter(job => job.status === 'in_progress').length;
+    const pendingJobs = jobRows.filter(job => job.status === 'assigned').length;
     const completionRate = totalJobs > 0 ? (completedJobs / totalJobs) * 100 : 0;
 
     return {
@@ -145,52 +187,61 @@ export class ContractorAnalyticsService {
    * Get financial performance metrics
    */
   private static async getFinancialMetrics(contractorId: string) {
-    // Get completed jobs with budget information
     const { data: jobs, error: jobsError } = await supabase
       .from('jobs')
       .select('id, budget, created_at, status')
       .eq('contractor_id', contractorId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .returns<CompletedJobRow[]>();
 
     if (jobsError) throw jobsError;
 
-    // Get escrow transactions for actual earnings
+    const jobRows = jobs ?? [];
+
     const { data: transactions, error: transError } = await supabase
       .from('escrow_transactions')
       .select('amount, created_at, status')
       .eq('payee_id', contractorId)
-      .eq('status', 'released');
+      .eq('status', 'released')
+      .returns<TransactionRow[]>();
 
     if (transError) throw transError;
 
-    const totalEarnings = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
-    const averageJobValue = jobs && jobs.length > 0 ?
-      jobs.reduce((sum, job) => sum + job.budget, 0) / jobs.length : 0;
+    const transactionRows = transactions ?? [];
+    const totalEarnings = transactionRows.reduce((sum, transaction) => sum + transaction.amount, 0);
 
-    // Calculate monthly earnings
+    const jobBudgetTotal = jobRows.reduce((sum, job) => sum + (job.budget ?? 0), 0);
+    const averageJobValue = jobRows.length > 0 ? jobBudgetTotal / jobRows.length : 0;
+
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const thisMonthEarnings = transactions?.filter(t =>
-      new Date(t.created_at) >= thisMonth
-    ).reduce((sum, t) => sum + t.amount, 0) || 0;
+    const thisMonthEarnings = transactionRows
+      .filter(transaction => transaction.created_at && new Date(transaction.created_at) >= thisMonth)
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
 
-    const lastMonthEarnings = transactions?.filter(t => {
-      const date = new Date(t.created_at);
-      return date >= lastMonth && date < thisMonth;
-    }).reduce((sum, t) => sum + t.amount, 0) || 0;
+    const lastMonthEarnings = transactionRows
+      .filter(transaction => {
+        if (!transaction.created_at) {
+          return false;
+        }
+        const date = new Date(transaction.created_at);
+        return date >= lastMonth && date < thisMonth;
+      })
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
 
-    // Get pending payments
     const { data: pendingTrans, error: pendingError } = await supabase
       .from('escrow_transactions')
       .select('amount')
       .eq('payee_id', contractorId)
-      .eq('status', 'held');
+      .eq('status', 'held')
+      .returns<TransactionRow[]>();
 
     if (pendingError) throw pendingError;
 
-    const pendingPayments = pendingTrans?.reduce((sum, t) => sum + t.amount, 0) || 0;
+    const pendingRows = pendingTrans ?? [];
+    const pendingPayments = pendingRows.reduce((sum, transaction) => sum + transaction.amount, 0);
 
     return {
       totalEarnings,
@@ -208,21 +259,23 @@ export class ContractorAnalyticsService {
     const { data: reviews, error } = await supabase
       .from('reviews')
       .select('rating, comment, created_at')
-      .eq('reviewed_id', contractorId);
+      .eq('reviewed_id', contractorId)
+      .returns<ReviewRow[]>();
 
     if (error) throw error;
 
-    const totalReviews = reviews?.length || 0;
-    const averageRating = totalReviews > 0 ?
-      reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : 0;
+    const reviewRows = reviews ?? [];
+    const totalReviews = reviewRows.length;
+    const averageRating = totalReviews > 0
+      ? reviewRows.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+      : 0;
 
-    // Calculate rating distribution
     const ratingDistribution = {
-      5: reviews?.filter(r => r.rating === 5).length || 0,
-      4: reviews?.filter(r => r.rating === 4).length || 0,
-      3: reviews?.filter(r => r.rating === 3).length || 0,
-      2: reviews?.filter(r => r.rating === 2).length || 0,
-      1: reviews?.filter(r => r.rating === 1).length || 0,
+      5: reviewRows.filter(review => review.rating === 5).length,
+      4: reviewRows.filter(review => review.rating === 4).length,
+      3: reviewRows.filter(review => review.rating === 3).length,
+      2: reviewRows.filter(review => review.rating === 2).length,
+      1: reviewRows.filter(review => review.rating === 1).length
     };
 
     return {
@@ -236,61 +289,67 @@ export class ContractorAnalyticsService {
    * Get response time and quality metrics
    */
   private static async getResponseMetrics(contractorId: string) {
-    // Get bids to calculate response time
     const { data: bids, error: bidsError } = await supabase
       .from('bids')
       .select(`
         id, created_at, status,
         jobs!inner(created_at)
       `)
-      .eq('contractor_id', contractorId);
+      .eq('contractor_id', contractorId)
+      .returns<BidWithJobRow[]>();
 
     if (bidsError) throw bidsError;
 
-    // Calculate average response time
+    const bidRows = bids ?? [];
     let totalResponseTime = 0;
     let responseCount = 0;
 
-    bids?.forEach(bid => {
-      if (bid.jobs?.created_at) {
-        const jobTime = new Date(bid.jobs.created_at).getTime();
-        const bidTime = new Date(bid.created_at).getTime();
-        const responseTime = (bidTime - jobTime) / (1000 * 60 * 60); // hours
-        if (responseTime > 0) {
-          totalResponseTime += responseTime;
-          responseCount++;
-        }
+    bidRows.forEach((bid: BidWithJobRow) => {
+      const jobCreatedAt = bid.jobs?.[0]?.created_at;
+      if (!jobCreatedAt) {
+        return;
+      }
+
+      const jobTime = new Date(jobCreatedAt).getTime();
+      const bidTime = new Date(bid.created_at).getTime();
+      const responseTime = (bidTime - jobTime) / (1000 * 60 * 60);
+
+      if (responseTime > 0) {
+        totalResponseTime += responseTime;
+        responseCount += 1;
       }
     });
 
     const averageResponseTime = responseCount > 0 ? totalResponseTime / responseCount : 0;
 
-    // Calculate job success rate (accepted bids that led to completed jobs)
     const { data: successfulJobs, error: successError } = await supabase
       .from('jobs')
       .select('id')
       .eq('contractor_id', contractorId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .returns<{id: string}[]>();
 
     if (successError) throw successError;
 
-    const totalBids = bids?.length || 0;
-    const successfulJobsCount = successfulJobs?.length || 0;
+    const successfulJobsCount = (successfulJobs ?? []).length;
+    const totalBids = bidRows.length;
     const jobSuccessRate = totalBids > 0 ? (successfulJobsCount / totalBids) * 100 : 0;
 
-    // Calculate customer return rate
     const { data: repeatCustomers, error: returnError } = await supabase
       .from('jobs')
       .select('homeowner_id')
       .eq('contractor_id', contractorId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .returns<{homeowner_id: string}[]>();
 
     if (returnError) throw returnError;
 
-    const uniqueCustomers = new Set(repeatCustomers?.map(job => job.homeowner_id)).size;
-    const totalCompletedJobs = repeatCustomers?.length || 0;
-    const customerReturnRate = totalCompletedJobs > 0 ?
-      ((totalCompletedJobs - uniqueCustomers) / totalCompletedJobs) * 100 : 0;
+    const repeatRows = repeatCustomers ?? [];
+    const uniqueCustomers = new Set(repeatRows.map(job => job.homeowner_id)).size;
+    const totalCompletedJobs = repeatRows.length;
+    const customerReturnRate = totalCompletedJobs > 0
+      ? ((totalCompletedJobs - uniqueCustomers) / totalCompletedJobs) * 100
+      : 0;
 
     return {
       averageResponseTime,
@@ -316,16 +375,18 @@ export class ContractorAnalyticsService {
       const startOfMonth = new Date(year, date.getMonth(), 1);
       const endOfMonth = new Date(year, date.getMonth() + 1, 0);
 
-      // Job trends
       const { data: monthlyJobs } = await supabase
         .from('jobs')
         .select('id')
         .eq('contractor_id', contractorId)
         .gte('created_at', startOfMonth.toISOString())
-        .lte('created_at', endOfMonth.toISOString());
+        .lte('created_at', endOfMonth.toISOString())
+        .returns<{ id: string }[]>();
 
-      const jobCount = monthlyJobs?.length || 0;
-      const previousJobCount = i < monthsBack - 1 ? monthlyJobTrends[monthlyJobTrends.length - 1]?.value || 0 : 0;
+      const monthlyJobRows = monthlyJobs ?? [];
+      const jobCount = monthlyJobRows.length;
+      const lastJobTrend = monthlyJobTrends[monthlyJobTrends.length - 1];
+      const previousJobCount = i < monthsBack - 1 && lastJobTrend ? lastJobTrend.value : 0;
       const jobChange = previousJobCount > 0 ? ((jobCount - previousJobCount) / previousJobCount) * 100 : 0;
 
       monthlyJobTrends.push({
@@ -335,17 +396,19 @@ export class ContractorAnalyticsService {
         change: jobChange
       });
 
-      // Earnings trends
       const { data: monthlyEarnings } = await supabase
         .from('escrow_transactions')
         .select('amount')
         .eq('payee_id', contractorId)
         .eq('status', 'released')
         .gte('created_at', startOfMonth.toISOString())
-        .lte('created_at', endOfMonth.toISOString());
+        .lte('created_at', endOfMonth.toISOString())
+        .returns<TransactionRow[]>();
 
-      const earnings = monthlyEarnings?.reduce((sum, t) => sum + t.amount, 0) || 0;
-      const previousEarnings = i < monthsBack - 1 ? earningsTrends[earningsTrends.length - 1]?.value || 0 : 0;
+      const monthlyEarningRows = monthlyEarnings ?? [];
+      const earnings = monthlyEarningRows.reduce((sum: number, transaction: TransactionRow) => sum + transaction.amount, 0);
+      const lastEarningsTrend = earningsTrends[earningsTrends.length - 1];
+      const previousEarnings = i < monthsBack - 1 && lastEarningsTrend ? lastEarningsTrend.value : 0;
       const earningsChange = previousEarnings > 0 ? ((earnings - previousEarnings) / previousEarnings) * 100 : 0;
 
       earningsTrends.push({
@@ -355,17 +418,20 @@ export class ContractorAnalyticsService {
         change: earningsChange
       });
 
-      // Rating trends
       const { data: monthlyReviews } = await supabase
         .from('reviews')
         .select('rating')
         .eq('reviewed_id', contractorId)
         .gte('created_at', startOfMonth.toISOString())
-        .lte('created_at', endOfMonth.toISOString());
+        .lte('created_at', endOfMonth.toISOString())
+        .returns<ReviewRow[]>();
 
-      const avgRating = monthlyReviews && monthlyReviews.length > 0 ?
-        monthlyReviews.reduce((sum, r) => sum + r.rating, 0) / monthlyReviews.length : 0;
-      const previousRating = i < monthsBack - 1 ? ratingTrends[ratingTrends.length - 1]?.value || 0 : 0;
+      const monthlyReviewRows = monthlyReviews ?? [];
+      const avgRating = monthlyReviewRows.length > 0
+        ? monthlyReviewRows.reduce((sum: number, review: ReviewRow) => sum + review.rating, 0) / monthlyReviewRows.length
+        : 0;
+      const lastRatingTrend = ratingTrends[ratingTrends.length - 1];
+      const previousRating = i < monthsBack - 1 && lastRatingTrend ? lastRatingTrend.value : 0;
       const ratingChange = previousRating > 0 ? ((avgRating - previousRating) / previousRating) * 100 : 0;
 
       ratingTrends.push({
@@ -387,17 +453,16 @@ export class ContractorAnalyticsService {
    * Get market positioning data
    */
   private static async getMarketData(contractorId: string) {
-    // Get contractor's skills for market comparison
     const { data: contractorSkills } = await supabase
       .from('contractor_skills')
       .select('skill_name')
-      .eq('contractor_id', contractorId);
+      .eq('contractor_id', contractorId)
+      .returns<ContractorSkillRow[]>();
 
-    const skills = contractorSkills?.map(s => s.skill_name) || [];
+    const skills = (contractorSkills ?? []).map((skill: ContractorSkillRow) => skill.skill_name);
 
-    // Calculate skill performance
     const topSkills: SkillPerformance[] = [];
-    for (const skill of skills.slice(0, 5)) { // Top 5 skills
+    for (const skill of skills.slice(0, 5)) {
       const { data: skillJobs } = await supabase
         .from('jobs')
         .select(`
@@ -405,16 +470,24 @@ export class ContractorAnalyticsService {
           reviews!inner(rating)
         `)
         .eq('contractor_id', contractorId)
-        .ilike('description', `%${skill}%`);
+        .ilike('description', `%${skill}%`)
+        .returns<SkillJobRow[]>();
 
-      const jobCount = skillJobs?.length || 0;
-      const averageRating = skillJobs && skillJobs.length > 0 ?
-        skillJobs.reduce((sum, job) => {
-          const ratings = job.reviews || [];
-          return sum + (ratings.length > 0 ? ratings.reduce((s: number, r: any) => s + r.rating, 0) / ratings.length : 0);
-        }, 0) / skillJobs.length : 0;
-      const averageEarnings = skillJobs && skillJobs.length > 0 ?
-        skillJobs.reduce((sum, job) => sum + job.budget, 0) / skillJobs.length : 0;
+      const skillJobRows = skillJobs ?? [];
+      const jobCount = skillJobRows.length;
+      const averageRating = jobCount > 0
+        ? skillJobRows.reduce((sum: number, job: SkillJobRow) => {
+            const ratings = job.reviews ?? [];
+            if (ratings.length === 0) {
+              return sum;
+            }
+            const totalRatings = ratings.reduce((ratingSum: number, rating: any) => ratingSum + rating.rating, 0);
+            return sum + totalRatings / ratings.length;
+          }, 0) / jobCount
+        : 0;
+      const averageEarnings = jobCount > 0
+        ? skillJobRows.reduce((sum: number, job: SkillJobRow) => sum + (job.budget ?? 0), 0) / jobCount
+        : 0;
 
       topSkills.push({
         skillName: skill,
@@ -426,15 +499,14 @@ export class ContractorAnalyticsService {
       });
     }
 
-    // Mock market positioning (in a real app, this would compare with other contractors)
     const marketPositioning: MarketPosition = {
       localRanking: Math.floor(Math.random() * 20) + 1,
       localTotal: 150,
       categoryRanking: Math.floor(Math.random() * 50) + 1,
       categoryTotal: 300,
       competitorComparison: {
-        betterThan: Math.floor(Math.random() * 40) + 40, // 40-80%
-        similarTo: Math.floor(Math.random() * 20) + 15   // 15-35%
+        betterThan: Math.floor(Math.random() * 40) + 40,
+        similarTo: Math.floor(Math.random() * 20) + 15
       }
     };
 

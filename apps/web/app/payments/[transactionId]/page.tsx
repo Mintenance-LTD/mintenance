@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { PaymentService } from '@/lib/services/PaymentService';
@@ -28,7 +28,7 @@ export default function PaymentDetailPage() {
   const loadTransactionDetails = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
         router.push('/login');
@@ -219,7 +219,7 @@ export default function PaymentDetailPage() {
               color: theme.colors.textSecondary,
               marginBottom: theme.spacing.lg
             }}>
-              The payment transaction you're looking for could not be found or you don't have permission to view it.
+              The payment transaction you&apos;re looking for could not be found or you don&apos;t have permission to view it.
             </p>
             <div style={{ display: 'flex', gap: theme.spacing.md, justifyContent: 'center' }}>
               <Button

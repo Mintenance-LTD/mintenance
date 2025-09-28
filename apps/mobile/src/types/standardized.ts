@@ -84,6 +84,14 @@ export interface Bid {
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
   updatedAt?: string;
+  // Computed fields
+  contractorName?: string;
+  contractorEmail?: string;
+  contractorRating?: number;
+  jobTitle?: string;
+  jobDescription?: string;
+  jobLocation?: string;
+  jobBudget?: number;
   // Relationships
   contractor?: User;
   job?: Job;

@@ -135,7 +135,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
               margin: 0,
             }}
           >
-            {transaction.job?.title || 'Job Payment'}
+            {transaction.job?.title ?? 'Job Payment'}
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>

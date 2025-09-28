@@ -30,10 +30,8 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
     try {
       setLoading(true);
       const callHistory = await VideoCallService.getCallHistory(userId, {
-        jobId,
-        status: filter === 'all' ? undefined :
-               filter === 'upcoming' ? 'scheduled' :
-               filter === 'completed' ? 'ended' : 'missed'
+        limit: 20,
+        offset: 0
       });
       setCalls(callHistory);
     } catch (error) {

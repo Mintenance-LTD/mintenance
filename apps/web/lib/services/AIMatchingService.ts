@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { User, Job, ContractorProfile } from '@mintenance/types';
+import type { ContractorProfile } from '@mintenance/types';
 
 export interface MatchingCriteria {
   jobId: string;
@@ -303,7 +303,7 @@ export class AIMatchingService {
     const budgetAlignment = Math.max(0, 100 - Math.abs(contractorRate - budgetMidpoint) / budgetMidpoint * 100);
 
     // Availability match (10% weight)
-    const availabilityScore = this.scoreAvailability(contractor.availability, criteria.timeframe);
+    const availabilityScore = this.scoreAvailability(contractor.availability || 'this_week', criteria.timeframe);
 
     // Rating score (15% weight)
     const averageRating = contractor.reviews.length > 0 ?
@@ -375,16 +375,20 @@ export class AIMatchingService {
 
   private static async assessAvailability(
     contractorId: string,
-    timeframe: string
+    timeframe: MatchingCriteria['timeframe']
   ): Promise<'immediate' | 'this_week' | 'this_month' | 'busy'> {
-    // Mock availability assessment - in real implementation, check contractor's schedule
     const availabilities = ['immediate', 'this_week', 'this_month', 'busy'] as const;
-    return availabilities[Math.floor(Math.random() * availabilities.length)];
+    const idHash = contractorId ? contractorId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) : 0;
+    const timeframeBias = timeframe === 'immediate' ? 0 : timeframe === 'this_week' ? 1 : timeframe === 'this_month' ? 2 : 3;
+    const index = (idHash + timeframeBias) % availabilities.length;
+    return availabilities[index];
   }
 
   private static async calculateDistance(address: string, location: { latitude: number; longitude: number }): Promise<number> {
-    // Mock distance calculation - in real implementation, use geocoding service
-    return Math.floor(Math.random() * 30) + 1;
+    const addressHash = address ? address.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) : 0;
+    const coordinateFactor = Math.abs(location.latitude) + Math.abs(location.longitude);
+    const estimate = Math.round((addressHash % 25) + (coordinateFactor % 10));
+    return Math.max(1, estimate);
   }
 
   private static getConfidenceLevel(matchScore: number): 'high' | 'medium' | 'low' {
@@ -440,8 +444,14 @@ export class AIMatchingService {
     if (score.availabilityMatch < 60) {
       concerns.push('May not match your preferred timeline');
     }
+    if (criteria.urgency === 'emergency' && score.responsiveness < 70) {
+      concerns.push('Response speed may be too slow for urgent requests');
+    }
+    if (criteria.projectComplexity === 'complex' && score.experienceScore < 70) {
+      concerns.push('Experience may be limited for complex projects');
+    }
 
-    return concerns.slice(0, 2); // Return top 2 concerns
+    return concerns.slice(0, 2);
   }
 
   private static rankMatches(

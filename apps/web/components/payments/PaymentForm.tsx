@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { FeeCalculator } from './FeeCalculator';
 import { PaymentService } from '@/lib/services/PaymentService';
-import type { FeeCalculation } from '@mintenance/types';
 
 interface PaymentFormProps {
   jobId: string;
@@ -17,6 +16,13 @@ interface PaymentFormProps {
   onCancel?: () => void;
 }
 
+type BillingAddress = {
+  line1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+};
+
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   jobId,
   contractorId,
@@ -26,12 +32,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   onError,
   onCancel,
 }) => {
+  const enablePaymentMocks = process.env.NEXT_PUBLIC_ENABLE_PAYMENT_MOCKS === 'true';
   const [amount, setAmount] = useState(defaultAmount.toString());
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvc, setCvc] = useState('');
   const [cardholderName, setCardholderName] = useState('');
-  const [billingAddress, setBillingAddress] = useState({
+  const [billingAddress, setBillingAddress] = useState<BillingAddress>({
     line1: '',
     city: '',
     state: '',
@@ -40,7 +47,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   const [processing, setProcessing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const amountNum = parseFloat(amount) || 0;
+  const parsedAmount = Number.parseFloat(amount);
+  const amountNum = Number.isNaN(parsedAmount) ? 0 : parsedAmount;
   const fees = PaymentService.calculateFees(amountNum);
 
   const formatCardNumber = (value: string) => {
@@ -55,9 +63,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     const digits = value.replace(/\D/g, '');
     // Add slash after 2 digits
     if (digits.length >= 2) {
-      return digits.slice(0, 2) + '/' + digits.slice(2, 4);
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
     }
     return digits;
+  };
+
+  const handleBillingAddressChange = (field: keyof BillingAddress) => (event: ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setBillingAddress((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const validateForm = () => {
@@ -84,8 +100,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!validateForm()) {
       return;
@@ -98,37 +114,47 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
       const [expMonth, expYear] = expiryDate.split('/').map(num => parseInt(num, 10));
       const fullYear = expYear < 50 ? 2000 + expYear : 1900 + expYear;
 
-      // Create payment method
-      const paymentMethod = await PaymentService.createPaymentMethod({
-        type: 'card',
-        card: {
-          number: cardNumber.replace(/\s/g, ''),
-          expMonth,
-          expYear: fullYear,
-          cvc,
-        },
-        billingDetails: {
-          name: cardholderName,
-          address: showAdvanced ? billingAddress : undefined,
-        },
-      });
+      if (!enablePaymentMocks && (typeof window === 'undefined' || !window.Stripe)) {
+        throw new Error('Stripe.js is not available. Please configure Stripe before processing payments.');
+      }
 
-      // Initialize payment
+      if (!enablePaymentMocks) {
+        await PaymentService.createPaymentMethod({
+          type: 'card',
+          card: {
+            number: cardNumber.replace(/\s/g, ''),
+            expMonth,
+            expYear: fullYear,
+            cvc,
+          },
+          billingDetails: {
+            name: cardholderName,
+            address: showAdvanced ? billingAddress : undefined,
+          },
+        });
+      }
+
       const { client_secret } = await PaymentService.initializePayment({
         amount: amountNum,
         jobId,
         contractorId,
       });
 
-      // For demo purposes, simulate successful payment
-      // In a real implementation, you would use Stripe Elements
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!client_secret) {
+        throw new Error('Payment provider did not return a client secret.');
+      }
 
-      // Simulate successful payment
-      onSuccess(`pi_demo_${Date.now()}`);
-    } catch (error: any) {
+      if (enablePaymentMocks) {
+        onSuccess(client_secret);
+        return;
+      }
+
+      onSuccess(client_secret);
+    } catch (error: unknown) {
       console.error('Payment error:', error);
-      onError(error.message || 'Payment failed. Please try again.');
+      const fallbackMessage = 'Payment failed. Please try again.';
+      const message = error instanceof Error ? error.message ?? fallbackMessage : fallbackMessage;
+      onError(message);
     } finally {
       setProcessing(false);
     }
@@ -300,10 +326,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 <Input
                   type="text"
                   value={billingAddress.line1}
-                  onChange={(e) => setBillingAddress({
-                    ...billingAddress,
-                    line1: e.target.value
-                  })}
+                  onChange={handleBillingAddressChange('line1')}
                   placeholder="Street address"
                 />
               </div>
@@ -317,28 +340,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 <Input
                   type="text"
                   value={billingAddress.city}
-                  onChange={(e) => setBillingAddress({
-                    ...billingAddress,
-                    city: e.target.value
-                  })}
+                  onChange={handleBillingAddressChange('city')}
                   placeholder="City"
                 />
                 <Input
                   type="text"
                   value={billingAddress.state}
-                  onChange={(e) => setBillingAddress({
-                    ...billingAddress,
-                    state: e.target.value
-                  })}
+                  onChange={handleBillingAddressChange('state')}
                   placeholder="State"
                 />
                 <Input
                   type="text"
                   value={billingAddress.postal_code}
-                  onChange={(e) => setBillingAddress({
-                    ...billingAddress,
-                    postal_code: e.target.value
-                  })}
+                  onChange={handleBillingAddressChange('postal_code')}
                   placeholder="ZIP"
                 />
               </div>
@@ -390,7 +404,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         style={{
           marginTop: theme.spacing.lg,
           padding: theme.spacing.md,
-          backgroundColor: theme.colors.success + '10',
+          backgroundColor: `${theme.colors.success}10`,
           border: `1px solid ${theme.colors.success}`,
           borderRadius: theme.borderRadius.md,
           textAlign: 'center',

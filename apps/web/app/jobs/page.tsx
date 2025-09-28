@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card } from '@/components/ui';
@@ -13,34 +13,43 @@ type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
 
 export default function JobsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
 
   useEffect(() => {
-    const loadUser = async () => {
-      const currentUser = await getCurrentUserFromCookies();
-      setUser(currentUser);
-    };
-    loadUser();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
+    if (!loadingUser && user) {
       loadJobs();
     }
-  }, [user]);
+  }, [user, loadingUser]);
 
   const loadJobs = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      const jobs = user.role === 'homeowner'
+      const jobsRaw = user.role === 'homeowner'
         ? await JobService.getJobsByHomeowner(user.id)
         : await JobService.getAvailableJobs();
+
+      const jobs: Job[] = (jobsRaw as any[]).map((j: any) => ({
+        id: j.id,
+        title: j.title ?? '',
+        description: j.description ?? '',
+        location: j.location ?? '',
+        homeowner_id: j.homeowner_id ?? j.homeownerId ?? '',
+        contractor_id: j.contractor_id ?? j.contractorId ?? undefined,
+        status: j.status ?? 'posted',
+        budget: j.budget ?? 0,
+        created_at: j.created_at ?? j.createdAt ?? new Date().toISOString(),
+        updated_at: j.updated_at ?? j.updatedAt ?? new Date().toISOString(),
+        category: j.category ?? undefined,
+        priority: j.priority ?? undefined,
+        photos: j.photos ?? [],
+      }));
+
       setAllJobs(jobs);
     } catch (error) {
       console.error('Error loading jobs:', error);
@@ -66,8 +75,27 @@ export default function JobsPage() {
     return data;
   }, [allJobs, selectedFilter, searchQuery]);
 
-  if (!user) {
+  if (loadingUser) {
     return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: theme.colors.textSecondary }}>Loading your workspace...</div>
+      </div>
+    );
+  }
+
+  if (currentUserError) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>Unable to load account</h1>
+          <p style={{ color: theme.colors.textSecondary }}>Please refresh the page or try signing in again.</p>
+          <a href="/login" style={{ color: theme.colors.primary, textDecoration: 'none' }}>Go to Login</a>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {  return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
@@ -251,12 +279,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
 
   // Check if user can pay for this job
   const canPayForJob = user && (
-    (user.role === 'homeowner' && job.homeownerId === user.id && job.status === 'completed') ||
-    (user.role === 'contractor' && job.contractorId === user.id && job.status === 'completed')
+    (user.role === 'homeowner' && job.homeowner_id === user.id && job.status === 'completed') ||
+    (user.role === 'contractor' && job.contractor_id === user.id && job.status === 'completed')
   );
 
-  const handlePayNow = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePayNow = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     router.push(`/jobs/${job.id}/payment`);
   };
 

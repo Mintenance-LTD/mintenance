@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { PaymentForm } from '@/components/payments/PaymentForm';
@@ -29,7 +29,7 @@ export default function JobPaymentPage() {
   const loadJobDetails = async () => {
     try {
       setLoading(true);
-      const currentUser = await getCurrentUserFromCookies();
+      const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
         router.push('/login');
@@ -47,15 +47,34 @@ export default function JobPaymentPage() {
 
       // Verify user has permission to pay for this job
       const canPayForJob =
-        jobData.homeownerId === currentUser.id || // Homeowner can pay
-        jobData.contractorId === currentUser.id;   // Contractor can receive payment
+        (jobData as any).homeownerId === currentUser.id ||
+        (jobData as any).homeowner_id === currentUser.id ||
+        (jobData as any).contractorId === currentUser.id ||
+        (jobData as any).contractor_id === currentUser.id;
 
       if (!canPayForJob) {
         setError('You do not have permission to make payments for this job');
         return;
       }
 
-      setJob(jobData);
+      // Normalize to Job shape
+      const normalized: Job = {
+        id: (jobData as any).id,
+        title: (jobData as any).title ?? '',
+        description: (jobData as any).description ?? '',
+        location: (jobData as any).location ?? '',
+        homeowner_id: (jobData as any).homeowner_id ?? (jobData as any).homeownerId ?? '',
+        contractor_id: (jobData as any).contractor_id ?? (jobData as any).contractorId ?? undefined,
+        status: (jobData as any).status ?? 'posted',
+        budget: (jobData as any).budget ?? 0,
+        created_at: (jobData as any).created_at ?? (jobData as any).createdAt ?? new Date().toISOString(),
+        updated_at: (jobData as any).updated_at ?? (jobData as any).updatedAt ?? new Date().toISOString(),
+        category: (jobData as any).category ?? undefined,
+        priority: (jobData as any).priority ?? undefined,
+        photos: (jobData as any).photos ?? [],
+      };
+
+      setJob(normalized);
     } catch (err) {
       console.error('Error loading job details:', err);
       setError('Failed to load job details');
@@ -64,11 +83,11 @@ export default function JobPaymentPage() {
     }
   };
 
-  const handlePaymentSuccess = async (paymentIntentId: string) => {
+  const handlePaymentSuccess = async (_paymentIntentId: string) => {
     try {
       // Create escrow transaction
       if (job && user) {
-        const contractorId = job.contractorId || '';
+        const contractorId = job.contractor_id || '';
         await PaymentService.createEscrowTransaction(
           job.id,
           user.id,
@@ -185,7 +204,7 @@ export default function JobPaymentPage() {
               color: theme.colors.textSecondary,
               marginBottom: theme.spacing.lg
             }}>
-              The job you're trying to pay for could not be found or you don't have permission to make payments for it.
+              The job you&apos;re trying to pay for could not be found or you don&apos;t have permission to make payments for it.
             </p>
             <div style={{ display: 'flex', gap: theme.spacing.md, justifyContent: 'center' }}>
               <Button

@@ -1,5 +1,51 @@
 import { supabase } from '@/lib/supabase';
-import type { ContractorProfile, LocationData, ContractorMatch } from '@mintenance/types';
+import type { ContractorMatch, ContractorProfile, ContractorSkill, LocationData, Review } from '@mintenance/types';
+
+type ContractorSkillRow = {
+  id: string;
+  contractor_id: string;
+  skill_name: string;
+  created_at: string;
+};
+
+type ReviewRow = {
+  id: string;
+  job_id: string;
+  reviewer_id: string;
+  reviewed_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+};
+
+type ContractorRow = {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+  phone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  rating?: number | null;
+  total_jobs_completed?: number | null;
+  company_name?: string | null;
+  company_logo?: string | null;
+  business_address?: string | null;
+  license_number?: string | null;
+  years_experience?: number | null;
+  hourly_rate?: number | null;
+  portfolio_images?: string[] | null;
+  specialties?: string[] | null;
+  service_radius?: number | null;
+  availability?: string | null;
+  certifications?: string[] | null;
+  profile_image_url?: string | null;
+  contractor_skills?: ContractorSkillRow[] | null;
+  reviews?: ReviewRow[] | null;
+};
 
 export class ContractorService {
   static async getNearbyContractors(
@@ -13,33 +59,44 @@ export class ContractorService {
           *,
           contractor_skills (
             id,
+            contractor_id,
             skill_name,
             created_at
           ),
           reviews:reviews!reviewed_id (
             id,
+            job_id,
+            reviewer_id,
+            reviewed_id,
             rating,
             comment,
             created_at
           )
         `)
         .eq('role', 'contractor')
-        .limit(50);
+        .limit(50)
+        .returns<ContractorRow[]>();
 
       if (error) {
         console.error('Error fetching contractors:', error);
         return this.getMockContractors();
       }
 
-      return contractors?.map(contractor => ({
-        ...contractor,
-        skills: contractor.contractor_skills || [],
-        reviews: contractor.reviews || [],
-        distance: this.calculateDistance(homeownerLocation, {
-          latitude: contractor.latitude || 47.6062,
-          longitude: contractor.longitude || -122.3321
+      const contractorRows = contractors ?? [];
+      const profiles = contractorRows.map(contractor => ({
+        profile: this.mapContractorFromDb(contractor, homeownerLocation),
+        hasGeo: contractor.latitude != null && contractor.longitude != null
+      }));
+
+      return profiles
+        .filter(({ profile, hasGeo }) => {
+          if (!hasGeo) {
+            return true;
+          }
+          const { distance } = profile;
+          return distance === undefined || distance <= radiusKm;
         })
-      })) || [];
+        .map(({ profile }) => profile);
     } catch (error) {
       console.error('Contractor service error:', error);
       return this.getMockContractors();
@@ -54,33 +111,114 @@ export class ContractorService {
           *,
           contractor_skills (
             id,
+            contractor_id,
             skill_name,
             created_at
           ),
           reviews:reviews!reviewed_id (
             id,
+            job_id,
+            reviewer_id,
+            reviewed_id,
             rating,
             comment,
             created_at
           )
         `)
         .eq('role', 'contractor')
-        .limit(100);
+        .limit(100)
+        .returns<ContractorRow[]>();
 
       if (error) {
         console.error('Error fetching contractors:', error);
         return this.getMockContractors();
       }
 
-      return contractors?.map(contractor => ({
-        ...contractor,
-        skills: contractor.contractor_skills || [],
-        reviews: contractor.reviews || []
-      })) || [];
+      const contractorRows = contractors ?? [];
+      return contractorRows.map(contractor => this.mapContractorFromDb(contractor));
     } catch (error) {
       console.error('Contractor service error:', error);
       return this.getMockContractors();
     }
+  }
+
+  private static mapContractorFromDb(
+    contractor: ContractorRow,
+    homeownerLocation?: LocationData
+  ): ContractorProfile {
+    const skills: ContractorSkill[] = (contractor.contractor_skills ?? []).map(skill => ({
+      id: skill.id,
+      contractorId: skill.contractor_id,
+      skillName: skill.skill_name,
+      createdAt: skill.created_at
+    }));
+
+    const reviews: Review[] = (contractor.reviews ?? []).map(review => ({
+      id: review.id,
+      jobId: review.job_id,
+      reviewerId: review.reviewer_id,
+      reviewedId: review.reviewed_id,
+      rating: review.rating,
+      comment: review.comment ?? '',
+      createdAt: review.created_at
+    }));
+
+    const availability = this.toAvailability(contractor.availability);
+    const hasGeo = contractor.latitude != null && contractor.longitude != null;
+
+    let distance: number | undefined;
+    if (homeownerLocation && hasGeo) {
+      distance = this.calculateDistance(homeownerLocation, {
+        latitude: contractor.latitude as number,
+        longitude: contractor.longitude as number
+      });
+    }
+
+    const profile: ContractorProfile = {
+      id: contractor.id,
+      email: contractor.email,
+      first_name: contractor.first_name,
+      last_name: contractor.last_name,
+      role: contractor.role as ContractorProfile['role'],
+      created_at: contractor.created_at,
+      updated_at: contractor.updated_at,
+      phone: contractor.phone ?? undefined,
+      skills,
+      reviews,
+      distance,
+      rating: contractor.rating ?? undefined,
+      companyName: contractor.company_name ?? undefined,
+      companyLogo: contractor.company_logo ?? undefined,
+      businessAddress: contractor.business_address ?? undefined,
+      licenseNumber: contractor.license_number ?? undefined,
+      yearsExperience: contractor.years_experience ?? undefined,
+      hourlyRate: contractor.hourly_rate ?? undefined,
+      portfolioImages: contractor.portfolio_images ?? undefined,
+      specialties: contractor.specialties ?? undefined,
+      serviceRadius: contractor.service_radius ?? undefined,
+      availability,
+      certifications: contractor.certifications ?? undefined,
+      profileImageUrl: contractor.profile_image_url ?? undefined,
+      totalJobsCompleted: contractor.total_jobs_completed ?? undefined
+    };
+
+    profile.firstName = contractor.first_name;
+    profile.lastName = contractor.last_name;
+    profile.createdAt = contractor.created_at;
+
+    return profile;
+  }
+
+  private static toAvailability(value: string | null | undefined): ContractorProfile['availability'] | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value === 'immediate' || value === 'this_week' || value === 'this_month' || value === 'busy') {
+      return value;
+    }
+
+    return undefined;
   }
 
   static async recordMatch(
@@ -278,3 +416,4 @@ export class ContractorService {
     ];
   }
 }
+

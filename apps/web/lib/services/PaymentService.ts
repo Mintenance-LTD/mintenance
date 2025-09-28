@@ -3,16 +3,100 @@ import type {
   PaymentIntent,
   EscrowTransaction,
   PaymentMethod,
-  FeeCalculation,
-  ContractorPayoutAccount
+  FeeCalculation
 } from '@mintenance/types';
 
 // Web-specific Stripe integration (placeholder for actual implementation)
+
+type StripeBillingAddress = {
+  line1?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+};
+
+type StripeBillingDetails = {
+  name?: string;
+  address?: StripeBillingAddress;
+};
+
+type StripePaymentIntentPayload = {
+  id?: string;
+  amount?: number;
+  currency?: string;
+  status?: string;
+  client_secret?: string;
+  payment_intent_id?: string;
+  [key: string]: unknown;
+};
+
+type StripeConfirmResult = {
+  error?: { message?: string };
+  paymentIntent?: StripePaymentIntentPayload;
+};
+
+type StripeCreatePaymentMethodParams = {
+  type: string;
+  card: {
+    number: string;
+    exp_month: number;
+    exp_year: number;
+    cvc: string;
+  };
+  billing_details?: StripeBillingDetails;
+};
+
+type StripeApi = {
+  confirmPayment: (options: {
+    elements: unknown;
+    clientSecret: string;
+    confirmParams: { return_url: string };
+  }) => Promise<StripeConfirmResult>;
+  createPaymentMethod: (params: StripeCreatePaymentMethodParams) => Promise<{
+    paymentMethod?: PaymentMethod;
+    error?: { message?: string };
+  }>;
+};
+
+type StripeFactory = (publishableKey: string | undefined) => StripeApi;
+
+type SupabaseUserName = {
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
+type EscrowTransactionRow = {
+  id: string;
+  job_id: string;
+  payer_id: string;
+  payee_id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  payment_intent_id?: string | null;
+  released_at?: string | null;
+  refunded_at?: string | null;
+  job?: { title?: string | null; description?: string | null } | null;
+  payer?: SupabaseUserName | null;
+  payee?: SupabaseUserName | null;
+};
+
 declare global {
   interface Window {
-    Stripe?: any;
+    Stripe?: StripeFactory;
   }
 }
+
+
+const shouldUsePaymentMocks = () => (process.env.NEXT_PUBLIC_ENABLE_PAYMENT_MOCKS === 'true' || process.env.NODE_ENV !== 'production');
+
+const asError = (error: unknown, fallbackMessage: string): Error => {
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(fallbackMessage);
+};
 
 export class PaymentService {
 
@@ -54,35 +138,41 @@ export class PaymentService {
 
       return await resp.json();
     } catch (error) {
-      console.error('PaymentService error:', error);
-      // Return mock data for demo purposes
-      return {
-        client_secret: `pi_mock_${Date.now()}_secret_mock`
-      };
+      console.error('PaymentService initializePayment error:', error);
+      if (shouldUsePaymentMocks()) {
+        return {
+          client_secret: `pi_mock_${Date.now()}_secret_mock`,
+        };
+      }
+      throw asError(error, 'Failed to initialize payment session.');
     }
   }
 
   /**
    * Fetch payment history for current user via server API
    */
-  static async getPaymentHistory(params?: { limit?: number; cursor?: string }): Promise<{ payments: any[]; nextCursor?: string }> {
+  static async getPaymentHistory(params?: { limit?: number; cursor?: string }): Promise<{ payments: EscrowTransaction[]; nextCursor?: string }> {
     try {
-      const q = new URLSearchParams();
-      if (params?.limit) q.set('limit', String(params.limit));
-      if (params?.cursor) q.set('cursor', params.cursor);
+      const searchParams = new URLSearchParams();
+      if (params?.limit) searchParams.set('limit', String(params.limit));
+      if (params?.cursor) searchParams.set('cursor', params.cursor);
 
-      const resp = await fetch(`/api/payments/history${q.toString() ? `?${q.toString()}` : ''}` , {
+      const queryString = searchParams.toString();
+      const resp = await fetch(`/api/payments/history${queryString ? `?${queryString}` : ''}`, {
         credentials: 'same-origin',
       });
       if (!resp.ok) {
-        const t = await resp.text().catch(() => '');
-        throw new Error(`Failed to load payment history: ${t}`);
+        const body = await resp.text().catch(() => '');
+        throw new Error(`Failed to load payment history: ${body}`);
       }
-      const json = await resp.json();
-      return { payments: json.payments || [], nextCursor: json.nextCursor };
+      const json = (await resp.json()) as { payments?: EscrowTransaction[]; nextCursor?: string };
+      return { payments: json.payments ?? [], nextCursor: json.nextCursor };
     } catch (error) {
       console.error('PaymentService history error:', error);
-      return { payments: [], nextCursor: undefined };
+      if (shouldUsePaymentMocks()) {
+        return { payments: [], nextCursor: undefined };
+      }
+      throw asError(error, 'Failed to load payment history.');
     }
   }
 
@@ -91,38 +181,46 @@ export class PaymentService {
    */
   static async confirmPayment(params: {
     clientSecret: string;
-    paymentElement: any; // Stripe Payment Element
+    paymentElement: unknown;
     returnUrl?: string;
-  }): Promise<{ status: string; paymentIntent?: any }> {
+  }): Promise<{ status: PaymentIntent['status']; paymentIntent?: StripePaymentIntentPayload }> {
     try {
-      if (!window.Stripe) {
+      const stripeFactory = window.Stripe;
+      if (!stripeFactory) {
         throw new Error('Stripe not loaded');
       }
 
-      const stripe = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+      const stripe = stripeFactory(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements: params.paymentElement,
         clientSecret: params.clientSecret,
         confirmParams: {
-          return_url: params.returnUrl || `${window.location.origin}/payments/success`,
+          return_url: params.returnUrl ?? `${window.location.origin}/payments/success`,
         },
       });
 
-      if (error) {
+      if (error?.message) {
         throw new Error(error.message);
       }
 
-      return { status: 'succeeded', paymentIntent };
+      const status = (paymentIntent?.status as PaymentIntent['status'] | undefined) ?? 'succeeded';
+
+      return {
+        status,
+        paymentIntent: paymentIntent ? { ...paymentIntent, status } : undefined,
+      };
     } catch (error) {
       console.error('Payment confirmation error:', error);
-      // Return mock success for demo
-      return {
-        status: 'succeeded',
-        paymentIntent: {
-          id: `pi_mock_${Date.now()}`,
-          status: 'succeeded'
-        }
-      };
+      if (shouldUsePaymentMocks()) {
+        return {
+          status: 'succeeded',
+          paymentIntent: {
+            id: `pi_mock_${Date.now()}`,
+            status: 'succeeded',
+          },
+        };
+      }
+      throw asError(error, 'Failed to confirm payment with Stripe.');
     }
   }
 
@@ -137,7 +235,7 @@ export class PaymentService {
       expYear: number;
       cvc: string;
     };
-    billingDetails?: any;
+    billingDetails?: StripeBillingDetails;
   }): Promise<PaymentMethod> {
     try {
       const currentYear = new Date().getFullYear();
@@ -151,11 +249,12 @@ export class PaymentService {
         throw new Error('Card has expired');
       }
 
-      if (!window.Stripe) {
+      const stripeFactory = window.Stripe;
+      if (!stripeFactory) {
         throw new Error('Stripe not loaded');
       }
 
-      const stripe = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+      const stripe = stripeFactory(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
       const { paymentMethod, error } = await stripe.createPaymentMethod({
         type: params.type,
         card: {
@@ -167,25 +266,31 @@ export class PaymentService {
         billing_details: params.billingDetails,
       });
 
-      if (error) {
+      if (error?.message) {
         throw new Error(error.message);
+      }
+
+      if (!paymentMethod) {
+        throw new Error('Stripe did not return a payment method.');
       }
 
       return paymentMethod;
     } catch (error) {
       console.error('Create payment method error:', error);
-      // Return mock payment method for demo
-      return {
-        id: `pm_mock_${Date.now()}`,
-        type: 'card',
-        card: {
-          brand: 'visa',
-          last4: params.card.number.slice(-4),
-          exp_month: params.card.expMonth,
-          exp_year: params.card.expYear,
-        },
-        billing_details: params.billingDetails,
-      };
+      if (shouldUsePaymentMocks()) {
+        return {
+          id: `pm_mock_${Date.now()}`,
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: params.card.number.slice(-4),
+            exp_month: params.card.expMonth,
+            exp_year: params.card.expYear,
+          },
+          billing_details: params.billingDetails,
+        };
+      }
+      throw asError(error, 'Failed to create payment method.');
     }
   }
 
@@ -196,25 +301,62 @@ export class PaymentService {
     jobId: string,
     amount: number
   ): Promise<PaymentIntent> {
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    const amountInCents = Math.round(amount * 100);
+
     try {
-      const { data, error } = await (async () => { const resp = await fetch('/api/payments/checkout-session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amountInCents, jobId: params.jobId, contractorId: params.contractorId, currency: 'usd' }) }); if(!resp.ok){ const t = await resp.text().catch(()=> ''); throw new Error('Failed to initialize payment: ' + t); } return await resp.json(); })()
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: {
+          amount: amountInCents,
+          currency: 'usd',
+          metadata: {
+            jobId,
+            type: 'job_payment',
+          },
+        },
+      });
 
       if (error) {
-        console.error('Error creating job payment:', error);
-        throw new Error(error.message);
+        throw error;
       }
 
-      return data;
+      const intentData = (data ?? {}) as Record<string, unknown>;
+      const paymentIntent: PaymentIntent = {
+        id: typeof intentData['id'] === 'string'
+          ? (intentData['id'] as string)
+          : typeof intentData['payment_intent_id'] === 'string'
+            ? String(intentData['payment_intent_id'])
+            : `pi_temp_${Date.now()}`,
+        amount: typeof intentData['amount'] === 'number'
+          ? (intentData['amount'] as number)
+          : amountInCents,
+        currency: typeof intentData['currency'] === 'string'
+          ? (intentData['currency'] as string)
+          : 'usd',
+        status: (typeof intentData['status'] === 'string'
+          ? intentData['status']
+          : 'requires_payment_method') as PaymentIntent['status'],
+        client_secret: typeof intentData['client_secret'] === 'string'
+          ? (intentData['client_secret'] as string)
+          : '',
+      };
+
+      return paymentIntent;
     } catch (error) {
       console.error('Create job payment error:', error);
-      // Return mock payment intent for demo
-      return {
-        id: `pi_mock_${Date.now()}`,
-        amount: Math.round(amount * 100),
-        currency: 'usd',
-        status: 'requires_payment_method',
-        client_secret: `pi_mock_${Date.now()}_secret_mock`,
-      };
+      if (shouldUsePaymentMocks()) {
+        return {
+          id: `pi_mock_${Date.now()}`,
+          amount: amountInCents,
+          currency: 'usd',
+          status: 'requires_payment_method',
+          client_secret: `pi_mock_${Date.now()}_secret_mock`,
+        };
+      }
+      throw asError(error, 'Failed to create payment intent for this job.');
     }
   }
 
@@ -252,17 +394,19 @@ export class PaymentService {
       return this.formatEscrowTransaction(data);
     } catch (error) {
       console.error('Create escrow transaction error:', error);
-      // Return mock escrow transaction for demo
-      return {
-        id: `escrow_mock_${Date.now()}`,
-        jobId,
-        payerId,
-        payeeId,
-        amount,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (shouldUsePaymentMocks()) {
+        return {
+          id: `escrow_mock_${Date.now()}`,
+          jobId,
+          payerId,
+          payeeId,
+          amount,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      throw asError(error, 'Failed to create escrow transaction.');
     }
   }
 
@@ -289,7 +433,10 @@ export class PaymentService {
       }
     } catch (error) {
       console.error('Hold payment in escrow error:', error);
-      // Silent fail for demo
+      if (shouldUsePaymentMocks()) {
+        return;
+      }
+      throw asError(error, 'Failed to hold payment in escrow.');
     }
   }
 
@@ -298,26 +445,39 @@ export class PaymentService {
    */
   static async releaseEscrowPayment(transactionId: string): Promise<void> {
     try {
-      // First get the transaction details
       const { data: transaction, error: fetchError } = await supabase
         .from('escrow_transactions')
-        .select('*, job:jobs(contractor_id)')
+        .select('id, amount, payment_intent_id, job:jobs(contractor_id)')
         .eq('id', transactionId)
-        .single();
+        .single()
+        .returns<{
+          id: string;
+          amount: number;
+          payment_intent_id: string;
+          job: { contractor_id: string } | null;
+        }>();
 
-      if (fetchError) {
-        console.error('Error fetching transaction:', fetchError);
-        throw new Error('Transaction not found');
+      if (fetchError || !transaction) {
+        throw fetchError ?? new Error('Transaction not found');
       }
 
-      // Call Stripe to transfer funds to contractor
-      const { error: transferError } = await (async () => { const resp = await fetch('/api/payments/checkout-session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amountInCents, jobId: params.jobId, contractorId: params.contractorId, currency: 'usd' }) }); if(!resp.ok){ const t = await resp.text().catch(()=> ''); throw new Error('Failed to initialize payment: ' + t); } return await resp.json(); })()
+      if (!transaction.payment_intent_id) {
+        throw new Error('No payment intent associated with this transaction');
+      }
+
+      const { error: transferError } = await supabase.functions.invoke('release-escrow-payment', {
+        body: {
+          transactionId,
+          paymentIntentId: transaction.payment_intent_id,
+          contractorId: transaction.job?.contractor_id ?? null,
+          amount: transaction.amount,
+        },
+      });
 
       if (transferError) {
-        console.error('Error releasing escrow payment:', transferError);
+        throw transferError;
       }
 
-      // Update transaction status
       const { error: updateError } = await supabase
         .from('escrow_transactions')
         .update({
@@ -328,11 +488,11 @@ export class PaymentService {
         .eq('id', transactionId);
 
       if (updateError) {
-        console.error('Error updating transaction status:', updateError);
+        throw updateError;
       }
     } catch (error) {
       console.error('Release escrow payment error:', error);
-      throw error;
+      throw asError(error, 'Failed to release escrow payment.');
     }
   }
 
@@ -344,13 +504,14 @@ export class PaymentService {
     reason: string = 'Refund requested'
   ): Promise<void> {
     try {
-      const { error: refundError } = await (async () => { const resp = await fetch('/api/payments/checkout-session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amountInCents, jobId: params.jobId, contractorId: params.contractorId, currency: 'usd' }) }); if(!resp.ok){ const t = await resp.text().catch(()=> ''); throw new Error('Failed to initialize payment: ' + t); } return await resp.json(); })()
+      const { error: refundError } = await supabase.functions.invoke('refund-escrow-payment', {
+        body: { transactionId, reason },
+      });
 
       if (refundError) {
-        console.error('Error processing refund:', refundError);
+        throw refundError;
       }
 
-      // Update transaction status
       const { error: updateError } = await supabase
         .from('escrow_transactions')
         .update({
@@ -361,11 +522,11 @@ export class PaymentService {
         .eq('id', transactionId);
 
       if (updateError) {
-        console.error('Error updating refund status:', updateError);
+        throw updateError;
       }
     } catch (error) {
       console.error('Refund escrow payment error:', error);
-      throw error;
+      throw asError(error, 'Failed to refund escrow payment.');
     }
   }
 
@@ -384,13 +545,19 @@ export class PaymentService {
 
       if (error) {
         console.error('Error fetching job escrow transactions:', error);
-        return this.getMockEscrowTransactions(jobId);
+        if (shouldUsePaymentMocks()) {
+          return this.getMockEscrowTransactions(jobId);
+        }
+        throw new Error('Failed to load escrow transactions for this job.');
       }
 
       return data.map(this.formatEscrowTransaction);
     } catch (error) {
       console.error('Get job escrow transactions error:', error);
-      return this.getMockEscrowTransactions(jobId);
+      if (shouldUsePaymentMocks()) {
+        return this.getMockEscrowTransactions(jobId);
+      }
+      throw asError(error, 'Failed to load escrow transactions for this job.');
     }
   }
 
@@ -416,13 +583,19 @@ export class PaymentService {
 
       if (error) {
         console.error('Error fetching user payment history:', error);
-        return this.getMockUserPaymentHistory(userId);
+        if (shouldUsePaymentMocks()) {
+          return this.getMockUserPaymentHistory(userId);
+        }
+        throw new Error('Failed to load your payment history.');
       }
 
       return data.map(this.formatEscrowTransaction);
     } catch (error) {
       console.error('Get user payment history error:', error);
-      return this.getMockUserPaymentHistory(userId);
+      if (shouldUsePaymentMocks()) {
+        return this.getMockUserPaymentHistory(userId);
+      }
+      throw asError(error, 'Failed to load your payment history.');
     }
   }
 
@@ -452,20 +625,30 @@ export class PaymentService {
     contractorId: string
   ): Promise<{ accountUrl: string }> {
     try {
-      const { data, error } = await (async () => { const resp = await fetch('/api/payments/checkout-session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amountInCents, jobId: params.jobId, contractorId: params.contractorId, currency: 'usd' }) }); if(!resp.ok){ const t = await resp.text().catch(()=> ''); throw new Error('Failed to initialize payment: ' + t); } return await resp.json(); })()
+      const { data, error } = await supabase.functions.invoke('setup-contractor-payout', {
+        body: { contractorId },
+      });
 
       if (error) {
-        console.error('Error setting up contractor payout:', error);
-        throw new Error(error.message);
+        throw error;
       }
 
-      return data;
+      const payload = (data ?? {}) as Record<string, unknown>;
+      const accountUrl = (payload['accountUrl'] ?? payload['url']) as string | undefined;
+
+      if (!accountUrl) {
+        throw new Error('Stripe onboarding link was not returned.');
+      }
+
+      return { accountUrl };
     } catch (error) {
       console.error('Setup contractor payout error:', error);
-      // Return mock account URL for demo
-      return {
-        accountUrl: `https://dashboard.stripe.com/test/connect/accounts/mock_account_${contractorId}`,
-      };
+      if (shouldUsePaymentMocks()) {
+        return {
+          accountUrl: `https://dashboard.stripe.com/test/connect/accounts/mock_account_${contractorId}`,
+        };
+      }
+      throw asError(error, 'Failed to create Stripe onboarding link.');
     }
   }
 
@@ -489,7 +672,10 @@ export class PaymentService {
           return { hasAccount: false, accountComplete: false };
         }
         console.error('Error fetching contractor payout status:', error);
-        return { hasAccount: false, accountComplete: false };
+        if (shouldUsePaymentMocks()) {
+          return { hasAccount: false, accountComplete: false };
+        }
+        throw new Error('Failed to load contractor payout status.');
       }
 
       return {
@@ -499,29 +685,42 @@ export class PaymentService {
       };
     } catch (error) {
       console.error('Get contractor payout status error:', error);
-      return { hasAccount: false, accountComplete: false };
+      if (shouldUsePaymentMocks()) {
+        return { hasAccount: false, accountComplete: false };
+      }
+      throw asError(error, 'Failed to load contractor payout status.');
     }
   }
 
   /**
    * Helper method to format escrow transaction
    */
-  private static formatEscrowTransaction(data: any): EscrowTransaction {
+  private static formatEscrowTransaction(row: EscrowTransactionRow): EscrowTransaction {
+    const toName = (value?: SupabaseUserName | null) => ({
+      first_name: value?.first_name ?? '',
+      last_name: value?.last_name ?? '',
+    });
+
     return {
-      id: data.id,
-      jobId: data.job_id,
-      payerId: data.payer_id,
-      payeeId: data.payee_id,
-      amount: data.amount,
-      status: data.status,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      paymentIntentId: data.payment_intent_id,
-      releasedAt: data.released_at,
-      refundedAt: data.refunded_at,
-      job: data.job,
-      payer: data.payer,
-      payee: data.payee,
+      id: row.id,
+      jobId: row.job_id,
+      payerId: row.payer_id,
+      payeeId: row.payee_id,
+      amount: row.amount,
+      status: (row.status as EscrowTransaction['status']) ?? 'pending',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      paymentIntentId: row.payment_intent_id ?? undefined,
+      releasedAt: row.released_at ?? undefined,
+      refundedAt: row.refunded_at ?? undefined,
+      job: row.job
+        ? {
+            title: row.job.title ?? '',
+            description: row.job.description ?? '',
+          }
+        : undefined,
+      payer: row.payer ? toName(row.payer) : undefined,
+      payee: row.payee ? toName(row.payee) : undefined,
     };
   }
 
