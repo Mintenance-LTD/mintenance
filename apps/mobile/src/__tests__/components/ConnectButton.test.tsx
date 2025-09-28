@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { ConnectButton } from '../../components/ConnectButton';
+import ConnectButton from '../../components/ConnectButton';
 
 // Mock react-native modules
 jest.mock('react-native-haptics', () => ({

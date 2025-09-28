@@ -3,6 +3,20 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
     "paths": {
       "@/*": [
         "./src/*"
@@ -13,14 +27,23 @@
       "@mintenance/shared": [
         "../../packages/shared/src"
       ]
-    }
+    },
+    "types": [
+      "react-native",
+      "jest"
+    ]
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "coverage",
+    "dist",
+    "build"
   ],
   "references": [
     {

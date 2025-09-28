@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { MeetingCommunicationPanel } from '../../components/MeetingCommunicationPanel';
+import MeetingCommunicationPanel from '../../components/MeetingCommunicationPanel';
 
 // Mock react-native modules
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon');

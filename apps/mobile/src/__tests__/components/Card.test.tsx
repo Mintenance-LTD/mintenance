@@ -264,7 +264,7 @@ describe('Card Component', () => {
         <Card>
           <View
             testID="accessible-container"
-            accessibilityRole="region"
+            accessibilityRole="none"
             accessibilityLabel="Card region"
           >
             <Text>Accessible content</Text>
