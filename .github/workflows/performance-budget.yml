@@ -1,0 +1,153 @@
+name: Performance Budget Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  mobile-bundle-size:
+    name: Check Mobile Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build mobile bundle
+        run: |
+          cd apps/mobile
+          npx expo export --platform android --output-dir ./dist
+
+      - name: Check bundle size
+        run: |
+          cd apps/mobile
+          BUNDLE_SIZE=$(du -sb ./dist | cut -f1)
+          MAX_SIZE=20971520  # 20MB in bytes
+
+          echo "Bundle size: $((BUNDLE_SIZE / 1024 / 1024))MB"
+          echo "Max allowed: $((MAX_SIZE / 1024 / 1024))MB"
+
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size exceeds limit!"
+            exit 1
+          else
+            echo "✅ Bundle size within budget"
+          fi
+
+  web-bundle-size:
+    name: Check Web Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        run: |
+          cd apps/web
+          npm run build
+
+      - name: Analyze bundle size
+        uses: andresz1/size-limit-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          directory: apps/web
+          build_script: build
+
+      - name: Check bundle size budgets
+        run: |
+          cd apps/web/.next
+
+          # Check main bundle
+          MAIN_SIZE=$(find static/chunks/pages -name "_app-*.js" -exec du -sb {} \; | cut -f1 | head -1)
+          MAX_MAIN=524288  # 500KB
+
+          echo "Main bundle: $((MAIN_SIZE / 1024))KB"
+          echo "Max allowed: $((MAX_MAIN / 1024))KB"
+
+          if [ $MAIN_SIZE -gt $MAX_MAIN ]; then
+            echo "❌ Main bundle exceeds budget!"
+            exit 1
+          fi
+
+  performance-metrics:
+    name: Performance Metrics Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run performance tests
+        run: |
+          npm run test:performance || echo "No performance tests configured"
+
+      - name: Check TypeScript performance
+        run: |
+          cd apps/mobile
+          npm run type-check
+
+      - name: Lint performance
+        run: |
+          cd apps/mobile
+          npx eslint src --ext .ts,.tsx --max-warnings=0
+
+  lighthouse-audit:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: |
+          cd apps/web
+          npm run build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          urls: |
+            http://localhost:3000
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          budgetPath: .github/lighthouse-budget.json

@@ -24,6 +24,9 @@
     "align:rn": "expo install react-native",
     "align:deps": "expo install react-native react-native-reanimated react-native-screens react-native-safe-area-context",
     "validate:env": "node ../../scripts/validate-credentials.js",
+    "analyze": "npx expo export --platform android --output-dir ./dist && du -sh ./dist",
+    "analyze:ios": "npx expo export --platform ios --output-dir ./dist && du -sh ./dist",
+    "check:performance": "node ../../scripts/check-performance-budgets.js mobile",
     "prebuild": "npm run validate:env",
     "prestart": "npm run validate:env",
     "predev": "npm run validate:env"
