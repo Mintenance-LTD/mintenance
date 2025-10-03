@@ -9,6 +9,7 @@
  */
 
 import { circuitBreakerManager } from '../../../utils/circuitBreaker';
+import { logger } from '../../../utils/logger';
 
 // Mock TensorFlow interfaces for compilation stability
 interface MockTensor {
@@ -139,20 +140,20 @@ export class MLCoreService {
 
   private async _performInitialization(): Promise<void> {
     try {
-      console.log('🤖 Initializing ML Core Service...');
+      logger.info('Initializing ML Core Service');
 
       // Initialize TensorFlow.js
       await tf.ready();
-      console.log('✅ TensorFlow.js ready');
+      logger.info('TensorFlow.js ready');
 
       // Load core models
       await this._loadCoreModels();
-      console.log('✅ ML Core Service initialized');
+      logger.info('ML Core Service initialized');
     } catch (error) {
-      console.error('❌ ML Core initialization failed:', error);
+      logger.error('ML Core initialization failed', error as Error);
       if (this.config.enableFallbacks) {
         await this._initializeFallbackModels();
-        console.log('⚠️ Fallback models initialized');
+        logger.warn('Fallback models initialized');
       } else {
         throw error;
       }
@@ -165,9 +166,9 @@ export class MLCoreService {
         try {
           const model = await tf.loadGraphModel(config.modelPath);
           this.models.set(name, model);
-          console.log(`✅ Loaded model: ${name} v${config.version}`);
+          logger.info('Loaded ML model', { name, version: config.version });
         } catch (error) {
-          console.warn(`⚠️ Failed to load model ${name}:`, error);
+          logger.warn('Failed to load model, using fallback', { name, error: (error as Error).message });
           await this._createFallbackModel(name);
         }
       }
@@ -215,7 +216,7 @@ export class MLCoreService {
     });
 
     this.models.set(modelName, fallbackModel as any);
-    console.log(`✅ Fallback model created for ${modelName}`);
+    logger.info('Fallback model created', { modelName });
   }
 
   /**

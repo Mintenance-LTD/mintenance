@@ -3,6 +3,8 @@
  * Fails fast if required environment variables are missing
  */
 
+import { logger } from './logger';
+
 interface RequiredEnvVars {
   JWT_SECRET: string;
   NODE_ENV: string;
@@ -44,8 +46,7 @@ class ConfigManager {
 
     if (missingVars.length > 0) {
       const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
-      // eslint-disable-next-line no-console
-      console.error('[Config] Missing env', errorMessage);
+      logger.error('Config', 'Missing env', { missingVars });
       throw new Error(errorMessage);
     }
 
@@ -53,21 +54,18 @@ class ConfigManager {
     const jwtSecret = process.env.JWT_SECRET!;
     if (jwtSecret.length < 32) {
       const errorMessage = 'JWT_SECRET must be a strong secret (>=32 chars) and not the default value';
-      // eslint-disable-next-line no-console
-      console.error('[Security] Weak JWT_SECRET');
+      logger.error('Security', 'Weak JWT_SECRET');
       throw new Error(errorMessage);
     }
 
     // Production-specific validations
     if (process.env.NODE_ENV === 'production') {
       if (!process.env.NEXT_PUBLIC_APP_URL) {
-        // eslint-disable-next-line no-console
-        console.warn('[Config] NEXT_PUBLIC_APP_URL should be set in production');
+        logger.warn('Config', 'NEXT_PUBLIC_APP_URL should be set in production');
       }
     }
 
-    // eslint-disable-next-line no-console
-    console.log('[Config] Configuration validated successfully');
+    logger.info('Config', 'Configuration validated successfully');
 
     return {
       JWT_SECRET: jwtSecret,

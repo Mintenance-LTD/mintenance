@@ -17,13 +17,13 @@ import { logger } from './logger';
 let Sentry: any = null;
 try {
   Sentry = require('sentry-expo');
-  console.log('✅ Sentry (sentry-expo) available for error tracking');
+  logger.info('Sentry (sentry-expo) available for error tracking');
 } catch (error) {
   try {
     Sentry = require('@sentry/react-native');
-    console.log('✅ Sentry (react-native) available for error tracking');
+    logger.info('Sentry (react-native) available for error tracking');
   } catch (fallbackError) {
-    console.warn('⚠️ Sentry not available, using fallback error tracking');
+    logger.warn('Sentry not available, using fallback error tracking');
     Sentry = null;
   }
 }
@@ -153,7 +153,7 @@ export class ErrorTracker {
 
       tracker.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize error tracking:', error);
+      logger.error('Failed to initialize error tracking', error);
     }
   }
 

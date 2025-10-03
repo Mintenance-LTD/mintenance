@@ -34,9 +34,9 @@ export class DataPreparation {
    * Initialize data collection system
    */
   async initialize(): Promise<void> {
-    logger.info('DataPreparation', 'Initializing data collection system');
+    logger.info('Initializing data collection system');
     // Set up data collection hooks
-    console.log('📊 Data collection system initialized');
+    logger.info('Data collection system initialized');
   }
 
   /**
@@ -246,7 +246,7 @@ export class DataPreparation {
     data: TrainingData,
     biasMetrics: any
   ): Promise<TrainingData> {
-    console.log('🔄 Applying resampling bias mitigation');
+    logger.info('Applying resampling bias mitigation');
     return data; // Simplified - return original data
   }
 
@@ -257,7 +257,7 @@ export class DataPreparation {
     data: TrainingData,
     biasMetrics: any
   ): Promise<TrainingData> {
-    console.log('🔧 Preprocessing data for fairness');
+    logger.info('Preprocessing data for fairness');
     return data; // Simplified
   }
 
@@ -266,6 +266,6 @@ export class DataPreparation {
    */
   dispose(): void {
     this.trainingQueue = [];
-    logger.info('DataPreparation', 'Data preparation resources disposed');
+    logger.info('Data preparation resources disposed');
   }
 }

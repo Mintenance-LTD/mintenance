@@ -105,7 +105,6 @@ const MockLoginScreen = () => {
       await signIn(email, password);
     } catch (error) {
       // Error handling would show error message in real app
-      console.log('Sign in error:', error);
     }
   };
 
@@ -113,7 +112,7 @@ const MockLoginScreen = () => {
     try {
       await signInWithBiometrics();
     } catch (error) {
-      console.log('Biometric sign in error:', error);
+      // Error handling would show error message in real app
     }
   };
 
@@ -169,7 +168,6 @@ const MockRegisterScreen = () => {
       });
     } catch (error) {
       // Error handling would show error message in real app
-      console.log('Sign up error:', error);
     }
   };
 

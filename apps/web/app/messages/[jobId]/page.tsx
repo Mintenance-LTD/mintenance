@@ -9,6 +9,7 @@ import { MessageBubble } from '@/components/messaging/MessageBubble';
 import { MessageInput } from '@/components/messaging/MessageInput';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
+import { logger } from '@/lib/logger';
 import type { Message, User } from '@mintenance/types';
 
 interface ChatPageProps {
@@ -45,7 +46,7 @@ export default function ChatPage({ params }: ChatPageProps) {
   useRealTimeMessages(jobId, {
     enabled: !!user && !!jobId,
     onNewMessage: (newMessage) => {
-      console.log('Real-time new message received:', newMessage);
+      logger.info('Real-time new message received', { messageId: newMessage.id, jobId });
       setMessages(prev => {
         // Check if message already exists to prevent duplicates
         if (prev.some(msg => msg.id === newMessage.id)) {
@@ -63,13 +64,13 @@ export default function ChatPage({ params }: ChatPageProps) {
       }
     },
     onMessageUpdate: (updatedMessage) => {
-      console.log('Real-time message update received:', updatedMessage);
+      logger.info('Real-time message update received', { messageId: updatedMessage.id, jobId });
       setMessages(prev =>
         prev.map(msg => msg.id === updatedMessage.id ? updatedMessage : msg)
       );
     },
     onError: (error) => {
-      console.error('Real-time messaging error:', error);
+      logger.error('Real-time messaging error', error);
     }
   });
 
@@ -92,7 +93,7 @@ export default function ChatPage({ params }: ChatPageProps) {
       // Mark messages as read
       await MessagingService.markMessagesAsRead(jobId, currentUser.id);
     } catch (err) {
-      console.error('Error loading chat:', err);
+      logger.error('Error loading chat', err);
       setError('Failed to load conversation');
     } finally {
       setLoading(false);
@@ -119,7 +120,7 @@ export default function ChatPage({ params }: ChatPageProps) {
       setMessages(prev => [...prev, newMessage]);
       scrollToBottom();
     } catch (err) {
-      console.error('Error sending message:', err);
+      logger.error('Error sending message', err);
       alert('Failed to send message. Please try again.');
     } finally {
       setSending(false);

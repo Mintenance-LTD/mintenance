@@ -1,13 +1,13 @@
 import * as Sentry from '@sentry/react-native';
 import { init } from 'sentry-expo';
 import { User } from '../types';
-import { setSentryFunctions } from '../utils/logger';
+import { setSentryFunctions, logger } from '../utils/logger';
 import { config, isFeatureEnabled } from './environment';
 
 export const initSentry = () => {
   // Check if crash reporting is enabled and if we have a DSN
   if (!isFeatureEnabled('enableCrashReporting') || !config.sentryDsn) {
-    console.log('Sentry disabled:', {
+    logger.info('Sentry disabled', {
       crashReportingEnabled: isFeatureEnabled('enableCrashReporting'),
       hasDsn: !!config.sentryDsn,
     });
@@ -48,7 +48,7 @@ export const captureException = (error: Error, extra?: Record<string, any>) => {
     !isFeatureEnabled('enableCrashReporting') ||
     config.environment === 'development'
   ) {
-    console.error('Error:', error, extra);
+    logger.error('Sentry', error, extra);
     return;
   }
 
@@ -65,7 +65,13 @@ export const captureMessage = (
     !isFeatureEnabled('enableCrashReporting') ||
     config.environment === 'development'
   ) {
-    console.log(`[${level.toUpperCase()}] ${message}`);
+    if (level === 'error') {
+      logger.error('Sentry', message);
+    } else if (level === 'warning') {
+      logger.warn('Sentry', message);
+    } else {
+      logger.info('Sentry', message);
+    }
     return;
   }
 
@@ -111,7 +117,7 @@ export const startTransaction = (name: string, op: string) => {
     !isFeatureEnabled('enablePerformanceMonitoring') ||
     config.environment === 'development'
   ) {
-    console.log(`Transaction started: ${name} (${op})`);
+    logger.debug(`Transaction started: ${name} (${op})`);
     return null;
   }
   // Use breadcrumbs for tracking instead of transactions in sentry-expo

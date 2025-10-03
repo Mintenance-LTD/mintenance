@@ -104,7 +104,7 @@ const MockJobPostingScreen = ({
       });
       onJobPosted?.(job);
     } catch (error) {
-      console.log('Job posting error:', error);
+      // Error handling would show error message in real app
     }
   };
 
@@ -201,7 +201,7 @@ const MockJobsListScreen = ({
         }
         setJobsList(loadedJobs);
       } catch (error) {
-        console.log('Jobs loading error:', error);
+        // Error handling would show error message in real app
       }
     };
 
@@ -252,7 +252,7 @@ const MockJobDetailsScreen = ({
         const jobBids = await JobService.getBidsByJob(job.id);
         setBids(jobBids);
       } catch (error) {
-        console.log('Bids loading error:', error);
+        // Error handling would show error message in real app
       }
     };
 
@@ -270,7 +270,7 @@ const MockJobDetailsScreen = ({
         description: 'I can fix this for you',
       });
     } catch (error) {
-      console.log('Bid submission error:', error);
+      // Error handling would show error message in real app
     }
   };
 
@@ -278,7 +278,7 @@ const MockJobDetailsScreen = ({
     try {
       await JobService.acceptBid(bidId);
     } catch (error) {
-      console.log('Bid acceptance error:', error);
+      // Error handling would show error message in real app
     }
   };
 

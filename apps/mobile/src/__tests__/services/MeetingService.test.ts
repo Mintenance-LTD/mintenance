@@ -104,10 +104,8 @@ const { ServiceErrorHandler } = require('../../utils/serviceErrorHandler');
 describe('MeetingService', () => {
   beforeEach(() => {
     __resetSupabaseMock();
-    console.log('[TEST] Reset complete, setting default data');
     // Set default test data for all positive tests
     __setMockData(mockMeetingData);
-    console.log('[TEST] Default data set:', !!mockMeetingData);
   });
 
   describe('createMeeting', () => {

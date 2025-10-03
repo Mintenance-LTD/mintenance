@@ -58,7 +58,7 @@ export class ValidationService {
    * Initialize bias monitoring
    */
   async initialize(): Promise<void> {
-    console.log('🔍 Bias monitoring system initialized');
+    logger.info('Bias monitoring system initialized');
   }
 
   /**
@@ -122,7 +122,7 @@ export class ValidationService {
     modelType: string,
     data: TrainingData
   ): Promise<BiasMetrics> {
-    console.log(`🔍 Analyzing bias in ${modelType} model...`);
+    logger.info(`Analyzing bias in ${modelType} model`);
 
     try {
       // Group data by protected attributes
@@ -170,13 +170,14 @@ export class ValidationService {
       }
       this.biasHistory.get(modelType)!.push(biasMetrics);
 
-      console.log(
-        `📊 Bias analysis complete. Fairness score: ${fairnessScore.toFixed(3)}`
-      );
+      logger.info('Bias analysis complete', {
+        modelType,
+        fairnessScore: fairnessScore.toFixed(3),
+      });
 
       return biasMetrics;
     } catch (error) {
-      console.error('Bias detection failed:', error);
+      logger.error('Bias detection failed', error as Error);
       throw error;
     }
   }
@@ -371,6 +372,6 @@ export class ValidationService {
   dispose(): void {
     this.performanceHistory.clear();
     this.biasHistory.clear();
-    logger.info('ValidationService', 'Validation service disposed');
+    logger.info('Validation service disposed');
   }
 }

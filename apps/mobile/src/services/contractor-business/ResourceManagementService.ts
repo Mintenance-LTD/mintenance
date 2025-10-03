@@ -1,5 +1,6 @@
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 interface InventoryItem {
   id: string;
@@ -511,7 +512,7 @@ export class ResourceManagementService {
               );
               orderIds.push(orderId);
             } catch (orderError) {
-              console.error(`Failed to create auto-reorder for item ${item.id}:`, orderError);
+              logger.error(`Failed to create auto-reorder for item ${item.id}`, orderError as Error);
             }
           }
         }
@@ -574,7 +575,7 @@ export class ResourceManagementService {
     if (!supplierEmail) return;
 
     // Integration with EmailTemplatesService would go here
-    console.log(`Purchase order ${orderId} sent to ${supplierEmail}`);
+    logger.info('Purchase order sent to supplier', { orderId, supplierEmail });
   }
 
   private static async calculateTotalInventoryValue(contractorId: string): Promise<number> {

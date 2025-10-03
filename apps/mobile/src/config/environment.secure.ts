@@ -37,7 +37,8 @@ const validateEnvironment = (): void => {
   const missing = required.filter(key => !CONFIG[key as keyof typeof CONFIG] || CONFIG[key as keyof typeof CONFIG] === '');
 
   if (missing.length > 0) {
-    console.warn('⚠️ Missing required environment variables:', missing);
+    const { logger } = require('../utils/logger');
+    logger.warn('Missing required environment variables', { missing });
     if (CONFIG.ENVIRONMENT === 'production') {
       throw new Error(`Production deployment missing required environment variables: ${missing.join(', ')}`);
     }
@@ -46,9 +47,11 @@ const validateEnvironment = (): void => {
 
 // Security validation for URLs and keys
 const validateSecurityConfig = (): void => {
+  const { logger } = require('../utils/logger');
+
   // Validate Supabase URL format
   if (!CONFIG.SUPABASE_URL.startsWith('https://')) {
-    console.error('🚨 SECURITY: Supabase URL must use HTTPS');
+    logger.error('SECURITY: Supabase URL must use HTTPS');
     if (CONFIG.ENVIRONMENT === 'production') {
       throw new Error('Insecure Supabase URL - HTTPS required');
     }
@@ -56,13 +59,13 @@ const validateSecurityConfig = (): void => {
 
   // Check for exposed dashboard URLs
   if (CONFIG.SUPABASE_URL.includes('/dashboard/')) {
-    console.error('🚨 SECURITY: Supabase dashboard URL detected - use project API URL');
+    logger.error('SECURITY: Supabase dashboard URL detected - use project API URL');
     throw new Error('Invalid Supabase URL - use project API URL, not dashboard URL');
   }
 
   // Validate anon key format (basic JWT structure check)
   if (CONFIG.SUPABASE_ANON_KEY !== '' && !CONFIG.SUPABASE_ANON_KEY.includes('.')) {
-    console.error('🚨 SECURITY: Invalid Supabase anon key format');
+    logger.error('SECURITY: Invalid Supabase anon key format');
     if (CONFIG.ENVIRONMENT === 'production') {
       throw new Error('Invalid Supabase anon key format');
     }
@@ -83,7 +86,8 @@ export const getServerCredentials = {
   async getGoogleMapsKey(): Promise<string> {
     // TODO: Implement server endpoint /api/credentials/google-maps
     // For now, return a restricted key or implement domain restrictions
-    console.warn('🚨 SECURITY: Google Maps key should be fetched from server with domain restrictions');
+    const { logger } = require('../utils/logger');
+    logger.warn('SECURITY: Google Maps key should be fetched from server with domain restrictions');
     return 'GOOGLE_MAPS_KEY_FROM_SERVER';
   },
 
@@ -98,7 +102,8 @@ export const getServerCredentials = {
 };
 
 // Log security status
-console.log('🔒 Security Configuration:', {
+const { logger } = require('../utils/logger');
+logger.info('Security Configuration initialized', {
   environment: CONFIG.ENVIRONMENT,
   supabaseConfigured: CONFIG.SUPABASE_URL !== '',
   stripeConfigured: CONFIG.STRIPE_PUBLISHABLE_KEY !== '',

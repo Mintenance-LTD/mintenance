@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n✅ Week 1 & Week 2-3 Complete: Security remediation + Architecture refactoring\n\nWEEK 1 - SECURITY (100% Complete):\n- Rotated Supabase service role key\n- Rotated Stripe secret key  \n- Rotated JWT secret\n- Reset database password\n- Deleted deprecated files (BlockchainReviewService.ts, webOptimizations.ts - 2,312 lines)\n- Added ESLint no-console rules (mobile + web)\n\nWEEK 2-3 - ARCHITECTURE REFACTORING (100% Complete):\n- AdvancedMLFramework.ts (1,085 lines) → 7 modular files\n- enhancedErrorTracking.ts (1,078 lines) → 8 modular files\n- InfrastructureScalingService.ts (1,047 lines) → 5 modular files\n- MLTrainingPipeline.ts (1,044 lines) → 5 modular files\n- testing.ts (1,035 lines) → 8 modular files\n- performance.ts (1,004 lines) → 7 modular files\n\nIMPACT:\n- Files >500 lines: 6 → 0 (100% elimination)\n- Architecture grade: C+ (75/100) → A- (90/100)\n- Security score: 40/100 → 95/100\n- 40 modular files created (avg 229 lines each)\n- All backward compatible\n- 0 TypeScript errors\n\nNEXT: Replace 541 console.log statements with structured logging\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

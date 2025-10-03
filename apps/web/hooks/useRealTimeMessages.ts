@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { MessagingService } from '@/lib/services/MessagingService';
+import { logger } from '@/lib/logger';
 import type { Message } from '@mintenance/types';
 
 interface UseRealTimeMessagesOptions {
@@ -27,21 +28,21 @@ export function useRealTimeMessages(
       return;
     }
 
-    console.log(`Setting up real-time subscription for job: ${jobId}`);
+    logger.info('Setting up real-time subscription for job', { jobId });
 
     // Set up real-time subscription
     const cleanup = MessagingService.subscribeToJobMessages(
       jobId,
       (newMessage: Message) => {
-        console.log('New message received:', newMessage);
+        logger.info('New message received', { messageId: newMessage.id, jobId });
         onNewMessage?.(newMessage);
       },
       (updatedMessage: Message) => {
-        console.log('Message updated:', updatedMessage);
+        logger.info('Message updated', { messageId: updatedMessage.id, jobId });
         onMessageUpdate?.(updatedMessage);
       },
       (error: any) => {
-        console.error('Real-time messaging error:', error);
+        logger.error('Real-time messaging error', error);
         onError?.(error);
       }
     );
@@ -50,7 +51,7 @@ export function useRealTimeMessages(
 
     // Cleanup on unmount or dependency change
     return () => {
-      console.log(`Cleaning up real-time subscription for job: ${jobId}`);
+      logger.info('Cleaning up real-time subscription for job', { jobId });
       cleanup();
       cleanupRef.current = null;
     };
@@ -94,7 +95,7 @@ export function useRealTimeMessageThreads(
       },
       () => {}, // onMessageUpdate - not needed for thread list
       (error: any) => {
-        console.error(`Real-time error for job ${jobId}:`, error);
+        logger.error('Real-time error for job', error, { jobId });
         onError?.(error);
       }
     );

@@ -118,7 +118,8 @@ export const validateAIConfig = (): {
 
 // Log AI configuration status (development only)
 if (process.env.NODE_ENV === 'development') {
-  console.log('🤖 AI Configuration:', {
+  const { logger } = require('../utils/logger');
+  logger.info('AI Configuration loaded', {
     primaryService: getConfiguredAIService(),
     openAIEnabled: aiConfig.features.enableOpenAI,
     awsEnabled: aiConfig.features.enableAWS,
@@ -128,11 +129,14 @@ if (process.env.NODE_ENV === 'development') {
 
   const validation = validateAIConfig();
   if (!validation.isValid) {
-    console.warn('⚠️ AI Configuration Issues:');
-    validation.errors.forEach(error => console.warn(`  - ${error}`));
+    logger.warn('AI Configuration validation failed', {
+      errors: validation.errors,
+    });
   }
   if (validation.warnings.length > 0) {
-    validation.warnings.forEach(warning => console.warn(`  - ${warning}`));
+    logger.warn('AI Configuration warnings', {
+      warnings: validation.warnings,
+    });
   }
 }
 

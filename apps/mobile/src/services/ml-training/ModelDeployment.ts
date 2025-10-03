@@ -52,8 +52,7 @@ export class ModelDeployment {
     modelType: string
   ): Promise<void> {
     this.deployedModels.set(modelType, model);
-    logger.info('ModelDeployment', 'Model deployed', { modelType });
-    console.log(`🚀 Model ${modelType} deployed successfully`);
+    logger.info('Model deployed successfully', { modelType });
   }
 
   /**
@@ -63,11 +62,7 @@ export class ModelDeployment {
     results: ValidationResults,
     modelType: string
   ): Promise<void> {
-    console.log(`⚠️ Model validation failed for ${modelType}`);
-    console.log('Issues:', results.issues);
-    console.log('Recommended improvements:', results.improvements);
-
-    logger.warn('ModelDeployment', 'Model validation failed', {
+    logger.warn('Model validation failed', {
       modelType,
       issues: results.issues,
       improvements: results.improvements,
@@ -99,7 +94,7 @@ export class ModelDeployment {
     testDuration: number = 7,
     trafficSplit: number = 0.5
   ): Promise<ABTestResult> {
-    console.log(`🔬 Starting A/B test: ${modelTypeA} vs ${modelTypeB}`);
+    logger.info('Starting A/B test', { modelTypeA, modelTypeB, testDuration, trafficSplit });
 
     const performanceA = await this.getModelPerformance(modelTypeA);
     const performanceB = await this.getModelPerformance(modelTypeB);
@@ -206,6 +201,6 @@ export class ModelDeployment {
    */
   dispose(): void {
     this.deployedModels.clear();
-    logger.info('ModelDeployment', 'Model deployment resources disposed');
+    logger.info('Model deployment resources disposed');
   }
 }

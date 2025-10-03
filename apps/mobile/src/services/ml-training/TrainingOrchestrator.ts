@@ -108,7 +108,7 @@ export class TrainingOrchestrator {
     modelType: string,
     callback: () => Promise<void>
   ): Promise<void> {
-    console.log(`📅 Scheduling retraining for ${modelType}`);
+    logger.info('Scheduling retraining for model', { modelType });
     const timeout = setTimeout(() => callback(), 5000);
     mlMemoryManager.trackTimeout(this.componentId, timeout);
   }
@@ -153,7 +153,7 @@ export class TrainingOrchestrator {
     data: TrainingData,
     modelType: string
   ): Promise<tf.LayersModel> {
-    console.log('🏋️ Training model...');
+    logger.info('Training model', { modelType });
     this.isTraining = true;
 
     try {
@@ -167,9 +167,11 @@ export class TrainingOrchestrator {
         verbose: 0,
         callbacks: {
           onEpochEnd: (epoch, logs) => {
-            console.log(
-              `Epoch ${epoch + 1}: loss = ${logs?.loss?.toFixed(4)}, accuracy = ${logs?.acc?.toFixed(4)}`
-            );
+            logger.debug('Training epoch completed', {
+              epoch: epoch + 1,
+              loss: logs?.loss?.toFixed(4),
+              accuracy: logs?.acc?.toFixed(4),
+            });
           },
         },
       });
@@ -201,7 +203,7 @@ export class TrainingOrchestrator {
     inputShape: number,
     outputShape: number
   ): Promise<tf.LayersModel> {
-    console.log('🥊 Training adversarial fair model');
+    logger.info('Training adversarial fair model');
     return await this.createOrLoadModel('pricing', inputShape, outputShape);
   }
 
@@ -213,7 +215,7 @@ export class TrainingOrchestrator {
     inputShape: number,
     outputShape: number
   ): Promise<tf.LayersModel> {
-    console.log('⚖️ Training with fairness constraints');
+    logger.info('Training with fairness constraints');
     return await this.createOrLoadModel('pricing', inputShape, outputShape);
   }
 
@@ -234,6 +236,6 @@ export class TrainingOrchestrator {
     this.stopTrainingScheduler();
     this.modelVersions.clear();
     this.isTraining = false;
-    logger.info('TrainingOrchestrator', 'Training orchestrator disposed');
+    logger.info('Training orchestrator disposed');
   }
 }

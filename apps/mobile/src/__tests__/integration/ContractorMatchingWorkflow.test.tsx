@@ -106,7 +106,7 @@ const MockContractorDiscoveryScreen = ({
         const loadedContractors = await ContractorService.getContractors();
         setContractors(loadedContractors);
       } catch (error) {
-        console.log('Contractors loading error:', error);
+        // Error handling would show error message in real app
       }
     };
 
@@ -125,7 +125,7 @@ const MockContractorDiscoveryScreen = ({
         onMatch?.(contractor, action);
         setCurrentIndex((prev) => prev + 1);
       } catch (error) {
-        console.log('Match creation error:', error);
+        // Error handling would show error message in real app
       }
     }
   };
@@ -183,7 +183,7 @@ const MockMatchesScreen = ({
         const loadedMatches = await ContractorService.getMatches('user-123');
         setMatches(loadedMatches);
       } catch (error) {
-        console.log('Matches loading error:', error);
+        // Error handling would show error message in real app
       }
     };
 
@@ -197,7 +197,7 @@ const MockMatchesScreen = ({
         participants: ['user-123', 'other-user-456'],
       });
     } catch (error) {
-      console.log('Conversation creation error:', error);
+      // Error handling would show error message in real app
     }
   };
 
@@ -249,7 +249,7 @@ const MockBiddingDashboard = ({
         }
         setBids(loadedBids);
       } catch (error) {
-        console.log('Bids loading error:', error);
+        // Error handling would show error message in real app
       }
     };
 
@@ -260,7 +260,7 @@ const MockBiddingDashboard = ({
     try {
       await JobService.acceptBid(bidId);
     } catch (error) {
-      console.log('Bid acceptance error:', error);
+      // Error handling would show error message in real app
     }
   };
 
@@ -275,7 +275,7 @@ const MockBiddingDashboard = ({
         await JobService.completeJob(jobId);
       }
     } catch (error) {
-      console.log('Job action error:', error);
+      // Error handling would show error message in real app
     }
   };
 

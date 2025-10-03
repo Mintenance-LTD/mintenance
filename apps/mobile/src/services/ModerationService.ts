@@ -266,8 +266,8 @@ export class ModerationService {
   ): Promise<void> {
     try {
       // This would typically go to a separate moderation_logs table
-      // For now, we'll just log to console in development
-      console.log('Moderation Action:', {
+      // For now, we'll just log to structured logger in development
+      logger.info('Moderation Action', {
         action,
         contentId,
         userId,

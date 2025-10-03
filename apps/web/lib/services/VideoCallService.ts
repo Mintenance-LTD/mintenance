@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import type {
   VideoCall,
   VideoCallInvitation,
@@ -104,7 +105,7 @@ export class VideoCallService {
 
     // Monitor connection state
     this.peerConnection.onconnectionstatechange = () => {
-      console.log('Connection state:', this.peerConnection?.connectionState);
+      logger.info('Connection state', { state: this.peerConnection?.connectionState });
       this.trackConnectionQuality();
     };
 
@@ -153,13 +154,13 @@ export class VideoCallService {
         .single();
 
       if (error) {
-        console.error('Error creating video call:', error);
+        logger.error('Error creating video call', error);
         throw new Error('Failed to create video call');
       }
 
       return this.formatVideoCall(data);
     } catch (error) {
-      console.error('Create video call error:', error);
+      logger.error('Create video call error', error);
       return this.getMockVideoCall(params);
     }
   }
@@ -196,7 +197,7 @@ export class VideoCallService {
 
       return { call, localStream, peerConnection };
     } catch (error) {
-      console.error('Join call error:', error);
+      logger.error('Join call error', error);
       throw error;
     }
   }
@@ -237,7 +238,7 @@ export class VideoCallService {
 
       this.currentCallId = null;
     } catch (error) {
-      console.error('End call error:', error);
+      logger.error('End call error', error);
     }
   }
 
@@ -284,7 +285,7 @@ export class VideoCallService {
 
       return screenStream;
     } catch (error) {
-      console.error('Screen share error:', error);
+      logger.error('Screen share error', error);
       throw error;
     }
   }
@@ -312,14 +313,14 @@ export class VideoCallService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching user calls:', error);
+        logger.error('Error fetching user calls', error);
         return this.getMockUserCalls(userId);
       }
 
       const rows = data ?? [];
       return rows.map(call => this.formatVideoCall(call));
     } catch (error) {
-      console.error('Get user calls error:', error);
+      logger.error('Get user calls error', error);
       return this.getMockUserCalls(userId);
     }
   }
@@ -373,7 +374,7 @@ export class VideoCallService {
         .single();
 
       if (error) {
-        console.error('Error sending call invitation:', error);
+        logger.error('Error sending call invitation', error);
         throw new Error('Failed to send invitation');
       }
 
@@ -388,7 +389,7 @@ export class VideoCallService {
         createdAt: data.created_at
       };
     } catch (error) {
-      console.error('Send call invitation error:', error);
+      logger.error('Send call invitation error', error);
       throw error;
     }
   }
@@ -407,7 +408,7 @@ export class VideoCallService {
         .eq('id', invitationId);
 
       if (error) {
-        console.error('Error responding to invitation:', error);
+        logger.error('Error responding to invitation', error);
         throw new Error('Failed to respond to invitation');
       }
 
@@ -424,7 +425,7 @@ export class VideoCallService {
         }
       }
     } catch (error) {
-      console.error('Respond to invitation error:', error);
+      logger.error('Respond to invitation error', error);
       throw error;
     }
   }
@@ -446,13 +447,13 @@ export class VideoCallService {
         .single();
 
       if (error) {
-        console.error('Error fetching call:', error);
+        logger.error('Error fetching call', error);
         return null;
       }
 
       return this.formatVideoCall(data);
     } catch (error) {
-      console.error('Get call by ID error:', error);
+      logger.error('Get call by ID error', error);
       return null;
     }
   }
@@ -470,7 +471,7 @@ export class VideoCallService {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       return this.localStream;
     } catch (error) {
-      console.error('Error accessing media devices:', error);
+      logger.error('Error accessing media devices', error);
       throw error;
     }
   }
@@ -539,7 +540,7 @@ export class VideoCallService {
           }]);
       }
     } catch (error) {
-      console.error('Quality tracking error:', error);
+      logger.error('Quality tracking error', error);
     }
   }
 
@@ -686,13 +687,13 @@ export class VideoCallService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('Error fetching call history:', error);
+        logger.error('Error fetching call history', error);
         return this.getMockCallHistory();
       }
 
       return data ?? [];
     } catch (error) {
-      console.error('Get call history error:', error);
+      logger.error('Get call history error', error);
       return this.getMockCallHistory();
     }
   }
@@ -711,11 +712,11 @@ export class VideoCallService {
         .eq('id', callId);
 
       if (error) {
-        console.error('Error cancelling call:', error);
+        logger.error('Error cancelling call', error);
         throw new Error('Failed to cancel call');
       }
     } catch (error) {
-      console.error('Cancel call error:', error);
+      logger.error('Cancel call error', error);
       throw error;
     }
   }
@@ -734,13 +735,13 @@ export class VideoCallService {
         .single();
 
       if (error) {
-        console.error('Error fetching call quality:', error);
+        logger.error('Error fetching call quality', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Get call quality error:', error);
+      logger.error('Get call quality error', error);
       return null;
     }
   }
@@ -760,7 +761,7 @@ export class VideoCallService {
         }
       }
     } catch (error) {
-      console.error('Stop screen share error:', error);
+      logger.error('Stop screen share error', error);
     }
   }
 

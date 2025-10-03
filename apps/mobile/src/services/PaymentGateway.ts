@@ -135,11 +135,11 @@ export class PaymentGateway {
     try {
       // Verify Stripe connection
       await this.stripe.accounts.retrieve();
-      console.log('✅ Stripe payment gateway initialized successfully');
+      logger.info('Stripe payment gateway initialized successfully');
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('❌ Payment gateway initialization failed:', error);
+      logger.error('Payment gateway initialization failed', error as Error);
       throw new Error('Payment gateway initialization failed');
     }
   }
@@ -798,7 +798,7 @@ export class PaymentGateway {
     escrow: EscrowTransaction
   ): Promise<void> {
     // Store in database
-    console.log('Storing escrow transaction:', escrow.id);
+    logger.debug('Storing escrow transaction', { escrowId: escrow.id });
   }
 
   private async getEscrowTransaction(
@@ -823,7 +823,7 @@ export class PaymentGateway {
     status: string
   ): Promise<void> {
     // Update in database
-    console.log('Updating escrow status:', escrowId, status);
+    logger.debug('Updating escrow status', { escrowId, status });
   }
 
   private async updateEscrowDispute(
@@ -832,7 +832,7 @@ export class PaymentGateway {
     dispute: any
   ): Promise<void> {
     // Update in database
-    console.log('Updating escrow dispute:', escrowId, status);
+    logger.debug('Updating escrow dispute', { escrowId, status });
   }
 
   private async notifyDisputeCreated(
@@ -840,12 +840,12 @@ export class PaymentGateway {
     dispute: any
   ): Promise<void> {
     // Send notifications
-    console.log('Notifying dispute created:', escrow.id);
+    logger.info('Notifying dispute created', { escrowId: escrow.id });
   }
 
   private async storeInvoice(invoice: Invoice): Promise<void> {
     // Store in database
-    console.log('Storing invoice:', invoice.id);
+    logger.debug('Storing invoice', { invoiceId: invoice.id });
   }
 }
 

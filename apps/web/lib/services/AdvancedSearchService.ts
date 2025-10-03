@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import type {
   AdvancedSearchFilters,
   SearchResult,
@@ -76,7 +77,7 @@ export class AdvancedSearchService {
       const { data, error, count } = await supabaseQuery;
 
       if (error) {
-        console.error('Error searching jobs:', error);
+        logger.error('Error searching jobs', error);
         return this.getMockJobSearchResults(query, filters, page, limit);
       }
 
@@ -91,7 +92,7 @@ export class AdvancedSearchService {
         suggestions: this.generateSearchSuggestions(query)
       };
     } catch (error) {
-      console.error('Advanced job search error:', error);
+      logger.error('Advanced job search error', error);
       return this.getMockJobSearchResults(query, filters, page, limit);
     }
   }
@@ -159,7 +160,7 @@ export class AdvancedSearchService {
       const { data, error, count } = await supabaseQuery;
 
       if (error) {
-        console.error('Error searching contractors:', error);
+        logger.error('Error searching contractors', error);
         return this.getMockContractorSearchResults(query, filters, page, limit);
       }
 
@@ -197,7 +198,7 @@ export class AdvancedSearchService {
         suggestions: this.generateSearchSuggestions(query)
       };
     } catch (error) {
-      console.error('Advanced contractor search error:', error);
+      logger.error('Advanced contractor search error', error);
       return this.getMockContractorSearchResults(query, filters, page, limit);
     }
   }
@@ -226,7 +227,7 @@ export class AdvancedSearchService {
         .single();
 
       if (error) {
-        console.error('Error saving search:', error);
+        logger.error('Error saving search', error);
         throw new Error('Failed to save search');
       }
 
@@ -240,7 +241,7 @@ export class AdvancedSearchService {
         updatedAt: data.updated_at
       };
     } catch (error) {
-      console.error('Save search error:', error);
+      logger.error('Save search error', error);
       // Return mock saved search
       return {
         id: `saved_${Date.now()}`,
@@ -266,7 +267,7 @@ export class AdvancedSearchService {
         .order('updated_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching saved searches:', error);
+        logger.error('Error fetching saved searches', error);
         return [];
       }
 
@@ -280,7 +281,7 @@ export class AdvancedSearchService {
         updatedAt: item.updated_at
       }));
     } catch (error) {
-      console.error('Get saved searches error:', error);
+      logger.error('Get saved searches error', error);
       return [];
     }
   }
@@ -307,7 +308,7 @@ export class AdvancedSearchService {
       };
 
       // In a real implementation, this would be sent to an analytics service
-      console.log('Search Analytics:', analytics);
+      logger.info('Search Analytics', analytics);
 
       // Could also store in Supabase for later analysis
       await supabase
@@ -321,7 +322,7 @@ export class AdvancedSearchService {
           timestamp: analytics.timestamp
         }]);
     } catch (error) {
-      console.error('Search analytics tracking error:', error);
+      logger.error('Search analytics tracking error', error);
       // Analytics failures shouldn't break the search experience
     }
   }
@@ -366,7 +367,7 @@ export class AdvancedSearchService {
         }
       };
     } catch (error) {
-      console.error('Error calculating job facets:', error);
+      logger.error('Error calculating job facets', error);
       return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
     }
   }
@@ -410,7 +411,7 @@ export class AdvancedSearchService {
         }
       };
     } catch (error) {
-      console.error('Error calculating contractor facets:', error);
+      logger.error('Error calculating contractor facets', error);
       return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
     }
   }

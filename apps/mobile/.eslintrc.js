@@ -20,4 +20,16 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Allow console statements in logger implementation and tests
+      files: [
+        '**/utils/logger.ts',
+        '**/__tests__/utils/logger.test.ts',
+      ],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+  ],
 };

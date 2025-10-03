@@ -1,4 +1,5 @@
 import { by, device, element, expect, waitFor } from 'detox';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // E2E TESTING UTILITIES
@@ -323,24 +324,24 @@ export class E2ETestHelper {
     try {
       const mainContainer = element(by.type('View')).atIndex(0);
       await expect(mainContainer).toBeVisible();
-      
+
       // Test that main interactive elements have accessibility labels
-      console.log('Testing screen reader navigation patterns...');
+      logger.info('Testing screen reader navigation patterns...');
       // This is a placeholder for comprehensive accessibility testing
     } catch (error) {
-      console.warn('Accessibility navigation test failed:', error);
+      logger.warn('Accessibility navigation test failed', { error });
     }
   }
 
   private static async testKeyboardNavigation(): Promise<void> {
     // Test tab navigation between focusable elements
     // This would require device.sendKeyEvent() calls
-    console.log('Testing keyboard navigation...');
+    logger.info('Testing keyboard navigation...');
   }
 
   private static async testTouchTargets(): Promise<void> {
     // Test that interactive elements meet minimum size requirements
-    console.log('Testing touch target sizes...');
+    logger.info('Testing touch target sizes...');
   }
 
   // ============================================================================
@@ -352,15 +353,15 @@ export class E2ETestHelper {
     label: string
   ): Promise<T> {
     const startTime = Date.now();
-    
+
     try {
       const result = await operation();
       const endTime = Date.now();
-      console.log(`${label} took ${endTime - startTime}ms`);
+      logger.info(`${label} took ${endTime - startTime}ms`);
       return result;
     } catch (error) {
       const endTime = Date.now();
-      console.error(`${label} failed after ${endTime - startTime}ms:`, error);
+      logger.error(`${label} failed after ${endTime - startTime}ms`, { error });
       throw error;
     }
   }
@@ -370,9 +371,9 @@ export class E2ETestHelper {
     await device.launchApp({ newInstance: true });
     await this.waitForElement('home-screen');
     const endTime = Date.now();
-    
+
     const launchTime = endTime - startTime;
-    console.log(`App launch time: ${launchTime}ms`);
+    logger.info(`App launch time: ${launchTime}ms`, { launchTime });
     return launchTime;
   }
 
@@ -423,10 +424,10 @@ export const E2ETestSuite = {
     // Note: In Jest environment, we would use a different failure detection mechanism
     try {
       // This would be implemented with Jest's test context in a real scenario
-      console.log('Test completed - checking for failures...');
+      logger.debug('Test completed - checking for failures...');
       // await E2ETestHelper.takeScreenshot(`test_${Date.now()}`);
     } catch (error) {
-      console.warn('Failed to take screenshot:', error);
+      logger.warn('Failed to take screenshot', { error });
     }
   },
 
@@ -478,7 +479,7 @@ export const CommonScenarios = {
     if (launchTime > 5000) {
       throw new Error(`App launch time ${launchTime}ms exceeds 5000ms threshold`);
     }
-    console.log(`✅ App launch time: ${launchTime}ms (within 5s threshold)`);
+    logger.info(`App launch time: ${launchTime}ms (within 5s threshold)`, { launchTime });
   },
 };
 

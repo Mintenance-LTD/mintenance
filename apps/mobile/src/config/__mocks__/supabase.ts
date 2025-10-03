@@ -10,13 +10,10 @@ const createMockChain = () => {
     eq: jest.fn(() => chain),
     single: jest.fn(() => {
       const currentData = mockState.data;
-      console.log('[MOCK] single() called, mockData:', currentData, 'type:', typeof currentData);
       // Return proper response structure for single operations
       if (currentData === null || currentData === undefined) {
-        console.log('[MOCK] Returning error - no data');
         return Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'Not found' } });
       }
-      console.log('[MOCK] Returning success with data');
       return Promise.resolve({ data: currentData, error: null });
     }),
     update: jest.fn(() => chain),
@@ -58,13 +55,11 @@ export const supabase = {
 // Helper functions for tests
 export const __setMockData = (data: any) => {
   mockState.data = data;
-  console.log('[MOCK] Set mock data:', typeof data, data ? 'with data' : 'null/empty');
 };
 
 export const __resetSupabaseMock = () => {
   jest.clearAllMocks();
   mockState.data = null;
-  console.log('[MOCK] Reset mock');
 };
 
 export const __getMockData = () => mockState.data;

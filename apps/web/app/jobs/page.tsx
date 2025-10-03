@@ -7,6 +7,7 @@ import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card, PageHeader, LoadingSpinner, ErrorView } from '@/components/ui';
 import { theme } from '@/lib/theme';
+import { logger } from '@/lib/logger';
 import type { Job, User } from '@mintenance/types';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
@@ -52,7 +53,7 @@ export default function JobsPage() {
 
       setAllJobs(jobs);
     } catch (error) {
-      console.error('Error loading jobs:', error);
+      logger.error('Error loading jobs', error);
     } finally {
       setLoading(false);
     }
@@ -234,7 +235,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
       hover={true}
       onClick={() => {
         // TODO: Navigate to job details
-        console.log('Navigate to job:', job.id);
+        logger.userAction('Navigate to job', { jobId: job.id });
       }}
     >
       {/* Header */}

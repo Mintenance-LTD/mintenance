@@ -49,19 +49,19 @@ export class RealTimeService {
 
   async initialize(userId: string, token: string): Promise<void> {
     this.currentUserId = userId;
-    console.log('🔗 Initializing real-time service for user:', userId);
-    
+    logger.info('Initializing real-time service for user', { userId });
+
     // Mock WebSocket connection for development
     this.mockSocket = {
       connected: true,
       emit: (event: string, data: any) => {
-        console.log('📤 Emitting event:', event, data);
+        logger.debug('Emitting real-time event', { event, data });
       },
       on: (event: string, handler: Function) => {
-        console.log('👂 Listening for event:', event);
+        logger.debug('Listening for real-time event', { event });
       },
       disconnect: () => {
-        console.log('🔌 Disconnecting mock socket');
+        logger.info('Disconnecting mock socket');
         this.isConnected = false;
       }
     };
@@ -76,27 +76,27 @@ export class RealTimeService {
 
   // Simulate real-time events for development
   simulateJobCreated(job: any): void {
-    console.log('📡 Simulating job created event');
+    logger.debug('Simulating job created event', { jobId: job?.id });
     this.eventHandlers.onJobCreated?.({ job });
   }
 
   simulateJobUpdated(job: any, changes: any): void {
-    console.log('📡 Simulating job updated event');
+    logger.debug('Simulating job updated event', { jobId: job?.id });
     this.eventHandlers.onJobUpdated?.({ job, changes });
   }
 
   simulateBidReceived(bid: any, job: any): void {
-    console.log('📡 Simulating bid received event');
+    logger.debug('Simulating bid received event', { bidId: bid?.id, jobId: job?.id });
     this.eventHandlers.onBidReceived?.({ bid, job });
   }
 
   simulateMessageReceived(message: any, conversation: any): void {
-    console.log('📡 Simulating message received event');
+    logger.debug('Simulating message received event', { messageId: message?.id });
     this.eventHandlers.onMessageReceived?.({ message, conversation });
   }
 
   simulateNotification(notification: any): void {
-    console.log('📡 Simulating notification event');
+    logger.debug('Simulating notification event', { notificationId: notification?.id });
     this.eventHandlers.onNotificationSent?.({ notification });
   }
 

@@ -5,6 +5,8 @@
  * This ensures the app continues to work even if Sentry configuration is missing.
  */
 
+import { logger } from './logger';
+
 // Safe Sentry imports
 let sentryFunctions: any = {};
 
@@ -17,7 +19,7 @@ try {
     measureAsyncPerformance: sentry.measureAsyncPerformance || ((fn: any) => fn()),
   };
 } catch (error) {
-  console.log('Sentry not available, using no-op functions');
+  logger.debug('Sentry not available, using no-op functions');
   sentryFunctions = {
     setUserContext: () => {},
     trackUserAction: () => {},

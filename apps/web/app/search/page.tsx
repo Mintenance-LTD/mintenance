@@ -8,6 +8,7 @@ import { AdvancedSearchFiltersComponent } from '@/components/search/AdvancedSear
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card } from '@/components/ui';
 import { theme } from '@/lib/theme';
+import { logger } from '@/lib/logger';
 import type {
   User,
   Job,
@@ -55,7 +56,7 @@ export default function SearchPage() {
           const saved = await AdvancedSearchService.getSavedSearches(currentUser.id);
           setSavedSearches(saved);
         } catch (error) {
-          console.error('Error loading saved searches:', error);
+          logger.error('Error loading saved searches', error);
         }
       }
     };
@@ -101,7 +102,7 @@ export default function SearchPage() {
         );
       }
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error', error);
     } finally {
       setLoading(false);
     }
@@ -137,7 +138,7 @@ export default function SearchPage() {
       const saved = await AdvancedSearchService.getSavedSearches(user.id);
       setSavedSearches(saved);
     } catch (error) {
-      console.error('Error saving search:', error);
+      logger.error('Error saving search', error);
       alert('Failed to save search');
     }
   };
@@ -647,7 +648,7 @@ export default function SearchPage() {
                   variant="outline"
                   onClick={() => {
                     // Load more results logic would go here
-                    console.log('Load more results');
+                    logger.userAction('Load more results', { searchType, query });
                   }}
                 >
                   Load More Results

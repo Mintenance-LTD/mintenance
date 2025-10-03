@@ -14,6 +14,7 @@ import { pricingMLService, type PricingPredictionResult, type MarketRateAnalysis
 import { contractorMatchingMLService, type ContractorMatchResult, type ContractorProfile, type JobRequirements } from './matching/ContractorMatchingMLService';
 import { performanceAnalyticsMLService, type ModelPerformanceMetrics, type PerformanceInsights } from './analytics/PerformanceAnalyticsMLService';
 import { circuitBreakerManager } from '../../utils/circuitBreaker';
+import { logger } from '../../utils/logger';
 
 export interface JobAnalysisRequest {
   title: string;
@@ -177,7 +178,7 @@ export class MLServiceCoordinator {
           confidenceScore,
         };
       } catch (error) {
-        console.error('Comprehensive job analysis failed:', error);
+        logger.error('Comprehensive job analysis failed', error as Error);
         throw error;
       }
     });
@@ -227,7 +228,7 @@ export class MLServiceCoordinator {
 
         return recommendations;
       } catch (error) {
-        console.error('Contractor recommendations failed:', error);
+        logger.error('Contractor recommendations failed', error as Error);
         throw error;
       }
     });
@@ -392,7 +393,7 @@ export class MLServiceCoordinator {
    */
   private async _performInitialization(): Promise<void> {
     try {
-      console.log('🤖 Initializing ML Service Coordinator...');
+      logger.info('Initializing ML Service Coordinator');
 
       // Initialize core ML infrastructure
       await mlCoreService.initialize();
@@ -400,9 +401,9 @@ export class MLServiceCoordinator {
       // Verify all services are accessible
       await this._verifyServiceAvailability();
 
-      console.log('✅ ML Service Coordinator initialized successfully');
+      logger.info('ML Service Coordinator initialized successfully');
     } catch (error) {
-      console.error('❌ ML Service Coordinator initialization failed:', error);
+      logger.error('ML Service Coordinator initialization failed', error as Error);
       throw error;
     }
   }
@@ -430,9 +431,9 @@ export class MLServiceCoordinator {
       if (!service) {
         throw new Error(`Service ${serviceName} not available`);
       }
-      console.log(`✅ ${serviceName} service verified`);
+      logger.info('Service verified', { serviceName });
     } catch (error) {
-      console.error(`❌ ${serviceName} service verification failed:`, error);
+      logger.error('Service verification failed', { serviceName, error: (error as Error).message });
       throw error;
     }
   }
@@ -445,7 +446,7 @@ export class MLServiceCoordinator {
       // Mock health check - would implement actual health checks for each service
       return 'online';
     } catch (error) {
-      console.error(`Service ${serviceName} health check failed:`, error);
+      logger.error('Service health check failed', { serviceName, error: (error as Error).message });
       return 'error';
     }
   }

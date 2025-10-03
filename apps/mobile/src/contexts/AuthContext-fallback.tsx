@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { AuthService } from '../services/AuthService';
 import { BiometricService } from '../services/BiometricService';
+import { logger } from '../utils/logger';
 
 // Simple User type
 type User = any;
@@ -36,24 +37,24 @@ export const useAuth = () => {
       user: null,
       loading: false,
       signIn: async () => {
-        console.log('Auth not available - using fallback');
+        logger.debug('Auth not available - using fallback');
       },
       signUp: async () => {
-        console.log('Auth not available - using fallback');
+        logger.debug('Auth not available - using fallback');
       },
       signOut: async () => {
-        console.log('Auth not available - using fallback');
+        logger.debug('Auth not available - using fallback');
       },
       signInWithBiometrics: async () => {
-        console.log('Biometric auth not available - using fallback');
+        logger.debug('Biometric auth not available - using fallback');
       },
       isBiometricAvailable: async () => false,
       isBiometricEnabled: async () => false,
       enableBiometric: async () => {
-        console.log('Biometric auth not available - using fallback');
+        logger.debug('Biometric auth not available - using fallback');
       },
       disableBiometric: async () => {
-        console.log('Biometric auth not available - using fallback');
+        logger.debug('Biometric auth not available - using fallback');
       },
     } as AuthContextType;
   }

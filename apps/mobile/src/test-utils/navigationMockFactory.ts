@@ -81,7 +81,7 @@ export class NavigationMockFactory {
       ...baseMock,
       // Type-safe navigation for Auth stack
       navigate: jest.fn((screen: keyof AuthStackParamList, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }
@@ -91,7 +91,7 @@ export class NavigationMockFactory {
     return {
       ...baseMock,
       navigate: jest.fn((screen: keyof JobsStackParamList, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }
@@ -101,7 +101,7 @@ export class NavigationMockFactory {
     return {
       ...baseMock,
       navigate: jest.fn((screen: keyof RootStackParamList, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }
@@ -111,7 +111,7 @@ export class NavigationMockFactory {
     return {
       ...baseMock,
       navigate: jest.fn((screen: keyof MessagingStackParamList, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }
@@ -121,7 +121,7 @@ export class NavigationMockFactory {
     return {
       ...baseMock,
       navigate: jest.fn((screen: keyof ProfileStackParamList, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }
@@ -131,7 +131,7 @@ export class NavigationMockFactory {
     return {
       ...baseMock,
       navigate: jest.fn((screen: string, params?: any) => {
-        console.log(`Navigate to ${screen}`, params);
+        // Navigation logging handled by navigation service in real app
       }),
     } as any;
   }

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import type { Database } from '../types/database';
+import { logger } from '../utils/logger';
 
 type SupabaseLike = ReturnType<typeof createClient<Database>> | ReturnType<typeof createMockSupabase>;
 
@@ -52,7 +53,7 @@ try {
 
   if (!credentialsValid) {
     validation.errors.forEach((error, index) => {
-      console.error(`[Supabase] Config error ${index + 1}: ${error}`);
+      logger.error('Supabase', `Config error ${index + 1}: ${error}`);
     });
 
     if (!__DEV__) {
@@ -78,14 +79,14 @@ try {
   });
 
   if (__DEV__) {
-    console.log(`[Supabase] Client initialised (${supabaseUrl})`);
+    logger.info('Supabase', `Client initialised (${supabaseUrl})`);
   }
 } catch (error) {
   if (!__DEV__) {
     throw error;
   }
   const message = error instanceof Error ? error.message : String(error);
-  console.warn('[Supabase] Falling back to mock client:', message);
+  logger.warn('Supabase', `Falling back to mock client: ${message}`);
   supabase = createMockSupabase();
 }
 
