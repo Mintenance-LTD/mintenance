@@ -1,22 +1,46 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import ContractorDiscoveryScreen from '../../screens/ContractorDiscoveryScreen';
+import type { DiscoverStackParamList } from '../types';
+import { ExploreMapScreen } from '../../screens/explore-map';
+import { ContractorProfileScreen } from '../../screens/contractor-profile';
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<DiscoverStackParamList>();
 
-const SafeContractorDiscoveryScreen = withScreenErrorBoundary(
-  ContractorDiscoveryScreen,
-  'Contractor Discovery'
+const SafeExploreMapScreen = withScreenErrorBoundary(
+  ExploreMapScreen,
+  'Explore Map'
+);
+
+const SafeContractorProfileScreen = withScreenErrorBoundary(
+  ContractorProfileScreen,
+  'Contractor Profile'
 );
 
 const DiscoverNavigator: React.FC = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+      }}
+      initialRouteName="ExploreMap"
+    >
       <Stack.Screen
-        name="ContractorDiscovery"
-        component={SafeContractorDiscoveryScreen}
-        options={{ title: 'Discover Contractors' }}
+        name="ExploreMap"
+        component={SafeExploreMapScreen}
+        options={{ 
+          title: 'Explore Contractors',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="ContractorProfile"
+        component={SafeContractorProfileScreen}
+        options={({ route }) => ({
+          title: route.params?.contractorName || 'Contractor Profile',
+          headerShown: false,
+        })}
       />
     </Stack.Navigator>
   );

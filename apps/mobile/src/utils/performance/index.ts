@@ -1,20 +1,69 @@
-/**
- * Performance Budget System
- * Complete performance monitoring and enforcement system
- */
+// ============================================================================
+// PERFORMANCE MONITORING SYSTEM - MAIN EXPORTS
+// Central exports for the refactored performance monitoring system
+// ============================================================================
 
-// Main service orchestrator
-export { PerformanceBudgetService, performanceBudgetService } from './PerformanceBudgetService';
+// Core classes
+export { PerformanceMonitor, performanceMonitor } from './PerformanceMonitor';
+export { MetricsCollector } from './MetricsCollector';
+export { BudgetEnforcer } from './BudgetEnforcer';
+export { BudgetRuleManager } from './BudgetRuleManager';
+export { Reporter } from './Reporter';
 
-// Core components
-export { PerformanceBudgetManager } from './PerformanceBudgetManager';
-export { ReactNativePerformanceEnforcer } from './ReactNativePerformanceEnforcer';
-export { PerformanceBudgetRepository } from './PerformanceBudgetRepository';
-export { PerformanceMetricsCollector } from './PerformanceMetricsCollector';
-
-// Types and interfaces
+// All types
 export * from './types';
 
-// Re-export commonly used React import for dashboard component
-import React from 'react';
-export { React };
+// ============================================================================
+// HOOKS & UTILITIES
+// ============================================================================
+
+import { performanceMonitor } from './PerformanceMonitor';
+import { PerformanceMetric } from './types';
+
+// Decorator for measuring function performance
+export function measurePerformance(
+  name?: string,
+  category: PerformanceMetric['category'] = 'custom'
+) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value;
+    const methodName = name || `${target.constructor.name}.${propertyKey}`;
+
+    descriptor.value = function (...args: any[]) {
+      return performanceMonitor.measureSync(
+        methodName,
+        () => originalMethod.apply(this, args),
+        category
+      );
+    };
+
+    return descriptor;
+  };
+}
+
+// React hook for performance monitoring
+export const usePerformanceMonitoring = () => {
+  return {
+    recordMetric: performanceMonitor.recordMetric.bind(performanceMonitor),
+    startTimer: performanceMonitor.startTimer.bind(performanceMonitor),
+    measureAsync: performanceMonitor.measureAsync.bind(performanceMonitor),
+    measureSync: performanceMonitor.measureSync.bind(performanceMonitor),
+    trackComponentRender: performanceMonitor.trackComponentRender.bind(performanceMonitor),
+    recordMemoryUsage: performanceMonitor.recordMemoryUsage.bind(performanceMonitor),
+    generateReport: performanceMonitor.generateReport.bind(performanceMonitor),
+    getBudgetStatus: performanceMonitor.getBudgetStatus.bind(performanceMonitor),
+    getAdvancedBudgetStatus: performanceMonitor.getAdvancedBudgetStatus.bind(performanceMonitor),
+    generateBudgetReport: performanceMonitor.generateBudgetReport.bind(performanceMonitor),
+    addBudgetRule: performanceMonitor.addBudgetRule.bind(performanceMonitor),
+    removeBudgetRule: performanceMonitor.removeBudgetRule.bind(performanceMonitor),
+    updateBudgetRule: performanceMonitor.updateBudgetRule.bind(performanceMonitor),
+    setBudgetRuleEnabled: performanceMonitor.setBudgetRuleEnabled.bind(performanceMonitor),
+    getAllBudgetRules: performanceMonitor.getAllBudgetRules.bind(performanceMonitor),
+    setEnforcementEnabled: performanceMonitor.setEnforcementEnabled.bind(performanceMonitor),
+    onMetric: performanceMonitor.onMetric.bind(performanceMonitor),
+    onBudgetViolation: performanceMonitor.onBudgetViolation.bind(performanceMonitor),
+  };
+};
+
+// Default export
+export default performanceMonitor;

@@ -1,156 +1,73 @@
-import notificationsBridge from '../utils/notificationsBridge';
-import type { NotificationResponse, Notification } from 'expo-notifications';
-// Safe Sentry (optional)
-let sentryFns: any = {};
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const sentry = require('../config/sentry');
-  sentryFns = { addBreadcrumb: sentry.addBreadcrumb || (() => {}) };
-} catch { sentryFns = { addBreadcrumb: () => {} }; }
+/**
+ * Notification Service
+ * 
+ * Handles push notifications, in-app notifications, and notification preferences.
+ * Integrates with Expo Notifications and Firebase for cross-platform support.
+ */
+
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
+import { useAuth } from '../contexts/AuthContext';
 
-export interface PushNotification {
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+export interface NotificationData {
   id: string;
-  userId: string;
   title: string;
-  message: string;
-  type: 'job' | 'message' | 'payment' | 'reminder' | 'system';
-  actionUrl?: string;
-  read: boolean;
+  body: string;
+  data?: any;
+  type: 'job_update' | 'bid_received' | 'meeting_scheduled' | 'payment_received' | 'message_received' | 'quote_sent' | 'system';
+  priority: 'low' | 'normal' | 'high';
+  userId: string;
   createdAt: string;
+  read: boolean;
 }
 
-export interface NotificationSettings {
+export interface NotificationPreferences {
   jobUpdates: boolean;
+  bidNotifications: boolean;
+  meetingReminders: boolean;
+  paymentAlerts: boolean;
   messages: boolean;
-  payments: boolean;
-  reminders: boolean;
-  marketing: boolean;
+  quotes: boolean;
+  systemAnnouncements: boolean;
+  quietHours: {
+    enabled: boolean;
+    start: string; // HH:MM format
+    end: string;   // HH:MM format
+  };
 }
 
 export class NotificationService {
-  private static pushToken: string | null = null;
+  private static expoPushToken: string | null = null;
 
   /**
-   * Initialize push notifications
+   * Initialize push notifications and request permissions
    */
-  static async initialize(userId?: string): Promise<string | null> {
+  static async initialize(): Promise<string | null> {
     try {
-      sentryFns.addBreadcrumb('notifications.initialize', 'notifications');
-      const devImport: any = (() => {
-        try { return require('expo-device'); } catch { return {}; }
-      })();
-      const flags = [devImport?.isDevice].filter((v) => typeof v === 'boolean') as boolean[];
-      const isDevice = flags.length ? flags.every(Boolean) : false;
-      if (!isDevice) {
+      if (!Device.isDevice) {
+        logger.warn('Push notifications only work on physical devices');
         return null;
       }
-      // Configure notification behavior (safe-guard for tests)
-      if (typeof (notificationsBridge as any).setNotificationHandler === 'function') {
-        notificationsBridge.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-          shouldShowBanner: true,
-          shouldShowList: true,
-        }),
-        });
-      }
 
-      // Do not pre-consume permission calls; let registration handle it
-
-      // Register for push notifications
-      const token = await this.registerForPushNotifications();
-      this.pushToken = token;
-
-      // Optionally persist token for the provided user
-      if (token && userId) {
-        try {
-          await this.savePushToken(userId, token);
-        } catch {
-          // ignore save errors during initialization
-        }
-      }
-
-      return token;
-    } catch (error) {
-      logger.error('Error initializing notifications:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Get unread notifications for a user
-   */
-  static async getUnreadNotifications(userId: string): Promise<PushNotification[]> {
-    // Align with tests that chain order() and limit()
-    const chain: any = (supabase as any)
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('read', false)
-      .order('created_at', { ascending: false });
-
-    if (typeof chain.limit === 'function') {
-      const { data, error } = await chain.limit(50);
-      if (error) throw error;
-      return (data as any) || [];
-    }
-
-    const { data, error } = await chain;
-    if (error) throw error;
-    return (data as any) || [];
-  }
-
-  /**
-   * Get unread notification count for a user
-   */
-  static async getNotificationCount(userId: string): Promise<number> {
-    // Follow test's chain that resolves via .single()
-    try {
-      const { count, error } = await (supabase as any)
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('read', false)
-        .single();
-
-      if (error) return 0;
-      return typeof count === 'number' ? count : 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  /**
-   * Register device for push notifications
-   */
-  private static async registerForPushNotifications(): Promise<string | null> {
-    const devImport: any = (() => {
-      try { return require('expo-device'); } catch { return {}; }
-    })();
-    const flags = [devImport?.isDevice].filter((v) => typeof v === 'boolean') as boolean[];
-    const isDevice = flags.length ? flags.every(Boolean) : false;
-    if (!isDevice) {
-      logger.warn('Push notifications only work on physical devices');
-      return null;
-    }
-
-    // Check existing permissions
-    const getPerms = (notificationsBridge as any).getPermissionsAsync;
-    if (typeof getPerms !== 'function') return null;
-    const { status: existingStatus } = await getPerms();
+      // Request permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    // Request permissions if not already granted
-    if (existingStatus !== 'granted' && existingStatus !== 'denied') {
-      const requestPerms = (notificationsBridge as any).requestPermissionsAsync;
-      if (typeof requestPerms !== 'function') return null;
-      const { status } = await requestPerms();
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
@@ -159,53 +76,61 @@ export class NotificationService {
       return null;
     }
 
-    // Get the push token (resolve projectId from Expo config)
-    const projectId =
-      (Constants as any)?.expoConfig?.extra?.eas?.projectId ||
-      (Constants as any)?.easConfig?.projectId ||
-      process.env.EXPO_PROJECT_ID; // fallback
+      // Get push token using project ID from config
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        logger.warn('EAS project ID not found in config, using fallback');
+      }
 
-    let tokenData: { data: string };
-    const getToken = (notificationsBridge as any).getExpoPushTokenAsync as any;
-    if (typeof getToken !== 'function') return null;
-    tokenData = projectId ? await getToken({ projectId }) : await getToken();
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: projectId || '671d1323-6979-465f-91db-e61471746ab3',
+      });
+
+      this.expoPushToken = token.data;
+      logger.info('Push notification token obtained', { token: token.data });
 
     // Configure notification channel for Android
     if (Platform.OS === 'android') {
-      const setChannel = (notificationsBridge as any).setNotificationChannelAsync;
-      const AndroidImportance = (notificationsBridge as any).AndroidImportance;
-      if (typeof setChannel === 'function') {
-        setChannel('default', {
+        await Notifications.setNotificationChannelAsync('default', {
         name: 'default',
-        importance: AndroidImportance?.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#2563eb',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#10B981',
         });
 
-        // Create specific channels
-        await Promise.all([
-          setChannel('messages', {
-            name: 'Messages',
-            importance: AndroidImportance?.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 250, 250, 250],
-          }),
-          setChannel('jobs', {
-            name: 'Job Updates',
-            importance: AndroidImportance?.DEFAULT,
-            sound: 'default',
-          }),
-          setChannel('payments', {
-            name: 'Payments',
-            importance: AndroidImportance?.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 250, 250, 250],
-          }),
-        ]);
-      }
-    }
+        // Job updates channel
+        await Notifications.setNotificationChannelAsync('job-updates', {
+          name: 'Job Updates',
+          description: 'Notifications about job status changes',
+          importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#0F172A',
+        });
 
-    return tokenData.data;
+        // Bid notifications channel
+        await Notifications.setNotificationChannelAsync('bid-notifications', {
+          name: 'Bid Notifications',
+          description: 'Notifications about new bids and bid updates',
+          importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#10B981',
+        });
+
+        // Meeting reminders channel
+        await Notifications.setNotificationChannelAsync('meeting-reminders', {
+          name: 'Meeting Reminders',
+          description: 'Reminders about upcoming meetings',
+          importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#F59E0B',
+        });
+      }
+
+      return token.data;
+    } catch (error) {
+      logger.error('Failed to initialize push notifications', error);
+      return null;
+    }
   }
 
   /**
@@ -213,15 +138,19 @@ export class NotificationService {
    */
   static async savePushToken(userId: string, token: string): Promise<void> {
     try {
-      sentryFns.addBreadcrumb('notifications.save_push_token', 'notifications');
       const { error } = await supabase
-        .from('users')
-        .update({ push_token: token })
-        .eq('id', userId);
+        .from('user_push_tokens')
+        .upsert({
+          user_id: userId,
+          push_token: token,
+          platform: Platform.OS,
+          updated_at: new Date().toISOString(),
+        });
 
       if (error) throw error;
+      logger.info('Push token saved successfully', { userId });
     } catch (error) {
-      logger.error('Error saving push token:', error);
+      logger.error('Failed to save push token', error);
       throw error;
     }
   }
@@ -229,261 +158,223 @@ export class NotificationService {
   /**
    * Send push notification to specific user
    */
-  static async sendNotificationToUser(
+  static async sendPushNotification(
     userId: string,
     title: string,
-    message: string,
-    type: PushNotification['type'] = 'system',
-    actionUrl?: string
-  ): Promise<boolean> {
+    body: string,
+    data?: any,
+    type: NotificationData['type'] = 'system'
+  ): Promise<void> {
     try {
-      sentryFns.addBreadcrumb('notifications.send_to_user', 'notifications');
       // Get user's push token
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('push_token, notification_preferences, notification_settings')
-        .eq('id', userId)
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('user_push_tokens')
+        .select('push_token')
+        .eq('user_id', userId)
         .single();
 
-      if (userError || !user?.push_token) {
-        if ((logger as any).warn) {
-          (logger as any).warn('No push token found for user:', { data: userId });
-        }
-        return false;
+      if (tokenError || !tokenData?.push_token) {
+        logger.warn('No push token found for user', { userId });
+        return;
       }
 
-      // Respect test's notification_preferences.push_enabled flag
-      const preferences = (user as any).notification_preferences || {};
-      if (preferences.push_enabled === false) {
-        return false;
-      }
-      const settings = (user as any).notification_settings || {};
-      if (!this.shouldSendNotification(type, settings)) {
-        return false;
+      // Check user preferences
+      const preferences = await this.getNotificationPreferences(userId);
+      if (!this.shouldSendNotification(preferences, type)) {
+        logger.info('Notification blocked by user preferences', { userId, type });
+        return;
       }
 
-      // Send via Expo push service
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Accept-Encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
+      // Send notification via Expo
+      const message = {
+        to: tokenData.push_token,
+        sound: 'default',
+        title,
+        body,
+        data: {
+          ...data,
+          type,
+          userId,
         },
-        body: JSON.stringify({
-          to: user.push_token,
-          title,
-          body: message,
-          data: {
-            type,
-            actionUrl,
-            userId,
+        channelId: this.getChannelId(type),
+      };
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      try {
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
           },
-          sound: 'default',
-          channelId: this.getChannelForType(type),
-          priority:
-            type === 'message' || type === 'payment' ? 'high' : 'normal',
-        }),
-      });
+          body: JSON.stringify(message),
+          signal: controller.signal,
+        });
 
-      const result = await response.json();
+        clearTimeout(timeoutId);
 
-      if (result.data?.[0]?.status === 'error') {
-        logger.error('Push notification error:', result.data[0].message);
-        sentryFns.addBreadcrumb('notifications.push_error', 'notifications');
-
-        // If token is invalid, remove it from user
-        if (result.data[0].details?.error === 'DeviceNotRegistered') {
-          await this.removePushToken(userId);
+        if (!response.ok) {
+          throw new Error(`Push notification failed: ${response.status}`);
         }
-        return undefined as unknown as boolean; // keep API compatible with tests expecting undefined
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Push notification request timed out after 10 seconds');
+        }
+        throw error;
       }
 
       // Save notification to database
-      await this.saveNotificationToDatabase(
-        userId,
+      await this.saveNotification({
         title,
-        message,
+        body,
+        data,
         type,
-        actionUrl
-      );
-      return true;
+        userId,
+        priority: 'normal',
+      });
+
+      logger.info('Push notification sent successfully', { userId, type });
     } catch (error) {
-      logger.error('Error sending push notification:', error);
-      sentryFns.addBreadcrumb('notifications.error', 'notifications');
-      return undefined as unknown as boolean; // tests expect undefined on error
+      logger.error('Failed to send push notification', error);
+      throw error;
     }
   }
 
   /**
    * Send notification to multiple users
    */
-  static async sendNotificationToUsers(
+  static async sendBulkNotification(
     userIds: string[],
     title: string,
-    message: string,
-    type: PushNotification['type'] = 'system',
-    actionUrl?: string
-  ): Promise<boolean[]> {
-    try {
-      sentryFns.addBreadcrumb('notifications.send_batch', 'notifications');
-      // Get push tokens for all users
-      const base: any = await supabase
-        .from('users')
-        .select('id, push_token, notification_preferences, notification_settings')
-        .in('id', userIds);
+    body: string,
+    data?: any,
+    type: NotificationData['type'] = 'system'
+  ): Promise<void> {
+    const promises = userIds.map(userId => 
+      this.sendPushNotification(userId, title, body, data, type)
+    );
 
-      let users: any[] | null = null;
-      let error: any = null;
-      if (typeof base?.not === 'function') {
-        const res = await base.not('push_token', 'is', null);
-        users = res?.data || null;
-        error = res?.error || null;
-      } else {
-        users = base?.data || null;
-        error = base?.error || null;
-      }
-
-      if (error || !users?.length) return [];
-
-      const filteredUsers = (users as any[])
-        .filter((u: any) => u?.push_token)
-        .filter((user: any) => {
-          if (user.notification_preferences?.push_enabled === false) return false;
-          return this.shouldSendNotification(type, user.notification_settings || {});
-        });
-
-      const notifications = filteredUsers.map((user: any) => ({
-          to: user.push_token,
-          title,
-          body: message,
-          data: {
-            type,
-            actionUrl,
-            userId: user.id,
-          },
-          sound: 'default',
-          channelId: this.getChannelForType(type),
-          priority:
-            type === 'message' || type === 'payment' ? 'high' : 'normal',
-        }));
-
-      if (notifications.length === 0) return [];
-
-      // Send batch notification
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Accept-Encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notifications),
-      });
-
-      const results = await response.json();
-
-      // Handle any errors
-      if (results.data) {
-        results.data.forEach((result: any, index: number) => {
-          if (
-            result.status === 'error' &&
-            result.details?.error === 'DeviceNotRegistered'
-          ) {
-            // Remove invalid token
-            const userId = users[index].id;
-            this.removePushToken(userId);
-          }
-        });
-      }
-
-      // Save notifications to database
-      await Promise.all(
-        userIds.map((userId) =>
-          this.saveNotificationToDatabase(
-            userId,
-            title,
-            message,
-            type,
-            actionUrl
-          )
-        )
-      );
-
-      // Return per-user success flags aligned to requested userIds
-      return userIds.map((id) => filteredUsers.some((u: any) => u.id === id));
-    } catch (error) {
-      logger.error('Error sending batch push notifications:', error);
-      sentryFns.addBreadcrumb('notifications.batch_error', 'notifications');
-      return [];
-    }
+    await Promise.allSettled(promises);
   }
 
   /**
-   * Schedule a local notification
+   * Schedule a notification for later
    */
-  static async scheduleLocalNotification(
+  static async scheduleNotification(
     title: string,
-    message: string,
-    trigger: Date | number,
+    body: string,
+    trigger: Notifications.NotificationTriggerInput,
     data?: any
   ): Promise<string> {
     try {
-      // Use import namespace to align with how tests mock the module
-      let schedule = (notificationsBridge as any).scheduleNotificationAsync;
-      if (typeof schedule !== 'function') {
-        try {
-          const N: any = require('expo-notifications');
-          schedule = N.scheduleNotificationAsync;
-        } catch {}
-      }
-      if (typeof schedule !== 'function') throw new Error('Notifications.scheduleNotificationAsync is not a function');
-      const identifier = await schedule({
+      const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
-          body: message,
+          body,
           data,
           sound: 'default',
         },
-        trigger: (typeof trigger === 'number'
-          ? { seconds: trigger }
-          : (trigger as any)) as any,
+        trigger,
       });
 
-      return identifier;
+      logger.info('Notification scheduled', { notificationId });
+      return notificationId;
     } catch (error) {
-      logger.error('Error scheduling local notification:', error);
+      logger.error('Failed to schedule notification', error);
       throw error;
     }
   }
 
   /**
-   * Cancel scheduled notification
+   * Cancel a scheduled notification
    */
-  static async cancelScheduledNotification(identifier: string): Promise<void> {
+  static async cancelNotification(notificationId: string): Promise<void> {
     try {
-      let cancel = (notificationsBridge as any).cancelScheduledNotificationAsync;
-      if (typeof cancel !== 'function') {
-        try {
-          const N: any = require('expo-notifications');
-          cancel = N.cancelScheduledNotificationAsync;
-        } catch {}
-      }
-      if (typeof cancel !== 'function') throw new Error('Notifications.cancelScheduledNotificationAsync is not a function');
-      await cancel(identifier);
+      await Notifications.cancelScheduledNotificationAsync(notificationId);
+      logger.info('Notification cancelled', { notificationId });
     } catch (error) {
-      logger.error('Error canceling notification:', error);
+      logger.error('Failed to cancel notification', error);
+      throw error;
     }
   }
 
   /**
-   * Get user's notifications from database
+   * Get user's notification preferences
+   */
+  static async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+    try {
+      const { data, error } = await supabase
+        .from('user_notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      // Return default preferences if none exist
+      if (!data) {
+        return {
+          jobUpdates: true,
+          bidNotifications: true,
+          meetingReminders: true,
+          paymentAlerts: true,
+          messages: true,
+          quotes: true,
+          systemAnnouncements: true,
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+          },
+        };
+      }
+
+      return data.preferences as NotificationPreferences;
+    } catch (error) {
+      logger.error('Failed to get notification preferences', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user's notification preferences
+   */
+  static async updateNotificationPreferences(
+    userId: string,
+    preferences: Partial<NotificationPreferences>
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('user_notification_preferences')
+        .upsert({
+          user_id: userId,
+          preferences,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      logger.info('Notification preferences updated', { userId });
+    } catch (error) {
+      logger.error('Failed to update notification preferences', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's notifications
    */
   static async getUserNotifications(
     userId: string,
     limit: number = 50,
     offset: number = 0
-  ): Promise<PushNotification[]> {
+  ): Promise<NotificationData[]> {
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -493,60 +384,52 @@ export class NotificationService {
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
-
-      return data.map((notification: any) => ({
-        id: notification.id,
-        userId: notification.user_id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        actionUrl: notification.action_url,
-        read: notification.read,
-        createdAt: notification.created_at,
-      }));
+      return data || [];
     } catch (error) {
-      logger.error('Error fetching notifications:', error);
-      return [];
+      logger.error('Failed to get user notifications', error);
+      throw error;
     }
   }
 
   /**
    * Mark notification as read
    */
-  static async markNotificationAsRead(notificationId: string): Promise<void> {
+  static async markAsRead(notificationId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ read: true, updated_at: new Date().toISOString() })
         .eq('id', notificationId);
 
       if (error) throw error;
     } catch (error) {
-      logger.error('Error marking notification as read:', error);
+      logger.error('Failed to mark notification as read', error);
+      throw error;
     }
   }
 
   /**
-   * Mark all notifications as read for user
+   * Mark all notifications as read
    */
-  static async markAllNotificationsAsRead(userId: string): Promise<void> {
+  static async markAllAsRead(userId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
+        .update({ read: true, updated_at: new Date().toISOString() })
         .eq('user_id', userId)
         .eq('read', false);
 
       if (error) throw error;
     } catch (error) {
-      logger.error('Error marking all notifications as read:', error);
+      logger.error('Failed to mark all notifications as read', error);
+      throw error;
     }
   }
 
   /**
    * Get unread notification count
    */
-  static async getUnreadNotificationCount(userId: string): Promise<number> {
+  static async getUnreadCount(userId: string): Promise<number> {
     try {
       const { count, error } = await supabase
         .from('notifications')
@@ -557,183 +440,131 @@ export class NotificationService {
       if (error) throw error;
       return count || 0;
     } catch (error) {
-      logger.error('Error getting unread count:', error);
+      logger.error('Failed to get unread count', error);
       return 0;
     }
   }
 
   /**
-   * Update notification settings for user
+   * Save notification to database
    */
-  static async updateNotificationSettings(
-    userId: string,
-    settings: Partial<NotificationSettings>
-  ): Promise<void> {
+  private static async saveNotification(notification: Omit<NotificationData, 'id' | 'createdAt'>): Promise<void> {
     try {
       const { error } = await supabase
-        .from('users')
-        .update({ notification_settings: settings })
-        .eq('id', userId);
+        .from('notifications')
+        .insert({
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          type: notification.type,
+          priority: notification.priority,
+          user_id: notification.userId,
+          read: notification.read,
+          created_at: new Date().toISOString(),
+        });
 
       if (error) throw error;
     } catch (error) {
-      logger.error('Error updating notification settings:', error);
+      logger.error('Failed to save notification', error);
+      throw error;
     }
   }
 
   /**
-   * Handle notification received while app is running
+   * Check if notification should be sent based on preferences
    */
-  static setupNotificationListener(
-    onNotificationReceived: (notification: Notification) => void
-  ): () => void {
-    let addListener = (notificationsBridge as any).addNotificationReceivedListener;
-    if (typeof addListener !== 'function') {
-      try {
-        const N: any = require('expo-notifications');
-        addListener = N.addNotificationReceivedListener;
-      } catch {}
-    }
-    const subscription = addListener(onNotificationReceived);
-    return () => subscription.remove();
-  }
+  private static shouldSendNotification(
+    preferences: NotificationPreferences,
+    type: NotificationData['type']
+  ): boolean {
+    // Check quiet hours
+    if (preferences.quietHours.enabled) {
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const startTime = this.parseTime(preferences.quietHours.start);
+      const endTime = this.parseTime(preferences.quietHours.end);
 
-  /**
-   * Handle notification tapped
-   */
-  static setupNotificationResponseListener(
-    onNotificationTapped: (response: NotificationResponse) => void
-  ): () => void {
-    let addRespListener = (notificationsBridge as any).addNotificationResponseReceivedListener;
-    if (typeof addRespListener !== 'function') {
-      try {
-        const N: any = require('expo-notifications');
-        addRespListener = N.addNotificationResponseReceivedListener;
-      } catch {}
+      if (startTime <= endTime) {
+        // Same day quiet hours
+        if (currentTime >= startTime && currentTime <= endTime) {
+          return false;
+        }
+      } else {
+        // Overnight quiet hours
+        if (currentTime >= startTime || currentTime <= endTime) {
+          return false;
+        }
+      }
     }
-    const subscription = addRespListener(onNotificationTapped);
-    return () => subscription.remove();
-  }
 
-  /**
-   * Set badge count on app icon
-   */
-  static async setBadgeCount(count: number): Promise<void> {
-    try {
-    let setBadge = (notificationsBridge as any).setBadgeCountAsync;
-    if (typeof setBadge !== 'function') {
-      try {
-        const N: any = require('expo-notifications');
-        setBadge = N.setBadgeCountAsync;
-      } catch {}
-    }
-    if (typeof setBadge !== 'function') throw new Error('Notifications.setBadgeCountAsync is not a function');
-    await setBadge(count);
-    } catch (error) {
-      logger.error('Error setting badge count:', error);
+    // Check type-specific preferences
+    switch (type) {
+      case 'job_update':
+        return preferences.jobUpdates;
+      case 'bid_received':
+        return preferences.bidNotifications;
+      case 'meeting_scheduled':
+        return preferences.meetingReminders;
+      case 'payment_received':
+        return preferences.paymentAlerts;
+      case 'message_received':
+        return preferences.messages;
+      case 'quote_sent':
+        return preferences.quotes;
+      case 'system':
+        return preferences.systemAnnouncements;
+      default:
+        return true;
     }
   }
 
   /**
-   * Private helper methods
+   * Get Android channel ID for notification type
    */
-  private static shouldSendNotification(type: string, settings: any): boolean {
-    const settingsMap = {
-      job: settings.jobUpdates !== false,
-      message: settings.messages !== false,
-      payment: settings.payments !== false,
-      reminder: settings.reminders !== false,
-      system: true, // Always send system notifications
-    };
-
-    return settingsMap[type as keyof typeof settingsMap] !== false;
-  }
-
-  private static getChannelForType(type: string): string {
-    const channelMap = {
-      message: 'messages',
-      job: 'jobs',
-      payment: 'payments',
-      reminder: 'default',
-      system: 'default',
-    };
-
-    return channelMap[type as keyof typeof channelMap] || 'default';
-  }
-
-  private static async removePushToken(userId: string): Promise<void> {
-    try {
-      await supabase
-        .from('users')
-        .update({ push_token: null })
-        .eq('id', userId);
-    } catch (error) {
-      logger.error('Error removing push token:', error);
-    }
-  }
-
-  private static async saveNotificationToDatabase(
-    userId: string,
-    title: string,
-    message: string,
-    type: string,
-    actionUrl?: string
-  ): Promise<void> {
-    try {
-      await supabase.from('notifications').insert([
-        {
-          user_id: userId,
-          title,
-          message,
-          type,
-          action_url: actionUrl,
-          read: false,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-    } catch (error) {
-      logger.error('Error saving notification to database:', error);
+  private static getChannelId(type: NotificationData['type']): string {
+    switch (type) {
+      case 'job_update':
+        return 'job-updates';
+      case 'bid_received':
+        return 'bid-notifications';
+      case 'meeting_scheduled':
+        return 'meeting-reminders';
+      default:
+        return 'default';
     }
   }
 
   /**
-   * Quick notification methods for common use cases
+   * Parse time string to minutes
    */
-  static async notifyJobUpdate(
-    contractorId: string,
-    jobTitle: string,
-    status: string
-  ): Promise<void> {
-    await this.sendNotificationToUser(
-      contractorId,
-      'Job Update',
-      `Job "${jobTitle}" status changed to ${status}`,
-      'job'
-    );
+  private static parseTime(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 
-  static async notifyNewMessage(
-    receiverId: string,
-    senderName: string,
-    jobTitle: string
-  ): Promise<void> {
-    await this.sendNotificationToUser(
-      receiverId,
-      'New Message',
-      `${senderName} sent you a message about "${jobTitle}"`,
-      'message'
-    );
+  /**
+   * Set up notification listeners
+   */
+  static setupNotificationListeners(): void {
+    // Handle notification received while app is foregrounded
+    Notifications.addNotificationReceivedListener(notification => {
+      logger.info('Notification received', { notification });
+    });
+
+    // Handle notification tap
+    Notifications.addNotificationResponseReceivedListener(response => {
+      logger.info('Notification tapped', { response });
+      // Handle navigation based on notification data
+      this.handleNotificationTap(response.notification.request.content.data);
+    });
   }
 
-  static async notifyPaymentReceived(
-    contractorId: string,
-    amount: number
-  ): Promise<void> {
-    await this.sendNotificationToUser(
-      contractorId,
-      'Payment Received',
-      `You received $${amount.toFixed(2)} payment`,
-      'payment'
-    );
+  /**
+   * Handle notification tap navigation
+   */
+  private static handleNotificationTap(data: any): void {
+    // This would integrate with navigation
+    // Implementation depends on your navigation structure
+    logger.info('Handling notification tap', { data });
   }
 }

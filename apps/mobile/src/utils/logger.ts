@@ -176,8 +176,8 @@ class Logger {
     const err: Error | undefined = isErr
       ? (errorOrContextOrMessage as Error)
       : undefined;
-    const ctx = isErr ? context : this.toContext(errorOrContextOrMessage as any);
-    const sanitizedContext = this.sanitizeContext(ctx);
+    const ctx = isErr ? context : this.toContext(errorOrContextOrMessage);
+    const sanitizedContext = ctx ? this.sanitizeContext(ctx) : undefined;
     const formattedMessage = this.formatMessage(
       'error',
       message,

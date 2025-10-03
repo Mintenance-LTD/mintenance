@@ -494,6 +494,7 @@ describe('Cross-Platform Component Tests', () => {
 - ✅ Service layer abstraction
 - ✅ Comprehensive error handling
 - ✅ Accessibility compliance
+- ✅ **Consistent API usage across platforms**
 
 ### **Architecture Principles**
 
@@ -540,6 +541,44 @@ describe('Cross-Platform Component Tests', () => {
 #### **Avoid God Classes**
 - **Never let one file or class hold everything (e.g., massive ViewController, ViewModel, or Service)**
 - **Split into UI, State, Handlers, Networking, etc.**
+
+#### **API Consistency and Usage**
+- **ALWAYS use environment variables for API endpoints**
+  - Never hardcode URLs in code
+  - Use `EXPO_PUBLIC_API_BASE_URL` for mobile
+  - Use `NEXT_PUBLIC_API_BASE_URL` for web
+- **Maintain consistent API patterns across mobile and web**
+  - Same endpoint structure (`/api/payments/create-intent`)
+  - Same request/response formats
+  - Same error handling patterns
+- **Platform-specific API configuration**
+  ```typescript
+  // ✅ CORRECT: Platform-aware API configuration
+  const API_BASE_URL = Platform.select({
+    web: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002',
+    default: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.mintenance.app'
+  });
+  ```
+- **Validate API responses with TypeScript interfaces**
+  - Define response types for all API calls
+  - Use type guards for runtime validation
+  - Handle errors consistently
+- **Use centralized API clients**
+  - Create dedicated service classes for each domain (Payment, Job, Auth)
+  - Avoid direct fetch/axios calls in components
+  - Implement retry logic and error handling in services
+
+#### **Database Schema Consistency**
+- **Column names must match between code and database**
+  - Use exact column names from database schema
+  - Verify schema before implementing features
+  - Run migrations before deploying code changes
+- **Database migration workflow**
+  1. Create migration file with descriptive name
+  2. Test migration on local database
+  3. Update TypeScript types to match schema
+  4. Update service layer to use new columns
+  5. Deploy migration before deploying code
 
 ### **Testing Strategy**
 - ✅ Unit tests for all services (80%+ coverage)

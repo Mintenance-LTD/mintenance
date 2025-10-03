@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, PageHeader, LoadingSpinner, ErrorView } from '@/components/ui';
 import { theme } from '@/lib/theme';
 import type { Job, User } from '@mintenance/types';
 
@@ -76,188 +76,128 @@ export default function JobsPage() {
   }, [allJobs, selectedFilter, searchQuery]);
 
   if (loadingUser) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: theme.colors.textSecondary }}>Loading your workspace...</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Loading your workspace..." />;
   }
 
   if (currentUserError) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>Unable to load account</h1>
-          <p style={{ color: theme.colors.textSecondary }}>Please refresh the page or try signing in again.</p>
-          <a href="/login" style={{ color: theme.colors.primary, textDecoration: 'none' }}>Go to Login</a>
-        </div>
-      </div>
+      <ErrorView
+        title="Unable to load account"
+        message="Please refresh the page or try signing in again."
+        onRetry={() => window.location.reload()}
+        retryLabel="Refresh Page"
+        variant="fullscreen"
+      />
     );
   }
 
-  if (!user) {  return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
-            Access Denied
-          </h1>
-          <p style={{ color: theme.colors.textSecondary }}>You must be logged in to view this page.</p>
-          <a href="/login" style={{ color: theme.colors.primary, textDecoration: 'none' }}>
-            Go to Login
-          </a>
-        </div>
-      </div>
+  if (!user) {
+    return (
+      <ErrorView
+        title="Access Denied"
+        message="You must be logged in to view this page."
+        onRetry={() => window.location.href = '/login'}
+        retryLabel="Go to Login"
+        variant="fullscreen"
+      />
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.colors.surfaceSecondary }}>
-      {/* Header */}
-      <div style={{ backgroundColor: theme.colors.primary, paddingTop: '60px', paddingBottom: '20px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+      <PageHeader
+        title={user.role === 'homeowner' ? 'Maintenance Hub' : 'Job Marketplace'}
+        subtitle={user.role === 'homeowner'
+          ? `${allJobs.length} total jobs`
+          : `${filteredJobs.length} available opportunities`}
+        variant="hero"
+        actions={user.role === 'homeowner' ? (
+          <Button
+            variant="secondary"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              color: theme.colors.textInverse
+            }}
+          >
+            + New Request
+          </Button>
+        ) : undefined}
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: user.role === 'homeowner' ? 'Jobs' : 'Marketplace' }
+        ]}
+      />
+
+      {/* Search and Filters for Contractors */}
+      {user.role === 'contractor' && (
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          marginBottom: '20px'
+          maxWidth: '1280px',
+          margin: '0 auto',
+          padding: `0 ${theme.spacing[6]}`,
+          marginBottom: theme.spacing[6],
         }}>
-          <div>
-            <h1 style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textInverse,
-              marginBottom: '4px',
-              margin: 0
-            }}>
-              {user.role === 'homeowner' ? 'Maintenance Hub' : 'Job Marketplace'}
-            </h1>
-            <p style={{
-              fontSize: theme.typography.fontSize.xl,
-              color: theme.colors.textInverseMuted,
-              fontWeight: theme.typography.fontWeight.medium,
-              margin: 0
-            }}>
-              {user.role === 'homeowner'
-                ? `${allJobs.length} total jobs`
-                : `${filteredJobs.length} available opportunities`}
-            </p>
+          <div style={{ marginBottom: theme.spacing[3] }}>
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search jobs..."
+            />
           </div>
-          {user.role === 'homeowner' && (
-            <Button
-              variant="secondary"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                color: theme.colors.textInverse
-              }}
-            >
-              + New Request
-            </Button>
-          )}
+
+          {/* Filter Chips */}
+          <div style={{
+            display: 'flex',
+            gap: theme.spacing[2],
+            overflowX: 'auto',
+            paddingBottom: theme.spacing[1],
+          }}>
+            {(['all', 'posted', 'in_progress', 'completed'] as FilterStatus[]).map((key) => (
+              <Button
+                key={key}
+                variant={selectedFilter === key ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedFilter(key)}
+                style={{
+                  whiteSpace: 'nowrap',
+                  borderRadius: theme.borderRadius.full,
+                  padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                  fontSize: theme.typography.fontSize.sm,
+                }}
+              >
+                {key === 'all' ? 'All' :
+                 key === 'in_progress' ? 'In Progress' :
+                 key.charAt(0).toUpperCase() + key.slice(1)}
+              </Button>
+            ))}
+          </div>
         </div>
-
-        {/* Search and Filters for Contractors */}
-        {user.role === 'contractor' && (
-          <div style={{ paddingLeft: '20px', paddingRight: '20px', paddingBottom: '16px' }}>
-            <div style={{ marginBottom: '12px' }}>
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Search jobs..."
-              />
-            </div>
-
-            {/* Filter Chips */}
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-              {(['all', 'posted', 'in_progress', 'completed'] as FilterStatus[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedFilter(key)}
-                  style={{
-                    backgroundColor: selectedFilter === key
-                      ? 'rgba(255, 255, 255, 0.25)'
-                      : 'rgba(255, 255, 255, 0.15)',
-                    paddingLeft: '12px',
-                    paddingRight: '12px',
-                    paddingTop: '8px',
-                    paddingBottom: '8px',
-                    borderRadius: '20px',
-                    border: `1px solid ${
-                      selectedFilter === key
-                        ? 'rgba(255, 255, 255, 0.5)'
-                        : 'rgba(255, 255, 255, 0.3)'
-                    }`,
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textInverse,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease-in-out'
-                  }}
-                >
-                  {key === 'all' ? 'All' :
-                   key === 'in_progress' ? 'In Progress' :
-                   key.charAt(0).toUpperCase() + key.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Job List */}
-      <div style={{ padding: '16px' }}>
+      <div style={{
+        maxWidth: '1280px',
+        margin: '0 auto',
+        padding: `0 ${theme.spacing[6]}`,
+      }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '80px 40px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              border: `3px solid ${theme.colors.border}`,
-              borderTop: `3px solid ${theme.colors.primary}`,
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 16px'
-            }} />
-            <p style={{ color: theme.colors.textSecondary }}>Loading jobs...</p>
-          </div>
+          <LoadingSpinner message="Loading jobs..." />
         ) : filteredJobs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 40px' }}>
-            <h2 style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: '12px'
-            }}>
-              No Jobs
-            </h2>
-            <p style={{
-              fontSize: theme.typography.fontSize.xl,
-              color: theme.colors.textSecondary,
-              lineHeight: theme.typography.lineHeight.relaxed,
-              maxWidth: '280px',
-              margin: '0 auto'
-            }}>
-              {user.role === 'homeowner'
-                ? 'Post your first maintenance job'
-                : 'Check back later for new opportunities'}
-            </p>
-          </div>
+          <ErrorView
+            title="No Jobs"
+            message={user.role === 'homeowner'
+              ? 'Post your first maintenance job'
+              : 'Check back later for new opportunities'}
+            variant="inline"
+          />
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div style={{ display: 'grid', gap: theme.spacing[3] }}>
             {filteredJobs.map((job) => (
               <JobCard key={job.id} job={job} user={user} router={router} />
             ))}
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -7,38 +7,11 @@ import React, {
 } from 'react';
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
-import { BiometricService } from '../services/BiometricService';
 import { User } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
-
-// Safe Sentry imports
-let sentryFunctions: any = {};
-try {
-  const sentry = require('../config/sentry');
-  sentryFunctions = {
-    setUserContext: sentry.setUserContext || (() => {}),
-    trackUserAction: sentry.trackUserAction || (() => {}),
-    addBreadcrumb: sentry.addBreadcrumb || (() => {}),
-    measureAsyncPerformance:
-      sentry.measureAsyncPerformance || ((fn: any) => fn()),
-  };
-} catch (error) {
-  console.log('Sentry not available, using no-op functions');
-  sentryFunctions = {
-    setUserContext: () => {},
-    trackUserAction: () => {},
-    addBreadcrumb: () => {},
-    measureAsyncPerformance: (fn: any) => fn(),
-  };
-}
-
-const {
-  setUserContext,
-  trackUserAction,
-  addBreadcrumb,
-  measureAsyncPerformance,
-} = sentryFunctions;
+import { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } from '../utils/sentryUtils';
+import { useBiometricAuth } from '../hooks/useBiometricAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -82,23 +55,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  
+  const biometricAuth = useBiometricAuth();
 
   useEffect(() => {
-    // Check for existing session
-    checkUser();
+    let mounted = true;
+    let unsubscribe: (() => void) | undefined;
 
-    // Check biometric availability
-    checkBiometricAvailability();
+    const initialize = async () => {
+      // Check for existing session only if mounted
+      if (mounted) {
+        await checkUser();
+        await biometricAuth.checkBiometricAvailability();
+      }
 
-    // Listen for auth changes
-    const setupAuthListener = async () => {
-      const session = await AuthService.getCurrentSession();
-      // In a real app, you'd set up auth state change listener here
+      // Set up auth state listener
+      const { data } = await AuthService.getCurrentSession();
+      if (data && mounted) {
+        // Subscribe to auth state changes
+        // In production, set up real-time listener here
+        // Example: const { data: { subscription } } = supabase.auth.onAuthStateChange(...)
+        // unsubscribe = () => subscription?.unsubscribe();
+      }
     };
 
-    setupAuthListener();
-  }, []);
+    initialize().catch(error => {
+      if (mounted) {
+        logger.error('Failed to initialize auth:', error);
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
+  }, []); // Empty deps - only run once on mount
 
   const initializePushNotifications = async (userId: string) => {
     try {
@@ -111,15 +103,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const checkBiometricAvailability = async () => {
-    try {
-      const available = await BiometricService.isAvailable();
-      setBiometricAvailable(available);
-    } catch (error) {
-      logger.error('Error checking biometric availability:', error);
-      setBiometricAvailable(false);
-    }
-  };
 
   const checkUser = async () => {
     try {
@@ -141,10 +124,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       handleError(error, 'Auth check');
     } finally {
-      // Ensure loading always clears for tests even if microtasks are queued
+      // FIXED: Use single state update to prevent race conditions
+      // The triple state update was causing infinite re-renders and stuck loading states
       setLoading(false);
-      setTimeout(() => setLoading(false), 0);
-      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -184,28 +166,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initializePushNotifications(user.id);
 
         if (
-          biometricAvailable &&
+          biometricAuth.biometricAvailable &&
           authSession?.access_token &&
           authSession?.refresh_token &&
-          !(await BiometricService.isBiometricEnabled())
+          !(await biometricAuth.isBiometricEnabled())
         ) {
-          setTimeout(() => {
-            void BiometricService.promptEnableBiometric(
-              user.email,
-              async () => {
-                const latestSession = (await AuthService.getCurrentSession()) ?? authSession;
-
-                if (!latestSession?.access_token || !latestSession?.refresh_token) {
-                  throw new Error('Session tokens are required to enable biometric authentication');
-                }
-
-                await BiometricService.enableBiometric(user.email, {
-                  accessToken: latestSession.access_token,
-                  refreshToken: latestSession.refresh_token,
-                });
-              }
-            );
-          }, 1000);
+          biometricAuth.promptEnableBiometric(user, authSession);
         }
       }
     } catch (error) {
@@ -216,8 +182,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       setLoading(false);
-      setTimeout(() => setLoading(false), 0);
-      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -264,26 +228,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         addBreadcrumb(`New user registered: ${user.email}`, 'auth');
 
         if (
-          biometricAvailable &&
+          biometricAuth.biometricAvailable &&
           authSession?.access_token &&
           authSession?.refresh_token
         ) {
           setTimeout(() => {
-            void BiometricService.promptEnableBiometric(
-              user.email,
-              async () => {
-                const latestSession = (await AuthService.getCurrentSession()) ?? authSession;
-
-                if (!latestSession?.access_token || !latestSession?.refresh_token) {
-                  throw new Error('Session tokens are required to enable biometric authentication');
-                }
-
-                await BiometricService.enableBiometric(user.email, {
-                  accessToken: latestSession.access_token,
-                  refreshToken: latestSession.refresh_token,
-                });
-              }
-            );
+            biometricAuth.promptEnableBiometric(user, authSession);
           }, 2000); // Wait a bit longer for new users
         }
       }
@@ -296,8 +246,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     } finally {
       setLoading(false);
-      setTimeout(() => setLoading(false), 0);
-      Promise.resolve().then(() => setLoading(false));
     }
   };
 
@@ -346,46 +294,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signInWithBiometrics = async () => {
     setLoading(true);
     try {
-      const credentials = await BiometricService.authenticate();
-      if (!credentials) {
-        return;
+      const result = await biometricAuth.signInWithBiometrics();
+      if (result) {
+        setUser(result.user);
+        setUserContext(result.user);
+        setSession(result.session);
+        initializePushNotifications(result.user.id);
       }
-
-      const { user: restoredUser, session: restoredSession } =
-        await AuthService.restoreSessionFromBiometricTokens({
-          accessToken: credentials.accessToken,
-          refreshToken: credentials.refreshToken,
-        });
-
-      if (!restoredUser || restoredUser.email !== credentials.email) {
-        throw new Error('Biometric credentials do not match current user');
-      }
-
-      setUser(restoredUser);
-      setUserContext(restoredUser);
-      setSession(restoredSession);
-      trackUserAction('auth.biometric_sign_in_success', {
-        userId: restoredUser.id,
-      });
-      addBreadcrumb('User signed in with biometrics', 'auth');
-      initializePushNotifications(restoredUser.id);
     } catch (error) {
-      trackUserAction('auth.biometric_sign_in_failed', {
-        error: (error as Error).message,
-      });
       throw error;
     } finally {
       setLoading(false);
-      setTimeout(() => setLoading(false), 0);
     }
   };
 
   const isBiometricAvailable = async (): Promise<boolean> => {
-    return BiometricService.isAvailable();
+    return biometricAuth.isBiometricAvailable();
   };
 
   const isBiometricEnabled = async (): Promise<boolean> => {
-    return BiometricService.isBiometricEnabled();
+    return biometricAuth.isBiometricEnabled();
   };
 
   const enableBiometric = async (): Promise<void> => {
@@ -401,18 +329,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(activeSession);
     }
 
-    if (!activeSession?.access_token || !activeSession?.refresh_token) {
-      throw new Error('Unable to enable biometric authentication without an active session');
-    }
-
-    await BiometricService.enableBiometric(user.email, {
-      accessToken: activeSession.access_token,
-      refreshToken: activeSession.refresh_token,
-    });
+    await biometricAuth.enableBiometric(user, activeSession);
   };
 
   const disableBiometric = async (): Promise<void> => {
-    await BiometricService.disableBiometric();
+    await biometricAuth.disableBiometric();
   };
 
   const value = {

@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Logo from '../components/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,20 +20,14 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Login failed');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      // Redirect to the intended page or dashboard
-      router.push(redirectTo);
+      router.push('/dashboard');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -44,78 +37,86 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex">
+      <div className="flex w-1/2 bg-[#0F172A] text-white p-12 flex-col justify-between">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-              create a new account
-            </a>
-          </p>
+          <Link href="/" className="flex items-center space-x-2 mb-12">
+            <Logo className="w-10 h-10" />
+            <h1 className="text-3xl font-bold">Mintenance</h1>
+          </Link>
+          <h2 className="text-4xl font-bold mb-6">Welcome Back!</h2>
+          <p className="text-xl text-gray-300">Sign in to manage your home projects and connect with trusted tradespeople.</p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+        <div className="text-sm text-gray-400">
+          <p>© 2025 MINTENANCE LTD</p>
+          <p>Company No. 16542104</p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden mb-8">
+            <Link href="/" className="flex items-center space-x-2 mb-4">
+              <Logo className="w-10 h-10" />
+              <h1 className="text-2xl font-bold text-[#0F172A]">Mintenance</h1>
+            </Link>
+          </div>
+
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign in to your account</h2>
+          <p className="text-gray-600 mb-8">
+            Or <Link href="/register" className="font-medium text-[#0F172A] hover:text-[#1E293B]">create a new account</Link>
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
               <input
                 id="email"
-                name="email"
                 type="email"
-                autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-transparent"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
               <input
                 id="password"
-                name="password"
                 type="password"
-                autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-transparent"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+            )}
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#0F172A] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
 
-          <div className="text-center">
-            <a href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Forgot your password?
-            </a>
+            <div className="text-center">
+              <Link href="/forgot-password" className="text-sm font-medium text-[#0F172A] hover:text-[#1E293B]">Forgot your password?</Link>
+            </div>
+          </form>
+
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600">
+              Don't have an account? <Link href="/register" className="font-medium text-[#0F172A] hover:text-[#1E293B]">Sign up for free</Link>
+            </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

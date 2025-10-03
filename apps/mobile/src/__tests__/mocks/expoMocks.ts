@@ -256,7 +256,7 @@ export class ExpoMockFactory {
   // Expo Vector Icons Mock
   static createVectorIconsMock() {
     const MockIcon = jest.fn(({ name, size, color, ...props }) => null);
-    MockIcon.displayName = 'MockIcon';
+    (MockIcon as any).displayName = 'MockIcon';
 
     return {
       AntDesign: MockIcon,

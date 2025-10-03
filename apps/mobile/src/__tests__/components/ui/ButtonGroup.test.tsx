@@ -235,15 +235,15 @@ describe('ButtonGroup', () => {
     expect(firstButton.props.accessibilityLabel).toBe('Option 1');
   });
 
-  it('handles size variants correctly', () => {
-    const sizes = ['small', 'medium', 'large'] as const;
+  it('handles different orientations', () => {
+    const orientations = ['horizontal', 'vertical'] as const;
 
-    sizes.forEach(size => {
+    orientations.forEach(orientation => {
       const { getByTestId } = render(
         <ButtonGroup
           buttons={defaultButtons}
           onSelectionChange={jest.fn()}
-          size={size}
+          orientation={orientation}
         />
       );
 
@@ -252,15 +252,15 @@ describe('ButtonGroup', () => {
     });
   });
 
-  it('handles color variants correctly', () => {
-    const variants = ['primary', 'secondary', 'outline', 'ghost'] as const;
+  it('handles different layouts correctly', () => {
+    const layouts = ['horizontal', 'vertical'] as const;
 
-    variants.forEach(variant => {
+    layouts.forEach(layout => {
       const { getByTestId } = render(
         <ButtonGroup
           buttons={defaultButtons}
           onSelectionChange={jest.fn()}
-          variant={variant}
+          layout={layout}
         />
       );
 

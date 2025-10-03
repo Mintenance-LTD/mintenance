@@ -1,0 +1,30 @@
+# Ignore files not needed for web build
+../../apps/mobile
+../../e2e
+../../Screenshots
+../../archive
+../../beta-testing-data
+../../coverage
+../../dist
+../../tools
+../../supabase
+../../migrations
+../../credentials
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.spec.ts
+**/*.spec.tsx
+**/*.spec.js
+
+# Documentation
+../../*.md
+!../../README.md
+
+# Config files not needed
+../../.gitleaks.toml
+../../.github
+../../jest.config.js
+../../playwright.config.js

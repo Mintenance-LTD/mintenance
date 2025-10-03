@@ -418,8 +418,13 @@ export class ContractorService {
       // Simple signature used by basic tests: searchContractors('plumbing')
       if (typeof params === 'string') {
         // Sanitize search input to prevent SQL injection
-        const { sanitizeText } = require('../utils/sanitize');
-        const sanitizedParams = sanitizeText(params).trim();
+        const { sanitizeForSQL, isValidSearchTerm } = require('../utils/sqlSanitization');
+
+        if (!isValidSearchTerm(params)) {
+          return [];
+        }
+
+        const sanitizedParams = sanitizeForSQL(params);
         if (!sanitizedParams) {
           return [];
         }
@@ -457,11 +462,14 @@ export class ContractorService {
 
       if (adv.query) {
         // Sanitize search input to prevent SQL injection
-        const { sanitizeText } = require('../utils/sanitize');
-        const sanitizedQuery = sanitizeText(adv.query).trim();
-        if (sanitizedQuery) {
-          // Simple name search to satisfy tests
-          query = (query as any).ilike('first_name', `%${sanitizedQuery}%`);
+        const { sanitizeForSQL, isValidSearchTerm } = require('../utils/sqlSanitization');
+
+        if (isValidSearchTerm(adv.query)) {
+          const sanitizedQuery = sanitizeForSQL(adv.query);
+          if (sanitizedQuery) {
+            // Simple name search to satisfy tests
+            query = (query as any).ilike('first_name', `%${sanitizedQuery}%`);
+          }
         }
       }
 

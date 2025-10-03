@@ -1,23 +1,26 @@
 import { Job } from '../types';
 import { AIAnalysis } from './AIAnalysisService';
 import { logger } from '../utils/logger';
+import { aiConfig, isAIConfigured, getConfiguredAIService } from '../config/ai.config';
 
 /**
  * Production-ready AI Analysis Service
  * Integrates with real AI services (OpenAI, AWS, Google Cloud)
- * Remove the original AIAnalysisService and use this one for production
+ *
+ * ✅ ACTIVE: OpenAI GPT-4 Vision integration configured
+ * ⚠️ Falls back to enhanced rule-based analysis if API key not available
  */
 export class RealAIAnalysisService {
   private static get OPENAI_API_KEY() {
-    return process.env.OPENAI_API_KEY;
+    return aiConfig.openai.apiKey;
   }
-  
+
   private static get AWS_ACCESS_KEY() {
-    return process.env.AWS_ACCESS_KEY_ID;
+    return aiConfig.aws.accessKeyId;
   }
-  
+
   private static get GOOGLE_CLOUD_KEY() {
-    return process.env.GOOGLE_CLOUD_API_KEY;
+    return aiConfig.googleCloud.apiKey;
   }
 
   /**
@@ -25,25 +28,38 @@ export class RealAIAnalysisService {
    */
   static async analyzeJobPhotos(job: Job): Promise<AIAnalysis | null> {
     try {
+      logger.info('RealAIAnalysisService', 'Starting job analysis', {
+        jobId: job.id,
+        category: job.category,
+        hasPhotos: !!(job.photos && job.photos.length > 0),
+        photoCount: job.photos?.length || 0,
+        configuredService: getConfiguredAIService(),
+        aiConfigured: isAIConfigured(),
+      });
+
       // Priority 1: Try OpenAI GPT-4 Vision if available
       if (this.OPENAI_API_KEY && job.photos && job.photos.length > 0) {
+        logger.info('RealAIAnalysisService', 'Using OpenAI GPT-4 Vision analysis');
         return await this.analyzeWithOpenAI(job);
       }
 
       // Priority 2: Try AWS Rekognition if available
       if (this.AWS_ACCESS_KEY && job.photos && job.photos.length > 0) {
+        logger.info('RealAIAnalysisService', 'Using AWS Rekognition analysis');
         return await this.analyzeWithAWS(job);
       }
 
       // Priority 3: Try Google Cloud Vision if available
       if (this.GOOGLE_CLOUD_KEY && job.photos && job.photos.length > 0) {
+        logger.info('RealAIAnalysisService', 'Using Google Cloud Vision analysis');
         return await this.analyzeWithGoogleVision(job);
       }
 
       // Fallback: Enhanced rule-based analysis
+      logger.info('RealAIAnalysisService', 'No AI service configured, using intelligent fallback');
       return this.generateIntelligentFallback(job);
     } catch (error) {
-      logger.error('AI analysis failed, using fallback:', error);
+      logger.error('RealAIAnalysisService', 'AI analysis failed, using fallback', error);
       return this.generateIntelligentFallback(job);
     }
   }
@@ -106,11 +122,11 @@ export class RealAIAnalysisService {
           body: JSON.stringify({
             model:
               job.photos && job.photos.length > 0
-                ? 'gpt-4-vision-preview'
-                : 'gpt-4-turbo-preview',
+                ? aiConfig.openai.models.vision
+                : aiConfig.openai.models.chat,
             messages,
-            max_tokens: 800,
-            temperature: 0.1, // Low temperature for consistent, factual responses
+            max_tokens: aiConfig.openai.maxTokens.vision,
+            temperature: aiConfig.openai.temperature, // Low temperature for consistent, factual responses
           }),
         }
       );

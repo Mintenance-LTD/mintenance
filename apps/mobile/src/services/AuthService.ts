@@ -177,7 +177,7 @@ export class AuthService {
         .single();
 
       if (error) {
-        console.warn('Profile fetch error:', error);
+        logger.warn('Profile fetch error:', error);
         // Return fallback user data from auth metadata
         return {
           id: session.user.id,
@@ -206,7 +206,7 @@ export class AuthService {
 
       return userProfile;
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      logger.error('Error fetching current user:', error);
       return null;
     }
   }

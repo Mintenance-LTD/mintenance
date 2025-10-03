@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
@@ -12,12 +12,13 @@ import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
 import type { Message, User } from '@mintenance/types';
 
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     jobId: string;
-  };
+  }>;
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
+  const { jobId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -28,7 +29,6 @@ export default function ChatPage({ params }: ChatPageProps) {
   const [sending, setSending] = useState(false);
 
   // Get params from URL
-  const jobId = params.jobId;
   const otherUserId = searchParams.get('userId');
   const otherUserName = searchParams.get('userName');
   const jobTitle = searchParams.get('jobTitle');

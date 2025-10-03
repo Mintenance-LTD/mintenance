@@ -1,12 +1,13 @@
+import { use } from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 
 interface Params {
-  params: { jobId: string };
+  params: Promise<{ jobId: string }>;
 }
 
 export default function TimelinePage({ params }: Params) {
-  const jobId = params.jobId;
+  const { jobId } = use(params);
 
   return (
     <main

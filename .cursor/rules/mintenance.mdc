@@ -58,3 +58,5 @@ Project Rules
 
 Always use context7 Figma playwright when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 Figma playwright MCP tools to resolve library id and get library docs without me having to explicitly ask
 
+Always read the app files for context before making any changes
+

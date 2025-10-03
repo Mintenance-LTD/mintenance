@@ -14,9 +14,9 @@
 
 import { logger } from './logger';
 import { performanceMonitor } from './performanceMonitor';
-import { WebOptimizations } from './webOptimizations';
+import { WebOptimizations } from './webOptimizations/';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
-import { enhancedErrorAnalytics } from './enhancedErrorTracking';
+import { enhancedErrorAnalytics } from './errorTracking';
 import { securityAuditService } from './securityAuditAndPenetrationTesting';
 import { apiProtectionService } from './ApiProtection';
 import { Platform } from 'react-native';
@@ -54,6 +54,7 @@ export interface DeploymentReport {
   webCompatibility?: any;
   deploymentApproved: boolean;
   approvalReasons: string[];
+  blockers?: string[];
 }
 
 export class ProductionReadinessOrchestrator {
@@ -78,9 +79,9 @@ export class ProductionReadinessOrchestrator {
       if (Platform.OS === 'web') {
         await WebOptimizations.getInstance().initializeEnhanced(
           {
-            name: 'Mintenance',
+            appName: 'Mintenance',
             shortName: 'Mintenance',
-            description: 'Contractor Discovery Marketplace',
+            appDescription: 'Contractor Discovery Marketplace',
             themeColor: '#007AFF',
             backgroundColor: '#FFFFFF',
             display: 'standalone',
@@ -88,27 +89,28 @@ export class ProductionReadinessOrchestrator {
             scope: '/',
             startUrl: '/',
             icons: [],
+            iconSizes: [192, 512],
           },
           {
-            quality: 85,
-            format: 'webp',
-            sizes: [200, 400, 800],
-            lazy: true,
-            placeholder: true,
+            enableWebP: true,
+            enableLazyLoading: true,
+            enableProgressiveJPEG: true,
+            compressionQuality: 85,
+            enableCriticalResourceHints: true,
           },
           {
-            title: 'Mintenance - Contractor Discovery',
-            description: 'Connect with trusted contractors for your home improvement projects',
-            keywords: ['contractors', 'home improvement', 'marketplace'],
-            author: 'Mintenance Team',
-            robots: 'index,follow',
+            siteName: 'Mintenance',
+            defaultTitle: 'Mintenance - Contractor Discovery',
+            defaultDescription: 'Connect with trusted contractors for your home improvement projects',
+            defaultKeywords: ['contractors', 'home improvement', 'marketplace'],
+            enableStructuredData: true,
           },
           {
-            enabled: true,
-            measurementId: 'G-XXXXXXXXXX',
-            trackPageViews: true,
-            trackEvents: true,
-            trackErrors: true,
+            googleAnalyticsId: 'G-XXXXXXXXXX',
+            enableUserTiming: true,
+            enableScrollDepthTracking: true,
+            enableCustomEvents: true,
+            enableConversionTracking: true,
           }
         );
       }
@@ -192,8 +194,9 @@ export class ProductionReadinessOrchestrator {
       }
 
       // Check web optimizations
-      const isOptimized = WebOptimizations.getInstance().isInitialized();
-      const webMetrics = WebOptimizations.getInstance().getCoreWebVitals();
+      const webOptimizations = WebOptimizations.getInstance();
+      const isOptimized = webOptimizations.initialized;
+      const webMetrics = webOptimizations.getCoreWebVitals();
 
       let score = 100;
       let status: 'healthy' | 'warning' | 'error' = 'healthy';
@@ -289,7 +292,7 @@ export class ProductionReadinessOrchestrator {
         },
       };
     } catch (error) {
-      logger.error('ProductionReadiness', 'Monitoring readiness check failed', error);
+      logger.error('ProductionReadiness', 'Monitoring readiness check failed', error as Error);
       return {
         status: 'error',
         score: 0,
@@ -349,7 +352,7 @@ export class ProductionReadinessOrchestrator {
         },
       };
     } catch (error) {
-      logger.error('ProductionReadiness', 'Performance readiness check failed', error);
+      logger.error('ProductionReadiness', 'Performance readiness check failed', error as Error);
       return {
         status: 'error',
         score: 0,
@@ -384,7 +387,7 @@ export class ProductionReadinessOrchestrator {
       }
 
       // Check for critical error patterns
-      const criticalPatterns = patterns.filter(p => p.severity === 'critical');
+      const criticalPatterns = patterns.filter((p: any) => p.severity === 'critical');
       if (criticalPatterns.length > 0) {
         score -= 25;
         status = 'error';
@@ -410,7 +413,7 @@ export class ProductionReadinessOrchestrator {
         },
       };
     } catch (error) {
-      logger.error('ProductionReadiness', 'Error tracking readiness check failed', error);
+      logger.error('ProductionReadiness', 'Error tracking readiness check failed', error as Error);
       return {
         status: 'error',
         score: 0,
@@ -474,7 +477,7 @@ export class ProductionReadinessOrchestrator {
         },
       };
     } catch (error) {
-      logger.error('ProductionReadiness', 'Security readiness check failed', error);
+      logger.error('ProductionReadiness', 'Security readiness check failed', error as Error);
       return {
         status: 'error',
         score: 0,
@@ -559,9 +562,10 @@ export class ProductionReadinessOrchestrator {
       performanceBaseline = performanceMonitor.generateReport();
 
       if (Platform.OS === 'web') {
+        const webOptimizations = WebOptimizations.getInstance();
         webCompatibility = {
-          coreWebVitals: WebOptimizations.getInstance().getCoreWebVitals(),
-          optimizationStatus: WebOptimizations.getInstance().isInitialized(),
+          coreWebVitals: webOptimizations.getCoreWebVitals(),
+          optimizationStatus: webOptimizations.initialized,
         };
       }
     }
@@ -614,7 +618,7 @@ export class ProductionReadinessOrchestrator {
       try {
         await this.checkProductionReadiness();
       } catch (error) {
-        logger.error('ProductionReadiness', 'Auto monitoring check failed', error);
+        logger.error('ProductionReadiness', 'Auto monitoring check failed', error as Error);
       }
     }, 5 * 60 * 1000);
 

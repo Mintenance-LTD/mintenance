@@ -1,6 +1,10 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import ConnectButton from '../../components/ConnectButton';
+import { MutualConnectionsService } from '../../services/MutualConnectionsService';
+
+// Mock MutualConnectionsService
+jest.mock('../../services/MutualConnectionsService');
 
 // Mock react-native modules
 jest.mock('react-native-haptics', () => ({
@@ -11,174 +15,138 @@ jest.mock('react-native-haptics', () => ({
 // Mock haptics utility
 jest.mock('../../utils/haptics', () => ({
   useHaptics: () => ({
+    light: jest.fn(),
     buttonPress: jest.fn(),
     success: jest.fn(),
     error: jest.fn(),
   }),
 }));
 
-// Mock i18n
-jest.mock('../../hooks/useI18n', () => ({
-  useI18n: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
-    connections: {
-      connect: () => 'Connect',
-      connecting: () => 'Connecting...',
-      connected: () => 'Connected',
-      disconnect: () => 'Disconnect',
-      retry: () => 'Retry',
-    },
-  }),
+// Mock logger
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  },
 }));
 
 describe('ConnectButton', () => {
   const defaultProps = {
-    userId: 'user_123',
-    contractorId: 'contractor_456',
+    currentUserId: 'user_123',
+    targetUserId: 'contractor_456',
+    targetUserName: 'John Contractor',
+    targetUserRole: 'contractor' as const,
     onConnectionChange: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (MutualConnectionsService.getConnectionStatus as jest.Mock).mockResolvedValue(null);
   });
 
-  it('renders connect button by default', () => {
-    const { getByText, getByTestId } = render(<ConnectButton {...defaultProps} />);
-
-    expect(getByText('Connect')).toBeTruthy();
-    expect(getByTestId('connect-button')).toBeTruthy();
-  });
-
-  it('shows connecting state when pressed', async () => {
-    const { getByText, getByTestId } = render(<ConnectButton {...defaultProps} />);
-
-    const button = getByTestId('connect-button');
-    fireEvent.press(button);
+  it('renders connect button by default', async () => {
+    const { getByText } = render(<ConnectButton {...defaultProps} />);
 
     await waitFor(() => {
-      expect(getByText('Connecting...')).toBeTruthy();
+      expect(getByText('Connect')).toBeTruthy();
     });
   });
 
-  it('shows connected state after successful connection', async () => {
-    const onConnectionChange = jest.fn().mockResolvedValue(true);
-    const { getByText, getByTestId } = render(
-      <ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />
-    );
+  it('shows connected state when already connected', async () => {
+    (MutualConnectionsService.getConnectionStatus as jest.Mock).mockResolvedValue('accepted');
 
-    const button = getByTestId('connect-button');
-    fireEvent.press(button);
+    const { getByText } = render(<ConnectButton {...defaultProps} />);
 
     await waitFor(() => {
       expect(getByText('Connected')).toBeTruthy();
     });
-
-    expect(onConnectionChange).toHaveBeenCalledWith('user_123', 'contractor_456', true);
   });
 
-  it('shows retry button after failed connection', async () => {
-    const onConnectionChange = jest.fn().mockRejectedValue(new Error('Connection failed'));
-    const { getByText, getByTestId } = render(
-      <ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />
-    );
+  it('shows pending state when request is pending', async () => {
+    (MutualConnectionsService.getConnectionStatus as jest.Mock).mockResolvedValue('pending');
 
-    const button = getByTestId('connect-button');
-    fireEvent.press(button);
+    const { getByText } = render(<ConnectButton {...defaultProps} />);
 
     await waitFor(() => {
-      expect(getByText('Retry')).toBeTruthy();
+      expect(getByText('Pending')).toBeTruthy();
     });
   });
 
-  it('handles disconnect functionality', async () => {
-    const onConnectionChange = jest.fn().mockResolvedValue(false);
-    const { getByText, getByTestId, rerender } = render(
-      <ConnectButton {...defaultProps} initialConnectionStatus={true} />
-    );
+  it('sends connection request when connect button is pressed', async () => {
+    (MutualConnectionsService.sendConnectionRequest as jest.Mock).mockResolvedValue(undefined);
 
-    // Should show disconnect button when already connected
-    expect(getByText('Disconnect')).toBeTruthy();
+    const { getByText } = render(<ConnectButton {...defaultProps} />);
 
-    const button = getByTestId('connect-button');
+    await waitFor(() => {
+      expect(getByText('Connect')).toBeTruthy();
+    });
+
+    const button = getByText('Connect');
     fireEvent.press(button);
 
     await waitFor(() => {
-      expect(onConnectionChange).toHaveBeenCalledWith('user_123', 'contractor_456', false);
+      expect(MutualConnectionsService.sendConnectionRequest).toHaveBeenCalledWith(
+        'user_123',
+        'contractor_456',
+        expect.stringContaining('John Contractor')
+      );
     });
   });
 
-  it('is disabled when loading', async () => {
-    const onConnectionChange = jest.fn().mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve(true), 1000))
+  it('handles connection error appropriately', async () => {
+    (MutualConnectionsService.sendConnectionRequest as jest.Mock).mockRejectedValue(
+      new Error('Network error')
     );
 
-    const { getByTestId } = render(
-      <ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />
-    );
+    const { getByText } = render(<ConnectButton {...defaultProps} />);
 
-    const button = getByTestId('connect-button');
-    fireEvent.press(button);
+    await waitFor(() => {
+      expect(getByText('Connect')).toBeTruthy();
+    });
 
-    // Button should be disabled while loading
-    expect(button.props.accessibilityState?.disabled).toBe(true);
-  });
-
-  it('handles missing props gracefully', () => {
-    const { getByTestId } = render(
-      <ConnectButton userId="" contractorId="" onConnectionChange={jest.fn()} />
-    );
-
-    expect(getByTestId('connect-button')).toBeTruthy();
-  });
-
-  it('applies correct accessibility labels', () => {
-    const { getByTestId } = render(<ConnectButton {...defaultProps} />);
-
-    const button = getByTestId('connect-button');
-    expect(button.props.accessibilityLabel).toBe('Connect with contractor');
-    expect(button.props.accessibilityRole).toBe('button');
-  });
-
-  it('handles rapid successive presses gracefully', async () => {
-    const onConnectionChange = jest.fn().mockResolvedValue(true);
-    const { getByTestId } = render(
-      <ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />
-    );
-
-    const button = getByTestId('connect-button');
-
-    // Rapid fire multiple presses
-    fireEvent.press(button);
-    fireEvent.press(button);
+    const button = getByText('Connect');
     fireEvent.press(button);
 
     await waitFor(() => {
-      // Should only be called once due to loading state protection
-      expect(onConnectionChange).toHaveBeenCalledTimes(1);
+      expect(MutualConnectionsService.sendConnectionRequest).toHaveBeenCalled();
     });
   });
 
-  it('updates UI correctly based on initialConnectionStatus prop', () => {
-    const { getByText } = render(
-      <ConnectButton {...defaultProps} initialConnectionStatus={true} />
+  it('does not render button for self', () => {
+    const { toJSON } = render(
+      <ConnectButton
+        {...defaultProps}
+        currentUserId="user_123"
+        targetUserId="user_123"
+      />
     );
 
-    expect(getByText('Disconnect')).toBeTruthy();
+    expect(toJSON()).toBeNull();
   });
 
-  it('handles network errors appropriately', async () => {
-    const networkError = new Error('Network request failed');
-    const onConnectionChange = jest.fn().mockRejectedValue(networkError);
-
-    const { getByText, getByTestId } = render(
-      <ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />
-    );
-
-    const button = getByTestId('connect-button');
-    fireEvent.press(button);
+  it('applies correct size styles', async () => {
+    const { rerender, getByText } = render(<ConnectButton {...defaultProps} size="small" />);
 
     await waitFor(() => {
-      expect(getByText('Retry')).toBeTruthy();
+      expect(getByText('Connect')).toBeTruthy();
+    });
+
+    rerender(<ConnectButton {...defaultProps} size="large" />);
+
+    await waitFor(() => {
+      expect(getByText('Connect')).toBeTruthy();
+    });
+  });
+
+  it('calls onConnectionChange callback', async () => {
+    (MutualConnectionsService.getConnectionStatus as jest.Mock).mockResolvedValue('accepted');
+    const onConnectionChange = jest.fn();
+
+    render(<ConnectButton {...defaultProps} onConnectionChange={onConnectionChange} />);
+
+    await waitFor(() => {
+      expect(onConnectionChange).toHaveBeenCalledWith('accepted');
     });
   });
 });

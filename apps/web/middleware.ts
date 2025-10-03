@@ -28,8 +28,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms'];
+  const isPublicRoute = pathname === '/' || publicRoutes.some(route => pathname.startsWith(route));
 
   // Skip middleware for public routes
   if (isPublicRoute) {

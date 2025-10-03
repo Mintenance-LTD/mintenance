@@ -3,17 +3,17 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function POST(_request: NextRequest, { params }: Params) {
+export async function POST(_request: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const threadId = params.id;
+    const { id: threadId } = await context.params;
     if (!threadId) {
       return NextResponse.json({ error: 'Thread id is required' }, { status: 400 });
     }

@@ -2,6 +2,7 @@ import { supabase } from '../config/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
 import { sanitizeText } from '../utils/sanitize';
+import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
 export interface Message {
@@ -35,7 +36,11 @@ export interface MessageThread {
 }
 
 export class MessagingService {
-  private static activeChannels = new Map<string, RealtimeChannel>();
+  private static activeChannels = new Map<string, {
+    channel: RealtimeChannel;
+    createdAt: number;
+  }>();
+  private static readonly MAX_ACTIVE_CHANNELS = 50;
 
   /**
    * Send a message in a job conversation
@@ -251,9 +256,16 @@ export class MessagingService {
     const channelKey = `messages_${jobId}`;
 
     try {
+      // Clean up old channels if limit reached
+      if (this.activeChannels.size >= this.MAX_ACTIVE_CHANNELS) {
+        this.cleanupOldestChannel();
+      }
+
       // Clean up existing channel if any
       if (this.activeChannels.has(channelKey)) {
-        this.activeChannels.get(channelKey)?.unsubscribe();
+        const existing = this.activeChannels.get(channelKey);
+        existing?.channel.unsubscribe();
+        this.activeChannels.delete(channelKey); // CRITICAL: Remove from Map to prevent memory leak
       }
 
       const channel = supabase
@@ -342,13 +354,16 @@ export class MessagingService {
           }
         });
 
-      this.activeChannels.set(channelKey, channel);
+      this.activeChannels.set(channelKey, {
+        channel,
+        createdAt: Date.now()
+      });
 
       // Return cleanup function
       return () => {
         try {
           channel.unsubscribe();
-          this.activeChannels.delete(channelKey);
+          this.activeChannels.delete(channelKey); // CRITICAL: Remove from Map on cleanup
           logger.info(`Unsubscribed from messages for job ${jobId}`);
         } catch (error) {
           logger.error('Error unsubscribing from messages:', error);
@@ -358,6 +373,31 @@ export class MessagingService {
       logger.error('Error setting up real-time subscription:', error);
       onError(error);
       return () => {}; // Return no-op cleanup function
+    }
+  }
+
+  /**
+   * Cleanup the oldest channel to prevent unbounded memory growth
+   * @private
+   */
+  private static cleanupOldestChannel(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Date.now();
+
+    for (const [key, data] of this.activeChannels.entries()) {
+      if (data.createdAt < oldestTime) {
+        oldestTime = data.createdAt;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      const channel = this.activeChannels.get(oldestKey);
+      if (channel) {
+        channel.channel.unsubscribe();
+        this.activeChannels.delete(oldestKey);
+        logger.warn(`Cleaned up oldest channel: ${oldestKey}`);
+      }
     }
   }
 
@@ -412,8 +452,14 @@ export class MessagingService {
     limit: number = 20
   ): Promise<Message[]> {
     try {
-      // Sanitize search input to prevent SQL injection
-      const sanitizedSearchTerm = sanitizeText(searchTerm).trim();
+      // Validate search term
+      if (!isValidSearchTerm(searchTerm)) {
+        logger.warn('Invalid search term rejected:', { searchTerm: searchTerm.substring(0, 50) });
+        return [];
+      }
+
+      // Sanitize and escape SQL wildcards to prevent SQL injection
+      const sanitizedSearchTerm = sanitizeForSQL(searchTerm);
       if (!sanitizedSearchTerm) {
         return [];
       }

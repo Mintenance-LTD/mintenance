@@ -10,11 +10,11 @@ import Constants from 'expo-constants';
 // Environment configuration with security hardening
 const CONFIG = {
   // Supabase Public Configuration (safe for client)
-  SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://demo.supabase.co',
-  SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'demo-key',
+  SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+  SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
 
   // Stripe Public Configuration (safe for client)
-  STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_demo',
+  STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
 
   // App Configuration
   APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'Mintenance',
@@ -34,7 +34,7 @@ const CONFIG = {
 // Validate required configuration
 const validateEnvironment = (): void => {
   const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
-  const missing = required.filter(key => !CONFIG[key as keyof typeof CONFIG] || CONFIG[key as keyof typeof CONFIG] === 'demo-key');
+  const missing = required.filter(key => !CONFIG[key as keyof typeof CONFIG] || CONFIG[key as keyof typeof CONFIG] === '');
 
   if (missing.length > 0) {
     console.warn('⚠️ Missing required environment variables:', missing);
@@ -61,7 +61,7 @@ const validateSecurityConfig = (): void => {
   }
 
   // Validate anon key format (basic JWT structure check)
-  if (CONFIG.SUPABASE_ANON_KEY !== 'demo-key' && !CONFIG.SUPABASE_ANON_KEY.includes('.')) {
+  if (CONFIG.SUPABASE_ANON_KEY !== '' && !CONFIG.SUPABASE_ANON_KEY.includes('.')) {
     console.error('🚨 SECURITY: Invalid Supabase anon key format');
     if (CONFIG.ENVIRONMENT === 'production') {
       throw new Error('Invalid Supabase anon key format');
@@ -100,8 +100,8 @@ export const getServerCredentials = {
 // Log security status
 console.log('🔒 Security Configuration:', {
   environment: CONFIG.ENVIRONMENT,
-  supabaseConfigured: CONFIG.SUPABASE_URL !== 'https://demo.supabase.co',
-  stripeConfigured: CONFIG.STRIPE_PUBLISHABLE_KEY !== 'pk_test_demo',
+  supabaseConfigured: CONFIG.SUPABASE_URL !== '',
+  stripeConfigured: CONFIG.STRIPE_PUBLISHABLE_KEY !== '',
   analyticsEnabled: CONFIG.ENABLE_ANALYTICS,
   biometricEnabled: CONFIG.ENABLE_BIOMETRIC_AUTH
 });

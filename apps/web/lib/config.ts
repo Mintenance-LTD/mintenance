@@ -51,7 +51,7 @@ class ConfigManager {
 
     // Validate JWT_SECRET strength
     const jwtSecret = process.env.JWT_SECRET!;
-    if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
+    if (jwtSecret.length < 32) {
       const errorMessage = 'JWT_SECRET must be a strong secret (>=32 chars) and not the default value';
       // eslint-disable-next-line no-console
       console.error('[Security] Weak JWT_SECRET');

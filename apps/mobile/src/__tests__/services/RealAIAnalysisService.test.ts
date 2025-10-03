@@ -35,7 +35,7 @@ describe('RealAIAnalysisService', () => {
 
   describe('analyzeJobPhotos', () => {
     it('should use OpenAI when API key is available', async () => {
-      process.env.OPENAI_API_KEY = 'sk-test-key';
+      process.env.OPENAI_API_KEY = 'sk-test-' + 'x'.repeat(45);
 
       const mockResponse = {
         choices: [
@@ -83,7 +83,7 @@ describe('RealAIAnalysisService', () => {
         {
           method: 'POST',
           headers: {
-            Authorization: 'Bearer sk-test-key',
+            Authorization: 'Bearer sk-test-' + 'x'.repeat(45),
             'Content-Type': 'application/json',
           },
           body: expect.stringContaining('gpt-4-vision-preview'),
@@ -97,7 +97,7 @@ describe('RealAIAnalysisService', () => {
     });
 
     it('should handle OpenAI API errors gracefully', async () => {
-      process.env.OPENAI_API_KEY = 'sk-test-key';
+      process.env.OPENAI_API_KEY = 'sk-test-' + 'x'.repeat(45);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -179,7 +179,7 @@ describe('RealAIAnalysisService', () => {
     });
 
     it('should detect when AWS is configured', () => {
-      process.env.AWS_ACCESS_KEY_ID = 'test-key';
+      process.env.AWS_ACCESS_KEY_ID = 'AKIA' + 'X'.repeat(16);
       expect(RealAIAnalysisService.isAIServiceConfigured()).toBe(true);
       expect(RealAIAnalysisService.getConfiguredService()).toBe(
         'AWS Rekognition'

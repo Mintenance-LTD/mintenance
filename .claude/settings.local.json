@@ -1,27 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)",
-      "Bash(npm run type-check:*)",
-      "Bash(npx eas project:init:*)",
-      "Bash(npx eas build:*)",
-      "Bash(npm test)",
-      "Bash(npm test:*)",
-      "Bash(npm run validate-credentials:*)",
-      "Bash(node:*)",
-      "Bash(python scripts/create-basic-pngs.py:*)",
-      "Bash(npm run:*)",
-      "Bash(eas build:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx expo start:*)",
-      "WebSearch",
-      "Bash(npm start)",
-      "Bash(chmod:*)",
-      "Bash(timeout 10s npm start)",
-      "Bash(npx expo:*)",
-      "Bash(git bundle create:*)",
-      "mcp__playwright__browser_install",
-      "Bash(npm ls:*)"
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

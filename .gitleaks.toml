@@ -1,0 +1,14 @@
+[allowlist]
+  description = "Allow test fixtures and placeholders"
+  paths = [
+    "apps/mobile/jest-setup.js",
+    "apps/mobile/src/__tests__/",
+    "archive/",
+  ]
+
+[rules]
+  [[rules.regexes]]
+    description = "Generic API key"
+    regex = '''(?i)(api[_-]?key|secret|token|bearer|authorization|private[_-]?key|supabase.*key|jwt[_-]?secret)[^\n]{0,40}?[\"\']?[A-Za-z0-9-_\.=]{24,}[\"\']?'''
+    tags = ["key", "api", "secret"]
+

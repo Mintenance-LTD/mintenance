@@ -1,4 +1,10 @@
 // Centralized Mock Factory Exports
+import { SupabaseMockFactory } from './supabaseMock';
+import { ExpoMockFactory } from './expoMocks';
+import { ReactNativeMockFactory } from './reactNativeMocks';
+import { NavigationMockFactory } from './navigationMocks';
+import { ServicesMockFactory } from './servicesMocks';
+
 export * from './supabaseMock';
 export * from './expoMocks';
 export * from './reactNativeMocks';
@@ -6,11 +12,7 @@ export * from './navigationMocks';
 export * from './servicesMocks';
 
 // Re-export commonly used factories
-export { SupabaseMockFactory } from './supabaseMock';
-export { ExpoMockFactory } from './expoMocks';
-export { ReactNativeMockFactory } from './reactNativeMocks';
-export { NavigationMockFactory } from './navigationMocks';
-export { ServicesMockFactory } from './servicesMocks';
+export { SupabaseMockFactory, ExpoMockFactory, ReactNativeMockFactory, NavigationMockFactory, ServicesMockFactory };
 
 // Utility function to reset all mocks
 export const resetAllMocks = () => {
@@ -26,10 +28,10 @@ export const setupTestMocks = () => {
   resetAllMocks();
 
   // Set up global test environment
-  global.__DEV__ = process.env.NODE_ENV !== 'production';
+  (global as any).__DEV__ = process.env.NODE_ENV !== 'production';
 
   // Mock console methods to reduce noise in tests
-  global.console = {
+  (global as any).console = {
     ...console,
     warn: jest.fn(),
     error: jest.fn(),
@@ -55,31 +57,31 @@ describe('Mock factories', () => {
     } catch (e) {
       console.warn('SupabaseMockFactory not available');
     }
-    
+
     try {
       expect(ExpoMockFactory).toBeDefined();
     } catch (e) {
       console.warn('ExpoMockFactory not available');
     }
-    
+
     try {
       expect(ReactNativeMockFactory).toBeDefined();
     } catch (e) {
       console.warn('ReactNativeMockFactory not available');
     }
-    
+
     try {
       expect(NavigationMockFactory).toBeDefined();
     } catch (e) {
       console.warn('NavigationMockFactory not available');
     }
-    
+
     try {
       expect(ServicesMockFactory).toBeDefined();
     } catch (e) {
       console.warn('ServicesMockFactory not available');
     }
-    
+
     // Always pass
     expect(true).toBe(true);
   });

@@ -6,8 +6,11 @@ import type { ModalStackParamList } from '../types';
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
 import FindContractorsScreen from '../../screens/FindContractorsScreen';
 import ContractorDiscoveryScreen from '../../screens/ContractorDiscoveryScreen';
-import CreateQuoteScreen from '../../screens/CreateQuoteScreen';
-import MeetingScheduleScreen from '../../screens/MeetingScheduleScreen';
+import { ContractorProfileScreen } from '../../screens/contractor-profile';
+import { EnhancedHomeScreen } from '../../screens/enhanced-home';
+import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
+import { CreateQuoteScreen } from '../../screens/create-quote';
+import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
 import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
 
 // Import error boundary wrapper
@@ -52,6 +55,20 @@ const SafeMeetingDetailsScreen = withScreenErrorBoundary(
   'Meeting Details',
   { fallbackRoute: 'Main' }
 );
+
+const SafeContractorProfileScreen = withScreenErrorBoundary(
+  ContractorProfileScreen,
+  'Contractor Profile',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeEnhancedHomeScreen = withScreenErrorBoundary(
+  EnhancedHomeScreen,
+  'Enhanced Home',
+  { fallbackRoute: 'Main' }
+);
+
+// Note: PaymentMethodsScreenRefactored ready but not yet replacing ProfileNavigator version
 
 // ============================================================================
 // MODAL NAVIGATOR
@@ -136,6 +153,24 @@ export const ModalNavigator: React.FC = () => {
         component={SafeMeetingDetailsScreen}
         options={{
           title: 'Meeting Details',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name="ContractorProfile"
+        component={SafeContractorProfileScreen}
+        options={({ route }) => ({
+          title: route.params?.contractorName || 'Contractor Profile',
+          gestureEnabled: true,
+        })}
+      />
+
+      <ModalStack.Screen
+        name="EnhancedHome"
+        component={SafeEnhancedHomeScreen}
+        options={{
+          title: 'Home',
           gestureEnabled: true,
         }}
       />

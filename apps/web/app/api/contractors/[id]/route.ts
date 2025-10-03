@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ContractorProfile } from '@mintenance/types/src/contracts';
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, context: Params) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     if (!id) {
       return NextResponse.json({ error: 'Contractor id missing' }, { status: 400 });
     }

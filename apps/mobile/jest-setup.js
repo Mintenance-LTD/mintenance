@@ -6,7 +6,7 @@ process.env.TZ = 'UTC';
 
 // Setup environment variables for tests
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://test-supabase-url.supabase.co';
-process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-supabase-anon-key';
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
 // Mock React Native Reanimated
 jest.mock('react-native-reanimated', () => {
@@ -299,7 +299,7 @@ jest.mock('@react-navigation/native', () => {
     useNavigation: jest.fn(() => navMock),
     useRoute: jest.fn(() => ({ 
       params: {},
-      key: 'test-key',
+      key: 'test-key-' + 'x'.repeat(20),
       name: 'test-route',
     })),
     useFocusEffect: jest.fn(),

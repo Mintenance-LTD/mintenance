@@ -1,130 +1,75 @@
-/**
- * Performance Budget Types and Interfaces
- * Centralized type definitions for performance monitoring system
- */
+// ============================================================================
+// PERFORMANCE TYPES
+// All type definitions for the performance monitoring system
+// ============================================================================
+
+export interface PerformanceMetric {
+  name: string;
+  value: number;
+  timestamp: number;
+  category: 'render' | 'network' | 'storage' | 'navigation' | 'custom';
+  threshold?: number;
+  tags?: Record<string, string>;
+}
 
 export interface PerformanceBudget {
-  serviceName: string;
-  budgets: {
-    responseTime: number; // Maximum response time in ms
-    memoryUsage: number; // Maximum memory usage in MB
-    cpuUsage: number; // Maximum CPU usage percentage
-    apiCalls: number; // Maximum API calls per minute
-    errorRate: number; // Maximum error rate percentage
-    downloadSize: number; // Maximum download size in KB
-  };
-  alertThresholds: {
-    warning: number; // Warning at X% of budget
-    critical: number; // Critical at X% of budget
-  };
-}
-
-export interface PerformanceMetrics {
-  serviceName: string;
-  timestamp: number;
-  responseTime: number;
-  memoryUsage: number;
-  cpuUsage: number;
-  apiCallsPerMinute: number;
-  errorRate: number;
-  downloadSize: number;
-  budgetViolations: BudgetViolation[];
-}
-
-export interface BudgetViolation {
   metric: string;
-  actual: number;
   budget: number;
-  severity: 'warning' | 'critical';
-  violationPercentage: number;
+  current: number;
+  status: 'pass' | 'warn' | 'fail';
+  percentage: number;
+  target?: number;
+  warning?: number;
+  critical?: number;
+  unit?: string;
+  category?: 'performance' | 'resources' | 'quality' | 'user_experience';
+  enabled?: boolean;
 }
 
-export interface ReactNativePerformanceConfig {
-  enableBundleAnalysis?: boolean;
-  enableMemoryTracking?: boolean;
-  enableChunkPreloading?: boolean;
-  maxBundleSize?: number; // KB
-  memoryWarningThreshold?: number; // MB
-  chunkLoadTimeout?: number; // ms
-}
-
-export interface MemoryInfo {
-  usedJSHeapSize: number;
-  totalJSHeapSize: number;
-  jsHeapSizeLimit: number;
-}
-
-export interface BundleInfo {
-  size: number;
-  chunkSizes: Record<string, number>;
-  totalSize: number;
-  compressionRatio: number;
-}
-
-export interface PerformanceAlert {
-  serviceName: string;
+export interface BudgetEnforcementRule {
+  id: string;
+  name: string;
   metric: string;
-  severity: 'warning' | 'critical';
-  message: string;
-  timestamp: number;
-  actual: number;
-  budget: number;
-  violationPercentage: number;
+  target: number;
+  warning: number;
+  critical: number;
+  unit: string;
+  category: 'performance' | 'resources' | 'quality' | 'user_experience';
+  enabled: boolean;
+  comparison: 'less_than' | 'greater_than' | 'equal_to';
+  description?: string;
+  enforcement: 'log' | 'warn' | 'error' | 'throw';
 }
 
 export interface PerformanceReport {
-  serviceName: string;
-  timeRange: {
-    start: number;
-    end: number;
-  };
+  timestamp: number;
+  metrics: PerformanceMetric[];
+  budgets: PerformanceBudget[];
+  violations: PerformanceViolation[];
   summary: {
     totalMetrics: number;
-    violations: {
-      warning: number;
-      critical: number;
-    };
-    averageResponseTime: number;
-    peakMemoryUsage: number;
-    errorRate: number;
-  };
-  trends: {
-    responseTime: number[]; // Trend values
-    memoryUsage: number[];
-    errorRate: number[];
-  };
-  recommendations: string[];
-}
-
-export interface ServiceBudgetConfiguration {
-  serviceName: string;
-  budgetProfile: 'strict' | 'moderate' | 'relaxed';
-  customBudgets?: Partial<PerformanceBudget['budgets']>;
-  alertSettings?: {
-    enableWarnings: boolean;
-    enableCriticalAlerts: boolean;
-    notificationChannels: ('log' | 'email' | 'slack')[];
+    passedBudgets: number;
+    failedBudgets: number;
+    averageRenderTime: number;
+    averageNetworkTime: number;
   };
 }
 
-export type MetricType = 'responseTime' | 'memoryUsage' | 'cpuUsage' | 'apiCalls' | 'errorRate' | 'downloadSize';
-
-export type PerformanceEventType =
-  | 'budget_violation'
-  | 'performance_improvement'
-  | 'service_degradation'
-  | 'alert_triggered'
-  | 'monitoring_started'
-  | 'monitoring_stopped';
-
-export interface PerformanceEvent {
-  type: PerformanceEventType;
-  serviceName: string;
+export interface PerformanceViolation {
+  metric: string;
+  threshold: number;
+  actual: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: number;
-  data: Record<string, any>;
-  metadata?: {
-    userId?: string;
-    sessionId?: string;
-    deviceInfo?: any;
-  };
+  stackTrace?: string;
+}
+
+export interface ComponentPerformance {
+  componentName: string;
+  renderCount: number;
+  totalRenderTime: number;
+  averageRenderTime: number;
+  lastRenderTime: number;
+  mountTime: number;
+  updateTimes: number[];
 }

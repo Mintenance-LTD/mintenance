@@ -1,4 +1,7 @@
 import React from 'react';
+import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   NavigationContainer,
   useFocusEffect,
@@ -8,9 +11,6 @@ import type { NavigationProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 // Import navigation types
 import type { RootStackParamList, RootTabParamList, AuthStackParamList } from './types';
@@ -38,6 +38,9 @@ import {
   AppErrorBoundary,
   withScreenErrorBoundary,
 } from '../components/ErrorBoundaryProvider';
+
+// Import navigation components
+import { CustomTabBar } from './components/CustomTabBar';
 
 // ============================================================================
 // WRAPPED SCREENS
@@ -99,23 +102,9 @@ const TabNavigator: React.FC = () => {
 
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textTertiary,
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
-          paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-          paddingTop: 12,
-          height: Platform.OS === 'ios' ? 90 : 72,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-          marginTop: 2,
-          marginBottom: Platform.OS === 'ios' ? 0 : 4,
-        },
       }}
     >
       <Tab.Screen
@@ -129,7 +118,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Home tab',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('HomeTab');
                 props.onPress?.(e);
@@ -154,7 +143,7 @@ const TabNavigator: React.FC = () => {
             tabBarAccessibilityLabel: 'Discover tab',
           }}
           listeners={{
-            tabPress: () => handleTabPress('DiscoverTab'),
+            tabPress: () => handleTabPress('DiscoverTab' as keyof RootTabParamList),
           }}
         />
       )}
@@ -170,7 +159,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Jobs tab',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('JobsTab');
                 props.onPress?.(e);
@@ -196,7 +185,7 @@ const TabNavigator: React.FC = () => {
               : 'Browse jobs',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('AddTab');
                 props.onPress?.(e);
@@ -219,8 +208,8 @@ const TabNavigator: React.FC = () => {
             />
           ),
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
+        listeners={({ navigation }: { navigation: any }) => ({
+          tabPress: (e: any) => {
             e.preventDefault();
             const tabNavigation =
               navigation as BottomTabNavigationProp<RootTabParamList>;
@@ -247,7 +236,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Community feed tab',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('FeedTab');
                 props.onPress?.(e);
@@ -272,7 +261,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Messages tab',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('MessagingTab');
                 props.onPress?.(e);
@@ -297,7 +286,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel: 'Profile tab',
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...(props as any)}
+              {...props}
               onPress={(e) => {
                 handleTabPress('ProfileTab');
                 props.onPress?.(e);

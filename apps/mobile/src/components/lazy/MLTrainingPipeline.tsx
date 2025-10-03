@@ -8,7 +8,7 @@ import { createLazyComponent } from '../../utils/codeSplitting';
 import { LoadingSpinner } from '../LoadingSpinner';
 
 const LazyMLTrainingPipeline = createLazyComponent(
-  () => import('../services/MLTrainingPipeline'),
+  () => import('../../services/ml-training'),
   {
     chunkName: 'ml-training-pipeline',
     timeout: 10000,

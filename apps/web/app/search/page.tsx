@@ -18,6 +18,9 @@ import type {
   SearchResult
 } from '@mintenance/types';
 
+// Disable static optimization for this page
+export const dynamic = 'force-dynamic';
+
 type SearchType = 'jobs' | 'contractors';
 
 export default function SearchPage() {

@@ -1,6 +1,10 @@
 import { headers } from 'next/headers';
 import { getCurrentUserFromHeaders, getCurrentUserFromCookies } from '@/lib/auth';
 import LogoutButton from '@/components/LogoutButton';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Layout } from '@/components/ui/Layout';
+import { theme } from '@/lib/theme';
 
 export default async function DashboardPage() {
   const headersList = headers();
@@ -16,97 +20,185 @@ export default async function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="text-gray-600">You must be logged in to view this page.</p>
-          <a href="/login" className="text-indigo-600 hover:text-indigo-500">
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.backgroundSecondary,
+      }}>
+        <Card variant="elevated" style={{ textAlign: 'center', padding: theme.spacing[8] }}>
+          <h1 style={{
+            fontSize: theme.typography.fontSize['3xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Access Denied
+          </h1>
+          <p style={{
+            fontSize: theme.typography.fontSize.lg,
+            color: theme.colors.textSecondary,
+            marginBottom: theme.spacing[6],
+          }}>
+            You must be logged in to view this page.
+          </p>
+          <Button variant="primary" onClick={() => window.location.href = '/login'}>
             Go to Login
-          </a>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
 
+  const quickActions = [
+    { href: '/jobs', label: 'View Jobs', icon: '📋' },
+    { href: '/contractors', label: 'Browse Contractors', icon: '👷' },
+    { href: '/discover', label: 'Discover & Swipe', icon: '🔥' },
+    { href: '/messages', label: 'Messages', icon: '💬' },
+    { href: '/payments', label: 'Payments & Escrow', icon: '💰' },
+    { href: '/search', label: 'Advanced Search', icon: '🔍' },
+    { href: '/video-calls', label: 'Video Calls', icon: '📹' },
+    { href: '/analytics', label: 'Analytics & Insights', icon: '📊' },
+  ];
+
+  const statusItems = [
+    { label: 'Authenticated', status: 'success', color: theme.colors.success },
+    { label: 'Active Session', status: 'info', color: theme.colors.info },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 p-8">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600">Welcome back, {user.email}!</p>
-              </div>
-              <LogoutButton />
+    <Layout
+      title="Dashboard"
+      subtitle={`Welcome back, ${user.email}!`}
+      actions={<LogoutButton />}
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Dashboard' }
+      ]}
+      navigation={[
+        { label: 'Overview', href: '/dashboard', active: true },
+        { label: 'Jobs', href: '/jobs' },
+        { label: 'Contractors', href: '/contractors' },
+        { label: 'Messages', href: '/messages', badge: 3 },
+        { label: 'Payments', href: '/payments' },
+        { label: 'Analytics', href: '/analytics' },
+      ]}
+    >
+      {/* Cards Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: theme.spacing[6],
+        marginTop: theme.spacing[6],
+      }}>
+        {/* User Info Card */}
+        <Card variant="elevated" hover>
+          <h2 style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            User Info
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+                ID:
+              </span>
+              <span style={{ color: theme.colors.textPrimary }}>{user.id}</span>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">User Info</h2>
-                <div className="space-y-2">
-                  <p><strong>ID:</strong> {user.id}</p>
-                  <p><strong>Email:</strong> {user.email}</p>
-                  <p><strong>Role:</strong> {user.role}</p>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                <div className="space-y-2">
-                  <a href="/jobs" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    View Jobs
-                  </a>
-                  <a href="/contractors" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    Browse Contractors
-                  </a>
-                  <a href="/discover" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    🔥 Discover & Swipe
-                  </a>
-                  <a href="/messages" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    💬 Messages
-                  </a>
-                  <a href="/payments" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    💰 Payments & Escrow
-                  </a>
-                  <a href="/search" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    🔍 Advanced Search
-                  </a>
-                  <a href="/video-calls" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    📹 Video Calls
-                  </a>
-                  <a href="/analytics" className="block w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    📊 Analytics & Insights
-                  </a>
-                  <button className="w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    View Profile
-                  </button>
-                  <button className="w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    Settings
-                  </button>
-                  <button className="w-full text-left px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded">
-                    Help
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Status</h2>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">Authenticated</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">Active Session</span>
-                  </div>
-                </div>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+                Email:
+              </span>
+              <span style={{ color: theme.colors.textPrimary }}>{user.email}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+                Role:
+              </span>
+              <span style={{ 
+                textTransform: 'capitalize',
+                backgroundColor: theme.colors.secondary,
+                color: theme.colors.white,
+                padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                borderRadius: theme.borderRadius.base,
+                fontSize: theme.typography.fontSize.sm,
+              }}>
+                {user.role}
+              </span>
             </div>
           </div>
-        </div>
+        </Card>
+
+        {/* Quick Actions Card */}
+        <Card variant="elevated" hover>
+          <h2 style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Quick Actions
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            {quickActions.map((action, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                fullWidth
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: theme.spacing[3],
+                  borderRadius: theme.borderRadius.lg,
+                  fontSize: theme.typography.fontSize.md,
+                  color: theme.colors.textPrimary,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  textAlign: 'left',
+                }}
+                onClick={() => window.location.href = action.href}
+              >
+                <span style={{ marginRight: theme.spacing[2] }}>{action.icon}</span>
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        </Card>
+
+        {/* Status Card */}
+        <Card variant="elevated" hover>
+          <h2 style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Status
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            {statusItems.map((item, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  width: '12px',
+                  height: '12px',
+                  backgroundColor: item.color,
+                  borderRadius: '50%',
+                  marginRight: theme.spacing[2],
+                }} />
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
-    </div>
+    </Layout>
   );
 }

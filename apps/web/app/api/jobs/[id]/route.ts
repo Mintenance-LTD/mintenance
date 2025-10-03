@@ -4,7 +4,7 @@ import type { JobDetail } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
 const jobSelectFields = 'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
 
@@ -40,13 +40,13 @@ const updateJobSchema = z.object({
   message: 'At least one field must be provided',
 });
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { id } = params;
+    const { id } = await context.params;
 
     const { data, error } = await serverSupabase
       .from('jobs')
@@ -74,13 +74,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: Params) {
+export async function PATCH(request: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { id } = params;
+    const { id } = await context.params;
 
     const body = await request.json();
     const parsed = updateJobSchema.safeParse(body);

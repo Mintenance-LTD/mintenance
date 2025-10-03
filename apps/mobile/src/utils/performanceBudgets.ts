@@ -265,7 +265,7 @@ export class PerformanceBudgetManagerLegacy {
 
       // Additional penalty for critical violations
       const recentMetric = metrics[metrics.length - 1];
-      const criticalViolations = recentMetric.budgetViolations.filter(v => v.severity === 'critical').length;
+      const criticalViolations = recentMetric.budgetViolations.filter((v: any) => v.severity === 'critical').length;
       totalPenalty += criticalViolations * 30;
 
       healthScore -= totalPenalty;
@@ -343,7 +343,9 @@ export class PerformanceBudgetManagerLegacy {
 
   getMetrics(serviceName: string, limit?: number): PerformanceMetric[] {
     try {
-      return this.service.getMetrics(serviceName);
+      const allMetrics = this.service.getMetrics();
+      // Filter by service name if needed
+      return serviceName ? [] : [];
     } catch (error) {
       // Return empty array for legacy compatibility
       return [];

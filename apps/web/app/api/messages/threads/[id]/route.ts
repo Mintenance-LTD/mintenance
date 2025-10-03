@@ -16,17 +16,17 @@ const querySchema = z.object({
 });
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const threadId = params.id;
+    const { id: threadId } = await context.params;
     if (!threadId) {
       return NextResponse.json({ error: 'Thread id is required' }, { status: 400 });
     }

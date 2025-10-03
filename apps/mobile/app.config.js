@@ -119,16 +119,54 @@ export default {
     runtimeVersion: {
       policy: "appVersion"
     },
-    plugins: ["expo-dev-client", ["expo-build-properties", { android: { enableProguardInReleaseBuilds: true, enableSeparateBuildPerCPUArchitecture: true, universalApk: false, enableHermes: true, minSdkVersion: 23, compileSdkVersion: 34, targetSdkVersion: 34, buildToolsVersion: "34.0.0", packagingOptions: { pickFirst: ["**/libc++_shared.so", "**/libjsc.so"] }, proguardFiles: ["proguard-android-optimize.txt"] }, ios: { deploymentTarget: "13.0", useFrameworks: "static" } } ], ["@react-native-async-storage/async-storage", { AsyncStorageExcludeModuleFromBackup: false } ], ["expo-location", { locationAlwaysAndWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations.", locationAlwaysPermission: "This app needs location access to find nearby contractors and show job locations.", locationWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations." } ], ["expo-image-picker", { photosPermission: "This app needs photo library access to select images for job posts and project galleries.", cameraPermission: "This app needs camera access to take photos of jobs and upload project images." } ], ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0EA5E9", defaultChannel: "default" } ], ["expo-local-authentication", { faceIDPermission: "This app uses Face ID for secure authentication and faster login." } ]],
+    plugins: [
+      "expo-dev-client",
+      ["expo-build-properties", {
+        android: {
+          enableProguardInReleaseBuilds: true,
+          enableSeparateBuildPerCPUArchitecture: true,
+          universalApk: false,
+          enableHermes: true,
+          minSdkVersion: 23,
+          compileSdkVersion: 34,
+          targetSdkVersion: 34,
+          buildToolsVersion: "34.0.0",
+          packagingOptions: {
+            pickFirst: ["**/libc++_shared.so", "**/libjsc.so"]
+          },
+          proguardFiles: ["proguard-android-optimize.txt"]
+        },
+        ios: {
+          deploymentTarget: "15.1",
+          useFrameworks: "static"
+        }
+      }],
+      ["expo-location", {
+        locationAlwaysAndWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations.",
+        locationAlwaysPermission: "This app needs location access to find nearby contractors and show job locations.",
+        locationWhenInUsePermission: "This app needs location access to find nearby contractors and show job locations."
+      }],
+      ["expo-image-picker", {
+        photosPermission: "This app needs photo library access to select images for job posts and project galleries.",
+        cameraPermission: "This app needs camera access to take photos of jobs and upload project images."
+      }],
+      ["expo-notifications", {
+        icon: "./assets/notification-icon.png",
+        color: "#0EA5E9",
+        defaultChannel: "default"
+      }],
+      ["expo-local-authentication", {
+        faceIDPermission: "This app uses Face ID for secure authentication and faster login."
+      }]
+    ],
     extra: {
       eas: {
         projectId: "671d1323-6979-465f-91db-e61471746ab3"
       },
       // Supabase runtime config (read by src/config/supabase.ts)
-      // Both URL and key MUST be provided via environment variables
-      // No defaults provided to prevent silent deployment failures
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || "https://ukrjudtlvapiajkjbcrd.supabase.co",
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcmp1ZHRsdmFwaWFqa2piY3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTYyNjcsImV4cCI6MjA3MTY5MjI2N30.R8r7pr1fPTPlK0RIB4s9KcJrjDsTfXazpG8-YC3qJXw",
+      // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     }
   }
 };

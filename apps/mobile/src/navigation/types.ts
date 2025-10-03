@@ -62,6 +62,8 @@ export type ModalStackParamList = {
   ServiceRequest: undefined;
   FindContractors: undefined;
   ContractorDiscovery: undefined;
+  ContractorProfile: { contractorId: string; contractorName?: string };
+  EnhancedHome: undefined;
   CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
   MeetingSchedule: {
     contractorId: string;
@@ -73,9 +75,16 @@ export type ModalStackParamList = {
   MeetingDetails: { meetingId: string };
 };
 
+// Discover Stack Types
+export type DiscoverStackParamList = {
+  ExploreMap: undefined;
+  ContractorProfile: { contractorId: string; contractorName?: string };
+};
+
 // Root Tab Types
 export type RootTabParamList = {
   HomeTab: undefined;
+  DiscoverTab: NavigatorScreenParams<DiscoverStackParamList>;
   JobsTab: NavigatorScreenParams<JobsStackParamList>;
   AddTab: undefined;
   FeedTab: undefined;
@@ -145,6 +154,16 @@ export type ProfileRouteProp<T extends keyof ProfileStackParamList> = RouteProp<
   T
 >;
 
+export type DiscoverNavigationProp<T extends keyof DiscoverStackParamList> = StackNavigationProp<
+  DiscoverStackParamList,
+  T
+>;
+
+export type DiscoverRouteProp<T extends keyof DiscoverStackParamList> = RouteProp<
+  DiscoverStackParamList,
+  T
+>;
+
 // ============================================================================
 // SCREEN PROPS INTERFACES
 // ============================================================================
@@ -170,4 +189,9 @@ export interface MessagingScreenProps<T extends keyof MessagingStackParamList> {
 export interface ProfileScreenProps<T extends keyof ProfileStackParamList> {
   navigation: ProfileNavigationProp<T>;
   route: ProfileRouteProp<T>;
+}
+
+export interface DiscoverScreenProps<T extends keyof DiscoverStackParamList> {
+  navigation: DiscoverNavigationProp<T>;
+  route: DiscoverRouteProp<T>;
 }

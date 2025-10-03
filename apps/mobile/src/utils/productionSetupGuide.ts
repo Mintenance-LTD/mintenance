@@ -8,9 +8,9 @@
 import { productionReadinessOrchestrator } from './productionReadinessOrchestrator';
 import { securityAuditService } from './securityAuditAndPenetrationTesting';
 import { performanceMonitor } from './performanceMonitor';
-import { enhancedErrorAnalytics } from './enhancedErrorTracking';
+import { enhancedErrorAnalytics } from './errorTracking';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
-import { WebOptimizations } from './webOptimizations';
+import { WebOptimizations } from './webOptimizations/';
 import { logger } from './logger';
 
 /**
@@ -32,7 +32,7 @@ export async function initializeProductionSystems(): Promise<void> {
 
     logger.info('ProductionSetup', 'All production systems initialized successfully');
   } catch (error) {
-    logger.error('ProductionSetup', 'Failed to initialize production systems', error);
+    logger.error('ProductionSetup', 'Failed to initialize production systems', error as Error);
     throw error;
   }
 }
@@ -53,7 +53,7 @@ export async function validateDeploymentReadiness(environment: 'staging' | 'prod
     const deploymentReport = await productionReadinessOrchestrator.createDeploymentReport(environment);
 
     // 2. Check for critical blockers
-    const hasBlockers = deploymentReport.blockers.length > 0;
+    const hasBlockers = (deploymentReport.blockers?.length ?? 0) > 0;
     const isApproved = deploymentReport.deploymentApproved && !hasBlockers;
 
     // 3. Log results
@@ -72,10 +72,10 @@ export async function validateDeploymentReadiness(environment: 'staging' | 'prod
     return {
       approved: isApproved,
       report: deploymentReport,
-      blockers: deploymentReport.blockers,
+      blockers: deploymentReport.blockers || [],
     };
   } catch (error) {
-    logger.error('ProductionSetup', 'Deployment validation failed', error);
+    logger.error('ProductionSetup', 'Deployment validation failed', error as Error);
     return {
       approved: false,
       report: null,
@@ -95,8 +95,8 @@ export async function runDailySecurityAudit(): Promise<void> {
     const auditReport = await securityAuditService.runSecurityAudit('production');
 
     // Check for critical issues
-    const criticalVulns = auditReport.vulnerabilities.filter(v => v.severity === 'critical');
-    const highVulns = auditReport.vulnerabilities.filter(v => v.severity === 'high');
+    const criticalVulns = auditReport.vulnerabilities.filter((v: any) => v.severity === 'critical');
+    const highVulns = auditReport.vulnerabilities.filter((v: any) => v.severity === 'high');
 
     if (criticalVulns.length > 0) {
       logger.error('ProductionSetup', `🚨 CRITICAL: ${criticalVulns.length} critical vulnerabilities found!`, {
@@ -119,7 +119,7 @@ export async function runDailySecurityAudit(): Promise<void> {
       totalVulnerabilities: auditReport.vulnerabilities.length,
     });
   } catch (error) {
-    logger.error('ProductionSetup', 'Daily security audit failed', error);
+    logger.error('ProductionSetup', 'Daily security audit failed', error as Error);
   }
 }
 
@@ -240,7 +240,7 @@ export const webPlatform = {
   // Check web optimization status
   isOptimized: () => {
     if (webPlatform.isWeb()) {
-      return WebOptimizations.getInstance().isInitialized();
+      return WebOptimizations.getInstance().initialized;
     }
     return true; // Not applicable on mobile
   },
@@ -319,17 +319,4 @@ export const dashboardData = {
       },
     };
   },
-};
-
-// Export all utilities
-export {
-  initializeProductionSystems,
-  validateDeploymentReadiness,
-  runDailySecurityAudit,
-  performanceTracking,
-  errorTracking,
-  systemMonitoring,
-  webPlatform,
-  developmentUtils,
-  dashboardData,
 };
