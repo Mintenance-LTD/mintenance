@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { ContractorMatch, ContractorProfile, ContractorSkill, LocationData, Review } from '@mintenance/types';
+import { logger } from '@/lib/logger';
 
 type ContractorSkillRow = {
   id: string;
@@ -78,7 +79,7 @@ export class ContractorService {
         .returns<ContractorRow[]>();
 
       if (error) {
-        console.error('Error fetching contractors:', error);
+        logger.error('Error fetching contractors', error);
         return this.getMockContractors();
       }
 
@@ -98,7 +99,7 @@ export class ContractorService {
         })
         .map(({ profile }) => profile);
     } catch (error) {
-      console.error('Contractor service error:', error);
+      logger.error('Contractor service error', error);
       return this.getMockContractors();
     }
   }
@@ -130,14 +131,14 @@ export class ContractorService {
         .returns<ContractorRow[]>();
 
       if (error) {
-        console.error('Error fetching contractors:', error);
+        logger.error('Error fetching contractors', error);
         return this.getMockContractors();
       }
 
       const contractorRows = contractors ?? [];
       return contractorRows.map(contractor => this.mapContractorFromDb(contractor));
     } catch (error) {
-      console.error('Contractor service error:', error);
+      logger.error('Contractor service error', error);
       return this.getMockContractors();
     }
   }
@@ -239,13 +240,13 @@ export class ContractorService {
         .single();
 
       if (error) {
-        console.error('Error recording match:', error);
+        logger.error('Error recording match', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Match recording error:', error);
+      logger.error('Match recording error', error);
       return null;
     }
   }

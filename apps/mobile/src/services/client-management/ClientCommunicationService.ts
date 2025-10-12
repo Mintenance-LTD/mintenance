@@ -7,6 +7,7 @@
 
 import { supabase } from '../../config/supabase';
 import { Client, ClientCommunicationTemplate } from './types';
+import { logger } from '../../utils/logger';
 
 export class ClientCommunicationService {
   /**
@@ -31,7 +32,7 @@ export class ClientCommunicationService {
       // Increment template usage
       await this.incrementTemplateUsage(template.id);
     } catch (error) {
-      console.error('Failed to send welcome message:', error);
+      logger.error('Failed to send welcome message', error);
     }
   }
 
@@ -62,7 +63,7 @@ export class ClientCommunicationService {
 
       await this.incrementTemplateUsage(template.id);
     } catch (error) {
-      console.error('Failed to send lifecycle update notification:', error);
+      logger.error('Failed to send lifecycle update notification', error);
     }
   }
 
@@ -149,7 +150,7 @@ export class ClientCommunicationService {
 
           sent++;
         } catch (error) {
-          console.error(`Failed to send to client ${client.id}:`, error);
+          logger.error(`Failed to send to client ${client.id}`, error);
           failed++;
         }
       }

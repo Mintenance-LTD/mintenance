@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8] [cursor=pointer]
+  - alert [ref=e11]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - link "Mintenance Logo" [ref=e15] [cursor=pointer]:
+        - /url: /
+        - img "Mintenance Logo" [ref=e16] [cursor=pointer]
+      - heading "Forgot Password?" [level=1] [ref=e17]
+      - paragraph [ref=e18]: No worries! Enter your email address and we'll send you a link to reset your password.
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]: Email Address
+        - textbox "Email Address" [ref=e23]
+      - button "Send Reset Link" [ref=e24] [cursor=pointer]
+      - link "← Back to Login" [ref=e26] [cursor=pointer]:
+        - /url: /login
+    - paragraph [ref=e28]:
+      - text: Don't have an account?
+      - link "Sign up" [ref=e29] [cursor=pointer]:
+        - /url: /register
+    - generic [ref=e31]:
+      - img [ref=e32]
+      - generic [ref=e34]:
+        - heading "Security Note" [level=3] [ref=e35]
+        - paragraph [ref=e36]: For your security, password reset links expire after 1 hour. If you didn't request this reset, you can safely ignore this email.
+  - generic [ref=e39]:
+    - generic [ref=e40]:
+      - heading "🍪 We Use Cookies" [level=3] [ref=e41]
+      - paragraph [ref=e42]:
+        - text: We use cookies to improve your experience on our site, analyse traffic, and personalise content. Essential cookies are always enabled. You can customise your preferences or accept all cookies.
+        - link "Learn more in our Privacy Policy" [ref=e43] [cursor=pointer]:
+          - /url: /privacy
+    - generic [ref=e44]:
+      - button "Customise Preferences" [ref=e45] [cursor=pointer]
+      - button "Essential Only" [ref=e46] [cursor=pointer]
+      - button "Accept All" [ref=e47] [cursor=pointer]
+```

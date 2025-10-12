@@ -4,11 +4,19 @@ if (typeof window !== 'undefined') {
 
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { PasswordValidator } from '@mintenance/auth';
+import { logger } from '@mintenance/shared';
 
 
 // Initialize Supabase client for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Temporarily hardcode for testing
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
+
+console.log('🔍 Database.ts Environment Check:');
+console.log('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl);
+console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT SET');
+console.log('All env vars:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing Supabase configuration for server-side operations');
@@ -20,6 +28,15 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false
   }
 });
+
+// Password validation requirements
+const passwordRequirements = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumbers: true,
+  requireSpecialChars: true,
+};
 
 export interface User {
   id: string;
@@ -48,6 +65,12 @@ export class DatabaseManager {
    * Create a new user with hashed password
    */
   static async createUser(userData: CreateUserData): Promise<Omit<User, 'password_hash'>> {
+    // Validate password complexity
+    const validationResult = PasswordValidator.validate(userData.password, passwordRequirements);
+    if (!validationResult.isValid) {
+      throw new Error(validationResult.errors.join(', '));
+    }
+
     // Hash password with bcrypt
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(userData.password, saltRounds);
@@ -76,13 +99,28 @@ export class DatabaseManager {
       throw new Error(`Database error: ${error.message}`);
     }
 
+    // Add password to history (using database function)
+    try {
+      await supabase.rpc('add_password_to_history', {
+        history_user_id: data.id,
+        new_password_hash: passwordHash
+      });
+    } catch (historyError) {
+      // Log but don't fail registration if history fails
+      logger.warn('Failed to add password to history', {
+        service: 'auth',
+        userId: data.id,
+        error: historyError
+      });
+    }
+
     return data;
   }
 
   /**
    * Authenticate user with email and password
    */
-  static async authenticateUser(email: string, password: string): Promise<Omit<User, 'password_hash'> | null> {
+  static async authenticateUser(email: string, password: string, ipAddress?: string): Promise<Omit<User, 'password_hash'> | null> {
     // Get user with password hash
     const { data, error } = await supabase
       .from('users')
@@ -91,14 +129,68 @@ export class DatabaseManager {
       .single();
 
     if (error || !data) {
+      // Record failed attempt for non-existent user
+      try {
+        await supabase.rpc('record_failed_login', {
+          attempt_user_id: null,
+          attempt_email: email.toLowerCase().trim(),
+          attempt_ip: ipAddress || null,
+          attempt_user_agent: null,
+          attempt_failure_reason: 'user_not_found'
+        });
+      } catch (e) {
+        logger.error('Failed to record login attempt', e, { service: 'auth' });
+      }
       return null;
+    }
+
+    // Check if account is locked
+    try {
+      const { data: isLocked } = await supabase.rpc('is_account_locked', {
+        check_user_id: data.id
+      });
+
+      if (isLocked) {
+        logger.warn('Login attempt on locked account', {
+          service: 'auth',
+          userId: data.id,
+          email: data.email
+        });
+        return null;
+      }
+    } catch (e) {
+      logger.error('Failed to check account lockout', e, { service: 'auth' });
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, data.password_hash);
 
     if (!isValidPassword) {
+      // Record failed attempt
+      try {
+        await supabase.rpc('record_failed_login', {
+          attempt_user_id: data.id,
+          attempt_email: email.toLowerCase().trim(),
+          attempt_ip: ipAddress || null,
+          attempt_user_agent: null,
+          attempt_failure_reason: 'invalid_password'
+        });
+      } catch (e) {
+        logger.error('Failed to record failed login', e, { service: 'auth' });
+      }
       return null;
+    }
+
+    // Record successful login and clear any lockouts
+    try {
+      await supabase.rpc('record_successful_login', {
+        login_user_id: data.id,
+        login_email: email.toLowerCase().trim(),
+        login_ip: ipAddress || null,
+        login_user_agent: null
+      });
+    } catch (e) {
+      logger.error('Failed to record successful login', e, { service: 'auth' });
     }
 
     // Return user without password hash
@@ -144,9 +236,33 @@ export class DatabaseManager {
    * Update user password
    */
   static async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    // Validate password complexity
+    const validationResult = PasswordValidator.validate(newPassword, passwordRequirements);
+    if (!validationResult.isValid) {
+      throw new Error(validationResult.errors.join(', '));
+    }
+
+    // Check if password is in history
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
+    try {
+      const { data: isInHistory } = await supabase.rpc('is_password_in_history', {
+        check_user_id: userId,
+        check_password_hash: passwordHash
+      });
+
+      if (isInHistory) {
+        throw new Error('Password has been used recently. Please choose a different password.');
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('recently')) {
+        throw e; // Re-throw password reuse error
+      }
+      logger.error('Failed to check password history', e, { service: 'auth', userId });
+    }
+
+    // Update password
     const { error } = await supabase
       .from('users')
       .update({
@@ -155,7 +271,25 @@ export class DatabaseManager {
       })
       .eq('id', userId);
 
-    return !error;
+    if (error) {
+      return false;
+    }
+
+    // Add new password to history
+    try {
+      await supabase.rpc('add_password_to_history', {
+        history_user_id: userId,
+        new_password_hash: passwordHash
+      });
+    } catch (historyError) {
+      logger.warn('Failed to add password to history', {
+        service: 'auth',
+        userId,
+        error: historyError
+      });
+    }
+
+    return true;
   }
 
   /**
@@ -201,30 +335,29 @@ export class DatabaseManager {
   }
 
   /**
-   * Verify password strength
+   * Verify password strength (using PasswordValidator)
    */
   static isValidPassword(password: string): { valid: boolean; message?: string } {
-    if (password.length < 8) {
-      return { valid: false, message: 'Password must be at least 8 characters long' };
-    }
+    const result = PasswordValidator.validate(password, passwordRequirements);
+    return {
+      valid: result.isValid,
+      message: result.errors.join(', ')
+    };
+  }
 
-    if (!/(?=.*[a-z])/.test(password)) {
-      return { valid: false, message: 'Password must contain at least one lowercase letter' };
+  /**
+   * Check if account is locked
+   */
+  static async isAccountLocked(userId: string): Promise<boolean> {
+    try {
+      const { data } = await supabase.rpc('is_account_locked', {
+        check_user_id: userId
+      });
+      return !!data;
+    } catch (error) {
+      logger.error('Failed to check account lockout', error, { service: 'auth', userId });
+      return false; // Fail open to avoid locking out users
     }
-
-    if (!/(?=.*[A-Z])/.test(password)) {
-      return { valid: false, message: 'Password must contain at least one uppercase letter' };
-    }
-
-    if (!/(?=.*\d)/.test(password)) {
-      return { valid: false, message: 'Password must contain at least one number' };
-    }
-
-    if (!/(?=.*[@$!%*?&])/.test(password)) {
-      return { valid: false, message: 'Password must contain at least one special character (@$!%*?&)' };
-    }
-
-    return { valid: true };
   }
 }
 

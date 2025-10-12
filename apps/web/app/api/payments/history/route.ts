@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { EscrowTransaction } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -127,7 +128,10 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query;
     if (error) {
-      console.error('[API] payments history GET error', error);
+      logger.error('Failed to load payment history', error, { 
+        service: 'payments',
+        userId: user.id
+      });
       return NextResponse.json({ error: 'Failed to load payments' }, { status: 500 });
     }
 
@@ -139,9 +143,18 @@ export async function GET(request: NextRequest) {
       ? limitedRows[limitedRows.length - 1]?.created_at
       : undefined;
 
+    logger.info('Payment history retrieved', {
+      service: 'payments',
+      userId: user.id,
+      paymentCount: payments.length,
+      hasMore
+    });
+
     return NextResponse.json({ payments, nextCursor: nextCursorValue, limit });
   } catch (err) {
-    console.error('[API] payments history GET error', err);
+    logger.error('Failed to load payment history', err, { 
+      service: 'payments'
+    });
     return NextResponse.json({ error: 'Failed to load payments' }, { status: 500 });
   }
 }

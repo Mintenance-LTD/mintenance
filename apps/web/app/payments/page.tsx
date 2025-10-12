@@ -7,6 +7,8 @@ import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { PaymentCard } from '@/components/payments/PaymentCard';
 import { PaymentService } from '@/lib/services/PaymentService';
+import Logo from '../components/Logo';
+import Link from 'next/link';
 import type { EscrowTransaction, User } from '@mintenance/types';
 
 export default function PaymentsPage() {
@@ -16,6 +18,11 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Payments | Mintenance';
+  }, []);
 
   useEffect(() => {
     loadUserAndPayments();
@@ -130,6 +137,27 @@ export default function PaymentsPage() {
       minHeight: '100vh',
       backgroundColor: theme.colors.backgroundSecondary
     }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Logo className="w-10 h-10" />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary
+          }}>
+            Mintenance
+          </span>
+        </Link>
+      </div>
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',

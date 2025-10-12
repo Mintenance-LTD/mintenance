@@ -1,0 +1,8 @@
+apps/**/__tests__/**
+**/__tests__/**
+**/jest.config.js
+**/node_modules/**
+**/.test.ts
+**/.test.tsx
+packages/**/__tests__/**
+

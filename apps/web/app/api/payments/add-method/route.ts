@@ -3,13 +3,14 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
 });
 
 const addMethodSchema = z.object({
-  paymentMethodId: z.string(), // From Stripe.js on client side
+  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
   setAsDefault: z.boolean().default(false),
 });
 
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    logger.info('Payment method added successfully', {
+      service: 'payments',
+      userId: user.id,
+      paymentMethodId: paymentMethod.id,
+      type: paymentMethod.type,
+      isDefault: setAsDefault
+    });
+
     return NextResponse.json({
       success: true,
       paymentMethod: {
@@ -99,7 +108,7 @@ export async function POST(request: NextRequest) {
       isDefault: setAsDefault,
     });
   } catch (error) {
-    console.error('Error adding payment method:', error);
+    logger.error('Error adding payment method', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

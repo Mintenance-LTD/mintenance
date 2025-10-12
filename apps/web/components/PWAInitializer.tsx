@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { pwa } from '@/lib/pwa';
+import { logger } from '@/lib/logger';
 
 export function PWAInitializer() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -14,14 +15,14 @@ export function PWAInitializer() {
 
   useEffect(() => {
     if (!pwa.isSupported()) {
-      console.log('PWA features not supported');
+      logger.info('PWA features not supported');
       return;
     }
 
     // Register Service Worker
     pwa.register().then((registration) => {
       if (registration) {
-        console.log('Service Worker registered successfully');
+        logger.info('Service Worker registered successfully');
       }
     });
 
@@ -39,7 +40,7 @@ export function PWAInitializer() {
 
     const handleInstalled = () => {
       setInstallPromptAvailable(false);
-      console.log('PWA installed successfully');
+      logger.info('PWA installed successfully');
     };
 
     window.addEventListener('pwa-update-available', handleUpdateAvailable);

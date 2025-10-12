@@ -1,207 +1,84 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { designSystem } from '@/lib/design-system';
 
-type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'success' | 'danger' | 'ghost' | 'outline';
-
-export interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  onClick?: (e?: React.MouseEvent) => void;
-  variant?: ButtonVariant;
-  size?: 'sm' | 'md';
-  disabled?: boolean;
-  loading?: boolean;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
-  fullWidth?: boolean;
-  icon?: React.ReactNode;
-  iconPosition?: 'left' | 'right';
-  iconOnly?: boolean;
-  type?: 'button' | 'submit' | 'reset';
   style?: React.CSSProperties;
-  'aria-label'?: string;
-  'data-testid'?: string;
+  loading?: boolean;
+  fullWidth?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  children,
-  onClick,
+export function Button({ 
+  children, 
   variant = 'primary',
   size = 'md',
-  disabled = false,
-  loading = false,
   className = '',
-  fullWidth = false,
-  icon,
-  iconPosition = 'left',
-  iconOnly = false,
-  type = 'button',
   style = {},
-  'aria-label': ariaLabel,
-  'data-testid': testId,
-}) => {
-  const variantStyles = theme.components.button[variant];
+  loading = false,
+  fullWidth = false,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const variantStyle = variant === 'primary' 
+    ? designSystem.components.button.primary
+    : designSystem.components.button.secondary;
 
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: theme.typography.fontFamily.regular,
-    fontWeight: theme.typography.fontWeight.semibold,
-    fontSize: theme.typography.fontSize.lg,
-    lineHeight: theme.typography.lineHeight.normal,
-    border: '1px solid',
-    borderRadius: iconOnly ? theme.borderRadius.full : (size === 'sm' ? theme.borderRadius.base : theme.borderRadius.xl),
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.15s ease-in-out',
-    textDecoration: 'none',
-    outline: 'none',
-    position: 'relative' as const,
+  const sizeStyle = size === 'sm' 
+    ? { padding: '0.5rem 1rem', fontSize: '0.75rem' }
+    : size === 'lg'
+    ? { padding: '1rem 2rem', fontSize: '1rem' }
+    : {};
 
-    // Size-specific styles
-    minHeight: size === 'sm' ? theme.layout.minTouchTarget : theme.layout.buttonHeightLarge,
-    paddingLeft: iconOnly ? '0px' : (size === 'sm' ? theme.spacing[2] : theme.spacing[4]),
-    paddingRight: iconOnly ? '0px' : (size === 'sm' ? theme.spacing[2] : theme.spacing[4]),
-    minWidth: iconOnly ? theme.layout.minTouchTarget : 'auto',
+  const disabledStyle = (disabled || loading) 
+    ? { opacity: 0.5, cursor: 'not-allowed' }
+    : {};
 
-    // Variant-specific styles
-    backgroundColor: variantStyles.backgroundColor,
-    color: variantStyles.color,
-    borderColor: variantStyles.borderColor,
-
-    // Full width
-    width: fullWidth ? '100%' : 'auto',
-
-    // Shadow for elevated buttons
-    boxShadow: variantStyles.backgroundColor !== 'transparent' ? theme.shadows.base : 'none',
-  };
-
-  const disabledStyles = {
-    backgroundColor: theme.colors.textTertiary,
-    color: theme.colors.white,
-    borderColor: theme.colors.textTertiary,
-    boxShadow: 'none',
-    opacity: 0.6,
-  };
-
-  const hoverStyles = !disabled && !loading ? {
-    transform: 'translateY(-1px)',
-    boxShadow: variantStyles.backgroundColor !== 'transparent' ? theme.shadows.lg : 'none',
-  } : {};
-
-  const activeStyles = {
-    transform: 'translateY(0)',
-    boxShadow: variantStyles.backgroundColor !== 'transparent' ? theme.shadows.sm : 'none',
-  };
-
-  const linkStyles = variant === 'tertiary' ? {
-    textDecoration: 'underline',
-    fontWeight: theme.typography.fontWeight.medium,
-  } : {};
-
-  const finalStyles = {
-    ...baseStyles,
-    ...(disabled || loading ? disabledStyles : {}),
-    ...linkStyles,
-    ...style,
-  };
-
-  const handleClick = (e?: React.MouseEvent) => {
-    if (!disabled && !loading && onClick) {
-      onClick(e);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleClick();
-    }
-  };
+  const widthStyle = fullWidth ? { width: '100%' } : {};
 
   return (
-    <button
-      type={type}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
+    <button 
+      className={className}
+      style={{
+        ...variantStyle,
+        ...sizeStyle,
+        ...disabledStyle,
+        ...widthStyle,
+        ...style,
+      }}
       disabled={disabled || loading}
-      aria-label={ariaLabel || (typeof children === 'string' ? children : undefined)}
-      aria-disabled={disabled || loading}
-      data-testid={testId}
-      className={`button ${className}`}
-      style={finalStyles}
-      onMouseEnter={(e) => {
-        if (!disabled && !loading) {
-          Object.assign(e.currentTarget.style, hoverStyles);
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled && !loading) {
-          Object.assign(e.currentTarget.style, {
-            transform: 'translateY(0)',
-            boxShadow: variantStyles.backgroundColor !== 'transparent' ? theme.shadows.base : 'none',
-          });
-        }
-      }}
-      onMouseDown={(e) => {
-        if (!disabled && !loading) {
-          Object.assign(e.currentTarget.style, activeStyles);
-        }
-      }}
-      onMouseUp={(e) => {
-        if (!disabled && !loading) {
-          Object.assign(e.currentTarget.style, hoverStyles);
-        }
-      }}
+      {...props}
     >
-      {loading ? (
-        <div
-          style={{
-            width: '20px',
-            height: '20px',
-            border: `2px solid ${theme.colors.textInverse}`,
-            borderTop: '2px solid transparent',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-      ) : iconOnly ? (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {icon}
-        </div>
-      ) : (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: icon ? theme.spacing[1] : '0'
-        }}>
-          {icon && iconPosition === 'left' && (
-            <div style={{ marginRight: theme.spacing[1] }}>
-              {icon}
-            </div>
-          )}
-          {children}
-          {icon && iconPosition === 'right' && (
-            <div style={{ marginLeft: theme.spacing[1] }}>
-              {icon}
-            </div>
-          )}
-        </div>
+      {loading && (
+        <span style={{ marginRight: '0.5rem' }}>
+          <svg 
+            className="animate-spin h-4 w-4" 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24"
+            style={{ width: '1rem', height: '1rem' }}
+          >
+            <circle 
+              className="opacity-25" 
+              cx="12" 
+              cy="12" 
+              r="10" 
+              stroke="currentColor" 
+              strokeWidth="4"
+            ></circle>
+            <path 
+              className="opacity-75" 
+              fill="currentColor" 
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </span>
       )}
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .button:focus-visible {
-          outline: 2px solid ${theme.colors.borderFocus};
-          outline-offset: 2px;
-        }
-      `}</style>
+      {children}
     </button>
   );
-};
-
-export default Button;
+}

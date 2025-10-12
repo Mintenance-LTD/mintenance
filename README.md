@@ -35,6 +35,22 @@ A comprehensive contractor discovery platform connecting homeowners with verifie
 - npm or yarn
 - Expo CLI (for mobile development)
 
+### Environment Setup
+
+Before running the app, you need to configure environment variables:
+
+1. **Copy the environment template:**
+   ```bash
+   cp apps/web/.env.example apps/web/.env.local
+   ```
+
+2. **Update `.env.local` with your actual credentials:**
+   - Generate a strong `JWT_SECRET` (minimum 32 characters)
+   - Add your Supabase credentials (URL, anon key, service role key)
+   - Add your Stripe API keys (secret key, webhook secret, publishable key)
+
+3. **Important:** Never commit `.env.local` to version control
+
 ### Quick Start
 ```bash
 # Install dependencies
@@ -131,6 +147,70 @@ mintenance/
 │   └── shared/       # Common utilities
 └── e2e/              # End-to-end tests
 ```
+
+## 🚀 Production Deployment
+
+### Security Checklist
+
+Before deploying to production, ensure you complete these critical steps:
+
+#### 1. Generate Secure JWT_SECRET
+```bash
+# Generate a cryptographically secure 64-character secret
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+- **Minimum**: 32 characters
+- **Recommended**: 64+ characters
+- Use the output as your `JWT_SECRET` in production environment variables
+
+#### 2. Configure Production Environment Variables
+
+Set these in your hosting platform (Vercel, AWS, etc.):
+
+```env
+# CRITICAL: Use production values, never commit these
+JWT_SECRET=<your-64-char-cryptographic-secret>
+NEXT_PUBLIC_SUPABASE_URL=https://your-production-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-production-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<your-production-service-role-key>
+STRIPE_SECRET_KEY=sk_live_<your-production-stripe-key>
+STRIPE_WEBHOOK_SECRET=whsec_<your-production-webhook-secret>
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_<your-production-publishable-key>
+NEXT_PUBLIC_APP_URL=https://mintenance.co.uk
+NODE_ENV=production
+```
+
+#### 3. Verify Security Configuration
+
+- ✅ CSP headers automatically enabled in production
+- ✅ HSTS (HTTP Strict Transport Security) enabled
+- ✅ X-Powered-By header hidden
+- ✅ All sensitive headers configured
+- ✅ Rate limiting active on API routes
+
+#### 4. Test Before Going Live
+
+```bash
+# Build production version locally
+npm run build
+
+# Test production build
+npm run start
+
+# Run security tests
+npx playwright test e2e/security.spec.js
+```
+
+### Deployment Platforms
+
+**Vercel (Recommended for Web)**
+1. Connect your GitHub repository
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main
+
+**Mobile App Stores**
+- iOS: `npm run build:mobile` → Submit via App Store Connect
+- Android: `npm run build:mobile` → Submit via Google Play Console
 
 ## 📚 Documentation
 

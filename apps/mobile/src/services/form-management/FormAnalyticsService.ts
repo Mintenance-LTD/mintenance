@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 export interface FormAnalytics {
   id: string;
@@ -112,7 +113,7 @@ export class FormAnalyticsService {
         on_time_completion_rate: onTimeCompletionRate,
       };
     } catch (error) {
-      console.error('Error fetching job sheet summary stats:', error);
+      logger.error('Error fetching job sheet summary stats', error);
       throw new Error('Failed to fetch job sheet summary stats');
     }
   }
@@ -134,7 +135,7 @@ export class FormAnalyticsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating form analytics:', error);
+      logger.error('Error creating form analytics', error);
       throw new Error('Failed to create form analytics');
     }
   }
@@ -160,7 +161,7 @@ export class FormAnalyticsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching contractor analytics:', error);
+      logger.error('Error fetching contractor analytics', error);
       throw new Error('Failed to fetch contractor analytics');
     }
   }
@@ -209,7 +210,7 @@ export class FormAnalyticsService {
         completion_rate: completionRate,
       };
     } catch (error) {
-      console.error('Error fetching template performance stats:', error);
+      logger.error('Error fetching template performance stats', error);
       throw new Error('Failed to fetch template performance stats');
     }
   }
@@ -239,7 +240,7 @@ export class FormAnalyticsService {
           timestamp: new Date().toISOString(),
         });
     } catch (error) {
-      console.error('Error tracking form interaction:', error);
+      logger.error('Error tracking form interaction', error);
       // Don't throw error for analytics - fail silently
     }
   }
@@ -291,7 +292,7 @@ export class FormAnalyticsService {
         trends: trendsData || [],
       };
     } catch (error) {
-      console.error('Error generating performance report:', error);
+      logger.error('Error generating performance report', error);
       throw new Error('Failed to generate performance report');
     }
   }

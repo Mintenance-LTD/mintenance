@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from 'jose';
+import { randomBytes, createHash } from 'crypto';
 import type { JWTPayload } from '@mintenance/types';
 
 /**
@@ -8,13 +9,14 @@ export async function generateJWT(payload: {
   id: string;
   email: string;
   role: string;
-}, secret: string, expiresIn: string = '24h'): Promise<string> {
+}, secret: string, expiresIn: string = '1h'): Promise<string> {
   const secretKey = new TextEncoder().encode(secret);
 
   const token = await new SignJWT({
     sub: payload.id,
     email: payload.email,
-    role: payload.role
+    role: payload.role,
+    type: 'access'
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -22,6 +24,34 @@ export async function generateJWT(payload: {
     .sign(secretKey);
 
   return token;
+}
+
+/**
+ * Generate refresh token
+ */
+export function generateRefreshToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+/**
+ * Hash refresh token for storage
+ */
+export function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Generate token pair (access + refresh)
+ */
+export async function generateTokenPair(payload: {
+  id: string;
+  email: string;
+  role: string;
+}, secret: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const accessToken = await generateJWT(payload, secret, '1h');
+  const refreshToken = generateRefreshToken();
+  
+  return { accessToken, refreshToken };
 }
 
 /**

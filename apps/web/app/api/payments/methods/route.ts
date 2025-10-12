@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
@@ -72,12 +73,18 @@ export async function GET(request: NextRequest) {
       created: pm.created,
     }));
 
+    logger.info('Payment methods retrieved', {
+      service: 'payments',
+      userId: user.id,
+      methodCount: formattedMethods.length
+    });
+
     return NextResponse.json({
       paymentMethods: formattedMethods,
       stripeCustomerId,
     });
   } catch (error) {
-    console.error('Error fetching payment methods:', error);
+    logger.error('Error fetching payment methods', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

@@ -3,6 +3,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { ScreenErrorBoundary } from './ScreenErrorBoundary';
 import { QueryErrorBoundary } from './QueryErrorBoundary';
 import { AsyncErrorBoundary } from './AsyncErrorBoundary';
+import { logger } from '../utils/logger';
 
 // Main app error boundary wrapper
 interface AppErrorBoundaryProps {
@@ -13,7 +14,7 @@ export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({
   children,
 }) => {
   const handleGlobalError = (error: Error, errorInfo: any) => {
-    console.error('Global app error:', error);
+    logger.error('Global app error', error);
 
     try {
       const { captureException } = require('../config/sentry');
@@ -22,7 +23,7 @@ export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({
         extra: errorInfo,
       });
     } catch (sentryError) {
-      console.warn('Failed to report global error:', sentryError);
+      logger.warn('Failed to report global error', sentryError);
     }
   };
 
@@ -101,7 +102,7 @@ export {
 // Error boundary hook for functional components
 export const useErrorHandler = () => {
   const handleError = React.useCallback((error: Error, context?: string) => {
-    console.error(`Error in ${context || 'component'}:`, error);
+    logger.error(`Error in ${context || 'component'}`, error);
 
     // Report to error tracking service
     try {
@@ -113,7 +114,7 @@ export const useErrorHandler = () => {
         });
       });
     } catch (sentryError) {
-      console.warn('Failed to report error:', sentryError);
+      logger.warn('Failed to report error', sentryError);
     }
   }, []);
 

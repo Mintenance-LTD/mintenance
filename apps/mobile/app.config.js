@@ -127,8 +127,8 @@ export default {
           enableSeparateBuildPerCPUArchitecture: true,
           universalApk: false,
           enableHermes: true,
-          minSdkVersion: 23,
-          compileSdkVersion: 34,
+          minSdkVersion: 24,
+          compileSdkVersion: 35,
           targetSdkVersion: 34,
           buildToolsVersion: "34.0.0",
           packagingOptions: {

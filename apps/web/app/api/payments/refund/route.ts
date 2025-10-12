@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
@@ -109,7 +110,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Error updating escrow after refund:', updateError);
+      logger.error('Error updating escrow after refund - CRITICAL', updateError, {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        escrowTransactionId,
+        refundId: refund.id
+      });
       // Refund was processed by Stripe but DB update failed
       // This should trigger an alert in production
     }
@@ -120,6 +127,14 @@ export async function POST(request: NextRequest) {
       .update({ status: 'cancelled' })
       .eq('id', jobId);
 
+    logger.info('Refund processed successfully', {
+      service: 'payments',
+      userId: user.id,
+      jobId,
+      refundId: refund.id,
+      amount: refundAmount / 100
+    });
+
     return NextResponse.json({
       success: true,
       refundId: refund.id,
@@ -128,7 +143,7 @@ export async function POST(request: NextRequest) {
       escrowTransactionId: updatedEscrow?.id || escrowTransactionId,
     });
   } catch (error) {
-    console.error('Error processing refund:', error);
+    logger.error('Error processing refund', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

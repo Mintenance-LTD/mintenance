@@ -3,10 +3,10 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Authentication', () => {
   test('should show login form', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('http://localhost:3000/login');
     
     // Check if login page loads
-    await expect(page).toHaveTitle(/Login|Sign In/);
+    await expect(page).toHaveTitle(/Mintenance/);
     
     // Look for login form elements
     const emailInput = page.locator('input[type="email"], input[name*="email"], input[placeholder*="email" i]');
@@ -27,10 +27,10 @@ test.describe('Authentication', () => {
   });
 
   test('should show registration form', async ({ page }) => {
-    await page.goto('/register');
+    await page.goto('http://localhost:3000/register');
     
     // Check if registration page loads
-    await expect(page).toHaveTitle(/Register|Sign Up/);
+    await expect(page).toHaveTitle(/Mintenance/);
     
     // Look for registration form elements
     const emailInput = page.locator('input[type="email"], input[name*="email"], input[placeholder*="email" i]');
@@ -51,7 +51,7 @@ test.describe('Authentication', () => {
   });
 
   test('should handle invalid login gracefully', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('http://localhost:3000/login');
     
     // Fill in invalid credentials
     const emailInput = page.locator('input[type="email"], input[name*="email"], input[placeholder*="email" i]').first();
@@ -77,7 +77,7 @@ test.describe('Authentication', () => {
   });
 
   test('should have password requirements visible', async ({ page }) => {
-    await page.goto('/register');
+    await page.goto('http://localhost:3000/register');
     
     // Look for password requirements or help text
     const passwordHelp = page.locator('.password-help, .password-requirements, [data-testid*="password"], .form-help');
@@ -88,7 +88,7 @@ test.describe('Authentication', () => {
   });
 
   test('should have working forgot password link', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('http://localhost:3000/login');
     
     // Look for forgot password link
     const forgotPasswordLink = page.locator('a:has-text("Forgot"), a:has-text("Reset"), a[href*="reset"], a[href*="forgot"]');

@@ -37,7 +37,7 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
         extra: errorInfo,
       });
     } catch (sentryError) {
-      console.warn('Sentry tracking failed:', sentryError);
+      logger.warn('Sentry tracking failed', sentryError);
     }
   };
 

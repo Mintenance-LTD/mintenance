@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button } from './Button';
 import { theme } from '@/lib/theme';
 
@@ -87,7 +88,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   return (
     <nav className={`navigation navigation--${variant} ${className}`} style={containerStyles}>
       {items.map((item, index) => (
-        <a
+        <Link
           key={index}
           href={item.href}
           style={getItemStyles(item)}
@@ -104,24 +105,9 @@ export const Navigation: React.FC<NavigationProps> = ({
               {item.badge > 99 ? '99+' : item.badge}
             </span>
           )}
-        </a>
+        </Link>
       ))}
 
-      <style jsx>{`
-        .navigation__item:hover {
-          background-color: ${variant === 'vertical' ? theme.colors.surfaceTertiary : 'transparent'};
-          color: ${theme.colors.textPrimary};
-        }
-
-        .navigation__item--active {
-          background-color: ${variant === 'vertical' ? theme.colors.primary : 'transparent'};
-          color: ${variant === 'vertical' ? theme.colors.white : theme.colors.primary};
-        }
-
-        .navigation--tabs .navigation__item--active {
-          border-bottom-color: ${theme.colors.primary};
-        }
-      `}</style>
     </nav>
   );
 };

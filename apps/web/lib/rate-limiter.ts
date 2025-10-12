@@ -168,6 +168,13 @@ const loginLimiter = new InMemoryRateLimiter({
   skipSuccessfulRequests: true // Don't count successful logins
 });
 
+const passwordResetLimiter = new InMemoryRateLimiter({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  maxRequests: 3, // 3 reset requests per hour (very restrictive to prevent abuse)
+  blockDurationMs: 60 * 60 * 1000, // Block for 1 hour after limit exceeded
+  skipSuccessfulRequests: false // Count all requests
+});
+
 const generalApiLimiter = new InMemoryRateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   maxRequests: 100, // 100 requests per minute
@@ -237,6 +244,15 @@ export function recordSuccessfulLogin(request: NextRequest) {
 }
 
 /**
+ * Rate limit middleware for password reset endpoints
+ * Very restrictive: 3 requests per hour to prevent abuse
+ */
+export async function checkPasswordResetRateLimit(request: NextRequest) {
+  const identifier = getClientIdentifier(request);
+  return passwordResetLimiter.checkLimit(identifier);
+}
+
+/**
  * Rate limit middleware for general API endpoints
  */
 export async function checkApiRateLimit(request: NextRequest) {
@@ -261,4 +277,4 @@ export function createRateLimitHeaders(result: { limit: number; remaining: numbe
   return headers;
 }
 
-export { loginLimiter, generalApiLimiter };
+export { loginLimiter, passwordResetLimiter, generalApiLimiter };

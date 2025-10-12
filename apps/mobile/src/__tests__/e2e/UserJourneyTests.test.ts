@@ -148,34 +148,40 @@ describe('End-to-End User Journeys', () => {
       // Step 5: Payment setup (escrow)
       logger.debug('💳 Step 5: Payment setup');
 
-      PaymentService.createJobPayment = jest.fn().mockResolvedValueOnce({
+      PaymentService.createPaymentIntent = jest.fn().mockResolvedValueOnce({
         id: 'pi_test_payment',
         amount: testAmount * 100,
         currency: 'usd',
         status: 'requires_payment_method',
-        client_secret: 'pi_test_secret',
+        clientSecret: 'pi_test_secret',
+        metadata: { jobId: testJobId }
       });
 
-      PaymentService.createEscrowTransaction = jest.fn().mockResolvedValueOnce({
+      PaymentService.createEscrowPayment = jest.fn().mockResolvedValueOnce({
         id: 'escrow-123',
         jobId: testJobId,
-        payerId: mockHomeowner.id,
-        payeeId: mockContractor.id,
+        clientId: mockHomeowner.id,
+        contractorId: mockContractor.id,
         amount: testAmount,
+        currency: 'usd',
         status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        paymentIntentId: 'pi_test_payment',
+        releaseConditions: [],
+        createdAt: new Date(),
       });
 
-      const paymentIntent = await PaymentService.createJobPayment(
-        testJobId,
-        testAmount
+      const paymentIntent = await PaymentService.createPaymentIntent(
+        testAmount,
+        'usd',
+        { jobId: testJobId, contractorId: mockContractor.id, clientId: mockHomeowner.id }
       );
-      const escrowTransaction = await PaymentService.createEscrowTransaction(
+      const escrowTransaction = await PaymentService.createEscrowPayment(
         testJobId,
-        mockHomeowner.id,
         mockContractor.id,
-        testAmount
+        mockHomeowner.id,
+        testAmount,
+        'usd',
+        []
       );
 
       expect(paymentIntent.id).toBe('pi_test_payment');
@@ -232,25 +238,25 @@ describe('End-to-End User Journeys', () => {
       // Step 7: Push notifications
       logger.debug('🔔 Step 7: Push notifications');
 
-      NotificationService.sendNotificationToUser = jest
+      NotificationService.sendPushNotification = jest
         .fn()
         .mockResolvedValueOnce(undefined);
 
-      await NotificationService.sendNotificationToUser(
+      await NotificationService.sendPushNotification(
         mockContractor.id,
         'New Message',
         'Jane Homeowner sent you a message',
-        'message'
+        { type: 'message_received', jobId: testJobId }
       );
 
-      await NotificationService.sendNotificationToUser(
+      await NotificationService.sendPushNotification(
         mockHomeowner.id,
         'Contractor Response',
         'John Contractor responded to your message',
-        'message'
+        { type: 'message_received', jobId: testJobId }
       );
 
-      expect(NotificationService.sendNotificationToUser).toHaveBeenCalledTimes(
+      expect(NotificationService.sendPushNotification).toHaveBeenCalledTimes(
         2
       );
 
@@ -268,16 +274,18 @@ describe('End-to-End User Journeys', () => {
       // Step 9: Final notification
       logger.debug('🎉 Step 9: Completion notification');
 
-      await NotificationService.notifyPaymentReceived(
+      await NotificationService.sendPushNotification(
         mockContractor.id,
-        testAmount
+        'Payment Received',
+        `You received $${testAmount} for job completion`,
+        { type: 'payment_received', amount: testAmount }
       );
 
       // Verify the entire workflow completed successfully
       expect(JobService.createJob).toHaveBeenCalled();
       expect(RealAIAnalysisService.analyzeJobPhotos).toHaveBeenCalled();
       expect(JobService.submitBid).toHaveBeenCalled();
-      expect(PaymentService.createJobPayment).toHaveBeenCalled();
+      expect(PaymentService.createPaymentIntent).toHaveBeenCalled();
       expect(MessagingService.sendMessage).toHaveBeenCalledTimes(2);
       expect(JobService.completeJob).toHaveBeenCalled();
       expect(PaymentService.releaseEscrowPayment).toHaveBeenCalled();
@@ -292,12 +300,12 @@ describe('End-to-End User Journeys', () => {
       const testAmount = 200.0;
 
       // Simulate payment failure
-      PaymentService.createJobPayment = jest
+      PaymentService.createPaymentIntent = jest
         .fn()
         .mockRejectedValueOnce(new Error('Payment method declined'));
 
       try {
-        await PaymentService.createJobPayment(testJobId, testAmount);
+        await PaymentService.createPaymentIntent(testAmount, 'usd', { jobId: testJobId });
         fail('Expected payment to fail');
       } catch (error: any) {
         expect(error.message).toBe('Payment method declined');
@@ -327,17 +335,17 @@ describe('End-to-End User Journeys', () => {
     });
 
     it('should handle notification delivery failure', async () => {
-      NotificationService.sendNotificationToUser = jest
+      NotificationService.sendPushNotification = jest
         .fn()
         .mockResolvedValueOnce(undefined);
 
       // Should not throw even if notification fails internally
       await expect(
-        NotificationService.sendNotificationToUser(
+        NotificationService.sendPushNotification(
           'invalid-user',
           'Test',
           'Message',
-          'system'
+          { type: 'system' }
         )
       ).resolves.toBeUndefined();
     });
@@ -421,19 +429,19 @@ describe('End-to-End User Journeys', () => {
     it('should handle batch notifications efficiently', async () => {
       const userIds = Array.from({ length: 50 }, (_, i) => `user-${i}`);
 
-      NotificationService.sendNotificationToUsers = jest
+      NotificationService.sendBulkNotification = jest
         .fn()
         .mockResolvedValueOnce(undefined);
 
-      await NotificationService.sendNotificationToUsers(
+      await NotificationService.sendBulkNotification(
         userIds,
         'Batch Notification',
         'This is a batch message',
-        'system'
+        { type: 'system' }
       );
 
       // Should call batch API once, not individual calls
-      expect(NotificationService.sendNotificationToUsers).toHaveBeenCalledTimes(
+      expect(NotificationService.sendBulkNotification).toHaveBeenCalledTimes(
         1
       );
     });
@@ -463,17 +471,26 @@ describe('End-to-End User Journeys', () => {
       await JobService.updateJobStatus(testJobId, 'assigned', 'contractor-456');
 
       // Create escrow transaction
-      PaymentService.createEscrowTransaction = jest.fn().mockResolvedValueOnce({
+      PaymentService.createEscrowPayment = jest.fn().mockResolvedValueOnce({
         id: 'escrow-consistency',
         jobId: testJobId,
+        contractorId: 'contractor-456',
+        clientId: 'homeowner-123',
+        amount: 100,
+        currency: 'usd',
         status: 'pending',
+        paymentIntentId: 'pi_test',
+        releaseConditions: [],
+        createdAt: new Date(),
       });
 
-      const escrow = await PaymentService.createEscrowTransaction(
+      const escrow = await PaymentService.createEscrowPayment(
         testJobId,
-        'homeowner-123',
         'contractor-456',
-        100
+        'homeowner-123',
+        100,
+        'usd',
+        []
       );
 
       // Verify data consistency
@@ -517,7 +534,7 @@ describe('End-to-End User Journeys', () => {
         messageText: 'Test message',
       });
 
-      NotificationService.sendNotificationToUser = jest
+      NotificationService.sendPushNotification = jest
         .fn()
         .mockRejectedValueOnce(new Error('Notification service down'));
 
@@ -533,11 +550,11 @@ describe('End-to-End User Journeys', () => {
 
       // Notification failure should not affect message delivery
       try {
-        await NotificationService.sendNotificationToUser(
+        await NotificationService.sendPushNotification(
           'user-2',
           'New Message',
           'You have a new message',
-          'message'
+          { type: 'message_received' }
         );
       } catch (error) {
         // Expected to fail, but shouldn't affect other services

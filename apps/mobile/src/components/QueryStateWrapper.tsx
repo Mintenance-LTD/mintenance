@@ -259,7 +259,7 @@ export const MutationStateWrapper = <TData, TVariables>({
 
       if (showErrorAlert) {
         // Could integrate with your alert/toast system
-        console.error('Mutation error:', (mutation.error as any)?.message);
+        logger.error('Mutation error', (mutation.error as any)?.message);
       }
     }
   }, [(mutation as any).isError, mutation.error, onError, showErrorAlert]);

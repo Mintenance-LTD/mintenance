@@ -1,175 +1,150 @@
+#!/usr/bin/env node
+
+/**
+ * Replace console.log with proper logger
+ * 
+ * This script helps identify and optionally replace console.log
+ * statements with the production-safe logger.
+ */
+
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
-// Patterns to replace
-const replacements = [
-  // Basic console.log replacements
-  {
-    pattern: /console\.log\s*\(\s*['"`](.*?)['"`]\s*\)/g,
-    replacement: `logger.debug('$1')`,
-  },
-  {
-    pattern: /console\.log\s*\(\s*['"`](.*?)['"`]\s*,\s*(.*?)\s*\)/g,
-    replacement: `logger.debug('$1', { data: $2 })`,
-  },
-  {
-    pattern: /console\.log\s*\(\s*(['"`].*?['"`])\s*,\s*(.*?)\s*\)/g,
-    replacement: `logger.debug($1, { data: $2 })`,
-  },
-
-  // Console.error replacements
-  {
-    pattern: /console\.error\s*\(\s*['"`](.*?)['"`]\s*,\s*(.*?)\s*\)/g,
-    replacement: `logger.error('$1', $2)`,
-  },
-  {
-    pattern: /console\.error\s*\(\s*['"`](.*?)['"`]\s*\)/g,
-    replacement: `logger.error('$1')`,
-  },
-
-  // Console.warn replacements
-  {
-    pattern: /console\.warn\s*\(\s*['"`](.*?)['"`]\s*,\s*(.*?)\s*\)/g,
-    replacement: `logger.warn('$1', { data: $2 })`,
-  },
-  {
-    pattern: /console\.warn\s*\(\s*['"`](.*?)['"`]\s*\)/g,
-    replacement: `logger.warn('$1')`,
-  },
-
-  // Console.info replacements
-  {
-    pattern: /console\.info\s*\(\s*['"`](.*?)['"`]\s*,\s*(.*?)\s*\)/g,
-    replacement: `logger.info('$1', { data: $2 })`,
-  },
-  {
-    pattern: /console\.info\s*\(\s*['"`](.*?)['"`]\s*\)/g,
-    replacement: `logger.info('$1')`,
-  },
+// Directories to scan
+const SCAN_DIRS = [
+  'apps/mobile/src',
+  'apps/web',
+  'packages'
 ];
 
-// Files to skip (generated files, node_modules, etc.)
-const skipPatterns = [
-  /node_modules/,
-  /coverage/,
-  /\.git/,
-  /dist/,
-  /build/,
-  /\.expo/,
-  /prettify\.js/,
-  /lcov-report/,
+// Files to exclude
+const EXCLUDE_PATTERNS = [
+  'node_modules',
+  '.next',
+  'dist',
+  'build',
+  '.expo',
+  '__tests__',
+  '.test.',
+  '.spec.',
+  'coverage'
 ];
 
-function shouldSkipFile(filePath) {
-  return skipPatterns.some((pattern) => pattern.test(filePath));
+function shouldExclude(filePath) {
+  return EXCLUDE_PATTERNS.some(pattern => filePath.includes(pattern));
 }
 
-function needsLoggerImport(content) {
-  // Check if any logger method is used in the content
-  return /logger\.(debug|info|warn|error|performance|network|userAction|navigation|auth)/.test(
-    content
-  );
-}
+function getAllFiles(dirPath, arrayOfFiles = []) {
+  const files = fs.readdirSync(dirPath);
 
-function addLoggerImport(content, filePath) {
-  // Determine the correct import path based on file location
-  const relativePath = path.relative(
-    path.dirname(filePath),
-    path.join(__dirname, '..', 'src', 'utils', 'logger')
-  );
-  const importPath = relativePath.startsWith('.')
-    ? relativePath
-    : `./${relativePath}`;
-
-  // Add import at the top of the file
-  const importStatement = `import { logger } from '${importPath.replace(/\\/g, '/')}';\n`;
-
-  // Find the position to insert the import (after other imports)
-  const lines = content.split('\n');
-  let insertIndex = 0;
-
-  // Find the last import statement
-  for (let i = 0; i < lines.length; i++) {
-    if (
-      lines[i].trim().startsWith('import ') ||
-      (lines[i].trim().startsWith('const ') && lines[i].includes('require('))
-    ) {
-      insertIndex = i + 1;
-    } else if (lines[i].trim() === '' && insertIndex > 0) {
-      // Skip empty lines after imports
-      continue;
-    } else if (lines[i].trim() && insertIndex > 0) {
-      break;
-    }
-  }
-
-  lines.splice(insertIndex, 0, importStatement);
-  return lines.join('\n');
-}
-
-function processFile(filePath) {
-  if (shouldSkipFile(filePath)) {
-    return;
-  }
-
-  try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    let newContent = content;
-    let hasChanges = false;
-
-    // Apply replacements
-    replacements.forEach(({ pattern, replacement }) => {
-      const beforeLength = newContent.length;
-      newContent = newContent.replace(pattern, replacement);
-      if (newContent.length !== beforeLength) {
-        hasChanges = true;
-      }
-    });
-
-    // Add logger import if needed and changes were made
-    if (
-      hasChanges &&
-      needsLoggerImport(newContent) &&
-      !newContent.includes("from '../utils/logger'") &&
-      !newContent.includes("from './logger'")
-    ) {
-      newContent = addLoggerImport(newContent, filePath);
+  files.forEach(file => {
+    const fullPath = path.join(dirPath, file);
+    
+    if (shouldExclude(fullPath)) {
+      return;
     }
 
-    // Write back if there were changes
-    if (hasChanges) {
-      fs.writeFileSync(filePath, newContent, 'utf8');
-      console.log(`✓ Updated: ${filePath}`);
-    }
-  } catch (error) {
-    console.error(`✗ Error processing ${filePath}:`, error.message);
-  }
-}
-
-function processDirectory(dirPath) {
-  const items = fs.readdirSync(dirPath);
-
-  items.forEach((item) => {
-    const fullPath = path.join(dirPath, item);
-    const stat = fs.statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      processDirectory(fullPath);
-    } else if (stat.isFile() && /\.(ts|tsx|js|jsx)$/.test(item)) {
-      processFile(fullPath);
+    if (fs.statSync(fullPath).isDirectory()) {
+      arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
+    } else if (/\.(ts|tsx|js|jsx)$/.test(file)) {
+      arrayOfFiles.push(fullPath);
     }
   });
+
+  return arrayOfFiles;
 }
 
-// Main execution
-console.log('🔍 Replacing console.log statements with logger...');
-console.log('📁 Processing src/ directory...');
+function analyzeFile(filePath) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const lines = content.split('\n');
+  const issues = [];
 
-const srcDir = path.join(__dirname, '..', 'src');
-processDirectory(srcDir);
+  lines.forEach((line, index) => {
+    // Match console.log, console.error, console.warn, console.info
+    const consoleMatch = line.match(/console\.(log|error|warn|info|debug)/);
+    
+    if (consoleMatch) {
+      issues.push({
+        file: filePath,
+        line: index + 1,
+        type: consoleMatch[1],
+        code: line.trim()
+      });
+    }
+  });
 
-console.log('✅ Console.log replacement completed!');
-console.log(
-  '📝 Note: Please review the changes and adjust import paths if needed.'
-);
+  return issues;
+}
+
+function generateReport() {
+  console.log('🔍 Scanning for console.* statements...\n');
+
+  let allIssues = [];
+
+  SCAN_DIRS.forEach(dir => {
+    if (fs.existsSync(dir)) {
+      const files = getAllFiles(dir);
+      files.forEach(file => {
+        const issues = analyzeFile(file);
+        allIssues = allIssues.concat(issues);
+      });
+    }
+  });
+
+  // Group by type
+  const byType = allIssues.reduce((acc, issue) => {
+    acc[issue.type] = (acc[issue.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Group by file
+  const byFile = allIssues.reduce((acc, issue) => {
+    const fileName = path.basename(issue.file);
+    if (!acc[fileName]) {
+      acc[fileName] = [];
+    }
+    acc[fileName].push(issue);
+    return acc;
+  }, {});
+
+  console.log('📊 Summary:');
+  console.log('  Total console statements:', allIssues.length);
+  console.log('  By type:', JSON.stringify(byType, null, 2));
+  console.log('\n📁 Files with most console statements:');
+  
+  const sortedFiles = Object.entries(byFile)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 20);
+
+  sortedFiles.forEach(([fileName, issues]) => {
+    console.log(`  ${fileName}: ${issues.length} statement(s)`);
+  });
+
+  console.log('\n📝 Sample issues (first 10):');
+  allIssues.slice(0, 10).forEach(issue => {
+    console.log(`  ${path.relative(process.cwd(), issue.file)}:${issue.line}`);
+    console.log(`    ${issue.code}`);
+  });
+
+  // Generate replacement guide
+  console.log('\n📖 Replacement Guide:');
+  console.log('  console.log(msg, data)   →  logger.info(msg, { ...data })');
+  console.log('  console.error(msg, err)  →  logger.error(msg, err, { context })');
+  console.log('  console.warn(msg)        →  logger.warn(msg)');
+  console.log('  console.debug(msg)       →  logger.debug(msg)');
+
+  console.log('\n💡 Next Steps:');
+  console.log('  1. Import logger: import { logger } from \'@mintenance/shared\';');
+  console.log('  2. Replace console statements systematically');
+  console.log('  3. Add context objects for better debugging');
+  console.log('  4. Test in both development and production modes');
+
+  return allIssues;
+}
+
+// Run the analysis
+if (require.main === module) {
+  generateReport();
+}
+
+module.exports = { analyzeFile, getAllFiles };

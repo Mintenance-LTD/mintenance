@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use } from 'react';
+import React, { useState, useEffect, useRef, use, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
@@ -18,7 +18,7 @@ interface ChatPageProps {
   }>;
 }
 
-export default function ChatPage({ params }: ChatPageProps) {
+function ChatContent({ params }: ChatPageProps) {
   const { jobId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -400,5 +400,13 @@ export default function ChatPage({ params }: ChatPageProps) {
         />
       </div>
     </div>
+  );
+}
+
+export default function ChatPage({ params }: ChatPageProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+      <ChatContent params={params} />
+    </Suspense>
   );
 }

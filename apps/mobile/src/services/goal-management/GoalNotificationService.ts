@@ -7,6 +7,7 @@
 
 import { supabase } from '../../config/supabase';
 import { Goal } from './types';
+import { logger } from '../../utils/logger';
 
 export class GoalNotificationService {
   /**
@@ -23,7 +24,7 @@ export class GoalNotificationService {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('Failed to send goal created notification:', error);
+      logger.error('Failed to send goal created notification', error);
     }
   }
 
@@ -41,7 +42,7 @@ export class GoalNotificationService {
         priority: 'low',
       });
     } catch (error) {
-      console.error('Failed to send goal updated notification:', error);
+      logger.error('Failed to send goal updated notification', error);
     }
   }
 
@@ -59,7 +60,7 @@ export class GoalNotificationService {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('Failed to send goal deleted notification:', error);
+      logger.error('Failed to send goal deleted notification', error);
     }
   }
 
@@ -90,7 +91,7 @@ export class GoalNotificationService {
         });
       }
     } catch (error) {
-      console.error('Failed to send progress update notification:', error);
+      logger.error('Failed to send progress update notification', error);
     }
   }
 
@@ -111,7 +112,7 @@ export class GoalNotificationService {
         priority: 'high',
       });
     } catch (error) {
-      console.error('Failed to send milestone completed notification:', error);
+      logger.error('Failed to send milestone completed notification', error);
     }
   }
 
@@ -143,7 +144,7 @@ export class GoalNotificationService {
         });
       }
     } catch (error) {
-      console.error('Failed to send deadline reminders:', error);
+      logger.error('Failed to send deadline reminders', error);
     }
   }
 
@@ -179,7 +180,7 @@ export class GoalNotificationService {
         });
       }
     } catch (error) {
-      console.error('Failed to send overdue notifications:', error);
+      logger.error('Failed to send overdue notifications', error);
     }
   }
 
@@ -200,7 +201,7 @@ export class GoalNotificationService {
         priority: 'medium',
       });
     } catch (error) {
-      console.error('Failed to send blocker resolved notification:', error);
+      logger.error('Failed to send blocker resolved notification', error);
     }
   }
 
@@ -241,7 +242,7 @@ export class GoalNotificationService {
         this.sendOverdueNotifications(),
       ]);
     } catch (error) {
-      console.error('Failed to schedule recurring notifications:', error);
+      logger.error('Failed to schedule recurring notifications', error);
     }
   }
 }

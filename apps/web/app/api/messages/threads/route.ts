@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { MessageThread } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 import {
   buildThreadParticipants,
   mapMessageRow,
@@ -70,7 +71,10 @@ export async function GET(request: NextRequest) {
       .limit(fetchLimit);
 
     if (jobsError) {
-      console.error('[API] threads GET jobs error', jobsError);
+      logger.error('Failed to load message threads - jobs query failed', jobsError, { 
+        service: 'messages',
+        userId: user.id
+      });
       return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
     }
 
@@ -105,7 +109,11 @@ export async function GET(request: NextRequest) {
         .limit(messageLimit);
 
       if (messageError) {
-        console.error('[API] threads GET messages error', messageError);
+        logger.error('Failed to load message threads - messages query failed', messageError, {
+          service: 'messages',
+          userId: user.id,
+          jobCount: jobIds.length
+        });
         return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
       }
 
@@ -127,7 +135,11 @@ export async function GET(request: NextRequest) {
         .in('job_id', jobIds);
 
       if (unreadError) {
-        console.error('[API] threads GET unread error', unreadError);
+        logger.warn('Failed to load unread counts', {
+          service: 'messages',
+          userId: user.id,
+          error: unreadError.message
+        });
       } else {
         for (const row of (unreadData ?? []) as { id: string; job_id: string }[]) {
           unreadCounts.set(row.job_id, (unreadCounts.get(row.job_id) ?? 0) + 1);
@@ -165,13 +177,22 @@ export async function GET(request: NextRequest) {
       ? new Date(limitedThreads[limitedThreads.length - 1].lastActivity).toISOString()
       : undefined;
 
+    logger.info('Message threads retrieved', {
+      service: 'messages',
+      userId: user.id,
+      threadCount: limitedThreads.length,
+      hasMore
+    });
+
     return NextResponse.json({
       threads: limitedThreads.map(({ lastActivity: _lastActivity, ...thread }) => thread),
       nextCursor: nextCursorValue,
       limit,
     });
   } catch (err) {
-    console.error('[API] threads GET error', err);
+    logger.error('Failed to load message threads', err, {
+      service: 'messages'
+    });
     return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
   }
 }

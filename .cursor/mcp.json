@@ -6,16 +6,6 @@
         "CONTEXT7_API_KEY": ""
       }
     },
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase",
-        "--read-only",
-        "--project-ref=ukrjudtlvapiajkjbcrd",
-        "--features=database,types"
-      ]
-    },
     "google-maps": {
       "command": "npx",
       "args": [

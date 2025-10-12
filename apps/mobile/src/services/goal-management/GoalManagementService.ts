@@ -7,6 +7,7 @@
 
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 import { GoalRepository } from './GoalRepository';
 import { GoalAnalyticsService } from './GoalAnalyticsService';
 import { GoalNotificationService } from './GoalNotificationService';
@@ -266,7 +267,7 @@ export class GoalManagementService {
       }
     } catch (error) {
       // Log error but don't throw - this is a background process
-      console.error('Error checking milestones:', error);
+      logger.error('Error checking milestones', error);
     }
   }
 }

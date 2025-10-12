@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
+import { logger } from '../services/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
   contractorBusinessSuite,
@@ -55,7 +56,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
       setClients([]);
       setAnalytics(analyticsData);
     } catch (error) {
-      console.error('Error loading CRM data:', error);
+      logger.error('Error loading CRM data', error);
       Alert.alert('Error', 'Failed to load client data');
     } finally {
       setLoading(false);

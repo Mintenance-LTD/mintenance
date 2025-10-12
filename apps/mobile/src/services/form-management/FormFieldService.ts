@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 export interface FormField {
   id: string;
@@ -66,7 +67,7 @@ export class FormFieldService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating form field:', error);
+      logger.error('Error creating form field', error);
       throw new Error('Failed to create form field');
     }
   }
@@ -82,7 +83,7 @@ export class FormFieldService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching form fields:', error);
+      logger.error('Error fetching form fields', error);
       throw new Error('Failed to fetch form fields');
     }
   }
@@ -105,7 +106,7 @@ export class FormFieldService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating form field:', error);
+      logger.error('Error updating form field', error);
       throw new Error('Failed to update form field');
     }
   }
@@ -119,7 +120,7 @@ export class FormFieldService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting form field:', error);
+      logger.error('Error deleting form field', error);
       throw new Error('Failed to delete form field');
     }
   }
@@ -138,7 +139,7 @@ export class FormFieldService {
 
       await Promise.all(updates);
     } catch (error) {
-      console.error('Error reordering form fields:', error);
+      logger.error('Error reordering form fields', error);
       throw new Error('Failed to reorder form fields');
     }
   }

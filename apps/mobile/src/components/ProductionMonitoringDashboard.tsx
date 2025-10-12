@@ -14,6 +14,7 @@ import {
   errorTracking,
   webPlatform
 } from '../utils/productionSetupGuide';
+import { logger } from '../utils/logger';
 
 interface DashboardStatus {
   overall: {
@@ -49,7 +50,7 @@ export function ProductionMonitoringDashboard() {
       setStatus(data);
       setLastRefresh(Date.now());
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      logger.error('Failed to load dashboard data', error);
       errorTracking.trackError(error as Error, { context: 'dashboard_load_failure' });
     } finally {
       setLoading(false);

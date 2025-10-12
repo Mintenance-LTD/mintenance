@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { validateRequest } from '@/lib/validation/validator';
+import { paymentIntentSchema } from '@/lib/validation/schemas';
+import { logger } from '@mintenance/shared';
 
 // Initialize Stripe with secret key (server-side only)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
-});
-
-const createIntentSchema = z.object({
-  jobId: z.string().uuid(),
-  amount: z.number().positive().max(1000000), // Max $1M
-  currency: z.string().default('usd'),
-  description: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -21,21 +16,21 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
+      logger.warn('Unauthorized payment intent creation attempt', {
+        service: 'payments',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = createIntentSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, paymentIntentSchema);
+    if ('headers' in validation) {
+      // Validation failed - return error response
+      return validation;
     }
 
-    const { jobId, amount, currency, description } = parsed.data;
+    const { amount, currency, jobId, contractorId, metadata } = validation.data;
 
     // Verify job exists and user is the homeowner
     const { data: job, error: jobError } = await serverSupabase
@@ -45,22 +40,38 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (jobError || !job) {
+      logger.warn('Payment intent creation for non-existent job', {
+        service: 'payments',
+        userId: user.id,
+        jobId
+      });
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
     if (job.homeowner_id !== user.id) {
+      logger.warn('Unauthorized payment intent creation attempt', {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        homeownerId: job.homeowner_id
+      });
       return NextResponse.json({ error: 'Only the homeowner can create payments' }, { status: 403 });
     }
 
     if (!job.contractor_id) {
+      logger.warn('Payment intent creation for job without contractor', {
+        service: 'payments',
+        userId: user.id,
+        jobId
+      });
       return NextResponse.json({ error: 'Job has no assigned contractor' }, { status: 400 });
     }
 
     // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
-      currency: currency.toLowerCase(),
-      description: description || `Payment for job: ${job.title}`,
+      currency: (currency || 'usd').toLowerCase(),
+      description: metadata?.description || `Payment for job: ${job.title}`,
       metadata: {
         jobId,
         homeownerId: user.id,
@@ -87,14 +98,33 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (escrowError) {
-      console.error('Error creating escrow transaction:', escrowError);
+      logger.error('Error creating escrow transaction', escrowError, {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        paymentIntentId: paymentIntent.id
+      });
       // Try to cancel the payment intent if DB insert fails
-      await stripe.paymentIntents.cancel(paymentIntent.id).catch(console.error);
+      await stripe.paymentIntents.cancel(paymentIntent.id).catch(err => 
+        logger.error('Failed to cancel payment intent after escrow error', err, {
+          service: 'payments',
+          paymentIntentId: paymentIntent.id
+        })
+      );
       return NextResponse.json(
         { error: 'Failed to create escrow transaction' },
         { status: 500 }
       );
     }
+
+    logger.info('Payment intent created successfully', {
+      service: 'payments',
+      userId: user.id,
+      jobId,
+      amount,
+      currency,
+      escrowTransactionId: escrowTransaction.id
+    });
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
@@ -104,7 +134,7 @@ export async function POST(request: NextRequest) {
       currency,
     });
   } catch (error) {
-    console.error('Error creating payment intent:', error);
+    logger.error('Error creating payment intent', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

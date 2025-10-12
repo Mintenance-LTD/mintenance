@@ -92,6 +92,10 @@ export interface ContractorSearchResult {
     state: string;
     distance: number;
   };
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   availability: {
     immediate: boolean;
     thisWeek: boolean;

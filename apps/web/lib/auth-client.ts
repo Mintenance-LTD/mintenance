@@ -1,6 +1,7 @@
 'use client';
 
 import type { User } from '@mintenance/types';
+import { logger } from './logger';
 
 interface SessionResponse {
   user?: User | null;
@@ -28,7 +29,7 @@ export async function fetchCurrentUser(signal?: AbortSignal): Promise<User | nul
     const data = (await response.json()) as SessionResponse;
     return data.user ?? null;
   } catch (error) {
-    console.error('[Auth] Failed to fetch current user', error);
+    logger.error('[Auth] Failed to fetch current user', error);
     return null;
   }
 }

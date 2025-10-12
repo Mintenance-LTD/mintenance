@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
@@ -98,12 +99,25 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Error releasing escrow:', updateError);
+      logger.error('Error releasing escrow', updateError, {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        escrowTransactionId
+      });
       return NextResponse.json(
         { error: 'Failed to release escrow' },
         { status: 500 }
       );
     }
+
+    logger.info('Escrow funds released successfully', {
+      service: 'payments',
+      userId: user.id,
+      jobId,
+      escrowTransactionId: updatedEscrow.id,
+      amount: updatedEscrow.amount
+    });
 
     return NextResponse.json({
       success: true,
@@ -113,7 +127,7 @@ export async function POST(request: NextRequest) {
       message: 'Funds released successfully',
     });
   } catch (error) {
-    console.error('Error releasing escrow:', error);
+    logger.error('Error releasing escrow', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

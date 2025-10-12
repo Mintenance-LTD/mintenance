@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
+import { logger } from '../services/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { type Invoice } from '../services/contractor-business';
 import { InvoiceCard } from '../components/InvoiceCard';
@@ -46,7 +47,7 @@ export const InvoiceManagementScreen: React.FC<
       // TODO: implement invoice listing API in contractorBusinessSuite
       setInvoices([]);
     } catch (error) {
-      console.error('Error loading invoices:', error);
+      logger.error('Error loading invoices', error);
       Alert.alert('Error', 'Failed to load invoices');
     } finally {
       setLoading(false);

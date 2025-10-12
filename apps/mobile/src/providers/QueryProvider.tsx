@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import {
@@ -88,12 +87,6 @@ const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {__DEV__ && (
-        <ReactQueryDevtools
-          initialIsOpen={false}
-          buttonPosition='bottom-right'
-        />
-      )}
     </QueryClientProvider>
   );
 };

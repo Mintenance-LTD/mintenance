@@ -155,10 +155,10 @@ export const theme = {
     // Aliases
     xs: '4px',
     sm: '8px',
-    md: '12px',
-    lg: '16px',
-    xl: '24px',
-    '2xl': '32px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+    '2xl': '48px',
   },
 
   // Border Radius

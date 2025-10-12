@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { ConversationCard } from '@/components/messaging/ConversationCard';
 import { MessagingService } from '@/lib/services/MessagingService';
+import Logo from '../components/Logo';
+import Link from 'next/link';
 import type { MessageThread, User } from '@mintenance/types';
 
 export default function MessagesPage() {
@@ -15,6 +18,11 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<MessageThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Messages | Mintenance';
+  }, []);
 
   useEffect(() => {
     loadUserAndMessages();
@@ -55,7 +63,30 @@ export default function MessagesPage() {
     return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
   };
 
-  if (!user) {
+  // Show loading state while checking authentication
+  if (loading && !user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.backgroundSecondary
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontSize: theme.typography.fontSize.lg,
+            color: theme.colors.textSecondary
+          }}>
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show access denied after loading is complete and user is still null
+  if (!loading && !user) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -95,6 +126,28 @@ export default function MessagesPage() {
       minHeight: '100vh',
       backgroundColor: theme.colors.backgroundSecondary
     }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Logo className="w-10 h-10" />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary
+          }}>
+            Mintenance
+          </span>
+        </Link>
+      </div>
+
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -138,7 +191,10 @@ export default function MessagesPage() {
               variant="outline"
               size="sm"
             >
-              📋 View Jobs
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon name="briefcase" size={16} color="white" />
+                <span>View Jobs</span>
+              </div>
             </Button>
             <Button
               onClick={loadUserAndMessages}
@@ -233,13 +289,19 @@ export default function MessagesPage() {
                   onClick={() => router.push('/jobs')}
                   variant="primary"
                 >
-                  📋 Browse Jobs
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon name="briefcase" size={16} color={theme.colors.primary} />
+                    <span>Browse Jobs</span>
+                  </div>
                 </Button>
                 <Button
                   onClick={() => router.push('/contractors')}
                   variant="outline"
                 >
-                  🔧 Find Contractors
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon name="discover" size={16} color={theme.colors.textPrimary} />
+                    <span>Find Contractors</span>
+                  </div>
                 </Button>
                 <Button
                   onClick={() => router.push('/discover')}

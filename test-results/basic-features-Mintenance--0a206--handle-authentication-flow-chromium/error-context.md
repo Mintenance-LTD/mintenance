@@ -1,0 +1,71 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - link "Mintenance Logo Mintenance" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img "Mintenance Logo" [ref=e6] [cursor=pointer]
+        - heading "Mintenance" [level=1] [ref=e7] [cursor=pointer]
+      - heading "Join Mintenance Today" [level=2] [ref=e8]
+      - paragraph [ref=e9]: Find trusted tradespeople for your home projects
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - img [ref=e12]
+          - paragraph [ref=e14]: Verified tradespeople only
+        - generic [ref=e15]:
+          - img [ref=e16]
+          - paragraph [ref=e18]: Secure payment protection
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - paragraph [ref=e22]: AI-powered matching
+    - generic [ref=e23]:
+      - paragraph [ref=e24]: © 2025 MINTENANCE LTD
+      - paragraph [ref=e25]: Company No. 16542104
+  - generic [ref=e27]:
+    - heading "Create your account" [level=2] [ref=e28]
+    - paragraph [ref=e29]:
+      - text: Already have an account?
+      - link "Sign in" [ref=e30] [cursor=pointer]:
+        - /url: /login
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: I am a
+        - generic [ref=e34]:
+          - button "Homeowner" [ref=e35] [cursor=pointer]
+          - button "Tradesperson" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: First name
+          - textbox "First name" [ref=e40]
+        - generic [ref=e41]:
+          - generic [ref=e42]: Last name
+          - textbox "Last name" [ref=e43]
+      - generic [ref=e44]:
+        - generic [ref=e45]: Email address
+        - textbox "Email address" [ref=e46]
+      - generic [ref=e47]:
+        - generic [ref=e48]: Phone number
+        - textbox "Phone number" [ref=e49]
+      - generic [ref=e50]:
+        - generic [ref=e51]: Password
+        - textbox "Password" [ref=e52]
+        - generic [ref=e53]:
+          - paragraph [ref=e54]: "Password must contain:"
+          - list [ref=e55]:
+            - listitem [ref=e56]: • At least 8 characters
+            - listitem [ref=e57]: • One uppercase letter (A-Z)
+            - listitem [ref=e58]: • One lowercase letter (a-z)
+            - listitem [ref=e59]: • One number (0-9)
+            - listitem [ref=e60]: • One special character (!@#$%^&*)
+            - listitem [ref=e61]: • No sequential patterns (123, abc, etc.)
+      - button "Create account" [ref=e63] [cursor=pointer]
+      - paragraph [ref=e64]:
+        - text: By signing up, you agree to our
+        - link "Terms of Service" [ref=e65] [cursor=pointer]:
+          - /url: /terms
+        - text: and
+        - link "Privacy Policy" [ref=e66] [cursor=pointer]:
+          - /url: /privacy
+```

@@ -9,8 +9,7 @@ const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
 
 export interface BiometricCredentials {
   email: string;
-  accessToken: string;
-  refreshToken: string;
+  refreshToken: string; // Only store refresh token for security
 }
 
 export class BiometricService {
@@ -98,13 +97,14 @@ export class BiometricService {
         );
       }
 
-      if (!tokens?.accessToken || !tokens?.refreshToken) {
-        throw new Error('Session tokens are required to enable biometric authentication');
+      // Only refresh token is required for biometric storage
+      if (!tokens?.refreshToken) {
+        throw new Error('Refresh token is required to enable biometric authentication');
       }
 
+      // Security: Only store refresh token, not access token
       const credentials: BiometricCredentials = {
         email,
-        accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       };
 
@@ -181,10 +181,11 @@ export class BiometricService {
         }
 
         const credentials = JSON.parse(credentialsStr) as BiometricCredentials;
-        if (!credentials.refreshToken || !credentials.accessToken) {
+        if (!credentials.refreshToken) {
           throw new Error('Saved biometric credentials are incomplete. Please sign in again.');
         }
 
+        // Note: Access token will be regenerated from refresh token by AuthService
         trackUserAction('biometric.auth_success', {
           email: credentials.email,
         });

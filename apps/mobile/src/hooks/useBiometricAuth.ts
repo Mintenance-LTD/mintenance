@@ -44,9 +44,9 @@ export const useBiometricAuth = (): BiometricAuthHook => {
         return;
       }
 
+      // Restore session using only refresh token (access token will be regenerated)
       const { user: restoredUser, session: restoredSession } =
         await AuthService.restoreSessionFromBiometricTokens({
-          accessToken: credentials.accessToken,
           refreshToken: credentials.refreshToken,
         });
 

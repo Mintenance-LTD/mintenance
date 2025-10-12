@@ -33,7 +33,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
         extra: errorInfo,
       });
     } catch (sentryError) {
-      console.warn('Sentry tracking failed:', sentryError);
+      logger.warn('Sentry tracking failed', sentryError);
     }
   };
 

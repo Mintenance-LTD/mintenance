@@ -1,4 +1,5 @@
 import type { Message, MessageThread } from '@mintenance/types';
+import { logger } from '@/lib/logger';
 
 interface ThreadMessagesResponse {
   messages?: Message[];
@@ -92,7 +93,7 @@ export class MessagingService {
         credentials: 'same-origin',
       });
     } catch (error) {
-      console.warn('[MessagingService] markMessagesAsRead failed', error);
+      logger.warn('[MessagingService] markMessagesAsRead failed', error);
     }
   }
 

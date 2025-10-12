@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Database } from '../types/database';
+import { logger } from '../utils/logger';
 
 export interface QuoteTemplate {
   id: string;
@@ -225,7 +226,7 @@ export class QuoteBuilderService {
 
       return template;
     } catch (error) {
-      console.error('Error creating quote template:', error);
+      logger.error('Error creating quote template', error, { service: 'quote-builder' });
       throw new Error('Failed to create quote template');
     }
   }
@@ -244,7 +245,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching quote templates:', error);
+      logger.error('Error fetching quote templates', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote templates');
     }
   }
@@ -263,7 +264,7 @@ export class QuoteBuilderService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching quote template:', error);
+      logger.error('Error fetching quote template', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote template');
     }
   }
@@ -281,7 +282,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching template line items:', error);
+      logger.error('Error fetching template line items', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch template line items');
     }
   }
@@ -308,7 +309,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating quote template:', error);
+      logger.error('Error updating quote template', error, { service: 'quote-builder' });
       throw new Error('Failed to update quote template');
     }
   }
@@ -322,7 +323,7 @@ export class QuoteBuilderService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting quote template:', error);
+      logger.error('Error deleting quote template', error, { service: 'quote-builder' });
       throw new Error('Failed to delete quote template');
     }
   }
@@ -419,11 +420,11 @@ export class QuoteBuilderService {
         });
 
       if (analyticsError)
-        console.warn('Failed to create quote analytics:', analyticsError);
+        logger.warn('Failed to create quote analytics', { service: 'quote-builder', error: analyticsError });
 
       return quote;
     } catch (error) {
-      console.error('Error creating quote:', error);
+      logger.error('Error creating quote', error, { service: 'quote-builder' });
       throw new Error('Failed to create quote');
     }
   }
@@ -475,7 +476,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching quotes:', error);
+      logger.error('Error fetching quotes', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quotes');
     }
   }
@@ -491,7 +492,7 @@ export class QuoteBuilderService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching quote:', error);
+      logger.error('Error fetching quote', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote');
     }
   }
@@ -507,7 +508,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching quote line items:', error);
+      logger.error('Error fetching quote line items', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote line items');
     }
   }
@@ -538,7 +539,7 @@ export class QuoteBuilderService {
 
       return data;
     } catch (error) {
-      console.error('Error updating quote:', error);
+      logger.error('Error updating quote', error, { service: 'quote-builder' });
       throw new Error('Failed to update quote');
     }
   }
@@ -562,7 +563,7 @@ export class QuoteBuilderService {
 
       return data;
     } catch (error) {
-      console.error('Error sending quote:', error);
+      logger.error('Error sending quote', error, { service: 'quote-builder' });
       throw new Error('Failed to send quote');
     }
   }
@@ -601,7 +602,7 @@ export class QuoteBuilderService {
 
       return await this.createQuote(originalQuote.contractor_id, duplicateData);
     } catch (error) {
-      console.error('Error duplicating quote:', error);
+      logger.error('Error duplicating quote', error, { service: 'quote-builder' });
       throw new Error('Failed to duplicate quote');
     }
   }
@@ -622,7 +623,7 @@ export class QuoteBuilderService {
 
       if (quoteError) throw quoteError;
     } catch (error) {
-      console.error('Error deleting quote:', error);
+      logger.error('Error deleting quote', error, { service: 'quote-builder' });
       throw new Error('Failed to delete quote');
     }
   }
@@ -678,7 +679,7 @@ export class QuoteBuilderService {
         conversion_rate: conversionRate,
       };
     } catch (error) {
-      console.error('Error fetching quote summary stats:', error);
+      logger.error('Error fetching quote summary stats', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote summary stats');
     }
   }
@@ -702,7 +703,7 @@ export class QuoteBuilderService {
         p_interaction_type: interactionType,
       });
     } catch (error) {
-      console.error('Error tracking quote interaction:', error);
+      logger.error('Error tracking quote interaction', error, { service: 'quote-builder' });
     }
   }
 
@@ -719,7 +720,7 @@ export class QuoteBuilderService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching quote analytics:', error);
+      logger.error('Error fetching quote analytics', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote analytics');
     }
   }
@@ -735,7 +736,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching quote revisions:', error);
+      logger.error('Error fetching quote revisions', error, { service: 'quote-builder' });
       throw new Error('Failed to fetch quote revisions');
     }
   }
@@ -767,7 +768,7 @@ export class QuoteBuilderService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating quote revision:', error);
+      logger.error('Error creating quote revision', error, { service: 'quote-builder' });
       throw new Error('Failed to create quote revision');
     }
   }
@@ -783,7 +784,7 @@ export class QuoteBuilderService {
 
       return `Generated PDF for quote ${quote.quote_number}`;
     } catch (error) {
-      console.error('Error generating quote PDF:', error);
+      logger.error('Error generating quote PDF', error, { service: 'quote-builder' });
       throw new Error('Failed to generate quote PDF');
     }
   }

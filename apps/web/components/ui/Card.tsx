@@ -1,119 +1,101 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { designSystem } from '@/lib/design-system';
 
-type CardVariant = 'default' | 'elevated' | 'outlined';
-
-export interface CardProps {
-  children?: React.ReactNode;
-  variant?: CardVariant;
+interface CardProps {
+  children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  onClick?: () => void;
-  hover?: boolean;
-  'data-testid'?: string;
+  variant?: 'default' | 'elevated';
+  padding?: 'sm' | 'md' | 'lg';
 }
 
-export const Card: React.FC<CardProps> = ({
-  children,
+export function Card({ 
+  children, 
+  className = '', 
+  style = {}, 
   variant = 'default',
-  className = '',
-  style = {},
-  onClick,
-  hover = false,
-  'data-testid': testId,
-}) => {
-  const variantStyles = theme.components.card[variant];
+  padding = 'md'
+}: CardProps) {
+  const cardStyle = variant === 'elevated' 
+    ? designSystem.components.card.elevated 
+    : designSystem.components.card.base;
 
-  const baseStyles: React.CSSProperties = {
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.xl,
-    backgroundColor: variantStyles.backgroundColor,
-    borderColor: variantStyles.borderColor,
-    borderWidth: variantStyles.borderWidth,
-    borderStyle: 'solid',
-    transition: 'all 0.2s ease-in-out',
-    position: 'relative',
-
-    // Add shadow for elevated cards
-    boxShadow: variant === 'elevated' ? theme.shadows.lg :
-               variant === 'default' ? theme.shadows.sm : 'none',
-  };
-
-  const hoverStyles: React.CSSProperties = hover || onClick ? {
-    cursor: 'pointer',
-    transform: 'translateY(-2px)',
-    boxShadow: variant === 'elevated' ? theme.shadows.xl : theme.shadows.lg,
-  } : {};
-
-  const activeStyles: React.CSSProperties = {
-    transform: 'translateY(0)',
-    boxShadow: variant === 'elevated' ? theme.shadows.lg : theme.shadows.sm,
-  };
-
-  const finalStyles: React.CSSProperties = {
-    ...baseStyles,
-    ...style,
-  };
-
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      handleClick();
-    }
-  };
+  const paddingValue = padding === 'sm' ? '1rem' : padding === 'lg' ? '2rem' : '1.5rem';
 
   return (
-    <div
-      className={`card ${className}`}
-      style={finalStyles}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={onClick ? 0 : undefined}
-      role={onClick ? 'button' : undefined}
-      data-testid={testId}
-      onMouseEnter={(e) => {
-        if (hover || onClick) {
-          Object.assign(e.currentTarget.style, hoverStyles);
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (hover || onClick) {
-          Object.assign(e.currentTarget.style, {
-            transform: 'translateY(0)',
-            boxShadow: variant === 'elevated' ? theme.shadows.lg :
-                       variant === 'default' ? theme.shadows.sm : 'none',
-          });
-        }
-      }}
-      onMouseDown={(e) => {
-        if (hover || onClick) {
-          Object.assign(e.currentTarget.style, activeStyles);
-        }
-      }}
-      onMouseUp={(e) => {
-        if (hover || onClick) {
-          Object.assign(e.currentTarget.style, hoverStyles);
-        }
+    <div 
+      className={className}
+      style={{
+        ...cardStyle,
+        padding: paddingValue,
+        ...style,
       }}
     >
       {children}
-
-      <style jsx>{`
-        .card:focus-visible {
-          outline: 2px solid ${theme.colors.borderFocus};
-          outline-offset: 2px;
-        }
-      `}</style>
     </div>
   );
-};
+}
 
-export default Card;
+interface CardHeaderProps {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function CardHeader({ children, className = '', style = {} }: CardHeaderProps) {
+  return (
+    <div 
+      className={className}
+      style={{
+        marginBottom: '1rem',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface CardTitleProps {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function CardTitle({ children, className = '', style = {} }: CardTitleProps) {
+  return (
+    <h3 
+      className={className}
+      style={{
+        fontSize: '1.125rem',
+        fontWeight: '600',
+        color: '#1f2937',
+        margin: 0,
+        ...style,
+      }}
+    >
+      {children}
+    </h3>
+  );
+}
+
+interface CardContentProps {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function CardContent({ children, className = '', style = {} }: CardContentProps) {
+  return (
+    <div 
+      className={className}
+      style={{
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
 // screens/LandingScreen.tsx
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,13 @@ const TESTIMONIALS = [
 
 export default function LandingScreen() {
   const navigation = useNavigation<any>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const featuresViewRef = useRef<View>(null);
+
+  const scrollToFeatures = () => {
+    // Scroll to approximately where the features section starts (after hero)
+    scrollViewRef.current?.scrollTo({ y: 600, animated: true });
+  };
 
   return (
     <View style={styles.root}>
@@ -64,7 +71,7 @@ export default function LandingScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* HERO — home maintenance focused */}
         <View style={styles.heroWrap}>
           <ImageBackground source={heroImg} style={styles.heroBg} imageStyle={{ borderRadius: 24 }}>
@@ -87,7 +94,7 @@ export default function LandingScreen() {
                 >
                   <Text style={styles.ctaSolidText}>Start Free →</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.ctaGhost}>
+                <TouchableOpacity style={styles.ctaGhost} onPress={scrollToFeatures}>
                   <Text style={styles.ctaGhostText}>See How It Works</Text>
                 </TouchableOpacity>
               </View>
@@ -103,7 +110,11 @@ export default function LandingScreen() {
         </View>
 
         {/* SERVICES — home maintenance categories */}
-        <SectionHeader title="Home Services" action="See All" />
+        <SectionHeader
+          title="Home Services"
+          action="See All"
+          onActionPress={() => navigation.navigate('Modal', { screen: 'ServiceRequest' })}
+        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {CATEGORIES.map(c => (
             <TouchableOpacity key={c.key} style={styles.chip}>
@@ -134,7 +145,11 @@ export default function LandingScreen() {
         </ScrollView>
 
         {/* TOP CONTRACTORS — verified professionals */}
-        <SectionHeader title="Top Contractors Near You" action="Explore" />
+        <SectionHeader
+          title="Top Contractors Near You"
+          action="Explore"
+          onActionPress={() => navigation.navigate('Modal', { screen: 'FindContractors' })}
+        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselRow}>
           {CONTRACTORS.map(c => (
             <View key={c.id} style={styles.contractorCard}>
@@ -196,7 +211,7 @@ export default function LandingScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.ctaGhost}
-              onPress={() => navigation.navigate('ContractorDiscoveryScreen')}
+              onPress={() => navigation.navigate('Modal', { screen: 'ContractorDiscovery' })}
             >
               <Text style={styles.ctaGhostText}>Find Contractors</Text>
             </TouchableOpacity>
@@ -212,12 +227,14 @@ export default function LandingScreen() {
   );
 }
 
-function SectionHeader({ title, action }: { title: string; action?: string }) {
+function SectionHeader({ title, action, onActionPress }: { title: string; action?: string; onActionPress?: () => void }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {action ? (
-        <TouchableOpacity><Text style={styles.sectionAction}>{action}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onActionPress}>
+          <Text style={styles.sectionAction}>{action}</Text>
+        </TouchableOpacity>
       ) : null}
     </View>
   );

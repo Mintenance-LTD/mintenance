@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m \"$(cat <<''EOF''\n✅ Week 4 Complete: Performance Budgets & Monitoring System\n\nPERFORMANCE BUDGETS IMPLEMENTED (100% Complete):\n- Defined comprehensive budgets for mobile (6 metrics) and web (6 metrics)\n- Automated CI/CD enforcement with GitHub Actions\n- Real-time performance dashboard with violations tracking\n- Bundle analysis tools and validation scripts\n\nFILES CREATED:\nCI/CD & Configuration (5 files):\n- .github/workflows/performance-budget.yml - Automated budget checks\n- .github/lighthouse-budget.json - Lighthouse CI budgets\n- apps/mobile/performance-budgets.json - Budget definitions\n- apps/web/size-limit.config.js - Web bundle limits\n- scripts/check-performance-budgets.js - Budget validation script\n\nDashboard & UI (1 file):\n- apps/mobile/src/screens/PerformanceDashboardScreen.tsx - Real-time dashboard\n\nDocumentation (2 files):\n- WEEK_4_8_PERFORMANCE_OPTIMIZATION_PLAN.md - Complete 5-week plan\n- WEEK_4_PERFORMANCE_BUDGETS_COMPLETE.md - Week 4 completion report\n\nFILES MODIFIED:\n- apps/mobile/package.json - Added analyze and check:performance scripts\n\nPERFORMANCE BUDGETS CONFIGURED:\nMobile App:\n- Bundle Size: 18MB warning, 20MB error\n- Startup Time: 2.5s warning, 3s error  \n- Memory Usage: 128MB warning, 150MB error\n- Screen Transition: 100ms warning, 150ms error\n- API Response p95: 500ms warning, 800ms error\n- FPS: 55 warning, 50 error\n\nWeb App:\n- Initial Bundle: 400KB warning, 500KB error\n- First Contentful Paint: 1.5s warning, 2s error\n- Largest Contentful Paint: 2.5s warning, 3s error\n- Time to Interactive: 3.5s warning, 4.5s error\n- Cumulative Layout Shift: 0.1 warning, 0.25 error\n- Total Blocking Time: 300ms warning, 500ms error\n\nCI/CD AUTOMATION:\n- mobile-bundle-size job: Validates Android bundle < 20MB\n- web-bundle-size job: Per-page bundle limits enforcement\n- performance-metrics job: TypeScript and ESLint checks\n- lighthouse-audit job: Core Web Vitals validation\n\nDASHBOARD FEATURES:\n- Real-time metrics visualization\n- Budget status with color-coded indicators\n- Violations list with severity levels (warning/critical)\n- Health score calculation (0-100)\n- Pull-to-refresh functionality\n- Category filtering (All/Violations Only)\n\nIMPACT:\n- Performance monitoring: Automated + CI/CD enforced\n- Budget violations: Zero tolerance policy\n- Build quality: Enhanced with performance gates\n- Developer experience: Real-time dashboard visibility\n- Architecture grade: A- → A (92/100)\n\nNEXT: Week 5 - Advanced Caching Strategies (React Query, Service Workers, Multi-layer caching)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm audit:*)",
+      "Bash(awk:*)",
+      "Bash(xcopy:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "Bash(npx supabase db diff:*)",
+      "Bash(npx eas:*)"
     ],
     "deny": [],
     "ask": []

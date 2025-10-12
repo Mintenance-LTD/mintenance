@@ -1,63 +1,190 @@
 /**
- * Shared logger utility
+ * Production-Safe Logger
+ * 
+ * Centralized logging utility that:
+ * - Sanitizes sensitive data in production
+ * - Supports log levels
+ * - Provides structured logging
+ * - Never exposes PII, auth tokens, or payment data
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogEntry {
+export interface LogContext {
+  service?: string;
+  userId?: string;
+  requestId?: string;
+  [key: string]: unknown;
+}
+
+export interface LogEntry {
   level: LogLevel;
   message: string;
   timestamp: string;
-  context?: any;
+  context?: LogContext;
+  error?: Error;
 }
 
 class Logger {
-  private logLevel: LogLevel = 'info';
+  private isDevelopment: boolean;
+  private minLogLevel: LogLevel;
 
   constructor() {
-    // Set log level from environment
-    const envLogLevel = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
-    if (envLogLevel && ['debug', 'info', 'warn', 'error'].includes(envLogLevel)) {
-      this.logLevel = envLogLevel;
-    }
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+    this.minLogLevel = this.getMinLogLevel();
+  }
+
+  private getMinLogLevel(): LogLevel {
+    const level = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
+    return level || (this.isDevelopment ? 'debug' : 'info');
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels = ['debug', 'info', 'warn', 'error'];
-    const currentLevelIndex = levels.indexOf(this.logLevel);
-    const messageLogLevelIndex = levels.indexOf(level);
-    return messageLogLevelIndex >= currentLevelIndex;
+    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+    const currentLevelIndex = levels.indexOf(this.minLogLevel);
+    const messageLevelIndex = levels.indexOf(level);
+    return messageLevelIndex >= currentLevelIndex;
   }
 
-  private formatMessage(level: LogLevel, message: string, context?: any): string {
+  private sanitize(data: unknown): unknown {
+    if (!data) return data;
+
+    // In production, sanitize sensitive data
+    if (!this.isDevelopment && typeof data === 'object') {
+      return this.sanitizeObject(data as Record<string, unknown>);
+    }
+
+    return data;
+  }
+
+  private sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+    const sensitiveKeys = new Set([
+      'password',
+      'token',
+      'secret',
+      'apiKey',
+      'api_key',
+      'accessToken',
+      'access_token',
+      'refreshToken',
+      'refresh_token',
+      'creditCard',
+      'credit_card',
+      'cardNumber',
+      'card_number',
+      'cvv',
+      'ssn',
+      'social_security',
+      'authorization'
+    ]);
+
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      
+      if (sensitiveKeys.has(lowerKey) || lowerKey.includes('password') || lowerKey.includes('token')) {
+        sanitized[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        sanitized[key] = Array.isArray(value) 
+          ? value.map(item => typeof item === 'object' ? this.sanitizeObject(item as Record<string, unknown>) : item)
+          : this.sanitizeObject(value as Record<string, unknown>);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
+  }
+
+  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
     const timestamp = new Date().toISOString();
-    const contextStr = context ? ` ${JSON.stringify(context)}` : '';
-    return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}`;
+    const levelStr = level.toUpperCase().padEnd(5);
+    
+    let formatted = `[${timestamp}] ${levelStr} ${message}`;
+    
+    if (context && Object.keys(context).length > 0) {
+      const sanitizedContext = this.sanitize(context);
+      formatted += ` ${JSON.stringify(sanitizedContext)}`;
+    }
+
+    return formatted;
   }
 
-  debug(message: string, context?: any): void {
-    if (this.shouldLog('debug')) {
-      console.debug(this.formatMessage('debug', message, context));
+  private log(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
+    if (!this.shouldLog(level)) {
+      return;
+    }
+
+    const formattedMessage = this.formatMessage(level, message, context);
+
+    switch (level) {
+      case 'debug':
+        if (this.isDevelopment) {
+          console.debug(formattedMessage);
+        }
+        break;
+      case 'info':
+        console.log(formattedMessage);
+        break;
+      case 'warn':
+        console.warn(formattedMessage);
+        break;
+      case 'error':
+        console.error(formattedMessage);
+        if (error) {
+          console.error('Error details:', error.stack || error.message || error);
+        }
+        break;
     }
   }
 
-  info(message: string, context?: any): void {
-    if (this.shouldLog('info')) {
-      console.info(this.formatMessage('info', message, context));
-    }
+  /**
+   * Log debug message (development only)
+   */
+  debug(message: string, context?: LogContext): void {
+    this.log('debug', message, context);
   }
 
-  warn(message: string, context?: any): void {
-    if (this.shouldLog('warn')) {
-      console.warn(this.formatMessage('warn', message, context));
-    }
+  /**
+   * Log info message
+   */
+  info(message: string, context?: LogContext): void {
+    this.log('info', message, context);
   }
 
-  error(message: string, context?: any): void {
-    if (this.shouldLog('error')) {
-      console.error(this.formatMessage('error', message, context));
-    }
+  /**
+   * Log warning message
+   */
+  warn(message: string, context?: LogContext): void {
+    this.log('warn', message, context);
+  }
+
+  /**
+   * Log error message
+   */
+  error(message: string, error?: Error | unknown, context?: LogContext): void {
+    const errorObj = error instanceof Error ? error : undefined;
+    const errorContext = error && !(error instanceof Error) 
+      ? { ...context, errorDetails: String(error) }
+      : context;
+    
+    this.log('error', message, errorContext, errorObj);
+  }
+
+  /**
+   * Create a child logger with preset context
+   */
+  child(childContext: LogContext): Logger {
+    const childLogger = new Logger();
+    const originalLog = childLogger.log.bind(childLogger);
+    
+    childLogger.log = (level: LogLevel, message: string, context?: LogContext, error?: Error) => {
+      originalLog(level, message, { ...childContext, ...context }, error);
+    };
+
+    return childLogger;
   }
 }
 
 export const logger = new Logger();
+export { Logger };

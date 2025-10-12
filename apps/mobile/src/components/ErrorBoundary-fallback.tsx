@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { logger } from '../utils/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -27,8 +28,8 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught an error:', error);
-    console.error('Error info:', errorInfo);
+    logger.error('ErrorBoundary caught an error', error);
+    logger.error('Error info', errorInfo);
 
     this.setState({
       error,
@@ -40,7 +41,7 @@ class ErrorBoundary extends React.Component<
       try {
         this.props.onError(error, errorInfo);
       } catch (e) {
-        console.error('Error in onError callback:', e);
+        logger.error('Error in onError callback', e);
       }
     }
   }
@@ -56,7 +57,7 @@ class ErrorBoundary extends React.Component<
         try {
           return this.props.fallback(this.state.error, this.resetError);
         } catch (e) {
-          console.error('Error in fallback component:', e);
+          logger.error('Error in fallback component', e);
           // Fall through to default error UI
         }
       }

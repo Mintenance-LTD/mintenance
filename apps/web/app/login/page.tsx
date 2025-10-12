@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { SessionManager } from '@/lib/session-manager';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -21,11 +23,15 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Login failed');
+
+      // Initialize session with remember me preference
+      const sessionManager = SessionManager.getInstance();
+      sessionManager.setSession(rememberMe);
 
       router.push('/dashboard');
       router.refresh();
@@ -92,6 +98,20 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-[#0F172A] focus:ring-[#0F172A] border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+                Remember me for 30 days
+              </label>
             </div>
 
             {error && (

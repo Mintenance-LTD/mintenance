@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
+import { logger } from '../services/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
   QuoteBuilderService,
@@ -50,7 +51,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       });
       setQuotes(data);
     } catch (error) {
-      console.error('Error loading quotes:', error);
+      logger.error('Error loading quotes', error);
       Alert.alert('Error', 'Failed to load quotes');
     } finally {
       setLoading(false);
@@ -64,7 +65,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       const statsData = await QuoteBuilderService.getQuoteSummaryStats(user.id);
       setStats(statsData);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      logger.error('Error loading stats', error);
     }
   };
 

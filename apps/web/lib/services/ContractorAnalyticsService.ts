@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 type JobMetricsRow = {
   id: string;
@@ -150,7 +151,7 @@ export class ContractorAnalyticsService {
         ...marketData
       };
     } catch (error) {
-      console.error('Failed to load contractor analytics:', error);
+      logger.error('Failed to load contractor analytics', error);
       throw new Error('Failed to load analytics data');
     }
   }

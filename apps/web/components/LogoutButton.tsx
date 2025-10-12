@@ -1,12 +1,19 @@
 'use client';
 
+import { logger } from '@/lib/logger';
+import { SessionManager } from '@/lib/session-manager';
+
 export default function LogoutButton() {
   const handleLogout = async () => {
     try {
+      // Clear session data
+      const sessionManager = SessionManager.getInstance();
+      sessionManager.clearSession();
+
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/login';
     } catch (error) {
-      console.error('Logout failed:', error);
+      logger.error('Logout failed', error);
     }
   };
 

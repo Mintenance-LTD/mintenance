@@ -3,20 +3,20 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Homepage', () => {
   test('should load homepage successfully', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:3000');
     
     // Check if page loads without errors
     await expect(page).toHaveTitle(/Mintenance|Home/);
     
     // Check for main navigation elements
-    await expect(page.locator('nav, header')).toBeVisible();
+    await expect(page.locator('nav').first()).toBeVisible();
     
     // Check for main content area
     await expect(page.locator('main, [role="main"]')).toBeVisible();
   });
 
   test('should have working navigation links', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:3000');
     
     // Check for common navigation links
     const navLinks = page.locator('nav a, header a');
@@ -39,7 +39,7 @@ test.describe('Homepage', () => {
   test('should be responsive on mobile', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
+    await page.goto('http://localhost:3000');
     
     // Check if page is still functional on mobile
     await expect(page.locator('body')).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('Homepage', () => {
   });
 
   test('should have proper meta tags', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:3000');
     
     // Check for essential meta tags
     const viewport = page.locator('meta[name="viewport"]');
@@ -74,7 +74,7 @@ test.describe('Homepage', () => {
       }
     });
     
-    await page.goto('/');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
     
     // Filter out known non-critical errors

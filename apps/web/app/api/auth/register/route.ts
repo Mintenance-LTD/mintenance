@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authManager } from '@/lib/auth-manager';
 import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { registerSchema } from '@/lib/validation/schemas';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +12,11 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const headers = createRateLimitHeaders(rateLimitResult);
+      logger.warn('Registration rate limit exceeded', {
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
       return NextResponse.json(
         {
           error: 'Too many registration attempts. Please try again later.',
@@ -21,36 +29,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { email, password, first_name, last_name, role, phone } = body;
-
-    // Validate required fields
-    if (!email || !password || !first_name || !last_name || !role) {
-      return NextResponse.json(
-        { error: 'Email, password, first name, last name, and role are required' },
-        { status: 400 }
-      );
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, registerSchema);
+    if ('headers' in validation) {
+      // Validation failed - return error response
+      return validation;
     }
 
-    // Validate role
-    if (!['homeowner', 'contractor', 'admin'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Invalid role. Must be homeowner, contractor, or admin' },
-        { status: 400 }
-      );
-    }
+    const { email, password, firstName, lastName, role, phone } = validation.data;
 
     // Register user
     const result = await authManager.register({
       email,
       password,
-      first_name,
-      last_name,
+      first_name: firstName,
+      last_name: lastName,
       role,
       phone
     });
 
     if (!result.success) {
+      logger.warn('Registration failed', {
+        service: 'auth',
+        email,
+        reason: result.error
+      });
+      
       return NextResponse.json(
         { error: result.error },
         { status: 400 }
@@ -59,6 +63,13 @@ export async function POST(request: NextRequest) {
 
     // Record successful registration (for rate limiting)
     recordSuccessfulLogin(request);
+
+    logger.info('User registered successfully', {
+      service: 'auth',
+      userId: result.user!.id,
+      email: result.user!.email,
+      role: result.user!.role
+    });
 
     // Create response
     const response = NextResponse.json(
@@ -85,7 +96,7 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error', error, { service: 'auth' });
 
     // Don't expose internal error details to client
     return NextResponse.json(

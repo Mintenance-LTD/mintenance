@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 export interface DigitalChecklist {
   id: string;
@@ -65,7 +66,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating digital checklist:', error);
+      logger.error('Error creating digital checklist', error);
       throw new Error('Failed to create digital checklist');
     }
   }
@@ -81,7 +82,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching digital checklists:', error);
+      logger.error('Error fetching digital checklists', error);
       throw new Error('Failed to fetch digital checklists');
     }
   }
@@ -97,7 +98,7 @@ export class DigitalChecklistService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching digital checklist:', error);
+      logger.error('Error fetching digital checklist', error);
       throw new Error('Failed to fetch digital checklist');
     }
   }
@@ -120,7 +121,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating digital checklist:', error);
+      logger.error('Error updating digital checklist', error);
       throw new Error('Failed to update digital checklist');
     }
   }
@@ -134,7 +135,7 @@ export class DigitalChecklistService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting digital checklist:', error);
+      logger.error('Error deleting digital checklist', error);
       throw new Error('Failed to delete digital checklist');
     }
   }
@@ -156,7 +157,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error adding checklist item:', error);
+      logger.error('Error adding checklist item', error);
       throw new Error('Failed to add checklist item');
     }
   }
@@ -172,7 +173,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching checklist items:', error);
+      logger.error('Error fetching checklist items', error);
       throw new Error('Failed to fetch checklist items');
     }
   }
@@ -195,7 +196,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating checklist item:', error);
+      logger.error('Error updating checklist item', error);
       throw new Error('Failed to update checklist item');
     }
   }
@@ -209,7 +210,7 @@ export class DigitalChecklistService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting checklist item:', error);
+      logger.error('Error deleting checklist item', error);
       throw new Error('Failed to delete checklist item');
     }
   }
@@ -263,7 +264,7 @@ export class DigitalChecklistService {
 
       return data;
     } catch (error) {
-      console.error('Error completing checklist:', error);
+      logger.error('Error completing checklist', error);
       throw new Error('Failed to complete checklist');
     }
   }
@@ -285,7 +286,7 @@ export class DigitalChecklistService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching checklist completions:', error);
+      logger.error('Error fetching checklist completions', error);
       throw new Error('Failed to fetch checklist completions');
     }
   }
@@ -385,7 +386,7 @@ export class DigitalChecklistService {
 
       return newChecklist;
     } catch (error) {
-      console.error('Error duplicating checklist:', error);
+      logger.error('Error duplicating checklist', error);
       throw new Error('Failed to duplicate checklist');
     }
   }

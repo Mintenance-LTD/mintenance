@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
+import { logger } from './src/utils/logger';
 
 // Import components safely with fallbacks
 let AuthProvider: React.ComponentType<any> | undefined;
@@ -20,9 +21,9 @@ try {
   ErrorBoundary = require('./src/components/ErrorBoundary').default;
   QueryProvider = require('./src/providers/QueryProvider').default;
   componentsLoaded = true;
-  console.log('✅ All main components loaded successfully');
+  logger.info('All main components loaded successfully', { service: 'app' });
 } catch (error) {
-  console.error('❌ Failed to import main components:', error);
+  logger.error('Failed to import main components', error, { service: 'app' });
   componentsLoaded = false;
 }
 
@@ -82,10 +83,10 @@ export default function App() {
       try {
         // Give components time to load
         await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('🚀 Mintenance app initializing...');
+        logger.info('Mintenance app initializing', { service: 'app' });
         setIsInitialized(true);
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        logger.error('Failed to initialize app', error, { service: 'app' });
         setIsInitialized(true); // Still try to render
       }
     };
@@ -110,11 +111,11 @@ export default function App() {
 
   // Return fallback if components failed to load
   if (!componentsLoaded || !AuthProvider || !AppNavigator || !ErrorBoundary || !QueryProvider) {
-    console.log('⚠️ Using fallback app due to component loading issues');
+    logger.warn('Using fallback app due to component loading issues', { service: 'app' });
     return <FallbackApp />;
   }
 
-  console.log('✅ Rendering full app with navigation');
+  logger.debug('Rendering full app with navigation', { service: 'app' });
 
   return (
     <ErrorBoundary>

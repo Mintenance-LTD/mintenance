@@ -31,21 +31,22 @@ jest.mock('../../services/JobService', () => ({
 
 jest.mock('../../services/ContractorService', () => ({
   ContractorService: {
-    getContractors: jest.fn(),
-    getContractorsBySkill: jest.fn(),
+    getNearbyContractors: jest.fn(),
+    findNearbyContractors: jest.fn(),
     searchContractors: jest.fn(),
     getContractorProfile: jest.fn(),
-    createMatch: jest.fn(),
+    recordContractorMatch: jest.fn(),
+    swipeContractor: jest.fn(),
     getMatches: jest.fn(),
-    updateMatch: jest.fn(),
+    getContractorMatches: jest.fn(),
   },
 }));
 
 jest.mock('../../services/MessagingService', () => ({
   MessagingService: {
     sendMessage: jest.fn(),
-    getConversation: jest.fn(),
-    createConversation: jest.fn(),
+    getConversations: jest.fn(),
+    createThread: jest.fn(),
   },
 }));
 
@@ -103,7 +104,11 @@ const MockContractorDiscoveryScreen = ({
   React.useEffect(() => {
     const loadContractors = async () => {
       try {
-        const loadedContractors = await ContractorService.getContractors();
+        const loadedContractors = await ContractorService.findNearbyContractors(
+          { latitude: 0, longitude: 0 },
+          50,
+          []
+        );
         setContractors(loadedContractors);
       } catch (error) {
         // Error handling would show error message in real app
@@ -117,11 +122,11 @@ const MockContractorDiscoveryScreen = ({
     const contractor = contractors[currentIndex];
     if (contractor) {
       try {
-        await ContractorService.createMatch({
-          homeownerId: 'homeowner-123',
-          contractorId: contractor.id,
-          action,
-        });
+        await ContractorService.swipeContractor(
+          'homeowner-123',
+          contractor.id,
+          action
+        );
         onMatch?.(contractor, action);
         setCurrentIndex((prev) => prev + 1);
       } catch (error) {

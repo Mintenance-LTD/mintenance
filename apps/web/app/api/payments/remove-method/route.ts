@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
 });
 
 const removeMethodSchema = z.object({
-  paymentMethodId: z.string(),
+  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
 });
 
 /**
@@ -53,13 +54,19 @@ export async function DELETE(request: NextRequest) {
     // Detach payment method
     await stripe.paymentMethods.detach(paymentMethodId);
 
+    logger.info('Payment method removed successfully', {
+      service: 'payments',
+      userId: user.id,
+      paymentMethodId
+    });
+
     return NextResponse.json({
       success: true,
       paymentMethodId,
       message: 'Payment method removed successfully',
     });
   } catch (error) {
-    console.error('Error removing payment method:', error);
+    logger.error('Error removing payment method', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

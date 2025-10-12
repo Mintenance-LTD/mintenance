@@ -5,10 +5,11 @@
 
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
 import { PaymentService } from '../../services/PaymentService';
-import { AuthContext } from '../../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 
 // Mock payment screens (would import actual screens in real app)
 const MockPaymentScreen = ({ navigation, route }: any) => {
@@ -21,33 +22,17 @@ const MockPaymentScreen = ({ navigation, route }: any) => {
       setLoading(true);
       setError(null);
 
-      // Step 1: Initialize payment
-      const { client_secret } = await PaymentService.initializePayment({
+      // Step 1: Create payment intent
+      const paymentIntent = await PaymentService.createPaymentIntent(
         amount,
-        jobId,
-        contractorId,
-      });
+        'usd',
+        { jobId, contractorId, clientId: 'test-user' }
+      );
 
-      // Step 2: Create payment method
-      const paymentMethod = await PaymentService.createPaymentMethod({
-        type: 'card',
-        card: {
-          number: '4242424242424242',
-          expMonth: 12,
-          expYear: 2025,
-          cvc: '123',
-        },
-        billingDetails: {
-          name: 'Test User',
-          email: 'test@example.com',
-        },
-      });
-
-      // Step 3: Confirm payment
-      const result = await PaymentService.confirmPayment({
-        clientSecret: client_secret,
-        paymentMethodId: paymentMethod.id,
-      });
+      // Step 2: Confirm payment intent (would use Stripe SDK in real app)
+      const result = await PaymentService.confirmPaymentIntent(
+        paymentIntent.id
+      );
 
       if (result.status === 'succeeded') {
         navigation.navigate('PaymentSuccess', { paymentId: result.id });
@@ -60,22 +45,26 @@ const MockPaymentScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <>
-      <button
+    <View>
+      <TouchableOpacity
         testID="pay-button"
-        onClick={handlePayment}
+        onPress={handlePayment}
         disabled={loading}
       >
-        {loading ? 'Processing...' : `Pay $${amount}`}
-      </button>
-      {error && <div testID="error-message">{error}</div>}
-    </>
+        <Text>{loading ? 'Processing...' : `Pay $${amount}`}</Text>
+      </TouchableOpacity>
+      {error && <Text testID="error-message">{error}</Text>}
+    </View>
   );
 };
 
 const MockPaymentSuccessScreen = ({ route }: any) => {
   const { paymentId } = route.params;
-  return <div testID="payment-success">Payment successful: {paymentId}</div>;
+  return (
+    <View testID="payment-success">
+      <Text>Payment successful: {paymentId}</Text>
+    </View>
+  );
 };
 
 // Mock navigation stack
@@ -108,17 +97,9 @@ const TestProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider
-        value={{
-          user: mockUser,
-          loading: false,
-          signIn: jest.fn(),
-          signOut: jest.fn(),
-          signUp: jest.fn(),
-        }}
-      >
+      <AuthProvider>
         <NavigationContainer>{children}</NavigationContainer>
-      </AuthContext.Provider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
@@ -203,7 +184,7 @@ describe('Payment Workflows Integration Tests', () => {
 
       // Wait for payment processing
       await waitFor(() => {
-        expect(payButton.textContent).toBe('Processing...');
+        expect(payButton.props.children.props.children).toBe('Processing...');
       });
 
       // Wait for success navigation

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useEffect } from 'react';
 import { InteractionManager, Platform } from 'react-native';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // PERFORMANCE MONITORING HOOKS
@@ -113,7 +114,7 @@ export const useRenderMetrics = (componentName: string) => {
     return () => {
       const renderTime = Date.now() - renderStartTime.current;
       if (__DEV__ && renderTime > 16) { // 16ms = 60fps threshold
-        console.warn(
+        logger.warn(
           `${componentName} render took ${renderTime}ms (render #${renderCount.current})`
         );
       }
@@ -319,8 +320,8 @@ export const useBatchProcessor = <T, R>(
     try {
       await processor(batch);
     } catch (error) {
-      console.error('Batch processing error:', error);
-    } finally {
+      logger.error('Batch processing error', error);
+    } finally{
       processing.current = false;
       
       // Process remaining items

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { JobDetail } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -56,20 +57,44 @@ export async function GET(_req: NextRequest, context: Params) {
 
     if (error) {
       if (error.code === 'PGRST116') {
+        logger.warn('Job not found', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id
+        });
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
-      console.error('[API] job GET error', error);
+      logger.error('Failed to load job', error, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
       return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
     }
 
     const row = data as JobRow;
     if (row.homeowner_id !== user.id && row.contractor_id !== user.id) {
+      logger.warn('Unauthorized job access attempt', {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id,
+        homeownerId: row.homeowner_id,
+        contractorId: row.contractor_id
+      });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    logger.info('Job retrieved', {
+      service: 'jobs',
+      userId: user.id,
+      jobId: id
+    });
+
     return NextResponse.json({ job: mapRowToJobDetail(row) });
   } catch (err) {
-    console.error('[API] job GET error', err);
+    logger.error('Failed to load job', err, {
+      service: 'jobs'
+    });
     return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
   }
 }
@@ -96,13 +121,28 @@ export async function PATCH(request: NextRequest, context: Params) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
+        logger.warn('Job not found for update', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id
+        });
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
-      console.error('[API] job PATCH fetch error', fetchError);
+      logger.error('Failed to fetch job for update', fetchError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
       return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
     }
 
     if (!existing || existing.homeowner_id !== user.id) {
+      logger.warn('Unauthorized job update attempt', {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id,
+        homeownerId: existing?.homeowner_id
+      });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -139,13 +179,25 @@ export async function PATCH(request: NextRequest, context: Params) {
       .single();
 
     if (error) {
-      console.error('[API] job PATCH update error', error);
+      logger.error('Failed to update job', error, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
       return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
     }
 
+    logger.info('Job updated successfully', {
+      service: 'jobs',
+      userId: user.id,
+      jobId: id
+    });
+
     return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });
   } catch (err) {
-    console.error('[API] job PATCH error', err);
+    logger.error('Failed to update job', err, {
+      service: 'jobs'
+    });
     return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
   }
 }

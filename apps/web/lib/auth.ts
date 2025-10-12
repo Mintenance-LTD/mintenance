@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { DatabaseManager } from './database';
-import { generateJWT, verifyJWT, ConfigManager } from '@mintenance/auth';
+import { generateJWT, verifyJWT, generateTokenPair, hashRefreshToken, ConfigManager } from '@mintenance/auth';
+import { serverSupabase } from './api/supabaseServer';
+import { logger } from './logger';
 import type { User, JWTPayload } from '@mintenance/types';
 
 const config = ConfigManager.getInstance();
@@ -10,7 +12,83 @@ const config = ConfigManager.getInstance();
  */
 export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Promise<string> {
   const secret = config.getRequired('JWT_SECRET');
-  return generateJWT(user, secret, '24h');
+  return generateJWT(user, secret, '1h');
+}
+
+/**
+ * Create token pair and store refresh token
+ */
+export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>, deviceInfo?: any, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const secret = config.getRequired('JWT_SECRET');
+  const { accessToken, refreshToken } = await generateTokenPair(user, secret);
+  
+  // Store refresh token in database
+  const { error } = await serverSupabase
+    .from('refresh_tokens')
+    .insert({
+      user_id: user.id,
+      token_hash: hashRefreshToken(refreshToken),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      device_info: deviceInfo,
+      ip_address: ipAddress
+    });
+
+  if (error) {
+    throw new Error('Failed to store refresh token');
+  }
+
+  return { accessToken, refreshToken };
+}
+
+/**
+ * Rotate tokens (invalidate old refresh token, create new pair)
+ */
+export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: any, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+  const user = await DatabaseManager.getUserById(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Verify and revoke old refresh token
+  const tokenHash = hashRefreshToken(oldRefreshToken);
+  const { data: tokenRecord, error: tokenError } = await serverSupabase
+    .from('refresh_tokens')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('token_hash', tokenHash)
+    .eq('revoked_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .single();
+
+  if (tokenError || !tokenRecord) {
+    throw new Error('Invalid refresh token');
+  }
+
+  // Revoke old token
+  await serverSupabase
+    .from('refresh_tokens')
+    .update({ 
+      revoked_at: new Date().toISOString(),
+      revoked_reason: 'rotated'
+    })
+    .eq('id', tokenRecord.id);
+
+  // Create new token pair
+  return createTokenPair(user, deviceInfo, ipAddress);
+}
+
+/**
+ * Revoke all refresh tokens for a user
+ */
+export async function revokeAllTokens(userId: string): Promise<void> {
+  await serverSupabase
+    .from('refresh_tokens')
+    .update({ 
+      revoked_at: new Date().toISOString(),
+      revoked_reason: 'logout_all'
+    })
+    .eq('user_id', userId)
+    .is('revoked_at', null);
 }
 
 /**
@@ -24,15 +102,28 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 /**
  * Set authentication cookie
  */
-export async function setAuthCookie(token: string) {
+export async function setAuthCookie(token: string, rememberMe: boolean = false) {
   const cookieStore = await cookies();
+  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30 days if remember me, else 24 hours
+  
   cookieStore.set('auth-token', token, {
     httpOnly: true,
     secure: config.isProduction(),
-    sameSite: config.isProduction() ? 'strict' : 'lax', // Stricter in production
-    maxAge: 60 * 60 * 24, // 24 hours
+    sameSite: 'strict', // Always use strict for security
+    maxAge,
     path: '/',
   });
+  
+  // Set refresh token cookie (separate from access token)
+  if (rememberMe) {
+    cookieStore.set('remember-me', 'true', {
+      httpOnly: false, // Allow client-side access for UI
+      secure: config.isProduction(),
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+    });
+  }
 }
 
 /**
@@ -103,7 +194,7 @@ export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'em
       role: jwtPayload.role as 'homeowner' | 'contractor' | 'admin',
     };
   } catch (error) {
-    console.error('Failed to get user from cookies:', error);
+    logger.error('Failed to get user from cookies', error);
     return null;
   }
 }
@@ -130,7 +221,7 @@ export async function getCurrentUser(): Promise<User | null> {
       return dbUser;
     }
   } catch (error) {
-    console.error('[Auth] Failed to load user from database:', error);
+    logger.error('[Auth] Failed to load user from database', error);
   }
 
   return null;

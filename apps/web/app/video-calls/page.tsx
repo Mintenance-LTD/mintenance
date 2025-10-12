@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { VideoCallHistory, VideoCallScheduler, VideoCallInterface } from '@/components/video-call';
 import { theme } from '@/lib/theme';
+import Logo from '../components/Logo';
+import Link from 'next/link';
 import type { VideoCall, User } from '@mintenance/types';
 
 export default function VideoCallsPage() {
@@ -14,6 +16,11 @@ export default function VideoCallsPage() {
     id: string;
     name: string;
   } | null>(null);
+
+  // Set page title
+  React.useEffect(() => {
+    document.title = 'Video Calls | Mintenance';
+  }, []);
 
   React.useEffect(() => {
     const loadUser = async () => {
@@ -94,6 +101,28 @@ export default function VideoCallsPage() {
       minHeight: '100vh',
       backgroundColor: theme.colors.background
     }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Logo className="w-10 h-10" />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary
+          }}>
+            Mintenance
+          </span>
+        </Link>
+      </div>
+
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',

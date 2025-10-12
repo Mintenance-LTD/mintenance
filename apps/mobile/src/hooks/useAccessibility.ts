@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AccessibilityInfo, Platform, AccessibilityRole } from 'react-native';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // ACCESSIBILITY TYPES
@@ -98,7 +99,7 @@ export const useAccessibility = () => {
           screenReaderName,
         });
       } catch (error) {
-        console.error('Failed to get accessibility info:', error);
+        logger.error('Failed to get accessibility info', error);
       }
     };
 

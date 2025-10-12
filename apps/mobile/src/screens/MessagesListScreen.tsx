@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { logger } from '../services/logger';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,7 +38,7 @@ const MessagesListScreen: React.FC = () => {
     try {
       await refetch();
     } catch (error) {
-      console.error('Failed to refresh messages:', error);
+      logger.error('Failed to refresh messages', error);
     } finally {
       setRefreshing(false);
     }

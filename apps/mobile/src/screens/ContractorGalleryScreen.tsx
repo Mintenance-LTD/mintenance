@@ -15,6 +15,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { logger } from '../services/logger';
 import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
 // import { useAuth } from '../contexts/AuthContext';
@@ -153,7 +154,7 @@ const ContractorGalleryScreen: React.FC<Props> = ({ route, navigation }) => {
         url: image.uri,
       });
     } catch (error) {
-      console.error('Error sharing image:', error);
+      logger.error('Error sharing image', error);
     }
   };
 

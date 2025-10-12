@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { AdvancedSearchService } from '@/lib/services/AdvancedSearchService';
@@ -9,6 +9,8 @@ import { SearchBar } from '@/components/SearchBar';
 import { Button, Card } from '@/components/ui';
 import { theme } from '@/lib/theme';
 import { logger } from '@/lib/logger';
+import Logo from '../components/Logo';
+import Link from 'next/link';
 import type {
   User,
   Job,
@@ -24,7 +26,7 @@ export const dynamic = 'force-dynamic';
 
 type SearchType = 'jobs' | 'contractors';
 
-export default function SearchPage() {
+function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -398,6 +400,28 @@ export default function SearchPage() {
       minHeight: '100vh',
       backgroundColor: theme.colors.backgroundSecondary
     }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Logo className="w-10 h-10" />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary
+          }}>
+            Mintenance
+          </span>
+        </Link>
+      </div>
+
       {/* Header */}
       <div style={{
         backgroundColor: theme.colors.white,
@@ -669,5 +693,13 @@ export default function SearchPage() {
         onClose={() => setShowFilters(false)}
       />
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

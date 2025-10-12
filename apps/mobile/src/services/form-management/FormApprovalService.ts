@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { JobSheet } from './JobSheetOperationsService';
+import { logger } from '../../utils/logger';
 
 export interface FormApproval {
   id: string;
@@ -33,7 +34,7 @@ export class FormApprovalService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error submitting job sheet for approval:', error);
+      logger.error('Error submitting job sheet for approval', error);
       throw new Error('Failed to submit job sheet for approval');
     }
   }
@@ -75,7 +76,7 @@ export class FormApprovalService {
 
       return approval;
     } catch (error) {
-      console.error('Error approving job sheet:', error);
+      logger.error('Error approving job sheet', error);
       throw new Error('Failed to approve job sheet');
     }
   }
@@ -117,7 +118,7 @@ export class FormApprovalService {
 
       return approval;
     } catch (error) {
-      console.error('Error rejecting job sheet:', error);
+      logger.error('Error rejecting job sheet', error);
       throw new Error('Failed to reject job sheet');
     }
   }
@@ -159,7 +160,7 @@ export class FormApprovalService {
 
       return approval;
     } catch (error) {
-      console.error('Error requesting revision:', error);
+      logger.error('Error requesting revision', error);
       throw new Error('Failed to request revision');
     }
   }
@@ -175,7 +176,7 @@ export class FormApprovalService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching job sheet approvals:', error);
+      logger.error('Error fetching job sheet approvals', error);
       throw new Error('Failed to fetch job sheet approvals');
     }
   }
@@ -200,7 +201,7 @@ export class FormApprovalService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching pending approvals:', error);
+      logger.error('Error fetching pending approvals', error);
       throw new Error('Failed to fetch pending approvals');
     }
   }
@@ -223,7 +224,7 @@ export class FormApprovalService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching approval history:', error);
+      logger.error('Error fetching approval history', error);
       throw new Error('Failed to fetch approval history');
     }
   }

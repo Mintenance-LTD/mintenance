@@ -41,18 +41,45 @@ export class ConfigManager {
       }
     }
 
+    // In development, provide defaults instead of throwing
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    
     if (missingVars.length > 0) {
       const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
-      console.error('❌ Configuration Error:', errorMessage);
-      throw new Error(errorMessage);
+      
+      if (isDev) {
+        console.warn('⚠️ Configuration Warning:', errorMessage);
+        console.warn('⚠️ Using fallback values for development. Configure .env.local for full functionality.');
+        
+        // Return safe defaults for development
+        return {
+          JWT_SECRET: process.env.JWT_SECRET || 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
+          NODE_ENV: process.env.NODE_ENV || 'development',
+          DATABASE_URL: process.env.DATABASE_URL,
+          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        };
+      } else {
+        console.error('❌ Configuration Error:', errorMessage);
+        throw new Error(errorMessage);
+      }
     }
 
     // Validate JWT_SECRET strength
     const jwtSecret = process.env.JWT_SECRET!;
     if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
-      const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
-      console.error('❌ Security Error:', errorMessage);
-      throw new Error(errorMessage);
+      if (isDev) {
+        console.warn('⚠️ JWT_SECRET is weak or default. Using development fallback.');
+        return {
+          JWT_SECRET: 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
+          NODE_ENV: process.env.NODE_ENV!,
+          DATABASE_URL: process.env.DATABASE_URL,
+          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+        };
+      } else {
+        const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
+        console.error('❌ Security Error:', errorMessage);
+        throw new Error(errorMessage);
+      }
     }
 
     console.log('✅ Configuration validated successfully');

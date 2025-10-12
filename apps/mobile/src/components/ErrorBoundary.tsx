@@ -1,234 +1,97 @@
+/**
+ * Error Boundary Component
+ * 
+ * Catches React errors and displays fallback UI
+ * instead of crashing the entire app.
+ */
+
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
-import { logger } from '../utils/logger';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { logger } from '@mintenance/shared';
 
 interface Props {
   children: ReactNode;
-  fallback?: (error: Error, resetError: () => void) => ReactNode;
-  onError?: (error: Error, errorInfo: any) => void;
-  onRetry?: () => void; // optional: re-executes last action
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
-  errorId?: string;
+  error: Error | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = {
+      hasError: false,
+      error: null
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error
+    };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
-    // Generate error ID for tracking
-    const errorId =
-      Date.now().toString(36) + Math.random().toString(36).substr(2);
-    this.setState({ errorId });
-
-    // Create safe context for logging
-    const safeContext = {
-      message: error.message,
-      stack: error.stack?.substring(0, 500) || 'No stack trace',
-      componentStack:
-        errorInfo.componentStack?.substring(0, 500) || 'No component stack',
-      errorId,
-    };
-
-    // Log using console.error to satisfy unit test expectation first
-    try {
-      // mimic expected signature
-      console.error('Error caught by boundary:', error, safeContext);
-      // Also forward to app logger
-      logger.error('Error caught by boundary:', error, safeContext);
-    } catch (logError) {
-      console.error('Error boundary caught error, but failed to log it:', error.message);
-    }
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    // Log error to monitoring service
+    logger.error('React Error Boundary caught an error', error, {
+      service: 'ErrorBoundary',
+      componentStack: errorInfo.componentStack
+    });
 
     // Call custom error handler if provided
-    if (this.props.onError) {
-      try {
-        this.props.onError(error, errorInfo);
-      } catch (handlerError) {
-        console.error('Custom error handler failed:', handlerError);
-      }
-    }
+    this.props.onError?.(error, errorInfo);
 
-    try {
-      // Use synchronous require so Jest spies can intercept immediately
-      const { captureException } = require('../config/sentry');
-      captureException(error, {
-        contexts: {
-          errorBoundary: {
-            componentStack:
-              errorInfo.componentStack?.substring(0, 500) || 'N/A', // Limit length
-            errorId,
-          },
-        },
-      });
-    } catch (e: any) {
-      console.warn('Sentry not available:', e?.message || String(e));
+    // In production, send to error tracking service (e.g., Sentry)
+    if (process.env.NODE_ENV === 'production') {
+      this.reportErrorToService(error, errorInfo);
     }
   }
 
-  handleRetry = () => {
-    // If a caller provided onRetry, call it so the last action can be re-run
-    try {
-      this.props.onRetry?.();
-    } catch (e) {
-      console.warn('onRetry handler threw:', e);
-    }
-    this.setState({ hasError: false, error: undefined });
+  private reportErrorToService(error: Error, errorInfo: React.ErrorInfo): void {
+    // TODO: Integrate with Sentry or similar service
+    // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+  }
+
+  private handleReset = (): void => {
+    this.setState({
+      hasError: false,
+      error: null
+    });
   };
 
-  handleReportError = () => {
-    if (this.state.error && this.state.errorId) {
-      Alert.alert(
-        'Report Error',
-        `Error ID: ${this.state.errorId}\n\nWould you like to report this error to help us improve the app?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Report',
-            onPress: () => {
-              // Here you could integrate with your error reporting system
-              logger.debug('Error reported:', { data: this.state.errorId });
-            },
-          },
-        ]
-      );
-    }
-  };
-
-  handleCopyId = () => {
-    if (!this.state.errorId) return;
-    try {
-      // Try community Clipboard first (no-op if not installed)
-      const Clipboard = require('@react-native-clipboard/clipboard');
-      if (Clipboard?.setString) {
-        Clipboard.setString(this.state.errorId);
-        Alert.alert('Copied', 'Error ID copied to clipboard');
-        return;
-      }
-    } catch {}
-
-    try {
-      // Expo Clipboard fallback
-      const ExpoClipboard = require('expo-clipboard');
-      if (ExpoClipboard?.setStringAsync) {
-        ExpoClipboard.setStringAsync(this.state.errorId);
-        Alert.alert('Copied', 'Error ID copied to clipboard');
-        return;
-      }
-    } catch {}
-
-    // Final fallback: show the ID so users can copy manually
-    Alert.alert('Error ID', this.state.errorId);
-  };
-
-  handleViewDetails = () => {
-    const message = this.state.error?.message || 'No message available';
-    const stack = this.state.error?.stack?.substring(0, 600) || 'No stack trace';
-    Alert.alert('Error Details', `${message}\n\n${stack}`);
-  };
-
-  render() {
+  render(): ReactNode {
     if (this.state.hasError) {
       // Use custom fallback if provided
-      if (this.props.fallback && this.state.error) {
-        return this.props.fallback(this.state.error, this.handleRetry);
+      if (this.props.fallback) {
+        return this.props.fallback;
       }
 
+      // Default fallback UI
       return (
         <View style={styles.container}>
-          <Ionicons
-            name='warning-outline'
-            size={64}
-            color={theme.colors.error}
-          />
-
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
-            An unexpected error occurred. Please try again.
-          </Text>
-
-          {this.state.errorId && (
-            <Text style={styles.errorId}>Error ID: {this.state.errorId}</Text>
-          )}
-
-          {__DEV__ && this.state.error && (
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugTitle}>Debug Info:</Text>
-              <Text style={styles.debugText}>{this.state.error.message}</Text>
-              <Text style={styles.debugText} numberOfLines={10}>
-                {this.state.error.stack}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={this.handleRetry}
-            >
-              <Ionicons
-                name='refresh'
-                size={16}
-                color='#fff'
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.reportButton}
-              onPress={this.handleReportError}
-            >
-              <Ionicons
-                name='bug-outline'
-                size={16}
-                color={theme.colors.primary}
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.reportButtonText}>Report Issue</Text>
-            </TouchableOpacity>
-
-            {this.state.errorId && (
-              <TouchableOpacity
-                style={styles.reportButton}
-                onPress={this.handleCopyId}
-              >
-                <Ionicons
-                  name='copy-outline'
-                  size={16}
-                  color={theme.colors.primary}
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.reportButtonText}>Copy ID</Text>
-              </TouchableOpacity>
+          <View style={styles.content}>
+            <Text style={styles.emoji}>😔</Text>
+            <Text style={styles.title}>Oops! Something went wrong</Text>
+            <Text style={styles.message}>
+              We're sorry for the inconvenience. The error has been reported to our team.
+            </Text>
+            
+            {process.env.NODE_ENV === 'development' && this.state.error && (
+              <View style={styles.errorDetails}>
+                <Text style={styles.errorTitle}>Error Details (Development Only):</Text>
+                <Text style={styles.errorMessage}>{this.state.error.message}</Text>
+                <Text style={styles.errorStack}>{this.state.error.stack}</Text>
+              </View>
             )}
 
-            {this.state.error && (
-              <TouchableOpacity
-                style={styles.reportButton}
-                onPress={this.handleViewDetails}
-              >
-                <Ionicons
-                  name='information-circle-outline'
-                  size={16}
-                  color={theme.colors.primary}
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.reportButtonText}>View Details</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.button} onPress={this.handleReset}>
+              <Text style={styles.buttonText}>Try Again</Text>
+            </TouchableOpacity>
           </View>
         </View>
       );
@@ -241,92 +104,69 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F9FAFB',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing[6],
-    backgroundColor: theme.colors.background,
+    padding: 20,
+  },
+  content: {
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  emoji: {
+    fontSize: 64,
+    marginBottom: 16,
   },
   title: {
-    fontSize: theme.typography.fontSize['3xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[4],
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textSecondary,
+    fontSize: 16,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: theme.spacing[6],
-    lineHeight: 22,
-    paddingHorizontal: theme.spacing[4],
+    marginBottom: 24,
+    lineHeight: 24,
   },
-  errorId: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
-    marginBottom: theme.spacing[4],
-    fontFamily: 'monospace',
+  button: {
+    backgroundColor: '#0EA5E9',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
   },
-  debugInfo: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing[5],
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorDetails: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EF4444',
     width: '100%',
-    maxHeight: 200,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  debugTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing[2],
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#991B1B',
+    marginBottom: 8,
   },
-  debugText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+  errorMessage: {
+    fontSize: 13,
+    color: '#7F1D1D',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  errorStack: {
+    fontSize: 11,
+    color: '#991B1B',
     fontFamily: 'monospace',
-    marginBottom: theme.spacing[1],
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: theme.spacing[3],
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing[6],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  reportButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: theme.spacing[6],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  retryButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
-  },
-  reportButtonText: {
-    color: theme.colors.primary,
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-  buttonIcon: {
-    marginRight: theme.spacing[1],
   },
 });
-
-export default ErrorBoundary;

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { validateSchema, ValidationError } from '../types/schemas';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // TYPES
@@ -280,7 +281,7 @@ export const useForm = <T extends Record<string, any>>(
         await submitHandler(values);
       }
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error', error);
       // You might want to set form-level errors here
     } finally {
       setIsSubmitting(false);
@@ -426,7 +427,7 @@ export const useFormPersistence = <T>(
         })
       );
     } catch (error) {
-      console.error('Failed to save form:', error);
+      logger.error('Failed to save form', error);
     }
   }, [formKey, form.values, form.touched]);
 
@@ -440,7 +441,7 @@ export const useFormPersistence = <T>(
         form.setTouched(touched);
       }
     } catch (error) {
-      console.error('Failed to load form:', error);
+      logger.error('Failed to load form', error);
     }
   }, [formKey, form]);
 
@@ -449,7 +450,7 @@ export const useFormPersistence = <T>(
       const { AsyncStorage } = require('@react-native-async-storage/async-storage');
       await AsyncStorage.removeItem(`form_${formKey}`);
     } catch (error) {
-      console.error('Failed to clear saved form:', error);
+      logger.error('Failed to clear saved form', error);
     }
   }, [formKey]);
 

@@ -1,6 +1,7 @@
-import { createToken, verifyToken, setAuthCookie, clearAuthCookie } from './auth';
+import { createToken, verifyToken, setAuthCookie, clearAuthCookie, createTokenPair, rotateTokens, revokeAllTokens } from './auth';
 import { DatabaseManager, type User, type CreateUserData } from './database';
 import { config } from './config';
+import { logger } from '@mintenance/shared';
 
 export interface AuthResult {
   success: boolean;
@@ -34,7 +35,7 @@ export class AuthManager {
   /**
    * Authenticate user with email and password
    */
-  async login(credentials: LoginCredentials): Promise<AuthResult> {
+  async login(credentials: LoginCredentials, rememberMe: boolean = false): Promise<AuthResult> {
     try {
       const { email, password } = credentials;
 
@@ -64,14 +65,15 @@ export class AuthManager {
         };
       }
 
-      // Create and set JWT token
-      const token = await createToken({
+      // Create and set JWT token pair
+      const { accessToken, refreshToken } = await createTokenPair({
         id: user.id,
         email: user.email,
         role: user.role,
-      });
+      }, undefined, undefined);
 
-      await setAuthCookie(token);
+      await setAuthCookie(accessToken, rememberMe);
+      // Note: Refresh token is stored separately in database
 
       return {
         success: true,
@@ -79,7 +81,7 @@ export class AuthManager {
       };
 
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error', error, { service: 'auth' });
       return {
         success: false,
         error: 'An unexpected error occurred during login'
@@ -92,8 +94,11 @@ export class AuthManager {
    */
   async register(userData: RegisterData): Promise<AuthResult> {
     try {
+      logger.info('Starting user registration', { email: userData.email, service: 'auth' });
+      
       // Validate email format
       if (!DatabaseManager.isValidEmail(userData.email)) {
+        logger.warn('Invalid email format provided', { email: userData.email, service: 'auth' });
         return {
           success: false,
           error: 'Please provide a valid email address'
@@ -101,17 +106,26 @@ export class AuthManager {
       }
 
       // Validate password strength
+      logger.info('Validating password strength', { service: 'auth' });
       const passwordValidation = DatabaseManager.isValidPassword(userData.password);
       if (!passwordValidation.valid) {
+        logger.warn('Password validation failed', { 
+          email: userData.email, 
+          errors: passwordValidation.message, 
+          service: 'auth' 
+        });
         return {
           success: false,
           error: passwordValidation.message
         };
       }
+      logger.info('Password validation passed', { service: 'auth' });
 
       // Check if user already exists
+      logger.info('Checking if user already exists', { email: userData.email, service: 'auth' });
       const existingUser = await DatabaseManager.userExists(userData.email);
       if (existingUser) {
+        logger.warn('User already exists', { email: userData.email, service: 'auth' });
         return {
           success: false,
           error: 'An account with this email already exists'
@@ -119,24 +133,32 @@ export class AuthManager {
       }
 
       // Create user
+      logger.info('Creating new user', { email: userData.email, service: 'auth' });
       const user = await DatabaseManager.createUser(userData);
+      logger.info('User created successfully', { userId: user.id, email: user.email, service: 'auth' });
 
-      // Create and set JWT token for immediate login
-      const token = await createToken({
+      // Create and set JWT token pair for immediate login
+      logger.info('Creating JWT tokens', { userId: user.id, service: 'auth' });
+      const { accessToken, refreshToken } = await createTokenPair({
         id: user.id,
         email: user.email,
         role: user.role,
-      });
+      }, undefined, undefined);
+      logger.info('JWT tokens created', { userId: user.id, service: 'auth' });
 
-      await setAuthCookie(token);
+      logger.info('Setting authentication cookies', { userId: user.id, service: 'auth' });
+      await setAuthCookie(accessToken);
+      // Note: Refresh token is stored separately in database
+      logger.info('Authentication cookies set', { userId: user.id, service: 'auth' });
 
+      logger.info('Registration completed successfully', { userId: user.id, email: user.email, service: 'auth' });
       return {
         success: true,
         user
       };
 
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error', error, { service: 'auth' });
 
       // Handle specific error types
       if (error instanceof Error) {
@@ -156,13 +178,18 @@ export class AuthManager {
   }
 
   /**
-   * Logout user by clearing authentication cookies
+   * Logout user by clearing authentication cookies and revoking tokens
    */
-  async logout(): Promise<void> {
+  async logout(userId?: string): Promise<void> {
     try {
+      // Revoke all refresh tokens for the user
+      if (userId) {
+        await revokeAllTokens(userId);
+      }
+      
       await clearAuthCookie();
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error', error, { service: 'auth' });
       // Don't throw error for logout - always clear locally
     }
   }
@@ -187,7 +214,7 @@ export class AuthManager {
       return user;
 
     } catch (error) {
-      console.error('Get current user error:', error);
+      logger.error('Get current user error', error, { service: 'auth' });
       return null;
     }
   }
@@ -216,7 +243,7 @@ export class AuthManager {
       return { valid: true, userId: payload.sub };
 
     } catch (error) {
-      console.error('Token validation error:', error);
+      logger.error('Token validation error', error, { service: 'auth' });
       return { valid: false, error: 'Token validation failed' };
     }
   }
@@ -269,7 +296,7 @@ export class AuthManager {
       };
 
     } catch (error) {
-      console.error('Change password error:', error);
+      logger.error('Change password error', error, { service: 'auth' });
       return {
         success: false,
         error: 'An unexpected error occurred while changing password'
@@ -297,7 +324,7 @@ export class AuthManager {
       };
 
     } catch (error) {
-      console.error('Update profile error:', error);
+      logger.error('Update profile error', error, { service: 'auth' });
       return {
         success: false,
         error: 'An unexpected error occurred while updating profile'

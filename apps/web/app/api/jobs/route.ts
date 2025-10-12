@@ -3,6 +3,8 @@ import { z } from 'zod';
 import type { JobDetail, JobSummary } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
+import { logger } from '@mintenance/shared';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -11,14 +13,37 @@ const listQuerySchema = z.object({
 });
 
 const createJobSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().max(5000).optional(),
-  status: z.string().optional(),
-  category: z.string().max(128).optional(),
+  title: z.string().min(1, 'Title is required').transform(val => sanitizeText(val, 200)),
+  description: z.string().max(5000).optional().transform(val => val ? sanitizeJobDescription(val) : val),
+  status: z.string().optional().transform(val => val ? sanitizeText(val, 50) : val),
+  category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
   budget: z.coerce.number().positive().optional(),
 });
 
-const jobSelectFields = 'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
+// Enriched query with JOINs for complete data
+const jobSelectFields = `
+  id,
+  title,
+  description,
+  status,
+  homeowner_id,
+  contractor_id,
+  category,
+  budget,
+  location,
+  created_at,
+  updated_at,
+  homeowner:users!homeowner_id(id,first_name,last_name,email),
+  contractor:users!contractor_id(id,first_name,last_name,email),
+  bids(count)
+`.replace(/\s+/g, ' ').trim();
+
+type UserData = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+};
 
 type JobRow = {
   id: string;
@@ -29,16 +54,33 @@ type JobRow = {
   contractor_id?: string | null;
   category?: string | null;
   budget?: number | null;
+  location?: string | null;
   created_at: string;
   updated_at: string;
+  homeowner?: UserData;
+  contractor?: UserData | null;
+  bids?: Array<{ count: number }>;
 };
 
-const mapRowToJobSummary = (row: JobRow): JobSummary => ({
+const mapRowToJobSummary = (row: JobRow): JobSummary & {
+  homeownerName?: string;
+  contractorName?: string;
+  category?: string;
+  budget?: number;
+  location?: string;
+  bidCount?: number;
+} => ({
   id: row.id,
   title: row.title,
   status: (row.status as JobSummary['status']) ?? 'posted',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  homeownerName: row.homeowner ? `${row.homeowner.first_name} ${row.homeowner.last_name}` : undefined,
+  contractorName: row.contractor ? `${row.contractor.first_name} ${row.contractor.last_name}` : undefined,
+  category: row.category ?? undefined,
+  budget: row.budget ?? undefined,
+  location: row.location ?? undefined,
+  bidCount: row.bids?.[0]?.count ?? 0,
 });
 
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({
@@ -86,21 +128,33 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await query;
-    if (error) {
-      console.error('[API] jobs GET error', error);
+    if (error || !data) {
+      logger.error('Failed to load jobs', error, {
+        service: 'jobs',
+        userId: user.id
+      });
       return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 });
     }
 
-    const rows = (data ?? []) as JobRow[];
+    const rows = data as unknown as JobRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
     const nextCursor = hasMore ? limitedRows.at(-1)?.created_at ?? undefined : undefined;
 
     const items: JobSummary[] = limitedRows.map(mapRowToJobSummary);
 
+    logger.info('Jobs list retrieved', {
+      service: 'jobs',
+      userId: user.id,
+      jobCount: items.length,
+      hasMore
+    });
+
     return NextResponse.json({ jobs: items, nextCursor });
   } catch (err) {
-    console.error('[API] jobs GET error', err);
+    logger.error('Failed to load jobs', err, {
+      service: 'jobs'
+    });
     return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 });
   }
 }
@@ -146,17 +200,29 @@ export async function POST(request: NextRequest) {
       .select(jobSelectFields)
       .single();
 
-    if (error) {
-      console.error('[API] jobs POST error', error);
+    if (error || !data) {
+      logger.error('Failed to create job', error, {
+        service: 'jobs',
+        userId: user.id
+      });
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
     }
 
-    const jobRow = data as JobRow;
+    const jobRow = data as unknown as JobRow;
     const job = mapRowToJobDetail(jobRow);
+
+    logger.info('Job created successfully', {
+      service: 'jobs',
+      userId: user.id,
+      jobId: job.id,
+      title: job.title
+    });
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {
-    console.error('[API] jobs POST error', err);
+    logger.error('Failed to create job', err, {
+      service: 'jobs'
+    });
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
   }
 }

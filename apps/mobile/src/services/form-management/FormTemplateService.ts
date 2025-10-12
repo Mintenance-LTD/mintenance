@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { handleDatabaseOperation, validateRequired } from '../../utils/serviceHelper';
+import { logger } from '../../utils/logger';
 
 export interface FormTemplate {
   id: string;
@@ -125,7 +126,7 @@ export class FormTemplateService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching form template:', error);
+      logger.error('Error fetching form template', error);
       throw new Error('Failed to fetch form template');
     }
   }
@@ -148,7 +149,7 @@ export class FormTemplateService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating form template:', error);
+      logger.error('Error updating form template', error);
       throw new Error('Failed to update form template');
     }
   }
@@ -162,7 +163,7 @@ export class FormTemplateService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting form template:', error);
+      logger.error('Error deleting form template', error);
       throw new Error('Failed to delete form template');
     }
   }

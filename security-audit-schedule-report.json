@@ -1,0 +1,306 @@
+{
+  "generated_at": "2025-10-07T18:24:57.234Z",
+  "configuration": {
+    "monitoring": {
+      "realtime": {
+        "enabled": true,
+        "batchSize": 10,
+        "flushInterval": 30000
+      },
+      "retention": {
+        "securityEvents": 90,
+        "auditLogs": 2555,
+        "webhookEvents": 30
+      },
+      "thresholds": {
+        "criticalEventsPerHour": 5,
+        "highSeverityEventsPerHour": 20,
+        "failedAuthAttemptsPerIP": 10,
+        "suspiciousActivityPerIP": 50,
+        "rateLimitViolationsPerIP": 100
+      }
+    },
+    "responses": {
+      "ipBlocking": {
+        "enabled": true,
+        "autoBlockThreshold": 20,
+        "blockDuration": 86400000,
+        "whitelist": [
+          "127.0.0.1",
+          "::1"
+        ]
+      },
+      "rateLimiting": {
+        "enabled": true,
+        "loginAttempts": {
+          "windowMs": 900000,
+          "maxAttempts": 5,
+          "blockDuration": 1800000
+        },
+        "apiRequests": {
+          "windowMs": 60000,
+          "maxRequests": 100,
+          "blockDuration": 300000
+        }
+      },
+      "notifications": {
+        "enabled": true,
+        "channels": {
+          "email": {
+            "enabled": true,
+            "recipients": [
+              "security@mintenance.com",
+              "admin@mintenance.com"
+            ],
+            "criticalOnly": false
+          },
+          "slack": {
+            "enabled": true,
+            "channel": "#security-alerts",
+            "criticalOnly": true
+          },
+          "sms": {
+            "enabled": false,
+            "recipients": [
+              "+44123456789"
+            ],
+            "criticalOnly": true
+          }
+        }
+      }
+    },
+    "scanning": {
+      "schedule": {
+        "daily": {
+          "enabled": true,
+          "time": "02:00",
+          "timezone": "UTC"
+        },
+        "weekly": {
+          "enabled": true,
+          "day": "sunday",
+          "time": "03:00",
+          "timezone": "UTC"
+        },
+        "monthly": {
+          "enabled": true,
+          "day": 1,
+          "time": "04:00",
+          "timezone": "UTC"
+        }
+      },
+      "types": {
+        "dependencyVulnerabilities": {
+          "enabled": true,
+          "severity": "moderate"
+        },
+        "codeSecurity": {
+          "enabled": true,
+          "patterns": [
+            "hardcoded_secrets",
+            "unsafe_eval",
+            "sql_injection",
+            "xss_vulnerabilities"
+          ]
+        },
+        "configurationSecurity": {
+          "enabled": true,
+          "checks": [
+            "security_headers",
+            "cors_configuration",
+            "authentication_setup",
+            "authorization_policies"
+          ]
+        },
+        "databaseSecurity": {
+          "enabled": true,
+          "checks": [
+            "rls_policies",
+            "admin_functions",
+            "sensitive_data",
+            "access_patterns"
+          ]
+        }
+      }
+    },
+    "compliance": {
+      "gdpr": {
+        "enabled": true,
+        "dataRetention": {
+          "userData": 2555,
+          "auditLogs": 2555,
+          "securityEvents": 90
+        },
+        "monitoring": {
+          "dataExports": true,
+          "dataDeletions": true,
+          "accessRequests": true,
+          "consentChanges": true
+        }
+      },
+      "pci": {
+        "enabled": true,
+        "requirements": [
+          "encryption_in_transit",
+          "encryption_at_rest",
+          "access_controls",
+          "audit_logging",
+          "vulnerability_management"
+        ]
+      },
+      "iso27001": {
+        "enabled": false,
+        "controls": [
+          "information_security_policies",
+          "access_control",
+          "cryptography",
+          "operations_security",
+          "communications_security"
+        ]
+      }
+    },
+    "incidentResponse": {
+      "severity": {
+        "critical": {
+          "responseTime": 15,
+          "escalation": [
+            "security@mintenance.com",
+            "admin@mintenance.com"
+          ],
+          "autoActions": [
+            "block_ip",
+            "notify_team",
+            "create_ticket"
+          ]
+        },
+        "high": {
+          "responseTime": 60,
+          "escalation": [
+            "security@mintenance.com"
+          ],
+          "autoActions": [
+            "notify_team",
+            "log_event"
+          ]
+        },
+        "medium": {
+          "responseTime": 240,
+          "escalation": [],
+          "autoActions": [
+            "log_event"
+          ]
+        },
+        "low": {
+          "responseTime": 1440,
+          "escalation": [],
+          "autoActions": [
+            "log_event"
+          ]
+        }
+      },
+      "procedures": {
+        "dataBreach": {
+          "steps": [
+            "contain_breach",
+            "assess_impact",
+            "notify_authorities",
+            "notify_affected_users",
+            "implement_remediation",
+            "conduct_post_incident_review"
+          ],
+          "timeline": {
+            "containment": 1,
+            "assessment": 24,
+            "notification": 72
+          }
+        },
+        "securityIncident": {
+          "steps": [
+            "identify_threat",
+            "contain_threat",
+            "eradicate_threat",
+            "recover_systems",
+            "lessons_learned"
+          ],
+          "timeline": {
+            "identification": 1,
+            "containment": 4,
+            "eradication": 24
+          }
+        }
+      }
+    },
+    "integrations": {
+      "external": {
+        "snyk": {
+          "enabled": true
+        },
+        "sentry": {
+          "enabled": true
+        },
+        "datadog": {
+          "enabled": false
+        }
+      },
+      "internal": {
+        "supabase": {
+          "enabled": true,
+          "realtime": true,
+          "webhooks": true
+        },
+        "vercel": {
+          "enabled": true,
+          "analytics": true,
+          "functions": true
+        }
+      }
+    },
+    "development": {
+      "testMode": {
+        "enabled": false,
+        "mockEvents": true,
+        "reducedRetention": true,
+        "disableBlocking": true
+      },
+      "debug": {
+        "enabled": false,
+        "logLevel": "debug",
+        "verboseLogging": true,
+        "eventReplay": true
+      }
+    }
+  },
+  "schedules": {
+    "daily": "Daily at 02:00",
+    "weekly": "Weekly on sunday at 03:00",
+    "monthly": "Monthly on day 1 at 04:00"
+  },
+  "monitoring": {
+    "realtime": true,
+    "retention": {
+      "securityEvents": 90,
+      "auditLogs": 2555,
+      "webhookEvents": 30
+    },
+    "thresholds": {
+      "criticalEventsPerHour": 5,
+      "highSeverityEventsPerHour": 20,
+      "failedAuthAttemptsPerIP": 10,
+      "suspiciousActivityPerIP": 50,
+      "rateLimitViolationsPerIP": 100
+    }
+  },
+  "compliance": {
+    "gdpr": true,
+    "pci": true,
+    "iso27001": false
+  },
+  "next_audit": "2025-10-08T01:00:00.000Z",
+  "recommendations": [
+    "Review security audit results regularly",
+    "Update security thresholds based on business needs",
+    "Test incident response procedures quarterly",
+    "Conduct penetration testing annually",
+    "Review and update security policies bi-annually"
+  ]
+}

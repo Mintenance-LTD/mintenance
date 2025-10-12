@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../components/Logo';
@@ -8,7 +8,7 @@ import Logo from '../components/Logo';
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -23,41 +23,61 @@ export default function RegisterPage() {
   const roleParam = searchParams.get('role');
 
   useEffect(() => {
+    console.log('🎯 RegisterPage component mounted');
     if (roleParam === 'contractor' || roleParam === 'homeowner') {
       setRole(roleParam);
     }
   }, [roleParam]);
 
+  useEffect(() => {
+    console.log('🔧 Component hydrated and ready');
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Form submission started');
+    console.log('📝 Form data:', { email, firstName, lastName, phone, role });
+    
     setLoading(true);
     setError('');
 
     try {
+      const requestBody = {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        role,
+      };
+      
+      console.log('📤 Sending request to /api/auth/register');
+      console.log('📦 Request body:', requestBody);
+      
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email,
-          password,
-          first_name: firstName,
-          last_name: lastName,
-          phone,
-          role,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (!response.ok) {
+        console.log('❌ Registration failed:', data.error);
         throw new Error(data.error || 'Registration failed');
       }
 
+      console.log('✅ Registration successful, redirecting to dashboard');
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
+      console.log('❌ Registration error:', err);
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
@@ -231,7 +251,17 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-medium text-gray-700">Password must contain:</p>
+                <ul className="text-xs text-gray-600 space-y-0.5 ml-4">
+                  <li>• At least 8 characters</li>
+                  <li>• One uppercase letter (A-Z)</li>
+                  <li>• One lowercase letter (a-z)</li>
+                  <li>• One number (0-9)</li>
+                  <li>• One special character (!@#$%^&*)</li>
+                  <li>• No sequential patterns (123, abc, etc.)</li>
+                </ul>
+              </div>
             </div>
 
             {error && (
@@ -264,5 +294,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 export interface JobSheet {
   id: string;
@@ -131,7 +132,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating job sheet:', error);
+      logger.error('Error creating job sheet', error);
       throw new Error('Failed to create job sheet');
     }
   }
@@ -185,7 +186,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching job sheets:', error);
+      logger.error('Error fetching job sheets', error);
       throw new Error('Failed to fetch job sheets');
     }
   }
@@ -201,7 +202,7 @@ export class JobSheetOperationsService {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching job sheet:', error);
+      logger.error('Error fetching job sheet', error);
       throw new Error('Failed to fetch job sheet');
     }
   }
@@ -224,7 +225,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating job sheet:', error);
+      logger.error('Error updating job sheet', error);
       throw new Error('Failed to update job sheet');
     }
   }
@@ -247,7 +248,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating job sheet form data:', error);
+      logger.error('Error updating job sheet form data', error);
       throw new Error('Failed to update job sheet form data');
     }
   }
@@ -268,7 +269,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error starting job sheet:', error);
+      logger.error('Error starting job sheet', error);
       throw new Error('Failed to start job sheet');
     }
   }
@@ -300,7 +301,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error completing job sheet:', error);
+      logger.error('Error completing job sheet', error);
       throw new Error('Failed to complete job sheet');
     }
   }
@@ -314,7 +315,7 @@ export class JobSheetOperationsService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting job sheet:', error);
+      logger.error('Error deleting job sheet', error);
       throw new Error('Failed to delete job sheet');
     }
   }
@@ -348,7 +349,7 @@ export class JobSheetOperationsService {
         duplicateData
       );
     } catch (error) {
-      console.error('Error duplicating job sheet:', error);
+      logger.error('Error duplicating job sheet', error);
       throw new Error('Failed to duplicate job sheet');
     }
   }
@@ -363,7 +364,7 @@ export class JobSheetOperationsService {
       if (error) throw error;
       return data || 0;
     } catch (error) {
-      console.error('Error calculating form completion percentage:', error);
+      logger.error('Error calculating form completion percentage', error);
       return 0;
     }
   }

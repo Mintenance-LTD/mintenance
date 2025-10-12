@@ -58,5 +58,13 @@ Project Rules
 
 Always use context7 Figma playwright when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 Figma playwright MCP tools to resolve library id and get library docs without me having to explicitly ask
 
+ <When_you_SHOULD_Use_Context7>
+✅ Should Have Used:
+-Playwright configuration - When fixing test setup issues
+-Next.js configuration - When adding security headers, CSP
+-React best practices - When fixing the fullWidth prop issue
+-Environment setup - When configuring .env.local
+-TypeScript typing - When adding interfaces
+</Never_forget_this>
 Always read the app files for context before making any changes
 

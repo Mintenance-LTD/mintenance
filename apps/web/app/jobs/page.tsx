@@ -6,8 +6,11 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card, PageHeader, LoadingSpinner, ErrorView } from '@/components/ui';
+import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { logger } from '@/lib/logger';
+import Logo from '../components/Logo';
+import Link from 'next/link';
 import type { Job, User } from '@mintenance/types';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
@@ -19,6 +22,11 @@ export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
+
+  // Set page title
+  useEffect(() => {
+    document.title = 'Jobs | Mintenance';
+  }, []);
 
   useEffect(() => {
     if (!loadingUser && user) {
@@ -106,6 +114,28 @@ export default function JobsPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <Logo className="w-10 h-10" />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary
+          }}>
+            Mintenance
+          </span>
+        </Link>
+      </div>
+
       <PageHeader
         title={user.role === 'homeowner' ? 'Maintenance Hub' : 'Job Marketplace'}
         subtitle={user.role === 'homeowner'
@@ -234,8 +264,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
       style={{ padding: '16px', cursor: 'pointer' }}
       hover={true}
       onClick={() => {
-        // TODO: Navigate to job details
         logger.userAction('Navigate to job', { jobId: job.id });
+        router.push(`/jobs/${job.id}`);
       }}
     >
       {/* Header */}

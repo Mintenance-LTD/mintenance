@@ -1,4 +1,5 @@
 import type { JobDetail as Job, JobSummary } from '@mintenance/types/src/contracts';
+import { logger } from '@/lib/logger';
 
 async function api<T>(input: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -31,7 +32,7 @@ export class JobService {
       const { jobs } = await api<{ jobs: JobSummary[] }>(`/api/jobs?${params.toString()}`);
       return jobs.map(mapSummaryToJob);
     } catch (error) {
-      console.error('Job service error:', error);
+      logger.error('Job service error', error);
       return this.getMockJobs();
     }
   }
@@ -41,7 +42,7 @@ export class JobService {
       const { jobs } = await api<{ jobs: JobSummary[] }>(`/api/jobs?limit=50`);
       return jobs.map(mapSummaryToJob);
     } catch (error) {
-      console.error('Job service error:', error);
+      logger.error('Job service error', error);
       return this.getMockJobs();
     }
   }
@@ -51,7 +52,7 @@ export class JobService {
       const { job } = await api<{ job: Job }>(`/api/jobs/${encodeURIComponent(jobId)}`);
       return job;
     } catch (error) {
-      console.error('Job service error:', error);
+      logger.error('Job service error', error);
       return null;
     }
   }
@@ -64,7 +65,7 @@ export class JobService {
       });
       return job;
     } catch (error) {
-      console.error('Job service error:', error);
+      logger.error('Job service error', error);
       return null;
     }
   }
@@ -77,7 +78,7 @@ export class JobService {
       });
       return job;
     } catch (error) {
-      console.error('Job service error:', error);
+      logger.error('Job service error', error);
       return null;
     }
   }

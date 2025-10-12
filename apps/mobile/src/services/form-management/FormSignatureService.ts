@@ -1,4 +1,5 @@
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
 
 export interface JobSheetSignature {
   id: string;
@@ -34,7 +35,7 @@ export class FormSignatureService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error adding job sheet signature:', error);
+      logger.error('Error adding job sheet signature', error);
       throw new Error('Failed to add job sheet signature');
     }
   }
@@ -50,7 +51,7 @@ export class FormSignatureService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching job sheet signatures:', error);
+      logger.error('Error fetching job sheet signatures', error);
       throw new Error('Failed to fetch job sheet signatures');
     }
   }
@@ -68,7 +69,7 @@ export class FormSignatureService {
       // Basic verification - in production, this would involve cryptographic verification
       return !!(data?.signature_data && data?.signer_email);
     } catch (error) {
-      console.error('Error verifying signature:', error);
+      logger.error('Error verifying signature', error);
       return false;
     }
   }
@@ -82,7 +83,7 @@ export class FormSignatureService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting signature:', error);
+      logger.error('Error deleting signature', error);
       throw new Error('Failed to delete signature');
     }
   }

@@ -3,14 +3,15 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
 });
 
 const confirmIntentSchema = z.object({
-  paymentIntentId: z.string(),
-  jobId: z.string().uuid(),
+  paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
+  jobId: z.string().uuid('Invalid job ID'),
 });
 
 export async function POST(request: NextRequest) {
@@ -18,6 +19,10 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
+      logger.warn('Unauthorized payment confirmation attempt', {
+        service: 'payments',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,6 +31,11 @@ export async function POST(request: NextRequest) {
     const parsed = confirmIntentSchema.safeParse(body);
 
     if (!parsed.success) {
+      logger.warn('Invalid payment confirmation request', {
+        service: 'payments',
+        userId: user.id,
+        errors: parsed.error.flatten().fieldErrors
+      });
       return NextResponse.json(
         { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
@@ -39,6 +49,12 @@ export async function POST(request: NextRequest) {
 
     // Verify payment was successful
     if (paymentIntent.status !== 'succeeded') {
+      logger.warn('Payment confirmation attempted for non-successful payment', {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        status: paymentIntent.status
+      });
       return NextResponse.json(
         {
           error: 'Payment not completed',
@@ -77,12 +93,26 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (escrowError) {
-      console.error('Error updating escrow transaction:', escrowError);
+      logger.error('Error updating escrow transaction', escrowError, {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId
+      });
       return NextResponse.json(
         { error: 'Failed to update escrow transaction' },
         { status: 500 }
       );
     }
+
+    logger.info('Payment confirmed and escrow updated', {
+      service: 'payments',
+      userId: user.id,
+      paymentIntentId,
+      jobId,
+      escrowTransactionId: escrowTransaction.id,
+      amount: escrowTransaction.amount
+    });
 
     // Optionally update job status
     await serverSupabase
@@ -97,7 +127,7 @@ export async function POST(request: NextRequest) {
       amount: escrowTransaction.amount,
     });
   } catch (error) {
-    console.error('Error confirming payment intent:', error);
+    logger.error('Error confirming payment intent', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {
       return NextResponse.json(

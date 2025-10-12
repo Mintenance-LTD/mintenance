@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { logger } from '../utils/logger';
 
-// Platform-specific Map imports - Use web-compatible fallbacks
+// Platform-specific Map imports
 interface Region {
   latitude: number;
   longitude: number;
@@ -20,15 +20,26 @@ interface Region {
   longitudeDelta: number;
 }
 
-// Web-compatible fallback components (react-native-maps removed for web compatibility)
-const MapView = ({ children, ...props }: any) => (
-  <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Map view available on mobile devices</Text>
-    {children}
-  </View>
-);
+// Conditional import for react-native-maps (only on native platforms)
+let MapView: any;
+let Marker: any;
 
-const Marker = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+if (Platform.OS === 'web') {
+  // Web fallback components
+  MapView = ({ children, ...props }: any) => (
+    <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: '#666', fontSize: 16 }}>Map view available on mobile devices</Text>
+      <Text style={{ color: '#999', fontSize: 12, marginTop: 8 }}>Download our mobile app to view contractors on map</Text>
+      {children}
+    </View>
+  );
+  Marker = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+} else {
+  // Use react-native-maps on native platforms
+  const Maps = require('react-native-maps');
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+}
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
@@ -49,6 +60,8 @@ const FindContractorsScreen: React.FC = () => {
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [loading, setLoading] = useState(true);
+  const [currentContractorIndex, setCurrentContractorIndex] = useState(0);
   const [region, setRegion] = useState<Region>({
     latitude: 40.7128,
     longitude: -74.006,
@@ -126,7 +139,41 @@ const FindContractorsScreen: React.FC = () => {
         user.id,
         location
       );
-      setContractors(nearbyContractors);
+
+      // Convert to search results and merge with existing state
+      const searchResults: ContractorSearchResult[] = nearbyContractors.map(contractor => ({
+        id: contractor.id,
+        name: `${contractor.firstName} ${contractor.lastName}`,
+        profileImage: contractor.profileImageUrl,
+        skills: contractor.skills || [],
+        rating: contractor.rating || 0,
+        reviewCount: contractor.reviewCount || 0,
+        hourlyRate: contractor.hourlyRate,
+        location: {
+          city: '', // Would need to be added to contractor profile
+          state: '',
+          distance: 0, // Would need to calculate from coordinates
+        },
+        availability: {
+          immediate: true,
+          thisWeek: true,
+          thisMonth: true,
+        },
+        verified: contractor.verified || false,
+        description: contractor.bio || '',
+        // Store actual coordinates for map
+        coordinates: {
+          latitude: contractor.latitude || 0,
+          longitude: contractor.longitude || 0,
+        },
+      }));
+
+      // Update search state with nearby results
+      setSearchState(prev => ({
+        ...prev,
+        results: searchResults,
+        isSearching: false,
+      }));
     } catch (error) {
       logger.error('Error loading contractors:', error);
       Alert.alert('Error', 'Failed to load contractors. Please try again.');
@@ -134,9 +181,9 @@ const FindContractorsScreen: React.FC = () => {
   };
 
   const handleContractorAction = async (action: 'like' | 'pass') => {
-    if (!user || currentContractorIndex >= contractors.length) return;
+    if (!user || currentContractorIndex >= searchState.results.length) return;
 
-    const contractor = contractors[currentContractorIndex];
+    const contractor = searchState.results[currentContractorIndex];
 
     try {
       await ContractorService.recordContractorMatch(
@@ -148,13 +195,13 @@ const FindContractorsScreen: React.FC = () => {
       if (action === 'like') {
         Alert.alert(
           'Match!',
-          `You liked ${contractor.firstName} ${contractor.lastName}. They've been added to your favorites.`,
+          `You liked ${contractor.firstName || contractor.name} ${contractor.lastName || ''}. They've been added to your favourites.`,
           [{ text: 'Great!' }]
         );
       }
 
       // Move to next contractor
-      if (currentContractorIndex < contractors.length - 1) {
+      if (currentContractorIndex < searchState.results.length - 1) {
         setCurrentContractorIndex(currentContractorIndex + 1);
       } else {
         // No more contractors
@@ -170,14 +217,14 @@ const FindContractorsScreen: React.FC = () => {
     }
   };
 
-  const getCurrentContractor = (): ContractorProfile | null => {
-    return currentContractorIndex < contractors.length
-      ? contractors[currentContractorIndex]
+  const getCurrentContractor = (): ContractorSearchResult | null => {
+    return currentContractorIndex < searchState.results.length
+      ? searchState.results[currentContractorIndex]
       : null;
   };
 
   const handleMapMarkerPress = (contractorId: string) => {
-    const contractorIndex = contractors.findIndex((c) => c.id === contractorId);
+    const contractorIndex = searchState.results.findIndex((c) => c.id === contractorId);
     if (contractorIndex !== -1) {
       setCurrentContractorIndex(contractorIndex);
     }
@@ -192,19 +239,21 @@ const FindContractorsScreen: React.FC = () => {
     );
   }
 
-  if (!userLocation) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Unable to access your location</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={initializeLocation}
-        >
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Don't block entire UI if location permission denied - show banner instead
+  const locationPermissionBanner = !userLocation ? (
+    <View style={styles.permissionBanner}>
+      <Ionicons name="location-outline" size={20} color={theme.colors.warning} />
+      <Text style={styles.permissionText}>
+        Location access needed for nearby contractors
+      </Text>
+      <TouchableOpacity
+        style={styles.enableButton}
+        onPress={initializeLocation}
+      >
+        <Text style={styles.enableButtonText}>Enable</Text>
+      </TouchableOpacity>
+    </View>
+  ) : null;
 
   // Update user location in search filters when location changes
   useEffect(() => {
@@ -241,15 +290,12 @@ const FindContractorsScreen: React.FC = () => {
         reviewCount: item.reviewCount,
         profileImageUrl: item.profileImage,
         verified: item.verified,
-        latitude: 0, // Would come from search result
-        longitude: 0,
+        latitude: item.coordinates?.latitude || 0,
+        longitude: item.coordinates?.longitude || 0,
       }}
-      onContact={() => {
-        // Handle contact action
-      }}
-      onViewProfile={() => {
-        // Handle view profile action
-      }}
+      currentUserId={user?.id}
+      onLike={() => handleContractorAction('like')}
+      onPass={() => handleContractorAction('pass')}
     />
   );
 
@@ -274,11 +320,12 @@ const FindContractorsScreen: React.FC = () => {
           <Marker
             key={contractor.id}
             coordinate={{
-              latitude: contractor.location?.distance || 0, // Would need proper coordinates
-              longitude: contractor.location?.distance || 0,
+              latitude: contractor.coordinates?.latitude || 0,
+              longitude: contractor.coordinates?.longitude || 0,
             }}
             title={contractor.name}
             description={contractor.description}
+            onPress={() => handleMapMarkerPress(contractor.id)}
           />
         ))}
       </MapView>
@@ -302,6 +349,9 @@ const FindContractorsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Location Permission Banner */}
+      {locationPermissionBanner}
+
       {/* Header with Search */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Find Contractors</Text>
@@ -463,6 +513,31 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: theme.colors.surface,
     fontSize: 16,
+    fontWeight: '600',
+  },
+  permissionBanner: {
+    backgroundColor: theme.colors.warningBackground || '#FFF3E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.warning,
+    gap: 8,
+  },
+  permissionText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+  },
+  enableButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  enableButtonText: {
+    color: theme.colors.surface,
+    fontSize: 14,
     fontWeight: '600',
   },
 });
