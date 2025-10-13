@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
+import { Icon } from '@/components/ui/Icon';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 export function CardEditorClient({ profile: initialProfile }: { profile: any }) {
   const router = useRouter();
@@ -47,33 +49,59 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
   };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: theme.spacing[6] }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
       {feedback && (
         <NotificationBanner
           tone={feedback.tone}
           message={feedback.message}
           onDismiss={() => setFeedback(null)}
-          style={{ marginBottom: theme.spacing[4] }}
         />
       )}
 
-      <h1 style={{
-        fontSize: theme.typography.fontSize['3xl'],
-        fontWeight: theme.typography.fontWeight.bold,
-        marginBottom: theme.spacing[6],
-      }}>
-        Edit Discovery Card
-      </h1>
+      <header>
+        <h1 style={{
+          fontSize: theme.typography.fontSize['3xl'],
+          fontWeight: theme.typography.fontWeight.bold,
+          color: theme.colors.textPrimary,
+          marginBottom: theme.spacing[2],
+        }}>
+          Discovery Card Editor
+        </h1>
+        <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+          Create your professional business card that appears in contractor discovery searches.
+        </p>
+      </header>
 
-      {/* Form */}
       <div style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing[6],
-        marginBottom: theme.spacing[6],
-        border: `1px solid ${theme.colors.border}`,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: theme.spacing[6],
+        alignItems: 'start',
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        {/* Form Section */}
+        <div style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: '20px',
+          padding: theme.spacing[6],
+          border: `1px solid ${theme.colors.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing[5],
+        }}>
+          <header style={{ borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: theme.spacing[4] }}>
+            <h2 style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.bold,
+              margin: 0,
+              marginBottom: theme.spacing[1],
+            }}>
+              Card Details
+            </h2>
+            <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+              Fill out the information that will appear on your discovery card
+            </p>
+          </header>
+
           <Input
             label="Company Name"
             value={companyName}
@@ -86,10 +114,10 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Describe your expertise and what sets you apart..."
-            rows={4}
+            rows={5}
             maxLength={500}
           />
-          <p style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, textAlign: 'right' }}>
+          <p style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, textAlign: 'right', marginTop: `-${theme.spacing[3]}` }}>
             {bio.length}/500 characters
           </p>
 
@@ -117,9 +145,9 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
               display: 'block',
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
-              marginBottom: theme.spacing[2],
+              marginBottom: theme.spacing[3],
             }}>
-              Availability
+              Availability Status
             </label>
             <div style={{ display: 'flex', gap: theme.spacing[3] }}>
               {(['available', 'busy'] as const).map(status => (
@@ -127,13 +155,21 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
                   key={status}
                   onClick={() => setAvailability(status)}
                   style={{
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                    backgroundColor: availability === status ? (status === 'available' ? theme.colors.success : theme.colors.error) : theme.colors.surface,
-                    color: availability === status ? 'white' : theme.colors.text,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
+                    flex: 1,
+                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                    backgroundColor: availability === status
+                      ? (status === 'available' ? theme.colors.success : theme.colors.error)
+                      : theme.colors.backgroundSecondary,
+                    color: availability === status ? '#FFFFFF' : theme.colors.textSecondary,
+                    border: `1px solid ${availability === status
+                      ? (status === 'available' ? theme.colors.success : theme.colors.error)
+                      : theme.colors.border}`,
+                    borderRadius: '12px',
                     cursor: 'pointer',
                     textTransform: 'capitalize',
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    transition: 'all 0.2s',
                   }}
                 >
                   {status}
@@ -141,46 +177,127 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Preview */}
-      {showPreview && (
+          <div style={{ display: 'flex', gap: theme.spacing[3], paddingTop: theme.spacing[4], borderTop: `1px solid ${theme.colors.border}` }}>
+            <Button variant="outline" onClick={() => router.back()} disabled={isSaving} style={{ flex: 1 }}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSave} disabled={isSaving} style={{ flex: 1 }}>
+              {isSaving ? 'Saving...' : 'Save Card'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Live Preview Section */}
         <div style={{
           backgroundColor: theme.colors.surface,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing[8],
-          marginBottom: theme.spacing[6],
-          border: `2px solid ${theme.colors.primary}`,
-          textAlign: 'center',
+          borderRadius: '20px',
+          padding: theme.spacing[6],
+          border: `1px solid ${theme.colors.border}`,
+          position: 'sticky',
+          top: theme.spacing[4],
         }}>
-          <h3 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing[2] }}>
-            {companyName || 'Your Company'}
-          </h3>
-          <p style={{ color: theme.colors.textSecondary, marginBottom: theme.spacing[4] }}>
-            {bio || 'Your professional bio...'}
-          </p>
-          <div style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.primary }}>
-            £{hourlyRate || '0'}/hr
-          </div>
-          <div style={{ fontSize: theme.typography.fontSize.base, color: theme.colors.textSecondary, marginTop: theme.spacing[2] }}>
-            {yearsExperience || '0'} years experience
-          </div>
-        </div>
-      )}
+          <header style={{ borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: theme.spacing[4], marginBottom: theme.spacing[5] }}>
+            <h2 style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.bold,
+              margin: 0,
+              marginBottom: theme.spacing[1],
+            }}>
+              Live Preview
+            </h2>
+            <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+              How your card will appear to homeowners
+            </p>
+          </header>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: theme.spacing[4], justifyContent: 'space-between' }}>
-        <Button variant="secondary" onClick={() => setShowPreview(!showPreview)}>
-          {showPreview ? 'Hide' : 'Show'} Preview
-        </Button>
-        <div style={{ display: 'flex', gap: theme.spacing[3] }}>
-          <Button variant="secondary" onClick={() => router.back()} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Discovery Card'}
-          </Button>
+          <div style={{
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderRadius: '16px',
+            padding: theme.spacing[6],
+            border: `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  margin: 0,
+                  marginBottom: theme.spacing[2],
+                  color: theme.colors.textPrimary,
+                }}>
+                  {companyName || 'Your Company Name'}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+                  <Icon name="briefcase" size={14} color={theme.colors.textSecondary} />
+                  <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    {yearsExperience || '0'} years experience
+                  </span>
+                </div>
+              </div>
+              <StatusBadge
+                status={availability === 'available' ? 'active' : 'inactive'}
+                size="sm"
+              />
+            </div>
+
+            <p style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              lineHeight: 1.6,
+              minHeight: '60px',
+            }}>
+              {bio || 'Your professional bio will appear here. Describe your expertise and what sets you apart from other contractors.'}
+            </p>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingTop: theme.spacing[4],
+              borderTop: `1px solid ${theme.colors.border}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: theme.spacing[1] }}>
+                <span style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.primary,
+                }}>
+                  £{hourlyRate || '0'}
+                </span>
+                <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+                  /hour
+                </span>
+              </div>
+              <Button variant="primary" size="sm" disabled>
+                View Profile
+              </Button>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: theme.spacing[4],
+            padding: theme.spacing[3],
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderRadius: '12px',
+            border: `1px solid ${theme.colors.border}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+              <Icon name="info" size={16} color={theme.colors.info} />
+              <p style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+                lineHeight: 1.5,
+              }}>
+                This card appears in search results when homeowners browse contractors in your area
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

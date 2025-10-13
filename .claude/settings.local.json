@@ -17,7 +17,13 @@
       "Bash(python:*)",
       "Bash(cat:*)",
       "Bash(npx supabase db diff:*)",
-      "Bash(npx eas:*)"
+      "Bash(npx eas:*)",
+      "Bash(test:*)",
+      "Bash(npx supabase:*)",
+      "Bash(psql:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

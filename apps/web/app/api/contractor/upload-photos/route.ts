@@ -95,11 +95,13 @@ export async function POST(request: NextRequest) {
       .from('contractor_posts')
       .insert({
         contractor_id: user.id,
-        post_type: 'work_showcase',
+        post_type: 'portfolio',
         title,
-        help_category: category,
-        images: uploadedUrls,
-        is_active: true,
+        project_category: category,
+        media_urls: uploadedUrls,
+        thumbnail_url: uploadedUrls[0], // First image as thumbnail
+        is_public: true,
+        is_featured: false,
         created_at: new Date().toISOString(),
       })
       .select()

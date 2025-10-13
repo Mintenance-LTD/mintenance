@@ -13,7 +13,7 @@ export default function TermsOfServicePage() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/" className="flex items-center space-x-2">
-            <Logo className="w-10 h-10" />
+            <Logo />
             <span className="text-2xl font-bold text-[#0F172A]">Mintenance</span>
           </Link>
         </div>

@@ -65,9 +65,32 @@ export default async function AnalyticsPage() {
     .select('rating')
     .eq('reviewed_id', user.id);
 
+  // Fetch payments for more accurate revenue tracking
+  const { data: payments } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('payee_id', user.id)
+    .eq('status', 'completed');
+
+  // Fetch quotes
+  const { data: quotes } = await supabase
+    .from('contractor_quotes')
+    .select('*')
+    .eq('contractor_id', user.id);
+
+  // Fetch connections
+  const { data: connections } = await supabase
+    .from('connections')
+    .select('*')
+    .or(`requester_id.eq.${user.id},target_id.eq.${user.id}`)
+    .eq('status', 'accepted');
+
   // Calculate metrics
-  const totalRevenue = completedJobs?.reduce((sum, job) => {
-    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: any) => 
+  // Use payments table as primary source, fallback to escrow
+  const totalRevenue = payments?.reduce((sum, payment) =>
+    sum + parseFloat(payment.amount), 0
+  ) || completedJobs?.reduce((sum, job) => {
+    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: any) =>
       s + (t.status === 'released' ? parseFloat(t.amount) : 0), 0) || 0;
     return sum + escrowAmount;
   }, 0) || 0;
@@ -123,7 +146,7 @@ export default async function AnalyticsPage() {
         borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo className="w-10 h-10" />
+          <Logo />
           <span style={{
             marginLeft: theme.spacing[3],
             fontSize: theme.typography.fontSize['2xl'],
@@ -281,6 +304,66 @@ export default async function AnalyticsPage() {
               marginTop: theme.spacing[2],
             }}>
               {bids?.length || 0} total bids
+            </p>
+          </div>
+
+          {/* Quotes Sent */}
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.borderRadius.lg,
+            padding: theme.spacing[6],
+            border: `1px solid ${theme.colors.border}`,
+          }}>
+            <p style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              marginBottom: theme.spacing[2],
+            }}>
+              Quotes Sent
+            </p>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.primary,
+            }}>
+              {quotes?.length || 0}
+            </p>
+            <p style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing[2],
+            }}>
+              {quotes?.filter(q => q.status === 'accepted').length || 0} accepted
+            </p>
+          </div>
+
+          {/* Network Connections */}
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: theme.borderRadius.lg,
+            padding: theme.spacing[6],
+            border: `1px solid ${theme.colors.border}`,
+          }}>
+            <p style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              marginBottom: theme.spacing[2],
+            }}>
+              Network
+            </p>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.primary,
+            }}>
+              {connections?.length || 0}
+            </p>
+            <p style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing[2],
+            }}>
+              Professional connections
             </p>
           </div>
         </div>

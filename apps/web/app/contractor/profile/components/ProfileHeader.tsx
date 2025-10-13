@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { theme } from '@/lib/theme';
+import { CircularProgress } from '@/components/ui/CircularProgress';
 
 interface ProfileHeaderProps {
   contractor: any;
@@ -259,150 +260,130 @@ export function ProfileHeader({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: theme.spacing[6],
-          paddingTop: theme.spacing[4],
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: theme.spacing[8],
+          paddingTop: theme.spacing[6],
           borderTop: `1px solid ${theme.colors.borderLight}`,
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              textTransform: 'uppercase',
-              letterSpacing: '1.2px',
-              color: theme.colors.textQuaternary,
-            }}
-          >
-            Jobs Completed
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {metrics.jobsCompleted}
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Past 12 months
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress
+            value={metrics.profileCompletion}
+            size={180}
+            strokeWidth={14}
+            label="Profile Completion"
+            showPercentage={true}
+          />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              textTransform: 'uppercase',
-              letterSpacing: '1.2px',
-              color: theme.colors.textQuaternary,
-            }}
-          >
-            Client Rating
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-            }}
-          >
-            {metrics.averageRating.toFixed(1)}
-            <svg
-              width={16}
-              height={16}
-              viewBox="0 0 24 24"
-              fill={theme.colors.ratingGold}
-              stroke="none"
-            >
-              <path d="m12 2.5 2.65 5.37 5.93.86-4.29 4.18 1.01 5.9L12 15.98 6.7 18.81l1.01-5.9-4.29-4.18 5.93-.86L12 2.5Z" />
-            </svg>
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Based on {metrics.totalReviews} reviews
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              textTransform: 'uppercase',
-              letterSpacing: '1.2px',
-              color: theme.colors.textQuaternary,
-            }}
-          >
-            Profile Completion
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {metrics.profileCompletion}%
-          </span>
-          <div
-            style={{
-              height: '9px',
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderRadius: '999px',
-              overflow: 'hidden',
-            }}
-          >
-            <div
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: theme.spacing[6],
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            <span
               style={{
-                width: `${Math.min(100, metrics.profileCompletion)}%`,
-                height: '100%',
-                backgroundColor: theme.colors.secondary,
+                fontSize: theme.typography.fontSize.xs,
+                textTransform: 'uppercase',
+                letterSpacing: '1.2px',
+                color: theme.colors.textQuaternary,
               }}
-            />
+            >
+              Jobs Completed
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize['3xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+              }}
+            >
+              {metrics.jobsCompleted}
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Past 12 months
+            </span>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              textTransform: 'uppercase',
-              letterSpacing: '1.2px',
-              color: theme.colors.textQuaternary,
-            }}
-          >
-            Response Time
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {contractor.response_time_label || '< 2 hrs'}
-          </span>
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Average reply window
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                textTransform: 'uppercase',
+                letterSpacing: '1.2px',
+                color: theme.colors.textQuaternary,
+              }}
+            >
+              Client Rating
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize['3xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}
+            >
+              {metrics.averageRating.toFixed(1)}
+              <svg
+                width={16}
+                height={16}
+                viewBox="0 0 24 24"
+                fill={theme.colors.ratingGold}
+                stroke="none"
+              >
+                <path d="m12 2.5 2.65 5.37 5.93.86-4.29 4.18 1.01 5.9L12 15.98 6.7 18.81l1.01-5.9-4.29-4.18 5.93-.86L12 2.5Z" />
+              </svg>
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              {metrics.totalReviews} reviews
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                textTransform: 'uppercase',
+                letterSpacing: '1.2px',
+                color: theme.colors.textQuaternary,
+              }}
+            >
+              Response Time
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize['3xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+              }}
+            >
+              {contractor.response_time_label || '< 2 hrs'}
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Average reply
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,9 @@ import { ContractorLayoutShell } from '../contractor/components/ContractorLayout
 import { ProfileQuickActions } from '../contractor/profile/components/ProfileQuickActions';
 import { ProfileStats } from '../contractor/profile/components/ProfileStats';
 import { ProfileReviews } from '../contractor/profile/components/ProfileReviews';
-import type { Metadata } from 'next';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import type { Metadata} from 'next';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -454,217 +456,299 @@ export default async function DashboardPage() {
     );
   }
 
-  const quickActions =
-    user.role === 'contractor'
-      ? [
-          { href: '/contractor/profile', label: 'My Profile', icon: 'profile' },
-          { href: '/jobs', label: 'Browse Jobs', icon: 'briefcase' },
-          { href: '/discover', label: 'Discover Jobs', icon: 'discover' },
-          { href: '/analytics', label: 'Analytics & Insights', icon: 'chart' },
-          { href: '/messages', label: 'Messages', icon: 'messages' },
-          { href: '/payments', label: 'Payments & Earnings', icon: 'creditCard' },
-          { href: '/search', label: 'Advanced Search', icon: 'discover' },
-          { href: '/video-calls', label: 'Video Calls', icon: 'video' },
-        ]
-      : [
-          { href: '/jobs', label: 'Post a Job', icon: 'plus' },
-          { href: '/contractors', label: 'Browse Contractors', icon: 'users' },
-          { href: '/discover', label: 'Discover Contractors', icon: 'discover' },
-          { href: '/messages', label: 'Messages', icon: 'messages' },
-          { href: '/payments', label: 'Payments & Escrow', icon: 'creditCard' },
-          { href: '/search', label: 'Advanced Search', icon: 'discover' },
-          { href: '/video-calls', label: 'Video Calls', icon: 'video' },
-        ];
+  // Fetch homeowner-specific data
+  const { data: homeownerJobs } = await serverSupabase
+    .from('jobs')
+    .select('*')
+    .eq('homeowner_id', user.id)
+    .order('created_at', { ascending: false });
 
-  const statusItems = [
-    { label: 'Authenticated', status: 'success', color: theme.colors.success },
-    { label: 'Active Session', status: 'info', color: theme.colors.info },
-  ];
+  const jobs = homeownerJobs || [];
+  const activeJobs = jobs.filter(j => ['posted', 'assigned', 'in_progress'].includes(j.status || ''));
+  const completedJobs = jobs.filter(j => j.status === 'completed');
+  const postedJobs = jobs.filter(j => j.status === 'posted');
 
   return (
-    <Layout
-      title="Dashboard"
-      subtitle={`Welcome back, ${user.email}!`}
-      actions={<LogoutButton />}
-      navigation={
-        user.role === 'contractor'
-          ? [
-              { label: 'Overview', href: '/dashboard', active: true },
-              { label: 'My Profile', href: '/contractor/profile' },
-              { label: 'Jobs', href: '/jobs' },
-              { label: 'Analytics', href: '/analytics' },
-              { label: 'Messages', href: '/messages', badge: 3 },
-              { label: 'Payments', href: '/payments' },
-            ]
-          : [
-              { label: 'Overview', href: '/dashboard', active: true },
-              { label: 'Jobs', href: '/jobs' },
-              { label: 'Contractors', href: '/contractors' },
-              { label: 'Messages', href: '/messages', badge: 3 },
-              { label: 'Payments', href: '/payments' },
-            ]
-      }
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: theme.spacing[6],
-          backgroundColor: theme.colors.surface,
-          borderBottom: `1px solid ${theme.colors.border}`,
-          marginBottom: theme.spacing[6],
-        }}
-      >
+    <div style={{ minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+      {/* Logo Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: theme.spacing[6],
+        backgroundColor: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+      }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo className="w-10 h-10" />
-          <span
-            style={{
-              marginLeft: theme.spacing[3],
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
+          <Logo />
+          <span style={{
+            marginLeft: theme.spacing[3],
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+          }}>
             Mintenance
           </span>
         </Link>
+
+        <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'center' }}>
+          <Link href="/jobs" style={{ color: theme.colors.textSecondary, textDecoration: 'none', fontSize: theme.typography.fontSize.sm }}>
+            Jobs
+          </Link>
+          <Link href="/contractors" style={{ color: theme.colors.textSecondary, textDecoration: 'none', fontSize: theme.typography.fontSize.sm }}>
+            Contractors
+          </Link>
+          <Link href="/messages" style={{ color: theme.colors.textSecondary, textDecoration: 'none', fontSize: theme.typography.fontSize.sm }}>
+            Messages
+          </Link>
+          <LogoutButton />
+        </div>
       </div>
 
-      <Breadcrumbs
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Dashboard', current: true },
-        ]}
-        style={{ marginBottom: theme.spacing[6] }}
-      />
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: theme.spacing[8] }}>
+        {/* Header */}
+        <div style={{ marginBottom: theme.spacing[8] }}>
+          <h1 style={{
+            fontSize: theme.typography.fontSize['3xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[2],
+          }}>
+            Maintenance Hub
+          </h1>
+          <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.base }}>
+            Manage your maintenance requests and find trusted contractors
+          </p>
+        </div>
 
-      <div
-        style={{
+        {/* Metrics */}
+        <section style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: theme.spacing[6],
-          marginTop: theme.spacing[6],
-        }}
-      >
-        <Card variant="elevated" hover>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[4],
-            }}
-          >
-            User Info
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
-                ID:
-              </span>
-              <span style={{ color: theme.colors.textPrimary }}>{user.id}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
-                Email:
-              </span>
-              <span style={{ color: theme.colors.textPrimary }}>{user.email}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
-                Role:
-              </span>
-              <span
-                style={{
-                  textTransform: 'capitalize',
-                  backgroundColor: theme.colors.secondary,
-                  color: theme.colors.white,
-                  padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                  borderRadius: theme.borderRadius.base,
-                  fontSize: theme.typography.fontSize.sm,
-                }}
-              >
-                {user.role}
-              </span>
-            </div>
-          </div>
-        </Card>
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: theme.spacing[4],
+          marginBottom: theme.spacing[8],
+        }}>
+          <MetricCard
+            label="Total Jobs"
+            value={jobs.length.toString()}
+            subtitle="All time"
+            icon="briefcase"
+            color={theme.colors.primary}
+          />
 
-        <Card variant="elevated" hover>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[4],
-            }}
-          >
+          <MetricCard
+            label="Active Jobs"
+            value={activeJobs.length.toString()}
+            subtitle="In progress or posted"
+            icon="activity"
+            color={theme.colors.warning || '#F59E0B'}
+          />
+
+          <MetricCard
+            label="Completed"
+            value={completedJobs.length.toString()}
+            subtitle="Successfully finished"
+            icon="checkCircle"
+            color={theme.colors.success}
+          />
+
+          <MetricCard
+            label="Posted"
+            value={postedJobs.length.toString()}
+            subtitle="Awaiting contractors"
+            icon="clock"
+            color={theme.colors.info}
+          />
+        </section>
+
+        {/* Quick Actions */}
+        <section style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: '20px',
+          padding: theme.spacing[6],
+          border: `1px solid ${theme.colors.border}`,
+          marginBottom: theme.spacing[8],
+        }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            marginBottom: theme.spacing[5],
+          }}>
             Quick Actions
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href} style={{ textDecoration: 'none' }}>
-                <Button
-                  variant="ghost"
-                  fullWidth
-                  style={{
-                    justifyContent: 'flex-start',
-                    padding: theme.spacing[3],
-                    borderRadius: theme.borderRadius.lg,
-                    fontSize: theme.typography.fontSize.md,
-                    color: theme.colors.textPrimary,
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    textAlign: 'left',
-                  }}
-                >
-                  <span style={{ marginRight: theme.spacing[2], display: 'inline-flex', alignItems: 'center' }}>
-                    <Icon name={action.icon} size={16} color={theme.colors.textSecondary} />
-                  </span>
-                  {action.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
-        </Card>
-
-        <Card variant="elevated" hover>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[4],
-            }}
-          >
-            Status
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-            {statusItems.map((item) => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    backgroundColor: item.color,
-                    borderRadius: '50%',
-                    marginRight: theme.spacing[2],
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  {item.label}
-                </span>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: theme.spacing[4],
+          }}>
+            <Link href="/jobs" style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderRadius: '16px',
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Icon name="plus" size={24} color={theme.colors.primary} />
+                <div>
+                  <div style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+                    Post a Job
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Request maintenance
+                  </div>
+                </div>
               </div>
-            ))}
+            </Link>
+
+            <Link href="/contractors" style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderRadius: '16px',
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Icon name="users" size={24} color={theme.colors.primary} />
+                <div>
+                  <div style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+                    Browse Contractors
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Find professionals
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/discover" style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderRadius: '16px',
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Icon name="search" size={24} color={theme.colors.primary} />
+                <div>
+                  <div style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+                    Discover
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Explore options
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/messages" style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderRadius: '16px',
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Icon name="messageCircle" size={24} color={theme.colors.primary} />
+                <div>
+                  <div style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+                    Messages
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Chat with contractors
+                  </div>
+                </div>
+              </div>
+            </Link>
           </div>
-        </Card>
+        </section>
+
+        {/* Recent Jobs */}
+        {jobs.length > 0 && (
+          <section style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: '20px',
+            padding: theme.spacing[6],
+            border: `1px solid ${theme.colors.border}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[5] }}>
+              <h2 style={{
+                fontSize: theme.typography.fontSize['2xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                margin: 0,
+              }}>
+                Recent Jobs
+              </h2>
+              <Link href="/jobs" style={{
+                color: theme.colors.primary,
+                textDecoration: 'none',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+              }}>
+                View All →
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+              {jobs.slice(0, 5).map((job) => (
+                <Link key={job.id} href={`/jobs/${job.id}`} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    padding: theme.spacing[4],
+                    borderRadius: '16px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    border: `1px solid ${theme.colors.border}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <div>
+                      <div style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary, marginBottom: theme.spacing[1] }}>
+                        {job.title}
+                      </div>
+                      <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                        {new Date(job.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <StatusBadge status={job.status} size="sm" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
-    </Layout>
+    </div>
   );
 }

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
           category
         )
       `)
-      .eq('reviewed_id', user.id)
+      .eq('contractor_id', user.id)
       .order('created_at', { ascending: false });
 
     // Fetch completed jobs

@@ -15,9 +15,9 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
     <div style={{
       width: '100%',
       height: '100%',
-      backgroundColor: theme.colors.white,
-      borderRadius: theme.borderRadius.xl,
-      boxShadow: theme.shadows.xl,
+      backgroundColor: theme.colors.surface,
+      borderRadius: '20px',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column'
@@ -42,8 +42,8 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               height: '120px',
               borderRadius: '50%',
               objectFit: 'cover',
-              border: `4px solid ${theme.colors.white}`,
-              boxShadow: theme.shadows.lg
+              border: `4px solid white`,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
             }}
           />
           {/* Verified Badge */}
@@ -58,9 +58,9 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: `2px solid ${theme.colors.white}`
+            border: `2px solid white`
           }}>
-            <svg width="14" height="14" fill={theme.colors.white} viewBox="0 0 20 20">
+            <svg width="14" height="14" fill="white" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </div>
@@ -132,8 +132,8 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
           justifyContent: 'space-around',
           marginBottom: '20px',
           padding: '16px',
-          backgroundColor: theme.colors.surfaceSecondary,
-          borderRadius: theme.borderRadius.lg
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderRadius: '12px'
         }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{
@@ -198,9 +198,9 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
                 key={index}
                 style={{
                   backgroundColor: theme.colors.primary,
-                  color: theme.colors.white,
-                  padding: '4px 12px',
-                  borderRadius: '12px',
+                  color: 'white',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
                   fontSize: theme.typography.fontSize.sm,
                   fontWeight: theme.typography.fontWeight.medium
                 }}
@@ -218,12 +218,13 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
         }}>
           <div style={{
             backgroundColor: theme.colors.success,
-            color: theme.colors.white,
-            padding: '8px 16px',
-            borderRadius: '20px',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '24px',
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.semibold,
-            display: 'inline-block'
+            display: 'inline-block',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
           }}>
             🟢 Available Now
           </div>

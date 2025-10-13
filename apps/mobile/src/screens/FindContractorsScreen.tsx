@@ -10,6 +10,7 @@ import {
   FlatList,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 
 // Platform-specific Map imports
@@ -140,40 +141,17 @@ const FindContractorsScreen: React.FC = () => {
         location
       );
 
-      // Convert to search results and merge with existing state
-      const searchResults: ContractorSearchResult[] = nearbyContractors.map(contractor => ({
-        id: contractor.id,
-        name: `${contractor.firstName} ${contractor.lastName}`,
-        profileImage: contractor.profileImageUrl,
-        skills: contractor.skills || [],
-        rating: contractor.rating || 0,
-        reviewCount: contractor.reviewCount || 0,
-        hourlyRate: contractor.hourlyRate,
-        location: {
-          city: '', // Would need to be added to contractor profile
-          state: '',
-          distance: 0, // Would need to calculate from coordinates
-        },
-        availability: {
-          immediate: true,
-          thisWeek: true,
-          thisMonth: true,
-        },
-        verified: contractor.verified || false,
-        description: contractor.bio || '',
-        // Store actual coordinates for map
-        coordinates: {
-          latitude: contractor.latitude || 0,
-          longitude: contractor.longitude || 0,
-        },
-      }));
+      // Note: The search results are now managed by the useAdvancedSearch hook
+      // The autoSearch: true option will automatically load contractors when filters update
+      logger.info('Loaded nearby contractors', {
+        count: nearbyContractors.length,
+        location: { lat: location.latitude, lng: location.longitude }
+      });
 
-      // Update search state with nearby results
-      setSearchState(prev => ({
-        ...prev,
-        results: searchResults,
-        isSearching: false,
-      }));
+      // Trigger a search with the current location to populate results
+      if (nearbyContractors.length > 0) {
+        await search(''); // Empty query to load all contractors with current filters
+      }
     } catch (error) {
       logger.error('Error loading contractors:', error);
       Alert.alert('Error', 'Failed to load contractors. Please try again.');
@@ -193,9 +171,10 @@ const FindContractorsScreen: React.FC = () => {
       );
 
       if (action === 'like') {
+        const displayName = contractor.name || 'this contractor';
         Alert.alert(
           'Match!',
-          `You liked ${contractor.firstName || contractor.name} ${contractor.lastName || ''}. They've been added to your favourites.`,
+          `You liked ${displayName}. They've been added to your favourites.`,
           [{ text: 'Great!' }]
         );
       }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -12,18 +13,66 @@ export async function GET(_req: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Contractor id missing' }, { status: 400 });
     }
 
-    // TODO: Implement actual contractor fetching logic
-    const contractor: ContractorProfile | null = null;
+    // Fetch contractor from database
+    const { data: contractor, error } = await serverSupabase
+      .from('users')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        role,
+        bio,
+        skills,
+        hourly_rate,
+        rating,
+        review_count,
+        profile_image_url,
+        verified,
+        latitude,
+        longitude,
+        created_at
+      `)
+      .eq('id', id)
+      .eq('role', 'contractor')
+      .single();
 
-    if (!contractor) {
-      logger.info('Contractor not found', { service: 'contractors', contractorId: id });
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (error || !contractor) {
+      logger.info('Contractor not found', {
+        service: 'contractors',
+        contractorId: id,
+        error: error?.message
+      });
+      return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
     }
 
-    logger.info('Contractor retrieved', { service: 'contractors', contractorId: id });
-    return NextResponse.json({ contractor });
+    // Transform to ContractorProfile format
+    const contractorProfile: ContractorProfile = {
+      id: contractor.id,
+      firstName: contractor.first_name,
+      lastName: contractor.last_name,
+      email: contractor.email,
+      phone: contractor.phone,
+      bio: contractor.bio,
+      skills: contractor.skills || [],
+      hourlyRate: contractor.hourly_rate,
+      rating: contractor.rating,
+      reviewCount: contractor.review_count || 0,
+      profileImageUrl: contractor.profile_image_url,
+      verified: contractor.verified || false,
+      latitude: contractor.latitude,
+      longitude: contractor.longitude,
+    };
+
+    logger.info('Contractor retrieved successfully', {
+      service: 'contractors',
+      contractorId: id
+    });
+
+    return NextResponse.json({ contractor: contractorProfile });
   } catch (err) {
     logger.error('Failed to load contractor', err, { service: 'contractors' });
-    return NextResponse.json({ error: 'Failed to load contractor' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

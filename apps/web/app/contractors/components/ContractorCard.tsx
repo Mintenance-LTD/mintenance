@@ -3,6 +3,7 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 import Link from 'next/link';
+import { Icon } from '@/components/ui/Icon';
 
 interface ContractorCardProps {
   contractor: any;
@@ -23,11 +24,20 @@ export function ContractorCard({ contractor }: ContractorCardProps) {
     >
       <div style={{
         backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.lg,
+        borderRadius: '20px',
         padding: theme.spacing[6],
         border: `1px solid ${theme.colors.border}`,
         cursor: 'pointer',
         height: '100%',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
       }}
       >
         {/* Profile Header */}

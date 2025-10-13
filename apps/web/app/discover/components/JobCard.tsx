@@ -15,9 +15,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
     <div style={{
       width: '100%',
       height: '100%',
-      backgroundColor: theme.colors.white,
-      borderRadius: theme.borderRadius.xl,
-      boxShadow: theme.shadows.xl,
+      backgroundColor: theme.colors.surface,
+      borderRadius: '20px',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
@@ -33,9 +33,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
         }}>
           <span style={{
             backgroundColor: theme.colors.primary,
-            color: theme.colors.white,
-            padding: '6px 12px',
-            borderRadius: theme.borderRadius.full,
+            color: 'white',
+            padding: '6px 14px',
+            borderRadius: '20px',
             fontSize: theme.typography.fontSize.sm,
             fontWeight: theme.typography.fontWeight.medium
           }}>
@@ -72,8 +72,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
         gap: '16px',
         marginBottom: '20px',
         padding: '16px',
-        backgroundColor: theme.colors.surfaceSecondary,
-        borderRadius: theme.borderRadius.lg
+        backgroundColor: theme.colors.backgroundSecondary,
+        borderRadius: '12px'
       }}>
         <div>
           <div style={{

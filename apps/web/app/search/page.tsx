@@ -410,7 +410,7 @@ function SearchContent() {
         borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo className="w-10 h-10" />
+          <Logo />
           <span style={{
             marginLeft: theme.spacing[3],
             fontSize: theme.typography.fontSize['2xl'],

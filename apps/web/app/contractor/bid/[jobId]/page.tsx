@@ -8,8 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function BidSubmissionPage({ params }: { params: { jobId: string } }) {
-  const { jobId } = params;
+export default async function BidSubmissionPage({ params }: { params: Promise<{ jobId: string }> }) {
+  const { jobId } = await params;
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'contractor') {

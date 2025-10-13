@@ -5,6 +5,23 @@
 
 'use client';
 
+// Client-side logger for session management
+const sessionLogger = {
+  info: (message: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[SessionManager] ${message}`, data || '');
+    }
+  },
+  error: (message: string, error?: any) => {
+    console.error(`[SessionManager] ${message}`, error || '');
+  },
+  warn: (message: string, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[SessionManager] ${message}`, data || '');
+    }
+  }
+};
+
 interface SessionTimestamp {
   lastActive: number;
   rememberMe: boolean;
@@ -15,8 +32,9 @@ const GRACE_PERIOD_MS = 5 * 60 * 1000; // 5 minutes
 const REFRESH_CHECK_INTERVAL = 60 * 1000; // Check every minute
 
 export class SessionManager {
-  private static instance: SessionManager;
+  private static instance: SessionManager | null = null;
   private refreshInterval: NodeJS.Timeout | null = null;
+  private activityListeners: Array<{ event: string; handler: () => void }> = [];
 
   private constructor() {
     if (typeof window !== 'undefined') {
@@ -38,7 +56,9 @@ export class SessionManager {
     // Track user activity
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
     activityEvents.forEach((event) => {
-      window.addEventListener(event, () => this.updateLastActive(), { passive: true });
+      const handler = () => this.updateLastActive();
+      window.addEventListener(event, handler, { passive: true });
+      this.activityListeners.push({ event, handler });
     });
 
     // Check for expired sessions on load
@@ -48,16 +68,20 @@ export class SessionManager {
     this.startRefreshInterval();
 
     // Handle tab visibility changes
-    document.addEventListener('visibilitychange', () => {
+    const visibilityHandler = () => {
       if (!document.hidden) {
         this.handleTabVisible();
       }
-    });
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
+    this.activityListeners.push({ event: 'visibilitychange', handler: visibilityHandler });
 
     // Handle beforeunload
-    window.addEventListener('beforeunload', () => {
+    const beforeUnloadHandler = () => {
       this.updateLastActive();
-    });
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    this.activityListeners.push({ event: 'beforeunload', handler: beforeUnloadHandler });
   }
 
   /**
@@ -71,7 +95,7 @@ export class SessionManager {
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       }
     } catch (error) {
-      console.error('Failed to update last active:', error);
+      sessionLogger.error('Failed to update last active', error);
     }
   }
 
@@ -98,23 +122,49 @@ export class SessionManager {
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     } catch (error) {
-      console.error('Failed to set session:', error);
+      sessionLogger.error('Failed to set session', error);
     }
   }
 
   /**
-   * Clear session data
+   * Clear session data and cleanup resources
    */
   public clearSession() {
     try {
       localStorage.removeItem(SESSION_KEY);
-      if (this.refreshInterval) {
-        clearInterval(this.refreshInterval);
-        this.refreshInterval = null;
-      }
+      this.cleanup();
     } catch (error) {
-      console.error('Failed to clear session:', error);
+      sessionLogger.error('Failed to clear session', error);
     }
+  }
+
+  /**
+   * Cleanup event listeners and intervals
+   */
+  private cleanup() {
+    // Clear refresh interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+
+    // Remove all event listeners
+    this.activityListeners.forEach(({ event, handler }) => {
+      if (event === 'visibilitychange') {
+        document.removeEventListener(event, handler);
+      } else {
+        window.removeEventListener(event, handler);
+      }
+    });
+    this.activityListeners = [];
+  }
+
+  /**
+   * Destroy the session manager instance (for cleanup on app unmount)
+   */
+  public destroy() {
+    this.cleanup();
+    SessionManager.instance = null;
   }
 
   /**
@@ -139,21 +189,21 @@ export class SessionManager {
 
     // Within 5-minute grace period - auto refresh
     if (timeSinceLastActive <= GRACE_PERIOD_MS) {
-      console.log('🔄 Session within grace period, auto-refreshing...');
+      sessionLogger.info('Session within grace period, auto-refreshing');
       await this.refreshSession();
       return;
     }
 
     // "Remember Me" enabled - attempt refresh
     if (session.rememberMe) {
-      console.log('✅ Remember Me active, refreshing session...');
+      sessionLogger.info('Remember Me active, refreshing session');
       await this.refreshSession();
       return;
     }
 
     // Session expired, clear it
     if (timeSinceLastActive > GRACE_PERIOD_MS && !session.rememberMe) {
-      console.log('⏰ Session expired, clearing...');
+      sessionLogger.info('Session expired, clearing');
       this.clearSession();
       // Redirect to login if on protected page
       if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
@@ -211,16 +261,16 @@ export class SessionManager {
       });
 
       if (!response.ok) {
-        console.error('Failed to refresh session:', response.statusText);
+        sessionLogger.error('Failed to refresh session', response.statusText);
         return false;
       }
 
       // Update last active on successful refresh
       this.updateLastActive();
-      console.log('✅ Session refreshed successfully');
+      sessionLogger.info('Session refreshed successfully');
       return true;
     } catch (error) {
-      console.error('Session refresh error:', error);
+      sessionLogger.error('Session refresh error', error);
       return false;
     }
   }

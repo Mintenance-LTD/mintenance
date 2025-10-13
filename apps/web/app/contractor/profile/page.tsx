@@ -39,7 +39,7 @@ export default async function ContractorProfilePage() {
         category
       )
     `)
-    .eq('reviewed_id', user.id)
+    .eq('contractor_id', user.id)
     .order('created_at', { ascending: false });
 
   const { data: completedJobs } = await supabase

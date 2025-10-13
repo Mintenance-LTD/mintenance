@@ -146,8 +146,8 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         key={contractor.id}
         style={{
           padding: theme.spacing.md,
-          backgroundColor: theme.colors.background,
-          borderRadius: theme.borderRadius.md,
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderRadius: '12px',
           border: `1px solid ${theme.colors.border}`,
           marginBottom: theme.spacing.sm,
           cursor: 'pointer',
@@ -157,10 +157,12 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = theme.colors.primary;
           e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = theme.colors.border;
           e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
@@ -248,8 +250,8 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       <div style={{ flex: '0 0 70%' }}>
         <div
           style={{
-            backgroundColor: theme.colors.background,
-            borderRadius: theme.borderRadius.lg,
+            backgroundColor: theme.colors.surface,
+            borderRadius: '20px',
             padding: theme.spacing.xl,
             height: '100%',
             display: 'flex',
@@ -257,6 +259,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
             alignItems: 'center',
             justifyContent: 'center',
             border: `1px solid ${theme.colors.border}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
           }}
         >
           {/* Map Placeholder with Contractor Markers */}
@@ -265,12 +268,13 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
               width: '100%',
               height: '100%',
               backgroundColor: theme.colors.backgroundSecondary,
-              borderRadius: theme.borderRadius.md,
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
+              overflow: 'hidden',
             }}
           >
             <div
@@ -286,7 +290,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
                   linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, .05) 25%, rgba(0, 0, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .05) 75%, rgba(0, 0, 0, .05) 76%, transparent 77%, transparent)
                 `,
                 backgroundSize: '50px 50px',
-                borderRadius: theme.borderRadius.md,
+                borderRadius: '16px',
               }}
             >
               {/* Contractor Markers */}
@@ -333,12 +337,13 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
               style={{
                 position: 'relative',
                 zIndex: 5,
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                backgroundColor: 'rgba(255, 255, 255, 0.98)',
                 padding: theme.spacing.lg,
-                borderRadius: theme.borderRadius.md,
+                borderRadius: '16px',
                 textAlign: 'center',
                 maxWidth: 400,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                backdropFilter: 'blur(10px)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.sm }}>
@@ -378,12 +383,13 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       <div style={{ flex: '0 0 30%' }}>
         <div
           style={{
-            backgroundColor: theme.colors.background,
-            borderRadius: theme.borderRadius.lg,
+            backgroundColor: theme.colors.surface,
+            borderRadius: '20px',
             padding: theme.spacing.md,
             height: '100%',
             overflowY: 'auto',
             border: `1px solid ${theme.colors.border}`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
           }}
         >
           <h2
@@ -430,13 +436,14 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         >
           <div
             style={{
-              backgroundColor: theme.colors.background,
-              borderRadius: theme.borderRadius.lg,
+              backgroundColor: theme.colors.surface,
+              borderRadius: '20px',
               padding: theme.spacing.xl,
               maxWidth: 500,
               width: '90%',
               maxHeight: '80vh',
               overflowY: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
             }}
             onClick={(e) => e.stopPropagation()}
           >

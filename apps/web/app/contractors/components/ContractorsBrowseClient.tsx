@@ -25,6 +25,17 @@ export function ContractorsBrowseClient({
   currentFilters,
 }: ContractorsBrowseClientProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter contractors based on search query
+  const filteredContractors = contractors.filter((contractor) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const fullName = `${contractor.first_name} ${contractor.last_name}`.toLowerCase();
+    const skills = contractor.contractor_skills?.map((s: any) => s.skill_name.toLowerCase()).join(' ') || '';
+    const city = contractor.city?.toLowerCase() || '';
+    return fullName.includes(query) || skills.includes(query) || city.includes(query);
+  });
 
   return (
     <>
@@ -54,7 +65,7 @@ export function ContractorsBrowseClient({
               color: theme.colors.textSecondary,
             }}
           >
-            Browse {contractors.length} verified contractors ready to help with your project
+            Browse {filteredContractors.length} verified contractors ready to help with your project
           </p>
         </div>
 
@@ -65,7 +76,7 @@ export function ContractorsBrowseClient({
             gap: theme.spacing[2],
             backgroundColor: theme.colors.backgroundSecondary,
             padding: theme.spacing[1],
-            borderRadius: theme.borderRadius.lg,
+            borderRadius: '12px',
             border: `1px solid ${theme.colors.border}`,
           }}
         >
@@ -76,7 +87,7 @@ export function ContractorsBrowseClient({
               backgroundColor: viewMode === 'grid' ? theme.colors.primary : 'transparent',
               color: viewMode === 'grid' ? 'white' : theme.colors.text,
               border: 'none',
-              borderRadius: theme.borderRadius.md,
+              borderRadius: '8px',
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               cursor: 'pointer',
@@ -96,7 +107,7 @@ export function ContractorsBrowseClient({
               backgroundColor: viewMode === 'map' ? theme.colors.primary : 'transparent',
               color: viewMode === 'map' ? 'white' : theme.colors.text,
               border: 'none',
-              borderRadius: theme.borderRadius.md,
+              borderRadius: '8px',
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               cursor: 'pointer',
@@ -112,11 +123,64 @@ export function ContractorsBrowseClient({
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: '20px',
+          padding: theme.spacing[6],
+          marginBottom: theme.spacing[6],
+          border: `1px solid ${theme.colors.border}`,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+          <Icon name="search" size={20} color={theme.colors.textSecondary} />
+          <input
+            type="text"
+            placeholder="Search contractors by name, skills, or location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              padding: theme.spacing[3],
+              fontSize: theme.typography.fontSize.base,
+              borderRadius: '12px',
+              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              outline: 'none',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = theme.colors.primary;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = theme.colors.border;
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                padding: theme.spacing[2],
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: theme.colors.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <Icon name="x" size={20} color={theme.colors.textSecondary} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Search Filters */}
       <div
         style={{
           backgroundColor: theme.colors.surface,
-          borderRadius: theme.borderRadius.lg,
+          borderRadius: '20px',
           padding: theme.spacing[6],
           marginBottom: theme.spacing[8],
           border: `1px solid ${theme.colors.border}`,
@@ -151,7 +215,7 @@ export function ContractorsBrowseClient({
                   width: '100%',
                   padding: theme.spacing[3],
                   fontSize: theme.typography.fontSize.base,
-                  borderRadius: theme.borderRadius.md,
+                  borderRadius: '12px',
                   border: `1px solid ${theme.colors.border}`,
                   backgroundColor: theme.colors.backgroundSecondary,
                   color: theme.colors.text,
@@ -196,7 +260,7 @@ export function ContractorsBrowseClient({
                   width: '100%',
                   padding: theme.spacing[3],
                   fontSize: theme.typography.fontSize.base,
-                  borderRadius: theme.borderRadius.md,
+                  borderRadius: '12px',
                   border: `1px solid ${theme.colors.border}`,
                   backgroundColor: theme.colors.backgroundSecondary,
                   color: theme.colors.text,
@@ -239,7 +303,7 @@ export function ContractorsBrowseClient({
                   width: '100%',
                   padding: theme.spacing[3],
                   fontSize: theme.typography.fontSize.base,
-                  borderRadius: theme.borderRadius.md,
+                  borderRadius: '12px',
                   border: `1px solid ${theme.colors.border}`,
                   backgroundColor: theme.colors.backgroundSecondary,
                   color: theme.colors.text,
@@ -271,11 +335,20 @@ export function ContractorsBrowseClient({
               backgroundColor: theme.colors.backgroundSecondary,
               color: theme.colors.text,
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
+              borderRadius: '12px',
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               textDecoration: 'none',
               cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colors.primary;
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              e.currentTarget.style.color = theme.colors.text;
             }}
           >
             Clear All Filters
@@ -285,8 +358,8 @@ export function ContractorsBrowseClient({
 
       {/* Content - Grid or Map */}
       {viewMode === 'map' ? (
-        <ContractorMapView contractors={contractors} />
-      ) : contractors.length > 0 ? (
+        <ContractorMapView contractors={filteredContractors} />
+      ) : filteredContractors.length > 0 ? (
         <div
           style={{
             display: 'grid',
@@ -294,7 +367,7 @@ export function ContractorsBrowseClient({
             gap: theme.spacing[6],
           }}
         >
-          {contractors.map((contractor: any) => (
+          {filteredContractors.map((contractor: any) => (
             <ContractorCard key={contractor.id} contractor={contractor} />
           ))}
         </div>
@@ -302,12 +375,13 @@ export function ContractorsBrowseClient({
         <div
           style={{
             backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.lg,
+            borderRadius: '20px',
             padding: theme.spacing[12],
             textAlign: 'center',
             border: `1px solid ${theme.colors.border}`,
           }}
         >
+          <Icon name="search" size={48} color={theme.colors.textSecondary} style={{ marginBottom: theme.spacing[4] }} />
           <p
             style={{
               fontSize: theme.typography.fontSize.xl,
@@ -315,18 +389,35 @@ export function ContractorsBrowseClient({
               marginBottom: theme.spacing[4],
             }}
           >
-            No contractors found matching your criteria
+            {searchQuery ? `No contractors found matching "${searchQuery}"` : 'No contractors found matching your criteria'}
           </p>
-          <Link
-            href="/contractors"
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              window.location.href = '/contractors';
+            }}
             style={{
-              color: theme.colors.primary,
-              textDecoration: 'none',
+              padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
+              backgroundColor: theme.colors.primary,
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
               fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.medium,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            Clear filters
-          </Link>
+            Clear search and filters
+          </button>
         </div>
       )}
     </>

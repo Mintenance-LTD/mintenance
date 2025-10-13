@@ -39,7 +39,7 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center">
-              <Logo className="w-10 h-10" />
+              <Logo />
               <span className="ml-3 text-xl font-bold text-[#0F172A]">Mintenance</span>
             </Link>
             <Link
@@ -343,7 +343,7 @@ export default function ContactPage() {
       <footer className="bg-[#0F172A] text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center mb-6">
-            <Logo className="w-10 h-10" />
+            <Logo />
             <span className="ml-3 text-xl font-bold">Mintenance</span>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">

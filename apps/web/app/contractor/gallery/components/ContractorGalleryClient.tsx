@@ -4,6 +4,8 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { MetricCard } from '@/components/ui/MetricCard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface GalleryImage {
   id: string;
@@ -45,23 +47,64 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
     );
   };
 
+  const totalLikes = images.reduce((sum, img) => sum + img.likes, 0);
+  const completedImages = images.filter(img => img.category === 'completed').length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      <header>
-        <h1
-          style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          Work portfolio gallery
-        </h1>
-        <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
-          Highlight your craftsmanship with curated project imagery.
-        </p>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
+        <div>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}
+          >
+            Work Portfolio Gallery
+          </h1>
+          <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+            Highlight your craftsmanship with curated project imagery.
+          </p>
+        </div>
+        <Button variant="primary" size="sm">
+          <Icon name="plus" size={16} color="#FFFFFF" />
+          Upload Photo
+        </Button>
       </header>
+
+      <section
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: theme.spacing[4],
+        }}
+      >
+        <MetricCard
+          label="Total Photos"
+          value={images.length.toString()}
+          subtitle="In your portfolio"
+          icon="collection"
+          color={theme.colors.primary}
+        />
+
+        <MetricCard
+          label="Completed Projects"
+          value={completedImages.toString()}
+          subtitle="Showcased work"
+          icon="checkCircle"
+          color={theme.colors.success}
+        />
+
+        <MetricCard
+          label="Total Likes"
+          value={totalLikes.toString()}
+          subtitle="Client appreciation"
+          icon="heart"
+          color={theme.colors.error || '#EF4444'}
+        />
+      </section>
 
       <nav style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap' }}>
         {CATEGORIES.map((category) => {
@@ -114,8 +157,8 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: theme.spacing[4],
+            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: theme.spacing[5],
           }}
         >
           {filteredImages.map((image) => (
@@ -125,11 +168,20 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
               style={{
                 position: 'relative',
                 paddingBottom: '100%',
-                borderRadius: '18px',
+                borderRadius: '20px',
                 overflow: 'hidden',
                 backgroundColor: theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
                 cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <img
@@ -140,17 +192,48 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
               <div
                 style={{
                   position: 'absolute',
+                  top: theme.spacing[3],
+                  right: theme.spacing[3],
+                  display: 'flex',
+                  gap: theme.spacing[2],
+                }}
+              >
+                <div
+                  style={{
+                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                    borderRadius: '999px',
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[1],
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                  }}
+                >
+                  <Icon name="heart" size={14} color={theme.colors.error} />
+                  {image.likes}
+                </div>
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)',
+                  background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.75) 100%)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'flex-end',
-                  padding: theme.spacing[3],
+                  padding: theme.spacing[4],
                   color: theme.colors.white,
+                  gap: theme.spacing[1],
                 }}
               >
-                <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>{image.title}</span>
-                <span style={{ fontSize: theme.typography.fontSize.xs }}>{image.projectType}</span>
+                <span style={{ fontWeight: theme.typography.fontWeight.bold, fontSize: theme.typography.fontSize.base }}>
+                  {image.title}
+                </span>
+                <span style={{ fontSize: theme.typography.fontSize.xs, opacity: 0.9 }}>{image.projectType}</span>
+                <div style={{ marginTop: theme.spacing[1] }}>
+                  <StatusBadge status={image.category} size="sm" />
+                </div>
               </div>
             </div>
           ))}

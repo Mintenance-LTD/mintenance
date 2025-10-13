@@ -3,6 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { DataTable, Column } from '@/components/ui/DataTable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { MetricCard } from '@/components/ui/MetricCard';
 
 interface FinanceDashboardClientProps {
   financialData: {
@@ -14,6 +17,7 @@ interface FinanceDashboardClientProps {
       amount: string;
       status: string;
       created_at: string;
+      payer_id?: string;
     }>;
     jobs: Array<{
       id: string;
@@ -40,39 +44,115 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
     return jobRate * 12;
   }, [financialData.totalRevenue, financialData.jobs.length]);
 
-  const periodCards = [
+  // Calculate month-over-month trend
+  const thisMonth = new Date();
+  thisMonth.setDate(1);
+  thisMonth.setHours(0, 0, 0, 0);
+
+  const lastMonth = new Date(thisMonth);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+  const thisMonthRevenue = financialData.payments
+    .filter(p => p.status === 'completed' && new Date(p.created_at) >= thisMonth)
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+  const lastMonthRevenue = financialData.payments
+    .filter(
+      p =>
+        p.status === 'completed' &&
+        new Date(p.created_at) >= lastMonth &&
+        new Date(p.created_at) < thisMonth
+    )
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+  const revenueChange =
+    lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0;
+
+  // Payment columns for DataTable
+  const paymentColumns: Column<typeof financialData.payments[0]>[] = [
     {
-      label: 'Total revenue',
-      value: `£${financialData.totalRevenue.toFixed(2)}`,
-      helper: `${financialData.completedJobs} completed jobs`,
-      icon: 'currencyDollar',
+      key: 'created_at',
+      label: 'Date',
+      render: (payment) =>
+        new Date(payment.created_at).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }),
     },
     {
-      label: 'Pending payments',
-      value: `£${financialData.pendingPayments.toFixed(2)}`,
-      helper: 'Awaiting homeowner release',
-      icon: 'creditCard',
+      key: 'id',
+      label: 'Transaction',
+      render: (payment) => `#${payment.id.slice(0, 8)}`,
     },
     {
-      label: 'Average job value',
-      value: `£${avgJobValue.toFixed(2)}`,
-      helper: 'Based on completed work',
-      icon: 'briefcase',
+      key: 'amount',
+      label: 'Amount',
+      align: 'right' as const,
+      render: (payment) => (
+        <span
+          style={{
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: payment.status === 'completed' ? theme.colors.success : theme.colors.textPrimary,
+          }}
+        >
+          £{parseFloat(payment.amount).toFixed(2)}
+        </span>
+      ),
     },
     {
-      label: 'Projected annual revenue',
-      value: `£${revenueProjection.toFixed(2)}`,
-      helper: 'If you maintain current pace',
-      icon: 'chart',
+      key: 'status',
+      label: 'Status',
+      align: 'center' as const,
+      render: (payment) => <StatusBadge status={payment.status} size="sm" />,
     },
   ];
 
-  const latestPayments = financialData.payments.slice(0, 6);
-  const recentJobs = financialData.jobs.slice(0, 6);
+  // Job columns for DataTable
+  const jobColumns: Column<typeof financialData.jobs[0]>[] = [
+    {
+      key: 'title',
+      label: 'Job Title',
+      render: (job) => (
+        <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
+          {job.title || 'Untitled Job'}
+        </span>
+      ),
+    },
+    {
+      key: 'completed_at',
+      label: 'Completed',
+      render: (job) =>
+        new Date(job.completed_at).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+        }),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      align: 'center' as const,
+      render: (job) => <StatusBadge status={job.status} size="sm" />,
+    },
+    {
+      key: 'price',
+      label: 'Value',
+      align: 'right' as const,
+      render: (job) => (job.price ? `£${job.price.toFixed(2)}` : '-'),
+    },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
+      {/* Header */}
+      <header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: theme.spacing[4],
+        }}
+      >
         <div>
           <h1
             style={{
@@ -80,12 +160,19 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary,
               marginBottom: theme.spacing[2],
+              margin: 0,
             }}
           >
-            Finance overview
+            Finance Dashboard
           </h1>
-          <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
-            Keep eyes on cash flow, outstanding invoices, and how your jobs are performing.
+          <p
+            style={{
+              margin: 0,
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.fontSize.sm,
+            }}
+          >
+            Track cash flow, payments, and financial performance
           </p>
         </div>
         <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
@@ -99,12 +186,15 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
                   padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                   borderRadius: '12px',
                   border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                  backgroundColor: isActive ? theme.colors.backgroundSecondary : theme.colors.surface,
+                  backgroundColor: isActive
+                    ? `${theme.colors.primary}15`
+                    : theme.colors.surface,
                   color: isActive ? theme.colors.primary : theme.colors.textSecondary,
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.semibold,
                   cursor: 'pointer',
                   textTransform: 'capitalize',
+                  transition: 'all 0.2s',
                 }}
               >
                 {period}
@@ -114,255 +204,109 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
         </div>
       </header>
 
+      {/* Metric Cards with Trends */}
       <section
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: theme.spacing[4],
         }}
       >
-        {periodCards.map((card) => (
-          <div
-            key={card.label}
+        <MetricCard
+          label="Total Revenue"
+          value={`£${financialData.totalRevenue.toLocaleString('en-GB', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+          subtitle={`${financialData.completedJobs} completed jobs`}
+          icon="currencyDollar"
+          trend={{
+            direction: revenueChange >= 0 ? 'up' : 'down',
+            value: `${Math.abs(revenueChange).toFixed(1)}%`,
+            label: 'from last month',
+          }}
+          color={theme.colors.success}
+        />
+
+        <MetricCard
+          label="Pending Payments"
+          value={`£${financialData.pendingPayments.toLocaleString('en-GB', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+          subtitle="Awaiting release"
+          icon="clock"
+          color="#F59E0B"
+        />
+
+        <MetricCard
+          label="Average Job Value"
+          value={`£${avgJobValue.toLocaleString('en-GB', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+          subtitle="Per completed job"
+          icon="briefcase"
+          color={theme.colors.primary}
+        />
+
+        <MetricCard
+          label="Annual Projection"
+          value={`£${revenueProjection.toLocaleString('en-GB', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })}`}
+          subtitle="At current pace"
+          icon="chart"
+          color={theme.colors.info}
+        />
+      </section>
+
+      {/* Payment History Table */}
+      <DataTable
+        data={financialData.payments.slice(0, 10)}
+        columns={paymentColumns}
+        title="Recent Payments"
+        emptyMessage="No payments received yet"
+        actions={
+          <button
+            type="button"
             style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: '20px',
-              border: `1px solid ${theme.colors.border}`,
-              padding: theme.spacing[5],
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[2],
+              background: 'transparent',
+              border: 'none',
+              color: theme.colors.primary,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              cursor: 'pointer',
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: theme.spacing[2], color: theme.colors.textSecondary }}>
-              <Icon name={card.icon} size={18} color={theme.colors.primary} />
-              {card.label}
-            </span>
-            <span style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold }}>
-              {card.value}
-            </span>
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-              {card.helper}
-            </span>
-          </div>
-        ))}
-      </section>
+            View All
+          </button>
+        }
+      />
 
-      <section
-        style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: '20px',
-          border: `1px solid ${theme.colors.border}`,
-          padding: theme.spacing[6],
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[4],
-        }}
-      >
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold }}>
-              Cash flow health
-            </h2>
-            <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-              At a glance view of revenue movement this {selectedPeriod}.
-            </p>
-          </div>
-          <span
+      {/* Completed Jobs Table */}
+      <DataTable
+        data={financialData.jobs.slice(0, 10)}
+        columns={jobColumns}
+        title="Recent Completed Jobs"
+        emptyMessage="No completed jobs yet"
+        actions={
+          <button
+            type="button"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.success,
+              background: 'transparent',
+              border: 'none',
+              color: theme.colors.primary,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              cursor: 'pointer',
             }}
           >
-            <Icon name='progress' size={16} color={theme.colors.success} />
-            On track
-          </span>
-        </header>
-        <div
-          style={{
-            height: '160px',
-            borderRadius: '12px',
-            border: `1px dashed ${theme.colors.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: theme.colors.textSecondary,
-            fontSize: theme.typography.fontSize.sm,
-          }}
-        >
-          Revenue chart placeholder  -  integrate analytics for real data visualisation.
-        </div>
-      </section>
-
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[6],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[3],
-          }}
-        >
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold }}>
-              Recent transactions
-            </h3>
-            <button
-              type='button'
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: theme.colors.primary,
-                fontSize: theme.typography.fontSize.xs,
-                cursor: 'pointer',
-              }}
-            >
-              View all
-            </button>
-          </header>
-
-          {latestPayments.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-              {latestPayments.map((payment) => (
-                <div
-                  key={payment.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderRadius: '12px',
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    padding: theme.spacing[4],
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary }}>
-                      Payment #{payment.id.slice(0, 6)}
-                    </div>
-                    <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                      {new Date(payment.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: payment.status === 'completed' ? theme.colors.success : theme.colors.warning,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                      }}
-                    >
-                      £{parseFloat(payment.amount).toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                      {payment.status}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: `${theme.spacing[10]} 0`,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              No transactions yet
-            </div>
-          )}
-        </div>
-
-        <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[6],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[3],
-          }}
-        >
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold }}>
-              Recent jobs
-            </h3>
-            <button
-              type='button'
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: theme.colors.primary,
-                fontSize: theme.typography.fontSize.xs,
-                cursor: 'pointer',
-              }}
-            >
-              Open job board
-            </button>
-          </header>
-
-          {recentJobs.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-              {recentJobs.map((job) => (
-                <div
-                  key={job.id}
-                  style={{
-                    borderRadius: '12px',
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    padding: theme.spacing[4],
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] }}>
-                    <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>{job.title || 'Untitled job'}</span>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        backgroundColor: theme.colors.background,
-                        border: `1px solid ${theme.colors.border}`,
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.textSecondary,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {job.status}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                    <span>Completed {new Date(job.completed_at).toLocaleDateString()}</span>
-                    <span>{job.price ? `£${job.price.toFixed(2)}` : 'Awaiting payment'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: `${theme.spacing[10]} 0`,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Complete jobs to populate this list.
-            </div>
-          )}
-        </div>
-      </section>
+            View All Jobs
+          </button>
+        }
+      />
     </div>
   );
 }

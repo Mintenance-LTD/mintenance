@@ -90,7 +90,7 @@ function RegisterForm() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary text-white p-12 flex-col justify-between">
         <div>
           <Link href="/" className="flex items-center space-x-2 mb-12">
-            <Logo className="w-10 h-10" />
+            <Logo />
             <h1 className="text-3xl font-bold">Mintenance</h1>
           </Link>
           <h2 className="text-4xl font-bold mb-6">Join Mintenance Today</h2>
@@ -131,7 +131,7 @@ function RegisterForm() {
         <div className="w-full max-w-md py-8">
           <div className="lg:hidden mb-8">
             <Link href="/" className="flex items-center space-x-2 mb-4">
-              <Logo className="w-10 h-10" />
+              <Logo />
               <h1 className="text-2xl font-bold text-primary">Mintenance</h1>
             </Link>
           </div>

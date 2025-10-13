@@ -1,4 +1,4 @@
-﻿-- Ensure contractors remain discoverable on homeowner map
+-- Ensure contractors remain discoverable on homeowner map
 ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS is_visible_on_map BOOLEAN DEFAULT TRUE;
 

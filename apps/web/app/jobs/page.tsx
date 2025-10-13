@@ -7,6 +7,7 @@ import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card, PageHeader, LoadingSpinner, ErrorView } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { theme } from '@/lib/theme';
 import { logger } from '@/lib/logger';
 import Logo from '../components/Logo';
@@ -124,7 +125,7 @@ export default function JobsPage() {
         borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo className="w-10 h-10" />
+          <Logo />
           <span style={{
             marginLeft: theme.spacing[3],
             fontSize: theme.typography.fontSize['2xl'],
@@ -245,9 +246,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
   );
   const hasPhotos = !!(job.photos && job.photos.length > 0);
 
-  const statusColor = getStatusColor(job.status);
-  const statusIcon = getStatusIcon(job.status);
-
   // Check if user can pay for this job
   const canPayForJob = user && (
     (user.role === 'homeowner' && job.homeowner_id === user.id && job.status === 'completed') ||
@@ -260,91 +258,116 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
   };
 
   return (
-    <Card
-      style={{ padding: '16px', cursor: 'pointer' }}
-      hover={true}
+    <div
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderRadius: '20px',
+        border: `1px solid ${theme.colors.border}`,
+        padding: theme.spacing[5],
+        cursor: 'pointer',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+      }}
       onClick={() => {
         logger.userAction('Navigate to job', { jobId: job.id });
         router.push(`/jobs/${job.id}`);
       }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing[3] }}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1] }}>
             <h3 style={{
               fontSize: theme.typography.fontSize.xl,
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary,
-              marginRight: '8px',
               margin: 0,
               flex: 1
             }}>
               {job.title}
             </h3>
             <div style={{
-              backgroundColor: theme.colors.textTertiary,
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              paddingTop: '4px',
-              paddingBottom: '4px',
-              borderRadius: '12px'
+              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+              borderRadius: '12px',
+              backgroundColor: theme.colors.backgroundSecondary,
+              border: `1px solid ${theme.colors.border}`,
             }}>
               <span style={{
-                fontSize: '11px',
-                color: theme.colors.textInverse,
-                fontWeight: theme.typography.fontWeight.bold
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+                fontWeight: theme.typography.fontWeight.semibold,
               }}>
                 {(job.priority || 'NORMAL').toUpperCase()}
               </span>
             </div>
           </div>
-          <p style={{
-            fontSize: '13px',
-            color: theme.colors.textSecondary,
-            margin: 0
-          }}>
-            {daysAgo === 0 ? 'Today' :
-             daysAgo === 1 ? '1 day ago' :
-             `${daysAgo} days ago`}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+            <Icon name="clock" size={14} color={theme.colors.textSecondary} />
+            <span style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+            }}>
+              {daysAgo === 0 ? 'Today' :
+               daysAgo === 1 ? '1 day ago' :
+               `${daysAgo} days ago`}
+            </span>
+          </div>
         </div>
-        <span style={{
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.primary
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: theme.spacing[1]
         }}>
-          ${job.budget.toLocaleString()}
-        </span>
+          <span style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.primary
+          }}>
+            ${job.budget.toLocaleString()}
+          </span>
+          <span style={{
+            fontSize: theme.typography.fontSize.xs,
+            color: theme.colors.textSecondary
+          }}>
+            Budget
+          </span>
+        </div>
       </div>
 
       {/* Photos */}
       {hasPhotos && (
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <svg width="16" height="16" fill={theme.colors.info} viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-            </svg>
+        <div style={{ marginBottom: theme.spacing[4] }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2] }}>
+            <Icon name="image" size={16} color={theme.colors.info} />
             <span style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.primary,
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.info,
               fontWeight: theme.typography.fontWeight.semibold
             }}>
               Problem Photos ({job.photos?.length || 0})
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: theme.spacing[2], overflowX: 'auto', paddingBottom: theme.spacing[1] }}>
             {job.photos?.slice(0, 3).map((photo, idx) => (
               <img
                 key={idx}
                 src={photo}
                 alt={`Problem photo ${idx + 1}`}
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '8px',
+                  width: '100px',
+                  height: '100px',
+                  borderRadius: '12px',
                   objectFit: 'cover',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  border: `1px solid ${theme.colors.border}`
                 }}
               />
             ))}
@@ -354,11 +377,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
 
       {/* Description */}
       <p style={{
-        fontSize: theme.typography.fontSize.lg,
+        fontSize: theme.typography.fontSize.base,
         color: theme.colors.textSecondary,
-        marginBottom: '12px',
-        lineHeight: '22px',
-        margin: '0 0 12px 0',
+        lineHeight: 1.6,
+        margin: `0 0 ${theme.spacing[4]} 0`,
         display: '-webkit-box',
         WebkitLineClamp: 2,
         WebkitBoxOrient: 'vertical',
@@ -368,20 +390,24 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
       </p>
 
       {/* Footer */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <svg width="14" height="14" fill={theme.colors.textTertiary} viewBox="0 0 20 20" style={{ marginRight: '6px' }}>
-            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-          </svg>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: theme.spacing[4],
+        borderTop: `1px solid ${theme.colors.border}`
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+          <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
           <span style={{
-            fontSize: theme.typography.fontSize.base,
+            fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textSecondary,
             fontWeight: theme.typography.fontWeight.medium
           }}>
             {job.location}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
           {canPayForJob && (
             <Button
               variant="primary"
@@ -390,81 +416,14 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               style={{
                 backgroundColor: theme.colors.success,
                 borderColor: theme.colors.success,
-                fontSize: '12px',
-                padding: '6px 12px'
               }}
             >
-              💳 Pay Now
+              Pay Now
             </Button>
           )}
-          <div style={{
-            backgroundColor: statusColor,
-            paddingLeft: '12px',
-            paddingRight: '12px',
-            paddingTop: '6px',
-            paddingBottom: '6px',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <span style={{ marginRight: '6px' }}>{statusIcon}</span>
-            <span style={{
-              fontSize: '13px',
-              color: theme.colors.textInverse,
-              fontWeight: theme.typography.fontWeight.semibold
-            }}>
-              {formatStatus(job.status)}
-            </span>
-          </div>
+          <StatusBadge status={job.status} size="sm" />
         </div>
       </div>
-    </Card>
+    </div>
   );
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'posted':
-      return theme.colors.info;
-    case 'assigned':
-      return '#5856D6';
-    case 'in_progress':
-      return theme.colors.warning;
-    case 'completed':
-      return theme.colors.success;
-    default:
-      return theme.colors.textTertiary;
-  }
-};
-
-const getStatusIcon = (status: string) => {
-  const iconProps = { width: 12, height: 12, fill: theme.colors.white };
-
-  switch (status) {
-    case 'posted':
-      return <svg {...iconProps} viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" /></svg>;
-    case 'assigned':
-      return <svg {...iconProps} viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" /></svg>;
-    case 'in_progress':
-      return <svg {...iconProps} viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 0a1 1 0 100 2h.01a1 1 0 100-2H9zm2 0a1 1 0 100 2h.01a1 1 0 100-2H11z" clipRule="evenodd" /></svg>;
-    case 'completed':
-      return <svg {...iconProps} viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>;
-    default:
-      return <svg {...iconProps} viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>;
-  }
-};
-
-const formatStatus = (status: string) => {
-  switch (status) {
-    case 'posted':
-      return 'Open';
-    case 'assigned':
-      return 'Assigned';
-    case 'in_progress':
-      return 'In Progress';
-    case 'completed':
-      return 'Completed';
-    default:
-      return status;
-  }
 };

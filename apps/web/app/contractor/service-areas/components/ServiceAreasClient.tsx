@@ -6,13 +6,22 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { DataTable, Column } from '@/components/ui/DataTable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { MetricCard } from '@/components/ui/MetricCard';
 
 interface ServiceArea {
   id: string;
   location: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
   radius_km: number;
+  latitude?: number;
+  longitude?: number;
   is_active: boolean;
+  priority?: number;
 }
 
 export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: ServiceArea[] }) {
@@ -78,6 +87,86 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
     .filter((a) => a.is_active)
     .reduce((sum, a) => sum + Math.PI * a.radius_km * a.radius_km, 0);
 
+  const areaColumns: Column<ServiceArea>[] = [
+    {
+      key: 'location',
+      label: 'Location',
+      render: (area) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+          <Icon name="mapPin" size={18} color={theme.colors.primary} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
+              {area.location}
+            </span>
+            {area.zipCode && (
+              <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                {area.zipCode}
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'radius_km',
+      label: 'Coverage Radius',
+      align: 'center' as const,
+      render: (area) => (
+        <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
+          {area.radius_km} km
+        </span>
+      ),
+    },
+    {
+      key: 'coverage',
+      label: 'Total Area',
+      align: 'center' as const,
+      render: (area) => (
+        <span style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+          {(Math.PI * area.radius_km * area.radius_km).toFixed(0)} km²
+        </span>
+      ),
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      align: 'center' as const,
+      render: (area) => (
+        <span
+          style={{
+            padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+            borderRadius: '12px',
+            backgroundColor: theme.colors.backgroundSecondary,
+            fontSize: theme.typography.fontSize.xs,
+            fontWeight: theme.typography.fontWeight.semibold,
+          }}
+        >
+          {area.priority || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'is_active',
+      label: 'Status',
+      align: 'center' as const,
+      render: (area) => <StatusBadge status={area.is_active ? 'active' : 'inactive'} size="sm" />,
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right' as const,
+      render: (area) => (
+        <Button
+          variant={area.is_active ? 'outline' : 'primary'}
+          size="sm"
+          onClick={() => handleToggleActive(area.id, area.is_active)}
+        >
+          {area.is_active ? 'Deactivate' : 'Activate'}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: theme.spacing[6], display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
       {notification && (
@@ -129,66 +218,29 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           gap: theme.spacing[4],
         }}
       >
-        <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[5],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[2],
-            alignItems: 'flex-start',
-          }}
-        >
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Total areas</span>
-          <span style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold }}>
-            {serviceAreas.length}
-          </span>
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-            Including inactive zones
-          </span>
-        </div>
-        <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[5],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[2],
-            alignItems: 'flex-start',
-          }}
-        >
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Active</span>
-          <span style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.success }}>
-            {serviceAreas.filter((a) => a.is_active).length}
-          </span>
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-            Live regions receiving requests
-          </span>
-        </div>
-        <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[5],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[2],
-            alignItems: 'flex-start',
-          }}
-        >
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Total coverage</span>
-          <span style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.info }}>
-            {totalCoverage.toFixed(0)} km²
-          </span>
-          <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-            Based on active radius zones
-          </span>
-        </div>
+        <MetricCard
+          label="Total Areas"
+          value={serviceAreas.length.toString()}
+          subtitle="Including inactive zones"
+          icon="mapPin"
+          color={theme.colors.primary}
+        />
+
+        <MetricCard
+          label="Active Zones"
+          value={serviceAreas.filter((a) => a.is_active).length.toString()}
+          subtitle="Live regions receiving requests"
+          icon="checkCircle"
+          color={theme.colors.success}
+        />
+
+        <MetricCard
+          label="Total Coverage"
+          value={`${totalCoverage.toFixed(0)} km²`}
+          subtitle="Based on active radius zones"
+          icon="globe"
+          color={theme.colors.info}
+        />
       </section>
 
       <section
@@ -264,93 +316,12 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
         </div>
       </section>
 
-      <section
-        style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: '20px',
-          border: `1px solid ${theme.colors.border}`,
-          padding: theme.spacing[6],
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[4],
-        }}
-      >
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                margin: 0,
-              }}
-            >
-              Your service areas
-            </h2>
-            <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-              Toggle zones to control where you appear in search results.
-            </p>
-          </div>
-        </header>
-
-        {serviceAreas.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: `${theme.spacing[12]} 0`, color: theme.colors.textSecondary }}>
-            <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-              <Icon name="mapPin" size={48} color={theme.colors.textQuaternary} />
-            </div>
-            <h3 style={{ fontSize: theme.typography.fontSize.xl, marginBottom: theme.spacing[2], color: theme.colors.textPrimary }}>
-              No areas defined yet
-            </h3>
-            <p>Add your first service area to start receiving job requests in your region.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-            {serviceAreas.map((area) => (
-              <div
-                key={area.id}
-                style={{
-                  padding: theme.spacing[4],
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: '16px',
-                  border: `1px solid ${theme.colors.border}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: theme.spacing[6],
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Icon name="mapPin" size={18} color={theme.colors.primary} />
-                    <span style={{ fontWeight: theme.typography.fontWeight.semibold, fontSize: theme.typography.fontSize.lg }}>
-                      {area.location}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                    Radius {area.radius_km} km · Coverage {(Math.PI * area.radius_km * area.radius_km).toFixed(0)} km²
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleToggleActive(area.id, area.is_active)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <StatusChip
-                    label={area.is_active ? 'Active' : 'Inactive'}
-                    tone={area.is_active ? 'success' : 'neutral'}
-                    withDot
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <DataTable
+        data={serviceAreas}
+        columns={areaColumns}
+        title="Your Service Areas"
+        emptyMessage="No service areas defined yet. Add your first area to start receiving job requests in your region."
+      />
     </div>
   );
 }

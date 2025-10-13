@@ -19,17 +19,17 @@ export default async function ContractorGalleryPage() {
     .from('contractor_posts')
     .select('*')
     .eq('contractor_id', user.id)
-    .not('images', 'is', null)
+    .not('media_urls', 'is', null)
     .order('created_at', { ascending: false });
 
   const images = (posts || []).flatMap((post) =>
-    (post.images || []).map((imageUrl: string, index: number) => ({
+    (post.media_urls || []).map((imageUrl: string, index: number) => ({
       id: `${post.id}-${index}`,
       uri: imageUrl,
       title: post.title || 'Project Image',
-      description: post.content || 'No description provided',
-      category: post.post_type === 'work_showcase' ? 'completed' : 'process',
-      projectType: post.help_category || 'General Work',
+      description: post.description || 'No description provided',
+      category: post.post_type === 'portfolio' ? 'completed' : 'process',
+      projectType: post.project_category || 'General Work',
       date: post.created_at,
       likes: post.likes_count || 0,
       liked: false,

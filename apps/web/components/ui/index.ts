@@ -57,6 +57,11 @@ export type { StatusChipProps } from './StatusChip';
 export { NotificationBanner } from './NotificationBanner';
 export type { NotificationBannerProps } from './NotificationBanner';
 
+export { MetricCard } from './MetricCard';
+
+export { ActivityTimeline } from './ActivityTimeline';
+export type { Activity } from './ActivityTimeline';
+
 // Re-export theme for component consumers
 export { theme, getColor, getSpacing, getFontSize, getShadow, getStatusColor, getPriorityColor } from '@/lib/theme';
 export type { Theme } from '@/lib/theme';

@@ -48,9 +48,9 @@ export function CardStack({
             left: `${(index + 1) * 2}px`,
             right: `${(index + 1) * 2}px`,
             bottom: 0,
-            backgroundColor: theme.colors.white,
-            borderRadius: theme.borderRadius.xl,
-            boxShadow: theme.shadows.base,
+            backgroundColor: theme.colors.surface,
+            borderRadius: '20px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             zIndex: index + 1,
             opacity: 1 - (index + 1) * 0.2,
           }}

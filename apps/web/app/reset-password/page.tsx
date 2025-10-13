@@ -88,7 +88,7 @@ function ResetPasswordForm() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center justify-center mb-6">
-            <Logo className="w-16 h-16" />
+            <Logo />
           </Link>
           <h1 className="text-3xl font-bold text-white mb-2">Reset Your Password</h1>
           <p className="text-gray-300">

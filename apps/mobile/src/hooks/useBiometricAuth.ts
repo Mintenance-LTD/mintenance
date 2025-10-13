@@ -16,12 +16,13 @@ import { trackUserAction, addBreadcrumb } from './sentryUtils';
 
 export interface BiometricAuthHook {
   biometricAvailable: boolean;
-  signInWithBiometrics: () => Promise<void>;
+  signInWithBiometrics: () => Promise<{ user: User; session: any } | undefined>;
   isBiometricAvailable: () => Promise<boolean>;
   isBiometricEnabled: () => Promise<boolean>;
   enableBiometric: (user: User, session: any) => Promise<void>;
   disableBiometric: () => Promise<void>;
   promptEnableBiometric: (user: User, session: any) => void;
+  checkBiometricAvailability: () => Promise<void>;
 }
 
 export const useBiometricAuth = (): BiometricAuthHook => {

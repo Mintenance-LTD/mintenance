@@ -95,18 +95,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { location, radius_km } = body;
+    const { city, state, zipCode, serviceRadius, country = 'USA' } = body;
 
-    if (!location || !radius_km) {
+    if (!city || !state) {
       return NextResponse.json(
-        { error: 'Location and radius_km are required' },
+        { error: 'City and state are required' },
         { status: 400 }
       );
     }
 
+    // Build location string for geocoding
+    const locationString = `${city}, ${state}, ${country}`;
+
     // Geocode the location
     const geocoder = new GeocodeManager();
-    const coordinates = await geocoder.geocodeAddress(location);
+    const coordinates = await geocoder.geocodeAddress(locationString);
 
     if (!coordinates) {
       return NextResponse.json(
@@ -120,7 +123,8 @@ export async function POST(request: NextRequest) {
       .from('service_areas')
       .select('id')
       .eq('contractor_id', user.id)
-      .eq('area_name', location)
+      .eq('city', city)
+      .eq('state', state)
       .single();
 
     if (existing) {
@@ -135,14 +139,15 @@ export async function POST(request: NextRequest) {
       .from('service_areas')
       .insert({
         contractor_id: user.id,
-        area_name: location,
-        description: `Service coverage for ${location} area`,
-        area_type: 'radius',
-        center_latitude: coordinates.lat,
-        center_longitude: coordinates.lng,
-        radius_km: radius_km,
+        city: city,
+        state: state,
+        zip_code: zipCode,
+        country: country,
+        service_radius: serviceRadius || 25, // Default 25 miles
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
         is_active: true,
-        is_primary_area: false,
+        priority: 0,
       })
       .select()
       .single();
@@ -167,11 +172,13 @@ export async function POST(request: NextRequest) {
     // Return formatted response matching component interface
     return NextResponse.json({
       id: newArea.id,
-      location: newArea.area_name,
-      radius_km: newArea.radius_km,
-      is_active: newArea.is_active,
-      latitude: coordinates.lat,
-      longitude: coordinates.lng,
+      city: newArea.city,
+      state: newArea.state,
+      zipCode: newArea.zip_code,
+      serviceRadius: newArea.service_radius,
+      isActive: newArea.is_active,
+      latitude: newArea.latitude,
+      longitude: newArea.longitude,
     }, { status: 201 });
 
   } catch (error: any) {

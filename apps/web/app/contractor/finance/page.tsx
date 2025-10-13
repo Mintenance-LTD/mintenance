@@ -18,7 +18,7 @@ export default async function FinanceDashboardPage() {
   const { data: payments } = await supabase
     .from('payments')
     .select('*')
-    .eq('contractor_id', user.id)
+    .eq('payee_id', user.id)
     .order('created_at', { ascending: false });
 
   const { data: jobs } = await supabase

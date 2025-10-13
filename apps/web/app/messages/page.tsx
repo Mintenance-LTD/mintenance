@@ -136,7 +136,7 @@ export default function MessagesPage() {
         borderBottom: `1px solid ${theme.colors.border}`,
       }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo className="w-10 h-10" />
+          <Logo />
           <span style={{
             marginLeft: theme.spacing[3],
             fontSize: theme.typography.fontSize['2xl'],
@@ -166,13 +166,17 @@ export default function MessagesPage() {
         }}>
           <div>
             <h1 style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[3],
               fontSize: theme.typography.fontSize['3xl'],
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
               margin: 0,
               marginBottom: '4px'
             }}>
-              💬 Messages
+              <Icon name="messages" size={28} color={theme.colors.primary} />
+              Messages
             </h1>
             <p style={{
               color: theme.colors.textSecondary,
@@ -202,7 +206,10 @@ export default function MessagesPage() {
               size="sm"
               disabled={loading}
             >
-              🔄 Refresh
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon name="refresh" size={16} color={theme.colors.textPrimary} />
+                <span>Refresh</span>
+              </div>
             </Button>
           </div>
         </div>
@@ -257,9 +264,11 @@ export default function MessagesPage() {
             }}>
               <div style={{
                 fontSize: theme.typography.fontSize['5xl'],
-                marginBottom: theme.spacing.lg
+                marginBottom: theme.spacing.lg,
+                display: 'flex',
+                justifyContent: 'center'
               }}>
-                💬
+                <Icon name="messages" size={64} color={theme.colors.textQuaternary} />
               </div>
               <h3 style={{
                 fontSize: theme.typography.fontSize.xl,
@@ -307,7 +316,10 @@ export default function MessagesPage() {
                   onClick={() => router.push('/discover')}
                   variant="outline"
                 >
-                  🔥 Discover & Swipe
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon name="discover" size={16} color={theme.colors.textPrimary} />
+                    <span>Discover & Swipe</span>
+                  </div>
                 </Button>
               </div>
             </div>

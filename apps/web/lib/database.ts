@@ -9,18 +9,22 @@ import { logger } from '@mintenance/shared';
 
 
 // Initialize Supabase client for server-side operations
-// Temporarily hardcode for testing
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
-
-console.log('🔍 Database.ts Environment Check:');
-console.log('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl);
-console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT SET');
-console.log('All env vars:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase configuration for server-side operations');
+  logger.error('Missing required Supabase environment variables', {
+    service: 'database',
+    hasUrl: !!supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey
+  });
+  throw new Error('Missing Supabase configuration for server-side operations. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
 }
+
+logger.info('Supabase client initialized', {
+  service: 'database',
+  url: supabaseUrl
+});
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {

@@ -180,7 +180,15 @@ export class BiometricService {
           throw new Error('Biometric credentials not found');
         }
 
-        const credentials = JSON.parse(credentialsStr) as BiometricCredentials;
+        let credentials: BiometricCredentials;
+        try {
+          credentials = JSON.parse(credentialsStr) as BiometricCredentials;
+        } catch (parseError) {
+          // If JSON is corrupted, clear the credentials and throw
+          await BiometricService.clearBiometricData();
+          throw new Error('Invalid biometric credentials. Please enable biometric authentication again.');
+        }
+
         if (!credentials.refreshToken) {
           throw new Error('Saved biometric credentials are incomplete. Please sign in again.');
         }
