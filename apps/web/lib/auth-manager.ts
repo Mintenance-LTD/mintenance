@@ -72,8 +72,8 @@ export class AuthManager {
         role: user.role,
       }, undefined, undefined);
 
-      await setAuthCookie(accessToken, rememberMe);
-      // Note: Refresh token is stored separately in database
+      await setAuthCookie(accessToken, rememberMe, refreshToken);
+      // Note: Refresh token is stored in database AND as HTTP-only cookie
 
       return {
         success: true,
@@ -147,8 +147,8 @@ export class AuthManager {
       logger.info('JWT tokens created', { userId: user.id, service: 'auth' });
 
       logger.info('Setting authentication cookies', { userId: user.id, service: 'auth' });
-      await setAuthCookie(accessToken);
-      // Note: Refresh token is stored separately in database
+      await setAuthCookie(accessToken, false, refreshToken);
+      // Note: Refresh token is stored in database AND as HTTP-only cookie
       logger.info('Authentication cookies set', { userId: user.id, service: 'auth' });
 
       logger.info('Registration completed successfully', { userId: user.id, email: user.email, service: 'auth' });

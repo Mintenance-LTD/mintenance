@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { rotateTokens, setAuthCookie } from '@/lib/auth';
 import { verifyToken } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 /**
  * Token Refresh API
@@ -11,9 +12,11 @@ export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const currentToken = cookieStore.get('auth-token')?.value;
+    const refreshToken = cookieStore.get('refresh-token')?.value;
     const rememberMe = cookieStore.get('remember-me')?.value === 'true';
 
     if (!currentToken) {
+      logger.warn('Token refresh failed: No active session', { service: 'auth' });
       return NextResponse.json(
         { error: 'No active session' },
         { status: 401 }
@@ -22,8 +25,9 @@ export async function POST(request: NextRequest) {
 
     // Verify current token to get user info
     const payload = await verifyToken(currentToken);
-    
+
     if (!payload || !payload.sub) {
+      logger.warn('Token refresh failed: Invalid token', { service: 'auth' });
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
@@ -43,10 +47,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get refresh token from request body (if provided)
-    const body = await request.json().catch(() => ({}));
-    const refreshToken = body.refreshToken;
-
+    // Use refresh token from HTTP-only cookie (secure)
     if (refreshToken) {
       // Rotate tokens using refresh token
       const { accessToken, refreshToken: newRefreshToken } = await rotateTokens(
@@ -54,17 +55,25 @@ export async function POST(request: NextRequest) {
         refreshToken
       );
 
-      // Set new auth cookie
-      await setAuthCookie(accessToken, rememberMe);
+      // Set new auth cookies
+      await setAuthCookie(accessToken, rememberMe, newRefreshToken);
+
+      logger.info('Token refreshed via rotation', {
+        service: 'auth',
+        userId: payload.sub
+      });
 
       return NextResponse.json({
         success: true,
-        message: 'Token refreshed successfully',
-        accessToken,
-        refreshToken: newRefreshToken,
+        message: 'Token refreshed successfully via rotation',
       });
     } else {
-      // Create new token with same user data (simpler refresh without rotation)
+      // Fallback: Create new token with same user data (simpler refresh without rotation)
+      logger.warn('Token refresh fallback: No refresh token found', {
+        service: 'auth',
+        userId: payload.sub
+      });
+
       const { createToken } = await import('@/lib/auth');
       const newToken = await createToken({
         id: payload.sub,
@@ -77,11 +86,11 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Token refreshed successfully',
+        message: 'Token refreshed successfully (fallback mode)',
       });
     }
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error', error, { service: 'auth' });
     return NextResponse.json(
       { error: 'Failed to refresh token' },
       { status: 500 }

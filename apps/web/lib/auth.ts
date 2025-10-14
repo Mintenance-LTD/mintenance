@@ -100,38 +100,53 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 }
 
 /**
- * Set authentication cookie
+ * Set authentication cookies (access token + refresh token)
  */
-export async function setAuthCookie(token: string, rememberMe: boolean = false) {
+export async function setAuthCookie(token: string, rememberMe: boolean = false, refreshToken?: string) {
   const cookieStore = await cookies();
-  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30 days if remember me, else 24 hours
-  
+  const accessTokenMaxAge = 60 * 60; // 1 hour
+  const refreshTokenMaxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7; // 30 days if remember me, else 7 days
+
+  // Set access token (short-lived)
   cookieStore.set('auth-token', token, {
     httpOnly: true,
     secure: config.isProduction(),
-    sameSite: 'strict', // Always use strict for security
-    maxAge,
+    sameSite: 'strict',
+    maxAge: accessTokenMaxAge,
     path: '/',
   });
-  
-  // Set refresh token cookie (separate from access token)
+
+  // Set refresh token (long-lived, HTTP-only for security)
+  if (refreshToken) {
+    cookieStore.set('refresh-token', refreshToken, {
+      httpOnly: true, // SECURITY: Never expose refresh token to JavaScript
+      secure: config.isProduction(),
+      sameSite: 'strict',
+      maxAge: refreshTokenMaxAge,
+      path: '/',
+    });
+  }
+
+  // Set remember-me flag for UI (non-sensitive)
   if (rememberMe) {
     cookieStore.set('remember-me', 'true', {
       httpOnly: false, // Allow client-side access for UI
       secure: config.isProduction(),
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: refreshTokenMaxAge,
       path: '/',
     });
   }
 }
 
 /**
- * Clear authentication cookie
+ * Clear all authentication cookies
  */
 export async function clearAuthCookie() {
   const cookieStore = await cookies();
   cookieStore.delete('auth-token');
+  cookieStore.delete('refresh-token');
+  cookieStore.delete('remember-me');
 }
 
 /**
