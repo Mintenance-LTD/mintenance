@@ -162,7 +162,7 @@ export function getCurrentUserFromHeaders(headers: Headers): Pick<User, 'id' | '
  * Get current user directly from cookies (more reliable for server components)
  * This is an alternative to header-based user propagation
  */
-export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'email' | 'role'> | null> {
+export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth-token')?.value;
@@ -192,6 +192,8 @@ export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'em
       id: jwtPayload.sub,
       email: jwtPayload.email,
       role: jwtPayload.role as 'homeowner' | 'contractor' | 'admin',
+      first_name: jwtPayload.first_name || '',
+      last_name: jwtPayload.last_name || '',
     };
   } catch (error) {
     logger.error('Failed to get user from cookies', error);

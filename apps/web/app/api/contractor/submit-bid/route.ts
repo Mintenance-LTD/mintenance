@@ -121,13 +121,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email notification to homeowner
-    if (job.homeowner?.email) {
+    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    if (homeowner?.email) {
       const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
-      const homeownerName = `${job.homeowner.first_name} ${job.homeowner.last_name}`.trim() || 'Valued Client';
+      const homeownerName = `${homeowner.first_name} ${homeowner.last_name}`.trim() || 'Valued Client';
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const proposalExcerpt = validatedData.proposalText.substring(0, 150);
 
-      await EmailService.sendBidNotification(job.homeowner.email, {
+      await EmailService.sendBidNotification(homeowner.email, {
         homeownerName,
         contractorName,
         jobTitle: job.title,

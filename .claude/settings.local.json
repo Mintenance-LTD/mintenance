@@ -26,7 +26,8 @@
       "Bash(powershell:*)",
       "Bash(dir dist)",
       "Bash(dir:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(timeout 180 npm run build)"
     ],
     "deny": [],
     "ask": []

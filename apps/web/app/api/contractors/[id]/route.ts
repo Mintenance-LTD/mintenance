@@ -50,19 +50,11 @@ export async function GET(_req: NextRequest, context: Params) {
     // Transform to ContractorProfile format
     const contractorProfile: ContractorProfile = {
       id: contractor.id,
-      firstName: contractor.first_name,
-      lastName: contractor.last_name,
-      email: contractor.email,
-      phone: contractor.phone,
-      bio: contractor.bio,
-      skills: contractor.skills || [],
-      hourlyRate: contractor.hourly_rate,
+      name: `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email,
+      avatarUrl: contractor.profile_image_url,
       rating: contractor.rating,
       reviewCount: contractor.review_count || 0,
-      profileImageUrl: contractor.profile_image_url,
-      verified: contractor.verified || false,
-      latitude: contractor.latitude,
-      longitude: contractor.longitude,
+      bio: contractor.bio,
     };
 
     logger.info('Contractor retrieved successfully', {
