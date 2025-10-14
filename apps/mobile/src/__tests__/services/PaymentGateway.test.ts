@@ -142,6 +142,9 @@ describe('PaymentGateway', () => {
 
       mockStripe.paymentIntents.create.mockResolvedValue(mockPaymentIntent);
 
+      // Mock createEscrowTransaction since paymentType is 'completion'
+      jest.spyOn(paymentGateway as any, 'createEscrowTransaction').mockResolvedValue(undefined);
+
       const result = await paymentGateway.createJobPayment(mockPaymentParams);
 
       expect(mockStripe.paymentIntents.create).toHaveBeenCalledWith({

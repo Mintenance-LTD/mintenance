@@ -30,7 +30,8 @@
       "Bash(timeout 180 npm run build)",
       "Bash(npm test)",
       "Bash(npm test:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
