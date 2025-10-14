@@ -12,6 +12,7 @@ interface MetricCardProps {
   trend?: {
     direction: 'up' | 'down' | 'neutral';
     value: string;
+    label?: string;
   };
   color?: string;
 }
@@ -100,19 +101,29 @@ export function MetricCard({
           gap: theme.spacing[2],
         }}>
           {trend && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: getTrendColor(),
-            }}>
-              <Icon name={getTrendIcon()!} size={12} color={getTrendColor()} />
-              {trend.value}
-            </span>
+            <>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: theme.spacing[1],
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: getTrendColor(),
+              }}>
+                <Icon name={getTrendIcon()!} size={12} color={getTrendColor()} />
+                {trend.value}
+              </span>
+              {trend.label && (
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}>
+                  {trend.label}
+                </span>
+              )}
+            </>
           )}
-          {subtitle && (
+          {subtitle && !trend && (
             <span style={{
               fontSize: theme.typography.fontSize.xs,
               color: theme.colors.textSecondary,

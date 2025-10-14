@@ -3,7 +3,7 @@
 import React from 'react';
 import { designSystem } from '@/lib/design-system';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
@@ -51,10 +51,10 @@ export function Button({
   const widthStyle = fullWidth ? { width: '100%' } : {};
 
   return (
-    <button 
+    <button
       className={className}
       style={{
-        ...variantStyle,
+        ...(variantStyle as React.CSSProperties),
         ...sizeStyle,
         ...disabledStyle,
         ...widthStyle,

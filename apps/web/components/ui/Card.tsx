@@ -9,14 +9,18 @@ export interface CardProps {
   style?: React.CSSProperties;
   variant?: 'default' | 'elevated';
   padding?: 'sm' | 'md' | 'lg';
+  hover?: boolean;
+  onClick?: () => void;
 }
 
-export function Card({ 
-  children, 
-  className = '', 
-  style = {}, 
+export function Card({
+  children,
+  className = '',
+  style = {},
   variant = 'default',
-  padding = 'md'
+  padding = 'md',
+  hover = false,
+  onClick
 }: CardProps) {
   const cardStyle = variant === 'elevated' 
     ? designSystem.components.card.elevated 
@@ -25,13 +29,15 @@ export function Card({
   const paddingValue = padding === 'sm' ? '1rem' : padding === 'lg' ? '2rem' : '1.5rem';
 
   return (
-    <div 
+    <div
       className={className}
       style={{
         ...cardStyle,
         padding: paddingValue,
+        cursor: onClick ? 'pointer' : 'default',
         ...style,
       }}
+      onClick={onClick}
     >
       {children}
     </div>

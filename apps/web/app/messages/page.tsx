@@ -331,7 +331,7 @@ export default function MessagesPage() {
                 <ConversationCard
                   key={conversation.jobId}
                   conversation={conversation}
-                  currentUserId={user.id}
+                  currentUserId={user?.id || ''}
                   onClick={() => handleConversationClick(conversation)}
                 />
               ))}

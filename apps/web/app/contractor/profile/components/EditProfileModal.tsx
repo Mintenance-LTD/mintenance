@@ -2,6 +2,7 @@
 
 import React, { useState, FormEvent } from 'react';
 import { theme } from '@/lib/theme';
+import { Icon } from '@/components/ui/Icon';
 
 interface EditProfileModalProps {
   contractor: any;

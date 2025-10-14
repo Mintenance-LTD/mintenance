@@ -42,7 +42,7 @@ export default async function CRMDashboardPage() {
   const clientsMap = new Map();
 
   jobs?.forEach(job => {
-    const homeowner = job.homeowner;
+    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
     if (!homeowner?.id) return;
 
     if (!clientsMap.has(homeowner.id)) {

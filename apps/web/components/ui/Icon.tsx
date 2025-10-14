@@ -13,9 +13,10 @@ export interface IconProps {
   color?: string;
   className?: string;
   style?: React.CSSProperties;
+  title?: string;
 }
 
-export function Icon({ name, size = 20, color = 'currentColor', className = '', style = {} }: IconProps) {
+export function Icon({ name, size = 20, color = 'currentColor', className = '', style = {}, title }: IconProps) {
   const icons: Record<string, JSX.Element> = {
     // Navigation
     home: (
@@ -223,8 +224,11 @@ export function Icon({ name, size = 20, color = 'currentColor', className = '', 
       strokeLinejoin="round"
       className={className}
       style={style}
-      aria-hidden="true"
+      aria-hidden={title ? undefined : "true"}
+      role={title ? "img" : undefined}
+      aria-label={title}
     >
+      {title && <title>{title}</title>}
       {iconPath}
     </svg>
   );

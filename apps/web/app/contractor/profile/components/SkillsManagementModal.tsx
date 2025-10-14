@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import { Icon } from '@/components/ui/Icon';
 
 interface SkillsManagementModalProps {
   currentSkills: Array<{ skill_name: string }>;

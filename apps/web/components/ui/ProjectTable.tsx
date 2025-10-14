@@ -9,7 +9,7 @@ interface Project {
   name: string;
   manager: string;
   dueDate: string;
-  status: 'completed' | 'delayed' | 'at_risk' | 'on_going' | 'posted';
+  status: 'completed' | 'delayed' | 'at_risk' | 'on_going' | 'posted' | 'pending';
   progress: number;
 }
 

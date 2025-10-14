@@ -113,31 +113,34 @@ export default async function EnhancedDashboardPage() {
   const completionRate = totalProjects > 0 ? (completedJobs.length / totalProjects) * 100 : 0;
 
   // Prepare project table data
-  const projectTableData = jobs.slice(0, 5).map((job) => ({
-    id: job.id,
-    name: job.title || 'Untitled Project',
-    manager:
-      job.homeowner && (job.homeowner.first_name || job.homeowner.last_name)
-        ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim()
-        : job.homeowner?.email || 'N/A',
-    dueDate: job.scheduled_date || job.created_at,
-    status:
-      job.status === 'completed'
-        ? ('completed' as const)
-        : job.status === 'in_progress'
-          ? ('on_going' as const)
-          : job.status === 'posted'
-            ? ('posted' as const)
-            : ('pending' as const),
-    progress:
-      job.status === 'completed'
-        ? 100
-        : job.status === 'in_progress'
-          ? 60
-          : job.status === 'assigned'
-            ? 30
-            : 0,
-  }));
+  const projectTableData = jobs.slice(0, 5).map((job) => {
+    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    return {
+      id: job.id,
+      name: job.title || 'Untitled Project',
+      manager:
+        homeowner && (homeowner.first_name || homeowner.last_name)
+          ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim()
+          : homeowner?.email || 'N/A',
+      dueDate: job.scheduled_date || job.created_at,
+      status:
+        job.status === 'completed'
+          ? ('completed' as const)
+          : job.status === 'in_progress'
+            ? ('on_going' as const)
+            : job.status === 'posted'
+              ? ('posted' as const)
+              : ('pending' as const),
+      progress:
+        job.status === 'completed'
+          ? 100
+          : job.status === 'in_progress'
+            ? 60
+            : job.status === 'assigned'
+              ? 30
+              : 0,
+    };
+  });
 
   // Prepare today's tasks (derived from active jobs and pending quotes)
   const todayTasks: Task[] = [
