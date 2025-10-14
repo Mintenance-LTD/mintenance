@@ -1,7 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ConnectionsClient } from './components/ConnectionsClient';
-import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export default async function ConnectionsPage() {
   const user = await getCurrentUserFromCookies();
@@ -9,8 +9,6 @@ export default async function ConnectionsPage() {
   if (!user || user.role !== 'contractor') {
     redirect('/login');
   }
-
-  const serverSupabase = createServerSupabaseClient();
 
   // Get pending connection requests (where current user is the target)
   const { data: requests } = await serverSupabase

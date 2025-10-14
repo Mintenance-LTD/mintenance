@@ -1,7 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ServiceAreasClient } from './components/ServiceAreasClient';
-import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export default async function ServiceAreasPage() {
   const user = await getCurrentUserFromCookies();
@@ -10,7 +10,7 @@ export default async function ServiceAreasPage() {
     redirect('/login');
   }
 
-  const serverSupabase = createServerSupabaseClient();
+  
 
   const { data: areas } = await serverSupabase
     .from('service_areas')

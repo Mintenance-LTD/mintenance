@@ -1,7 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { CRMDashboardClient } from './components/CRMDashboardClient';
-import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export default async function CRMDashboardPage() {
   const user = await getCurrentUserFromCookies();
@@ -10,7 +10,7 @@ export default async function CRMDashboardPage() {
     redirect('/login');
   }
 
-  const serverSupabase = createServerSupabaseClient();
+  
 
   // Get all jobs with homeowner information
   const { data: jobs } = await serverSupabase

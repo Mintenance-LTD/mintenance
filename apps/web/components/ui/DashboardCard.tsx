@@ -59,7 +59,7 @@ export function DashboardCard({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = theme.shadows.md;
+        e.currentTarget.style.boxShadow = theme.shadows.lg;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
@@ -171,7 +171,7 @@ export function MetricCard({ label, value, change, icon, trend = 'neutral' }: Me
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = theme.shadows.md;
+        e.currentTarget.style.boxShadow = theme.shadows.lg;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';

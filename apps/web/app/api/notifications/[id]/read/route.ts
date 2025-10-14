@@ -3,10 +3,10 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     const { error } = await serverSupabase
       .from('notifications')

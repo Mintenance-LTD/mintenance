@@ -165,8 +165,8 @@ class Logger {
 
   error(
     messageOrTag: string,
-    errorOrContextOrMessage?: unknown | string,
-    maybeContext?: LogContext
+    errorOrContextOrMessage?: unknown | string | LogContext,
+    maybeContext?: LogContext | unknown
   ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
@@ -350,8 +350,8 @@ export const log = {
   ) => logger.warn(messageOrTag, contextOrMessage as any, maybeContext),
   error: (
     messageOrTag: string,
-    errorOrContextOrMessage?: unknown | string,
-    maybeContext?: LogContext
+    errorOrContextOrMessage?: unknown | string | LogContext,
+    maybeContext?: LogContext | unknown
   ) => logger.error(messageOrTag, errorOrContextOrMessage as any, maybeContext),
   performance: (
     operation: string,

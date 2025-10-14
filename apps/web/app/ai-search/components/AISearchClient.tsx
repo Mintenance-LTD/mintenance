@@ -387,7 +387,7 @@ export function AISearchClient({ user }: AISearchClientProps) {
                 position: 'absolute',
                 top: '100%',
                 left: 0,
-                right: theme.spacing[32],
+                right: 0,
                 marginTop: theme.spacing[2],
                 backgroundColor: theme.colors.surface,
                 borderRadius: '16px',

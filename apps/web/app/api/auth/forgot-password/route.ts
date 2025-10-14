@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
+      logger.error('Missing Supabase configuration', { service: 'auth' });
       return NextResponse.json(
         { error: 'Service configuration error. Please contact support.' },
         { status: 500 }

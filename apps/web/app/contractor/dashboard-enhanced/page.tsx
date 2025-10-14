@@ -1,6 +1,6 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorLayoutShell } from '../components/ContractorLayoutShell';
 import { CircularProgress } from '@/components/ui/CircularProgress';
 import { ProjectTable } from '@/components/ui/ProjectTable';
@@ -21,7 +21,7 @@ export default async function EnhancedDashboardPage() {
     redirect('/login');
   }
 
-  const serverSupabase = createServerSupabaseClient();
+  
 
   // Fetch all necessary data in parallel
   const [
