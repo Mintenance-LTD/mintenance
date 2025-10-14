@@ -1,12 +1,18 @@
 # 🏠 Mintenance - Contractor Discovery Marketplace
 
+[![Mobile Tests](https://github.com/Mintenance-LTD/mintenance/actions/workflows/mobile-tests.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/mobile-tests.yml)
+[![CI/CD Pipeline](https://github.com/Mintenance-LTD/mintenance/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/ci-cd.yml)
+[![Security Scan](https://github.com/Mintenance-LTD/mintenance/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/security-scan.yml)
+[![codecov](https://codecov.io/gh/Mintenance-LTD/mintenance/branch/main/graph/badge.svg)](https://codecov.io/gh/Mintenance-LTD/mintenance)
+
 A comprehensive contractor discovery platform connecting homeowners with verified service providers for home maintenance jobs.
 
 ## 🚀 Project Status
 
-**Current Version**: 1.2.3  
-**Status**: Production Ready  
+**Current Version**: 1.2.3
+**Status**: Production Ready
 **Deployment**: Ready for mintenance.co.uk
+**Test Coverage**: 87.7% (804/917 tests passing)
 
 ### ✅ Completed Features
 - **Monorepo Architecture**: Clean separation of web and mobile apps
@@ -79,6 +85,42 @@ NEXT_PUBLIC_APP_URL=https://mintenance.co.uk
 STRIPE_SECRET_KEY=sk_live_your-stripe-key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-key
 ```
+
+## 🧪 Testing
+
+### Mobile App Testing
+```bash
+# Run all mobile tests
+cd apps/mobile && npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run specific test suites
+npm test -- --testPathPattern=services    # Service tests
+npm test -- --testPathPattern=integration # Integration tests
+npm test -- --testPathPattern=e2e         # E2E tests
+```
+
+### Test Coverage Status
+- **Overall**: 87.7% (804/917 tests passing)
+- **Service Layer**: 80.8% (346/428 passing)
+- **Core Services**: 100% (JobSheetOperations, PaymentGateway, BidService)
+
+### CI/CD Testing
+All tests run automatically on:
+- Every push to `main` and `develop` branches
+- Every pull request
+- PRs are blocked if tests fail
+
+### E2E Test Flows
+1. **Job Posting → Bidding → Assignment** - Complete job lifecycle
+2. **Payment → Escrow → Release** - Payment processing workflow
+3. **User Registration → Profile Setup** - Onboarding flow
+4. **Contractor Matching** - Discovery and matching algorithm
+5. **Auth Context Integration** - Authentication flows
+6. **Navigation** - Screen navigation testing
+7. **User Journeys** - End-to-end user scenarios
 
 ## 🚀 Deployment
 

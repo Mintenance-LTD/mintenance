@@ -1,0 +1,251 @@
+name: Mobile App Testing
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - '.github/workflows/mobile-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+
+jobs:
+  unit-tests:
+    name: Mobile Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run mobile unit tests
+        working-directory: apps/mobile
+        run: npm test -- --coverage --watchAll=false --maxWorkers=2
+        env:
+          CI: true
+
+      - name: Generate coverage report
+        working-directory: apps/mobile
+        run: |
+          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          npm test -- --coverage --coverageReporters=text --watchAll=false | tee coverage-output.txt
+          cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./apps/mobile/coverage/lcov.info
+          flags: mobile-unittests
+          name: mobile-coverage
+          fail_ci_if_error: false
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-test-results
+          path: |
+            apps/mobile/coverage/
+            apps/mobile/test-results/
+          retention-days: 30
+
+      - name: Check coverage thresholds
+        working-directory: apps/mobile
+        run: |
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const total = coverage.total;
+
+            console.log('Coverage Summary:');
+            console.log('Lines:', total.lines.pct + '%');
+            console.log('Statements:', total.statements.pct + '%');
+            console.log('Functions:', total.functions.pct + '%');
+            console.log('Branches:', total.branches.pct + '%');
+
+            // Services should have 80%+ coverage
+            const serviceFiles = Object.keys(coverage).filter(f => f.includes('/services/'));
+            let serviceCoverage = { lines: 0, statements: 0, functions: 0, branches: 0, count: 0 };
+
+            serviceFiles.forEach(file => {
+              const cov = coverage[file];
+              serviceCoverage.lines += cov.lines.pct;
+              serviceCoverage.statements += cov.statements.pct;
+              serviceCoverage.functions += cov.functions.pct;
+              serviceCoverage.branches += cov.branches.pct;
+              serviceCoverage.count++;
+            });
+
+            if (serviceCoverage.count > 0) {
+              console.log('\\nService Coverage (Average):');
+              console.log('Lines:', (serviceCoverage.lines / serviceCoverage.count).toFixed(2) + '%');
+              console.log('Statements:', (serviceCoverage.statements / serviceCoverage.count).toFixed(2) + '%');
+              console.log('Functions:', (serviceCoverage.functions / serviceCoverage.count).toFixed(2) + '%');
+              console.log('Branches:', (serviceCoverage.branches / serviceCoverage.count).toFixed(2) + '%');
+            }
+          "
+
+  integration-tests:
+    name: Mobile Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run integration tests
+        working-directory: apps/mobile
+        run: npm test -- --testPathPattern=integration --watchAll=false --maxWorkers=2
+        env:
+          CI: true
+
+      - name: Archive integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: apps/mobile/test-results/
+          retention-days: 30
+
+  service-tests:
+    name: Service Layer Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run service tests
+        working-directory: apps/mobile
+        run: npm test -- --testPathPattern=services --coverage --watchAll=false --maxWorkers=2
+        env:
+          CI: true
+
+      - name: Validate service test coverage
+        working-directory: apps/mobile
+        run: |
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const serviceFiles = Object.keys(coverage).filter(f => f.includes('/services/'));
+
+            let totalCoverage = { lines: 0, count: 0 };
+            serviceFiles.forEach(file => {
+              const cov = coverage[file];
+              totalCoverage.lines += cov.lines.pct;
+              totalCoverage.count++;
+            });
+
+            const avgCoverage = totalCoverage.count > 0 ? totalCoverage.lines / totalCoverage.count : 0;
+            console.log('Service Coverage:', avgCoverage.toFixed(2) + '%');
+
+            if (avgCoverage < 75) {
+              console.error('❌ Service coverage below 75% threshold');
+              process.exit(1);
+            } else {
+              console.log('✅ Service coverage meets 75% threshold');
+            }
+          "
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, service-tests]
+    if: always()
+
+    steps:
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-test-results
+          path: test-results
+
+      - name: Generate test summary
+        run: |
+          echo "# 📊 Mobile Test Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All test jobs completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Jobs Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Service Tests: ${{ needs.service-tests.result }}" >> $GITHUB_STEP_SUMMARY
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, service-tests]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.integration-tests.result }}" != "success" ] || \
+             [ "${{ needs.service-tests.result }}" != "success" ]; then
+            echo "❌ Tests failed - blocking PR"
+            exit 1
+          else
+            echo "✅ All tests passed - PR can be merged"
+          fi
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const unitTests = '${{ needs.unit-tests.result }}';
+            const integrationTests = '${{ needs.integration-tests.result }}';
+            const serviceTests = '${{ needs.service-tests.result }}';
+
+            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+
+            const comment = `## 🧪 Test Results
+
+            ${statusEmoji(unitTests)} **Unit Tests**: ${unitTests}
+            ${statusEmoji(integrationTests)} **Integration Tests**: ${integrationTests}
+            ${statusEmoji(serviceTests)} **Service Tests**: ${serviceTests}
+
+            ${unitTests === 'success' && integrationTests === 'success' && serviceTests === 'success'
+              ? '✅ All tests passed! This PR is ready to merge.'
+              : '❌ Some tests failed. Please fix the issues before merging.'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
