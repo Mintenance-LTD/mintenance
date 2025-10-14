@@ -33,7 +33,8 @@
       "Bash(npm install:*)",
       "Bash(grep:*)",
       "Bash(npm update:*)",
-      "Bash(node -e \"const data = require(''./coverage/coverage-summary.json''); const t = data.total; console.log(''COVERAGE SUMMARY:\\nLines: '' + t.lines.pct + ''%\\nStatements: '' + t.statements.pct + ''%\\nFunctions: '' + t.functions.pct + ''%\\nBranches: '' + t.branches.pct + ''%'');\")"
+      "Bash(node -e \"const data = require(''./coverage/coverage-summary.json''); const t = data.total; console.log(''COVERAGE SUMMARY:\\nLines: '' + t.lines.pct + ''%\\nStatements: '' + t.statements.pct + ''%\\nFunctions: '' + t.functions.pct + ''%\\nBranches: '' + t.branches.pct + ''%'');\")",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
