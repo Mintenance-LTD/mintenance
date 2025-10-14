@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
 
 interface Params { params: Promise<{ id: string }> }
 
-export async function GET(_req: NextRequest, context: Params) {
+export async function GET(req: NextRequest, context: Params) {
+  return withPublicRateLimit(req, async (_request) => getContractor(context), 'resource');
+}
+
+async function getContractor(context: Params) {
   try {
     const { id } = await context.params;
     if (!id) {
