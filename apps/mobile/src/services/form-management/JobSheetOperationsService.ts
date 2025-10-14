@@ -94,6 +94,16 @@ export class JobSheetOperationsService {
     contractorId: string,
     sheetData: CreateJobSheetData
   ): Promise<JobSheet> {
+    if (!contractorId || contractorId.trim() === '') {
+      throw new Error('contractorId is required');
+    }
+    if (!sheetData.template_id || sheetData.template_id.trim() === '') {
+      throw new Error('template_id is required');
+    }
+    if (!sheetData.sheet_title || sheetData.sheet_title.trim() === '') {
+      throw new Error('sheet_title is required');
+    }
+
     try {
       // Generate sheet number
       const { data: sheetNumber } = await supabase.rpc(
@@ -116,7 +126,7 @@ export class JobSheetOperationsService {
           location_name: sheetData.location_name,
           location_address: sheetData.location_address,
           location_coordinates: sheetData.location_coordinates
-            ? `POINT(${sheetData.location_coordinates.lng} ${sheetData.location_coordinates.lat})`
+            ? `POINT(${sheetData.location_coordinates.lng.toFixed(4)} ${sheetData.location_coordinates.lat.toFixed(4)})`
             : null,
           client_name: sheetData.client_name,
           client_email: sheetData.client_email,
@@ -143,6 +153,10 @@ export class JobSheetOperationsService {
     limit: number = 50,
     offset: number = 0
   ): Promise<JobSheet[]> {
+    if (!contractorId || contractorId.trim() === '') {
+      throw new Error('contractorId is required');
+    }
+
     try {
       let query = supabase
         .from('job_sheets')
@@ -192,6 +206,10 @@ export class JobSheetOperationsService {
   }
 
   static async getJobSheet(sheetId: string): Promise<JobSheet | null> {
+    if (!sheetId || sheetId.trim() === '') {
+      throw new Error('sheetId is required');
+    }
+
     try {
       const { data, error } = await supabase
         .from('job_sheets')
@@ -350,6 +368,10 @@ export class JobSheetOperationsService {
       );
     } catch (error) {
       logger.error('Error duplicating job sheet', error);
+      // Re-throw specific errors
+      if (error instanceof Error && error.message === 'Job sheet not found') {
+        throw error;
+      }
       throw new Error('Failed to duplicate job sheet');
     }
   }

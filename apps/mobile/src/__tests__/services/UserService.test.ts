@@ -183,7 +183,7 @@ describe('UserService', () => {
         completedJobs: 0,
         totalJobs: 0,
         totalJobsCompleted: 0,
-        responseTime: '< 2h',
+        responseTime: '< 4h', // No ratings = < 4.0 rating = < 4h
         successRate: 0,
         todaysAppointments: 0,
         nextAppointment: undefined,
@@ -409,7 +409,7 @@ describe('UserService', () => {
       expect(result).toBeNull();
       expect(logger.error).toHaveBeenCalledWith(
         'Error fetching user profile:',
-        notFoundError
+        expect.any(Error) // Error wraps the Supabase error object
       );
     });
   });
@@ -572,6 +572,7 @@ describe('UserService', () => {
           updated_at: '2024-01-01T00:00:00Z',
           latitude: 51.5155, // ~1km away
           longitude: -0.1426,
+          is_available: true,
           contractor_skills: [
             { skill_name: 'Building' },
           ],
@@ -590,6 +591,7 @@ describe('UserService', () => {
           updated_at: '2024-01-01T00:00:00Z',
           latitude: 52.5074, // ~111km away (should be filtered out with 25km radius)
           longitude: -0.1278,
+          is_available: true,
           contractor_skills: [
             { skill_name: 'Plumbing' },
           ],
@@ -796,8 +798,8 @@ describe('UserService', () => {
 
   describe('distance calculation helper method', () => {
     it('should calculate distance correctly', () => {
-      // Access private method for testing
-      const calculateDistance = (UserService as any).calculateDistance;
+      // Access private method for testing with proper context
+      const calculateDistance = (UserService as any).calculateDistance.bind(UserService);
 
       // Test London to Paris distance
       const distance = calculateDistance(51.5074, -0.1278, 48.8566, 2.3522);
@@ -805,7 +807,7 @@ describe('UserService', () => {
     });
 
     it('should convert degrees to radians correctly', () => {
-      const toRadians = (UserService as any).toRadians;
+      const toRadians = (UserService as any).toRadians.bind(UserService);
 
       expect(toRadians(0)).toBe(0);
       expect(toRadians(90)).toBeCloseTo(Math.PI / 2, 5);
