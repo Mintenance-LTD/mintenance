@@ -1,4 +1,3 @@
-import '@testing-library/jest-native/extend-expect';
 import 'react-native-gesture-handler/jestSetup';
 
 // Stabilize time and locale for consistent test results
@@ -43,7 +42,7 @@ jest.mock('react-native-localize', () => ({
   usesMetricSystem: jest.fn(() => false),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
-}));
+}), { virtual: true });
 
 // Mock React Native modules with better TypeScript support
 jest.mock('react-native', () => {
@@ -138,7 +137,7 @@ jest.mock('expo-haptics', () => ({
     Warning: 'warning',
     Error: 'error',
   },
-}));
+}), { virtual: true });
 
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
@@ -156,7 +155,7 @@ jest.mock('expo-notifications', () => ({
 
 // Mock expo-device with a shared, mutable object so tests can toggle isDevice
 const __deviceState = { isDevice: true };
-jest.mock('expo-device', () => __deviceState);
+jest.mock('expo-device', () => __deviceState, { virtual: true });
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -202,12 +201,12 @@ jest.mock('@sentry/react-native', () => ({
   setContext: jest.fn(),
   setTag: jest.fn(),
   init: jest.fn(),
-}));
+}), { virtual: true });
 
 // Mock sentry-expo
 jest.mock('sentry-expo', () => ({
   init: jest.fn(),
-}));
+}), { virtual: true });
 
 // Mock expo-constants
 jest.mock('expo-constants', () => ({

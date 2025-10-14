@@ -27,7 +27,10 @@
       "Bash(dir dist)",
       "Bash(dir:*)",
       "Bash(npx tsc:*)",
-      "Bash(timeout 180 npm run build)"
+      "Bash(timeout 180 npm run build)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,5 @@
 module.exports = {
-  preset: 'react-native',
+  preset: 'jest-expo',
   setupFilesAfterEnv: [
     '<rootDir>/jest-setup.js',
     '<rootDir>/src/__tests__/setup/globalMocks.ts'
@@ -42,46 +42,5 @@ module.exports = {
       lines: 85,
       statements: 85,
     },
-  },
-  testEnvironment: 'jsdom',
-  setupFiles: [],
-  globals: {
-    __DEV__: true,
-  },
-  // TypeScript support
-  transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: {
-        jsx: 'react-jsx',
-        jsxImportSource: 'react',
-        allowSyntheticDefaultImports: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
-        resolveJsonModule: true,
-        isolatedModules: true,
-        noEmit: true,
-        moduleResolution: 'bundler',
-        allowJs: true,
-        forceConsistentCasingInFileNames: true,
-        noFallthroughCasesInSwitch: true,
-        noUncheckedIndexedAccess: false,
-        exactOptionalPropertyTypes: false,
-      }
-    }],
-    '^.+\\.(js|jsx)$': 'babel-jest',
-  },
-  // Mock React Native components for better test support
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@mintenance/types$': '<rootDir>/../../packages/types/src',
-    '^@mintenance/shared$': '<rootDir>/../../packages/shared/src',
-    // React Native component mocks
-    '^react-native$': '<rootDir>/src/__tests__/mocks/reactNativeMocks.ts',
-    '^react-native/(.*)$': '<rootDir>/src/__tests__/mocks/reactNativeMocks.ts',
-    // Force AuthContext imports to use the lightweight fallback in tests
-    'contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
-    '.*/contexts/AuthContext$': '<rootDir>/src/contexts/AuthContext-fallback.tsx',
-    // Ensure all imports of config/supabase resolve to the chainable manual mock in tests
-    '.*/config/supabase$': '<rootDir>/src/config/__mocks__/supabase.ts',
   },
 };
