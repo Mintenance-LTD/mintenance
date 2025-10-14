@@ -1,6 +1,7 @@
 {
   "name": "@mintenance/shared-ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "description": "Shared UI component library for Mintenance web and mobile applications",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,14 +9,33 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
   },
+  "keywords": [
+    "react",
+    "react-native",
+    "ui",
+    "components",
+    "design-system"
+  ],
+  "author": "Mintenance Team",
+  "license": "MIT",
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "devDependencies": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "typescript": "^5"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
   }
 }
-
