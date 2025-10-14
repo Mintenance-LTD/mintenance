@@ -32,15 +32,44 @@ const getStripeInstance = () => {
   return new Stripe(apiKey);
 };
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Ensure Node.js runtime for Stripe SDK and raw body access
 export const runtime = 'nodejs';
+
+// Simple in-memory rate limiting for webhook endpoint
+// In production, use Redis or a distributed rate limiter
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 100; // Max 100 webhook requests per minute per IP
+
+function checkRateLimit(identifier: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(identifier);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
+  }
+
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  record.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count };
+}
 
 /**
  * Stripe Webhook Handler
  *
  * Handles Stripe webhook events with signature verification for security.
+ *
+ * Security features:
+ * - Signature verification (prevents replay attacks and tampering)
+ * - Rate limiting (prevents DOS attacks)
+ * - Idempotency (prevents duplicate processing)
+ * - Comprehensive logging and error handling
  *
  * Supported events:
  * - payment_intent.succeeded - Payment completed successfully
@@ -49,6 +78,27 @@ export const runtime = 'nodejs';
  * - charge.refunded - Payment refunded
  */
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                   request.headers.get('x-real-ip') ||
+                   'unknown';
+
+  const rateLimitResult = checkRateLimit(clientIp);
+  if (!rateLimitResult.allowed) {
+    logger.warn('Webhook rate limit exceeded', {
+      service: 'stripe-webhook',
+      clientIp
+    });
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': '60'
+        }
+      }
+    );
+  }
   try {
     // Get the raw body for signature verification
     const body = await request.text();
@@ -67,12 +117,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!webhookSecret) {
-      // In development/test, treat missing webhook secret as a client error
-      // since we can't verify the signature without it
-      logger.warn('STRIPE_WEBHOOK_SECRET not configured', { service: 'stripe-webhook' });
+      // SECURITY: Reject all webhook requests without proper configuration
+      // This prevents bypassing signature verification
+      logger.error('STRIPE_WEBHOOK_SECRET not configured - rejecting webhook', null, {
+        service: 'stripe-webhook',
+        eventType: 'unknown'
+      });
       return NextResponse.json(
-        { error: 'Webhook signature verification failed: Webhook secret not configured' },
-        { status: 400 }
+        {
+          error: 'Webhook endpoint not properly configured',
+          message: 'STRIPE_WEBHOOK_SECRET environment variable is required for webhook signature verification'
+        },
+        { status: 503 } // Service Unavailable - indicates server misconfiguration
       );
     }
 
