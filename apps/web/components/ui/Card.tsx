@@ -3,7 +3,7 @@
 import React from 'react';
 import { designSystem } from '@/lib/design-system';
 
-interface CardProps {
+export interface CardProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;

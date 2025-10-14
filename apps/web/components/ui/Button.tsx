@@ -5,7 +5,7 @@ import { designSystem } from '@/lib/design-system';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   style?: React.CSSProperties;
@@ -24,8 +24,18 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const variantStyle = variant === 'primary' 
-    ? designSystem.components.button.primary
+  const variantStyle =
+    variant === 'primary' ? designSystem.components.button.primary
+    : variant === 'outline' ? {
+        backgroundColor: 'transparent',
+        color: designSystem.colors.primary,
+        border: `2px solid ${designSystem.colors.primary}`,
+        borderRadius: designSystem.borderRadius.base,
+        padding: '0.75rem 1.5rem',
+        fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }
     : designSystem.components.button.secondary;
 
   const sizeStyle = size === 'sm' 

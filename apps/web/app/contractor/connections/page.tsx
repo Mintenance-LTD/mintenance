@@ -29,17 +29,20 @@ export default async function ConnectionsPage() {
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
-  const connectionRequests = requests?.map(req => ({
-    id: req.id,
-    requester: {
-      id: req.requester?.id || '',
-      name: `${req.requester?.first_name || ''} ${req.requester?.last_name || ''}`.trim(),
-      email: req.requester?.email || '',
-      role: req.requester?.role || 'homeowner',
-    },
-    status: req.status,
-    createdAt: req.created_at,
-  })) || [];
+  const connectionRequests = requests?.map(req => {
+    const requester = Array.isArray(req.requester) ? req.requester[0] : req.requester;
+    return {
+      id: req.id,
+      requester: {
+        id: requester?.id || '',
+        name: `${requester?.first_name || ''} ${requester?.last_name || ''}`.trim(),
+        email: requester?.email || '',
+        role: requester?.role || 'homeowner',
+      },
+      status: req.status,
+      createdAt: req.created_at,
+    };
+  }) || [];
 
   // Get accepted connections (mutual connections)
   const { data: accepted } = await serverSupabase
@@ -68,8 +71,10 @@ export default async function ConnectionsPage() {
 
   const mutualConnections = accepted?.map(conn => {
     // Determine which user is the connection (not the current user)
-    const isRequester = conn.requester?.id === user.id;
-    const connection = isRequester ? conn.target : conn.requester;
+    const requester = Array.isArray(conn.requester) ? conn.requester[0] : conn.requester;
+    const target = Array.isArray(conn.target) ? conn.target[0] : conn.target;
+    const isRequester = requester?.id === user.id;
+    const connection = isRequester ? target : requester;
 
     return {
       id: conn.id,

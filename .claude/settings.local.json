@@ -23,7 +23,10 @@
       "Bash(psql:*)",
       "Bash(npm run build:*)",
       "Bash(find:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(dir dist)",
+      "Bash(dir:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
