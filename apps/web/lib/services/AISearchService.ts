@@ -17,7 +17,7 @@ export interface SearchResult {
     price?: number;
     rating?: number;
     availability?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

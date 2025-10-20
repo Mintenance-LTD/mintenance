@@ -1,5 +1,5 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
@@ -13,10 +13,7 @@ export const metadata: Metadata = {
   description: 'View your business analytics and performance metrics',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Use centralized server client for security
 
 export default async function AnalyticsPage() {
   // Get current user from cookies (more reliable)
@@ -32,21 +29,21 @@ export default async function AnalyticsPage() {
   }
 
   // Fetch contractor stats
-  const { data: contractor } = await supabase
+  const { data: contractor } = await serverSupabase
     .from('users')
     .select('*')
     .eq('id', user.id)
     .single();
 
   // Fetch all jobs for this contractor
-  const { data: allJobs } = await supabase
+  const { data: allJobs } = await serverSupabase
     .from('jobs')
     .select('*')
     .eq('contractor_id', user.id)
     .order('created_at', { ascending: false });
 
   // Fetch completed jobs with revenue
-  const { data: completedJobs } = await supabase
+  const { data: completedJobs } = await serverSupabase
     .from('jobs')
     .select('*, escrow_transactions(*)')
     .eq('contractor_id', user.id)
@@ -54,32 +51,32 @@ export default async function AnalyticsPage() {
     .order('completed_at', { ascending: false });
 
   // Fetch active bids
-  const { data: bids } = await supabase
+  const { data: bids } = await serverSupabase
     .from('bids')
     .select('*')
     .eq('contractor_id', user.id);
 
   // Fetch reviews for average rating (specify the foreign key relationship)
-  const { data: reviews } = await supabase
+  const { data: reviews } = await serverSupabase
     .from('reviews')
     .select('rating')
     .eq('reviewed_id', user.id);
 
   // Fetch payments for more accurate revenue tracking
-  const { data: payments } = await supabase
+  const { data: payments } = await serverSupabase
     .from('payments')
     .select('*')
     .eq('payee_id', user.id)
     .eq('status', 'completed');
 
   // Fetch quotes
-  const { data: quotes } = await supabase
+  const { data: quotes } = await serverSupabase
     .from('contractor_quotes')
     .select('*')
     .eq('contractor_id', user.id);
 
   // Fetch connections
-  const { data: connections } = await supabase
+  const { data: connections } = await serverSupabase
     .from('connections')
     .select('*')
     .or(`requester_id.eq.${user.id},target_id.eq.${user.id}`)

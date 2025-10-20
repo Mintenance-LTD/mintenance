@@ -8,7 +8,7 @@ export interface NotificationData {
   id: string;
   title: string;
   body: string;
-  data?: any;
+  data?: Record<string, unknown>;
   type: 'job_update' | 'bid_received' | 'meeting_scheduled' | 'payment_received' | 'message_received' | 'quote_sent' | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

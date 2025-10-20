@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -47,9 +47,37 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Additional security: verify the payment method belongs to this user's customer
-    // This would require checking the stripe_customer_id from the users table
-    // For now, we'll trust that Stripe will reject if there's a mismatch
+    // Verify the payment method belongs to this user's customer
+    const { data: userCustomer, error: customerError } = await serverSupabase
+      .from('stripe_customers')
+      .select('stripe_customer_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (customerError || !userCustomer) {
+      logger.warn('User has no Stripe customer record', {
+        service: 'payments',
+        userId: user.id
+      });
+      return NextResponse.json(
+        { error: 'Customer account not found' },
+        { status: 404 }
+      );
+    }
+
+    if (paymentMethod.customer !== userCustomer.stripe_customer_id) {
+      logger.warn('Payment method ownership verification failed', {
+        service: 'payments',
+        userId: user.id,
+        paymentMethodId,
+        expectedCustomerId: userCustomer.stripe_customer_id,
+        actualCustomerId: paymentMethod.customer
+      });
+      return NextResponse.json(
+        { error: 'Payment method does not belong to user' },
+        { status: 403 }
+      );
+    }
 
     // Detach payment method
     await stripe.paymentMethods.detach(paymentMethodId);

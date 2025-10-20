@@ -5,6 +5,12 @@
 
 import { logger } from './logger';
 
+// PWA Installation Prompt Event interface
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 // Service Worker configuration
 const SW_CONFIG = {
   url: '/service-worker.js',
@@ -13,7 +19,7 @@ const SW_CONFIG = {
 } as const;
 
 // Installation prompt event
-let deferredPrompt: any = null;
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
 /**
  * Check if browser supports PWA features

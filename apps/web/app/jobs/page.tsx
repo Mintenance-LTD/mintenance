@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, AppRouterInstance } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
@@ -16,12 +18,48 @@ import type { Job, User } from '@mintenance/types';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
 
+// Type for raw job data from API
+interface RawJobData {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  homeowner_id?: string;
+  homeownerId?: string;
+  contractor_id?: string;
+  contractorId?: string;
+  status?: string;
+  budget?: number;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+  category?: string;
+  priority?: string;
+  photos?: string[];
+}
+
+// Type for processed job data
+interface ProcessedJob {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  homeowner_id: string;
+  contractor_id?: string;
+  status: string;
+  budget: number;
+  created_at: string;
+  updated_at: string;
+  category?: string;
+  priority?: string;
+  photos: string[];
+}
+
 export default function JobsPage() {
   const router = useRouter();
-  const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
 
   // Set page title
@@ -29,22 +67,17 @@ export default function JobsPage() {
     document.title = 'Jobs | Mintenance';
   }, []);
 
-  useEffect(() => {
-    if (!loadingUser && user) {
-      loadJobs();
-    }
-  }, [user, loadingUser]);
-
-  const loadJobs = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
+  // Use React Query for data fetching
+  const { data: allJobs = [], isLoading: loading, error: jobsError } = useQuery({
+    queryKey: ['jobs', user?.id, user?.role],
+    queryFn: async () => {
+      if (!user) return [];
+      
       const jobsRaw = user.role === 'homeowner'
         ? await JobService.getJobsByHomeowner(user.id)
         : await JobService.getAvailableJobs();
 
-      const jobs: Job[] = (jobsRaw as any[]).map((j: any) => ({
+      return (jobsRaw as RawJobData[]).map((j: RawJobData): ProcessedJob => ({
         id: j.id,
         title: j.title ?? '',
         description: j.description ?? '',
@@ -59,14 +92,10 @@ export default function JobsPage() {
         priority: j.priority ?? undefined,
         photos: j.photos ?? [],
       }));
-
-      setAllJobs(jobs);
-    } catch (error) {
-      logger.error('Error loading jobs', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute
+  });
 
   const filteredJobs = useMemo(() => {
     let data = allJobs;
@@ -94,6 +123,18 @@ export default function JobsPage() {
       <ErrorView
         title="Unable to load account"
         message="Please refresh the page or try signing in again."
+        onRetry={() => window.location.reload()}
+        retryLabel="Refresh Page"
+        variant="fullscreen"
+      />
+    );
+  }
+
+  if (jobsError) {
+    return (
+      <ErrorView
+        title="Unable to load jobs"
+        message="There was an error loading your jobs. Please try again."
         onRetry={() => window.location.reload()}
         retryLabel="Refresh Page"
         variant="fullscreen"
@@ -237,7 +278,7 @@ export default function JobsPage() {
 interface JobCardProps {
   job: Job;
   user: User | null;
-  router: any;
+  router: AppRouterInstance;
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
@@ -357,18 +398,17 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
           </div>
           <div style={{ display: 'flex', gap: theme.spacing[2], overflowX: 'auto', paddingBottom: theme.spacing[1] }}>
             {job.photos?.slice(0, 3).map((photo, idx) => (
-              <img
+              <Image
                 key={idx}
                 src={photo}
                 alt={`Problem photo ${idx + 1}`}
+                width={100}
+                height={100}
+                className="rounded-xl object-cover flex-shrink-0 border"
                 style={{
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '12px',
-                  objectFit: 'cover',
-                  flexShrink: 0,
-                  border: `1px solid ${theme.colors.border}`
+                  borderColor: theme.colors.border
                 }}
+                loading="lazy"
               />
             ))}
           </div>

@@ -33,8 +33,8 @@ export class ContractorDataService {
         yearsExperience: Math.floor(Math.random() * 15) + 1,
         hourlyRate: Math.floor(Math.random() * 100) + 50,
         serviceRadius: Math.floor(Math.random() * 30) + 10,
-        availability: ['immediate', 'this_week', 'this_month', 'busy'][Math.floor(Math.random() * 4)] as any,
-        specialties: c.contractor_skills?.map((s: any) => s.skill_name) || []
+        availability: ['immediate', 'this_week', 'this_month', 'busy'][Math.floor(Math.random() * 4)] as 'immediate' | 'this_week' | 'this_month' | 'busy',
+        specialties: c.contractor_skills?.map((s: { skill_name: string }) => s.skill_name) || []
       })) || [];
     } catch (error) {
       logger.error('Failed to get contractors', error);

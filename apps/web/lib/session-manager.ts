@@ -7,15 +7,15 @@
 
 // Client-side logger for session management
 const sessionLogger = {
-  info: (message: string, data?: any) => {
+  info: (message: string, data?: unknown) => {
     if (process.env.NODE_ENV === 'development') {
       console.info(`[SessionManager] ${message}`, data || '');
     }
   },
-  error: (message: string, error?: any) => {
+  error: (message: string, error?: unknown) => {
     console.error(`[SessionManager] ${message}`, error || '');
   },
-  warn: (message: string, data?: any) => {
+  warn: (message: string, data?: unknown) => {
     if (process.env.NODE_ENV === 'development') {
       console.warn(`[SessionManager] ${message}`, data || '');
     }

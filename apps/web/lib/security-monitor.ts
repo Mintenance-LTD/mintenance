@@ -11,11 +11,11 @@ export interface SecurityEvent {
   user_agent: string;
   endpoint: string;
   method: string;
-  payload?: any;
+  payload?: Record<string, unknown>;
   details: string;
   timestamp: Date;
   resolved: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class SecurityMonitor {
@@ -113,7 +113,7 @@ export class SecurityMonitor {
    */
   async logXSSAttempt(
     request: NextRequest,
-    payload: any,
+    payload: Record<string, unknown>,
     userId?: string
   ): Promise<void> {
     await this.logEvent({
@@ -134,7 +134,7 @@ export class SecurityMonitor {
    */
   async logInjectionAttempt(
     request: NextRequest,
-    payload: any,
+    payload: Record<string, unknown>,
     injectionType: string,
     userId?: string
   ): Promise<void> {
@@ -323,14 +323,14 @@ export class SecurityMonitor {
     };
   }
 
-  private groupBy(data: any[], key: string): Record<string, number> {
+  private groupBy(data: Record<string, unknown>[], key: string): Record<string, number> {
     return data.reduce((acc, item) => {
       acc[item[key]] = (acc[item[key]] || 0) + 1;
       return acc;
     }, {});
   }
 
-  private getTopIPs(data: any[]): Array<{ ip: string; count: number }> {
+  private getTopIPs(data: Record<string, unknown>[]): Array<{ ip: string; count: number }> {
     const ipCounts = this.groupBy(data, 'ip_address');
     return Object.entries(ipCounts)
       .map(([ip, count]) => ({ ip, count: count as number }))

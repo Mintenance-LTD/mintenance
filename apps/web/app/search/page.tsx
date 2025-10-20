@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'reac
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { AdvancedSearchService } from '@/lib/services/AdvancedSearchService';
-import { AdvancedSearchFiltersComponent } from '@/components/search/AdvancedSearchFilters';
 import { SearchBar } from '@/components/SearchBar';
 import { Button, Card } from '@/components/ui';
 import { theme } from '@/lib/theme';
@@ -20,6 +19,13 @@ import type {
   SavedSearch,
   SearchResult
 } from '@mintenance/types';
+import dynamicImport from 'next/dynamic';
+
+// Dynamic imports for code splitting
+const AdvancedSearchFiltersComponent = dynamicImport(() => import('@/components/search/AdvancedSearchFilters').then(mod => ({ default: mod.AdvancedSearchFiltersComponent })), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />,
+  ssr: false
+});
 
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';

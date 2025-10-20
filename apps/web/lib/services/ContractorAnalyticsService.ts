@@ -482,7 +482,7 @@ export class ContractorAnalyticsService {
             if (ratings.length === 0) {
               return sum;
             }
-            const totalRatings = ratings.reduce((ratingSum: number, rating: any) => ratingSum + rating.rating, 0);
+            const totalRatings = ratings.reduce((ratingSum: number, rating: { rating: number }) => ratingSum + rating.rating, 0);
             return sum + totalRatings / ratings.length;
           }, 0) / jobCount
         : 0;

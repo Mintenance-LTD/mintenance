@@ -5,8 +5,28 @@ import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
 import type { User, JWTPayload } from '@mintenance/types';
 
+// Initialize config manager
 const config = ConfigManager.getInstance();
 
+
+// Centralized cookie names and TTLs
+const AUTH_COOKIE = '__Host-mintenance-auth';
+const REFRESH_COOKIE = '__Host-mintenance-refresh';
+const REMEMBER_COOKIE = '__Host-mintenance-remember';
+
+// TTL constants (in seconds)
+const ACCESS_TTL_SEC = 3600; // 1 hour
+const REFRESH_TTL_SEC_SHORT = 7 * 24 * 60 * 60; // 7 days
+const REFRESH_TTL_SEC_LONG = 30 * 24 * 60 * 60; // 30 days
+
+// Device information interface
+interface DeviceInfo {
+  userAgent?: string;
+  platform?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+}
 /**
  * Create a JWT token for a user
  */
@@ -18,7 +38,7 @@ export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Pr
 /**
  * Create token pair and store refresh token
  */
-export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>, deviceInfo?: any, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
   const secret = config.getRequired('JWT_SECRET');
   const { accessToken, refreshToken } = await generateTokenPair(user, secret);
   
@@ -43,7 +63,7 @@ export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>,
 /**
  * Rotate tokens (invalidate old refresh token, create new pair)
  */
-export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: any, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
   const user = await DatabaseManager.getUserById(userId);
   if (!user) {
     throw new Error('User not found');
@@ -104,11 +124,11 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
  */
 export async function setAuthCookie(token: string, rememberMe: boolean = false, refreshToken?: string) {
   const cookieStore = await cookies();
-  const accessTokenMaxAge = 60 * 60; // 1 hour
-  const refreshTokenMaxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7; // 30 days if remember me, else 7 days
+  const accessTokenMaxAge = ACCESS_TTL_SEC; // 1 hour
+  const refreshTokenMaxAge = rememberMe ? REFRESH_TTL_SEC_LONG : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
 
   // Set access token (short-lived)
-  cookieStore.set('auth-token', token, {
+  cookieStore.set(AUTH_COOKIE, token, {
     httpOnly: true,
     secure: config.isProduction(),
     sameSite: 'strict',
@@ -118,7 +138,7 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
 
   // Set refresh token (long-lived, HTTP-only for security)
   if (refreshToken) {
-    cookieStore.set('refresh-token', refreshToken, {
+    cookieStore.set(REFRESH_COOKIE, refreshToken, {
       httpOnly: true, // SECURITY: Never expose refresh token to JavaScript
       secure: config.isProduction(),
       sameSite: 'strict',
@@ -129,7 +149,7 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
 
   // Set remember-me flag for UI (non-sensitive)
   if (rememberMe) {
-    cookieStore.set('remember-me', 'true', {
+    cookieStore.set(REMEMBER_COOKIE, 'true', {
       httpOnly: false, // Allow client-side access for UI
       secure: config.isProduction(),
       sameSite: 'strict',
@@ -144,9 +164,9 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
  */
 export async function clearAuthCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete('auth-token');
-  cookieStore.delete('refresh-token');
-  cookieStore.delete('remember-me');
+  cookieStore.delete(AUTH_COOKIE);
+  cookieStore.delete(REFRESH_COOKIE);
+  cookieStore.delete(REMEMBER_COOKIE);
 }
 
 /**
@@ -180,7 +200,7 @@ export function getCurrentUserFromHeaders(headers: Headers): Pick<User, 'id' | '
 export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    const token = cookieStore.get(AUTH_COOKIE)?.value;
 
     if (!token) {
       return null;

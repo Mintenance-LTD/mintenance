@@ -1,5 +1,5 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getCachedContractors, getCachedJobs } from '@/lib/cache';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
 import Link from 'next/link';
@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'Discover | Mintenance',
   description: 'Discover contractors and jobs on Mintenance',
 };
+
+// Enable ISR with revalidation every 5 minutes
+export const revalidate = 300;
 
 export default async function DiscoverPage() {
   // Get current user from cookies (server-side)
@@ -31,31 +34,16 @@ export default async function DiscoverPage() {
     );
   }
 
-    // Create Supabase client
-    const supabase = serverSupabase;
-
-  // Fetch data based on user role
+  // Fetch cached data based on user role
   let contractors = [];
   let jobs = [];
 
   if (user.role === 'contractor') {
-    // Fetch jobs for contractors
-    const { data: jobsData } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('status', 'posted')
-      .limit(20);
-    jobs = jobsData || [];
+    // Fetch jobs for contractors using ISR cache
+    jobs = await getCachedJobs(20, 0);
   } else {
-    // Fetch contractors for homeowners
-    const { data: contractorsData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('role', 'contractor')
-      .eq('is_available', true)
-      .eq('deleted_at', null)
-      .limit(20);
-    contractors = contractorsData || [];
+    // Fetch contractors for homeowners using ISR cache
+    contractors = await getCachedContractors(20, 0);
   }
 
   return (

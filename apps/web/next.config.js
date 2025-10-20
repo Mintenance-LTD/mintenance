@@ -23,6 +23,35 @@ const nextConfig = {
   // Compression
   compress: true,
 
+  // Bundle optimization
+  experimental: {
+    optimizePackageImports: ['@mintenance/shared', '@mintenance/types'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+  },
+
+  // Bundle analyzer (enable with ANALYZE=true)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config, { isServer }) => {
+      if (!isServer) {
+        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+        config.plugins.push(
+          new BundleAnalyzerPlugin({
+            analyzerMode: 'static',
+            openAnalyzer: false,
+          })
+        );
+      }
+      return config;
+    },
+  }),
+
   // PWA & Service Worker
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -78,7 +107,7 @@ const nextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+            "script-src 'self' https://js.stripe.com https://maps.googleapis.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
             "font-src 'self' data: https://fonts.gstatic.com",

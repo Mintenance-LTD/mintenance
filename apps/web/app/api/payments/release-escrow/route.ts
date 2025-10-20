@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { PaymentStateMachine, PaymentAction } from '@/lib/payment-state-machine';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+// Initialize Stripe with secret key (server-side only)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
   apiVersion: '2025-09-30.clover',
 });
 
 const releaseEscrowSchema = z.object({
-  jobId: z.string().uuid(),
-  escrowTransactionId: z.string().uuid(),
+  escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
+  releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
 });
 
 export async function POST(request: NextRequest) {
@@ -19,113 +22,177 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
+      logger.warn('Unauthorized escrow release attempt', {
+        service: 'payments',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = releaseEscrowSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, releaseEscrowSchema);
+    if ('headers' in validation) {
+      // Validation failed - return error response
+      return validation;
     }
 
-    const { jobId, escrowTransactionId } = parsed.data;
+    const { escrowTransactionId, releaseReason } = validation.data;
 
-    // Verify job ownership and completion
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id, contractor_id, status')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    }
-
-    if (job.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Only the homeowner can release funds' }, { status: 403 });
-    }
-
-    if (job.status !== 'completed') {
-      return NextResponse.json(
-        { error: 'Job must be completed before releasing funds' },
-        { status: 400 }
-      );
-    }
-
-    // Get escrow transaction
-    const { data: escrow, error: escrowError } = await serverSupabase
+    // Get escrow transaction with job details
+    const { data: escrowTransaction, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('*')
+      .select(`
+        *,
+        jobs!inner (
+          id,
+          title,
+          homeowner_id,
+          contractor_id,
+          status
+        )
+      `)
       .eq('id', escrowTransactionId)
-      .eq('job_id', jobId)
       .single();
 
-    if (escrowError || !escrow) {
+    if (escrowError || !escrowTransaction) {
+      logger.warn('Escrow release for non-existent transaction', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId
+      });
       return NextResponse.json({ error: 'Escrow transaction not found' }, { status: 404 });
     }
 
-    if (escrow.status !== 'held') {
-      return NextResponse.json(
-        { error: `Cannot release escrow with status: ${escrow.status}` },
-        { status: 400 }
-      );
-    }
+    const job = escrowTransaction.jobs;
 
-    // NOTE: In production, you would use Stripe Connect to transfer funds to the contractor
-    // For now, we'll just mark it as released in the database
-    //
-    // Production implementation would be:
-    // const transfer = await stripe.transfers.create({
-    //   amount: Math.round(escrow.amount * 100),
-    //   currency: 'usd',
-    //   destination: contractorStripeAccountId,
-    //   metadata: { jobId, escrowTransactionId },
-    // });
+    // Verify user has permission to release escrow
+    const canRelease = 
+      user.role === 'admin' || // Admin can release any escrow
+      (user.role === 'homeowner' && job.homeowner_id === user.id) || // Homeowner can release their escrow
+      (user.role === 'contractor' && job.contractor_id === user.id && releaseReason === 'job_completed'); // Contractor can request release when job completed
 
-    // Update escrow status
-    const { data: updatedEscrow, error: updateError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'released',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrowTransactionId)
-      .select()
-      .single();
-
-    if (updateError) {
-      logger.error('Error releasing escrow', updateError, {
+    if (!canRelease) {
+      logger.warn('Unauthorized escrow release attempt', {
         service: 'payments',
         userId: user.id,
-        jobId,
+        escrowTransactionId,
+        homeownerId: job.homeowner_id,
+        contractorId: job.contractor_id,
+        userRole: user.role
+      });
+      return NextResponse.json({ error: 'Unauthorized to release this escrow' }, { status: 403 });
+    }
+
+    // Validate current state allows release
+    const stateValidation = PaymentStateMachine.validateTransition(
+      escrowTransaction.status,
+      'completed',
+      PaymentAction.COMPLETE
+    );
+
+    if (!stateValidation.valid) {
+      logger.warn('Invalid state transition for escrow release', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        currentStatus: escrowTransaction.status,
+        error: stateValidation.error
+      });
+      return NextResponse.json({ error: stateValidation.error }, { status: 400 });
+    }
+
+    // Get contractor's Stripe Connect account
+    const { data: contractor, error: contractorError } = await serverSupabase
+      .from('users')
+      .select('stripe_connect_account_id')
+      .eq('id', job.contractor_id)
+      .single();
+
+    if (contractorError || !contractor?.stripe_connect_account_id) {
+      logger.error('Contractor missing Stripe Connect account', {
+        service: 'payments',
+        userId: user.id,
+        contractorId: job.contractor_id,
         escrowTransactionId
       });
+      return NextResponse.json({ error: 'Contractor not set up for payments' }, { status: 400 });
+    }
+
+    // Create transfer to contractor using Stripe Connect
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(escrowTransaction.amount * 100), // Convert to cents
+      currency: 'usd',
+      destination: contractor.stripe_connect_account_id,
+      description: `Payment for job: ${job.title}`,
+      metadata: {
+        jobId: job.id,
+        escrowTransactionId,
+        homeownerId: job.homeowner_id,
+        contractorId: job.contractor_id,
+        releaseReason,
+      },
+    });
+
+    // Update escrow transaction status
+    const { error: updateError } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        status: 'completed',
+        transfer_id: transfer.id,
+        released_at: new Date().toISOString(),
+        release_reason: releaseReason,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrowTransactionId);
+
+    if (updateError) {
+      logger.error('Failed to update escrow transaction status', updateError, {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        transferId: transfer.id
+      });
+      
+      // Try to reverse the transfer if DB update fails
+      await stripe.transfers.reverse(transfer.id).catch(err =>
+        logger.error('Failed to reverse transfer after DB error', err, {
+          service: 'payments',
+          transferId: transfer.id
+        })
+      );
+      
       return NextResponse.json(
-        { error: 'Failed to release escrow' },
+        { error: 'Failed to update escrow transaction' },
         { status: 500 }
       );
     }
 
-    logger.info('Escrow funds released successfully', {
+    // Update job status to completed if release reason is job_completed
+    if (releaseReason === 'job_completed') {
+      await serverSupabase
+        .from('jobs')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', job.id);
+    }
+
+    logger.info('Escrow released successfully', {
       service: 'payments',
       userId: user.id,
-      jobId,
-      escrowTransactionId: updatedEscrow.id,
-      amount: updatedEscrow.amount
+      escrowTransactionId,
+      transferId: transfer.id,
+      amount: escrowTransaction.amount,
+      contractorId: job.contractor_id,
+      releaseReason
     });
 
     return NextResponse.json({
       success: true,
-      escrowTransactionId: updatedEscrow.id,
-      status: updatedEscrow.status,
-      amount: updatedEscrow.amount,
-      message: 'Funds released successfully',
+      transferId: transfer.id,
+      amount: escrowTransaction.amount,
+      contractorId: job.contractor_id,
+      releasedAt: new Date().toISOString(),
     });
+
   } catch (error) {
     logger.error('Error releasing escrow', error, { service: 'payments' });
 

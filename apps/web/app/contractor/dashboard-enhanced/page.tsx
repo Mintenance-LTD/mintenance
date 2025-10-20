@@ -8,6 +8,16 @@ import { TodayTasks, Task } from '@/components/ui/TodayTasks';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { theme } from '@/lib/theme';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Dynamic imports for code splitting
+const ProjectTableDynamic = dynamic(() => import('@/components/ui/ProjectTable').then(mod => ({ default: mod.ProjectTable })), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+});
+
+const TodayTasksDynamic = dynamic(() => import('@/components/ui/TodayTasks').then(mod => ({ default: mod.TodayTasks })), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
+});
 
 export const metadata = {
   title: 'Enhanced Dashboard | Mintenance',
@@ -309,7 +319,7 @@ export default async function EnhancedDashboardPage() {
           }}
         >
           {/* Project Table */}
-          <ProjectTable projects={projectTableData} />
+          <ProjectTableDynamic projects={projectTableData} />
 
           {/* Overall Progress */}
           <div
@@ -445,7 +455,7 @@ export default async function EnhancedDashboardPage() {
         </div>
 
         {/* Today Tasks */}
-        <TodayTasks tasks={todayTasks} />
+        <TodayTasksDynamic tasks={todayTasks} />
 
         {/* Quick Actions */}
         <div

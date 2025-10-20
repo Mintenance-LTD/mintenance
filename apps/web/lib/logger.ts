@@ -1,25 +1,31 @@
 // Web Logger Utility - Structured logging for Next.js/web environment
 // Adapted from mobile logger pattern for browser and server-side compatibility
 
+import { headers } from 'next/headers';
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogContext {
-  [key: string]: any;
-}
+type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+interface JsonObject { [key: string]: JsonValue; }
+type JsonArray = JsonValue[];
+
+interface LogContext extends JsonObject {}
 
 // Sentry integration placeholder - can be initialized later
-let sentryFunctions = {
-  captureMessage: (() => {}) as any,
-  captureException: (() => {}) as any,
-  addBreadcrumb: (() => {}) as any,
+interface SentryFunctions {
+  captureMessage: (message: string, level?: string, extra?: Record<string, unknown>) => void;
+  captureException: (exception: Error, context?: Record<string, unknown>) => void;
+  addBreadcrumb: (breadcrumb: { message: string; level?: string; category?: string }) => void;
+}
+
+let sentryFunctions: SentryFunctions = {
+  captureMessage: () => {},
+  captureException: () => {},
+  addBreadcrumb: () => {},
 };
 
 // Function to set Sentry functions after initialization
-export const setSentryFunctions = (functions: {
-  captureMessage: any;
-  captureException: any;
-  addBreadcrumb: any;
-}) => {
+export const setSentryFunctions = (functions: SentryFunctions) => {
   sentryFunctions = functions;
 };
 
@@ -41,7 +47,7 @@ class Logger {
     return { message: first, context: second };
   }
 
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj, (key, value) => {
         // Handle circular references
@@ -64,8 +70,23 @@ class Logger {
     context?: LogContext
   ): string {
     const timestamp = new Date().toISOString();
+    
+    // Get request ID from headers if available (server-side only)
+    let requestId = '';
+    if (typeof window === 'undefined') {
+      try {
+        const headersList = headers();
+        const id = headersList.get('x-request-id');
+        if (id) {
+          requestId = `[${id}] `;
+        }
+      } catch (error) {
+        // Headers not available in this context
+      }
+    }
+    
     const contextStr = context ? ` | ${this.safeStringify(context)}` : '';
-    return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}`;
+    return `[${timestamp}] ${requestId}${level.toUpperCase()}: ${message}${contextStr}`;
   }
 
   private toContext(input: unknown): LogContext | undefined {

@@ -5,14 +5,24 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { paymentIntentSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf-validator';
 
 // Initialize Stripe with secret key (server-side only)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
   apiVersion: '2025-09-30.clover',
 });
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF token for state-changing requests
+    if (!await requireCSRF(request)) {
+      logger.warn('Payment intent creation blocked by CSRF validation', {
+        service: 'payments',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
+    }
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -67,6 +77,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job has no assigned contractor' }, { status: 400 });
     }
 
+    // Generate idempotency key to prevent duplicate payments
+    const idempotencyKey = `payment_intent_${jobId}_${user.id}_${Date.now()}`;
+
     // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
@@ -81,6 +94,8 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: {
         enabled: true,
       },
+    }, {
+      idempotencyKey,
     });
 
     // Create escrow transaction record

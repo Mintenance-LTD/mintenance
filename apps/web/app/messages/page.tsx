@@ -6,11 +6,17 @@ import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { ConversationCard } from '@/components/messaging/ConversationCard';
 import { MessagingService } from '@/lib/services/MessagingService';
 import Logo from '../components/Logo';
 import Link from 'next/link';
 import type { MessageThread, User } from '@mintenance/types';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for ConversationCard to reduce initial bundle size
+const ConversationCard = dynamic(() => import('@/components/messaging/ConversationCard').then(mod => ({ default: mod.ConversationCard })), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-20 rounded-lg" />,
+  ssr: false
+});
 
 export default function MessagesPage() {
   const router = useRouter();

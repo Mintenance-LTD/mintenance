@@ -1,6 +1,16 @@
 import './globals.css'
+import { Inter } from 'next/font/google'
 import CookieConsent from '../components/CookieConsent'
 import { ErrorBoundary } from '../components/ui/ErrorBoundary'
+import { Providers } from './providers'
+import { WebVitalsMonitor } from '../components/monitoring/WebVitalsMonitor'
+
+// Optimize font loading
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 // import { PerformanceDashboard } from '../components/PerformanceDashboard' // Temporarily disabled for testing
 
 export const metadata = {
@@ -19,12 +29,15 @@ export default function RootLayout({
 }) {
   return (
         <html lang="en">
-          <body>
-            <ErrorBoundary>
-              {children}
-              <CookieConsent />
-              {/* <PerformanceDashboard /> */}
-            </ErrorBoundary>
+          <body className={inter.variable}>
+            <Providers>
+              <ErrorBoundary>
+                {children}
+                <CookieConsent />
+                <WebVitalsMonitor />
+                {/* <PerformanceDashboard /> */}
+              </ErrorBoundary>
+            </Providers>
           </body>
         </html>
   )

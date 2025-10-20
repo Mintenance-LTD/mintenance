@@ -1,280 +1,155 @@
-import { NextRequest } from 'next/server';
+/**
+ * Distributed rate limiting using Redis
+ * Replaces in-memory rate limiting for webhook endpoints
+ */
 
-interface RateLimitEntry {
-  count: number;
+// Global type declaration for rate limit fallback
+declare global {
+  var rateLimitFallback: Map<string, number> | undefined;
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
   resetTime: number;
-  blocked?: boolean;
-  blockUntil?: number;
 }
 
 interface RateLimitConfig {
-  windowMs: number;    // Time window in milliseconds
-  maxRequests: number; // Max requests per window
-  blockDurationMs?: number; // How long to block after limit exceeded
-  skipSuccessfulRequests?: boolean; // Don't count successful requests
+  windowMs: number;
+  maxRequests: number;
+  identifier: string;
 }
 
-class InMemoryRateLimiter {
-  private store = new Map<string, RateLimitEntry>();
-  private config: RateLimitConfig;
+export class RedisRateLimiter {
+  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null;
+  private initialized = false;
 
-  constructor(config: RateLimitConfig) {
-    this.config = {
-      blockDurationMs: 15 * 60 * 1000, // 15 minutes default
-      skipSuccessfulRequests: false,
-      ...config
-    };
-
-    // Cleanup expired entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+  constructor() {
+    this.initializeRedis();
   }
 
-  /**
-   * Check if request is allowed and update counters
-   */
-  checkLimit(identifier: string): { allowed: boolean; limit: number; remaining: number; resetTime: number; retryAfter?: number } {
-    const now = Date.now();
-    const entry = this.store.get(identifier);
+  private async initializeRedis() {
+    try {
+      // Use Upstash Redis if available, otherwise fallback to in-memory
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        const { Redis } = await import('@upstash/redis');
+        this.redis = new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        this.initialized = true;
+      } else {
+        console.warn('Redis not configured, falling back to in-memory rate limiting');
+        this.initialized = false;
+      }
+    } catch (error) {
+      console.warn('Failed to initialize Redis, falling back to in-memory rate limiting:', error);
+      this.initialized = false;
+    }
+  }
 
-    // If entry doesn't exist or is expired, create/reset it
-    if (!entry || now > entry.resetTime) {
-      const newEntry: RateLimitEntry = {
-        count: 1,
-        resetTime: now + this.config.windowMs
-      };
-      this.store.set(identifier, newEntry);
-
-      return {
-        allowed: true,
-        limit: this.config.maxRequests,
-        remaining: this.config.maxRequests - 1,
-        resetTime: newEntry.resetTime
-      };
+  async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
+    if (!this.initialized) {
+      return this.fallbackRateLimit(config);
     }
 
-    // Check if currently blocked
-    if (entry.blocked && entry.blockUntil && now < entry.blockUntil) {
-      return {
-        allowed: false,
-        limit: this.config.maxRequests,
-        remaining: 0,
-        resetTime: entry.resetTime,
-        retryAfter: Math.ceil((entry.blockUntil - now) / 1000)
-      };
-    }
-
-    // If block period has expired, unblock
-    if (entry.blocked && entry.blockUntil && now >= entry.blockUntil) {
-      entry.blocked = false;
-      entry.blockUntil = undefined;
-      entry.count = 1; // Reset count
-      entry.resetTime = now + this.config.windowMs; // Reset window
-      this.store.set(identifier, entry);
-
-      return {
-        allowed: true,
-        limit: this.config.maxRequests,
-        remaining: this.config.maxRequests - 1,
-        resetTime: entry.resetTime
-      };
-    }
+    try {
+      const key = `rate_limit:${config.identifier}:${Math.floor(Date.now() / config.windowMs)}`;
 
     // Increment counter
-    entry.count += 1;
-
-    // Check if limit exceeded
-    if (entry.count > this.config.maxRequests) {
-      // Block if configured
-      if (this.config.blockDurationMs) {
-        entry.blocked = true;
-        entry.blockUntil = now + this.config.blockDurationMs;
+      const count = await this.redis.incr(key);
+      
+      // Set expiration if this is the first request in the window
+      if (count === 1) {
+        await this.redis.expire(key, Math.ceil(config.windowMs / 1000));
       }
 
-      this.store.set(identifier, entry);
+      const remaining = Math.max(0, config.maxRequests - count);
+      const resetTime = Date.now() + config.windowMs;
 
       return {
-        allowed: false,
-        limit: this.config.maxRequests,
-        remaining: 0,
-        resetTime: entry.resetTime,
-        retryAfter: this.config.blockDurationMs ? Math.ceil(this.config.blockDurationMs / 1000) : Math.ceil((entry.resetTime - now) / 1000)
+        allowed: count <= config.maxRequests,
+        remaining,
+        resetTime,
       };
-    }
-
-    this.store.set(identifier, entry);
-
-    return {
-      allowed: true,
-      limit: this.config.maxRequests,
-      remaining: this.config.maxRequests - entry.count,
-      resetTime: entry.resetTime
-    };
-  }
-
-  /**
-   * Mark a successful request (if configured to skip successful requests)
-   */
-  recordSuccess(identifier: string): void {
-    if (!this.config.skipSuccessfulRequests) return;
-
-    const entry = this.store.get(identifier);
-    if (entry && entry.count > 0) {
-      entry.count -= 1;
-      this.store.set(identifier, entry);
+    } catch (error) {
+      console.error('Redis rate limiting failed, falling back to in-memory:', error);
+      return this.fallbackRateLimit(config);
     }
   }
 
-  /**
-   * Clean up expired entries
-   */
-  private cleanup(): void {
+  private fallbackRateLimit(config: RateLimitConfig): RateLimitResult {
+    // SECURITY: Graceful degradation when Redis unavailable in production
+    // Allow reduced rate limit (10% of normal) to maintain availability
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    if (isProduction) {
+      console.warn('[rate-limiter] Redis unavailable - DEGRADED MODE active', {
+        service: 'rate-limiter',
+        identifier: config.identifier,
+        environment: 'production',
+        normalLimit: config.maxRequests,
+        degradedLimit: Math.ceil(config.maxRequests * 0.1)
+      });
+    } else {
+      console.warn('[rate-limiter] Using in-memory fallback - not suitable for production');
+    }
+
+    // Use in-memory fallback with reduced limits in production
+    const effectiveMaxRequests = isProduction
+      ? Math.ceil(config.maxRequests * 0.1)
+      : config.maxRequests;
+
     const now = Date.now();
-    for (const [key, entry] of this.store.entries()) {
-      // Remove if window expired and not blocked
-      if (now > entry.resetTime && (!entry.blocked || (entry.blockUntil && now > entry.blockUntil))) {
-        this.store.delete(key);
+    const windowStart = Math.floor(now / config.windowMs) * config.windowMs;
+    const key = `${config.identifier}:${windowStart}`;
+
+    // Use a simple Map for fallback (note: won't sync across instances)
+    if (!globalThis.rateLimitFallback) {
+      globalThis.rateLimitFallback = new Map();
+    }
+
+    const record = globalThis.rateLimitFallback.get(key);
+    const count = (record || 0) + 1;
+
+    globalThis.rateLimitFallback.set(key, count);
+
+    // Clean up old entries
+    for (const [k] of globalThis.rateLimitFallback) {
+      const windowTime = parseInt(k.split(':').pop() || '0');
+      if (now - windowTime > config.windowMs) {
+        globalThis.rateLimitFallback.delete(k);
       }
     }
-  }
 
-  /**
-   * Get current stats for identifier
-   */
-  getStats(identifier: string): { count: number; remaining: number; resetTime: number; blocked: boolean } | null {
-    const entry = this.store.get(identifier);
-    if (!entry) return null;
+    const remaining = Math.max(0, effectiveMaxRequests - count);
+    const resetTime = windowStart + config.windowMs;
 
     return {
-      count: entry.count,
-      remaining: Math.max(0, this.config.maxRequests - entry.count),
-      resetTime: entry.resetTime,
-      blocked: !!entry.blocked
+      allowed: count <= effectiveMaxRequests,
+      remaining,
+      resetTime,
     };
   }
-
-  /**
-   * Reset limits for identifier
-   */
-  reset(identifier: string): void {
-    this.store.delete(identifier);
-  }
 }
 
-// Rate limiter configurations
-const loginLimiter = new InMemoryRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5, // 5 attempts per 15 minutes
-  blockDurationMs: 30 * 60 * 1000, // Block for 30 minutes after limit exceeded
-  skipSuccessfulRequests: true // Don't count successful logins
-});
+// Singleton instance
+export const rateLimiter = new RedisRateLimiter();
 
-const passwordResetLimiter = new InMemoryRateLimiter({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  maxRequests: 3, // 3 reset requests per hour (very restrictive to prevent abuse)
-  blockDurationMs: 60 * 60 * 1000, // Block for 1 hour after limit exceeded
-  skipSuccessfulRequests: false // Count all requests
-});
-
-const generalApiLimiter = new InMemoryRateLimiter({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  maxRequests: 100, // 100 requests per minute
-  blockDurationMs: 5 * 60 * 1000 // Block for 5 minutes
-});
-
-/**
- * Get client identifier for rate limiting
- * Uses combination of IP and User-Agent for better tracking
- */
-export function getClientIdentifier(request: NextRequest): string {
-  const ip = getClientIP(request);
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-
-  // Create a simple hash of user agent to avoid storing full string
-  const uaHash = Buffer.from(userAgent).toString('base64').slice(0, 10);
-
-  return `${ip}:${uaHash}`;
+// Helper function for webhook rate limiting
+export async function checkWebhookRateLimit(identifier: string): Promise<RateLimitResult> {
+  return rateLimiter.checkRateLimit({
+    windowMs: 60000, // 1 minute
+    maxRequests: 100, // Max 100 requests per minute
+    identifier,
+  });
 }
 
-/**
- * Get client IP address with support for proxies
- */
-export function getClientIP(request: NextRequest): string {
-  // Check various headers for real IP (in order of preference)
-  const headers = [
-    'x-forwarded-for',
-    'x-real-ip',
-    'x-client-ip',
-    'cf-connecting-ip', // Cloudflare
-    'x-forwarded',
-    'forwarded-for',
-    'forwarded'
-  ];
-
-  for (const header of headers) {
-    const value = request.headers.get(header);
-    if (value) {
-      // x-forwarded-for can contain multiple IPs, take the first one
-      const ip = value.split(',')[0].trim();
-      if (ip && ip !== 'unknown') {
-        return ip;
-      }
-    }
-  }
-
-  // Fallback to request IP (Next 15 may not expose request.ip)
-  // Try connection info via headers or default to localhost
-  const fallbackIp = (request as any)?.ip as string | undefined;
-  return fallbackIp || '127.0.0.1';
+// Helper function for API rate limiting
+export async function checkApiRateLimit(identifier: string): Promise<RateLimitResult> {
+  return rateLimiter.checkRateLimit({
+    windowMs: 60000, // 1 minute
+    maxRequests: 1000, // Max 1000 requests per minute
+    identifier,
+  });
 }
-
-/**
- * Rate limit middleware for login endpoints
- */
-export async function checkLoginRateLimit(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  return loginLimiter.checkLimit(identifier);
-}
-
-/**
- * Record successful login (removes one count if configured)
- */
-export function recordSuccessfulLogin(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  loginLimiter.recordSuccess(identifier);
-}
-
-/**
- * Rate limit middleware for password reset endpoints
- * Very restrictive: 3 requests per hour to prevent abuse
- */
-export async function checkPasswordResetRateLimit(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  return passwordResetLimiter.checkLimit(identifier);
-}
-
-/**
- * Rate limit middleware for general API endpoints
- */
-export async function checkApiRateLimit(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  return generalApiLimiter.checkLimit(identifier);
-}
-
-/**
- * Create rate limit response headers
- */
-export function createRateLimitHeaders(result: { limit: number; remaining: number; resetTime: number; retryAfter?: number }): Record<string, string> {
-  const headers: Record<string, string> = {
-    'X-RateLimit-Limit': result.limit.toString(),
-    'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': Math.ceil(result.resetTime / 1000).toString(),
-  };
-
-  if (result.retryAfter) {
-    headers['Retry-After'] = result.retryAfter.toString();
-  }
-
-  return headers;
-}
-
-export { loginLimiter, passwordResetLimiter, generalApiLimiter };

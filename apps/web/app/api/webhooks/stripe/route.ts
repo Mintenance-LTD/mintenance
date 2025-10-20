@@ -3,8 +3,8 @@ import Stripe from 'stripe';
 import { createHash } from 'crypto';
 
 // Safe imports that won't fail if not available
-let serverSupabase: any;
-let logger: any;
+let serverSupabase: typeof import('@/lib/api/supabaseServer').serverSupabase | null;
+let logger: typeof import('@/lib/logger').logger | null;
 
 try {
   serverSupabase = require('@/lib/api/supabaseServer').serverSupabase;
@@ -15,11 +15,12 @@ try {
 try {
   logger = require('@mintenance/shared').logger;
 } catch {
-  // Fallback logger
+  // Fallback logger with proper typing
   logger = {
-    info: (...args: any[]) => console.log('[INFO]', ...args),
-    warn: (...args: any[]) => console.warn('[WARN]', ...args),
-    error: (...args: any[]) => console.error('[ERROR]', ...args),
+    info: (message: string, ...args: unknown[]) => console.log('[INFO]', message, ...args),
+    warn: (message: string, ...args: unknown[]) => console.warn('[WARN]', message, ...args),
+    error: (message: string, error: unknown, context?: Record<string, unknown>) => 
+      console.error('[ERROR]', message, error, context),
   };
 }
 
@@ -37,28 +38,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 // Ensure Node.js runtime for Stripe SDK and raw body access
 export const runtime = 'nodejs';
 
-// Simple in-memory rate limiting for webhook endpoint
-// In production, use Redis or a distributed rate limiter
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 100; // Max 100 webhook requests per minute per IP
-
-function checkRateLimit(identifier: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const record = rateLimitMap.get(identifier);
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  record.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count };
-}
+import { checkWebhookRateLimit } from '@/lib/rate-limiter';
 
 /**
  * Stripe Webhook Handler
@@ -78,12 +58,16 @@ function checkRateLimit(identifier: string): { allowed: boolean; remaining: numb
  * - charge.refunded - Payment refunded
  */
 export async function POST(request: NextRequest) {
+  if (!serverSupabase) {
+    logger.error('Server Supabase client unavailable', null, { service: 'stripe-webhook' });
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                    request.headers.get('x-real-ip') ||
                    'unknown';
 
-  const rateLimitResult = checkRateLimit(clientIp);
+  const rateLimitResult = await checkWebhookRateLimit(clientIp);
   if (!rateLimitResult.allowed) {
     logger.warn('Webhook rate limit exceeded', {
       service: 'stripe-webhook',
@@ -142,6 +126,25 @@ export async function POST(request: NextRequest) {
       logger.error('Webhook signature verification failed', err, { service: 'stripe-webhook' });
       return NextResponse.json(
         { error: `Webhook signature verification failed: ${errorMessage}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate timestamp to prevent replay attacks (5 minute tolerance)
+    const eventTimestamp = event.created;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const timestampTolerance = 300; // 5 minutes in seconds
+
+    if (Math.abs(currentTimestamp - eventTimestamp) > timestampTolerance) {
+      logger.warn('Webhook event timestamp outside tolerance window', {
+        service: 'stripe-webhook',
+        eventId: event.id,
+        eventTimestamp,
+        currentTimestamp,
+        timeDifference: Math.abs(currentTimestamp - eventTimestamp)
+      });
+      return NextResponse.json(
+        { error: 'Event timestamp outside acceptable range' },
         { status: 400 }
       );
     }

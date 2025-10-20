@@ -10,6 +10,12 @@ interface RequiredEnvVars {
   NODE_ENV: string;
 }
 
+interface ProductionEnvVars {
+  UPSTASH_REDIS_REST_URL: string;
+  UPSTASH_REDIS_REST_TOKEN: string;
+  STRIPE_WEBHOOK_SECRET: string;
+}
+
 interface OptionalEnvVars {
   DATABASE_URL?: string;
   NEXT_PUBLIC_APP_URL?: string;
@@ -60,6 +66,19 @@ class ConfigManager {
 
     // Production-specific validations
     if (process.env.NODE_ENV === 'production') {
+      const productionRequired: (keyof ProductionEnvVars)[] = [
+        'UPSTASH_REDIS_REST_URL', 
+        'UPSTASH_REDIS_REST_TOKEN', 
+        'STRIPE_WEBHOOK_SECRET'
+      ];
+      
+      const missingProduction = productionRequired.filter(key => !process.env[key]);
+      if (missingProduction.length > 0) {
+        const errorMessage = `Missing required production environment variables: ${missingProduction.join(', ')}`;
+        logger.error('Config', 'Missing production env', { missingProduction });
+        throw new Error(errorMessage);
+      }
+      
       if (!process.env.NEXT_PUBLIC_APP_URL) {
         logger.warn('Config', 'NEXT_PUBLIC_APP_URL should be set in production');
       }

@@ -3,10 +3,14 @@ import { authManager } from '@/lib/auth-manager';
 import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { loginSchema } from '@/lib/validation/schemas';
+import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    
     // Rate limiting check
     const rateLimitResult = await checkLoginRateLimit(request);
 
@@ -88,6 +92,19 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
+    // Handle CSRF validation errors specifically
+    if (error instanceof Error && error.message === 'CSRF validation failed') {
+      logger.warn('CSRF validation failed', {
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+    
     logger.error('Login error', error, { service: 'auth' });
 
     // Don't expose internal error details to client

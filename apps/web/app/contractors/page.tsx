@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
@@ -7,40 +6,17 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ContractorsBrowseClient } from './components/ContractorsBrowseClient';
+import { getCachedContractors } from '@/lib/cache';
 
 export const metadata: Metadata = {
   title: 'Find Contractors | Mintenance',
   description: 'Browse and connect with verified contractors on Mintenance',
 };
 
-// Force dynamic rendering to always fetch fresh contractor data
-export const dynamic = 'force-dynamic';
+// Enable ISR with revalidation every 10 minutes
+export const revalidate = 600;
 
-async function createClient() {
-  const cookieStore = await cookies();
-  
-  // Temporarily use SERVICE_ROLE_KEY to bypass RLS for debugging
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors from Server Components
-          }
-        },
-      },
-    }
-  );
-}
+// Use centralized server client for security
 
 interface SearchParams {
   skill?: string;
@@ -60,37 +36,24 @@ export default async function ContractorsPage(props: {
   // Await searchParams
   const searchParams = await props.searchParams;
 
-  // Create server client
-  const supabase = await createClient();
+  // Get cached contractors data
+  const contractors = await getCachedContractors(50, 0);
 
-  // Build query based on filters
-  let query = supabase
-    .from('users')
-    .select(`
-      *,
-      contractor_skills(skill_name),
-      reviews!reviews_reviewed_id_fkey(rating)
-    `)
-    .eq('role', 'contractor')
-    .eq('is_available', true)
-    .eq('is_visible_on_map', true)
-    .is('deleted_at', null)
-    .order('rating', { ascending: false })
-    .order('total_jobs_completed', { ascending: false});
+  // Apply client-side filtering for search params
+  let filteredContractors = contractors;
 
-  // Apply filters
   if (searchParams?.location) {
-    query = query.ilike('city', `%${searchParams.location}%`);
+    filteredContractors = filteredContractors.filter((c: any) =>
+      c.city?.toLowerCase().includes(searchParams.location!.toLowerCase())
+    );
   }
 
   if (searchParams?.minRating) {
-    query = query.gte('rating', parseFloat(searchParams.minRating));
+    filteredContractors = filteredContractors.filter((c: any) =>
+      c.rating >= parseFloat(searchParams.minRating!)
+    );
   }
 
-  const { data: contractors } = await query;
-
-  // Filter by skill if specified (can't do this in SQL easily with the join)
-  let filteredContractors = contractors || [];
   if (searchParams?.skill) {
     filteredContractors = filteredContractors.filter((c: any) =>
       c.contractor_skills?.some((s: any) => 
@@ -99,8 +62,10 @@ export default async function ContractorsPage(props: {
     );
   }
 
+  // Use centralized server client
+  
   // Fetch all unique skills for filter dropdown
-  const { data: allSkills } = await supabase
+  const { data: allSkills } = await serverSupabase
     .from('contractor_skills')
     .select('skill_name')
     .order('skill_name');
@@ -108,7 +73,7 @@ export default async function ContractorsPage(props: {
   const uniqueSkills = [...new Set(allSkills?.map(s => s.skill_name) || [])];
 
   // Fetch all unique cities for filter dropdown
-  const { data: cities } = await supabase
+  const { data: cities } = await serverSupabase
     .from('users')
     .select('city')
     .eq('role', 'contractor')

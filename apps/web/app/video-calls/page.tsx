@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { fetchCurrentUser } from '@/lib/auth-client';
-import { VideoCallHistory, VideoCallScheduler, VideoCallInterface } from '@/components/video-call';
+import { VideoCall } from '@/components/video-call/VideoCall';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
 import Link from 'next/link';

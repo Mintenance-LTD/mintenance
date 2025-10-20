@@ -314,11 +314,11 @@ export type Theme = typeof theme;
 // Utility functions for web
 export const getColor = (colorPath: string): string => {
   const keys = colorPath.split('.');
-  let value: any = theme.colors;
+  let value: unknown = theme.colors;
 
   for (const key of keys) {
     if (value && typeof value === 'object' && key in value) {
-      value = value[key];
+      value = (value as Record<string, unknown>)[key];
     } else {
       return theme.colors.textSecondary; // fallback
     }

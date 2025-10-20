@@ -11,9 +11,9 @@ import { logger } from '@mintenance/shared';
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const currentToken = cookieStore.get('auth-token')?.value;
-    const refreshToken = cookieStore.get('refresh-token')?.value;
-    const rememberMe = cookieStore.get('remember-me')?.value === 'true';
+    const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
+    const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;
+    const rememberMe = cookieStore.get('__Host-mintenance-remember')?.value === 'true';
 
     if (!currentToken) {
       logger.warn('Token refresh failed: No active session', { service: 'auth' });
@@ -68,26 +68,16 @@ export async function POST(request: NextRequest) {
         message: 'Token refreshed successfully via rotation',
       });
     } else {
-      // Fallback: Create new token with same user data (simpler refresh without rotation)
-      logger.warn('Token refresh fallback: No refresh token found', {
+      // Do not mint new access tokens without a valid refresh token
+      logger.warn('Token refresh blocked: Missing refresh token', {
         service: 'auth',
         userId: payload.sub
       });
 
-      const { createToken } = await import('@/lib/auth');
-      const newToken = await createToken({
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role as 'homeowner' | 'contractor' | 'admin',
-      });
-
-      // Set new auth cookie
-      await setAuthCookie(newToken, rememberMe);
-
-      return NextResponse.json({
-        success: true,
-        message: 'Token refreshed successfully (fallback mode)',
-      });
+      return NextResponse.json(
+        { error: 'Missing refresh token. Please sign in again.' },
+        { status: 401 }
+      );
     }
   } catch (error) {
     logger.error('Token refresh error', error, { service: 'auth' });
@@ -104,7 +94,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const currentToken = cookieStore.get('auth-token')?.value;
+    const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
 
     if (!currentToken) {
       return NextResponse.json(
