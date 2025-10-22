@@ -26,39 +26,36 @@ jobs:
         run: npm ci
 
       - name: Type check
-        run: |
-          cd apps/web
-          npm run type-check
+        run: npm run type-check:web
 
       - name: Lint
-        run: |
-          cd apps/web
-          npm run lint
+        run: npm run lint:web
 
       - name: Build
-        run: |
-          cd apps/web
-          npm run build
+        run: npm run build:web
         env:
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
-      - name: Deploy to Vercel (Production)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          npm install -g vercel
-          vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy to Vercel (Preview)
-        if: github.event_name == 'pull_request'
-        run: |
-          npm install -g vercel
-          vercel --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # NOTE: Uncomment when Vercel secrets are configured
+      # - name: Deploy to Vercel (Production)
+      #   if: github.ref == 'refs/heads/main'
+      #   run: |
+      #     npm install -g vercel
+      #     cd apps/web
+      #     vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+      #   env:
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      #
+      # - name: Deploy to Vercel (Preview)
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #     npm install -g vercel
+      #     cd apps/web
+      #     vercel --token=${{ secrets.VERCEL_TOKEN }}
+      #   env:
+      #     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      #     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

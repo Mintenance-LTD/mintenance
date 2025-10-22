@@ -9,6 +9,7 @@
         "start": "next start -p 3000",
         "lint": "next lint",
         "test": "jest --runInBand",
+        "test:coverage": "jest --runInBand --coverage",
         "test:redis": "ts-node lib/redis-validator.ts",
         "migrate": "ts-node lib/migration-runner.ts",
         "migrate:status": "npm run migrate status",
