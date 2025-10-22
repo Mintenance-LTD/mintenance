@@ -33,7 +33,7 @@
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "stripe": "^19.0.0",
-        "upstash-redis": "^1.25.2",
+        "@upstash/redis": "^1.25.2",
         "zod": "^3.23.8"
     },
     "devDependencies": {
