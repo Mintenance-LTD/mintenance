@@ -15,7 +15,7 @@ interface LogContext extends JsonObject {}
 interface SentryFunctions {
   captureMessage: (message: string, level?: string, extra?: Record<string, unknown>) => void;
   captureException: (exception: Error, context?: Record<string, unknown>) => void;
-  addBreadcrumb: (breadcrumb: { message: string; level?: string; category?: string }) => void;
+  addBreadcrumb: (breadcrumb: { message: string; level?: string; category?: string; data?: unknown }) => void;
 }
 
 let sentryFunctions: SentryFunctions = {
@@ -245,7 +245,7 @@ class Logger {
       data: {
         duration,
         operation,
-        ...(this.toContext(context) || {}),
+        ...(this.toContext(context) || ({} as LogContext)),
       },
     });
   }
@@ -282,7 +282,7 @@ class Logger {
         url,
         status,
         duration,
-        ...(this.toContext(context) || {}),
+        ...(this.toContext(context) || ({} as LogContext)),
       },
     });
 
@@ -319,7 +319,7 @@ class Logger {
       message,
       category: 'navigation',
       level: 'info',
-      data: { from, to, ...(this.toContext(context) || {}) },
+      data: { from, to, ...(this.toContext(context) || ({} as LogContext)) },
     });
   }
 
@@ -337,7 +337,7 @@ class Logger {
       message,
       category: 'auth',
       level: success ? 'info' : 'warning',
-      data: { action, success, ...(this.toContext(context) || {}) },
+      data: { action, success, ...(this.toContext(context) || ({} as LogContext)) },
     });
 
     if (!success) {
