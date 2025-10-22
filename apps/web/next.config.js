@@ -1,4 +1,18 @@
 /** @type {import('next').NextConfig} */
+
+// Validate environment variables at build time
+// This will throw an error if required variables are missing or invalid
+// Note: Validation runs in instrumentation.ts for runtime checks
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    require('./lib/env');
+  } catch (error) {
+    console.error('\n❌ Build failed: Environment validation error');
+    console.error('   Fix the errors above and try again.\n');
+    process.exit(1);
+  }
+}
+
 const nextConfig = {
   poweredByHeader: false,
   eslint: {
