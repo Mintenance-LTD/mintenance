@@ -27,6 +27,14 @@ interface DeviceInfo {
   browser?: string;
   os?: string;
 }
+
+// Supabase RPC result interface for rotate_refresh_token
+interface RotateRefreshTokenResult {
+  user_email: string;
+  user_role: string;
+  family_id?: string;
+  next_generation?: number;
+}
 /**
  * Create a JWT token for a user
  */
@@ -98,7 +106,7 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
       p_user_id: userId,
       p_token_hash: tokenHash,
     })
-    .single();
+    .single() as { data: RotateRefreshTokenResult | null; error: any };
 
   if (error) {
     logger.error('Token rotation failed', error, {

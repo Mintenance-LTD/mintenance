@@ -43,7 +43,13 @@
     "node_modules",
     "coverage",
     "dist",
-    "build"
+    "build",
+    "__tests__",
+    "__mocks__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ],
   "references": [
     {

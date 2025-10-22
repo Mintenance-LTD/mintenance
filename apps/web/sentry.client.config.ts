@@ -13,26 +13,20 @@ Sentry.init({
   
   // Performance monitoring
   integrations: [
-    new Sentry.BrowserTracing({
+    Sentry.browserTracingIntegration({
       // Set sampling rate for performance monitoring
       tracePropagationTargets: [
         'localhost',
         /^https:\/\/yourserver\.io\/api/,
       ],
     }),
-    new Sentry.Replay({
+    Sentry.replayIntegration({
       // Capture 10% of all sessions
       sessionSampleRate: 0.1,
       // Capture 100% of sessions with an error
       errorSampleRate: 1.0,
     }),
   ],
-  
-  // Capture unhandled promise rejections
-  captureUnhandledRejections: true,
-  
-  // Capture uncaught exceptions
-  captureUncaughtException: true,
   
   // Environment
   environment: process.env.NODE_ENV,
@@ -43,18 +37,22 @@ Sentry.init({
   // Before send hook to filter sensitive data
   beforeSend(event, hint) {
     // Filter out sensitive data
-    if (event.request?.cookies) {
-      delete event.request.cookies;
+    if (event.request) {
+      if (event.request.cookies) {
+        delete event.request.cookies;
+      }
+
+      // Filter out sensitive headers
+      if (event.request.headers) {
+        const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
+        sensitiveHeaders.forEach(header => {
+          if (event.request && event.request.headers) {
+            delete event.request.headers[header];
+          }
+        });
+      }
     }
-    
-    // Filter out sensitive headers
-    if (event.request?.headers) {
-      const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
-      sensitiveHeaders.forEach(header => {
-        delete event.request.headers[header];
-      });
-    }
-    
+
     return event;
   },
   

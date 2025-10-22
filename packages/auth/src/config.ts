@@ -17,6 +17,7 @@ type EnvVars = RequiredEnvVars & OptionalEnvVars;
 
 export class ConfigManager {
   private config: EnvVars;
+  static getInstance: () => ConfigManager;
 
   constructor() {
     this.config = this.validateAndLoadConfig();
