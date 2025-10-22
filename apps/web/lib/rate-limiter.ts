@@ -3,6 +3,8 @@
  * Replaces in-memory rate limiting for webhook endpoints
  */
 
+import { NextRequest } from 'next/server';
+
 // Global type declaration for rate limit fallback
 declare global {
   var rateLimitFallback: Map<string, number> | undefined;
@@ -152,4 +154,30 @@ export async function checkApiRateLimit(identifier: string): Promise<RateLimitRe
     maxRequests: 1000, // Max 1000 requests per minute
     identifier,
   });
+}
+
+// Helper function for login rate limiting
+export async function checkLoginRateLimit(request: NextRequest): Promise<RateLimitResult> {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+             request.headers.get('x-real-ip') ||
+             'unknown';
+  return rateLimiter.checkRateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 5, // Max 5 login attempts per 15 minutes
+    identifier: `login:${ip}`,
+  });
+}
+
+// Helper to record successful login (for rate limiting)
+export function recordSuccessfulLogin(request: NextRequest): void {
+  // Can be used to reset rate limit on successful login if needed
+}
+
+// Helper to create rate limit headers
+export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': result.remaining.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': new Date(result.resetTime).toISOString(),
+  };
 }

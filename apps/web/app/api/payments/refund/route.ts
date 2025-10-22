@@ -4,8 +4,14 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { checkApiRateLimit } from '@/lib/rate-limiter';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
+// SECURITY: No fallback for production credentials
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is required');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -18,6 +24,17 @@ const refundSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const rateLimitResult = await checkApiRateLimit(`refund:${ip}`);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -48,8 +65,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    // Only homeowner or contractor can request refund
-    if (job.homeowner_id !== user.id && job.contractor_id !== user.id) {
+    // SECURITY: Enhanced refund authorization logic
+    const isHomeowner = job.homeowner_id === user.id;
+    const isContractor = job.contractor_id === user.id;
+
+    if (!isHomeowner && !isContractor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -65,10 +85,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Escrow transaction not found' }, { status: 404 });
     }
 
-    // Can only refund held or released payments
-    if (!['held', 'released'].includes(escrow.status)) {
+    // SECURITY: Only allow refunds in specific scenarios
+    // 1. Only homeowner can request refunds (they paid for the service)
+    // 2. Job must not be completed (prevent refunds after work is done)
+    // 3. Payment must be held (not released to contractor)
+
+    if (!isHomeowner) {
+      logger.warn('Non-homeowner attempted refund', {
+        service: 'payments',
+        userId: user.id,
+        role: user.role,
+        jobId
+      });
       return NextResponse.json(
-        { error: `Cannot refund payment with status: ${escrow.status}` },
+        { error: 'Only the homeowner who paid can request a refund' },
+        { status: 403 }
+      );
+    }
+
+    // Only allow refunds for jobs that are cancelled, disputed, or pending
+    const refundableStatuses = ['cancelled', 'disputed', 'pending', 'posted'];
+    if (!refundableStatuses.includes(job.status)) {
+      return NextResponse.json(
+        { error: `Cannot refund payment for job with status: ${job.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Can only refund held payments (not released to contractor)
+    if (escrow.status !== 'held') {
+      return NextResponse.json(
+        { error: `Cannot refund payment with status: ${escrow.status}. Only held payments can be refunded.` },
         { status: 400 }
       );
     }

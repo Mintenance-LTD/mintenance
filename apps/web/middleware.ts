@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     if (!request.cookies.get('__Host-csrf-token')) {
       const csrfToken = crypto.randomUUID();
       response.cookies.set('__Host-csrf-token', csrfToken, {
-        httpOnly: true,
+        httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
         secure: true,
         sameSite: 'strict',
         path: '/',
@@ -48,10 +48,11 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Skip middleware for static files and API routes (except auth endpoints)
+  // Skip middleware for static files and webhook endpoints only
+  // SECURITY: All other API routes should have authentication and CSRF validation
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/webhooks') || // Webhooks have their own signature validation
     pathname.includes('.') // static files
   ) {
     return NextResponse.next();

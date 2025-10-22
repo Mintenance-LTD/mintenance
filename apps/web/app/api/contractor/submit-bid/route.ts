@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EmailService } from '@/lib/email-service';
+import { checkApiRateLimit } from '@/lib/rate-limiter';
 
 // Validation schema
 const submitBidSchema = z.object({
@@ -18,6 +19,17 @@ const submitBidSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const rateLimitResult = await checkApiRateLimit(`submit-bid:${ip}`);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
 

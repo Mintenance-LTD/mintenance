@@ -80,8 +80,10 @@ export function generateCSRFToken(): string {
  * Set CSRF token in response headers
  */
 export function setCSRFToken(response: Response, token: string): Response {
-  response.headers.set('Set-Cookie', 
-    `__Host-csrf-token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`
+  // SECURITY: CSRF token cookie must NOT be HttpOnly so client JS can read it
+  // This is required for the double-submit cookie pattern
+  response.headers.set('Set-Cookie',
+    `__Host-csrf-token=${token}; Secure; SameSite=Strict; Path=/; Max-Age=3600`
   );
   return response;
 }
