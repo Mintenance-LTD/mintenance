@@ -246,18 +246,24 @@ export class DatabaseManager {
       throw new Error(validationResult.errors.join(', '));
     }
 
-    // Check if password is in history
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
+    // Check if password is in history by comparing against stored hashes
     try {
-      const { data: isInHistory } = await supabase.rpc('is_password_in_history', {
-        check_user_id: userId,
-        check_password_hash: passwordHash
-      });
+      // Get password history from database
+      const { data: passwordHistory, error: historyError } = await supabase
+        .from('password_history')
+        .select('password_hash')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5); // Check last 5 passwords
 
-      if (isInHistory) {
-        throw new Error('Password has been used recently. Please choose a different password.');
+      if (!historyError && passwordHistory) {
+        // Use bcrypt.compare() to check each stored hash
+        for (const record of passwordHistory) {
+          const isMatch = await bcrypt.compare(newPassword, record.password_hash);
+          if (isMatch) {
+            throw new Error('Password has been used recently. Please choose a different password.');
+          }
+        }
       }
     } catch (e) {
       if (e instanceof Error && e.message.includes('recently')) {
@@ -265,6 +271,10 @@ export class DatabaseManager {
       }
       logger.error('Failed to check password history', e, { service: 'auth', userId });
     }
+
+    // Hash the new password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
     const { error } = await supabase
@@ -360,7 +370,9 @@ export class DatabaseManager {
       return !!data;
     } catch (error) {
       logger.error('Failed to check account lockout', error, { service: 'auth', userId });
-      return false; // Fail open to avoid locking out users
+      // SECURITY: Fail closed - if we can't verify lockout status, deny access
+      // This prevents locked accounts from bypassing security if the check fails
+      return true;
     }
   }
 }

@@ -130,10 +130,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate timestamp to prevent replay attacks (5 minute tolerance)
+    // Validate timestamp to prevent replay attacks (60 second tolerance)
+    // SECURITY: Reduced from 5 minutes to 60 seconds for better replay attack protection
     const eventTimestamp = event.created;
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    const timestampTolerance = 300; // 5 minutes in seconds
+    const timestampTolerance = 60; // 60 seconds
 
     if (Math.abs(currentTimestamp - eventTimestamp) > timestampTolerance) {
       logger.warn('Webhook event timestamp outside tolerance window', {

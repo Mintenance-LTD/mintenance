@@ -66,8 +66,13 @@ export class ConfigManager {
 
     // Validate JWT_SECRET strength
     const jwtSecret = process.env.JWT_SECRET!;
-    if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < 32) {
-      if (isDev) {
+
+    // SECURITY: In production, enforce strong secret requirements
+    const isProductionLike = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+    const minLength = isProductionLike ? 64 : 32; // 64 chars for production, 32 for dev
+
+    if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < minLength) {
+      if (isDev && !isProductionLike) {
         console.warn('⚠️ JWT_SECRET is weak or default. Using development fallback.');
         return {
           JWT_SECRET: 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
@@ -76,9 +81,24 @@ export class ConfigManager {
           NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
         };
       } else {
-        const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
+        const errorMessage = `JWT_SECRET must be a strong secret (at least ${minLength} characters) and not use the default value. Production requires 64+ characters.`;
         console.error('❌ Security Error:', errorMessage);
         throw new Error(errorMessage);
+      }
+    }
+
+    // Additional production checks
+    if (isProductionLike) {
+      // Check for common weak patterns
+      const weakPatterns = ['password', '12345', 'secret', 'test', 'demo', 'example'];
+      const lowerSecret = jwtSecret.toLowerCase();
+
+      for (const pattern of weakPatterns) {
+        if (lowerSecret.includes(pattern)) {
+          const errorMessage = 'JWT_SECRET contains weak patterns. Use a cryptographically random secret.';
+          console.error('❌ Security Error:', errorMessage);
+          throw new Error(errorMessage);
+        }
       }
     }
 

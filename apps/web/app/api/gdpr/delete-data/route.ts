@@ -5,9 +5,21 @@ import { sanitizeEmail } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { gdprDeleteSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
+import { checkApiRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const rateLimitResult = await checkApiRateLimit(`gdpr-delete:${ip}`);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
