@@ -37,23 +37,47 @@ export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Pr
 
 /**
  * Create token pair and store refresh token
+ * Supports token family tracking for breach detection
  */
-export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+export async function createTokenPair(
+  user: Pick<User, 'id' | 'email' | 'role'>,
+  deviceInfo?: DeviceInfo,
+  ipAddress?: string,
+  familyId?: string,
+  generation?: number
+): Promise<{ accessToken: string; refreshToken: string }> {
   const secret = config.getRequired('JWT_SECRET');
   const { accessToken, refreshToken } = await generateTokenPair(user, secret);
-  
-  // Store refresh token in database
+
+  // Store refresh token in database with family tracking
+  const insertData: any = {
+    user_id: user.id,
+    token_hash: hashRefreshToken(refreshToken),
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    device_info: deviceInfo,
+    ip_address: ipAddress,
+  };
+
+  // If family_id provided, this is a rotation - preserve the family
+  if (familyId) {
+    insertData.family_id = familyId;
+  }
+
+  // If generation provided, use it (for rotations)
+  if (generation !== undefined) {
+    insertData.generation = generation;
+  }
+
   const { error } = await serverSupabase
     .from('refresh_tokens')
-    .insert({
-      user_id: user.id,
-      token_hash: hashRefreshToken(refreshToken),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-      device_info: deviceInfo,
-      ip_address: ipAddress
-    });
+    .insert(insertData);
 
   if (error) {
+    logger.error('Failed to store refresh token', error, {
+      service: 'auth',
+      userId: user.id,
+      hasFamily: !!familyId,
+    });
     throw new Error('Failed to store refresh token');
   }
 
@@ -62,39 +86,54 @@ export async function createTokenPair(user: Pick<User, 'id' | 'email' | 'role'>,
 
 /**
  * Rotate tokens (invalidate old refresh token, create new pair)
+ * Uses atomic PostgreSQL function to prevent race conditions
  */
 export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
-  const user = await DatabaseManager.getUserById(userId);
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  // Verify and revoke old refresh token
   const tokenHash = hashRefreshToken(oldRefreshToken);
-  const { data: tokenRecord, error: tokenError } = await serverSupabase
-    .from('refresh_tokens')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('token_hash', tokenHash)
-    .eq('revoked_at', null)
-    .gt('expires_at', new Date().toISOString())
+
+  // Use PostgreSQL function for atomic token rotation with row-level locking
+  // This prevents race conditions when concurrent requests try to rotate the same token
+  const { data: result, error } = await serverSupabase
+    .rpc('rotate_refresh_token', {
+      p_user_id: userId,
+      p_token_hash: tokenHash,
+    })
     .single();
 
-  if (tokenError || !tokenRecord) {
-    throw new Error('Invalid refresh token');
+  if (error) {
+    logger.error('Token rotation failed', error, {
+      service: 'auth',
+      userId,
+      errorCode: error.code,
+      errorMessage: error.message,
+    });
+    throw new Error('Token rotation failed: ' + (error.message || 'Invalid or already rotated token'));
   }
 
-  // Revoke old token
-  await serverSupabase
-    .from('refresh_tokens')
-    .update({ 
-      revoked_at: new Date().toISOString(),
-      revoked_reason: 'rotated'
-    })
-    .eq('id', tokenRecord.id);
+  if (!result || !result.user_email || !result.user_role) {
+    logger.error('Token rotation returned invalid data', null, {
+      service: 'auth',
+      userId,
+      hasResult: !!result,
+    });
+    throw new Error('Token rotation failed: Invalid response from database');
+  }
 
-  // Create new token pair
-  return createTokenPair(user, deviceInfo, ipAddress);
+  // Create new token pair with user details and family tracking
+  const user = {
+    id: userId,
+    email: result.user_email,
+    role: result.user_role as 'homeowner' | 'contractor' | 'admin',
+  };
+
+  // Preserve family_id and increment generation for breach detection
+  return createTokenPair(
+    user,
+    deviceInfo,
+    ipAddress,
+    result.family_id, // Preserve family across rotations
+    result.next_generation // Increment generation
+  );
 }
 
 /**

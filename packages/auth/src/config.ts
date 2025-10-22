@@ -1,5 +1,6 @@
 /**
  * Shared configuration management
+ * Refactored to remove singleton pattern for serverless compatibility
  */
 
 interface RequiredEnvVars {
@@ -15,18 +16,10 @@ interface OptionalEnvVars {
 type EnvVars = RequiredEnvVars & OptionalEnvVars;
 
 export class ConfigManager {
-  private static instance: ConfigManager;
   private config: EnvVars;
 
-  private constructor() {
+  constructor() {
     this.config = this.validateAndLoadConfig();
-  }
-
-  public static getInstance(): ConfigManager {
-    if (!ConfigManager.instance) {
-      ConfigManager.instance = new ConfigManager();
-    }
-    return ConfigManager.instance;
   }
 
   private validateAndLoadConfig(): EnvVars {
@@ -132,3 +125,37 @@ export class ConfigManager {
     return this.config.NODE_ENV === 'development';
   }
 }
+
+/**
+ * Factory function to create a new ConfigManager instance
+ * Use this in serverless functions where you want a fresh config per invocation
+ */
+export function createConfigManager(): ConfigManager {
+  return new ConfigManager();
+}
+
+/**
+ * Shared ConfigManager instance for convenience
+ * Note: In serverless environments, this may be recreated on cold starts
+ * For critical use cases, consider using createConfigManager() per request
+ */
+export const config = new ConfigManager();
+
+/**
+ * Deprecated: Use `config` or `createConfigManager()` instead
+ * This maintains backward compatibility but will log a warning
+ */
+export class ConfigManagerLegacy {
+  static getInstance(): ConfigManager {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[ConfigManager] getInstance() is deprecated. Use `config` export or `createConfigManager()` instead.'
+      );
+    }
+    return config;
+  }
+}
+
+// For backward compatibility, also export as ConfigManager.getInstance
+// This allows gradual migration of existing code
+ConfigManager.getInstance = ConfigManagerLegacy.getInstance;
