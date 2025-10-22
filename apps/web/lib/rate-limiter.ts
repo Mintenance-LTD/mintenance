@@ -23,7 +23,7 @@ interface RateLimitConfig {
 }
 
 export class RedisRateLimiter {
-  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null;
+  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null = null;
   private initialized = false;
 
   constructor() {
@@ -51,7 +51,7 @@ export class RedisRateLimiter {
   }
 
   async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
-    if (!this.initialized) {
+    if (!this.initialized || !this.redis) {
       return this.fallbackRateLimit(config);
     }
 
@@ -60,7 +60,7 @@ export class RedisRateLimiter {
 
     // Increment counter
       const count = await this.redis.incr(key);
-      
+
       // Set expiration if this is the first request in the window
       if (count === 1) {
         await this.redis.expire(key, Math.ceil(config.windowMs / 1000));
@@ -165,6 +165,15 @@ export async function checkLoginRateLimit(request: NextRequest): Promise<RateLim
     windowMs: 15 * 60 * 1000, // 15 minutes
     maxRequests: 5, // Max 5 login attempts per 15 minutes
     identifier: `login:${ip}`,
+  });
+}
+
+// Helper function for password reset rate limiting
+export async function checkPasswordResetRateLimit(identifier: string): Promise<RateLimitResult> {
+  return rateLimiter.checkRateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 3, // Max 3 password reset attempts per 15 minutes
+    identifier: `password-reset:${identifier}`,
   });
 }
 

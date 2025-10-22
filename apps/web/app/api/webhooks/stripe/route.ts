@@ -1,28 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createHash } from 'crypto';
-
-// Safe imports that won't fail if not available
-let serverSupabase: typeof import('@/lib/api/supabaseServer').serverSupabase | null;
-let logger: typeof import('@/lib/logger').logger | null;
-
-try {
-  serverSupabase = require('@/lib/api/supabaseServer').serverSupabase;
-} catch {
-  serverSupabase = null;
-}
-
-try {
-  logger = require('@mintenance/shared').logger;
-} catch {
-  // Fallback logger with proper typing
-  logger = {
-    info: (message: string, ...args: unknown[]) => console.log('[INFO]', message, ...args),
-    warn: (message: string, ...args: unknown[]) => console.warn('[WARN]', message, ...args),
-    error: (message: string, error: unknown, context?: Record<string, unknown>) => 
-      console.error('[ERROR]', message, error, context),
-  };
-}
+import { logger } from '@mintenance/shared';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 // Lazy-initialize Stripe to avoid errors when STRIPE_SECRET_KEY is not set
 const getStripeInstance = () => {
@@ -58,10 +38,6 @@ import { checkWebhookRateLimit } from '@/lib/rate-limiter';
  * - charge.refunded - Payment refunded
  */
 export async function POST(request: NextRequest) {
-  if (!serverSupabase) {
-    logger.error('Server Supabase client unavailable', null, { service: 'stripe-webhook' });
-    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
-  }
   // Rate limiting
   const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                    request.headers.get('x-real-ip') ||
