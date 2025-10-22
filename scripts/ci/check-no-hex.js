@@ -6,7 +6,7 @@
   - Coverage, node_modules, snapshots
   - Does not flag rgba() usage (e.g., rgba(0,0,0,0.5))
 */
-const globby = require('globby');
+const { globby } = require('globby');
 const fs = require('fs');
 
 (async () => {
