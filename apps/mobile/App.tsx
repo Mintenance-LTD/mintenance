@@ -3,6 +3,20 @@ import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import { logger } from './src/utils/logger';
 
+// Initialize Sentry for error tracking
+import * as Sentry from '@sentry/react-native';
+
+// Initialize Sentry
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
+  debug: __DEV__,
+  tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+  integrations: [
+    new Sentry.ReactNativeTracing(),
+  ],
+});
+
 // Import components safely with fallbacks
 let AuthProvider: React.ComponentType<any> | undefined;
 let AppNavigator: React.ComponentType<any> | undefined;

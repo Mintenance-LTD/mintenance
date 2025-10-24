@@ -1,7 +1,16 @@
 // Web Logger Utility - Structured logging for Next.js/web environment
 // Adapted from mobile logger pattern for browser and server-side compatibility
 
-import { headers } from 'next/headers';
+// Conditional import for Next.js headers (server-side only)
+let headers: any = null;
+try {
+  // Only import in server environments
+  if (typeof window === 'undefined') {
+    headers = require('next/headers').headers;
+  }
+} catch {
+  // Headers not available in browser environment
+}
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

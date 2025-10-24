@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+// import * as Sentry from '@sentry/nextjs'; // Temporarily disabled for Next.js 15 compatibility
 
 /**
  * Initialize Sentry for error tracking and performance monitoring

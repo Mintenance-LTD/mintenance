@@ -167,3 +167,5 @@ vulnerability-report.*
 secrets/
 private-keys/
 server-credentials/
+
+.vercel

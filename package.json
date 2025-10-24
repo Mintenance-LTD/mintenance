@@ -1,70 +1,64 @@
 {
-    "name": "@mintenance/monorepo",
-    "version": "1.2.3",
-    "private": true,
-    "description": "Mintenance - Contractor Discovery Marketplace (Monorepo)",
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
-    "scripts": {
-        "dev": "npm run dev:web",
-        "dev:web": "npm run dev -w @mintenance/web",
-        "dev:mobile": "npm run dev -w @mintenance/mobile",
-        "build": "npm run build:packages && npm run build:apps",
-        "build:packages": "npm run build -w packages/shared && npm run build -w packages/types && npm run build -w packages/auth",
-        "build:apps": "npm run build -w @mintenance/web && npm run build -w @mintenance/mobile",
-        "build:web": "npm run build -w @mintenance/web",
-        "build:mobile": "npm run build -w @mintenance/mobile",
-        "start": "npm run start -w @mintenance/web",
-        "start:web": "npm run start -w @mintenance/web",
-        "start:mobile": "npm run start -w @mintenance/mobile",
-        "lint": "npm run lint -w @mintenance/web && npm run lint -w @mintenance/mobile",
-        "lint:web": "npm run lint -w @mintenance/web",
-        "lint:mobile": "npm run lint -w @mintenance/mobile",
-        "type-check": "npm run type-check -w @mintenance/web && npm run type-check -w @mintenance/mobile",
-        "type-check:web": "npm run type-check -w @mintenance/web",
-        "type-check:mobile": "npm run type-check -w @mintenance/mobile",
-        "test": "npm run test -w @mintenance/web && npm run test -w @mintenance/mobile",
-        "test:web": "npm run test -w @mintenance/web",
-        "test:mobile": "npm run test -w @mintenance/mobile",
-        "test:coverage": "npm run test:coverage -w @mintenance/mobile && npm run test -w @mintenance/web -- --coverage",
-        "performance:check": "node scripts/check-performance-budgets.js",
-        "bundle:analyze": "npm run analyze -w @mintenance/mobile",
-        "bundle:export": "npm run analyze -w @mintenance/mobile",
-        "performance:report": "echo 'Performance report generated'",
-        "clean": "npm run clean -w @mintenance/web && npm run clean -w @mintenance/mobile",
-        "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules",
-        "reset": "npm run clean:all && npm install",
-        "deploy:verify": "node scripts/verify-deployment.js",
-        "test:payment": "tsx scripts/test-payment-flow.ts",
-        "verify:database": "tsx scripts/verify-database.ts",
-        "e2e": "playwright test",
-        "e2e:headed": "playwright test --headed",
-        "e2e:ui": "playwright test --ui"
-    },
-    "keywords": [
-        "marketplace",
-        "contractors",
-        "react-native",
-        "nextjs",
-        "monorepo"
-    ],
-    "author": "Mintenance Team",
-    "license": "MIT",
-    "engines": {
-        "node": ">=18.0.0",
-        "npm": ">=8.0.0"
-    },
-    "devDependencies": {
-        "@playwright/test": "^1.55.1",
-        "@types/node": "^20",
-        "eslint": "^8",
-        "eslint-config-prettier": "^10.1.8",
-        "globby": "^15.0.0",
-        "prettier": "^3.0.0",
-        "rimraf": "^5.0.5",
-        "tsx": "^4.20.6",
-        "typescript": "^5"
-    }
+  "name": "@mintenance/monorepo",
+  "version": "1.2.3",
+  "private": true,
+  "description": "Mintenance - Contractor Discovery Marketplace (Monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "npm run dev -w @mintenance/web",
+    "dev:mobile": "npm run dev -w @mintenance/mobile",
+    "build": "npm run build:packages && npm run build:apps",
+    "build:packages": "npm run build -w packages/shared && npm run build -w packages/types && npm run build -w packages/auth",
+    "build:apps": "npm run build -w @mintenance/web && npm run build -w @mintenance/mobile",
+    "build:web": "npm run build -w @mintenance/web",
+    "build:mobile": "npm run build -w @mintenance/mobile",
+    "start": "npm run start -w @mintenance/web",
+    "start:web": "npm run start -w @mintenance/web",
+    "start:mobile": "npm run start -w @mintenance/mobile",
+    "lint": "npm run lint -w @mintenance/web && npm run lint -w @mintenance/mobile",
+    "lint:web": "npm run lint -w @mintenance/web",
+    "lint:mobile": "npm run lint -w @mintenance/mobile",
+    "test": "npm run test -w @mintenance/web && npm run test -w @mintenance/mobile",
+    "test:web": "npm run test -w @mintenance/web",
+    "test:mobile": "npm run test -w @mintenance/mobile",
+    "clean": "npm run clean -w @mintenance/web && npm run clean -w @mintenance/mobile",
+    "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules",
+    "reset": "npm run clean:all && npm install",
+    "deploy:verify": "node scripts/verify-deployment.js",
+    "test:payment": "tsx scripts/test-payment-flow.ts",
+    "verify:database": "tsx scripts/verify-database.ts",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui"
+  },
+  "keywords": [
+    "marketplace",
+    "contractors",
+    "react-native",
+    "nextjs",
+    "monorepo"
+  ],
+  "author": "Mintenance Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^20",
+    "eslint": "^8",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.5"
+  }
 }

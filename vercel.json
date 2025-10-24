@@ -1,17 +1,17 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next"
+  "name": "mintenance-web",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 30
     }
-  ],
-  "routes": [
-    {
-      "src": "/apps/web/(.*)",
-      "dest": "/apps/web/$1"
-    }
-  ],
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -65,7 +65,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(jpg|jpeg|png|gif|svg|webp|ico))",
+      "source": "/(.*\\.(?:jpg|jpeg|png|gif|svg|webp|ico))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -74,7 +74,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(css|js))",
+      "source": "/(.*\\.(?:css|js))",
       "headers": [
         {
           "key": "Cache-Control",
@@ -86,15 +86,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/apps/web/api/:path*"
+      "destination": "/api/:path*"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_APP_URL": "@app_url",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "JWT_SECRET": "@jwt_secret",
-    "STRIPE_SECRET_KEY": "@stripe_secret_key",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key"
+    "NEXT_PUBLIC_APP_URL": "https://mintenance-httgfbnc6-gloirenkouka380-3745s-projects.vercel.app",
+    "SUPABASE_URL": "https://ukrjudtlvapiajkjbcrd.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcmp1ZHRsdmFwaWFqa2piY3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTYyNjcsImV4cCI6MjA3MTY5MjI2N30.R8r7pr1fPTPlK0RIB4s9KcJrjDsTfXazpG8-YC3qJXw",
+    "JWT_SECRET": "DS8NOv0ZngtahYmQW0bizg7xIau9B9lIaaG+9zewpCk=",
+    "STRIPE_SECRET_KEY": "sk_test_51SDXwQJmZpzAEZO8AjpLog7IBoaXwl2pAc72E8UMWsLlHaKvDiEKHPlaH3vlNMPK2o01Vkx7MAqpPTBrRySZH3jy00wsQZd1cI",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_qblFNYngBkEdjEZ16jxxoWSM"
   }
 }

@@ -1,5 +1,20 @@
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from 'jose';
-import { randomBytes, createHash } from 'crypto';
+
+// Define our JWT payload interface
+interface JosePayload extends JoseJWTPayload {
+  email: string;
+  role: string;
+}
+// Conditional import for crypto (Node.js only, not Edge Runtime compatible)
+let crypto: any = null;
+try {
+  // Check if we're in a Node.js environment
+  if (typeof window === 'undefined' && typeof process !== 'undefined') {
+    crypto = require('crypto');
+  }
+} catch {
+  // crypto not available in Edge Runtime or other environments
+}
 import type { JWTPayload } from '@mintenance/types';
 
 /**
@@ -30,14 +45,20 @@ export async function generateJWT(payload: {
  * Generate refresh token
  */
 export function generateRefreshToken(): string {
-  return randomBytes(32).toString('hex');
+  if (!crypto) {
+    throw new Error('Refresh token generation not available in Edge Runtime');
+  }
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
  * Hash refresh token for storage
  */
 export function hashRefreshToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+  if (!crypto) {
+    throw new Error('Refresh token hashing not available in Edge Runtime');
+  }
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
 /**
@@ -55,73 +76,30 @@ export async function generateTokenPair(payload: {
 }
 
 /**
- * Verify JWT token with runtime type validation
- * Prevents type safety violations by validating payload structure
+ * Verify JWT token
  */
 export async function verifyJWT(token: string, secret: string): Promise<JWTPayload | null> {
   try {
     const secretKey = new TextEncoder().encode(secret);
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify<JosePayload>(token, secretKey);
 
-    // Runtime validation of payload structure
-    // This prevents type safety violations and ensures data integrity
-    if (
-      !payload.sub ||
-      typeof payload.sub !== 'string' ||
-      typeof (payload as any).email !== 'string' ||
-      typeof (payload as any).role !== 'string'
-    ) {
-      // Invalid payload structure - log warning but don't expose details
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[JWT] Invalid payload structure detected', {
-          hasSub: !!payload.sub,
-          hasEmail: !!((payload as any).email),
-          hasRole: !!((payload as any).role),
-        });
-      }
-      return null;
-    }
-
-    // Validate role is one of the expected values
-    const role = (payload as any).role;
-    if (!['homeowner', 'contractor', 'admin'].includes(role)) {
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[JWT] Invalid role in token:', role);
-      }
-      return null;
-    }
-
-    // Extract and validate optional fields
-    const firstName = typeof (payload as any).first_name === 'string'
-      ? (payload as any).first_name
-      : undefined;
-    const lastName = typeof (payload as any).last_name === 'string'
-      ? (payload as any).last_name
-      : undefined;
-
-    // Build validated payload with proper typing
     return {
-      sub: payload.sub,
-      email: (payload as any).email,
-      role: role,
-      first_name: firstName,
-      last_name: lastName,
-      iat: payload.iat ?? Math.floor(Date.now() / 1000),
-      exp: payload.exp ?? Math.floor(Date.now() / 1000) + 3600,
+      sub: payload.sub!,
+      email: payload.email,
+      role: payload.role,
+      iat: payload.iat!,
+      exp: payload.exp!,
     };
   } catch (error) {
-    // JWT verification failed - log error in development
-    if (typeof console !== 'undefined' && console.error && process.env.NODE_ENV === 'development') {
-      console.error('[JWT] Verification failed:', error instanceof Error ? error.message : String(error));
-    }
     return null;
   }
 }
 
 /**
  * Decode JWT payload without verification (for inspection only)
+ * WARNING: This does NOT verify the token signature. Use verifyJWT for authentication.
  */
-export function decodeJWTPayload(token: string): any {
+export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -130,7 +108,8 @@ export function decodeJWTPayload(token: string): any {
     const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     let decoded = '';
 
-    const g: any = globalThis as any;
+    // Type-safe global access
+    const g = globalThis as typeof globalThis & { atob?: (data: string) => string };
     if (typeof g.atob === 'function') {
       decoded = g.atob(base64Url);
     } else if (typeof Buffer !== 'undefined') {
@@ -139,7 +118,9 @@ export function decodeJWTPayload(token: string): any {
       return null;
     }
 
-    return JSON.parse(decoded);
+    const parsed = JSON.parse(decoded);
+    // Return as Partial since unverified payload may be incomplete
+    return parsed as Partial<JWTPayload>;
   } catch {
     return null;
   }

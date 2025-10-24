@@ -1,6 +1,5 @@
 /**
  * Shared configuration management
- * Refactored to remove singleton pattern for serverless compatibility
  */
 
 interface RequiredEnvVars {
@@ -16,11 +15,18 @@ interface OptionalEnvVars {
 type EnvVars = RequiredEnvVars & OptionalEnvVars;
 
 export class ConfigManager {
+  private static instance: ConfigManager;
   private config: EnvVars;
-  static getInstance: () => ConfigManager;
 
-  constructor() {
+  private constructor() {
     this.config = this.validateAndLoadConfig();
+  }
+
+  public static getInstance(): ConfigManager {
+    if (!ConfigManager.instance) {
+      ConfigManager.instance = new ConfigManager();
+    }
+    return ConfigManager.instance;
   }
 
   private validateAndLoadConfig(): EnvVars {
@@ -41,33 +47,36 @@ export class ConfigManager {
     if (missingVars.length > 0) {
       const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
       
-      if (isDev) {
-        console.warn('⚠️ Configuration Warning:', errorMessage);
-        console.warn('⚠️ Using fallback values for development. Configure .env.local for full functionality.');
-        
-        // Return safe defaults for development
-        return {
-          JWT_SECRET: process.env.JWT_SECRET || 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
-          NODE_ENV: process.env.NODE_ENV || 'development',
-          DATABASE_URL: process.env.DATABASE_URL,
-          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-        };
-      } else {
-        console.error('❌ Configuration Error:', errorMessage);
+      // NEVER use fallbacks in production or CI environments
+      if (!isDev || process.env.CI === 'true') {
+        console.error('[config] Error:', errorMessage);
         throw new Error(errorMessage);
       }
+      
+      console.error('[config] DEVELOPMENT MODE: Using insecure fallbacks');
+      console.error('[config] DO NOT DEPLOY THIS BUILD TO PRODUCTION');
+      console.error('[config] Configure .env.local with proper values');
+      
+      // Return insecure defaults ONLY for development
+      return {
+        JWT_SECRET: 'dev-insecure-secret-not-for-production',
+        NODE_ENV: 'development',
+        DATABASE_URL: process.env.DATABASE_URL,
+        NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      };
     }
 
     // Validate JWT_SECRET strength
     const jwtSecret = process.env.JWT_SECRET!;
-
-    // SECURITY: In production, enforce strong secret requirements
-    const isProductionLike = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-    const minLength = isProductionLike ? 64 : 32; // 64 chars for production, 32 for dev
-
-    if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret.length < minLength) {
-      if (isDev && !isProductionLike) {
-        console.warn('⚠️ JWT_SECRET is weak or default. Using development fallback.');
+    if (jwtSecret.length < 32) {
+      throw new Error('JWT_SECRET must be at least 32 characters long');
+    }
+    if (/^dev-/.test(jwtSecret) && !isDev) {
+      throw new Error('Development JWT_SECRET detected in production environment');
+    }
+    if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'dev-insecure-secret-not-for-production') {
+      if (isDev) {
+        if (isDev) console.warn('[config] Weak/default JWT_SECRET in dev. Using fallback.');
         return {
           JWT_SECRET: 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
           NODE_ENV: process.env.NODE_ENV!,
@@ -75,28 +84,13 @@ export class ConfigManager {
           NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
         };
       } else {
-        const errorMessage = `JWT_SECRET must be a strong secret (at least ${minLength} characters) and not use the default value. Production requires 64+ characters.`;
-        console.error('❌ Security Error:', errorMessage);
+        const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
+        console.error('[config] Security Error:', errorMessage);
         throw new Error(errorMessage);
       }
     }
 
-    // Additional production checks
-    if (isProductionLike) {
-      // Check for common weak patterns
-      const weakPatterns = ['password', '12345', 'secret', 'test', 'demo', 'example'];
-      const lowerSecret = jwtSecret.toLowerCase();
-
-      for (const pattern of weakPatterns) {
-        if (lowerSecret.includes(pattern)) {
-          const errorMessage = 'JWT_SECRET contains weak patterns. Use a cryptographically random secret.';
-          console.error('❌ Security Error:', errorMessage);
-          throw new Error(errorMessage);
-        }
-      }
-    }
-
-    console.log('✅ Configuration validated successfully');
+    if (isDev) console.info('[config] Configuration validated');
 
     return {
       JWT_SECRET: jwtSecret,
@@ -126,37 +120,3 @@ export class ConfigManager {
     return this.config.NODE_ENV === 'development';
   }
 }
-
-/**
- * Factory function to create a new ConfigManager instance
- * Use this in serverless functions where you want a fresh config per invocation
- */
-export function createConfigManager(): ConfigManager {
-  return new ConfigManager();
-}
-
-/**
- * Shared ConfigManager instance for convenience
- * Note: In serverless environments, this may be recreated on cold starts
- * For critical use cases, consider using createConfigManager() per request
- */
-export const config = new ConfigManager();
-
-/**
- * Deprecated: Use `config` or `createConfigManager()` instead
- * This maintains backward compatibility but will log a warning
- */
-export class ConfigManagerLegacy {
-  static getInstance(): ConfigManager {
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn(
-        '[ConfigManager] getInstance() is deprecated. Use `config` export or `createConfigManager()` instead.'
-      );
-    }
-    return config;
-  }
-}
-
-// For backward compatibility, also export as ConfigManager.getInstance
-// This allows gradual migration of existing code
-ConfigManager.getInstance = ConfigManagerLegacy.getInstance;

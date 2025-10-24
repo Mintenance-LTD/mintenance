@@ -1,4 +1,13 @@
-import bcrypt from 'bcryptjs';
+// Conditional import for bcryptjs (Node.js only, not Edge Runtime compatible)
+let bcrypt: any = null;
+try {
+  // Check if we're in a Node.js environment
+  if (typeof window === 'undefined' && typeof process !== 'undefined') {
+    bcrypt = require('bcryptjs');
+  }
+} catch {
+  // bcryptjs not available in Edge Runtime or other environments
+}
 
 /**
  * Validate email format
@@ -39,6 +48,9 @@ export function validatePassword(password: string): { valid: boolean; message?: 
  * Hash password with bcrypt
  */
 export async function hashPassword(password: string): Promise<string> {
+  if (!bcrypt) {
+    throw new Error('Password hashing not available in Edge Runtime');
+  }
   const saltRounds = 12;
   return bcrypt.hash(password, saltRounds);
 }
@@ -47,5 +59,8 @@ export async function hashPassword(password: string): Promise<string> {
  * Compare password with hash
  */
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
+  if (!bcrypt) {
+    throw new Error('Password comparison not available in Edge Runtime');
+  }
   return bcrypt.compare(password, hash);
 }

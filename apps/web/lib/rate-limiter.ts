@@ -1,24 +1,7 @@
 /**
  * Distributed rate limiting using Redis
  * Replaces in-memory rate limiting for webhook endpoints
- *
- * PRODUCTION REQUIREMENTS:
- * - Redis (Upstash) MUST be configured for production deployments
- * - Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables
- * - Without Redis, rate limiting falls back to in-memory (not suitable for multi-instance deployments)
- * - In-memory fallback uses 10% of normal rate limits in production as a safety measure
- *
- * LIMITATIONS:
- * - In-memory fallback is per-instance and NOT shared across multiple server instances
- * - This means rate limiting is ineffective in horizontal scaling scenarios without Redis
- * - Attackers could bypass rate limits by distributing requests across multiple instances
- *
- * RECOMMENDATION:
- * - Always use Redis/Upstash in production for proper distributed rate limiting
- * - Monitor rate limiter warnings in logs to detect fallback mode
  */
-
-import { NextRequest } from 'next/server';
 
 // Global type declaration for rate limit fallback
 declare global {
@@ -29,6 +12,7 @@ interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetTime: number;
+  retryAfter?: number;
 }
 
 interface RateLimitConfig {
@@ -38,7 +22,7 @@ interface RateLimitConfig {
 }
 
 export class RedisRateLimiter {
-  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null = null;
+  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null;
   private initialized = false;
 
   constructor() {
@@ -66,28 +50,40 @@ export class RedisRateLimiter {
   }
 
   async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
-    if (!this.initialized || !this.redis) {
+    if (!this.initialized) {
       return this.fallbackRateLimit(config);
     }
 
     try {
       const key = `rate_limit:${config.identifier}:${Math.floor(Date.now() / config.windowMs)}`;
 
-    // Increment counter
-      const count = await this.redis.incr(key);
-
+      // Use Promise.race to timeout Redis operations
+      const count = await Promise.race([
+        this.redis.incr(key),
+        new Promise<number>((_, reject) => {
+          setTimeout(() => reject(new Error('Redis timeout')), 5000); // 5 second timeout
+        })
+      ]);
+      
       // Set expiration if this is the first request in the window
       if (count === 1) {
-        await this.redis.expire(key, Math.ceil(config.windowMs / 1000));
+        await Promise.race([
+          this.redis.expire(key, Math.ceil(config.windowMs / 1000)),
+          new Promise<number>((_, reject) => {
+            setTimeout(() => reject(new Error('Redis timeout')), 2000); // 2 second timeout
+          })
+        ]);
       }
 
       const remaining = Math.max(0, config.maxRequests - count);
       const resetTime = Date.now() + config.windowMs;
+      const retryAfter = count > config.maxRequests ? Math.ceil((resetTime - Date.now()) / 1000) : 0;
 
       return {
         allowed: count <= config.maxRequests,
         remaining,
         resetTime,
+        retryAfter,
       };
     } catch (error) {
       console.error('Redis rate limiting failed, falling back to in-memory:', error);
@@ -141,11 +137,13 @@ export class RedisRateLimiter {
 
     const remaining = Math.max(0, effectiveMaxRequests - count);
     const resetTime = windowStart + config.windowMs;
+    const retryAfter = count > effectiveMaxRequests ? Math.ceil((resetTime - Date.now()) / 1000) : 0;
 
     return {
       allowed: count <= effectiveMaxRequests,
       remaining,
       resetTime,
+      retryAfter,
     };
   }
 }
@@ -172,36 +170,58 @@ export async function checkApiRateLimit(identifier: string): Promise<RateLimitRe
 }
 
 // Helper function for login rate limiting
-export async function checkLoginRateLimit(request: NextRequest): Promise<RateLimitResult> {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
+export async function checkLoginRateLimit(request: { headers: { get: (key: string) => string | null } } | string): Promise<RateLimitResult> {
+  let identifier: string;
+
+  if (typeof request === 'string') {
+    identifier = request;
+  } else {
+    identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                 request.headers.get('x-real-ip') ||
+                 'unknown';
+  }
+
   return rateLimiter.checkRateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 900000, // 15 minutes
     maxRequests: 5, // Max 5 login attempts per 15 minutes
-    identifier: `login:${ip}`,
+    identifier,
   });
 }
 
 // Helper function for password reset rate limiting
-export async function checkPasswordResetRateLimit(identifier: string): Promise<RateLimitResult> {
+export async function checkPasswordResetRateLimit(identifier: string | { headers: { get: (key: string) => string | null } }): Promise<RateLimitResult> {
+  let id: string;
+
+  if (typeof identifier === 'string') {
+    id = identifier;
+  } else {
+    // Extract identifier from NextRequest
+    id = identifier.headers.get('x-forwarded-for')?.split(',')[0] ||
+         identifier.headers.get('x-real-ip') ||
+         'unknown';
+  }
+
   return rateLimiter.checkRateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 3, // Max 3 password reset attempts per 15 minutes
-    identifier: `password-reset:${identifier}`,
+    windowMs: 3600000, // 1 hour
+    maxRequests: 3, // Max 3 password resets per hour
+    identifier: id,
   });
 }
 
-// Helper to record successful login (for rate limiting)
-export function recordSuccessfulLogin(request: NextRequest): void {
-  // Can be used to reset rate limit on successful login if needed
+// Helper function to record successful login (for analytics)
+export function recordSuccessfulLogin(request: { headers: { get: (key: string) => string | null } }): void {
+  const identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                   request.headers.get('x-real-ip') ||
+                   'unknown';
+  console.log(`[rate-limiter] Successful login recorded for ${identifier}`);
 }
 
-// Helper to create rate limit headers
+// Helper function to create rate limit headers for response
 export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
-    'X-RateLimit-Limit': result.remaining.toString(),
+    'X-RateLimit-Limit': '100',
     'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': new Date(result.resetTime).toISOString(),
+    'X-RateLimit-Reset': Math.ceil(result.resetTime / 1000).toString(),
+    'Retry-After': result.allowed ? '0' : Math.ceil((result.resetTime - Date.now()) / 1000).toString(),
   };
 }

@@ -5,7 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { PaymentStateMachine, PaymentAction } from '@/lib/payment-state-machine';
+import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
 
     // Validate current state allows release
     const stateValidation = PaymentStateMachine.validateTransition(
-      escrowTransaction.status,
-      'completed',
+      escrowTransaction.status as PaymentState,
+      PaymentState.COMPLETED,
       PaymentAction.COMPLETE
     );
 

@@ -34,7 +34,17 @@
       "Bash(grep:*)",
       "Bash(npm update:*)",
       "Bash(node -e \"const data = require(''./coverage/coverage-summary.json''); const t = data.total; console.log(''COVERAGE SUMMARY:\\nLines: '' + t.lines.pct + ''%\\nStatements: '' + t.statements.pct + ''%\\nFunctions: '' + t.functions.pct + ''%\\nBranches: '' + t.branches.pct + ''%'');\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(sort:*)",
+      "Bash(npm ls:*)",
+      "Bash(for f in JobCard.tsx LoadingSpinner.tsx SearchBar.tsx ContractorCard.tsx ui/Button/Button.tsx ui/Badge/Badge.tsx ui/Card/Card.tsx)",
+      "Bash(do if [ -f \"$f\" ])",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(if exist LoadingSpinner.test.tsx del LoadingSpinner.test.tsx)",
+      "Bash(for f in RateLimiter.ts circuitBreaker.ts cache.ts errorHandler.ts sanitize.ts)",
+      "Bash(git log:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
