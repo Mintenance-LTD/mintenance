@@ -30,6 +30,29 @@ const createQuoteSchema = z.object({
   quoteDate: z.string().optional(),
   validUntil: z.string().optional(),
   status: z.enum(['draft', 'sent']).default('draft'),
+}).refine((data) => {
+  // Validate line items sum matches subtotal
+  const lineItemsSum = data.lineItems.reduce((sum, item) => sum + item.total, 0);
+  const subtotalMatch = Math.abs(lineItemsSum - data.subtotal) < 0.01; // Allow 1 cent rounding difference
+  if (!subtotalMatch) {
+    return false;
+  }
+
+  // Validate tax calculation if tax rate is provided
+  if (data.taxRate !== undefined && data.taxAmount !== undefined) {
+    const expectedTax = data.subtotal * (data.taxRate / 100);
+    const taxMatch = Math.abs(expectedTax - data.taxAmount) < 0.01;
+    if (!taxMatch) {
+      return false;
+    }
+  }
+
+  // Validate total amount
+  const expectedTotal = data.subtotal + (data.taxAmount || 0);
+  const totalMatch = Math.abs(expectedTotal - data.totalAmount) < 0.01;
+  return totalMatch;
+}, {
+  message: 'Quote math validation failed: line items sum, tax calculation, or total amount does not match',
 });
 
 export async function POST(request: NextRequest) {

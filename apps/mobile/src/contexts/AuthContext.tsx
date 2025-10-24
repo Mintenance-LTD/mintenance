@@ -344,9 +344,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     updateProfile: async (userData: Partial<User>) => {
-      // Placeholder implementation
-      if (user) {
-        setUser({ ...user, ...userData });
+      if (!user) {
+        throw new Error('User must be signed in to update profile');
+      }
+
+      try {
+        trackUserAction('auth.update_profile_attempt', {
+          userId: user.id,
+        });
+
+        const updatedUser = await measureAsyncPerformance(
+          () => AuthService.updateUserProfile(user.id, userData),
+          'auth.update_profile',
+          'auth'
+        );
+
+        setUser(updatedUser);
+        setUserContext(updatedUser);
+
+        trackUserAction('auth.update_profile_success', {
+          userId: user.id,
+        });
+        addBreadcrumb(`Profile updated for user: ${user.email}`, 'auth');
+      } catch (error) {
+        trackUserAction('auth.update_profile_failed', {
+          userId: user.id,
+          error: (error as Error).message,
+        });
+        handleError(error, 'Update profile');
+        throw error;
       }
     },
     // Biometric methods

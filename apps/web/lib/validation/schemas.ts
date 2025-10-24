@@ -74,7 +74,7 @@ export const passwordUpdateSchema = z.object({
 export const paymentIntentSchema = z.object({
   amount: z.number()
     .positive('Amount must be positive')
-    .max(1000000, 'Amount exceeds maximum ($10,000)')
+    .max(10000, 'Amount exceeds maximum ($10,000)')
     .transform(val => Math.round(val * 100) / 100), // Round to 2 decimals
   currency: z.enum(['usd', 'eur', 'gbp'], {
     errorMap: () => ({ message: 'Invalid currency' })
@@ -125,7 +125,7 @@ export const createJobSchema = z.object({
     .max(100, 'Category too long'),
   budget: z.number()
     .positive('Budget must be positive')
-    .max(1000000, 'Budget exceeds maximum')
+    .max(1000000, 'Budget exceeds maximum ($1,000,000)')
     .optional(),
   location: z.object({
     address: z.string().max(300),

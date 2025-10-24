@@ -4,6 +4,7 @@ import type { JobDetail } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -163,7 +164,26 @@ export async function PATCH(request: NextRequest, context: Params) {
       updatePayload.description = trimmed.length > 0 ? trimmed : null;
     }
     if (payload.status) {
-      updatePayload.status = payload.status.trim();
+      const newStatus = payload.status.trim() as JobStatus;
+      const currentStatus = existing.status as JobStatus;
+
+      // Validate status transition using state machine
+      try {
+        validateStatusTransition(currentStatus, newStatus);
+        updatePayload.status = newStatus;
+      } catch (error) {
+        logger.warn('Invalid job status transition attempt', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id,
+          currentStatus,
+          attemptedStatus: newStatus,
+          error: (error as Error).message
+        });
+        return NextResponse.json({
+          error: (error as Error).message
+        }, { status: 400 });
+      }
     }
     if (payload.category !== undefined) {
       const trimmedCategory = payload.category.trim();
