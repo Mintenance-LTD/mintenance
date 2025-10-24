@@ -32,9 +32,35 @@ Description: Slack webhook for deployment notifications
 Required for: Team notifications
 ```
 
+### **Vercel Deployment Secrets** (For Review Apps)
+
+#### **4. VERCEL_TOKEN**
+```bash
+# Get from Vercel dashboard → Account → Tokens
+Value: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Description: Vercel deployment token
+Required for: Automated preview deployments on PRs
+```
+
+#### **5. VERCEL_ORG_ID**
+```bash
+# Get from .vercel/project.json after running 'vercel link'
+Value: team_xxxxxxxxxxxxxxxxxxxxx
+Description: Vercel organization/team ID
+Required for: Preview deployment configuration
+```
+
+#### **6. VERCEL_PROJECT_ID**
+```bash
+# Get from .vercel/project.json after running 'vercel link'
+Value: prj_xxxxxxxxxxxxxxxxxxxxx
+Description: Vercel project ID
+Required for: Preview deployment configuration
+```
+
 ### **Future Production Secrets**
 
-#### **4. GOOGLE_PLAY_SERVICE_ACCOUNT** (For store submission)
+#### **7. GOOGLE_PLAY_SERVICE_ACCOUNT** (For store submission)
 ```bash
 # Google Play Console service account JSON
 Value: {"type": "service_account", "project_id": "...", ...}
@@ -42,7 +68,7 @@ Description: Google Play Store deployment credentials
 Required for: Android store submission automation
 ```
 
-#### **5. APPLE_APP_STORE_CONNECT_API_KEY** (For store submission)
+#### **8. APPLE_APP_STORE_CONNECT_API_KEY** (For store submission)
 ```bash
 # App Store Connect API key
 Value: LS0tLS1CRUdJTi... (base64 encoded)
@@ -76,6 +102,29 @@ npx expo whoami
 # 2. Enable Incoming Webhooks
 # 3. Add webhook to channel #mintenance-deployments
 # 4. Copy webhook URL as SLACK_WEBHOOK secret
+```
+
+### 4. Vercel Setup (For Review Apps)
+```bash
+# 1. Install Vercel CLI
+npm install -g vercel
+
+# 2. Login to Vercel
+vercel login
+
+# 3. Link your project
+cd apps/web
+vercel link
+
+# 4. Get credentials from .vercel/project.json
+cat .vercel/project.json
+
+# 5. Generate access token
+# Go to: https://vercel.com/account/tokens
+# Click "Create Token"
+# Copy token and add as VERCEL_TOKEN secret
+
+# 6. Add VERCEL_ORG_ID and VERCEL_PROJECT_ID from .vercel/project.json
 ```
 
 ## Environment Variables (Public)
