@@ -53,6 +53,7 @@
     "@types/node": "^20",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
+    "globby": "^14.0.2",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.5",
     "tsx": "^4.20.6",
