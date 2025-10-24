@@ -37,7 +37,7 @@
     "@mintenance/types": "file:../../packages/types",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/netinfo": "^11.4.1",
-    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@react-navigation/bottom-tabs": "^7.5.0",
     "@react-navigation/drawer": "^6.6.6",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
