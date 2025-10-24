@@ -6,7 +6,7 @@ import type { ProfileStackParamList } from '../types';
 import ProfileScreen from '../../screens/ProfileScreen';
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../../screens/NotificationSettingsScreen';
-import PaymentMethodsScreen from '../../screens/PaymentMethodsScreen';
+import { PaymentMethodsScreen } from '../../screens/payment-methods';
 import AddPaymentMethodScreen from '../../screens/AddPaymentMethodScreen';
 import HelpCenterScreen from '../../screens/HelpCenterScreen';
 import InvoiceManagementScreen from '../../screens/InvoiceManagementScreen';
@@ -14,7 +14,7 @@ import CRMDashboardScreen from '../../screens/CRMDashboardScreen';
 import FinanceDashboardScreen from '../../screens/FinanceDashboardScreen';
 import ServiceAreasScreen from '../../screens/ServiceAreasScreen';
 import QuoteBuilderScreen from '../../screens/QuoteBuilderScreen';
-import CreateQuoteScreen from '../../screens/CreateQuoteScreen';
+import { CreateQuoteScreen } from '../../screens/create-quote';
 import ContractorCardEditorScreen from '../../screens/ContractorCardEditorScreen';
 import ConnectionsScreen from '../../screens/ConnectionsScreen';
 

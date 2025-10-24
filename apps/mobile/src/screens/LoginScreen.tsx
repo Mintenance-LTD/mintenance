@@ -198,28 +198,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               textStyle={buttonText.textStyle as any}
             />
 
-            {/* Development Test Login Buttons */}
+            {/* Development Test Login Notice */}
             {isDev && (
               <View style={styles.devSection}>
-                <Text style={styles.devTitle}>Development Login</Text>
-                <TouchableOpacity
-                  style={styles.devButton}
-                  onPress={() => {
-                    setEmail('test@homeowner.com');
-                    setPassword('password123');
-                  }}
-                >
-                  <Text style={styles.devButtonText}>Test Homeowner</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.devButton}
-                  onPress={() => {
-                    setEmail('test@contractor.com');
-                    setPassword('password123');
-                  }}
-                >
-                  <Text style={styles.devButtonText}>Test Contractor</Text>
-                </TouchableOpacity>
+                <Text style={styles.devTitle}>Development Mode</Text>
+                <Text style={styles.devNote}>
+                  Use test accounts from your local Supabase instance.
+                  {'\n'}Create test users via: npm run create-test-users
+                </Text>
               </View>
             )}
 

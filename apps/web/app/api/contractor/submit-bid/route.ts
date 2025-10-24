@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         id,
         title,
         status,
+        budget,
         homeowner_id,
         homeowner:homeowner_id (
           id,
@@ -87,6 +88,20 @@ export async function POST(request: NextRequest) {
         jobStatus: job.status
       });
       return NextResponse.json({ error: 'This job is no longer accepting bids' }, { status: 400 });
+    }
+
+    // Validate bid amount doesn't exceed job budget
+    if (job.budget && validatedData.bidAmount > job.budget) {
+      logger.warn('Bid amount exceeds job budget', {
+        service: 'contractor',
+        jobId: validatedData.jobId,
+        bidAmount: validatedData.bidAmount,
+        jobBudget: job.budget,
+        contractorId: user.id
+      });
+      return NextResponse.json({
+        error: `Bid amount ($${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget ($${job.budget.toFixed(2)})`
+      }, { status: 400 });
     }
 
     // Check if contractor already has a bid on this job
@@ -124,6 +139,17 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (bidError) {
+      // Handle duplicate bid constraint violation (race condition)
+      if (bidError.code === '23505' || bidError.message?.includes('duplicate') || bidError.message?.includes('unique constraint')) {
+        logger.warn('Duplicate bid prevented by database constraint', {
+          service: 'contractor',
+          contractorId: user.id,
+          jobId: validatedData.jobId,
+          error: bidError.message
+        });
+        return NextResponse.json({ error: 'You have already submitted a bid for this job' }, { status: 409 });
+      }
+
       logger.error('Failed to create bid', bidError, {
         service: 'contractor',
         contractorId: user.id,

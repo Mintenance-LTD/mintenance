@@ -1,6 +1,21 @@
 /**
  * Distributed rate limiting using Redis
  * Replaces in-memory rate limiting for webhook endpoints
+ *
+ * PRODUCTION REQUIREMENTS:
+ * - Redis (Upstash) MUST be configured for production deployments
+ * - Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables
+ * - Without Redis, rate limiting falls back to in-memory (not suitable for multi-instance deployments)
+ * - In-memory fallback uses 10% of normal rate limits in production as a safety measure
+ *
+ * LIMITATIONS:
+ * - In-memory fallback is per-instance and NOT shared across multiple server instances
+ * - This means rate limiting is ineffective in horizontal scaling scenarios without Redis
+ * - Attackers could bypass rate limits by distributing requests across multiple instances
+ *
+ * RECOMMENDATION:
+ * - Always use Redis/Upstash in production for proper distributed rate limiting
+ * - Monitor rate limiter warnings in logs to detect fallback mode
  */
 
 import { NextRequest } from 'next/server';

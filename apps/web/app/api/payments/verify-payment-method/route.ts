@@ -7,7 +7,10 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 
 // Initialize Stripe with secret key (server-side only)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 

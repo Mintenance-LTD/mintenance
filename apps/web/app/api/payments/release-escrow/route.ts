@@ -8,7 +8,10 @@ import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction } from '@/lib/payment-state-machine';
 
 // Initialize Stripe with secret key (server-side only)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_fallback', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -133,8 +136,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update escrow transaction status
-    const { error: updateError } = await serverSupabase
+    // Update escrow transaction status with optimistic locking
+    // Use updated_at timestamp to prevent race conditions
+    const originalUpdatedAt = escrowTransaction.updated_at;
+    const { data: updatedEscrow, error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: 'completed',
@@ -143,7 +148,9 @@ export async function POST(request: NextRequest) {
         release_reason: releaseReason,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', escrowTransactionId);
+      .eq('id', escrowTransactionId)
+      .eq('updated_at', originalUpdatedAt) // Optimistic lock: only update if not modified
+      .select();
 
     if (updateError) {
       logger.error('Failed to update escrow transaction status', updateError, {
@@ -152,7 +159,7 @@ export async function POST(request: NextRequest) {
         escrowTransactionId,
         transferId: transfer.id
       });
-      
+
       // Try to reverse the transfer if DB update fails
       await stripe.transfers.reverse(transfer.id).catch(err =>
         logger.error('Failed to reverse transfer after DB error', err, {
@@ -160,10 +167,33 @@ export async function POST(request: NextRequest) {
           transferId: transfer.id
         })
       );
-      
+
       return NextResponse.json(
         { error: 'Failed to update escrow transaction' },
         { status: 500 }
+      );
+    }
+
+    // Check if update succeeded (optimistic lock check)
+    if (!updatedEscrow || updatedEscrow.length === 0) {
+      logger.warn('Escrow release failed - transaction was modified by another request (race condition)', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        transferId: transfer.id
+      });
+
+      // Try to reverse the transfer due to race condition
+      await stripe.transfers.reverse(transfer.id).catch(err =>
+        logger.error('Failed to reverse transfer after race condition', err, {
+          service: 'payments',
+          transferId: transfer.id
+        })
+      );
+
+      return NextResponse.json(
+        { error: 'This escrow transaction was modified by another request. Please try again.' },
+        { status: 409 }
       );
     }
 
