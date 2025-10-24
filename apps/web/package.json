@@ -22,7 +22,7 @@
         "@mintenance/shared": "file:../../packages/shared",
         "@mintenance/types": "file:../../packages/types",
         "@supabase/ssr": "^0.7.0",
-        "@supabase/supabase-js": "^2.39.0",
+        "@supabase/supabase-js": "^2.76.1",
         "@tanstack/react-query": "^5.90.5",
         "@tanstack/react-query-devtools": "^5.90.2",
         "bcryptjs": "^2.4.3",
