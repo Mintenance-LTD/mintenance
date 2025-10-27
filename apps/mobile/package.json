@@ -1,6 +1,6 @@
 {
   "name": "@mintenance/mobile",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "description": "Mintenance Mobile App (React Native/Expo)",
   "main": "index.ts",
