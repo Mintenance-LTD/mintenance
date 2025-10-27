@@ -6,20 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { PasswordValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
+import { getEnvConfig } from './env-validation';
 
 
-// Initialize Supabase client for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  logger.error('Missing required Supabase environment variables', {
-    service: 'database',
-    hasUrl: !!supabaseUrl,
-    hasServiceKey: !!supabaseServiceKey
-  });
-  throw new Error('Missing Supabase configuration for server-side operations. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
-}
+// Initialize Supabase client for server-side operations with validated env
+const envConfig = getEnvConfig();
+const supabaseUrl = envConfig.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = envConfig.SUPABASE_SERVICE_ROLE_KEY;
 
 logger.info('Supabase client initialized', {
   service: 'database',
