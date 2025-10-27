@@ -47,7 +47,12 @@ export interface Booking {
   specialInstructions?: string;
 }
 
-export const BookingStatusScreen: React.FC<Props> = ({ navigation }) => {
+import { RootStackParamList } from '../../navigation/types';
+
+export const BookingStatusScreen: React.FC<{
+  route?: RouteProp<{ params: BookingStatusParams }>;
+  navigation: StackNavigationProp<RootStackParamList>;
+}> = ({ navigation }) => {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
@@ -91,21 +96,16 @@ export const BookingStatusScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       const bookingService = new BookingService();
+      const prev = bookings;
+      // optimistic update
+      setBookings(prev.map(b => b.id === selectedBooking.id ? { ...b, status: 'cancelled' } as Booking : b));
       await bookingService.cancelBooking(selectedBooking.id, reason);
-      
-      // Update local state
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === selectedBooking.id 
-            ? { ...booking, status: 'cancelled' as BookingStatus }
-            : booking
-        )
-      );
-      
       setShowCancelModal(false);
       setSelectedBooking(null);
     } catch (err) {
-      // Error handling would be done by the service
+      // rollback on failure
+      setBookings(prev => prev);
+      setShowCancelModal(true);
     }
   };
 
@@ -146,6 +146,19 @@ export const BookingStatusScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {loading && <BookingLoading />}
+      {!loading && error && (
+        <BookingError message={error} onRetry={loadBookings} />
+      )}
+      {!loading && !error && bookings.filter(b => b.status === activeTab).length === 0 && (
+        <View accessibilityRole="summary" style={{ padding: 24 }}>
+          <Text style={{ color: theme.colors.textSecondary }}>
+            {activeTab === 'upcoming' && 'No upcoming bookings yet. Browse services to get started.'}
+            {activeTab === 'completed' && 'No completed bookings yet.'}
+            {activeTab === 'cancelled' && 'No cancelled bookings.'}
+          </Text>
+        </View>
+      )}
       <BookingTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
