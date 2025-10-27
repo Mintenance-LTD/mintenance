@@ -32,7 +32,7 @@
     "predev": "npm run validate:env"
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.0.0",
+    "@expo/vector-icons": "^15.0.3",
     "@mintenance/shared": "file:../../packages/shared",
     "@mintenance/types": "file:../../packages/types",
     "@react-native-async-storage/async-storage": "2.1.2",
