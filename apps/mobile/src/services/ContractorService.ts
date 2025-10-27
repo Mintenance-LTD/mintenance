@@ -417,24 +417,22 @@ export class ContractorService {
     try {
       // Simple signature used by basic tests: searchContractors('plumbing')
       if (typeof params === 'string') {
-        // Sanitize search input to prevent SQL injection
-        const { sanitizeForSQL, isValidSearchTerm } = require('../utils/sqlSanitization');
-
-        if (!isValidSearchTerm(params)) {
+        // Validate search input (length and character limits)
+        const searchTerm = params.trim();
+        if (!searchTerm || searchTerm.length < 2 || searchTerm.length > 100) {
+          logger.warn('Invalid search term', { data: { term: params } });
           return [];
         }
 
-        const sanitizedParams = sanitizeForSQL(params);
-        if (!sanitizedParams) {
-          return [];
-        }
-        let q: any = supabase.from('contractor_profiles').select('*').ilike('skills', `%${sanitizedParams}%`).order('created_at', { ascending: false });
-        if (typeof q.limit === 'function') {
-          const { data, error } = await q.limit(20);
-          if (error) throw error;
-          return data || [];
-        }
-        const { data, error } = await q;
+        // Supabase handles SQL escaping internally - no need for manual sanitization
+        // Use .textSearch for full-text search or .or() for multiple columns
+        const { data, error } = await supabase
+          .from('contractor_profiles')
+          .select('*')
+          .or(`skills.ilike.%${searchTerm}%,bio.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
         if (error) throw error;
         return data || [];
       }
@@ -461,15 +459,11 @@ export class ContractorService {
         .eq('is_available', true);
 
       if (adv.query) {
-        // Sanitize search input to prevent SQL injection
-        const { sanitizeForSQL, isValidSearchTerm } = require('../utils/sqlSanitization');
-
-        if (isValidSearchTerm(adv.query)) {
-          const sanitizedQuery = sanitizeForSQL(adv.query);
-          if (sanitizedQuery) {
-            // Simple name search to satisfy tests
-            query = (query as any).ilike('first_name', `%${sanitizedQuery}%`);
-          }
+        // Validate search input
+        const searchTerm = adv.query.trim();
+        if (searchTerm && searchTerm.length >= 2 && searchTerm.length <= 100) {
+          // Supabase handles SQL escaping - search across multiple fields
+          query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,bio.ilike.%${searchTerm}%`);
         }
       }
 

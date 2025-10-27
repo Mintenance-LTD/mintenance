@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -17,6 +18,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting for payment endpoints
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMIT_CONFIGS.payment);
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -82,10 +89,17 @@ export async function GET(request: NextRequest) {
       methodCount: formattedMethods.length
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       paymentMethods: formattedMethods,
       stripeCustomerId,
     });
+
+    // Add rate limit headers
+    response.headers.set('X-RateLimit-Limit', RATE_LIMIT_CONFIGS.payment.uniqueTokenPerInterval.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+
+    return response;
   } catch (error) {
     logger.error('Error fetching payment methods', error, { service: 'payments' });
 

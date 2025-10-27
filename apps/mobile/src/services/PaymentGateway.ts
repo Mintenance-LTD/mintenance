@@ -17,6 +17,7 @@
 import Stripe from 'stripe';
 import { logger } from '../utils/logger';
 import { circuitBreakerManager } from '../utils/circuitBreaker';
+import { supabase } from '../config/supabase';
 
 interface PaymentIntent {
   id: string;
@@ -793,37 +794,91 @@ export class PaymentGateway {
     return statusMap[stripeStatus] || 'unpaid';
   }
 
-  // Database operations (would be implemented with actual database)
+  // Database operations with Supabase
   private async storeEscrowTransaction(
     escrow: EscrowTransaction
   ): Promise<void> {
-    // Store in database
-    logger.debug('Storing escrow transaction', { escrowId: escrow.id });
+    try {
+      const { error } = await (supabase as any).from('escrow_payments').insert({
+        payment_intent_id: escrow.paymentIntentId,
+        job_id: escrow.jobId,
+        contractor_id: escrow.contractorId,
+        client_id: escrow.customerId,
+        amount: escrow.amount,
+        status: escrow.status,
+        release_conditions: escrow.releaseConditions,
+        auto_release_date: escrow.holdUntil.toISOString(),
+      });
+
+      if (error) {
+        logger.error('Failed to store escrow transaction', error as Error);
+        throw new Error('Failed to store escrow transaction');
+      }
+
+      logger.debug('Escrow transaction stored successfully', { escrowId: escrow.id });
+    } catch (error) {
+      logger.error('Error storing escrow transaction', error as Error);
+      throw error;
+    }
   }
 
   private async getEscrowTransaction(
     escrowId: string
   ): Promise<EscrowTransaction> {
-    // Retrieve from database
-    return {
-      id: escrowId,
-      paymentIntentId: 'pi_test',
-      amount: 100,
-      status: 'held',
-      jobId: 'job_test',
-      customerId: 'cust_test',
-      contractorId: 'cont_test',
-      holdUntil: new Date(),
-      releaseConditions: [],
-    };
+    try {
+      const { data, error } = await (supabase as any)
+        .from('escrow_payments')
+        .select('*')
+        .eq('payment_intent_id', escrowId)
+        .single();
+
+      if (error || !data) {
+        throw new Error('Escrow transaction not found');
+      }
+
+      return {
+        id: data.id,
+        paymentIntentId: data.payment_intent_id,
+        amount: parseFloat(data.amount),
+        status: data.status,
+        jobId: data.job_id,
+        customerId: data.client_id,
+        contractorId: data.contractor_id,
+        holdUntil: new Date(data.auto_release_date),
+        releaseConditions: data.release_conditions || [],
+        disputeDetails: data.dispute_reason ? {
+          reason: data.dispute_reason,
+          submittedBy: 'customer',
+          submittedAt: new Date(data.disputed_at),
+          evidence: data.dispute_evidence || [],
+          resolution: data.dispute_resolution,
+        } : undefined,
+      };
+    } catch (error) {
+      logger.error('Error retrieving escrow transaction', error as Error);
+      throw error;
+    }
   }
 
   private async updateEscrowStatus(
     escrowId: string,
     status: string
   ): Promise<void> {
-    // Update in database
-    logger.debug('Updating escrow status', { escrowId, status });
+    try {
+      const { error } = await (supabase as any)
+        .from('escrow_payments')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('payment_intent_id', escrowId);
+
+      if (error) {
+        throw new Error('Failed to update escrow status');
+      }
+
+      logger.debug('Escrow status updated', { escrowId, status });
+    } catch (error) {
+      logger.error('Error updating escrow status', error as Error);
+      throw error;
+    }
   }
 
   private async updateEscrowDispute(
@@ -831,8 +886,26 @@ export class PaymentGateway {
     status: string,
     dispute: any
   ): Promise<void> {
-    // Update in database
-    logger.debug('Updating escrow dispute', { escrowId, status });
+    try {
+      const { error } = await (supabase as any)
+        .from('escrow_payments')
+        .update({
+          status,
+          dispute_reason: dispute.reason,
+          dispute_evidence: dispute.evidence,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('payment_intent_id', escrowId);
+
+      if (error) {
+        throw new Error('Failed to update escrow dispute');
+      }
+
+      logger.debug('Escrow dispute updated', { escrowId, status });
+    } catch (error) {
+      logger.error('Error updating escrow dispute', error as Error);
+      throw error;
+    }
   }
 
   private async notifyDisputeCreated(
