@@ -6,15 +6,54 @@ import { logger } from './src/utils/logger';
 // Initialize Sentry for error tracking
 import * as Sentry from '@sentry/react-native';
 
-// Initialize Sentry
+// Initialize Sentry with comprehensive configuration
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   environment: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
   debug: __DEV__,
+
+  // Performance monitoring
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+
+  // Enhanced integrations
   integrations: [
-    new Sentry.ReactNativeTracing(),
+    new Sentry.ReactNativeTracing({
+      // Track component rendering performance
+      tracingOrigins: ['localhost', /^\//],
+      // Enable automatic instrumentation
+      routingInstrumentation: new Sentry.ReactNavigationInstrumentation(),
+    }),
   ],
+
+  // Error filtering - don't report development-only errors
+  beforeSend(event, hint) {
+    // Don't send errors in development unless explicitly needed
+    if (__DEV__ && !process.env.EXPO_PUBLIC_SENTRY_DEBUG) {
+      return null;
+    }
+
+    // Filter out known non-critical errors
+    const error = hint.originalException;
+    if (error && typeof error === 'object') {
+      const message = (error as any).message || '';
+
+      // Ignore network timeout errors (handled by retry logic)
+      if (message.includes('Network request failed') || message.includes('timeout')) {
+        return null;
+      }
+
+      // Ignore cancelled requests
+      if (message.includes('cancelled') || message.includes('aborted')) {
+        return null;
+      }
+    }
+
+    return event;
+  },
+
+  // Attach user context automatically
+  enableAutoSessionTracking: true,
+  sessionTrackingIntervalMillis: 30000, // 30 seconds
 });
 
 // Import components safely with fallbacks

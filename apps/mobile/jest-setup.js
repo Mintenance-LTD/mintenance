@@ -14,11 +14,6 @@ jest.mock('react-native-reanimated', () => {
   return Reanimated;
 });
 
-// Mock React Native Animated Helper (conditionally)
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => {}, {
-  virtual: true,
-});
-
 // Mock React Native Localize
 jest.mock('react-native-localize', () => ({
   getLocales: jest.fn(() => [

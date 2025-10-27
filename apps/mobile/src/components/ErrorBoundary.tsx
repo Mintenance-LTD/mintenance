@@ -46,15 +46,34 @@ export class ErrorBoundary extends Component<Props, State> {
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
 
-    // In production, send to error tracking service (e.g., Sentry)
-    if (process.env.NODE_ENV === 'production') {
-      this.reportErrorToService(error, errorInfo);
-    }
+    // Send to error tracking service
+    this.reportErrorToService(error, errorInfo);
   }
 
   private reportErrorToService(error: Error, errorInfo: React.ErrorInfo): void {
-    // TODO: Integrate with Sentry or similar service
-    // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+    try {
+      // Dynamic import to avoid circular dependencies and ensure Sentry is available
+      import('@sentry/react-native').then((Sentry) => {
+        Sentry.captureException(error, {
+          contexts: {
+            react: {
+              componentStack: errorInfo.componentStack,
+            },
+          },
+          level: 'error',
+          tags: {
+            errorBoundary: 'true',
+            environment: process.env.NODE_ENV || 'development',
+          },
+        });
+      }).catch((importError) => {
+        // Fallback if Sentry fails to load
+        logger.warn('Failed to report error to Sentry', importError);
+      });
+    } catch (sentryError) {
+      // Prevent Sentry errors from crashing the app
+      logger.warn('Sentry error reporting failed', sentryError);
+    }
   }
 
   private handleReset = (): void => {
