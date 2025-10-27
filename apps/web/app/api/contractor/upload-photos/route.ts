@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
+import { requireCSRF } from '@/lib/csrf-validator';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// File upload security configuration
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
  * POST /api/contractor/upload-photos
@@ -17,10 +25,37 @@ const supabase = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting - prevent upload abuse
+    const rateLimitResult = await checkRateLimit(request, RATE_LIMIT_CONFIGS.upload);
+    if (!rateLimitResult.success) {
+      logger.warn('Rate limit exceeded for photo upload', {
+        service: 'contractor',
+        endpoint: '/api/contractor/upload-photos',
+      });
+      return rateLimitResult.response!;
+    }
+
+    // CSRF protection - prevent cross-site attacks
+    if (!(await requireCSRF(request))) {
+      logger.warn('CSRF validation failed for photo upload', {
+        service: 'contractor',
+        endpoint: '/api/contractor/upload-photos',
+      });
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+
     // Get current user
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
+      logger.warn('Unauthorized photo upload attempt', {
+        service: 'contractor',
+        endpoint: '/api/contractor/upload-photos',
+        userId: user?.id,
+      });
       return NextResponse.json(
         { error: 'Unauthorized. Must be logged in as contractor.' },
         { status: 401 }
@@ -51,14 +86,49 @@ export async function POST(request: NextRequest) {
     const uploadedUrls: string[] = [];
 
     for (const file of photoFiles) {
-      if (file.size > 5 * 1024 * 1024) {
+      // File size validation
+      if (file.size > MAX_FILE_SIZE) {
+        logger.warn('File size exceeded', {
+          service: 'contractor',
+          userId: user.id,
+          fileSize: file.size,
+          maxSize: MAX_FILE_SIZE,
+        });
         return NextResponse.json(
           { error: 'Each photo must be less than 5MB' },
           { status: 400 }
         );
       }
 
-      const fileExt = file.name.split('.').pop();
+      // File type validation - MIME type
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        logger.warn('Invalid file type uploaded', {
+          service: 'contractor',
+          userId: user.id,
+          fileType: file.type,
+          fileName: file.name,
+        });
+        return NextResponse.json(
+          { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.' },
+          { status: 400 }
+        );
+      }
+
+      // File extension validation
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
+        logger.warn('Invalid file extension', {
+          service: 'contractor',
+          userId: user.id,
+          fileExtension: fileExt,
+          fileName: file.name,
+        });
+        return NextResponse.json(
+          { error: 'Invalid file extension. Only jpg, jpeg, png, webp, and gif are allowed.' },
+          { status: 400 }
+        );
+      }
+
       const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `portfolio/${fileName}`;
 
@@ -71,7 +141,12 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        logger.error('Upload error', uploadError, {
+          service: 'contractor',
+          userId: user.id,
+          fileName: file.name,
+          filePath,
+        });
         continue; // Skip this file but continue with others
       }
 
@@ -108,7 +183,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Database insert error:', error);
+      logger.error('Database insert error', error, {
+        service: 'contractor',
+        userId: user.id,
+        uploadedCount: uploadedUrls.length,
+      });
       return NextResponse.json(
         { error: 'Failed to save photos to portfolio' },
         { status: 500 }
@@ -121,7 +200,10 @@ export async function POST(request: NextRequest) {
       uploadedCount: uploadedUrls.length,
     });
   } catch (error) {
-    console.error('Photo upload error:', error);
+    logger.error('Photo upload error', error, {
+      service: 'contractor',
+      endpoint: '/api/contractor/upload-photos',
+    });
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }
