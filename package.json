@@ -45,14 +45,15 @@
   "author": "Mintenance Team",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": "18.x || 20.x || 22.x",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/node": "^20",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
+    "globby": "^14.0.2",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.5",
     "tsx": "^4.20.6",
