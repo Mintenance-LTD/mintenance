@@ -44,7 +44,8 @@
       "Bash(if exist LoadingSpinner.test.tsx del LoadingSpinner.test.tsx)",
       "Bash(for f in RateLimiter.ts circuitBreaker.ts cache.ts errorHandler.ts sanitize.ts)",
       "Bash(git log:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(npx jest --listTests)"
     ],
     "deny": [],
     "ask": []

@@ -65,6 +65,12 @@ export interface Theme {
     warning: typeof colors.warning;
     error: typeof colors.error;
     info: typeof colors.info;
+    // Booking status semantic colors used in UI
+    status?: {
+      upcoming: string;
+      completed: string;
+      cancelled: string;
+    };
   };
 
   // Theme-specific properties
@@ -135,6 +141,11 @@ const lightTheme: Theme = {
     warning: colors.warning,
     error: colors.error,
     info: colors.info,
+    status: {
+      upcoming: '#E6F2FF',
+      completed: '#EAF7EE',
+      cancelled: '#FDECEA',
+    },
   },
 
   elevation: {
@@ -223,6 +234,11 @@ const darkTheme: Theme = {
     warning: colors.warning,
     error: colors.error,
     info: colors.info,
+    status: {
+      upcoming: '#18324D',
+      completed: '#173A2A',
+      cancelled: '#4A1714',
+    },
   },
 
   elevation: {

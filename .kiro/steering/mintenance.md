@@ -1,0 +1,70 @@
+---
+inclusion: always
+---
+Project Rules 
+
+<file_length_and_structure>
+– Never allow a file to exceed 500 lines.
+– If a file approaches 400 lines, break it up immediately.
+– Treat 1000 lines as unacceptable, even temporarily.
+– Use folders and naming conventions to keep small files logically grouped.
+</file_length_and_structure>
+
+<oop_first>
+– Every functionality should be in a dedicated class, struct, or protocol, even if it’s small.
+– Favor composition over inheritance, but always use object-oriented thinking.
+– Code must be built for reuse, not just to “make it work.”
+</oop_first>
+
+<single_responsibility_principle>
+– Every file, class, and function should do one thing only.
+– If it has multiple responsibilities, split it immediately.
+– Each view, manager, or utility should be laser-focused on one concern.
+</single_responsibility_principle>
+
+<modular_design>
+– Code should connect like Lego — interchangeable, testable, and isolated.
+– Ask: “Can I reuse this class in a different screen or project?” If not, refactor it.
+– Reduce tight coupling between components. Favor dependency injection or protocols.
+</modular_design>
+
+<manager_and_coordinator_patterns>
+– Use ViewModel, Manager, and Coordinator naming conventions for logic separation:
+– UI logic ➝ ViewModel
+– Business logic ➝ Manager
+– Navigation/state flow ➝ Coordinator
+– Never mix views and business logic directly.
+</manager_and_coordinator_patterns>
+
+<function_and_class_size>
+– Keep functions under 30–40 lines.
+– If a class is over 200 lines, assess splitting into smaller helper classes.
+</function_and_class_size>
+
+<naming_and_readability>
+– All class, method, and variable names must be descriptive and intention-revealing.
+– Avoid vague names like data, info, helper, or temp.
+</naming_and_readability>
+
+<scalability_mindset>
+– Always code as if someone else will scale this.
+– Include extension points (e.g., protocol conformance, dependency injection) from day one.
+</scalability_mindset>
+
+<avoid_god_classes>
+– Never let one file or class hold everything (e.g., massive ViewController, ViewModel, or Service).
+– Split into UI, State, Handlers, Networking, etc.
+</avoid_god_classes>
+
+Always use context7 Figma playwright when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 Figma playwright MCP tools to resolve library id and get library docs without me having to explicitly ask
+
+ <When_you_SHOULD_Use_Context7>
+✅ Should Have Used:
+-Playwright configuration - When fixing test setup issues
+-Next.js configuration - When adding security headers, CSP
+-React best practices - When fixing the fullWidth prop issue
+-Environment setup - When configuring .env.local
+-TypeScript typing - When adding interfaces
+</Never_forget_this>
+Always read the app files for context before making any changes
+
