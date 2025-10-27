@@ -1,12 +1,41 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
-import type { RouteProp } from '@react-navigation/native';
 
 // ============================================================================
-// FEATURE-BASED NAVIGATION TYPES
+// ROOT STACK NAVIGATION TYPES
 // ============================================================================
 
-// Auth Stack Types
+export type RootStackParamList = {
+  // Auth flow
+  Auth: NavigatorScreenParams<AuthStackParamList> | undefined;
+
+  // Main app (tabs)
+  Main: NavigatorScreenParams<RootTabParamList> | undefined;
+
+  // Modals
+  Modal: NavigatorScreenParams<ModalStackParamList> | undefined;
+
+  // Booking screens (accessible from anywhere)
+  BookingDetails: { bookingId: string };
+  RescheduleBooking: { bookingId: string };
+  RateBooking: { bookingId: string };
+};
+
+// ============================================================================
+// TAB NAVIGATION TYPES
+// ============================================================================
+
+export type RootTabParamList = {
+  HomeTab: undefined;
+  JobsTab: NavigatorScreenParams<JobsStackParamList> | undefined;
+  FeedTab: undefined;
+  MessagingTab: NavigatorScreenParams<MessagingStackParamList> | undefined;
+  ProfileTab: NavigatorScreenParams<ProfileStackParamList> | undefined;
+};
+
+// ============================================================================
+// AUTH STACK NAVIGATION TYPES
+// ============================================================================
+
 export type AuthStackParamList = {
   Landing: undefined;
   Login: undefined;
@@ -14,32 +43,35 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
 };
 
-// Jobs Stack Types
+// ============================================================================
+// JOBS STACK NAVIGATION TYPES
+// ============================================================================
+
 export type JobsStackParamList = {
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
   BidSubmission: { jobId: string };
-  Messaging: {
-    jobId: string;
-    jobTitle: string;
-    otherUserId: string;
-    otherUserName: string;
-  };
 };
 
-// Messaging Stack Types
+// ============================================================================
+// MESSAGING STACK NAVIGATION TYPES
+// ============================================================================
+
 export type MessagingStackParamList = {
   MessagesList: undefined;
   Messaging: {
-    jobId: string;
-    jobTitle: string;
-    otherUserId: string;
-    otherUserName: string;
+    conversationId: string;
+    jobTitle?: string;
+    recipientId?: string;
+    recipientName?: string;
   };
 };
 
-// Profile Stack Types
+// ============================================================================
+// PROFILE STACK NAVIGATION TYPES
+// ============================================================================
+
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
@@ -52,146 +84,54 @@ export type ProfileStackParamList = {
   FinanceDashboard: undefined;
   ServiceAreas: undefined;
   QuoteBuilder: undefined;
-  CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
+  CreateQuote: { jobId?: string };
   ContractorCardEditor: undefined;
   Connections: undefined;
 };
 
-// Modal Stack Types
+// ============================================================================
+// MODAL STACK NAVIGATION TYPES
+// ============================================================================
+
 export type ModalStackParamList = {
   ServiceRequest: undefined;
   FindContractors: undefined;
   ContractorDiscovery: undefined;
-  ContractorProfile: { contractorId: string; contractorName?: string };
-  EnhancedHome: undefined;
-  CreateQuote: { jobId?: string; clientName?: string; clientEmail?: string };
+  CreateQuote: { jobId?: string };
   MeetingSchedule: {
     contractorId: string;
-    jobId: string;
-    contractor?: any;
-    job?: any;
-    rescheduleMeetingId?: string;
+    contractorName?: string;
   };
-  MeetingDetails: { meetingId: string };
-};
-
-// Discover Stack Types
-export type DiscoverStackParamList = {
-  ExploreMap: undefined;
-  ContractorProfile: { contractorId: string; contractorName?: string };
-};
-
-// Root Tab Types
-export type RootTabParamList = {
-  HomeTab: undefined;
-  DiscoverTab: NavigatorScreenParams<DiscoverStackParamList>;
-  JobsTab: NavigatorScreenParams<JobsStackParamList>;
-  AddTab: undefined;
-  FeedTab: undefined;
-  MessagingTab: NavigatorScreenParams<MessagingStackParamList>;
-  ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
-};
-
-// Root Stack Types
-export type RootStackParamList = {
-  Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<RootTabParamList>;
-  Modal: NavigatorScreenParams<ModalStackParamList>;
+  MeetingDetails: {
+    meetingId: string;
+  };
+  ContractorProfile: {
+    contractorId: string;
+    contractorName?: string;
+  };
+  EnhancedHome: undefined;
 };
 
 // ============================================================================
-// GLOBAL NAVIGATION TYPES
+// NAVIGATION PROP HELPERS
 // ============================================================================
+
+// Use these types to type your navigation props in screens:
+//
+// Example usage in a screen:
+//
+// import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+// import type { RootStackParamList } from './types';
+//
+// type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
+//
+// export const BookingDetailsScreen = ({ route, navigation }: Props) => {
+//   const { bookingId } = route.params;
+//   ...
+// }
 
 declare global {
   namespace ReactNavigation {
     interface RootParamList extends RootStackParamList {}
   }
-}
-
-// ============================================================================
-// TYPE-SAFE NAVIGATION UTILITIES
-// ============================================================================
-
-export type NavigationProp<T extends keyof RootStackParamList> = StackNavigationProp<
-  RootStackParamList,
-  T
->;
-
-export type ScreenRouteProp<T extends keyof RootStackParamList> = RouteProp<
-  RootStackParamList,
-  T
->;
-
-// Feature-specific navigation props
-export type JobsNavigationProp<T extends keyof JobsStackParamList> = StackNavigationProp<
-  JobsStackParamList,
-  T
->;
-
-export type JobsRouteProp<T extends keyof JobsStackParamList> = RouteProp<
-  JobsStackParamList,
-  T
->;
-
-export type MessagingNavigationProp<T extends keyof MessagingStackParamList> = StackNavigationProp<
-  MessagingStackParamList,
-  T
->;
-
-export type MessagingRouteProp<T extends keyof MessagingStackParamList> = RouteProp<
-  MessagingStackParamList,
-  T
->;
-
-export type ProfileNavigationProp<T extends keyof ProfileStackParamList> = StackNavigationProp<
-  ProfileStackParamList,
-  T
->;
-
-export type ProfileRouteProp<T extends keyof ProfileStackParamList> = RouteProp<
-  ProfileStackParamList,
-  T
->;
-
-export type DiscoverNavigationProp<T extends keyof DiscoverStackParamList> = StackNavigationProp<
-  DiscoverStackParamList,
-  T
->;
-
-export type DiscoverRouteProp<T extends keyof DiscoverStackParamList> = RouteProp<
-  DiscoverStackParamList,
-  T
->;
-
-// ============================================================================
-// SCREEN PROPS INTERFACES
-// ============================================================================
-
-export interface BaseScreenProps<
-  TStack extends keyof RootStackParamList,
-  TScreen extends keyof any
-> {
-  navigation: StackNavigationProp<any, TScreen>;
-  route: RouteProp<any, TScreen>;
-}
-
-export interface JobsScreenProps<T extends keyof JobsStackParamList> {
-  navigation: JobsNavigationProp<T>;
-  route: JobsRouteProp<T>;
-}
-
-export interface MessagingScreenProps<T extends keyof MessagingStackParamList> {
-  navigation: MessagingNavigationProp<T>;
-  route: MessagingRouteProp<T>;
-}
-
-export interface ProfileScreenProps<T extends keyof ProfileStackParamList> {
-  navigation: ProfileNavigationProp<T>;
-  route: ProfileRouteProp<T>;
-}
-
-export interface DiscoverScreenProps<T extends keyof DiscoverStackParamList> {
-  navigation: DiscoverNavigationProp<T>;
-  route: DiscoverRouteProp<T>;
 }

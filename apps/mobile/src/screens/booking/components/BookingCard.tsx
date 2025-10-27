@@ -12,6 +12,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
+import { StatusPill } from '../../../components/StatusPill';
 import type { Booking } from '../viewmodels/BookingViewModel';
 
 interface BookingCardProps {
@@ -195,7 +196,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
               <Ionicons name="person" size={24} color={theme.colors.primary} />
             </View>
             <View style={styles.contractorDetails}>
-              <Text style={styles.contractorName}>
+              <Text accessibilityLabel="Contractor name" style={styles.contractorName}>
                 {booking.contractorName}
               </Text>
               <View style={styles.serviceRow}>
@@ -219,6 +220,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             </View>
           </View>
         </View>
+
+        <StatusPill status={booking.status} />
       </View>
 
       {/* Service Details */}
@@ -306,7 +309,7 @@ const styles = StyleSheet.create({
   bookingDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   contractorRow: {
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   serviceRow: {
@@ -355,7 +358,7 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   serviceMetaRow: {
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   serviceMetaText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginLeft: 6,
   },
   instructionsContainer: {
@@ -474,7 +477,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     marginLeft: 6,
   },
   reviewButton: {
