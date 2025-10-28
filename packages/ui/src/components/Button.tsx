@@ -2,24 +2,31 @@ import React from 'react';
 import { clsx } from 'clsx';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'success';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   loading?: boolean;
   children: React.ReactNode;
 }
 
+// Brand colors - aligned with Mintenance design system
+const BRAND_PRIMARY = '#0F172A'; // Navy
+const BRAND_SECONDARY = '#10B981'; // Emerald
+const BRAND_ACCENT = '#F59E0B'; // Amber
+
 const buttonVariants = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-  secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-  outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-  ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-blue-500',
+  primary: `bg-[${BRAND_PRIMARY}] text-white hover:bg-[#1E293B] focus:ring-[${BRAND_PRIMARY}]`,
+  secondary: `bg-[${BRAND_SECONDARY}] text-white hover:bg-[#059669] focus:ring-[${BRAND_SECONDARY}]`,
+  outline: `border-2 border-[${BRAND_PRIMARY}] bg-white text-[${BRAND_PRIMARY}] hover:bg-gray-50 focus:ring-[${BRAND_PRIMARY}]`,
+  ghost: `text-gray-700 hover:bg-gray-100 focus:ring-[${BRAND_PRIMARY}]`,
   destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+  success: `bg-[${BRAND_SECONDARY}] text-white hover:bg-[#059669] focus:ring-[${BRAND_SECONDARY}]`,
 };
 
 const buttonSizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
+  sm: 'px-3 py-1.5 text-sm min-h-[32px]',
+  md: 'px-4 py-2 text-base min-h-[40px]',
+  lg: 'px-6 py-3 text-lg min-h-[48px]',
+  xl: 'px-8 py-4 text-xl min-h-[56px]',
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -34,14 +41,18 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={clsx(
-        'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+        'inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
-        'disabled:opacity-50 disabled:pointer-events-none',
+        'disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed',
+        // WCAG AA minimum touch target
+        'min-h-[44px]',
         buttonVariants[variant],
         buttonSizes[size],
         className
       )}
       disabled={disabled || loading}
+      aria-busy={loading}
+      aria-disabled={disabled || loading}
       {...props}
     >
       {loading && (
@@ -50,6 +61,8 @@ export const Button: React.FC<ButtonProps> = ({
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
+          role="status"
+          aria-label="Loading"
         >
           <circle
             className="opacity-25"
