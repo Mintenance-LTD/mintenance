@@ -11,7 +11,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "module": "esnext",
     "moduleResolution": "bundler",
+    "target": "esnext",
+    "lib": ["esnext"],
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -27,11 +30,7 @@
       "@mintenance/shared": [
         "../../packages/shared/src"
       ]
-    },
-    "types": [
-      "react-native",
-      "jest"
-    ]
+    }
   },
   "include": [
     "**/*.ts",
