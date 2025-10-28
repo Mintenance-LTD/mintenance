@@ -7,6 +7,11 @@ if (process.env.NODE_ENV !== 'test') {
   try {
     require('./lib/env');
   } catch (error) {
+    // The error details should already be logged by lib/env.ts
+    // But log the error object as well to ensure it's visible
+    if (error instanceof Error && error.message) {
+      console.error(error.message);
+    }
     console.error('\n❌ Build failed: Environment validation error');
     console.error('   Fix the errors above and try again.\n');
     process.exit(1);

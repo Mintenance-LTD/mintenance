@@ -101,19 +101,35 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Format validation errors for easy debugging
-      const errorMessage = error.errors
+      const errorMessages = error.errors
         .map((err) => {
-          const path = err.path.join('.');
+          const path = err.path.join('.') || 'unknown';
           return `  - ${path}: ${err.message}`;
         })
         .join('\n');
 
-      console.error('❌ Environment variable validation failed:');
-      console.error(errorMessage);
-      console.error('\n📋 Please check your .env file and ensure all required variables are set.');
-      console.error('   See .env.example for reference.\n');
+      const fullErrorMessage = [
+        '',
+        '❌ Environment variable validation failed:',
+        errorMessages,
+        '',
+        '📋 Please check your .env file and ensure all required variables are set.',
+        '   See .env.example for reference.',
+        '',
+        'Required variables:',
+        '  - JWT_SECRET (min 32 characters)',
+        '  - NEXT_PUBLIC_SUPABASE_URL (valid URL)',
+        '  - SUPABASE_SERVICE_ROLE_KEY',
+        '  - STRIPE_SECRET_KEY (must start with sk_test_ or sk_live_)',
+        '  - STRIPE_WEBHOOK_SECRET (must start with whsec_)',
+        '  - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (must start with pk_test_ or pk_live_)',
+        ''
+      ].join('\n');
 
-      throw new Error('Invalid environment configuration. See console for details.');
+      // Write to stderr synchronously to ensure it's captured
+      process.stderr.write(fullErrorMessage);
+
+      throw new Error(fullErrorMessage);
     }
 
     throw error;
