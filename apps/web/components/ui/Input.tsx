@@ -1,6 +1,6 @@
 'use client';
 
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, useId } from 'react';
 import { theme } from '@/lib/theme';
 
 type InputVariant = 'default' | 'focused' | 'error';
@@ -18,8 +18,27 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   required?: boolean;
   errorText?: string;
   helperText?: string;
+  // Enhanced accessibility props
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
 }
 
+/**
+ * Enhanced Input Component with Full Accessibility Support
+ *
+ * Features:
+ * - Proper label association with htmlFor
+ * - ARIA attributes for error states
+ * - Helper text support with aria-describedby
+ * - Required field indicators
+ * - Icon support with keyboard navigation
+ * - Focus visible states
+ * - Screen reader announcements
+ *
+ * @example
+ * <Input label="Email" type="email" required errorText="Invalid email" />
+ * <Input leftIcon={<SearchIcon />} placeholder="Search..." />
+ */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({
     containerClassName = '',
@@ -38,10 +57,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     helperText,
     onFocus,
     onBlur,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    id: providedId,
     ...props
   }, ref) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [hasError] = useState(!!errorText);
+    const hasError = !!errorText;
+
+    // Generate unique IDs for accessibility
+    const generatedId = useId();
+    const inputId = providedId || generatedId;
+    const helperId = `${inputId}-helper`;
+    const errorId = `${inputId}-error`;
+    const labelId = `${inputId}-label`;
 
     // Determine variant based on state
     const variant = propVariant || (hasError ? 'error' : (isFocused ? 'focused' : 'default'));
@@ -95,6 +124,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       fontWeight: theme.typography.fontWeight.medium,
       color: hasError ? theme.colors.error : theme.colors.textSecondary,
       marginBottom: theme.spacing[1],
+      cursor: 'pointer', // Make it clear label is clickable
     };
 
     const iconStyles: React.CSSProperties = {
@@ -140,24 +170,52 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       }
     };
 
+    const handleRightIconKeyDown = (e: React.KeyboardEvent) => {
+      if ((e.key === 'Enter' || e.key === ' ') && onRightIconClick) {
+        e.preventDefault();
+        onRightIconClick();
+      }
+    };
+
+    // Build aria-describedby
+    const ariaDescribedBy = [
+      helperText && helperId,
+      errorText && errorId,
+    ].filter(Boolean).join(' ') || undefined;
+
     return (
       <div className={`input-container ${containerClassName}`} style={containerStyles}>
         {label && (
-          <label style={labelStyles}>
+          <label
+            htmlFor={inputId}
+            id={labelId}
+            style={labelStyles}
+          >
             {label}
-            {required && <span style={{ color: theme.colors.error }}> *</span>}
+            {required && (
+              <span
+                style={{ color: theme.colors.error }}
+                aria-label="required"
+              >
+                {' '}*
+              </span>
+            )}
           </label>
         )}
 
         <div style={inputWrapperStyles}>
           {leftIcon && (
-            <div style={leftIconStyles}>
+            <div
+              style={leftIconStyles}
+              aria-hidden="true"
+            >
               {leftIcon}
             </div>
           )}
 
           <input
             ref={ref}
+            id={inputId}
             className={`input ${className}`}
             style={{
               ...inputStyles,
@@ -165,10 +223,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             }}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            required={required}
+            aria-required={required}
             aria-invalid={hasError}
-            aria-describedby={
-              (errorText || helperText) ? `${props.id || 'input'}-helper` : undefined
-            }
+            aria-describedby={ariaDescribedBy}
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy || (label ? labelId : undefined)}
             {...props}
           />
 
@@ -176,20 +236,35 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               style={rightIconStyles}
               onClick={onRightIconClick}
+              onKeyDown={handleRightIconKeyDown}
               role={onRightIconClick ? 'button' : undefined}
-              tabIndex={onRightIconClick ? 0 : undefined}
+              tabIndex={onRightIconClick ? 0 : -1}
+              aria-label={onRightIconClick ? 'Toggle' : undefined}
+              aria-hidden={!onRightIconClick}
             >
               {rightIcon}
             </div>
           )}
         </div>
 
-        {(errorText || helperText) && (
+        {helperText && !errorText && (
           <div
-            id={`${props.id || 'input'}-helper`}
+            id={helperId}
             style={helperTextStyles}
+            role="note"
           >
-            {errorText || helperText}
+            {helperText}
+          </div>
+        )}
+
+        {errorText && (
+          <div
+            id={errorId}
+            style={helperTextStyles}
+            role="alert"
+            aria-live="assertive"
+          >
+            {errorText}
           </div>
         )}
 
@@ -206,6 +281,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           .input:focus-visible {
             outline: 2px solid ${theme.colors.borderFocus};
             outline-offset: 2px;
+          }
+
+          .input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: ${theme.colors.backgroundSecondary};
           }
         `}</style>
       </div>
