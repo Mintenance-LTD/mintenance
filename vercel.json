@@ -2,9 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "mintenance-web",
-  "buildCommand": "cd ../.. && npm run build:web",
-  "installCommand": "cd ../.. && npm ci",
+  "buildCommand": "npm run build:packages && npm run build:web",
+  "installCommand": "npm ci",
   "framework": "nextjs",
+  "outputDirectory": "apps/web/.next",
   "regions": ["iad1"],
   "functions": {
     "app/api/**/*.ts": {
