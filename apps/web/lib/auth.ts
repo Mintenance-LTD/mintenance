@@ -61,7 +61,7 @@ export async function createTokenPair(
   const insertData: any = {
     user_id: user.id,
     token_hash: hashRefreshToken(refreshToken),
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    expires_at: new Date(Date.now() + REFRESH_TTL_SEC_SHORT * 1000).toISOString(), // 7 days
     device_info: deviceInfo,
     ip_address: ipAddress,
   };

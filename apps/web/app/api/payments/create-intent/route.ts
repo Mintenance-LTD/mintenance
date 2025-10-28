@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate idempotency key to prevent duplicate payments
-    const idempotencyKey = `payment_intent_${jobId}_${user.id}_${Date.now()}`;
+    // Using UUID for better collision resistance than timestamp
+    const idempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
 
     // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({

@@ -281,16 +281,17 @@ export class SecurityMonitor {
   private getClientIP(request: NextRequest): string {
     const forwarded = request.headers.get('x-forwarded-for');
     const realIP = request.headers.get('x-real-ip');
-    
+
     if (forwarded) {
       return forwarded.split(',')[0].trim();
     }
-    
+
     if (realIP) {
       return realIP;
     }
-    
-    return (request as any).ip || 'unknown';
+
+    // Return unknown if no IP headers available (avoid unsafe type assertion)
+    return 'unknown';
   }
 
   /**

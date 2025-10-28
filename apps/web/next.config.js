@@ -20,8 +20,9 @@ if (process.env.NODE_ENV !== 'test') {
 
 const nextConfig = {
   poweredByHeader: false,
+  // ESLint enabled during builds for code quality enforcement
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
     ignoreBuildErrors: false,
