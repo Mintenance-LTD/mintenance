@@ -3,6 +3,13 @@
   "version": "1.1.0",
   "description": "Shared UI component library for Mintenance web and mobile applications",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mintenance-LTD/mintenance.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],

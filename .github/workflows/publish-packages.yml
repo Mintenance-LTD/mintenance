@@ -1,0 +1,95 @@
+name: Publish Packages to GitHub Packages
+
+on:
+  # Trigger on push to main branch when package files change
+  push:
+    branches: [main]
+    paths:
+      - 'packages/**'
+      - '.github/workflows/publish-packages.yml'
+
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish (leave empty for all)'
+        required: false
+        type: choice
+        options:
+          - all
+          - types
+          - shared
+          - auth
+          - ui
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@mintenance'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      # Publish types package (no dependencies, publish first)
+      - name: Publish @mintenance/types
+        if: github.event.inputs.package == 'types' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
+        run: |
+          cd packages/types
+          npm publish || echo "Package already published or failed"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish shared package (depends on types)
+      - name: Publish @mintenance/shared
+        if: github.event.inputs.package == 'shared' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
+        run: |
+          cd packages/shared
+          npm publish || echo "Package already published or failed"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish auth package (depends on types)
+      - name: Publish @mintenance/auth
+        if: github.event.inputs.package == 'auth' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
+        run: |
+          cd packages/auth
+          npm publish || echo "Package already published or failed"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish ui package (no internal dependencies)
+      - name: Publish @mintenance/ui
+        if: github.event.inputs.package == 'ui' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
+        run: |
+          cd packages/ui
+          npm publish || echo "Package already published or failed"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Summary
+        run: |
+          echo "### Published Packages :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The following packages have been published to GitHub Packages:" >> $GITHUB_STEP_SUMMARY
+          echo "- @mintenance/types" >> $GITHUB_STEP_SUMMARY
+          echo "- @mintenance/shared" >> $GITHUB_STEP_SUMMARY
+          echo "- @mintenance/auth" >> $GITHUB_STEP_SUMMARY
+          echo "- @mintenance/ui" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View packages at: https://github.com/orgs/Mintenance-LTD/packages" >> $GITHUB_STEP_SUMMARY

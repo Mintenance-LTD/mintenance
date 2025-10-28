@@ -2,6 +2,13 @@
   "name": "@mintenance/ui",
   "version": "1.0.0",
   "description": "Shared UI components for Mintenance applications",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mintenance-LTD/mintenance.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
