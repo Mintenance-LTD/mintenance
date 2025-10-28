@@ -222,8 +222,9 @@ export class AuthService {
     userId: string,
     updates: Partial<User>
   ): Promise<User> {
-    // Validation
-    if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+    // RFC 5322 compliant email validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (updates.email && !emailRegex.test(updates.email)) {
       throw new Error('Invalid email format');
     }
 
@@ -239,8 +240,9 @@ export class AuthService {
   }
 
   static async resetPassword(email: string): Promise<void> {
-    // Validation
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // RFC 5322 compliant email validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!email || !emailRegex.test(email)) {
       throw new Error('Please enter a valid email address');
     }
 

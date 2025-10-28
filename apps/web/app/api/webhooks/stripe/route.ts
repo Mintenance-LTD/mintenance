@@ -410,13 +410,3 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     throw error;
   }
 }
-
-// Disable body parsing to allow raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-// Note: Next.js App Router route handlers do not use pages API config. Raw
-// body is accessed via request.text() above, so this config export is not
-// required and can be safely removed.

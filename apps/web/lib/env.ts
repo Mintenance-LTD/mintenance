@@ -17,7 +17,7 @@ const envSchema = z.object({
   // JWT Configuration (CRITICAL)
   JWT_SECRET: z
     .string()
-    .min(32, 'JWT_SECRET must be at least 32 characters for security')
+    .min(64, 'JWT_SECRET must be at least 64 characters for production security')
     .describe('Secret key for JWT signing - must be strong and random'),
 
   // Supabase Configuration (CRITICAL)
@@ -117,7 +117,7 @@ function validateEnv(): Env {
         '   See .env.example for reference.',
         '',
         'Required variables:',
-        '  - JWT_SECRET (min 32 characters)',
+        '  - JWT_SECRET (min 64 characters)',
         '  - NEXT_PUBLIC_SUPABASE_URL (valid URL)',
         '  - SUPABASE_SERVICE_ROLE_KEY',
         '  - STRIPE_SECRET_KEY (must start with sk_test_ or sk_live_)',
