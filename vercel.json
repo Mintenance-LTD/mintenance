@@ -3,7 +3,7 @@
   "version": 2,
   "name": "mintenance-web",
   "buildCommand": "npm run build:packages && npm run build:web",
-  "installCommand": "npm ci",
+  "installCommand": "npm ci --ignore-scripts",
   "framework": "nextjs",
   "outputDirectory": "apps/web/.next",
   "regions": ["iad1"],
