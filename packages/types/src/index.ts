@@ -628,3 +628,420 @@ export interface ProjectBottleneck {
   reason: string;
   suggestedAction: string;
 }
+
+// =====================================================
+// LinkedIn Parity Features - Groups, Articles, Companies
+// =====================================================
+
+// ===== GROUPS =====
+export type TradeType =
+  | 'electricians'
+  | 'plumbers'
+  | 'carpenters'
+  | 'hvac'
+  | 'painters'
+  | 'landscapers'
+  | 'roofers'
+  | 'builders'
+  | 'tilers'
+  | 'decorators'
+  | 'handymen'
+  | 'cleaners'
+  | 'general'
+  | 'multi_trade';
+
+export type GroupLocationType = 'global' | 'country' | 'region' | 'city' | 'local';
+
+export interface ContractorGroup {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  tradeType: TradeType;
+  isPrivate: boolean;
+  requiresApproval: boolean;
+  coverImage?: string;
+  groupIcon?: string;
+  createdBy: string;
+  locationType?: GroupLocationType;
+  locationName?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+  memberCount: number;
+  postCount: number;
+  activeMembers30d: number;
+  rules?: string;
+  welcomeMessage?: string;
+  tags: string[];
+  isActive: boolean;
+  isFeatured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GroupMemberRole = 'admin' | 'moderator' | 'member';
+export type GroupMemberStatus = 'pending' | 'active' | 'banned' | 'left';
+
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  userId: string;
+  role: GroupMemberRole;
+  status: GroupMemberStatus;
+  joinMessage?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  postsCount: number;
+  commentsCount: number;
+  lastActiveAt: string;
+  notificationsEnabled: boolean;
+  emailNotifications: boolean;
+  joinedAt: string;
+  leftAt?: string;
+  user?: User;
+}
+
+export type GroupDiscussionType =
+  | 'discussion'
+  | 'question'
+  | 'announcement'
+  | 'event'
+  | 'job_posting'
+  | 'resource';
+
+export interface GroupDiscussion {
+  id: string;
+  groupId: string;
+  authorId: string;
+  title: string;
+  content: string;
+  contentHtml?: string;
+  postType: GroupDiscussionType;
+  images: string[];
+  attachments: Array<{name: string; url: string; type: string; size: number}>;
+  isPinned: boolean;
+  isLocked: boolean;
+  isHidden: boolean;
+  likesCount: number;
+  commentsCount: number;
+  viewsCount: number;
+  sharesCount: number;
+  hasAcceptedAnswer: boolean;
+  acceptedAnswerId?: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  lastActivityAt: string;
+  author?: User;
+  liked?: boolean;
+}
+
+export interface GroupDiscussionComment {
+  id: string;
+  discussionId: string;
+  authorId: string;
+  commentText: string;
+  commentHtml?: string;
+  parentCommentId?: string;
+  isAcceptedAnswer: boolean;
+  images: string[];
+  likesCount: number;
+  isHidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  liked?: boolean;
+}
+
+export type GroupEventType =
+  | 'meetup'
+  | 'workshop'
+  | 'training'
+  | 'networking'
+  | 'conference'
+  | 'webinar'
+  | 'social'
+  | 'other';
+
+export type GroupEventLocationType = 'in_person' | 'virtual' | 'hybrid';
+export type GroupEventStatus = 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+
+export interface GroupEvent {
+  id: string;
+  groupId: string;
+  createdBy: string;
+  title: string;
+  description: string;
+  eventType: GroupEventType;
+  locationType: GroupEventLocationType;
+  locationName?: string;
+  locationAddress?: string;
+  latitude?: number;
+  longitude?: number;
+  meetingUrl?: string;
+  meetingPlatform?: string;
+  startDate: string;
+  endDate: string;
+  timezone: string;
+  maxAttendees?: number;
+  currentAttendees: number;
+  requiresRegistration: boolean;
+  registrationDeadline?: string;
+  status: GroupEventStatus;
+  coverImage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type EventAttendeeStatus = 'going' | 'maybe' | 'not_going' | 'waitlist';
+
+export interface GroupEventAttendee {
+  id: string;
+  eventId: string;
+  userId: string;
+  status: EventAttendeeStatus;
+  guestCount: number;
+  notes?: string;
+  registeredAt: string;
+  updatedAt: string;
+  user?: User;
+}
+
+// ===== ARTICLES =====
+export type ArticleStatus = 'draft' | 'published' | 'archived' | 'scheduled';
+export type ArticleCategory =
+  | 'tips_and_tricks'
+  | 'how_to_guides'
+  | 'industry_news'
+  | 'case_studies'
+  | 'business_advice'
+  | 'tool_reviews'
+  | 'safety_regulations'
+  | 'opinion';
+
+export interface ContractorArticle {
+  id: string;
+  authorId: string;
+  title: string;
+  subtitle?: string;
+  slug: string;
+  contentMarkdown: string;
+  contentHtml?: string;
+  excerpt?: string;
+  featuredImage?: string;
+  featuredImageCaption?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords: string[];
+  status: ArticleStatus;
+  publishedAt?: string;
+  scheduledPublishAt?: string;
+  category?: ArticleCategory;
+  tags: string[];
+  readTimeMinutes?: number;
+  wordCount?: number;
+  viewsCount: number;
+  uniqueViewsCount: number;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  bookmarksCount: number;
+  isFeatured: boolean;
+  featuredAt?: string;
+  isHidden: boolean;
+  editorsPick: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastEditedAt?: string;
+  author?: User;
+  liked?: boolean;
+  bookmarked?: boolean;
+}
+
+export interface ArticleComment {
+  id: string;
+  articleId: string;
+  authorId: string;
+  commentText: string;
+  commentHtml?: string;
+  parentCommentId?: string;
+  likesCount: number;
+  isHidden: boolean;
+  isFlagged: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  liked?: boolean;
+}
+
+export interface ArticleSeries {
+  id: string;
+  authorId: string;
+  title: string;
+  slug: string;
+  description?: string;
+  coverImage?: string;
+  articlesCount: number;
+  createdAt: string;
+  updatedAt: string;
+  articles?: ContractorArticle[];
+}
+
+// ===== COMPANIES =====
+export type CompanyType =
+  | 'sole_trader'
+  | 'partnership'
+  | 'limited_company'
+  | 'llp'
+  | 'franchise'
+  | 'other';
+
+export type CompanyEmployeeCount = '1' | '2-5' | '6-10' | '11-20' | '21-50' | '51-100' | '100+';
+
+export interface ContractorCompany {
+  id: string;
+  ownerId: string;
+  companyName: string;
+  slug: string;
+  tagline?: string;
+  description: string;
+  companyType?: CompanyType;
+  logoUrl?: string;
+  coverImage?: string;
+  brandColors: {
+    primary: string;
+    secondary: string;
+  };
+  email?: string;
+  phone?: string;
+  website?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  county?: string;
+  postcode?: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+  businessHours: Array<{
+    day: string;
+    open: string;
+    close: string;
+    closed: boolean;
+  }>;
+  servicesOffered: string[];
+  specialties: string[];
+  certifications: string[];
+  yearEstablished?: number;
+  employeeCount?: CompanyEmployeeCount;
+  companyRegistrationNumber?: string;
+  vatNumber?: string;
+  socialMedia: {
+    facebook?: string;
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+  };
+  teamMemberCount: number;
+  followerCount: number;
+  postCount: number;
+  averageRating: number;
+  totalJobsCompleted: number;
+  isVerified: boolean;
+  verifiedAt?: string;
+  verificationBadge?: 'verified' | 'premium' | 'featured';
+  isActive: boolean;
+  isFeatured: boolean;
+  isHiring: boolean;
+  createdAt: string;
+  updatedAt: string;
+  owner?: User;
+  following?: boolean;
+}
+
+export type CompanyTeamRole = 'owner' | 'admin' | 'member';
+export type CompanyEmploymentType = 'full_time' | 'part_time' | 'contract' | 'apprentice';
+export type CompanyTeamStatus = 'active' | 'inactive' | 'invited' | 'left';
+
+export interface CompanyTeamMember {
+  id: string;
+  companyId: string;
+  userId: string;
+  position: string;
+  role: CompanyTeamRole;
+  employmentType?: CompanyEmploymentType;
+  department?: string;
+  startDate?: string;
+  endDate?: string;
+  bio?: string;
+  showOnPage: boolean;
+  displayOrder: number;
+  canPost: boolean;
+  canManageTeam: boolean;
+  status: CompanyTeamStatus;
+  invitedAt?: string;
+  joinedAt?: string;
+  leftAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: User;
+}
+
+export type CompanyUpdateType =
+  | 'update'
+  | 'job_posting'
+  | 'project_showcase'
+  | 'announcement'
+  | 'milestone'
+  | 'team_update'
+  | 'news';
+
+export interface CompanyUpdate {
+  id: string;
+  companyId: string;
+  authorId: string;
+  postType: CompanyUpdateType;
+  title?: string;
+  content: string;
+  contentHtml?: string;
+  images: string[];
+  videoUrl?: string;
+  jobTitle?: string;
+  jobDescription?: string;
+  jobLocation?: string;
+  jobType?: string;
+  applyUrl?: string;
+  applicationDeadline?: string;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  viewsCount: number;
+  isPinned: boolean;
+  isHidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  liked?: boolean;
+}
+
+export interface CompanyReview {
+  id: string;
+  companyId: string;
+  reviewerId: string;
+  jobId?: string;
+  rating: number;
+  title?: string;
+  reviewText: string;
+  qualityRating?: number;
+  professionalismRating?: number;
+  valueRating?: number;
+  communicationRating?: number;
+  companyResponse?: string;
+  responseDate?: string;
+  isVerified: boolean;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reviewer?: User;
+}
