@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "workspaceRoot": "../..",
       "android": {
         "gradleCommand": ":app:assembleDebug",
         "buildType": "apk",
@@ -26,6 +27,7 @@
     },
     "stable": {
       "distribution": "internal",
+      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -48,6 +50,7 @@
     },
     "staging": {
       "distribution": "internal",
+      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -67,6 +70,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -87,6 +91,7 @@
       "channel": "preview"
     },
     "production": {
+      "workspaceRoot": "../..",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
@@ -104,6 +109,7 @@
     },
     "production-store": {
       "distribution": "store",
+      "workspaceRoot": "../..",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
