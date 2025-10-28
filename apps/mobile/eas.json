@@ -7,7 +7,6 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "workspaceRoot": "../..",
       "android": {
         "gradleCommand": ":app:assembleDebug",
         "buildType": "apk",
@@ -21,13 +20,13 @@
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "development"
     },
     "stable": {
       "distribution": "internal",
-      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -44,13 +43,13 @@
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "stable"
     },
     "staging": {
       "distribution": "internal",
-      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -64,13 +63,13 @@
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "staging"
     },
     "preview": {
       "distribution": "internal",
-      "workspaceRoot": "../..",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -86,12 +85,12 @@
         "EXPO_OPTIMIZE": "1",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "preview"
     },
     "production": {
-      "workspaceRoot": "../..",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
@@ -103,13 +102,13 @@
         "NODE_ENV": "production",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "production"
     },
     "production-store": {
       "distribution": "store",
-      "workspaceRoot": "../..",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
@@ -121,6 +120,7 @@
         "NODE_ENV": "production",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "channel": "production"
