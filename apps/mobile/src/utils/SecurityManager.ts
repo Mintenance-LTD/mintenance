@@ -1,14 +1,16 @@
 /**
  * Security Manager
- * 
+ *
  * Comprehensive security hardening for the Mintenance app.
  * Handles input validation, file upload security, and access control.
  */
 
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import SqlInjectionProtection from './SqlInjectionProtection';
 import InputValidationMiddleware from '../middleware/InputValidationMiddleware';
+import { logger } from './logger';
 
 // Conditional import for FileSystem to handle test environments
 let FileSystem: any;
@@ -244,7 +246,7 @@ class SecurityManagerService {
       await SecureStore.setItemAsync(key, value);
       return true;
     } catch (error) {
-      console.error('Secure storage failed:', error);
+      logger.error('Secure storage failed:', error);
       return false;
     }
   }
@@ -256,60 +258,76 @@ class SecurityManagerService {
     try {
       return await SecureStore.getItemAsync(key);
     } catch (error) {
-      console.error('Secure retrieval failed:', error);
+      logger.error('Secure retrieval failed:', error);
       return null;
     }
   }
 
   /**
-   * Role-based access control
-   */
-  public hasPermission(
-    userRole: 'homeowner' | 'contractor' | 'admin',
-    requiredRole: 'homeowner' | 'contractor' | 'admin'
-  ): boolean {
-    const roleHierarchy = {
-      admin: 3,
-      contractor: 2,
-      homeowner: 1,
-    };
-
-    return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
-  }
-
-  /**
    * Sanitize object for logging (remove sensitive data)
+   * Note: Duplicate sanitizeForLogging removed - use static method instead
    */
   public sanitizeForLogging(obj: any): any {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-
-    const sanitized = { ...obj };
-
-    Object.keys(sanitized).forEach(key => {
-      const lowerKey = key.toLowerCase();
-      if (SECURITY_CONFIG.SENSITIVE_DATA_KEYS.some(sensitive => lowerKey.includes(sensitive))) {
-        sanitized[key] = '[REDACTED]';
-      } else if (typeof sanitized[key] === 'object') {
-        sanitized[key] = this.sanitizeForLogging(sanitized[key]);
-      }
-    });
-
-    return sanitized;
+    return SecurityManagerService.sanitizeForLogging(obj);
   }
 
   /**
-   * Rate limiting for API calls
+   * Rate limiting for API calls with AsyncStorage persistence
    */
   private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+  private readonly RATE_LIMIT_STORAGE_KEY = '@rate_limit_data';
+  private rateLimitLoaded = false;
 
-  public checkRateLimit(identifier: string, maxRequests = 60, windowMs = 60000): boolean {
+  /**
+   * Load rate limit data from AsyncStorage
+   */
+  private async loadRateLimitData(): Promise<void> {
+    if (this.rateLimitLoaded) return;
+
+    try {
+      const stored = await AsyncStorage.getItem(this.RATE_LIMIT_STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        const now = Date.now();
+
+        // Only restore entries that haven't expired
+        Object.entries(data).forEach(([key, value]: [string, any]) => {
+          if (value.resetTime > now) {
+            this.rateLimitMap.set(key, value);
+          }
+        });
+      }
+      this.rateLimitLoaded = true;
+    } catch (error) {
+      logger.error('Failed to load rate limit data:', error);
+      this.rateLimitLoaded = true; // Prevent retry loops
+    }
+  }
+
+  /**
+   * Save rate limit data to AsyncStorage
+   */
+  private async saveRateLimitData(): Promise<void> {
+    try {
+      const data: Record<string, any> = {};
+      this.rateLimitMap.forEach((value, key) => {
+        data[key] = value;
+      });
+      await AsyncStorage.setItem(this.RATE_LIMIT_STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      logger.error('Failed to save rate limit data:', error);
+    }
+  }
+
+  public async checkRateLimit(identifier: string, maxRequests = 60, windowMs = 60000): Promise<boolean> {
+    await this.loadRateLimitData();
+
     const now = Date.now();
     const entry = this.rateLimitMap.get(identifier);
 
     if (!entry || now > entry.resetTime) {
       this.rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs });
+      await this.saveRateLimitData();
       return true;
     }
 
@@ -318,6 +336,7 @@ class SecurityManagerService {
     }
 
     entry.count++;
+    await this.saveRateLimitData();
     return true;
   }
 

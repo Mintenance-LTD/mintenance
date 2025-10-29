@@ -7,7 +7,7 @@ import Image from 'next/image';
  */
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-20 bg-gradient-to-br from-[#0F172A] to-[#1e293b]">
+    <section id="features" className="py-20 bg-gradient-to-br from-primary to-primary-light">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
@@ -26,7 +26,7 @@ export function FeaturesSection() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20">
-            <div className="w-16 h-16 bg-[#10B981] rounded-lg flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center mb-6">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
@@ -37,7 +37,7 @@ export function FeaturesSection() {
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20">
-            <div className="w-16 h-16 bg-[#F59E0B] rounded-lg flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-accent rounded-lg flex items-center justify-center mb-6">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -48,7 +48,7 @@ export function FeaturesSection() {
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8 border border-white/20">
-            <div className="w-16 h-16 bg-[#EC4899] rounded-lg flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-pink-500 rounded-lg flex items-center justify-center mb-6">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>

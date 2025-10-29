@@ -6,10 +6,12 @@ import { logger } from '../utils/logger';
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
+const MAX_TOKEN_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export interface BiometricCredentials {
   email: string;
   refreshToken: string; // Only store refresh token for security
+  storedAt: number; // Timestamp when credentials were stored (for age validation)
 }
 
 export class BiometricService {
@@ -103,9 +105,11 @@ export class BiometricService {
       }
 
       // Security: Only store refresh token, not access token
+      // Include timestamp for age validation
       const credentials: BiometricCredentials = {
         email,
         refreshToken: tokens.refreshToken,
+        storedAt: Date.now(),
       };
 
       await SecureStore.setItemAsync(
@@ -193,9 +197,28 @@ export class BiometricService {
           throw new Error('Saved biometric credentials are incomplete. Please sign in again.');
         }
 
+        // Validate token age
+        const tokenAge = Date.now() - (credentials.storedAt || 0);
+        if (tokenAge > MAX_TOKEN_AGE_MS) {
+          await BiometricService.clearBiometricData();
+          trackUserAction('biometric.token_expired', {
+            email: credentials.email,
+            ageInDays: Math.floor(tokenAge / (24 * 60 * 60 * 1000)),
+          });
+          throw new Error('Biometric credentials have expired. Please sign in again to re-enable biometric authentication.');
+        }
+
+        // Log token age for monitoring
+        const ageInDays = Math.floor(tokenAge / (24 * 60 * 60 * 1000));
+        addBreadcrumb(`Biometric token age: ${ageInDays} days`, 'biometric', {
+          email: credentials.email,
+          ageInDays,
+        });
+
         // Note: Access token will be regenerated from refresh token by AuthService
         trackUserAction('biometric.auth_success', {
           email: credentials.email,
+          tokenAgeInDays: ageInDays,
         });
         addBreadcrumb('Biometric authentication successful', 'biometric');
 

@@ -40,11 +40,11 @@ export default function ContactPage() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center">
               <Logo />
-              <span className="ml-3 text-xl font-bold text-[#0F172A]">Mintenance</span>
+              <span className="ml-3 text-xl font-bold text-primary">Mintenance</span>
             </Link>
             <Link
               href="/"
-              className="text-gray-700 hover:text-[#10B981] transition-colors"
+              className="text-gray-700 hover:text-secondary transition-colors"
             >
               ← Back to Home
             </Link>
@@ -53,7 +53,7 @@ export default function ContactPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0F172A] to-[#1e293b]">
+      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
             Get in Touch
@@ -71,42 +71,42 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {/* Email */}
             <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
-              <div className="w-16 h-16 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Email Us</h3>
+              <h3 className="text-xl font-semibold text-primary mb-2">Email Us</h3>
               <p className="text-gray-600 mb-4">Our team typically responds within 24 hours</p>
-              <a href="mailto:support@mintenance.co.uk" className="text-[#10B981] hover:underline font-medium">
+              <a href="mailto:support@mintenance.co.uk" className="text-secondary hover:underline font-medium">
                 support@mintenance.co.uk
               </a>
             </div>
 
             {/* Phone */}
             <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
-              <div className="w-16 h-16 bg-[#F59E0B]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Call Us</h3>
+              <h3 className="text-xl font-semibold text-primary mb-2">Call Us</h3>
               <p className="text-gray-600 mb-4">Monday-Friday, 9:00 AM - 6:00 PM GMT</p>
-              <a href="tel:+442012345678" className="text-[#F59E0B] hover:underline font-medium">
+              <a href="tel:+442012345678" className="text-accent hover:underline font-medium">
                 +44 (0) 20 1234 5678
               </a>
             </div>
 
             {/* Live Chat */}
             <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
-              <div className="w-16 h-16 bg-[#8B5CF6]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Live Chat</h3>
+              <h3 className="text-xl font-semibold text-primary mb-2">Live Chat</h3>
               <p className="text-gray-600 mb-4">Chat with our support team in real-time</p>
-              <button className="text-[#8B5CF6] hover:underline font-medium">
+              <button className="text-purple-500 hover:underline font-medium">
                 Start Chat →
               </button>
             </div>
@@ -118,7 +118,7 @@ export default function ContactPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#0F172A] mb-4">Send Us a Message</h2>
+            <h2 className="text-4xl font-bold text-primary mb-4">Send Us a Message</h2>
             <p className="text-xl text-gray-600">
               Fill out the form below and we'll get back to you as soon as possible
             </p>
@@ -126,7 +126,7 @@ export default function ContactPage() {
 
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 md:p-12">
             {status === 'success' && (
-              <div className="mb-8 bg-[#10B981]/10 border border-[#10B981] text-[#10B981] rounded-lg p-4 flex items-start">
+              <div className="mb-8 bg-secondary/10 border border-secondary text-secondary rounded-lg p-4 flex items-start">
                 <svg className="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -140,7 +140,7 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  <label htmlFor="name" className="block text-sm font-semibold text-primary mb-2">
                     Full Name *
                   </label>
                   <input
@@ -150,13 +150,13 @@ export default function ContactPage() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                     placeholder="John Smith"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  <label htmlFor="email" className="block text-sm font-semibold text-primary mb-2">
                     Email Address *
                   </label>
                   <input
@@ -166,14 +166,14 @@ export default function ContactPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                     placeholder="john.smith@example.com"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="category" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                <label htmlFor="category" className="block text-sm font-semibold text-primary mb-2">
                   Category *
                 </label>
                 <select
@@ -182,7 +182,7 @@ export default function ContactPage() {
                   value={formData.category}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                 >
                   <option value="general">General Enquiry</option>
                   <option value="technical">Technical Support</option>
@@ -194,7 +194,7 @@ export default function ContactPage() {
               </div>
 
               <div>
-                <label htmlFor="subject" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                <label htmlFor="subject" className="block text-sm font-semibold text-primary mb-2">
                   Subject *
                 </label>
                 <input
@@ -204,13 +204,13 @@ export default function ContactPage() {
                   value={formData.subject}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                   placeholder="How can we help you?"
                 />
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                <label htmlFor="message" className="block text-sm font-semibold text-primary mb-2">
                   Message *
                 </label>
                 <textarea
@@ -220,7 +220,7 @@ export default function ContactPage() {
                   onChange={handleChange}
                   required
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all resize-none"
                   placeholder="Please provide as much detail as possible..."
                 />
               </div>
@@ -230,11 +230,11 @@ export default function ContactPage() {
                   type="checkbox"
                   id="consent"
                   required
-                  className="w-5 h-5 text-[#10B981] bg-gray-100 border-gray-300 rounded focus:ring-[#10B981] mt-0.5"
+                  className="w-5 h-5 text-secondary bg-gray-100 border-gray-300 rounded focus:ring-secondary mt-0.5"
                 />
                 <label htmlFor="consent" className="ml-3 text-sm text-gray-600">
                   I agree to the{' '}
-                  <Link href="/privacy" className="text-[#10B981] hover:underline">
+                  <Link href="/privacy" className="text-secondary hover:underline">
                     Privacy Policy
                   </Link>{' '}
                   and consent to Mintenance contacting me regarding my enquiry. *
@@ -244,7 +244,7 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={status === 'submitting'}
-                className="w-full bg-[#10B981] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === 'submitting' ? 'Sending...' : 'Send Message'}
               </button>
@@ -258,15 +258,15 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-[#0F172A] mb-6">Our Office</h2>
+              <h2 className="text-4xl font-bold text-primary mb-6">Our Office</h2>
               <div className="space-y-6">
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-[#10B981] mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#0F172A] mb-1">Registered Office</h3>
+                    <h3 className="text-lg font-semibold text-primary mb-1">Registered Office</h3>
                     <p className="text-gray-600">
                       MINTENANCE LTD<br />
                       Suite 2 J2 Business Park<br />
@@ -278,11 +278,11 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-[#10B981] mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#0F172A] mb-1">Opening Hours</h3>
+                    <h3 className="text-lg font-semibold text-primary mb-1">Opening Hours</h3>
                     <p className="text-gray-600">
                       Monday - Friday: 9:00 AM - 6:00 PM<br />
                       Saturday: 10:00 AM - 2:00 PM<br />
@@ -292,11 +292,11 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-[#10B981] mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div>
-                    <h3 className="text-lg font-semibold text-[#0F172A] mb-1">Company Details</h3>
+                    <h3 className="text-lg font-semibold text-primary mb-1">Company Details</h3>
                     <p className="text-gray-600">
                       Company No. 16542104<br />
                       Registered in England and Wales
@@ -323,13 +323,13 @@ export default function ContactPage() {
       {/* FAQ Quick Links */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-[#0F172A] mb-6">Looking for Quick Answers?</h2>
+          <h2 className="text-4xl font-bold text-primary mb-6">Looking for Quick Answers?</h2>
           <p className="text-xl text-gray-600 mb-10">
             Many common questions are answered in our Help Centre
           </p>
           <Link
             href="/help"
-            className="inline-flex items-center bg-[#10B981] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#059669] transition-colors"
+            className="inline-flex items-center bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors"
           >
             Visit Help Centre
             <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,23 +340,23 @@ export default function ContactPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0F172A] text-white py-12">
+      <footer className="bg-primary text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center mb-6">
             <Logo />
             <span className="ml-3 text-xl font-bold">Mintenance</span>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
-            <Link href="/" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/" className="text-gray-400 hover:text-secondary transition-colors">
               Home
             </Link>
-            <Link href="/about" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/about" className="text-gray-400 hover:text-secondary transition-colors">
               About Us
             </Link>
-            <Link href="/privacy" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/privacy" className="text-gray-400 hover:text-secondary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/terms" className="text-gray-400 hover:text-secondary transition-colors">
               Terms of Service
             </Link>
           </div>

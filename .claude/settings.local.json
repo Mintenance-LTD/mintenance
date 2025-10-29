@@ -45,7 +45,12 @@
       "Bash(for f in RateLimiter.ts circuitBreaker.ts cache.ts errorHandler.ts sanitize.ts)",
       "Bash(git log:*)",
       "Bash(git rm:*)",
-      "Bash(npx jest --listTests)"
+      "Bash(npx jest --listTests)",
+      "Bash(for:*)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then echo \"Processing $file...\" grep \"\\[#\" \"$file\")",
+      "Bash(do)",
+      "Bash(echo \"Processing: $file\")"
     ],
     "deny": [],
     "ask": []

@@ -3,14 +3,23 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const { csrfToken, loading: csrfLoading } = useCSRF();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!csrfToken) {
+      setStatus('error');
+      setErrorMessage('Security token not available. Please refresh the page.');
+      return;
+    }
+
     setStatus('submitting');
     setErrorMessage('');
 
@@ -19,6 +28,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({ email }),
       });
@@ -26,7 +36,14 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send reset email');
+        // Sanitize error messages
+        if (response.status === 429) {
+          throw new Error('Too many password reset requests. Please try again later.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. Please refresh the page and try again.');
+        } else {
+          throw new Error('Failed to send reset email. Please try again.');
+        }
       }
 
       setStatus('success');
@@ -37,7 +54,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] to-[#1e293b] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary-light flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -55,12 +72,12 @@ export default function ForgotPasswordPage() {
           {status === 'success' ? (
             // Success Message
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-[#0F172A] mb-3">Check Your Email</h2>
+              <h2 className="text-2xl font-bold text-primary mb-3">Check Your Email</h2>
               <p className="text-gray-600 mb-6">
                 We've sent a password reset link to <strong>{email}</strong>. Please check your inbox and follow the instructions.
               </p>
@@ -68,7 +85,7 @@ export default function ForgotPasswordPage() {
                 Didn't receive the email? Check your spam folder or{' '}
                 <button
                   onClick={() => setStatus('idle')}
-                  className="text-[#10B981] hover:underline font-medium"
+                  className="text-secondary hover:underline font-medium"
                 >
                   try again
                 </button>
@@ -76,7 +93,7 @@ export default function ForgotPasswordPage() {
               </p>
               <Link
                 href="/login"
-                className="inline-block w-full bg-[#10B981] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#059669] transition-colors"
+                className="inline-block w-full bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary-dark transition-colors"
               >
                 Back to Login
               </Link>
@@ -95,7 +112,7 @@ export default function ForgotPasswordPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  <label htmlFor="email" className="block text-sm font-semibold text-primary mb-2">
                     Email Address
                   </label>
                   <input
@@ -104,7 +121,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                     placeholder="you@example.com"
                     disabled={status === 'submitting'}
                   />
@@ -112,14 +129,14 @@ export default function ForgotPasswordPage() {
 
                 <button
                   type="submit"
-                  disabled={status === 'submitting'}
-                  className="w-full bg-[#10B981] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={status === 'submitting' || csrfLoading}
+                  className="w-full bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {status === 'submitting' ? 'Sending...' : 'Send Reset Link'}
+                  {csrfLoading ? 'Loading...' : status === 'submitting' ? 'Sending...' : 'Send Reset Link'}
                 </button>
 
                 <div className="text-center">
-                  <Link href="/login" className="text-sm text-gray-600 hover:text-[#10B981] transition-colors">
+                  <Link href="/login" className="text-sm text-gray-600 hover:text-secondary transition-colors">
                     ← Back to Login
                   </Link>
                 </div>
@@ -132,7 +149,7 @@ export default function ForgotPasswordPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-400">
             Don't have an account?{' '}
-            <Link href="/register" className="text-[#10B981] hover:underline font-medium">
+            <Link href="/register" className="text-secondary hover:underline font-medium">
               Sign up
             </Link>
           </p>
@@ -141,7 +158,7 @@ export default function ForgotPasswordPage() {
         {/* Security Notice */}
         <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-[#10B981] mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div>

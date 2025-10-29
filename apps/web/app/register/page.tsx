@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';
@@ -21,64 +22,61 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
+  const { csrfToken, loading: csrfLoading } = useCSRF();
 
   useEffect(() => {
-    console.log('🎯 RegisterPage component mounted');
     if (roleParam === 'contractor' || roleParam === 'homeowner') {
       setRole(roleParam);
     }
   }, [roleParam]);
 
-  useEffect(() => {
-    console.log('🔧 Component hydrated and ready');
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 Form submission started');
-    console.log('📝 Form data:', { email, firstName, lastName, phone, role });
-    
+
+    if (!csrfToken) {
+      setError('Security token not available. Please refresh the page.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const requestBody = {
-        email,
-        password,
-        firstName,
-        lastName,
-        phone,
-        role,
-      };
-      
-      console.log('📤 Sending request to /api/auth/register');
-      console.log('📦 Request body:', requestBody);
-      
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          phone,
+          role,
+        }),
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
-
       const data = await response.json();
-      console.log('📦 Response data:', data);
 
       if (!response.ok) {
-        console.log('❌ Registration failed:', data.error);
-        throw new Error(data.error || 'Registration failed');
+        // Sanitize error messages - don't expose system details
+        if (response.status === 429) {
+          throw new Error('Too many registration attempts. Please try again later.');
+        } else if (response.status === 400) {
+          throw new Error(data.error || 'Invalid registration data. Please check your information.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. Please refresh the page and try again.');
+        } else {
+          throw new Error('Registration failed. Please try again.');
+        }
       }
 
-      console.log('✅ Registration successful, redirecting to dashboard');
       router.push('/dashboard');
       router.refresh();
     } catch (err) {
-      console.log('❌ Registration error:', err);
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -273,10 +271,10 @@ function RegisterForm() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || csrfLoading}
                 className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                {csrfLoading ? 'Loading...' : loading ? 'Creating account...' : 'Create account'}
               </button>
             </div>
 

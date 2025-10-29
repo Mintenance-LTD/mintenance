@@ -31,7 +31,7 @@ export function ServicesSection() {
               height={48} 
               className="w-12 h-12" 
             />
-            <h2 className="text-4xl font-bold text-[#0F172A]">Popular Services</h2>
+            <h2 className="text-4xl font-bold text-primary">Popular Services</h2>
           </div>
           <p className="text-xl text-gray-600">
             Find skilled tradespeople for any home project
@@ -49,7 +49,7 @@ export function ServicesSection() {
               >
                 {service.icon}
               </div>
-              <h3 className="font-semibold text-[#0F172A]">{service.name}</h3>
+              <h3 className="font-semibold text-primary">{service.name}</h3>
             </div>
           ))}
         </div>

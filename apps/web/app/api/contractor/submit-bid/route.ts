@@ -91,17 +91,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate bid amount doesn't exceed job budget
-    if (job.budget && validatedData.bidAmount > job.budget) {
-      logger.warn('Bid amount exceeds job budget', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        bidAmount: validatedData.bidAmount,
-        jobBudget: job.budget,
-        contractorId: user.id
-      });
-      return NextResponse.json({
-        error: `Bid amount ($${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget ($${job.budget.toFixed(2)})`
-      }, { status: 400 });
+    // Convert to cents to avoid floating point precision errors
+    if (job.budget) {
+      const bidAmountCents = Math.round(validatedData.bidAmount * 100);
+      const budgetCents = Math.round(job.budget * 100);
+
+      if (bidAmountCents > budgetCents) {
+        logger.warn('Bid amount exceeds job budget', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          bidAmount: validatedData.bidAmount,
+          jobBudget: job.budget,
+          contractorId: user.id
+        });
+        return NextResponse.json({
+          error: `Bid amount ($${validatedData.bidAmount.toFixed(2)}) cannot exceed job budget ($${job.budget.toFixed(2)})`
+        }, { status: 400 });
+      }
     }
 
     // Check if contractor already has a bid on this job
