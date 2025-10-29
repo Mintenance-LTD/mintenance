@@ -26,7 +26,7 @@ export function LandingNavigation() {
               height={40} 
               className="w-10 h-10" 
             />
-            <span className="ml-3 text-xl font-bold text-[#0F172A]">
+            <span className="ml-3 text-xl font-bold text-primary">
               Mintenance
             </span>
           </div>
@@ -35,19 +35,19 @@ export function LandingNavigation() {
           <div className="flex items-center space-x-8">
             <a 
               href="#how-it-works" 
-              className="text-gray-700 hover:text-[#10B981] transition-colors"
+              className="text-gray-700 hover:text-secondary transition-colors"
             >
               How It Works
             </a>
             <a 
               href="#services" 
-              className="text-gray-700 hover:text-[#10B981] transition-colors"
+              className="text-gray-700 hover:text-secondary transition-colors"
             >
               Services
             </a>
             <a 
               href="#features" 
-              className="text-gray-700 hover:text-[#10B981] transition-colors"
+              className="text-gray-700 hover:text-secondary transition-colors"
             >
               Features
             </a>
@@ -57,13 +57,13 @@ export function LandingNavigation() {
           <div className="flex items-center space-x-4">
             <Link
               href="/login"
-              className="text-[#0F172A] hover:text-[#10B981] font-medium transition-colors"
+              className="text-primary hover:text-secondary font-medium transition-colors"
             >
               Log In
             </Link>
             <Link
               href="/register"
-              className="bg-[#10B981] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#059669] transition-colors"
+              className="bg-secondary text-white px-6 py-2 rounded-lg font-medium hover:bg-secondary-dark transition-colors"
             >
               Get Started
             </Link>

@@ -352,6 +352,29 @@ export class AuthService {
     }
 
     try {
+      // Validate tokens before restoring session
+      const tokenValidation = await this.validateToken(accessToken);
+
+      if (!tokenValidation.valid) {
+        logger.warn('Biometric token validation failed', {
+          error: tokenValidation.error,
+          errorType: tokenValidation.errorType || 'unknown',
+          userId: tokenValidation.userId || 'unknown',
+          tokenExpiry: tokenValidation.expiresAt ? new Date(tokenValidation.expiresAt * 1000).toISOString() : 'unknown',
+          currentTime: new Date().toISOString(),
+          service: 'auth'
+        });
+
+        // Provide more specific error message based on validation failure
+        const errorMessage = tokenValidation.errorType === 'expired'
+          ? 'Your session has expired. Please sign in again.'
+          : tokenValidation.errorType === 'invalid'
+          ? 'Invalid credentials detected. Please sign in again.'
+          : 'Stored credentials are invalid or expired. Please sign in again.';
+
+        throw new Error(errorMessage);
+      }
+
       const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -363,6 +386,17 @@ export class AuthService {
 
       const session = data.session;
       const user = await this.getCurrentUser();
+
+      // Additional security check: verify user exists and matches token
+      if (!user || user.id !== tokenValidation.userId) {
+        logger.error('User mismatch after biometric session restoration', {
+          expectedUserId: tokenValidation.userId,
+          actualUserId: user?.id,
+          service: 'auth'
+        });
+        throw new Error('Session restoration failed. Please sign in again.');
+      }
+
       return { user, session };
     } catch (error) {
       logger.error('Failed to restore session from biometric tokens', error);

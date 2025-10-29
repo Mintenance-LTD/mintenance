@@ -11,6 +11,7 @@ import { SkillsManagementModal } from './SkillsManagementModal';
 import { PhotoUploadModal } from './PhotoUploadModal';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface ContractorProfileClientProps {
   contractor: any;
@@ -46,9 +47,14 @@ export function ContractorProfileClient({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSkillsModal, setShowSkillsModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const { csrfToken } = useCSRF();
 
   const handleSaveProfile = async (data: any) => {
     try {
+      if (!csrfToken) {
+        throw new Error('Security token not available. Please refresh the page.');
+      }
+
       const formData = new FormData();
       formData.append('firstName', data.firstName);
       formData.append('lastName', data.lastName);
@@ -57,13 +63,16 @@ export function ContractorProfileClient({
       formData.append('country', data.country);
       formData.append('phone', data.phone);
       formData.append('isAvailable', data.isAvailable.toString());
-      
+
       if (data.profileImage) {
         formData.append('profileImage', data.profileImage);
       }
 
       const response = await fetch('/api/contractor/update-profile', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: formData,
       });
 
@@ -81,9 +90,16 @@ export function ContractorProfileClient({
 
   const handleSaveSkills = async (selectedSkills: string[]) => {
     try {
+      if (!csrfToken) {
+        throw new Error('Security token not available. Please refresh the page.');
+      }
+
       const response = await fetch('/api/contractor/manage-skills', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ skills: selectedSkills }),
       });
 

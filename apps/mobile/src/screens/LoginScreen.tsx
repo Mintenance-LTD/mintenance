@@ -306,49 +306,6 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 24,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.xxl,
-    backgroundColor: theme.colors.surface,
-    marginBottom: 20,
-    paddingHorizontal: 16,
-    height: 60,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    paddingVertical: 18,
-  },
-  loginButton: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: theme.borderRadius.xxl,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 32,
-    shadowColor: theme.colors.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    backgroundColor: theme.colors.textTertiary,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  loginButtonText: {
-    color: theme.colors.textInverse,
-    fontWeight: '600',
-  },
   linksContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -380,18 +337,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: 10,
   },
-  devButton: {
-    backgroundColor: theme.colors.textSecondary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    marginVertical: 4,
-  },
-  devButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 14,
-    fontWeight: '500',
+  devNote: {
     textAlign: 'center',
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });
 

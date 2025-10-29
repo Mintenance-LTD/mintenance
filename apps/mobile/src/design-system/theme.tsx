@@ -6,7 +6,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors } from './tokens';
+import {
+  colors,
+  typography,
+  spacing,
+  borderRadius,
+  shadows,
+  semanticColors,
+  componentSizes,
+} from './tokens';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // THEME TYPES
@@ -312,7 +321,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setThemeModeState(savedMode as ThemeMode);
         }
       } catch (error) {
-        console.warn('Failed to load theme preference:', error);
+        logger.warn('Failed to load theme preference:', error);
       }
     };
     loadThemeMode();
@@ -332,7 +341,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
       setThemeModeState(mode);
     } catch (error) {
-      console.warn('Failed to save theme preference:', error);
+      logger.warn('Failed to save theme preference:', error);
       setThemeModeState(mode); // Still update state even if save fails
     }
   };

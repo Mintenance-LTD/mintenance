@@ -8,7 +8,7 @@ import Image from 'next/image';
  */
 export function FooterSection() {
   return (
-    <footer id="footer" className="bg-[#0F172A] text-white" role="contentinfo">
+    <footer id="footer" className="bg-primary text-white" role="contentinfo">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Company Info */}
@@ -35,7 +35,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/register?role=homeowner" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Post a Job
                 </Link>
@@ -43,7 +43,7 @@ export function FooterSection() {
               <li>
                 <a 
                   href="#how-it-works" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   How It Works
                 </a>
@@ -51,7 +51,7 @@ export function FooterSection() {
               <li>
                 <a 
                   href="#services" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Browse Services
                 </a>
@@ -59,7 +59,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/contractors" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Find Tradespeople
                 </Link>
@@ -74,7 +74,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/register?role=contractor" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Join as a Tradesperson
                 </Link>
@@ -82,7 +82,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/jobs" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Find Jobs
                 </Link>
@@ -90,7 +90,7 @@ export function FooterSection() {
               <li>
                 <a 
                   href="#features" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Features & Benefits
                 </a>
@@ -98,7 +98,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/dashboard" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Business Dashboard
                 </Link>
@@ -106,7 +106,7 @@ export function FooterSection() {
               <li>
                 <a 
                   href="#" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Success Stories
                 </a>
@@ -121,7 +121,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/about" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   About Us
                 </Link>
@@ -129,7 +129,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/contact" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Contact
                 </Link>
@@ -137,7 +137,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/privacy" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -145,7 +145,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/terms" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Terms of Service
                 </Link>
@@ -153,7 +153,7 @@ export function FooterSection() {
               <li>
                 <Link 
                   href="/help" 
-                  className="text-gray-400 hover:text-[#10B981] transition-colors"
+                  className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Help Centre
                 </Link>

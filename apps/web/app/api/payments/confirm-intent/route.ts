@@ -83,8 +83,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Update escrow transaction status
-    const { data: escrowTransaction, error: escrowError } = await serverSupabase
+    // Get current escrow transaction for optimistic locking
+    const { data: currentEscrow, error: fetchError } = await serverSupabase
+      .from('escrow_transactions')
+      .select('*')
+      .eq('payment_intent_id', paymentIntentId)
+      .eq('job_id', jobId)
+      .single();
+
+    if (fetchError || !currentEscrow) {
+      logger.error('Escrow transaction not found', fetchError, {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId
+      });
+      return NextResponse.json(
+        { error: 'Escrow transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update escrow transaction status with optimistic locking
+    const originalUpdatedAt = currentEscrow.updated_at;
+    const { data: updatedEscrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: 'held',
@@ -92,6 +114,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('payment_intent_id', paymentIntentId)
       .eq('job_id', jobId)
+      .eq('updated_at', originalUpdatedAt) // Optimistic lock
       .select()
       .single();
 
@@ -107,6 +130,22 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Check if update succeeded (optimistic lock check)
+    if (!updatedEscrow) {
+      logger.warn('Escrow confirmation failed - transaction was modified by another request (race condition)', {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId
+      });
+      return NextResponse.json(
+        { error: 'This escrow transaction was modified by another request. Please try again.' },
+        { status: 409 }
+      );
+    }
+
+    const escrowTransaction = updatedEscrow;
 
     logger.info('Payment confirmed and escrow updated', {
       service: 'payments',

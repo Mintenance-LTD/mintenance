@@ -22,7 +22,7 @@ export function HowItWorksSection() {
           <div className="w-full h-full bg-white rounded-[1.5rem] overflow-hidden">
             <div className="p-3">
               <div className="text-center mb-3">
-                <h4 className="text-sm font-bold text-[#0F172A]">Post a Job</h4>
+                <h4 className="text-sm font-bold text-primary">Post a Job</h4>
               </div>
               <div className="space-y-2">
                 <div className="bg-gray-100 rounded p-2">
@@ -33,7 +33,7 @@ export function HowItWorksSection() {
                   <p className="text-xs font-semibold">Budget: £100-£200</p>
                   <p className="text-xs text-gray-600">Location: London</p>
                 </div>
-                <button className="w-full bg-[#10B981] text-white text-xs py-2 rounded">Post Job</button>
+                <button className="w-full bg-secondary text-white text-xs py-2 rounded">Post Job</button>
               </div>
             </div>
           </div>
@@ -64,7 +64,7 @@ export function HowItWorksSection() {
                   </div>
                   <span className="text-xs font-semibold">{quote.name}</span>
                 </div>
-                <span className="text-xs text-[#10B981] font-bold">{quote.price}</span>
+                <span className="text-xs text-secondary font-bold">{quote.price}</span>
               </div>
               <p className="text-xs text-gray-600">{quote.availability}</p>
             </div>
@@ -85,7 +85,7 @@ export function HowItWorksSection() {
       mockup: (
         <div className="bg-white rounded-lg p-4 shadow-lg border mx-auto max-w-xs">
           <div className="text-center mb-3">
-            <h4 className="text-sm font-semibold text-[#0F172A]">Job Progress</h4>
+            <h4 className="text-sm font-semibold text-primary">Job Progress</h4>
             <p className="text-xs text-gray-600">Kitchen tap repair</p>
           </div>
           <div className="space-y-2">
@@ -95,7 +95,7 @@ export function HowItWorksSection() {
               { label: 'Work in progress', done: false },
             ].map((step, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${step.done ? 'bg-[#10B981]' : 'bg-[#F59E0B]'}`}>
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${step.done ? 'bg-secondary' : 'bg-accent'}`}>
                   <span className="text-white text-xs">{step.done ? '✓' : '⚡'}</span>
                 </div>
                 <span className="text-xs">{step.label}</span>
@@ -113,7 +113,7 @@ export function HowItWorksSection() {
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
             <Image src="/assets/icon.png" alt="Mintenance" width={48} height={48} className="w-12 h-12" />
-            <h2 className="text-4xl font-bold text-[#0F172A]">How It Works</h2>
+            <h2 className="text-4xl font-bold text-primary">How It Works</h2>
           </div>
           <p className="text-xl text-gray-600">Getting started is simple and straightforward</p>
         </div>
@@ -123,7 +123,7 @@ export function HowItWorksSection() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10" style={{ backgroundColor: step.color }}>
                 {step.icon}
               </div>
-              <h3 className="text-2xl font-semibold text-[#0F172A] mb-3">{step.number}. {step.title}</h3>
+              <h3 className="text-2xl font-semibold text-primary mb-3">{step.number}. {step.title}</h3>
               <p className="text-gray-600 mb-6">{step.description}</p>
               {step.mockup}
             </div>

@@ -9,7 +9,7 @@ import Image from 'next/image';
  */
 export function HeroSection() {
   return (
-    <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0F172A] to-[#1e293b] relative overflow-hidden" role="banner">
+    <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light relative overflow-hidden" role="banner">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Text Content */}
@@ -17,7 +17,7 @@ export function HeroSection() {
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Find Trusted Tradespeople
               <br />
-              <span className="text-[#10B981]">For Your Home</span>
+              <span className="text-secondary">For Your Home</span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0">
               Connect with verified, skilled tradespeople in your area. Post your job, receive competitive quotes, and get the work done right.
@@ -25,13 +25,13 @@ export function HeroSection() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 href="/register?role=homeowner"
-                className="bg-[#10B981] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#059669] transition-colors"
+                className="bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors"
               >
                 I Need a Tradesperson
               </Link>
               <Link
                 href="/register?role=contractor"
-                className="bg-white text-[#0F172A] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors"
+                className="bg-white text-primary px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors"
               >
                 I'm a Tradesperson
               </Link>
@@ -56,7 +56,7 @@ export function HeroSection() {
                 {/* App Content */}
                 <div className="p-4">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-bold text-[#0F172A]">Find Contractors</h3>
+                    <h3 className="text-lg font-bold text-primary">Find Contractors</h3>
                     <p className="text-sm text-gray-600">Near you</p>
                   </div>
                   
@@ -76,7 +76,7 @@ export function HeroSection() {
                             <h4 className="font-semibold text-sm">{contractor.name}</h4>
                             <p className="text-xs text-gray-600">{contractor.role} • {contractor.rating}★</p>
                           </div>
-                          <button className="bg-[#10B981] text-white px-3 py-1 rounded text-xs">Contact</button>
+                          <button className="bg-secondary text-white px-3 py-1 rounded text-xs">Contact</button>
                         </div>
                       </div>
                     ))}
@@ -88,7 +88,7 @@ export function HeroSection() {
             {/* Floating UI Elements */}
             <div className="absolute -top-4 -left-8 bg-white rounded-lg p-3 shadow-lg border max-w-xs float-animation float-delay-1">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-[#10B981] rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
                 </div>
                 <div className="flex-1">
@@ -101,18 +101,18 @@ export function HeroSection() {
             <div className="absolute -bottom-8 -right-8 bg-white rounded-lg p-4 shadow-lg border max-w-xs float-animation float-delay-2">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold">Quote Received</h4>
-                <span className="text-xs text-[#10B981]">£150</span>
+                <span className="text-xs text-secondary">£150</span>
               </div>
               <p className="text-xs text-gray-600 mb-2">Kitchen tap repair</p>
               <div className="flex space-x-2">
-                <button className="flex-1 bg-[#10B981] text-white text-xs py-1 rounded">Accept</button>
+                <button className="flex-1 bg-secondary text-white text-xs py-1 rounded">Accept</button>
                 <button className="flex-1 bg-gray-200 text-gray-700 text-xs py-1 rounded">Decline</button>
               </div>
             </div>
 
             <div className="absolute top-1/2 -right-12 bg-white rounded-lg p-3 shadow-lg border float-animation float-delay-3">
               <div className="text-center">
-                <div className="w-8 h-8 bg-[#F59E0B] rounded-full flex items-center justify-center mx-auto mb-2">
+                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white text-xs">⚡</span>
                 </div>
                 <p className="text-xs font-semibold">Job Started</p>

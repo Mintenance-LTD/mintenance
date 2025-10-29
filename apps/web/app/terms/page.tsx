@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/" className="flex items-center space-x-2">
             <Logo />
-            <span className="text-2xl font-bold text-[#0F172A]">Mintenance</span>
+            <span className="text-2xl font-bold text-primary">Mintenance</span>
           </Link>
         </div>
       </header>
@@ -304,7 +304,7 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Contact */}
-            <section className="mb-8 bg-[#F0FDF4] p-6 rounded-lg border-l-4 border-[#10B981]">
+            <section className="mb-8 bg-green-50 p-6 rounded-lg border-l-4 border-secondary">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">16. Contact Information</h2>
               <p className="text-gray-700 leading-relaxed mb-4">
                 Questions about these Terms? Contact us:
@@ -329,7 +329,7 @@ export default function TermsOfServicePage() {
           <div className="mt-12 pt-8 border-t border-gray-200">
             <Link
               href="/"
-              className="inline-flex items-center text-[#10B981] hover:text-[#059669] font-medium transition-colors"
+              className="inline-flex items-center text-secondary hover:text-secondary-dark font-medium transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -341,7 +341,7 @@ export default function TermsOfServicePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#0F172A] text-white py-8 mt-16">
+      <footer className="bg-primary text-white py-8 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
           <p>© {new Date().getFullYear()} MINTENANCE LTD. All rights reserved.</p>
           <p className="mt-2 text-gray-400">Company No. 16542104 | Registered in England and Wales</p>

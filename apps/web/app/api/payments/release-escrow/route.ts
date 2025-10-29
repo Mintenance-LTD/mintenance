@@ -6,6 +6,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
+import { requireCSRF } from '@/lib/csrf';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -22,6 +23,9 @@ const releaseEscrowSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -224,6 +228,19 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    // Handle CSRF validation errors specifically
+    if (error instanceof Error && error.message === 'CSRF validation failed') {
+      logger.warn('CSRF validation failed', {
+        service: 'payments',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+
     logger.error('Error releasing escrow', error, { service: 'payments' });
 
     if (error instanceof Stripe.errors.StripeError) {

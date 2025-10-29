@@ -137,11 +137,11 @@ export default function HelpCentrePage() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center">
               <Logo />
-              <span className="ml-3 text-xl font-bold text-[#0F172A]">Mintenance</span>
+              <span className="ml-3 text-xl font-bold text-primary">Mintenance</span>
             </Link>
             <Link
               href="/"
-              className="text-gray-700 hover:text-[#10B981] transition-colors"
+              className="text-gray-700 hover:text-secondary transition-colors"
             >
               ← Back to Home
             </Link>
@@ -150,7 +150,7 @@ export default function HelpCentrePage() {
       </nav>
 
       {/* Hero Section with Search */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#0F172A] to-[#1e293b]">
+      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
             How Can We Help?
@@ -166,7 +166,7 @@ export default function HelpCentrePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for help articles..."
-              className="w-full px-6 py-4 pl-14 pr-4 rounded-xl text-lg border-2 border-transparent focus:border-[#10B981] focus:outline-none"
+              className="w-full px-6 py-4 pl-14 pr-4 rounded-xl text-lg border-2 border-transparent focus:border-secondary focus:outline-none"
             />
             <svg
               className="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400"
@@ -190,15 +190,15 @@ export default function HelpCentrePage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-[#10B981] mb-2">150+</div>
+              <div className="text-4xl font-bold text-secondary mb-2">150+</div>
               <div className="text-gray-600">Help Articles</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#10B981] mb-2">9</div>
+              <div className="text-4xl font-bold text-secondary mb-2">9</div>
               <div className="text-gray-600">Categories</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-[#10B981] mb-2">24/7</div>
+              <div className="text-4xl font-bold text-secondary mb-2">24/7</div>
               <div className="text-gray-600">Support Available</div>
             </div>
           </div>
@@ -208,13 +208,13 @@ export default function HelpCentrePage() {
       {/* Categories Grid */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-[#0F172A] mb-12 text-center">Browse by Category</h2>
+          <h2 className="text-4xl font-bold text-primary mb-12 text-center">Browse by Category</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCategories.map((category) => (
               <div
                 key={category.id}
-                className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-[#10B981] transition-all cursor-pointer"
+                className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-secondary transition-all cursor-pointer"
                 onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
               >
                 <div className="flex items-center mb-4">
@@ -225,7 +225,7 @@ export default function HelpCentrePage() {
                     {category.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-[#0F172A]">{category.name}</h3>
+                    <h3 className="text-xl font-semibold text-primary">{category.name}</h3>
                     <p className="text-sm text-gray-600">{category.articles.length} articles</p>
                   </div>
                   <svg
@@ -245,7 +245,7 @@ export default function HelpCentrePage() {
                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
                     {category.articles.map((article, index) => (
                       <div key={index} className="group">
-                        <h4 className="font-medium text-[#0F172A] group-hover:text-[#10B981] transition-colors mb-1">
+                        <h4 className="font-medium text-primary group-hover:text-secondary transition-colors mb-1">
                           {article.title}
                         </h4>
                         <p className="text-sm text-gray-600">{article.content}</p>
@@ -282,7 +282,7 @@ export default function HelpCentrePage() {
       {/* Popular Articles */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-[#0F172A] mb-12 text-center">Most Popular Articles</h2>
+          <h2 className="text-4xl font-bold text-primary mb-12 text-center">Most Popular Articles</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
@@ -298,10 +298,10 @@ export default function HelpCentrePage() {
                 className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-[#0F172A] flex-1">{article.title}</h3>
+                  <h3 className="text-lg font-semibold text-primary flex-1">{article.title}</h3>
                   <span className="text-sm text-gray-500 ml-4">{article.views} views</span>
                 </div>
-                <p className="text-sm text-[#10B981] font-medium">{article.category}</p>
+                <p className="text-sm text-secondary font-medium">{article.category}</p>
               </div>
             ))}
           </div>
@@ -309,7 +309,7 @@ export default function HelpCentrePage() {
       </section>
 
       {/* Contact Support CTA */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#10B981] to-[#059669]">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-secondary to-secondary-dark">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Still Need Help?
@@ -320,14 +320,14 @@ export default function HelpCentrePage() {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link
               href="/contact"
-              className="bg-white text-[#10B981] px-10 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg inline-flex items-center justify-center"
+              className="bg-white text-secondary px-10 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg inline-flex items-center justify-center"
             >
               Contact Support
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
-            <button className="bg-[#0F172A] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1e293b] transition-colors shadow-lg inline-flex items-center justify-center">
+            <button className="bg-primary text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-primary-light transition-colors shadow-lg inline-flex items-center justify-center">
               Start Live Chat
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -343,26 +343,26 @@ export default function HelpCentrePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0F172A] text-white py-12">
+      <footer className="bg-primary text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center mb-6">
             <Logo />
             <span className="ml-3 text-xl font-bold">Mintenance</span>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
-            <Link href="/" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/" className="text-gray-400 hover:text-secondary transition-colors">
               Home
             </Link>
-            <Link href="/about" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/about" className="text-gray-400 hover:text-secondary transition-colors">
               About Us
             </Link>
-            <Link href="/contact" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/contact" className="text-gray-400 hover:text-secondary transition-colors">
               Contact
             </Link>
-            <Link href="/privacy" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/privacy" className="text-gray-400 hover:text-secondary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-[#10B981] transition-colors">
+            <Link href="/terms" className="text-gray-400 hover:text-secondary transition-colors">
               Terms of Service
             </Link>
           </div>

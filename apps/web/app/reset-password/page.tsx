@@ -83,7 +83,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] to-[#1e293b] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary-light flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -101,12 +101,12 @@ function ResetPasswordForm() {
           {status === 'success' ? (
             // Success Message
             <div className="text-center">
-              <div className="w-16 h-16 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-[#0F172A] mb-3">Password Reset Successful!</h2>
+              <h2 className="text-2xl font-bold text-primary mb-3">Password Reset Successful!</h2>
               <p className="text-gray-600 mb-6">
                 Your password has been reset. Redirecting you to login...
               </p>
@@ -125,7 +125,7 @@ function ResetPasswordForm() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="password" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  <label htmlFor="password" className="block text-sm font-semibold text-primary mb-2">
                     New Password
                   </label>
                   <input
@@ -135,14 +135,14 @@ function ResetPasswordForm() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                     placeholder="Enter new password (min 8 characters)"
                     disabled={status === 'submitting' || !accessToken}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-primary mb-2">
                     Confirm New Password
                   </label>
                   <input
@@ -152,7 +152,7 @@ function ResetPasswordForm() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
                     placeholder="Confirm new password"
                     disabled={status === 'submitting' || !accessToken}
                   />
@@ -161,13 +161,13 @@ function ResetPasswordForm() {
                 <button
                   type="submit"
                   disabled={status === 'submitting' || !accessToken}
-                  className="w-full bg-[#10B981] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {status === 'submitting' ? 'Resetting...' : 'Reset Password'}
                 </button>
 
                 <div className="text-center">
-                  <Link href="/login" className="text-sm text-gray-600 hover:text-[#10B981] transition-colors">
+                  <Link href="/login" className="text-sm text-gray-600 hover:text-secondary transition-colors">
                     ← Back to Login
                   </Link>
                 </div>
@@ -179,7 +179,7 @@ function ResetPasswordForm() {
         {/* Security Notice */}
         <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-[#10B981] mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div>

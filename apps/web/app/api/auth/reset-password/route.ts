@@ -2,12 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateRequest } from '@/lib/validation/validator';
 import { passwordUpdateSchema } from '@/lib/validation/schemas';
+import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
-    // Note: We could add rate limiting here too, but the access token
-    // already provides security since it's one-time use and expires
+    // Rate limiting to prevent abuse
+    const rateLimitResult = await checkPasswordResetRateLimit(request);
+
+    if (!rateLimitResult.allowed) {
+      const headers = createRateLimitHeaders(rateLimitResult);
+      logger.warn('Password reset rate limit exceeded', {
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Too many password reset attempts. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers
+        }
+      );
+    }
 
     const body = await request.json();
     const { accessToken } = body;
