@@ -36,7 +36,7 @@ const jobSelectFields = `
   location,
   created_at,
   updated_at,
-  homeowner:users!homeowner_id(id,first_name,last_name,email),
+  homeowner:users!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:users!contractor_id(id,first_name,last_name,email),
   bids(count)
 `.replace(/\s+/g, ' ').trim();
@@ -46,6 +46,7 @@ type UserData = {
   first_name: string;
   last_name: string;
   email: string;
+  profile_image_url?: string | null;
 };
 
 type JobAttachment = {
@@ -232,7 +233,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = createJobSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      // Convert field errors object to a readable string message
+      const errorMessages = Object.entries(fieldErrors)
+        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+        .join('; ');
+      logger.error('Job creation validation failed', {
+        service: 'jobs',
+        userId: user.id,
+        errors: fieldErrors,
+      });
+      return NextResponse.json({ 
+        error: errorMessages || 'Validation failed',
+        details: fieldErrors 
+      }, { status: 400 });
     }
 
     const payload = parsed.data;
@@ -261,22 +275,68 @@ export async function POST(request: NextRequest) {
     if (payload.location !== undefined) {
       insertPayload.location = payload.location?.trim() ?? null;
     }
+    // Only include required_skills if provided - column may not exist in all environments
     if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
       insertPayload.required_skills = payload.requiredSkills;
     }
 
-    const { data, error } = await serverSupabase
+    let data: any;
+    let error: any;
+    
+    // Try insert with required_skills first
+    let result = await serverSupabase
       .from('jobs')
       .insert(insertPayload)
       .select(jobSelectFields)
       .single();
+    
+    data = result.data;
+    error = result.error;
+
+    // If insert fails due to missing required_skills column, retry without it
+    if (error && insertPayload.required_skills && (
+      error.message?.includes('required_skills') || 
+      error.code === '42703' || // undefined_column
+      error.message?.includes('column') && error.message?.includes('required_skills')
+    )) {
+      logger.warn('Required_skills column not found, retrying without it', {
+        service: 'jobs',
+        userId: user.id,
+        originalError: error.message,
+      });
+      
+      // Remove required_skills and retry
+      const { required_skills, ...payloadWithoutSkills } = insertPayload;
+      result = await serverSupabase
+        .from('jobs')
+        .insert(payloadWithoutSkills)
+        .select(jobSelectFields)
+        .single();
+      
+      data = result.data;
+      error = result.error;
+      
+      if (!error) {
+        logger.info('Job created successfully without required_skills column', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: data?.id,
+        });
+      }
+    }
 
     if (error || !data) {
       logger.error('Failed to create job', error, {
         service: 'jobs',
-        userId: user.id
+        userId: user.id,
+        errorDetails: error,
+        insertPayload,
       });
-      return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+      const errorMessage = error?.message || 'Failed to create job';
+      return NextResponse.json({ 
+        error: errorMessage,
+        details: error 
+      }, { status: 500 });
     }
 
     const jobRow = data as unknown as JobRow;
@@ -323,6 +383,141 @@ export async function POST(request: NextRequest) {
       title: job.title,
       photoCount: payload.photoUrls?.length || 0,
     });
+
+    // Notify nearby contractors about the new job
+    if (job.location) {
+      try {
+        // Geocode the job location to get lat/lng using Google Maps API directly
+        let jobLat: number | null = null;
+        let jobLng: number | null = null;
+        
+        const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+        if (apiKey) {
+          // Handle both string and { lat, lng } formats
+          if (typeof job.location === 'string') {
+            const encodedAddress = encodeURIComponent(job.location);
+            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+            
+            const geocodeResponse = await fetch(geocodeUrl);
+            const geocodeData = await geocodeResponse.json();
+            
+            if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
+              const location = geocodeData.results[0].geometry.location;
+              jobLat = location.lat;
+              jobLng = location.lng;
+            }
+          } else if (typeof job.location === 'object' && job.location !== null && 'lat' in job.location && 'lng' in job.location) {
+            jobLat = job.location.lat;
+            jobLng = job.location.lng;
+          }
+        }
+
+        // Only proceed if we have coordinates
+        if (jobLat && jobLng) {
+          // Calculate distance between two points using Haversine formula
+          const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = ((lat2 - lat1) * Math.PI) / 180;
+            const dLon = ((lon2 - lon1) * Math.PI) / 180;
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+          };
+
+          // Fetch all contractors with location data
+          const { data: contractors, error: contractorsError } = await serverSupabase
+            .from('users')
+            .select('id, first_name, last_name, latitude, longitude, is_available')
+            .eq('role', 'contractor')
+            .not('latitude', 'is', null)
+            .not('longitude', 'is', null)
+            .eq('is_available', true);
+
+          if (!contractorsError && contractors && contractors.length > 0) {
+            // Find contractors within 25km radius
+            const nearbyContractors = contractors.filter((contractor: any) => {
+              const distance = calculateDistance(jobLat!, jobLng!, contractor.latitude, contractor.longitude);
+              return distance <= 25; // 25km radius
+            });
+
+            // If job has required skills, filter contractors by skills
+            let contractorsToNotify = nearbyContractors;
+            if (insertPayload.required_skills && insertPayload.required_skills.length > 0) {
+              // Get contractor skills
+              const contractorIds = nearbyContractors.map((c: any) => c.id);
+              const { data: contractorSkills } = await serverSupabase
+                .from('contractor_skills')
+                .select('contractor_id, skill_name')
+                .in('contractor_id', contractorIds);
+
+              // Filter to only contractors with matching skills
+              const contractorsWithMatchingSkills = nearbyContractors.filter((contractor: any) => {
+                const contractorSkillNames = (contractorSkills || [])
+                  .filter((cs: any) => cs.contractor_id === contractor.id)
+                  .map((cs: any) => cs.skill_name);
+                
+                // Check if contractor has at least one matching skill
+                return insertPayload.required_skills!.some(skill => contractorSkillNames.includes(skill));
+              });
+
+              contractorsToNotify = contractorsWithMatchingSkills.length > 0 
+                ? contractorsWithMatchingSkills 
+                : nearbyContractors; // If no matches, notify all nearby contractors
+            }
+
+            // Create notifications for matching contractors
+            if (contractorsToNotify.length > 0) {
+              const notifications = contractorsToNotify.map((contractor: any) => {
+                const budgetText = insertPayload.budget ? `£${insertPayload.budget.toLocaleString()}` : 'Negotiable';
+                const skillsText = insertPayload.required_skills && insertPayload.required_skills.length > 0
+                  ? `Requires: ${insertPayload.required_skills.join(', ')}. `
+                  : '';
+                
+                return {
+                  user_id: contractor.id,
+                  title: 'New Job Near You',
+                  message: `New job "${job.title}" posted near you. ${skillsText}Budget: ${budgetText}`,
+                  type: 'job_nearby',
+                  read: false,
+                  action_url: `/jobs/${job.id}`,
+                  created_at: new Date().toISOString(),
+                };
+              });
+
+              const { error: notificationError } = await serverSupabase
+                .from('notifications')
+                .insert(notifications);
+
+              if (notificationError) {
+                console.error('[Job Create] Failed to create job_nearby notifications', {
+                  service: 'jobs',
+                  jobId: job.id,
+                  error: notificationError.message,
+                });
+              } else {
+                console.log('[Job Create] Created job_nearby notifications', {
+                  service: 'jobs',
+                  jobId: job.id,
+                  contractorCount: notifications.length,
+                });
+              }
+            }
+          }
+        }
+      } catch (notifyError) {
+        // Don't fail job creation if notification fails
+        console.error('[Job Create] Error creating job_nearby notifications', {
+          service: 'jobs',
+          jobId: job.id,
+          error: notifyError instanceof Error ? notifyError.message : 'Unknown error',
+        });
+      }
+    }
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {

@@ -11,6 +11,8 @@ export interface User {
   updated_at: string;
   email_verified?: boolean;
   phone?: string;
+  location?: string;
+  profile_image_url?: string;
   // Computed fields for backward compatibility
   firstName?: string;
   lastName?: string;

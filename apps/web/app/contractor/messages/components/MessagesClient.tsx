@@ -11,6 +11,8 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { MessagingService } from '@/lib/services/MessagingService';
 import type { MessageThread, User } from '@mintenance/types';
 import dynamic from 'next/dynamic';
+import { ActiveContractCard } from './ActiveContractCard';
+import { CreateContractModal } from './CreateContractModal';
 
 // Dynamic import for ConversationCard to reduce initial bundle size
 const ConversationCard = dynamic(() => import('@/components/messaging/ConversationCard').then(mod => ({ default: mod.ConversationCard })), {
@@ -18,12 +20,32 @@ const ConversationCard = dynamic(() => import('@/components/messaging/Conversati
   ssr: false
 });
 
+interface ActiveJob {
+  id: string;
+  title: string;
+  homeowner: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    profile_image_url: string | null;
+  };
+  contract: {
+    id: string;
+    status: string;
+    contractor_signed_at: string | null;
+    homeowner_signed_at: string | null;
+  } | null;
+}
+
 export function MessagesClient() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<MessageThread[]>([]);
+  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedJobForContract, setSelectedJobForContract] = useState<string | null>(null);
 
   // Set page title
   useEffect(() => {
@@ -45,8 +67,55 @@ export function MessagesClient() {
       }
 
       setUser(currentUser);
+      
+      // Load conversations
       const userConversations = await MessagingService.getUserMessageThreads(currentUser.id);
-      setConversations(userConversations);
+      // Sort conversations by most recent message first
+      const sortedConversations = [...userConversations].sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return bTime - aTime; // Most recent first
+      });
+      setConversations(sortedConversations);
+
+      // Load active jobs (assigned jobs for contractor)
+      try {
+        const jobsResponse = await fetch('/api/jobs?status[]=assigned&limit=50');
+        if (jobsResponse.ok) {
+          const jobsData = await jobsResponse.json();
+          const jobs = jobsData.jobs || [];
+
+          // For each job, fetch contract info
+          const jobsWithContracts = await Promise.all(
+            jobs.map(async (job: any) => {
+              const contractResponse = await fetch(`/api/contracts?job_id=${job.id}`);
+              let contract = null;
+              if (contractResponse.ok) {
+                const contractData = await contractResponse.json();
+                contract = contractData.contracts?.[0] || null;
+              }
+
+              return {
+                id: job.id,
+                title: job.title,
+                homeowner: {
+                  id: job.homeowner_id,
+                  first_name: job.homeowner?.first_name || '',
+                  last_name: job.homeowner?.last_name || '',
+                  email: job.homeowner?.email || '',
+                  profile_image_url: job.homeowner?.profile_image_url || null,
+                },
+                contract,
+              };
+            })
+          );
+
+          setActiveJobs(jobsWithContracts);
+        }
+      } catch (err) {
+        console.error('Error loading active jobs:', err);
+        // Don't fail the whole page if jobs fail to load
+      }
     } catch (err) {
       console.error('Error loading messages:', err);
       setError('Failed to load messages');
@@ -207,6 +276,56 @@ export function MessagesClient() {
         </div>
       </div>
 
+      {/* Active Contracts Section */}
+      {!loading && !error && activeJobs.length > 0 && (
+        <div style={{
+          backgroundColor: theme.colors.white,
+          borderRadius: theme.borderRadius.lg,
+          boxShadow: theme.shadows.sm,
+          marginBottom: theme.spacing[6],
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: theme.spacing[6],
+            borderBottom: `1px solid ${theme.colors.border}`,
+          }}>
+            <h2 style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              margin: 0,
+              marginBottom: theme.spacing[1],
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+            }}>
+              <Icon name="briefcase" size={24} color={theme.colors.primary} />
+              Active Contracts
+            </h2>
+            <p style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              margin: 0,
+            }}>
+              Manage your accepted jobs and create contracts
+            </p>
+          </div>
+          <div>
+            {activeJobs.map((job) => (
+              <ActiveContractCard
+                key={job.id}
+                job={job}
+                contract={job.contract}
+                onCreateContract={() => setSelectedJobForContract(job.id)}
+                onViewMessages={() => {
+                  router.push(`/messages/${job.id}?userId=${job.homeowner.id}&userName=${encodeURIComponent(`${job.homeowner.first_name} ${job.homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title)}`);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages Content */}
       <div style={{
         backgroundColor: theme.colors.white,
@@ -351,6 +470,17 @@ export function MessagesClient() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create Contract Modal */}
+      {selectedJobForContract && (
+        <CreateContractModal
+          isOpen={!!selectedJobForContract}
+          onClose={() => setSelectedJobForContract(null)}
+          jobId={selectedJobForContract}
+          jobTitle={activeJobs.find(j => j.id === selectedJobForContract)?.title || 'Contract'}
+          onContractCreated={loadUserAndMessages}
+        />
       )}
     </div>
   );

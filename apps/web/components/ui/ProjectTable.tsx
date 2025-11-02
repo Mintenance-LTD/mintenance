@@ -15,9 +15,11 @@ interface Project {
 
 interface ProjectTableProps {
   projects: Project[];
+  jobUrlPattern?: string; // e.g., '/jobs/{id}' or '/contractor/jobs/{id}'
 }
 
-export function ProjectTable({ projects }: ProjectTableProps) {
+export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: ProjectTableProps) {
+  const getUrl = (id: string) => jobUrlPattern.replace('{id}', id);
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
       case 'completed':
@@ -170,7 +172,7 @@ export function ProjectTable({ projects }: ProjectTableProps) {
                     }}
                   >
                     <Link
-                      href={`/jobs/${project.id}`}
+                      href={getUrl(project.id)}
                       style={{
                         textDecoration: 'none',
                         color: theme.colors.textPrimary,

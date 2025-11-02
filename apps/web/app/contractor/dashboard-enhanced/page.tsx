@@ -395,7 +395,10 @@ export default async function EnhancedDashboardPage() {
 
           {/* Project Table */}
           <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
-            <ProjectTableDynamic projects={projectTableData} />
+            <ProjectTableDynamic 
+              projects={projectTableData} 
+              jobUrlPattern="/contractor/jobs/{id}"
+            />
           </div>
         </ResponsiveGrid>
 
@@ -403,7 +406,10 @@ export default async function EnhancedDashboardPage() {
         <ResponsiveGrid className="tasks-actions-grid" style={{ gap: theme.spacing[5] }}>
           {/* Today Tasks */}
           <div style={{ minHeight: '420px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-            <TodayTasksDynamic tasks={todayTasks} />
+            <TodayTasksDynamic 
+              tasks={todayTasks} 
+              taskUrlPattern="/contractor/jobs/{id}"
+            />
           </div>
 
           {/* Quick Actions */}

@@ -52,12 +52,6 @@ export default function ContractorBidsPage() {
   const [allBids, setAllBids] = useState<BidWithJob[]>([]); // Store all bids to check against jobs
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>('available');
-  
-  // Safety check for theme
-  if (!theme || !theme.colors || !theme.spacing || !theme.typography) {
-    console.error('Theme is not properly initialized');
-    return <div>Loading...</div>;
-  }
 
   useEffect(() => {
     document.title = 'Jobs & Bids | Mintenance';
@@ -150,8 +144,13 @@ export default function ContractorBidsPage() {
       const safeBids = Array.isArray(bids) ? bids : [];
       const safeAllBids = Array.isArray(allBids) ? allBids : [];
       
-      // Early return if critical data is missing
-      if (!safeJobs || !safeBids || !safeAllBids) {
+      // Double-check all are arrays (defensive programming)
+      if (!Array.isArray(safeJobs) || !Array.isArray(safeBids) || !Array.isArray(safeAllBids)) {
+        console.warn('Invalid input arrays in filteredJobs useMemo', { 
+          jobs: typeof jobs, 
+          bids: typeof bids, 
+          allBids: typeof allBids 
+        });
         return [];
       }
       
@@ -241,11 +240,19 @@ export default function ContractorBidsPage() {
   const safeJobsArray = Array.isArray(jobs) ? jobs : [];
   const safeBidsArray = Array.isArray(bids) ? bids : [];
   const safeAllBidsArray = Array.isArray(allBids) ? allBids : [];
+  
+  // Defensive check: ensure all arrays are valid before accessing length
+  const jobsLength = Array.isArray(safeJobsArray) ? safeJobsArray.length : 0;
+  const allBidsLength = Array.isArray(safeAllBidsArray) ? safeAllBidsArray.length : 0;
+  
   const summaryCards = [
-    { label: 'Jobs available', value: safeJobsArray.length },
-    { label: 'Recommended for you', value: Math.min(5, safeJobsArray.length) },
-    { label: 'Saved bids', value: safeAllBidsArray.length }, // Use allBids instead of bids to show count regardless of filter
+    { label: 'Jobs available', value: jobsLength },
+    { label: 'Recommended for you', value: Math.min(5, jobsLength) },
+    { label: 'Saved bids', value: allBidsLength }, // Use allBids instead of bids to show count regardless of filter
   ];
+  
+  // Ensure summaryCards is always an array
+  const safeSummaryCards = Array.isArray(summaryCards) ? summaryCards : [];
 
   const handleBidClick = (jobId: string) => {
     router.push(`/contractor/bid/${jobId}`);
@@ -254,6 +261,12 @@ export default function ContractorBidsPage() {
   const handleCardClick = (jobId: string) => {
     router.push(`/contractor/bid/${jobId}`);
   };
+
+  // Safety check for theme
+  if (!theme || !theme.colors || !theme.spacing || !theme.typography) {
+    console.error('Theme is not properly initialized');
+    return <div>Loading...</div>;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
@@ -290,7 +303,7 @@ export default function ContractorBidsPage() {
           gap: theme.spacing[4],
         }}
       >
-        {summaryCards.map((card) => (
+        {safeSummaryCards.map((card) => (
           <div
             key={card.label}
             style={{
@@ -341,11 +354,21 @@ export default function ContractorBidsPage() {
       <section style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
         {loading ? (
           <div style={{ color: theme.colors.textSecondary }}>Loading jobs...</div>
-        ) : !filteredJobs || !Array.isArray(filteredJobs) || filteredJobs.length === 0 ? (
+        ) : (() => {
+          // Defensive check: ensure filteredJobs is always an array
+          // Handle case where filteredJobs might be undefined from useMemo
+          if (filteredJobs === undefined || filteredJobs === null) {
+            return true; // Show empty state if undefined
+          }
+          const safeFilteredJobs = Array.isArray(filteredJobs) ? filteredJobs : [];
+          // Ensure length is accessible
+          const jobsLength = safeFilteredJobs && typeof safeFilteredJobs.length === 'number' ? safeFilteredJobs.length : 0;
+          return jobsLength === 0;
+        })() ? (
           <div
             style={{
               textAlign: 'center',
-              padding: `${theme.spacing[12]} 0`,
+              padding: `${theme?.spacing?.[12] || '48px'} 0`,
               color: theme.colors.textSecondary,
               borderRadius: '20px',
               border: `1px dashed ${theme.colors.border}`,
@@ -353,7 +376,7 @@ export default function ContractorBidsPage() {
             }}
           >
             <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-              <Icon name='briefcase' size={48} color={theme.colors.textQuaternary} />
+              <Icon name='briefcase' size={48} color={theme?.colors?.textTertiary || theme?.colors?.textSecondary || '#9CA3AF'} />
             </div>
             <h3 style={{ fontSize: theme.typography.fontSize.xl, marginBottom: theme.spacing[2], color: theme.colors.textPrimary }}>
               No jobs in this view yet
@@ -363,8 +386,17 @@ export default function ContractorBidsPage() {
         ) : (
           (() => {
             // Ensure filteredJobs is always an array before processing
+            // Handle case where filteredJobs might be undefined from useMemo
+            if (filteredJobs === undefined || filteredJobs === null) {
+              return [];
+            }
             const safeFilteredJobs = Array.isArray(filteredJobs) ? filteredJobs : [];
-            if (!safeFilteredJobs || safeFilteredJobs.length === 0) {
+            // Double-check array validity and length accessibility
+            if (!Array.isArray(safeFilteredJobs) || 
+                safeFilteredJobs === null || 
+                safeFilteredJobs === undefined ||
+                typeof safeFilteredJobs.length !== 'number' ||
+                safeFilteredJobs.length === 0) {
               return [];
             }
             
@@ -449,8 +481,13 @@ export default function ContractorBidsPage() {
                   safeJob.photos = [];
                 }
                 
+                // Ensure photos array is valid
+                if (safeJob.photos === null || safeJob.photos === undefined) {
+                  safeJob.photos = [];
+                }
+                
                 // Final validation before rendering
-                if (!safeJob || !safeJob.id || typeof safeJob.id !== 'string' || safeJob.id.length === 0) {
+                if (!safeJob || !safeJob.id || typeof safeJob.id !== 'string' || (safeJob.id && safeJob.id.length === 0)) {
                   console.warn('Invalid safeJob before render:', safeJob);
                   return null;
                 }
@@ -458,6 +495,11 @@ export default function ContractorBidsPage() {
                 // Ensure description is always a string
                 if (typeof safeJob.description !== 'string') {
                   safeJob.description = '';
+                }
+                
+                // Double-check photos before rendering
+                if (!safeJob.photos || !Array.isArray(safeJob.photos)) {
+                  safeJob.photos = [];
                 }
                 
                 return (
@@ -487,7 +529,7 @@ export default function ContractorBidsPage() {
               }}
             >
               {/* Job Image */}
-              {Array.isArray(safeJob.photos) && safeJob.photos.length > 0 ? (
+              {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 0 && safeJob.photos[0] ? (
                 <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', backgroundColor: theme.colors.backgroundSecondary }}>
                   <Image
                     src={safeJob.photos[0] || ''}
@@ -496,7 +538,7 @@ export default function ContractorBidsPage() {
                     style={{ objectFit: 'cover' }}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-                  {Array.isArray(safeJob.photos) && safeJob.photos.length > 1 && (
+                  {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 1 && (
                     <div
                       style={{
                         position: 'absolute',
@@ -514,7 +556,7 @@ export default function ContractorBidsPage() {
                       }}
                     >
                       <Icon name="image" size={12} color="white" />
-                      {Array.isArray(safeJob.photos) ? safeJob.photos.length : 0}
+                      {safeJob.photos && Array.isArray(safeJob.photos) ? safeJob.photos.length : 0}
                     </div>
                   )}
                 </div>

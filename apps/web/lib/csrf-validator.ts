@@ -19,7 +19,10 @@ export interface CSRFValidationResult {
 export async function validateCSRF(request: NextRequest): Promise<CSRFValidationResult> {
   try {
     const headerToken = request.headers.get('x-csrf-token');
-    const cookieToken = request.cookies.get('__Host-csrf-token')?.value;
+    // Use correct cookie name based on environment (development uses 'csrf-token', production uses '__Host-csrf-token')
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    const cookieToken = request.cookies.get(csrfCookieName)?.value;
 
     // Both tokens must be present
     if (!headerToken || !cookieToken) {
@@ -49,13 +52,18 @@ export async function validateCSRF(request: NextRequest): Promise<CSRFValidation
       };
     }
 
-    // Validate token format (should be a UUID)
+    // Validate token format - accept both UUID format and hex string format (64 chars)
+    // UUID format: 8-4-4-4-12 hex characters with dashes
+    // Hex string format: 64 hex characters (32 bytes)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(headerToken)) {
+    const hexStringRegex = /^[0-9a-f]{64}$/i; // 64-character hex string (32 bytes)
+    
+    if (!uuidRegex.test(headerToken) && !hexStringRegex.test(headerToken)) {
       logger.warn('CSRF validation failed: Invalid token format', {
         service: 'csrf-validator',
         path: request.nextUrl.pathname,
-        tokenLength: headerToken.length
+        tokenLength: headerToken.length,
+        tokenPrefix: headerToken.substring(0, 10) // Log first 10 chars for debugging
       });
       return {
         valid: false,

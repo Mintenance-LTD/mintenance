@@ -30,10 +30,10 @@ export async function POST(
       );
     }
 
-    // Verify job exists
+    // Verify job exists and get homeowner info
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id')
+      .select('id, homeowner_id, title')
       .eq('id', jobId)
       .single();
 
@@ -43,6 +43,16 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Check if this contractor has already viewed this job
+    const { data: existingView } = await serverSupabase
+      .from('job_views')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('contractor_id', user.id)
+      .single();
+
+    const isFirstView = !existingView;
 
     // Insert or update view (upsert)
     const { error: viewError } = await serverSupabase
@@ -61,6 +71,57 @@ export async function POST(
         { error: 'Failed to track view' },
         { status: 500 }
       );
+    }
+
+    // Create notification for homeowner on first view only
+    if (isFirstView && job.homeowner_id) {
+      try {
+        // Get contractor name
+        const { data: contractor } = await serverSupabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        const contractorName = contractor
+          ? `${contractor.first_name} ${contractor.last_name}`
+          : 'A contractor';
+
+        const { error: notificationError } = await serverSupabase
+          .from('notifications')
+          .insert({
+            user_id: job.homeowner_id,
+            title: 'Job Viewed',
+            message: `${contractorName} viewed your job "${job.title}"`,
+            type: 'job_viewed',
+            read: false,
+            action_url: `/jobs/${jobId}`,
+            created_at: new Date().toISOString(),
+          });
+
+        if (notificationError) {
+          console.error('[Job View] Failed to create notification for homeowner', {
+            service: 'jobs',
+            homeownerId: job.homeowner_id,
+            jobId,
+            error: notificationError.message,
+          });
+        } else {
+          console.log('[Job View] Notification created for homeowner', {
+            service: 'jobs',
+            homeownerId: job.homeowner_id,
+            jobId,
+            contractorId: user.id,
+          });
+        }
+      } catch (notificationError) {
+        console.error('[Job View] Unexpected error creating notification', {
+          service: 'jobs',
+          homeownerId: job.homeowner_id,
+          jobId,
+          error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+        });
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -8,13 +8,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, first_name, last_name, role)
+  INSERT INTO public.users (id, email, first_name, last_name, role, phone)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
     COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'homeowner')
+    COALESCE(NEW.raw_user_meta_data->>'role', 'homeowner'),
+    COALESCE(NEW.raw_user_meta_data->>'phone', NULL)
   );
   RETURN NEW;
 END;

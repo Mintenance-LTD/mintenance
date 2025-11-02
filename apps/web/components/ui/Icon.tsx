@@ -230,6 +230,12 @@ const ICONS: Record<string, JSX.Element> = {
     heart: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     ),
+    userPlus: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+    ),
+    copy: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    ),
     
     // Verification
     badge: (
@@ -254,6 +260,18 @@ const ICONS: Record<string, JSX.Element> = {
     ),
     user: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    ),
+    // Nature & Plants
+    leaf: (
+      <path strokeLinecap="round" strokeLinejoin="round" fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" />
+    ),
+    mintLeaf: (
+      <g strokeLinecap="round" strokeLinejoin="round" fill="currentColor">
+        <path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5c0-2.5-2-4.5-4.5-4.5z" />
+        <path stroke="currentColor" strokeWidth="1.5" d="M12 2v10M9 6.5h6M10 4.5c1 1 3 3 3 3M14 4.5c-1 1-3 3-3 3" />
+        <path stroke="currentColor" strokeWidth="1" d="M7.5 6.5l0.5-0.3M8 7.5l0.5-0.3M8.5 8.5l0.5-0.3M16.5 6.5l-0.5-0.3M16 7.5l-0.5-0.3M15.5 8.5l-0.5-0.3" />
+        <path d="M12 12.5l0 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </g>
     ),
 };
 

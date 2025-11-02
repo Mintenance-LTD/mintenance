@@ -36,6 +36,27 @@ const SIDEBAR_COLORS = {
   active: 'rgba(255, 255, 255, 0.2)',
 };
 
+// Navigation items based on user role - defined outside component to ensure stable references
+const homeownerNav: NavItem[] = [
+  { icon: 'dashboard', label: 'Dashboard', href: '/dashboard' },
+  { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
+  { icon: 'briefcase', label: 'Jobs', href: '/jobs' },
+  { icon: 'home', label: 'Properties', href: '/properties' },
+  { icon: 'currencyDollar', label: 'Financials', href: '/financials' },
+  { icon: 'settings', label: 'Settings', href: '/settings' },
+];
+
+const contractorNav: NavItem[] = [
+  { icon: 'dashboard', label: 'Dashboard', href: '/contractor/dashboard-enhanced' },
+  { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
+  { icon: 'briefcase', label: 'Jobs', href: '/contractor/bid' },
+  { icon: 'users', label: 'Customers', href: '/contractor/crm' },
+  { icon: 'messages', label: 'Messages', href: '/contractor/messages' },
+  { icon: 'currencyDollar', label: 'Financials', href: '/contractor/finance' },
+  { icon: 'building', label: 'Company', href: '/contractor/profile' },
+  { icon: 'trendingUp', label: 'Reporting', href: '/contractor/reporting' },
+];
+
 export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -72,27 +93,12 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
     }
   };
 
-  // Navigation items based on user role
-  const homeownerNav: NavItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', href: '/dashboard' },
-    { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
-    { icon: 'briefcase', label: 'Jobs', href: '/jobs' },
-    { icon: 'home', label: 'Properties', href: '/properties' },
-    { icon: 'currencyDollar', label: 'Financials', href: '/financials' },
-    { icon: 'settings', label: 'Settings', href: '/settings' },
-  ];
-
-  const contractorNav: NavItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', href: '/contractor/dashboard-enhanced' },
-    { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
-    { icon: 'briefcase', label: 'Jobs', href: '/contractor/bid' },
-    { icon: 'users', label: 'Customers', href: '/contractor/crm' },
-    { icon: 'currencyDollar', label: 'Financials', href: '/contractor/finance' },
-    { icon: 'building', label: 'Company', href: '/contractor/profile' },
-    { icon: 'trendingUp', label: 'Reporting', href: '/contractor/reporting' },
-  ];
-
-  const navItems = userRole === 'contractor' ? contractorNav : homeownerNav;
+  // Select navigation items based on user role - use stable reference
+  // Force a stable reference to prevent hydration mismatches
+  const navItems = React.useMemo(
+    () => (userRole === 'contractor' ? contractorNav : homeownerNav),
+    [userRole]
+  );
 
   const isActive = (href: string) => {
     // During SSR, pathname might not be available, so return false to ensure consistency
@@ -125,7 +131,7 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
         </div>
 
         {/* Navigation Items */}
-        <nav className={styles.nav}>
+        <nav className={styles.nav} suppressHydrationWarning>
           {navItems.map((item) => {
             // Ensure active state is consistent - always false during SSR
             const active = mounted ? isActive(item.href) : false;

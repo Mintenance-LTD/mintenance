@@ -79,14 +79,18 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
   }, [clients, searchQuery, selectedFilter]);
 
   return (
-    <div style={{
-      maxWidth: '1440px',
-      margin: 0,
-      padding: theme.spacing[6],
-      display: 'flex',
-      flexDirection: 'column',
-      gap: theme.spacing[6],
-    }}>
+    <div 
+      suppressHydrationWarning
+      style={{
+        maxWidth: '1440px',
+        margin: '0 auto',
+        padding: theme.spacing[6],
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+        width: '100%',
+        boxSizing: 'border-box',
+      }}>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -331,7 +335,17 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
       </div>
 
       {/* Search and Filters */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+      <div 
+        suppressHydrationWarning
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: theme.spacing[4],
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'visible',
+          boxSizing: 'border-box',
+        }}>
         {/* Search */}
         <div style={{
           display: 'flex',
@@ -373,14 +387,17 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
           </div>
 
           {/* View Toggle */}
-          <div style={{
-            display: 'flex',
-            gap: theme.spacing[1],
-            padding: theme.spacing[1],
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderRadius: theme.borderRadius.lg,
-          }}>
+          <div 
+            suppressHydrationWarning
+            style={{
+              display: 'flex',
+              gap: theme.spacing[1],
+              padding: theme.spacing[1],
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderRadius: theme.borderRadius.lg,
+            }}>
             <button
+              suppressHydrationWarning
               onClick={() => setViewMode('cards')}
               style={{
                 padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -397,6 +414,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
               Cards
             </button>
             <button
+              suppressHydrationWarning
               onClick={() => setViewMode('table')}
               style={{
                 padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -416,14 +434,21 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
         </div>
 
         {/* Filter Pills */}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing[2],
-          flexWrap: 'wrap',
-        }}>
+        <div 
+          suppressHydrationWarning
+          style={{
+            display: 'flex',
+            gap: theme.spacing[2],
+            flexWrap: 'wrap',
+            width: '100%',
+            maxWidth: '100%',
+            overflowX: 'visible',
+            boxSizing: 'border-box',
+          }}>
           {FILTERS.map((filter) => (
             <button
               key={filter.key}
+              suppressHydrationWarning
               onClick={() => setSelectedFilter(filter.key)}
               style={{
                 padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
@@ -435,6 +460,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
                 fontWeight: theme.typography.fontWeight.medium,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
               }}
             >
               {filter.label}
@@ -463,7 +489,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
                 transition: 'all 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = theme.shadows.md;
+                  e.currentTarget.style.boxShadow = theme.shadows.lg;
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {

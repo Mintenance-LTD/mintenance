@@ -385,12 +385,27 @@ export default function CreateJobPage() {
         }),
       });
       
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create job');
+        // Handle both string errors and object errors
+        const errorMessage = typeof data.error === 'string' 
+          ? data.error 
+          : data.error 
+            ? JSON.stringify(data.error)
+            : 'Failed to create job';
+        console.error('Job creation failed:', {
+          status: response.status,
+          error: errorMessage,
+          details: data.details,
+        });
+        throw new Error(errorMessage);
       }
       
-      const { job } = await response.json();
+      const { job } = data;
+      if (!job) {
+        throw new Error('Job creation succeeded but no job data returned');
+      }
       router.push(`/jobs/${job.id}`);
     } catch (err) {
       console.error('Error creating job:', err);

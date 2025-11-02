@@ -41,7 +41,7 @@ export function JobViewTracker({ jobId }: JobViewTrackerProps) {
     return () => clearTimeout(timeoutId);
   }, [jobId, user]);
 
-  // This component doesn't render anything
-  return null;
+  // This component doesn't render anything - suppress hydration warning for null renders
+  return <div suppressHydrationWarning style={{ display: 'none' }} />;
 }
 

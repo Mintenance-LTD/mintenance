@@ -259,10 +259,7 @@ export async function POST(request: NextRequest) {
 
     // Geocode city/country to get coordinates for map display
     // Use provided coordinates if available from Places Autocomplete, otherwise geocode
-    if (city || country) {
-      updateData.is_visible_on_map = true;
-      updateData.last_location_visibility_at = new Date().toISOString();
-
+    if (city || country || providedLatitude !== undefined || providedLongitude !== undefined) {
       // Use provided coordinates if available (from Places Autocomplete)
       if (providedLatitude !== undefined && providedLongitude !== undefined && 
           !isNaN(providedLatitude) && !isNaN(providedLongitude)) {
@@ -338,12 +335,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      logger.error('Update error', error, {
+      logger.error('Update error', {
         service: 'contractor',
         userId: user.id,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        updateData: Object.keys(updateData),
       });
       return NextResponse.json(
-        { error: 'Failed to update profile' },
+        { 
+          error: 'Failed to update profile',
+          details: error.message || 'Database update failed'
+        },
         { status: 500 }
       );
     }

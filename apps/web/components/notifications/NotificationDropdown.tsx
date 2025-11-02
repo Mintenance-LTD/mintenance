@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 interface Notification {
   id: string;
-  type: 'message' | 'bid' | 'bid_received' | 'job_update' | 'payment' | 'quote_viewed' | 'quote_accepted' | 'project_reminder';
+  type: 'message' | 'bid' | 'bid_received' | 'bid_accepted' | 'bid_rejected' | 'job_update' | 'job_viewed' | 'job_nearby' | 'payment' | 'quote_viewed' | 'quote_accepted' | 'project_reminder' | 'post_liked' | 'comment_added' | 'comment_replied' | 'new_follower' | 'contract_created' | 'contract_signed';
   title: string;
   message: string;
   read: boolean;
@@ -56,13 +56,92 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
     }
   }, [userId]);
 
+  // Also fetch when dropdown opens to get latest notifications
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchNotifications();
+    }
+  }, [isOpen, userId]);
+
   const fetchNotifications = async () => {
+    if (!userId) return;
+    
     setLoading(true);
     try {
-      const response = await fetch(`/api/notifications?userId=${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data);
+      // Fetch both regular notifications and social notifications
+      const [regularResponse, socialResponse] = await Promise.all([
+        fetch(`/api/notifications?userId=${userId}`).catch((err) => {
+          console.error('Error fetching regular notifications:', err);
+          return null;
+        }),
+        fetch('/api/notifications/social?limit=20&unread_only=false').catch((err) => {
+          console.error('Error fetching social notifications:', err);
+          return null;
+        }),
+      ]);
+
+      const notifications: Notification[] = [];
+
+      // Add regular notifications
+      if (regularResponse?.ok) {
+        try {
+          const regularData = await regularResponse.json();
+          let parsedNotifications: Notification[] = [];
+          
+          if (Array.isArray(regularData)) {
+            parsedNotifications = regularData;
+          } else if (Array.isArray(regularData.notifications)) {
+            parsedNotifications = regularData.notifications;
+          } else if (regularData && typeof regularData === 'object') {
+            // Handle case where API returns object with notifications array
+            const notifArray = regularData.notifications || regularData.data || [];
+            if (Array.isArray(notifArray)) {
+              parsedNotifications = notifArray;
+            }
+          }
+          
+          notifications.push(...parsedNotifications);
+          
+          // Debug: Log bid_accepted notifications
+          const bidAccepted = parsedNotifications.filter(n => n.type === 'bid_accepted');
+          if (bidAccepted.length > 0) {
+            console.log(`[NotificationDropdown] Found ${bidAccepted.length} bid_accepted notification(s)`, bidAccepted);
+          }
+        } catch (parseError) {
+          console.error('Error parsing regular notifications response:', parseError);
+        }
+      } else if (regularResponse) {
+        const errorText = await regularResponse.text().catch(() => 'Unknown error');
+        console.warn('Regular notifications API returned non-OK status:', {
+          status: regularResponse.status,
+          statusText: regularResponse.statusText,
+          error: errorText,
+        });
+      }
+
+      // Add social notifications
+      if (socialResponse?.ok) {
+        const socialData = await socialResponse.json();
+        if (Array.isArray(socialData.notifications)) {
+          notifications.push(...socialData.notifications);
+        }
+      }
+
+      // Sort by created_at (newest first) and remove duplicates
+      const uniqueNotifications = notifications
+        .filter((n, index, self) => index === self.findIndex((t) => t.id === n.id))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setNotifications(uniqueNotifications);
+      
+      // Debug logging
+      if (typeof window !== 'undefined' && uniqueNotifications.length > 0) {
+        console.log('Notifications fetched:', {
+          total: uniqueNotifications.length,
+          unread: uniqueNotifications.filter(n => !n.read).length,
+          types: uniqueNotifications.map(n => n.type),
+          notifications: uniqueNotifications.slice(0, 3).map(n => ({ id: n.id, type: n.type, title: n.title, read: n.read })),
+        });
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -106,7 +185,15 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       case 'bid':
       case 'bid_received':
         return 'currencyDollar';
+      case 'bid_accepted':
+        return 'checkCircle';
+      case 'bid_rejected':
+        return 'xCircle';
       case 'job_update':
+        return 'briefcase';
+      case 'job_viewed':
+        return 'eye';
+      case 'job_nearby':
         return 'briefcase';
       case 'payment':
         return 'creditCard';
@@ -116,6 +203,16 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         return 'checkCircle';
       case 'project_reminder':
         return 'calendar';
+      case 'post_liked':
+        return 'heart';
+      case 'comment_added':
+      case 'comment_replied':
+        return 'messages';
+      case 'new_follower':
+        return 'userPlus';
+      case 'contract_created':
+      case 'contract_signed':
+        return 'fileText';
       default:
         return 'bell';
     }
@@ -128,8 +225,16 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       case 'bid':
       case 'bid_received':
         return theme.colors.success;
+      case 'bid_accepted':
+        return theme.colors.success; // Green for accepted
+      case 'bid_rejected':
+        return theme.colors.textSecondary; // Gray for rejected
       case 'job_update':
         return theme.colors.warning;
+      case 'job_viewed':
+        return '#3B82F6'; // Blue for viewed
+      case 'job_nearby':
+        return theme.colors.warning; // Amber for nearby jobs
       case 'payment':
         return theme.colors.secondary;
       case 'quote_viewed':
@@ -138,6 +243,17 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         return theme.colors.success; // Green for accepted
       case 'project_reminder':
         return '#F59E0B'; // Amber for reminders
+      case 'post_liked':
+        return theme.colors.error; // Red for likes
+      case 'comment_added':
+      case 'comment_replied':
+        return theme.colors.primary; // Blue for comments
+      case 'new_follower':
+        return theme.colors.success; // Green for followers
+      case 'contract_created':
+        return theme.colors.primary; // Blue for contract created
+      case 'contract_signed':
+        return theme.colors.success; // Green for contract signed
       default:
         return theme.colors.textSecondary;
     }
@@ -454,7 +570,18 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
                 return (
                   <div key={notification.id}>
                     {hasLink ? (
-                      <Link href={linkUrl} style={{ textDecoration: 'none' }}>
+                      <Link 
+                        href={linkUrl} 
+                        style={{ textDecoration: 'none' }}
+                        onClick={() => {
+                          // Mark as read when clicked
+                          if (!notification.read) {
+                            markAsRead(notification.id);
+                          }
+                          // Close dropdown after navigation
+                          setIsOpen(false);
+                        }}
+                      >
                         {renderNotificationContent(notification)}
                       </Link>
                     ) : (

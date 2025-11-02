@@ -84,6 +84,7 @@ export function ContractorProfileClient({
         headers: {
           'x-csrf-token': csrfToken,
         },
+        credentials: 'include', // Include cookies for CSRF validation
         body: formData,
       });
 
@@ -101,6 +102,7 @@ export function ContractorProfileClient({
               'Content-Type': 'application/json',
               'x-csrf-token': csrfToken,
             },
+            credentials: 'include', // Include cookies for CSRF validation
             body: JSON.stringify({ skills: data.skills }),
           });
 
@@ -134,6 +136,7 @@ export function ContractorProfileClient({
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
+        credentials: 'include', // Include cookies for CSRF validation
         body: JSON.stringify({ skills: selectedSkills }),
       });
 

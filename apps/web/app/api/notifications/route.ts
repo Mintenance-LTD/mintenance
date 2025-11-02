@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(50); // Increased limit to ensure we capture all notification types
 
     if (error) {
       console.error('Error fetching notifications:', error);
@@ -35,8 +35,35 @@ export async function GET(request: NextRequest) {
       action_url: notif.action_url,
     }));
 
+    // Debug: Log specific notification types
+    const bidAcceptedNotifs = mappedNotifications.filter((n: any) => n.type === 'bid_accepted');
+    const jobViewedNotifs = mappedNotifications.filter((n: any) => n.type === 'job_viewed');
+    const jobNearbyNotifs = mappedNotifications.filter((n: any) => n.type === 'job_nearby');
+    const bidReceivedNotifs = mappedNotifications.filter((n: any) => n.type === 'bid_received');
+    
+    if (bidAcceptedNotifs.length > 0) {
+      console.log(`[Notifications API] Found ${bidAcceptedNotifs.length} bid_accepted notification(s) for user ${userId}`);
+    }
+    if (jobViewedNotifs.length > 0) {
+      console.log(`[Notifications API] Found ${jobViewedNotifs.length} job_viewed notification(s) for user ${userId}`);
+    }
+    if (jobNearbyNotifs.length > 0) {
+      console.log(`[Notifications API] Found ${jobNearbyNotifs.length} job_nearby notification(s) for user ${userId}`);
+    }
+    if (bidReceivedNotifs.length > 0) {
+      console.log(`[Notifications API] Found ${bidReceivedNotifs.length} bid_received notification(s) for user ${userId}`);
+    }
+
     // Fetch real-time notifications from source tables
-    const realTimeNotifications = [];
+    const realTimeNotifications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      read: boolean;
+      created_at: string;
+      action_url?: string;
+    }> = [];
 
     // 1. Quote Views - Quotes that were viewed in the last 7 days
     const oneWeekAgo = new Date();

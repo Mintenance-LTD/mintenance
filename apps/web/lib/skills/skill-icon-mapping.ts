@@ -7,43 +7,43 @@
 export const SKILL_ICON_MAPPING: Record<string, string> = {
   // General
   'General Contracting': 'briefcase',
-  'General Maintenance': 'wrench',
-  'Home Inspection': 'clipboardCheck',
+  'General Maintenance': 'briefcase',
+  'Home Inspection': 'clipboard',
   
   // Kitchen & Bathroom
   'Kitchen Remodeling': 'home',
   'Bathroom Renovation': 'home',
   
   // Plumbing & Electrical
-  'Plumbing': 'wrench',
-  'Electrical Work': 'lightning',
+  'Plumbing': 'briefcase',
+  'Electrical Work': 'lightBulb',
   
   // Construction & Building
-  'Carpentry': 'hammer',
-  'Tiling': 'grid',
-  'Masonry': 'grid',
-  'Drywall': 'square',
-  'Concrete Work': 'square',
+  'Carpentry': 'briefcase',
+  'Tiling': 'collection',
+  'Masonry': 'collection',
+  'Drywall': 'document',
+  'Concrete Work': 'document',
   
   // Finishing
-  'Painting': 'paintBrush',
-  'Flooring': 'grid',
-  'Window Installation': 'window',
-  'Door Installation': 'door',
+  'Painting': 'edit',
+  'Flooring': 'collection',
+  'Window Installation': 'building',
+  'Door Installation': 'building',
   
   // Exterior
   'Roofing': 'home',
   'Siding': 'home',
   'Gutters': 'home',
-  'Deck Building': 'grid',
-  'Fence Installation': 'grid',
+  'Deck Building': 'collection',
+  'Fence Installation': 'collection',
   
   // Systems
-  'HVAC': 'snowflake',
+  'HVAC': 'activity',
   'Insulation': 'home',
   
   // Landscaping
-  'Landscaping': 'tree',
+  'Landscaping': 'home',
   
   // Demolition
   'Demolition': 'trash',
@@ -59,21 +59,18 @@ export function getSkillIcon(skillName: string): string {
 
 /**
  * Get all available icons for skill selection
+ * Using only icons that exist in the Icon component
  */
 export const AVAILABLE_SKILL_ICONS = [
   'briefcase',
-  'wrench',
-  'hammer',
-  'paintBrush',
-  'lightning',
   'home',
-  'tree',
-  'grid',
-  'square',
-  'window',
-  'door',
-  'snowflake',
-  'clipboardCheck',
+  'building',
+  'collection',
+  'document',
+  'edit',
+  'lightBulb',
+  'activity',
+  'clipboard',
   'trash',
 ] as const;
 

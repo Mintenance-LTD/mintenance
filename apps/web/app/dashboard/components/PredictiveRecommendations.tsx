@@ -116,7 +116,8 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
     );
   }
 
-  const getTypeIcon = (type: MaintenanceRecommendation['type']) => {
+  // Ensure consistent icon names between server and client
+  const getTypeIcon = (type: MaintenanceRecommendation['type']): string => {
     switch (type) {
       case 'maintenance_schedule':
         return 'calendar';

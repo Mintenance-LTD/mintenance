@@ -366,6 +366,14 @@ export async function POST(request: NextRequest) {
 
         // Create database notification for homeowner
         try {
+          console.log('[Bid Submit] Creating notification for homeowner', {
+            service: 'contractor',
+            homeownerId: homeowner.id,
+            jobId: validatedData.jobId,
+            jobTitle: job.title,
+            bidAmount: validatedData.bidAmount,
+          });
+
           const { error: notificationError } = await serverSupabase
             .from('notifications')
             .insert({
@@ -375,15 +383,27 @@ export async function POST(request: NextRequest) {
               type: 'bid_received',
               read: false,
               action_url: `/jobs/${validatedData.jobId}`,
+              created_at: new Date().toISOString(),
             });
 
           if (notificationError) {
+            console.error('[Bid Submit] Failed to create bid notification', {
+              service: 'contractor',
+              homeownerId: homeowner.id,
+              error: notificationError.message,
+              errorDetails: notificationError,
+            });
             logger.error('Failed to create bid notification', {
               service: 'contractor',
               homeownerId: homeowner.id,
               error: notificationError.message,
             });
           } else {
+            console.log('[Bid Submit] Bid notification created for homeowner', {
+              service: 'contractor',
+              homeownerId: homeowner.id,
+              jobId: validatedData.jobId,
+            });
             logger.info('Bid notification created for homeowner', {
               service: 'contractor',
               homeownerId: homeowner.id,
@@ -391,6 +411,11 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (notificationError) {
+          console.error('[Bid Submit] Unexpected error creating notification', {
+            service: 'contractor',
+            homeownerId: homeowner.id,
+            error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+          });
           logger.error('Unexpected error creating notification', {
             service: 'contractor',
             homeownerId: homeowner.id,

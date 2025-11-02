@@ -449,12 +449,25 @@ export default async function DashboardPage() {
       />
 
       {/* Main Content */}
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        flex: 1,
+        width: 'calc(100% - 280px)',
+        marginLeft: '280px',
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
         {/* Header */}
         <DashboardHeader userName={userDisplayName} userId={user.id} />
 
         {/* Page Content */}
-        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: theme.spacing[6], width: '100%' }}>
+        <div style={{ 
+          maxWidth: '1440px', 
+          margin: 0, 
+          padding: theme.spacing[6], 
+          width: '100%',
+          boxSizing: 'border-box',
+        }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
             {/* Header */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing[4] }}>

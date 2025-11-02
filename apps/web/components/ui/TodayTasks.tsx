@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import Link from 'next/link';
 
 export interface Task {
   id: string;
@@ -13,9 +14,11 @@ export interface Task {
 interface TodayTasksProps {
   tasks: Task[];
   onToggleTask?: (taskId: string) => void;
+  taskUrlPattern?: string; // e.g., '/jobs/{id}' or '/contractor/jobs/{id}'
 }
 
-export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
+export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' }: TodayTasksProps) {
+  const getUrl = (id: string) => taskUrlPattern.replace('{id}', id);
   const [activeTab, setActiveTab] = useState<'all' | 'important' | 'notes' | 'links'>('all');
 
   const getStatusColor = (status: Task['status']) => {
@@ -145,7 +148,10 @@ export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
             >
               {/* Checkbox */}
               <button
-                onClick={() => onToggleTask?.(task.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleTask?.(task.id);
+                }}
                 style={{
                   width: '24px',
                   height: '24px',
@@ -180,16 +186,23 @@ export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
               </button>
 
               {/* Task Title */}
-              <span
+              <Link
+                href={getUrl(task.id)}
                 style={{
                   flex: 1,
                   fontSize: theme.typography.fontSize.sm,
                   color: task.completed ? theme.colors.textSecondary : theme.colors.textPrimary,
                   textDecoration: task.completed ? 'line-through' : 'none',
+                  textDecorationThickness: task.completed ? '1px' : 'none',
+                }}
+                onClick={(e) => {
+                  if (task.completed) {
+                    e.preventDefault();
+                  }
                 }}
               >
                 {task.title}
-              </span>
+              </Link>
 
               {/* Status Badge */}
               <span
