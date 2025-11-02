@@ -1,5 +1,8 @@
 import './globals.css'
+import '../styles/responsive.css'
+import '../styles/print.css'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import CookieConsent from '../components/CookieConsent'
 import { ErrorBoundary } from '../components/ui/ErrorBoundary'
 import { Providers } from './providers'
@@ -30,6 +33,47 @@ export default function RootLayout({
   return (
         <html lang="en">
           <body className={inter.variable}>
+            <Script
+              id="className-fix"
+              strategy="beforeInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  // Fix for className.split() errors - runs before page interaction
+                  (function() {
+                    if (typeof window === 'undefined' || typeof Element === 'undefined') return;
+                    
+                    try {
+                      // Ensure className always returns a string
+                      const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'className') ||
+                                        Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'className');
+                      
+                      if (descriptor && descriptor.get) {
+                        const originalGet = descriptor.get;
+                        Object.defineProperty(Element.prototype, 'className', {
+                          get: function() {
+                            try {
+                              const value = originalGet.call(this);
+                              if (typeof value === 'string') return value;
+                              // Fallback to getAttribute if value is not a string
+                              const attr = this.getAttribute?.('class');
+                              return typeof attr === 'string' ? attr : '';
+                            } catch (e) {
+                              const attr = this.getAttribute?.('class');
+                              return typeof attr === 'string' ? attr : '';
+                            }
+                          },
+                          set: descriptor.set,
+                          configurable: true,
+                          enumerable: true,
+                        });
+                      }
+                    } catch (e) {
+                      // Silently fail if we can't patch
+                    }
+                  })();
+                `,
+              }}
+            />
             <Providers>
               <ErrorBoundary>
                 {children}

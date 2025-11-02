@@ -1,5 +1,3 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import Logo from '../../components/Logo';
@@ -10,28 +8,8 @@ import { notFound } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 async function createClient() {
-  const cookieStore = await cookies();
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors from Server Components
-          }
-        },
-      },
-    }
-  );
+  const { serverSupabase } = await import('@/lib/api/supabaseServer');
+  return serverSupabase;
 }
 
 export default async function ContractorPublicProfilePage(props: {

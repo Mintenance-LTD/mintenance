@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { accessToken } = body;
+    const { accessToken, password } = body;
 
     // Validate access token
     if (!accessToken) {
@@ -43,14 +43,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password using schema (complexity requirements)
-    const validation = await validateRequest(request, passwordUpdateSchema.omit({ token: true }));
-    if ('headers' in validation) {
-      // Validation failed - return error response
-      return validation;
+    // Validate password - accept either password or newPassword from frontend
+    const newPassword = password || body.newPassword;
+
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
+        { status: 400 }
+      );
     }
 
-    const { newPassword } = validation.data;
+    // Use centralized password validation (matches registration validation)
+    // This allows all common special characters including #, !, @, $, %, ^, &, *, etc.
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword); // Any non-alphanumeric character
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      const missing = [];
+      if (!hasUppercase) missing.push('uppercase letter');
+      if (!hasLowercase) missing.push('lowercase letter');
+      if (!hasNumber) missing.push('number');
+      if (!hasSpecialChar) missing.push('special character');
+      
+      return NextResponse.json(
+        { error: `Password must contain at least one ${missing.join(', ')}` },
+        { status: 400 }
+      );
+    }
 
     // Initialize Supabase client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

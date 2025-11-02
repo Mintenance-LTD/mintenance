@@ -6,9 +6,8 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
-import { StandardCard } from '@/components/ui/StandardCard';
-import { StatCard } from '@/components/ui/StatCard';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { Card } from '@/components/ui/Card.unified';
+import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 
 type InvoiceStatus = 'draft' | 'sent' | 'overdue' | 'paid';

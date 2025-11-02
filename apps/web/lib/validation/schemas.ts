@@ -138,6 +138,7 @@ export const createJobSchema = z.object({
   images: z.array(
     z.string().url('Invalid image URL')
   ).max(10, 'Maximum 10 images allowed').optional(),
+  requiredSkills: z.array(z.string().max(100)).max(10, 'Maximum 10 skills allowed').optional(),
 });
 
 export const updateJobSchema = createJobSchema.partial().extend({

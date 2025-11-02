@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { Icon } from '@/components/ui/Icon';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
 
 export function CardEditorClient({ profile: initialProfile }: { profile: any }) {
   const router = useRouter();

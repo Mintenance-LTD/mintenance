@@ -83,6 +83,13 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
+    // Add cookie headers from auth result
+    if (result.cookieHeaders) {
+      result.cookieHeaders.forEach((value, key) => {
+        response.headers.append(key, value);
+      });
+    }
+
     // Add rate limit headers to successful response
     const headers = createRateLimitHeaders(rateLimitResult);
     Object.entries(headers).forEach(([key, value]) => {

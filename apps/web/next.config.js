@@ -1,23 +1,26 @@
 /** @type {import('next').NextConfig} */
 
 // Validate environment variables at build time
-// This will throw an error if required variables are missing or invalid
-// Note: Validation runs in instrumentation.ts for runtime checks
+// Note: Full validation runs in instrumentation.ts for runtime checks
+// This is a simplified check since next.config.js runs before TypeScript compilation
 if (process.env.NODE_ENV !== 'test') {
   try {
-    require('./lib/env');
+    // Try to load dotenv if .env.local exists
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '.env.local');
+    if (fs.existsSync(envPath)) {
+      require('dotenv').config({ path: envPath });
+    }
+    // Skip TypeScript file require in config - validation happens at runtime in instrumentation.ts
   } catch (error) {
-    console.error('\n❌ Build failed: Environment validation error');
-    console.error('   Fix the errors above and try again.\n');
-    process.exit(1);
+    // Silently continue - validation will happen at runtime
+    console.warn('⚠️  Environment validation will run at runtime');
   }
 }
 
 const nextConfig = {
   poweredByHeader: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -32,6 +35,13 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
 
   // Compression
@@ -40,14 +50,6 @@ const nextConfig = {
   // Bundle optimization
   experimental: {
     optimizePackageImports: ['@mintenance/shared', '@mintenance/types'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
 
   // Bundle analyzer (enable with ANALYZE=true)

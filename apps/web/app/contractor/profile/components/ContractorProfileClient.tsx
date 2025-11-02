@@ -15,7 +15,7 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface ContractorProfileClientProps {
   contractor: any;
-  skills: Array<{ skill_name: string }>;
+  skills: Array<{ skill_name: string; skill_icon?: string | null }>;
   reviews: any[];
   completedJobs: any[];
   posts: any[];
@@ -64,6 +64,17 @@ export function ContractorProfileClient({
       formData.append('phone', data.phone);
       formData.append('isAvailable', data.isAvailable.toString());
 
+      // Add coordinates and address if available from Places Autocomplete
+      if (data.latitude !== undefined) {
+        formData.append('latitude', data.latitude.toString());
+      }
+      if (data.longitude !== undefined) {
+        formData.append('longitude', data.longitude.toString());
+      }
+      if (data.address) {
+        formData.append('address', data.address);
+      }
+
       if (data.profileImage) {
         formData.append('profileImage', data.profileImage);
       }
@@ -81,6 +92,29 @@ export function ContractorProfileClient({
         throw new Error(error.message || 'Failed to update profile');
       }
 
+      // Save skills if provided
+      if (data.skills && Array.isArray(data.skills) && data.skills.length > 0) {
+        try {
+          const skillsResponse = await fetch('/api/contractor/manage-skills', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-csrf-token': csrfToken,
+            },
+            body: JSON.stringify({ skills: data.skills }),
+          });
+
+          if (!skillsResponse.ok) {
+            const skillsError = await skillsResponse.json();
+            console.warn('Failed to update skills:', skillsError.message || 'Unknown error');
+            // Don't throw - profile update succeeded, skills update is secondary
+          }
+        } catch (skillsError) {
+          console.warn('Error updating skills:', skillsError);
+          // Don't throw - profile update succeeded, skills update is secondary
+        }
+      }
+
       // Refresh the page to show updated data
       router.refresh();
     } catch (error) {
@@ -88,7 +122,7 @@ export function ContractorProfileClient({
     }
   };
 
-  const handleSaveSkills = async (selectedSkills: string[]) => {
+  const handleSaveSkills = async (selectedSkills: Array<{ skill_name: string; skill_icon: string }> | string[]) => {
     try {
       if (!csrfToken) {
         throw new Error('Security token not available. Please refresh the page.');

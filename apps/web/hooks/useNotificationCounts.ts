@@ -28,14 +28,30 @@ export function useNotificationCounts() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch notification counts');
+        // If unauthorized, return empty counts instead of throwing
+        if (response.status === 401) {
+          setCounts({ messages: 0 });
+          setError(null);
+          setLoading(false);
+          return;
+        }
+        throw new Error(`Failed to fetch notification counts: ${response.status}`);
       }
 
       const data = await response.json();
-      setCounts(data.counts || {});
-      setError(null);
+      
+      if (data.success && data.counts) {
+        setCounts(data.counts);
+        setError(null);
+      } else {
+        // Fallback to empty counts if response format is unexpected
+        setCounts({ messages: 0 });
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      // Silently handle errors - don't show error to user for background polling
+      setError(null);
+      setCounts({ messages: 0 });
       console.error('Failed to fetch notification counts:', err);
     } finally {
       setLoading(false);

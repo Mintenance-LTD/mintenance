@@ -49,8 +49,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
-    const body = await request.json();
-    const validatedData = submitBidSchema.parse(body);
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.warn('Invalid JSON in bid submission request', {
+        service: 'contractor',
+        error: parseError instanceof Error ? parseError.message : 'Unknown error'
+      });
+      return NextResponse.json(
+        { error: 'Invalid request format. Please ensure the request body is valid JSON.' },
+        { status: 400 }
+      );
+    }
+
+    let validatedData;
+    try {
+      validatedData = submitBidSchema.parse(body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        logger.warn('Invalid bid submission data', {
+          service: 'contractor',
+          errors: validationError.issues
+        });
+        return NextResponse.json({
+          error: 'Invalid bid data',
+          details: validationError.issues
+        }, { status: 400 });
+      }
+      throw validationError;
+    }
 
     // Check if job exists and is accepting bids (include homeowner details for email)
     const { data: job, error: jobError } = await serverSupabase
@@ -118,68 +146,258 @@ export async function POST(request: NextRequest) {
       .eq('contractor_id', user.id)
       .single();
 
+    // Prepare the bid payload (align with existing DB schema: amount, description, status)
+    const bidPayload = {
+      job_id: validatedData.jobId,
+      contractor_id: user.id,
+      amount: validatedData.bidAmount,
+      description: (validatedData.proposalText || '').trim(),
+      status: 'pending' as const,
+      updated_at: new Date().toISOString(),
+    };
+
+    let bid;
+    let isUpdate = false;
+
     if (existingBid) {
-      logger.warn('Duplicate bid attempt', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        contractorId: user.id
-      });
-      return NextResponse.json({ error: 'You have already submitted a bid for this job' }, { status: 409 });
-    }
+      // Update existing bid
+      const { data: updatedBid, error: updateError } = await serverSupabase
+        .from('bids')
+        .update(bidPayload)
+        .eq('id', existingBid.id)
+        .select()
+        .single();
 
-    // Create the bid
-    const { data: bid, error: bidError } = await serverSupabase
-      .from('bids')
-      .insert({
-        job_id: validatedData.jobId,
-        contractor_id: user.id,
-        bid_amount: validatedData.bidAmount,
-        proposal_text: validatedData.proposalText,
-        estimated_duration: validatedData.estimatedDuration,
-        proposed_start_date: validatedData.proposedStartDate,
-        materials_cost: validatedData.materialsCost,
-        labor_cost: validatedData.laborCost,
-        status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (bidError) {
-      // Handle duplicate bid constraint violation (race condition)
-      if (bidError.code === '23505' || bidError.message?.includes('duplicate') || bidError.message?.includes('unique constraint')) {
-        logger.warn('Duplicate bid prevented by database constraint', {
+      if (updateError) {
+        logger.error('Failed to update bid', {
           service: 'contractor',
           contractorId: user.id,
           jobId: validatedData.jobId,
-          error: bidError.message
+          bidId: existingBid.id,
+          error: updateError.message,
+          errorCode: updateError.code,
         });
-        return NextResponse.json({ error: 'You have already submitted a bid for this job' }, { status: 409 });
+        return NextResponse.json({ 
+          error: 'Unable to update your bid. Please try again.' 
+        }, { status: 500 });
       }
 
-      logger.error('Failed to create bid', bidError, {
+      bid = updatedBid;
+      isUpdate = true;
+    } else {
+      // Create new bid
+      const insertPayload = {
+        ...bidPayload,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: newBid, error: insertError } = await serverSupabase
+        .from('bids')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (insertError) {
+        // Handle duplicate bid constraint violation (race condition) - try to update instead
+        if (insertError.code === '23505' || insertError.message?.includes('duplicate') || insertError.message?.includes('unique constraint')) {
+          // Try to fetch and update instead
+          const { data: raceConditionBid } = await serverSupabase
+            .from('bids')
+            .select('id')
+            .eq('job_id', validatedData.jobId)
+            .eq('contractor_id', user.id)
+            .single();
+
+          if (raceConditionBid) {
+            const { data: updatedBid, error: updateError } = await serverSupabase
+              .from('bids')
+              .update(bidPayload)
+              .eq('id', raceConditionBid.id)
+              .select()
+              .single();
+
+            if (updateError) {
+              logger.error('Failed to update bid after race condition', {
+                service: 'contractor',
+                contractorId: user.id,
+                jobId: validatedData.jobId,
+                error: updateError.message,
+              });
+              return NextResponse.json({ 
+                error: 'Unable to update your bid. Please try again.' 
+              }, { status: 500 });
+            }
+
+            bid = updatedBid;
+            isUpdate = true;
+          } else {
+            logger.warn('Duplicate bid constraint but bid not found', {
+              service: 'contractor',
+              contractorId: user.id,
+              jobId: validatedData.jobId,
+            });
+            return NextResponse.json({ error: 'You have already submitted a bid for this job' }, { status: 409 });
+          }
+        } else {
+          // Handle other insert errors
+          const bidError = insertError;
+
+      // Log the full error details for debugging
+      // Properly serialize error details
+      const errorInfo = {
         service: 'contractor',
         contractorId: user.id,
-        jobId: validatedData.jobId
+        jobId: validatedData.jobId,
+        errorCode: bidError.code || 'NO_CODE',
+        errorMessage: bidError.message || 'NO_MESSAGE',
+        errorDetails: typeof bidError.details === 'string' ? bidError.details : JSON.stringify(bidError.details || {}),
+        errorHint: bidError.hint || 'NO_HINT',
+        // Capture all enumerable properties
+        allProperties: Object.keys(bidError).reduce((acc: any, key) => {
+          acc[key] = (bidError as any)[key];
+          return acc;
+        }, {}),
+        // Also try to stringify the entire error
+        stringified: JSON.stringify(bidError, Object.getOwnPropertyNames(bidError))
+      };
+      
+      logger.error('Failed to create bid in database', errorInfo);
+      
+      // Also log to console for immediate visibility
+      console.error('=== DATABASE ERROR DETAILS ===');
+      console.error('Error Code:', bidError.code);
+      console.error('Error Message:', bidError.message);
+      console.error('Error Details:', bidError.details);
+      console.error('Error Hint:', bidError.hint);
+      console.error('Full Error Object:', bidError);
+      console.error('=== END DATABASE ERROR ===');
+
+      // Provide more specific error messages based on error codes
+      if (bidError.code === '23503') {
+        // Foreign key violation
+        return NextResponse.json({ 
+          error: 'Invalid job or contractor reference. Please refresh and try again.' 
+        }, { status: 400 });
+      }
+
+      if (bidError.code === '23502') {
+        // Not null violation
+        return NextResponse.json({ 
+          error: 'Missing required bid information. Please fill in all fields.' 
+        }, { status: 400 });
+      }
+
+      if (bidError.code === '42501') {
+        // Insufficient privileges
+        return NextResponse.json({ 
+          error: 'You do not have permission to submit bids. Please check your account status.' 
+        }, { status: 403 });
+      }
+
+      if (bidError.code === '23514') {
+        // Check constraint violation
+        return NextResponse.json({ 
+          error: 'Bid failed validation. Please review your inputs and try again.' 
+        }, { status: 400 });
+      }
+
+      // Common text-based patterns from Postgres/PostgREST
+      const messageLower = (bidError.message || '').toLowerCase();
+      if (messageLower.includes('invalid input syntax for type numeric') || messageLower.includes('invalid input syntax')) {
+        return NextResponse.json({ error: 'Bid amount is invalid. Please enter a valid number.' }, { status: 400 });
+      }
+
+      // For unknown errors, return a generic message but include dev diagnostics
+      const devInfo = process.env.NODE_ENV !== 'production'
+        ? {
+            devError: {
+              code: bidError.code,
+              message: bidError.message,
+              details: typeof (bidError as any).details === 'string' ? (bidError as any).details : JSON.stringify((bidError as any).details || {}),
+              hint: (bidError as any).hint,
+            }
+          }
+        : {};
+
+      return NextResponse.json({ 
+        error: 'Unable to submit bid due to a database error. Please try again or contact support.',
+        ...devInfo,
+      }, { status: 500 });
+        }
+      } else {
+        bid = newBid;
+        isUpdate = false;
+      }
+    }
+
+    if (!bid) {
+      logger.error('Bid creation/update failed but no error was thrown', {
+        service: 'contractor',
+        contractorId: user.id,
+        jobId: validatedData.jobId,
       });
       return NextResponse.json({ error: 'Failed to submit bid' }, { status: 500 });
     }
 
-    // Send email notification to homeowner
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-    if (homeowner?.email) {
-      const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
-      const homeownerName = `${homeowner.first_name} ${homeowner.last_name}`.trim() || 'Valued Client';
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const proposalExcerpt = validatedData.proposalText.substring(0, 150);
+    // Send email notification to homeowner (only for new bids, not updates)
+    if (!isUpdate) {
+      const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+      if (homeowner?.email) {
+        const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
+        const homeownerName = `${homeowner.first_name} ${homeowner.last_name}`.trim() || 'Valued Client';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const proposalExcerpt = validatedData.proposalText.substring(0, 150);
 
-      await EmailService.sendBidNotification(homeowner.email, {
-        homeownerName,
-        contractorName,
-        jobTitle: job.title,
-        bidAmount: validatedData.bidAmount,
-        proposalExcerpt,
-        viewUrl: `${baseUrl}/jobs/${validatedData.jobId}`,
-      });
+        // Send email notification
+        await EmailService.sendBidNotification(homeowner.email, {
+          homeownerName,
+          contractorName,
+          jobTitle: job.title,
+          bidAmount: validatedData.bidAmount,
+          proposalExcerpt,
+          viewUrl: `${baseUrl}/jobs/${validatedData.jobId}`,
+        }).catch((error) => {
+          logger.error('Failed to send bid notification email', {
+            service: 'contractor',
+            homeownerId: homeowner.id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
+
+        // Create database notification for homeowner
+        try {
+          const { error: notificationError } = await serverSupabase
+            .from('notifications')
+            .insert({
+              user_id: homeowner.id,
+              title: 'New Bid Received',
+              message: `${contractorName} has submitted a bid of £${validatedData.bidAmount.toFixed(2)} for your job "${job.title}"`,
+              type: 'bid_received',
+              read: false,
+              action_url: `/jobs/${validatedData.jobId}`,
+            });
+
+          if (notificationError) {
+            logger.error('Failed to create bid notification', {
+              service: 'contractor',
+              homeownerId: homeowner.id,
+              error: notificationError.message,
+            });
+          } else {
+            logger.info('Bid notification created for homeowner', {
+              service: 'contractor',
+              homeownerId: homeowner.id,
+              jobId: validatedData.jobId,
+            });
+          }
+        } catch (notificationError) {
+          logger.error('Unexpected error creating notification', {
+            service: 'contractor',
+            homeownerId: homeowner.id,
+            error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+          });
+        }
+      }
     }
 
     logger.info('Bid submitted successfully', {
@@ -192,10 +410,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      updated: isUpdate,
+      message: isUpdate ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.',
       bid: {
         id: bid.id,
         jobId: bid.job_id,
-        bidAmount: bid.bid_amount,
+        bidAmount: bid.amount,
         status: bid.status,
         createdAt: bid.created_at
       }
@@ -205,15 +425,36 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       logger.warn('Invalid bid submission data', {
         service: 'contractor',
-        errors: error.errors
+        errors: error.issues
       });
       return NextResponse.json({
         error: 'Invalid bid data',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
 
-    logger.error('Unexpected error in submit-bid', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Log complete error details
+    logger.error('Unexpected error in submit-bid', {
+      service: 'contractor',
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    });
+
+    const devInfo = process.env.NODE_ENV !== 'production' && error && typeof error === 'object'
+      ? {
+          devError: {
+            type: error instanceof Error ? error.constructor.name : typeof error,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          }
+        }
+      : {};
+
+    return NextResponse.json({ 
+      error: 'An unexpected error occurred. Please try again or contact support if the issue persists.',
+      ...devInfo,
+    }, { status: 500 });
   }
 }

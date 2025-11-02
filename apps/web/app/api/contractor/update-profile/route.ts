@@ -12,6 +12,41 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Geocoding service for converting city/country to coordinates
+class GeocodingService {
+  private apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  async geocodeAddress(address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> {
+    if (!this.apiKey) {
+      console.warn('GOOGLE_MAPS_API_KEY not configured; geocoding will be skipped.');
+      return null;
+    }
+
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${this.apiKey}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results?.length) {
+        const result = data.results[0];
+        return {
+          lat: result.geometry.location.lat,
+          lng: result.geometry.location.lng,
+          formattedAddress: result.formatted_address,
+        };
+      }
+
+      console.error('Geocoding failed:', data.status);
+      return null;
+    } catch (error) {
+      console.error('Geocoding API error:', error);
+      return null;
+    }
+  }
+}
+
 // Profile image security configuration
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
@@ -86,6 +121,14 @@ export async function POST(request: NextRequest) {
       phone: formData.get('phone') as string,
       isAvailable: formData.get('isAvailable') === 'true',
     };
+
+    // Extract coordinates and address if provided from Places Autocomplete
+    const latitudeStr = formData.get('latitude') as string | null;
+    const longitudeStr = formData.get('longitude') as string | null;
+    const address = formData.get('address') as string | null;
+    
+    const providedLatitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
+    const providedLongitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
 
     // Validate and sanitize input
     let validatedData;
@@ -214,9 +257,73 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
+    // Geocode city/country to get coordinates for map display
+    // Use provided coordinates if available from Places Autocomplete, otherwise geocode
     if (city || country) {
       updateData.is_visible_on_map = true;
       updateData.last_location_visibility_at = new Date().toISOString();
+
+      // Use provided coordinates if available (from Places Autocomplete)
+      if (providedLatitude !== undefined && providedLongitude !== undefined && 
+          !isNaN(providedLatitude) && !isNaN(providedLongitude)) {
+        updateData.latitude = providedLatitude;
+        updateData.longitude = providedLongitude;
+        if (address) {
+          updateData.address = address;
+        }
+        logger.info('Using provided coordinates from Places Autocomplete', {
+          service: 'contractor',
+          userId: user.id,
+          city,
+          country,
+          latitude: providedLatitude,
+          longitude: providedLongitude,
+        });
+      } else {
+        // Fallback to geocoding if coordinates not provided
+        // Build address string for geocoding
+        const addressParts = [];
+        if (city) addressParts.push(city);
+        if (country) addressParts.push(country);
+        const fullAddress = addressParts.join(', ');
+
+        if (fullAddress) {
+          try {
+            const geocodingService = new GeocodingService();
+            const coordinates = await geocodingService.geocodeAddress(fullAddress);
+
+            if (coordinates) {
+              updateData.latitude = coordinates.lat;
+              updateData.longitude = coordinates.lng;
+              // Also update address field with formatted address if available
+              if (coordinates.formattedAddress) {
+                updateData.address = coordinates.formattedAddress;
+              }
+              logger.info('Geocoded contractor location', {
+                service: 'contractor',
+                userId: user.id,
+                city,
+                country,
+                latitude: coordinates.lat,
+                longitude: coordinates.lng,
+              });
+            } else {
+              logger.warn('Failed to geocode contractor location', {
+                service: 'contractor',
+                userId: user.id,
+                address: fullAddress,
+              });
+            }
+          } catch (geocodeError) {
+            logger.error('Error geocoding contractor location', geocodeError, {
+              service: 'contractor',
+              userId: user.id,
+              address: fullAddress,
+            });
+            // Continue without coordinates - contractor can still update profile
+          }
+        }
+      }
     }
 
     if (profileImageUrl) {

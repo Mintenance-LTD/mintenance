@@ -22,7 +22,7 @@ export default async function ContractorLayout({ children }: ContractorLayoutPro
     .single();
 
   return (
-    <ContractorLayoutShell contractor={contractorProfile} email={authUser.email}>
+    <ContractorLayoutShell contractor={contractorProfile} email={authUser.email} userId={authUser.id}>
       {children}
     </ContractorLayoutShell>
   );

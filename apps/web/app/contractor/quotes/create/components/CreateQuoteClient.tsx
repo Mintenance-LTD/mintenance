@@ -8,10 +8,10 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
-import { StandardCard } from '@/components/ui/StandardCard';
+import { Card } from '@/components/ui/Card.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 
 interface LineItem {
   description: string;
@@ -151,7 +151,7 @@ export function CreateQuoteClient() {
     <PageLayout
       sidebar={
         <>
-          <StandardCard title="Quote progress" description="Complete each step to send a polished proposal.">
+          <Card.Dashboard title="Quote progress" subtitle="Complete each step to send a polished proposal.">
             <ProgressBar value={progressValue} tone={progressValue === 100 ? 'success' : 'primary'} />
             <div style={{ marginTop: theme.spacing[4], display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
               {REQUIRED_STEPS.map((step) => (
@@ -177,9 +177,9 @@ export function CreateQuoteClient() {
                 </div>
               ))}
             </div>
-          </StandardCard>
+          </Card.Dashboard>
 
-          <StandardCard title="Need help?" description="Jump back to your pipeline to review existing quotes.">
+          <Card.Dashboard title="Need help?" subtitle="Jump back to your pipeline to review existing quotes.">
             <Button
               variant="secondary"
               fullWidth
@@ -187,7 +187,7 @@ export function CreateQuoteClient() {
             >
               View all quotes
             </Button>
-          </StandardCard>
+          </Card.Dashboard>
         </>
       }
     >
@@ -212,7 +212,7 @@ export function CreateQuoteClient() {
       )}
 
       <form onSubmit={handleSendQuote} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-        <StandardCard title="Project overview" description="Introduce what this quote covers.">
+        <Card.Dashboard title="Project overview" subtitle="Introduce what this quote covers.">
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
             <Input
               label="Project title *"
@@ -229,9 +229,9 @@ export function CreateQuoteClient() {
               rows={4}
             />
           </div>
-        </StandardCard>
+        </Card.Dashboard>
 
-        <StandardCard title="Client details" description="Let us know who this quote is for.">
+        <Card.Dashboard title="Client details" subtitle="Let us know who this quote is for.">
           <div style={{ display: 'grid', gap: theme.spacing[4] }}>
             <Input
               label="Client name *"
@@ -255,11 +255,11 @@ export function CreateQuoteClient() {
               placeholder="+44 7700 900000"
             />
           </div>
-        </StandardCard>
+        </Card.Dashboard>
 
-        <StandardCard
+        <Card.Dashboard
           title="Line items"
-          description="Break down labour, materials, or services to show how you reached the total."
+          subtitle="Break down labour, materials, or services to show how you reached the total."
           actions={
             <Button variant="ghost" size="sm" type="button" onClick={handleAddLineItem}>
               <Icon name="plus" size={16} color={theme.colors.primary} />
@@ -321,9 +321,9 @@ export function CreateQuoteClient() {
               </div>
             ))}
           </div>
-        </StandardCard>
+        </Card.Dashboard>
 
-        <StandardCard title="Pricing summary">
+        <Card.Dashboard title="Pricing summary">
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: theme.colors.textSecondary }}>
               <span>Subtotal</span>
@@ -353,7 +353,7 @@ export function CreateQuoteClient() {
               max="365"
             />
           </div>
-        </StandardCard>
+        </Card.Dashboard>
 
         <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
           <Button

@@ -18,6 +18,9 @@ const createJobSchema = z.object({
   status: z.string().optional().transform(val => val ? sanitizeText(val, 50) : val),
   category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
   budget: z.coerce.number().positive().optional(),
+  location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
+  photoUrls: z.array(z.string().url()).optional(),
+  requiredSkills: z.array(z.string().max(100)).max(10).optional(),
 });
 
 // Enriched query with JOINs for complete data
@@ -43,6 +46,11 @@ type UserData = {
   first_name: string;
   last_name: string;
   email: string;
+};
+
+type JobAttachment = {
+  file_url: string;
+  file_type: string;
 };
 
 type JobRow = {
@@ -112,16 +120,33 @@ export async function GET(request: NextRequest) {
 
     const { limit, cursor, status } = parsed.data;
 
+    // For contractors viewing available jobs (status=posted), show all posted jobs not yet assigned
+    // For homeowners or contractors viewing their own jobs, show jobs they're associated with
     let query = serverSupabase
       .from('jobs')
-      .select(jobSelectFields)
-      .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+      .select(jobSelectFields);
+
+    // Check if contractor is requesting available jobs (posted status)
+    const isContractorViewingAvailableJobs = user.role === 'contractor' && status?.includes('posted');
+    
+    if (isContractorViewingAvailableJobs) {
+      // Contractors should see all posted jobs that aren't assigned yet
+      query = query
+        .eq('status', 'posted')
+        .is('contractor_id', null);
+    } else {
+      // Homeowners see their own jobs, contractors see jobs assigned to them
+      query = query
+        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
+      
+      if (status?.length) {
+        query = query.in('status', status);
+      }
+    }
+
+    query = query
       .order('created_at', { ascending: false })
       .limit(limit + 1);
-
-    if (status?.length) {
-      query = query.in('status', status);
-    }
 
     if (cursor) {
       query = query.lt('created_at', cursor);
@@ -139,9 +164,47 @@ export async function GET(request: NextRequest) {
     const rows = data as unknown as JobRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const nextCursor = hasMore ? limitedRows.at(-1)?.created_at ?? undefined : undefined;
+    const nextCursor = hasMore ? limitedRows[limitedRows.length - 1]?.created_at ?? undefined : undefined;
 
-    const items: JobSummary[] = limitedRows.map(mapRowToJobSummary);
+    // Fetch attachments separately for each job (more reliable than nested query)
+    const jobIds = limitedRows.map(row => row.id);
+    let attachmentsData: { job_id: string; file_url: string; file_type: string }[] | null = null;
+    
+    if (jobIds.length > 0) {
+      const { data } = await serverSupabase
+        .from('job_attachments')
+        .select('job_id, file_url, file_type')
+        .in('job_id', jobIds)
+        .eq('file_type', 'image');
+      attachmentsData = data;
+    }
+
+    // Group attachments by job_id
+    const attachmentsByJobId = new Map<string, JobAttachment[]>();
+    if (attachmentsData) {
+      attachmentsData.forEach((att: { job_id: string; file_url: string; file_type: string }) => {
+        if (!attachmentsByJobId.has(att.job_id)) {
+          attachmentsByJobId.set(att.job_id, []);
+        }
+        attachmentsByJobId.get(att.job_id)!.push({
+          file_url: att.file_url,
+          file_type: att.file_type,
+        });
+      });
+    }
+
+    // Map rows to job summaries with photos
+    const items: (JobSummary & { photos?: string[] })[] = limitedRows.map(row => {
+      const jobAttachments = attachmentsByJobId.get(row.id) || [];
+      const photos = jobAttachments
+        .filter(att => att.file_type === 'image')
+        .map(att => att.file_url);
+      
+      return {
+        ...mapRowToJobSummary(row),
+        photos: photos.length > 0 ? photos : undefined,
+      };
+    });
 
     logger.info('Jobs list retrieved', {
       service: 'jobs',
@@ -180,6 +243,8 @@ export async function POST(request: NextRequest) {
       description?: string;
       category?: string | null;
       budget?: number;
+      location?: string | null;
+      required_skills?: string[] | null;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
@@ -193,6 +258,12 @@ export async function POST(request: NextRequest) {
       insertPayload.category = payload.category?.trim() ?? null;
     }
     if (payload.budget !== undefined) insertPayload.budget = payload.budget;
+    if (payload.location !== undefined) {
+      insertPayload.location = payload.location?.trim() ?? null;
+    }
+    if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
+      insertPayload.required_skills = payload.requiredSkills;
+    }
 
     const { data, error } = await serverSupabase
       .from('jobs')
@@ -211,11 +282,46 @@ export async function POST(request: NextRequest) {
     const jobRow = data as unknown as JobRow;
     const job = mapRowToJobDetail(jobRow);
 
+    // Save photos to job_attachments if provided
+    if (payload.photoUrls && payload.photoUrls.length > 0) {
+      try {
+        const attachments = payload.photoUrls.map((url: string) => ({
+          job_id: job.id,
+          file_url: url,
+          file_type: 'image',
+          uploaded_by: user.id,
+        }));
+
+        const { error: attachError } = await serverSupabase
+          .from('job_attachments')
+          .insert(attachments);
+
+        if (attachError) {
+          logger.warn('Failed to save job attachments', {
+            service: 'jobs',
+            userId: user.id,
+            jobId: job.id,
+            error: attachError,
+          });
+          // Don't fail the job creation if attachments fail
+        }
+      } catch (attachErr) {
+        logger.warn('Error saving job attachments', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: job.id,
+          error: attachErr,
+        });
+        // Don't fail the job creation if attachments fail
+      }
+    }
+
     logger.info('Job created successfully', {
       service: 'jobs',
       userId: user.id,
       jobId: job.id,
-      title: job.title
+      title: job.title,
+      photoCount: payload.photoUrls?.length || 0,
     });
 
     return NextResponse.json({ job }, { status: 201 });

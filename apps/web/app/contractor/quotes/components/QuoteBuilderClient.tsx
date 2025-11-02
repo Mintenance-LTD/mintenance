@@ -7,9 +7,8 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { PageLayout, PageHeader, StatsGrid } from '@/components/ui/PageLayout';
-import { StatCard } from '@/components/ui/StatCard';
-import { StandardCard } from '@/components/ui/StandardCard';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { Card } from '@/components/ui/Card.unified';
+import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 
@@ -163,46 +162,52 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
     <PageLayout
       sidebar={
         <>
-          <StandardCard
-            title="Pipeline health"
-            description="Monitor conversion across every stage."
-          >
-            <ProgressBar
-              value={acceptanceRate}
-              label="Acceptance rate"
-              tone={acceptanceRate >= 50 ? 'success' : 'warning'}
-            />
+          <Card>
+            <Card.Header>
+              <Card.Title>Pipeline health</Card.Title>
+              <Card.Description>Monitor conversion across every stage.</Card.Description>
+            </Card.Header>
+            <Card.Content>
+              <ProgressBar
+                value={acceptanceRate}
+                label="Acceptance rate"
+                tone={acceptanceRate >= 50 ? 'success' : 'warning'}
+              />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], marginTop: theme.spacing[4] }}>
-              {statusBreakdown.map(({ status, count }) => (
-                <div
-                  key={status}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                    borderRadius: theme.borderRadius.md,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                  }}
-                >
-                  <StatusChip
-                    label={STATUS_LABEL[status]}
-                    tone={STATUS_TONE[status]}
-                    withDot
-                  />
-                  <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-                    {count} ({Math.round((count / stageTotal) * 100)}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </StandardCard>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], marginTop: theme.spacing[4] }}>
+                {statusBreakdown.map(({ status, count }) => (
+                  <div
+                    key={status}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                      borderRadius: theme.borderRadius.md,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                    }}
+                  >
+                    <StatusChip
+                      variant={STATUS_TONE[status] === 'success' ? 'success' : STATUS_TONE[status] === 'error' ? 'error' : 'default'}
+                      withDot
+                    >
+                      {STATUS_LABEL[status]}
+                    </StatusChip>
+                    <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+                      {count} ({Math.round((count / stageTotal) * 100)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card.Content>
+          </Card>
 
-          <StandardCard
-            title="Need something quick?"
-            description="Create a new quote or duplicate a recent one."
-          >
+          <Card>
+            <Card.Header>
+              <Card.Title>Need something quick?</Card.Title>
+              <Card.Description>Create a new quote or duplicate a recent one.</Card.Description>
+            </Card.Header>
+            <Card.Content>
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
               <Link href="/contractor/quotes/create" style={{ textDecoration: 'none' }}>
                 <Button variant="primary" fullWidth>
@@ -216,7 +221,8 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                 </Button>
               </Link>
             </div>
-          </StandardCard>
+            </Card.Content>
+          </Card>
         </>
       }
     >
@@ -244,14 +250,16 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
       <StatsGrid>
         {summaryCards.map((card) => (
-          <StatCard key={card.label} label={card.label} value={card.value} icon={card.icon} />
+          <Card.Metric key={card.label} label={card.label} value={card.value} icon={card.icon} />
         ))}
       </StatsGrid>
 
-      <StandardCard
-        title="Quotes"
-        description="Filter by status to prioritise follow-ups."
-      >
+      <Card>
+        <Card.Header>
+          <Card.Title>Quotes</Card.Title>
+          <Card.Description>Filter by status to prioritise follow-ups.</Card.Description>
+        </Card.Header>
+        <Card.Content>
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
           <nav style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
             {STATUS_FILTERS.map((filter) => {
@@ -356,10 +364,11 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                           {formatCurrency(quote.total_amount)}
                         </strong>
                         <StatusChip
-                          label={STATUS_LABEL[quote.status]}
-                          tone={STATUS_TONE[quote.status]}
+                          variant={STATUS_TONE[quote.status] === 'success' ? 'success' : STATUS_TONE[quote.status] === 'error' ? 'error' : 'default'}
                           withDot
-                        />
+                        >
+                          {STATUS_LABEL[quote.status]}
+                        </StatusChip>
                       </div>
                     </header>
 
@@ -417,37 +426,44 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
             </div>
           )}
         </div>
-      </StandardCard>
+        </Card.Content>
+      </Card>
 
       {pendingDelete && (
-        <StandardCard title="Delete quote" description="This action cannot be undone.">
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[4],
-            }}
-          >
-            <NotificationBanner
-              tone="warning"
-              message={`Delete ${pendingDelete.project_title || pendingDelete.quote_number}?`}
-            />
-            <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
-              <Button variant="ghost" size="sm" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleDeleteQuote}
-                disabled={actionBusyId === pendingDelete.id}
-                style={{ backgroundColor: theme.colors.error }}
-              >
-                {actionBusyId === pendingDelete.id ? 'Deleting...' : 'Delete quote'}
-              </Button>
+        <Card>
+          <Card.Header>
+            <Card.Title>Delete quote</Card.Title>
+            <Card.Description>This action cannot be undone.</Card.Description>
+          </Card.Header>
+          <Card.Content>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[4],
+              }}
+            >
+              <NotificationBanner
+                tone="warning"
+                message={`Delete ${pendingDelete.project_title || pendingDelete.quote_number}?`}
+              />
+              <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
+                <Button variant="ghost" size="sm" onClick={() => setPendingDelete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleDeleteQuote}
+                  disabled={actionBusyId === pendingDelete.id}
+                  style={{ backgroundColor: theme.colors.error }}
+                >
+                  {actionBusyId === pendingDelete.id ? 'Deleting...' : 'Delete quote'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </StandardCard>
+          </Card.Content>
+        </Card>
       )}
     </PageLayout>
   );

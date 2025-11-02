@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon } from '@/components/ui/Icon';
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { PaymentCard } from '@/components/payments/PaymentCard';
-import { PaymentService } from '@/lib/services/PaymentService';
-import Logo from '../components/Logo';
-import Link from 'next/link';
+import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 import type { EscrowTransaction, User } from '@mintenance/types';
 
 export default function PaymentsPage() {
   const router = useRouter();
+  const { csrfToken } = useCSRF();
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<EscrowTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +42,14 @@ export default function PaymentsPage() {
       }
 
       setUser(currentUser);
-      const userTransactions = await PaymentService.getUserPaymentHistory(currentUser.id);
-      setTransactions(userTransactions);
+      
+      // Fetch from API route instead of client-side service
+      const response = await fetch('/api/payments/history');
+      if (!response.ok) {
+        throw new Error('Failed to load payment history');
+      }
+      const { payments } = await response.json();
+      setTransactions(payments || []);
     } catch (err) {
       console.error('Error loading payments:', err);
       setError('Failed to load payments');
@@ -50,8 +59,29 @@ export default function PaymentsPage() {
   };
 
   const handleReleasePayment = async (transactionId: string) => {
+    if (!csrfToken) {
+      alert('Security token not loaded. Please refresh the page.');
+      return;
+    }
+
     try {
-      await PaymentService.releaseEscrowPayment(transactionId);
+      const response = await fetch('/api/payments/release-escrow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          escrowTransactionId: transactionId,
+          releaseReason: 'job_completed'
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to release payment');
+      }
+      
       alert('Payment released successfully!');
       loadUserAndPayments(); // Refresh the list
     } catch (error: any) {
@@ -61,11 +91,40 @@ export default function PaymentsPage() {
   };
 
   const handleRefundPayment = async (transactionId: string) => {
+    if (!csrfToken) {
+      alert('Security token not loaded. Please refresh the page.');
+      return;
+    }
+
     const reason = prompt('Please provide a reason for the refund:');
     if (!reason) return;
 
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) {
+      alert('Transaction not found');
+      return;
+    }
+
     try {
-      await PaymentService.refundEscrowPayment(transactionId, reason);
+      const response = await fetch('/api/payments/refund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          escrowTransactionId: transactionId,
+          jobId: transaction.jobId,
+          amount: transaction.amount,
+          reason
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to request refund');
+      }
+      
       alert('Refund request submitted successfully!');
       loadUserAndPayments(); // Refresh the list
     } catch (error: any) {
@@ -132,37 +191,31 @@ export default function PaymentsPage() {
     );
   }
 
+  const userDisplayName = user.first_name && user.last_name 
+    ? `${user.first_name} ${user.last_name}`.trim() 
+    : user.email;
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: theme.colors.backgroundSecondary
-    }}>
-      {/* Logo Header */}
+    <HomeownerLayoutShell 
+      currentPath="/payments"
+      userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
+      userEmail={user.email}
+    >
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: theme.spacing[6],
-        backgroundColor: theme.colors.surface,
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo />
-          <span style={{
-            marginLeft: theme.spacing[3],
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary
-          }}>
-            Mintenance
-          </span>
-        </Link>
-      </div>
-      <div style={{
-        maxWidth: '1200px',
+        maxWidth: '1440px',
         margin: '0 auto',
         padding: theme.spacing.lg
       }}>
+        {/* Breadcrumbs */}
+        <Breadcrumbs 
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Payments', current: true }
+          ]}
+          style={{ marginBottom: theme.spacing[4] }}
+        />
+
         {/* Header */}
         <div style={{
           backgroundColor: theme.colors.white,
@@ -180,9 +233,13 @@ export default function PaymentsPage() {
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
               margin: 0,
-              marginBottom: '4px'
+              marginBottom: theme.spacing[1],
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2]
             }}>
-              💰 Payments & Escrow
+              <Icon name="creditCard" size={28} color={theme.colors.primary} />
+              Payments & Escrow
             </h1>
             <p style={{
               color: theme.colors.textSecondary,
@@ -197,16 +254,18 @@ export default function PaymentsPage() {
               onClick={() => router.push('/jobs')}
               variant="outline"
               size="sm"
+              leftIcon={<Icon name="briefcase" size={16} />}
             >
-              📋 View Jobs
+              View Jobs
             </Button>
             <Button
               onClick={loadUserAndPayments}
               variant="outline"
               size="sm"
               disabled={loading}
+              leftIcon={<Icon name="refresh" size={16} />}
             >
-              🔄 Refresh
+              Refresh
             </Button>
           </div>
         </div>
@@ -397,56 +456,20 @@ export default function PaymentsPage() {
           )}
 
           {!loading && !error && filteredTransactions.length === 0 && (
-            <div style={{
-              padding: theme.spacing.xl,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize['4xl'],
-                marginBottom: theme.spacing.lg
-              }}>
-                💳
-              </div>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.text,
-                marginBottom: theme.spacing.md
-              }}>
-                No payments found
-              </h3>
-              <p style={{
-                color: theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.base,
-                marginBottom: theme.spacing.lg,
-                maxWidth: '500px',
-                margin: `0 auto ${theme.spacing.lg}`
-              }}>
-                {filter === 'all'
+            <EmptyState
+              variant="default"
+              icon={<Icon name="creditCard" size={64} color={theme.colors.textTertiary} />}
+              title={filter === 'all' ? 'No payments yet' : `No ${filter} payments`}
+              description={
+                filter === 'all'
                   ? 'You haven\'t made any payments yet. Start by posting a job or applying to jobs to begin transacting.'
                   : `No ${filter} payments found. Try changing the filter to see other transactions.`
-                }
-              </p>
-              <div style={{
-                display: 'flex',
-                gap: theme.spacing.md,
-                justifyContent: 'center',
-                flexWrap: 'wrap'
-              }}>
-                <Button
-                  onClick={() => router.push('/jobs')}
-                  variant="primary"
-                >
-                  📋 Browse Jobs
-                </Button>
-                <Button
-                  onClick={() => router.push('/contractors')}
-                  variant="outline"
-                >
-                  🔧 Find Contractors
-                </Button>
-              </div>
-            </div>
+              }
+              action={{
+                label: filter === 'all' ? 'Browse Jobs' : 'Clear Filter',
+                onClick: filter === 'all' ? () => router.push('/jobs') : () => setFilter('all')
+              }}
+            />
           )}
 
           {!loading && !error && filteredTransactions.length > 0 && (
@@ -465,6 +488,6 @@ export default function PaymentsPage() {
           )}
         </div>
       </div>
-    </div>
+    </HomeownerLayoutShell>
   );
 }

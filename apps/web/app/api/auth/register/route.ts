@@ -91,6 +91,13 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
+    // Add cookie headers from auth result
+    if (result.cookieHeaders) {
+      result.cookieHeaders.forEach((value, key) => {
+        response.headers.append(key, value);
+      });
+    }
+
     // Add rate limit headers to successful response
     const headers = createRateLimitHeaders(rateLimitResult);
     Object.entries(headers).forEach(([key, value]) => {
@@ -104,11 +111,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'CSRF validation failed') {
       logger.warn('CSRF validation failed', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        hasHeaderToken: !!request.headers.get('x-csrf-token'),
+        cookies: request.headers.get('cookie')?.substring(0, 100) || 'none'
       });
 
       return NextResponse.json(
-        { error: 'CSRF validation failed' },
+        { error: 'CSRF validation failed', message: 'Please refresh the page and try again.' },
         { status: 403 }
       );
     }

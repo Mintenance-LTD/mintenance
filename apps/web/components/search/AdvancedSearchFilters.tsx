@@ -33,7 +33,7 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
   };
 
   const handlePriceRangeChange = (field: keyof PriceRange, value: string) => {
-    const priceRange = localFilters.priceRange || { min: 0, max: 10000, currency: 'USD' };
+    const priceRange = localFilters.priceRange || { min: 0, max: 10000, currency: 'GBP' };
     const numValue = parseFloat(value) || 0;
     updateFilters({
       priceRange: {

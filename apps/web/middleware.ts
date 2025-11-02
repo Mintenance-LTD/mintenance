@@ -27,18 +27,21 @@ export async function middleware(request: NextRequest) {
 
   // Define public routes that don't require authentication
   const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms'];
-  const isPublicRoute = pathname === '/' || publicRoutes.some(route => pathname.startsWith(route));
+  const isPublicRoute = pathname === '/' || publicRoutes.some(route => pathname.startsWith(route)) || pathname.startsWith('/contractor/');
 
   // Skip middleware for public routes
   if (isPublicRoute) {
     const response = NextResponse.next();
     
     // Generate CSRF token on first visit if not present
-    if (!request.cookies.get('__Host-csrf-token')) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    
+    if (!request.cookies.get(csrfCookieName)) {
       const csrfToken = crypto.randomUUID();
-      response.cookies.set('__Host-csrf-token', csrfToken, {
+      response.cookies.set(csrfCookieName, csrfToken, {
         httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
-        secure: true,
+        secure: !isDevelopment, // Only secure in production
         sameSite: 'strict',
         path: '/',
         maxAge: 24 * 60 * 60, // 24 hours
@@ -60,7 +63,9 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Get JWT token from cookies
-    const token = request.cookies.get('__Host-mintenance-auth')?.value;
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const authCookieName = isDevelopment ? 'mintenance-auth' : '__Host-mintenance-auth';
+    const token = request.cookies.get(authCookieName)?.value;
 
     if (!token) {
       // No token found, redirect to login
@@ -90,8 +95,11 @@ export async function middleware(request: NextRequest) {
 
     // Validate CSRF token for state-changing requests
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+      
       const headerToken = request.headers.get('x-csrf-token');
-      const cookieToken = request.cookies.get('__Host-csrf-token')?.value;
+      const cookieToken = request.cookies.get(csrfCookieName)?.value;
 
       if (!headerToken || !cookieToken || headerToken !== cookieToken) {
         logger.warn('CSRF token validation failed', {

@@ -5,8 +5,8 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { Card } from '@/components/ui/Card.unified';
 
 interface ConnectionRequest {
   id: string;
@@ -272,7 +272,7 @@ export function ConnectionsClient({
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Connections"
           value={mutualConnections.length.toString()}
           subtitle="Active network"
@@ -280,7 +280,7 @@ export function ConnectionsClient({
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Pending Requests"
           value={connectionRequests.length.toString()}
           subtitle="Awaiting response"
@@ -288,7 +288,7 @@ export function ConnectionsClient({
           color={theme.colors.warning || '#F59E0B'}
         />
 
-        <MetricCard
+        <Card.Metric
           label="This Month"
           value={(mutualConnections.filter(c => {
             const connectedDate = new Date(c.connectedAt);

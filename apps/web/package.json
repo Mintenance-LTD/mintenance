@@ -18,6 +18,7 @@
         "type-check": "tsc --noEmit"
     },
     "dependencies": {
+        "@googlemaps/markerclusterer": "^2.6.2",
         "@mintenance/auth": "file:../../packages/auth",
         "@mintenance/shared": "file:../../packages/shared",
         "@mintenance/types": "file:../../packages/types",
@@ -37,7 +38,10 @@
         "zod": "^4.1.12"
     },
     "devDependencies": {
+        "@googlemaps/js-api-loader": "^2.0.2",
+        "@tailwindcss/postcss": "^4.1.16",
         "@types/bcryptjs": "^3.0.0",
+        "@types/google.maps": "^3.58.1",
         "@types/jest": "^30.0.0",
         "@types/node": "^24",
         "@types/react": "^19",

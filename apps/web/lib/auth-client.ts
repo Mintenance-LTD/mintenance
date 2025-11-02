@@ -29,6 +29,10 @@ export async function fetchCurrentUser(signal?: AbortSignal): Promise<User | nul
     const data = (await response.json()) as SessionResponse;
     return data.user ?? null;
   } catch (error) {
+    // Don't log abort errors - they're expected during unmount/route changes
+    if (error && typeof error === 'object' && (error as any).name === 'AbortError') {
+      return null;
+    }
     logger.error('[Auth] Failed to fetch current user', error);
     return null;
   }

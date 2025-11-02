@@ -69,7 +69,14 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         }
         break;
       case 'bid_received':
-        router.push('/contractor/finance');
+        // For homeowners, route to the job page. For contractors, route to finance.
+        if (notification.action_url) {
+          router.push(notification.action_url);
+        } else if (notification.data?.jobId) {
+          router.push(`/jobs/${notification.data.jobId}`);
+        } else {
+          router.push('/contractor/finance');
+        }
         break;
       case 'message_received':
         router.push('/messages');

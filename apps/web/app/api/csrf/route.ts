@@ -5,21 +5,28 @@
  * Call this endpoint before making state-changing requests.
  */
 
-import { NextResponse } from 'next/server';
-import { getCSRFTokenForClient } from '@/lib/csrf';
+import { NextRequest, NextResponse } from 'next/server';
+import { generateCSRFToken } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/csrf
- * Generate and return a new CSRF token
+ * Generate and return a new CSRF token, also sets it as a cookie
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const token = await getCSRFTokenForClient();
+    const token = generateCSRFToken();
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // In development (localhost), use regular cookie name (__Host- requires HTTPS)
+    // In production, use __Host- prefix for additional security
+    const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    const cookieSecure = !isDevelopment; // Only Secure in production
+    const cookieSameSite = isDevelopment ? 'Lax' : 'Strict';
     
     logger.info('CSRF token generated', { service: 'csrf' });
     
-    return NextResponse.json(
+    const response = NextResponse.json(
       { token },
       { 
         status: 200,
@@ -28,6 +35,20 @@ export async function GET() {
         },
       }
     );
+    
+    // Set CSRF token as HTTP-only cookie
+    const cookieOptions = [
+      `${cookieName}=${token}`,
+      'HttpOnly',
+      cookieSecure ? 'Secure' : '',
+      `SameSite=${cookieSameSite}`,
+      'Path=/',
+      'Max-Age=3600',
+    ].filter(Boolean).join('; ');
+    
+    response.headers.set('Set-Cookie', cookieOptions);
+    
+    return response;
   } catch (error) {
     logger.error('Failed to generate CSRF token', error, { service: 'csrf' });
     

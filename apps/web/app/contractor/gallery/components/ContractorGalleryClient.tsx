@@ -4,8 +4,8 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
-import { MetricCard } from '@/components/ui/MetricCard';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Card } from '@/components/ui/Card.unified';
+import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
 
 interface GalleryImage {
   id: string;
@@ -81,7 +81,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Photos"
           value={images.length.toString()}
           subtitle="In your portfolio"
@@ -89,7 +89,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Completed Projects"
           value={completedImages.toString()}
           subtitle="Showcased work"
@@ -97,7 +97,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Total Likes"
           value={totalLikes.toString()}
           subtitle="Client appreciation"

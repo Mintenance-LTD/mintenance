@@ -36,6 +36,7 @@ export const getCachedContractors = unstable_cache(
         rating,
         total_jobs_completed,
         is_available,
+        email_verified,
         city,
         country,
         created_at,

@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger } from '@mintenance/shared';
 import { ContractorDataService } from './matching/ContractorDataService';
 import { ScoringService } from './matching/ScoringService';
 import { MatchAnalysisService } from './matching/MatchAnalysisService';

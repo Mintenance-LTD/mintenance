@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 
 interface PhotoUploadModalProps {
   onClose: () => void;

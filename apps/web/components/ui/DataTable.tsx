@@ -2,6 +2,8 @@
 
 import React, { ReactNode } from 'react';
 import { theme } from '@/lib/theme';
+import { EmptyState } from './EmptyState';
+import { Card } from './Card';
 
 export interface Column<T> {
   key: string;
@@ -9,6 +11,7 @@ export interface Column<T> {
   render?: (item: T) => ReactNode;
   align?: 'left' | 'center' | 'right';
   width?: string;
+  mobileLabel?: string; // Label to show in mobile card view
 }
 
 interface DataTableProps<T> {
@@ -16,8 +19,15 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   onRowClick?: (item: T) => void;
   emptyMessage?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyAction?: {
+    label: string;
+    onClick: () => void;
+  };
   title?: string;
   actions?: ReactNode;
+  responsive?: boolean; // Enable mobile card view
 }
 
 export function DataTable<T extends { id: string | number }>({
@@ -25,8 +35,12 @@ export function DataTable<T extends { id: string | number }>({
   columns,
   onRowClick,
   emptyMessage = 'No data available',
+  emptyTitle = 'No items found',
+  emptyDescription = emptyMessage,
+  emptyAction,
   title,
   actions,
+  responsive = true,
 }: DataTableProps<T>) {
   return (
     <div
@@ -94,21 +108,7 @@ export function DataTable<T extends { id: string | number }>({
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  style={{
-                    padding: theme.spacing[8],
-                    textAlign: 'center',
-                    color: theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.sm,
-                  }}
-                >
-                  {emptyMessage}
-                </td>
-              </tr>
-            ) : (
+            {data.length > 0 && (
               data.map((item) => (
                 <tr
                   key={item.id}
@@ -149,6 +149,64 @@ export function DataTable<T extends { id: string | number }>({
           </tbody>
         </table>
       </div>
+
+      {/* Empty State */}
+      {data.length === 0 && (
+        <EmptyState
+          variant="minimal"
+          title={emptyTitle}
+          description={emptyDescription}
+          action={emptyAction}
+        />
+      )}
+
+      {/* Mobile Card View */}
+      {responsive && data.length > 0 && (
+        <div className="md:hidden mt-4 space-y-3">
+          {data.map((item) => (
+            <Card
+              key={item.id}
+              variant="outlined"
+              padding="md"
+              onClick={() => onRowClick?.(item)}
+              hover={!!onRowClick}
+            >
+              {columns.map((column, idx) => (
+                <div
+                  key={column.key}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    paddingBottom: idx < columns.length - 1 ? theme.spacing[3] : 0,
+                    borderBottom: idx < columns.length - 1 ? `1px solid ${theme.colors.border}` : 'none',
+                    marginBottom: idx < columns.length - 1 ? theme.spacing[3] : 0,
+                  }}
+                >
+                  <span style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textSecondary,
+                  }}>
+                    {column.mobileLabel || column.label}:
+                  </span>
+                  <span style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textPrimary,
+                    textAlign: 'right',
+                    flex: 1,
+                    marginLeft: theme.spacing[2],
+                  }}>
+                    {column.render
+                      ? column.render(item)
+                      : String((item as any)[column.key] || '-')}
+                  </span>
+                </div>
+              ))}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

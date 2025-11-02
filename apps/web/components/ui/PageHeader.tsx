@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button } from './Button';
 import { theme } from '@/lib/theme';
 
@@ -75,7 +76,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div style={headerStyles}>
       <div style={{
-        maxWidth: '1280px',
+        maxWidth: '1440px',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
@@ -83,25 +84,33 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       }}>
         {/* Breadcrumbs */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav style={breadcrumbStyles}>
+          <nav className="page-breadcrumbs" style={breadcrumbStyles}>
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={index}>
                 {crumb.href ? (
-                  <a href={crumb.href} style={breadcrumbItemStyles}>
+                  <Link href={crumb.href} className="breadcrumb-link" style={breadcrumbItemStyles}>
                     {crumb.label}
-                  </a>
+                  </Link>
                 ) : (
                   <span style={{ color: theme.colors.textSecondary }}>
                     {crumb.label}
                   </span>
                 )}
                 {index < breadcrumbs.length - 1 && (
-                  <span style={breadcrumbSeparatorStyles}>/</span>
+                  <span className="breadcrumb-separator" style={breadcrumbSeparatorStyles}>/</span>
                 )}
               </React.Fragment>
             ))}
           </nav>
         )}
+        <style jsx>{`
+          .page-breadcrumbs .breadcrumb-link:hover {
+            color: ${theme.colors.primary};
+          }
+          .page-breadcrumbs .breadcrumb-separator {
+            user-select: none;
+          }
+        `}</style>
 
         {/* Header Content */}
         <div style={{

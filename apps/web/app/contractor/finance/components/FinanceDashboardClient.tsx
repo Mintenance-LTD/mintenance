@@ -4,8 +4,8 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { Card } from '@/components/ui/Card.unified';
 
 interface FinanceDashboardClientProps {
   financialData: {
@@ -212,7 +212,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Revenue"
           value={`£${financialData.totalRevenue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
@@ -228,7 +228,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Pending Payments"
           value={`£${financialData.pendingPayments.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
@@ -239,7 +239,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color="#F59E0B"
         />
 
-        <MetricCard
+        <Card.Metric
           label="Average Job Value"
           value={`£${avgJobValue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
@@ -250,7 +250,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Annual Projection"
           value={`£${revenueProjection.toLocaleString('en-GB', {
             minimumFractionDigits: 0,

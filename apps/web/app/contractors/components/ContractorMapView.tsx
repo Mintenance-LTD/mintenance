@@ -1,11 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/lib/supabase';
+import { GoogleMapContainer } from '@/components/maps';
+import {
+  createContractorMarker,
+  createContractorInfoWindow,
+  calculateBounds,
+  fitMapToBounds,
+  createRecenterControl,
+  clearMarkers,
+  clearCircles,
+  createServiceAreaCircle,
+} from '@/lib/maps';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 
 /**
  * Contractor Map Marker Interface
@@ -36,6 +48,13 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedContractor, setSelectedContractor] = useState<ContractorMarker | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const infoWindowsRef = useRef<Map<string, google.maps.InfoWindow>>(new Map());
+  const markerClustererRef = useRef<MarkerClusterer | null>(null);
+  const circlesRef = useRef<google.maps.Circle[]>([]);
+  const [showServiceAreas, setShowServiceAreas] = useState(true);
+  const [loadingServiceAreas, setLoadingServiceAreas] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -131,6 +150,157 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
     return R * c;
   };
 
+  /**
+   * Handle map load and create markers for all contractors
+   * No 15-contractor limit - show all!
+   */
+  const handleMapLoad = useCallback(
+    (mapInstance: google.maps.Map) => {
+      setMap(mapInstance);
+
+      // Clear any existing markers, clusterer, and circles
+      if (markerClustererRef.current) {
+        markerClustererRef.current.clearMarkers();
+        markerClustererRef.current = null;
+      }
+      clearMarkers(markersRef.current);
+      clearCircles(circlesRef.current);
+      infoWindowsRef.current.clear();
+      markersRef.current = [];
+      circlesRef.current = [];
+
+      // Create markers for ALL contractors (no limit!)
+      contractors.forEach((contractor) => {
+        const marker = createContractorMarker(
+          mapInstance,
+          {
+            id: contractor.id,
+            name: contractor.name,
+            latitude: contractor.latitude,
+            longitude: contractor.longitude,
+            rating: contractor.rating,
+            city: contractor.city,
+            profileImage: contractor.profileImage,
+          },
+          () => {
+            // On marker click, select contractor (opens modal)
+            setSelectedContractor(contractor);
+          }
+        );
+
+        // Create info window for hover
+        const infoWindow = createContractorInfoWindow({
+          id: contractor.id,
+          name: contractor.name,
+          latitude: contractor.latitude,
+          longitude: contractor.longitude,
+          rating: contractor.rating,
+          city: contractor.city,
+        });
+
+        // Show info window on marker hover
+        marker.addListener('mouseover', () => {
+          // Close all other info windows
+          infoWindowsRef.current.forEach((iw) => iw.close());
+          infoWindow.open(mapInstance, marker);
+        });
+
+        marker.addListener('mouseout', () => {
+          infoWindow.close();
+        });
+
+        markersRef.current.push(marker);
+        infoWindowsRef.current.set(contractor.id, infoWindow);
+      });
+
+      // Implement marker clustering for performance (20+ contractors)
+      if (contractors.length >= 20) {
+        markerClustererRef.current = new MarkerClusterer({
+          map: mapInstance,
+          markers: markersRef.current,
+          algorithm: new (MarkerClusterer as any).SuperClusterAlgorithm({ radius: 100 }),
+        });
+        console.log(`✅ Marker clustering enabled for ${contractors.length} contractors`);
+      }
+
+      // Fit map to show all contractors
+      if (contractors.length > 0) {
+        const bounds = calculateBounds(
+          contractors.map((c) => ({
+            lat: c.latitude,
+            lng: c.longitude,
+          }))
+        );
+
+        if (bounds) {
+          fitMapToBounds(mapInstance, bounds, 50);
+        }
+      }
+
+      // Add recenter control if we have user location
+      if (userLocation) {
+        const recenterControl = createRecenterControl(mapInstance, userLocation);
+        mapInstance.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(recenterControl);
+      }
+
+      // Fetch and display service areas for all contractors
+      if (showServiceAreas && contractors.length > 0) {
+        fetchAndDisplayServiceAreas(mapInstance, contractors);
+      }
+    },
+    [contractors, userLocation, showServiceAreas]
+  );
+
+  /**
+   * Fetch service areas for contractors and display as circles
+   */
+  const fetchAndDisplayServiceAreas = async (
+    mapInstance: google.maps.Map,
+    contractorsList: ContractorMarker[]
+  ) => {
+    setLoadingServiceAreas(true);
+    try {
+      const contractorIds = contractorsList.map((c) => c.id);
+      
+      const response = await fetch('/api/contractors/service-areas-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractorIds }),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to fetch service areas');
+        return;
+      }
+
+      const serviceAreasData = await response.json();
+
+      // Draw circles for each service area
+      serviceAreasData.forEach(([contractorId, areas]: [string, any[]]) => {
+        areas.forEach((area) => {
+          const circle = createServiceAreaCircle(mapInstance, {
+            id: area.id,
+            latitude: area.latitude,
+            longitude: area.longitude,
+            radius_km: area.radius_km,
+            is_active: area.is_active,
+            city: area.city,
+            state: area.state,
+          });
+
+          circlesRef.current.push(circle);
+        });
+      });
+
+      console.log(`✅ Displayed ${circlesRef.current.length} service area circles`);
+    } catch (error) {
+      console.error('Error fetching service areas:', error);
+      // Service areas are optional - don't block user experience
+    } finally {
+      setLoadingServiceAreas(false);
+    }
+  };
+
   const renderContractorCard = (contractor: ContractorMarker) => {
     const distance = userLocation
       ? calculateDistance(
@@ -142,9 +312,12 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       : null;
 
     return (
-      <div
-        key={contractor.id}
+      <button
+        type="button"
+        aria-label={`View profile for ${contractor.name}, rated ${contractor.rating} stars${distance ? `, ${distance.toFixed(1)} km away` : ''}`}
         style={{
+          width: '100%',
+          textAlign: 'left',
           padding: theme.spacing.md,
           backgroundColor: theme.colors.backgroundSecondary,
           borderRadius: '12px',
@@ -210,7 +383,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
             </div>
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 
@@ -245,143 +418,138 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
   }
 
   return (
-    <div style={{ display: 'flex', gap: theme.spacing.lg, height: 700 }}>
-      {/* Map Container (Left Side - 70%) */}
-      <div style={{ flex: '0 0 70%' }}>
+    <div 
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'row',
+        gap: theme.spacing.lg, 
+        height: 700,
+      }}
+      className="contractor-map-view"
+    >
+      <style jsx>{`
+        @media (max-width: 1024px) {
+          .contractor-map-view {
+            flex-direction: column !important;
+            height: auto !important;
+          }
+          .map-container {
+            flex: 1 1 auto !important;
+            min-height: 400px !important;
+          }
+          .contractor-list {
+            flex: 1 1 auto !important;
+            max-height: 400px !important;
+            overflow-y: auto !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .map-container {
+            min-height: 300px !important;
+          }
+          .contractor-list {
+            max-height: 300px !important;
+          }
+        }
+      `}</style>
+      {/* Real Google Maps Container (Left Side - 70%) */}
+      <div style={{ flex: '0 0 70%', position: 'relative' }} className="map-container">
         <div
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: '20px',
-            padding: theme.spacing.xl,
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `1px solid ${theme.colors.border}`,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-          }}
+          role="region"
+          aria-label="Interactive map showing contractor locations and service areas"
+          tabIndex={0}
         >
-          {/* Map Placeholder with Contractor Markers */}
-          <div
+          <GoogleMapContainer
+            center={userLocation || { lat: 51.5074, lng: -0.1278 }}
+            zoom={10}
+            onMapLoad={handleMapLoad}
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
+              borderRadius: '20px',
               overflow: 'hidden',
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
             }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: '#e3e8ef',
-                backgroundImage: `
-                  linear-gradient(0deg, transparent 24%, rgba(0, 0, 0, .05) 25%, rgba(0, 0, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .05) 75%, rgba(0, 0, 0, .05) 76%, transparent 77%, transparent),
-                  linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, .05) 25%, rgba(0, 0, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .05) 75%, rgba(0, 0, 0, .05) 76%, transparent 77%, transparent)
-                `,
-                backgroundSize: '50px 50px',
-                borderRadius: '16px',
-              }}
-            >
-              {/* Contractor Markers */}
-              {contractors.slice(0, 15).map((contractor, index) => (
-                <div
-                  key={contractor.id}
-                  style={{
-                    position: 'absolute',
-                    left: `${15 + (index % 5) * 17}%`,
-                    top: `${15 + Math.floor(index / 5) * 25}%`,
-                    width: 40,
-                    height: 40,
-                    backgroundColor: theme.colors.primary,
-                    borderRadius: '50%',
-                    border: '3px solid white',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    transition: 'transform 0.2s',
-                  }}
-                  onClick={() => setSelectedContractor(contractor)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.2)';
-                    e.currentTarget.style.zIndex = '10';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.zIndex = '1';
-                  }}
-                  title={contractor.name}
-                >
-                  {contractor.name.charAt(0)}
-                </div>
-              ))}
-            </div>
+          />
+        </div>
 
-            {/* Map Instructions */}
-            <div
-              style={{
-                position: 'relative',
-                zIndex: 5,
-                backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                padding: theme.spacing.lg,
-                borderRadius: '16px',
-                textAlign: 'center',
-                maxWidth: 400,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.sm }}>
-                <Icon name="map" size={24} color={theme.colors.primary} />
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize.xl,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: theme.colors.text,
-                  }}
-                >
-                  Interactive Map
-                </h3>
-              </div>
-              <p style={{ color: theme.colors.textSecondary, marginBottom: theme.spacing.md }}>
-                Click on contractor pins or cards in the sidebar to view details
-              </p>
-              <div
-                style={{
-                  display: 'inline-block',
-                  padding: theme.spacing.sm,
-                  backgroundColor: theme.colors.primaryLight,
-                  borderRadius: theme.borderRadius.sm,
-                  color: theme.colors.primary,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                {contractors.length} contractors with geolocation
-              </div>
-            </div>
+        {/* Floating info card */}
+        <div
+          style={{
+            position: 'absolute',
+            top: theme.spacing.md,
+            left: theme.spacing.md,
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            padding: theme.spacing.md,
+            borderRadius: theme.borderRadius.lg,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[2],
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+            <Icon name="map" size={20} color={theme.colors.primary} />
+            <span style={{ fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.text }}>
+              {contractors.length} contractors
+            </span>
           </div>
+          <button
+            onClick={() => setShowServiceAreas(!showServiceAreas)}
+            disabled={loadingServiceAreas}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[1],
+              padding: `${theme.spacing[2]} ${theme.spacing[3]}`, // Touch-friendly padding
+              minHeight: '44px', // Touch target size
+              backgroundColor: showServiceAreas ? theme.colors.primary : theme.colors.backgroundSecondary,
+              color: showServiceAreas ? 'white' : theme.colors.text,
+              border: 'none',
+              borderRadius: theme.borderRadius.sm,
+              fontSize: theme.typography.fontSize.xs,
+              fontWeight: theme.typography.fontWeight.medium,
+              cursor: loadingServiceAreas ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+              opacity: loadingServiceAreas ? 0.6 : 1,
+            }}
+            aria-label={showServiceAreas ? 'Hide service areas' : 'Show service areas'}
+            aria-busy={loadingServiceAreas}
+            role="switch"
+            aria-checked={showServiceAreas}
+          >
+            {loadingServiceAreas ? (
+              <>
+                <div
+                  style={{
+                    width: 14,
+                    height: 14,
+                    border: '2px solid currentColor',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Icon name={showServiceAreas ? 'eye' : 'eyeOff'} size={14} />
+                {showServiceAreas ? 'Hide' : 'Show'} Coverage Areas
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Contractor List (Right Side - 30%) */}
-      <div style={{ flex: '0 0 30%' }}>
-        <div
+      <div style={{ flex: '0 0 30%' }} className="contractor-list">
+        <nav
+          aria-labelledby="contractor-list-heading"
           style={{
             backgroundColor: theme.colors.surface,
             borderRadius: '20px',
@@ -390,9 +558,11 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
             overflowY: 'auto',
             border: `1px solid ${theme.colors.border}`,
             boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
           }}
         >
           <h2
+            id="contractor-list-heading"
             style={{
               fontSize: theme.typography.fontSize.xl,
               fontWeight: theme.typography.fontWeight.bold,
@@ -408,13 +578,23 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
             Nearby ({contractors.length})
           </h2>
           {contractors.length === 0 ? (
-            <p style={{ color: theme.colors.textSecondary, textAlign: 'center', padding: theme.spacing.xl }}>
+            <p 
+              style={{ color: theme.colors.textSecondary, textAlign: 'center', padding: theme.spacing.xl }}
+              role="status"
+              aria-live="polite"
+            >
               No contractors with location data
             </p>
           ) : (
-            contractors.map((contractor) => renderContractorCard(contractor))
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {contractors.map((contractor) => (
+                <li key={contractor.id}>
+                  {renderContractorCard(contractor)}
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+        </nav>
       </div>
 
       {/* Selected Contractor Modal */}

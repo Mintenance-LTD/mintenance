@@ -1,14 +1,18 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { ContractorLayoutShell } from '../components/ContractorLayoutShell';
 import { CircularProgress } from '@/components/ui/CircularProgress';
 import { ProjectTable } from '@/components/ui/ProjectTable';
 import { TodayTasks, Task } from '@/components/ui/TodayTasks';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { Card, MetricCard } from '@/components/ui/Card.unified';
+import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { ResponsiveGrid } from './components/ResponsiveGrid';
+import { ActionCard } from './components/ActionCard';
+import { DashboardContentWrapper } from './components/DashboardContentWrapper';
 
 // Dynamic imports for code splitting
 const ProjectTableDynamic = dynamic(() => import('@/components/ui/ProjectTable').then(mod => ({ default: mod.ProjectTable })), {
@@ -185,81 +189,22 @@ export default async function EnhancedDashboardPage() {
     ongoing: activeJobs.length,
   };
 
-  return (
-    <ContractorLayoutShell contractor={contractor} email={user.email}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[6],
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize['3xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[1],
-              }}
-            >
-              Dashboard
-            </h1>
-            <p
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Welcome back,{' '}
-              {contractor?.first_name || contractor?.company_name || user.email}
-            </p>
-          </div>
+  const contractorFullName =
+    contractor?.first_name || contractor?.last_name
+      ? `${contractor?.first_name ?? ''} ${contractor?.last_name ?? ''}`.trim()
+      : contractor?.company_name ?? 'Mintenance Contractor';
 
-          <Link
-            href="/contractor/quotes"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
-              backgroundColor: theme.colors.primary,
-              color: theme.colors.white,
-              borderRadius: '12px',
-              textDecoration: 'none',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              transition: 'all 0.2s',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>+</span>
-            Create New Quote
-          </Link>
-        </div>
+  return (
+    <DashboardContentWrapper>
+      {/* Page Content */}
+      <div style={{ flex: 1, padding: `${theme.spacing[8]} ${theme.spacing[6]} ${theme.spacing[10]} 0`, width: '100%', overflowX: 'visible', position: 'relative', zIndex: 100 }}>
+        <div className="dashboard-inner-content">
 
         {/* Overview Metrics */}
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: theme.spacing[4],
-          }}
-        >
+        <ResponsiveGrid className="metrics-grid">
           <MetricCard
             label="Total Revenue"
-            value={`£${totalRevenue.toLocaleString()}`}
+            value={formatMoney(totalRevenue)}
             subtitle={`${payments.filter((p) => p.status === 'completed').length} payments`}
             icon="currencyDollar"
             trend={{
@@ -308,29 +253,24 @@ export default async function EnhancedDashboardPage() {
             }}
             color={theme.colors.info}
           />
-        </section>
+        </ResponsiveGrid>
 
         {/* Project Summary & Progress */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 400px',
-            gap: theme.spacing[6],
-          }}
-        >
-          {/* Project Table */}
-          <ProjectTableDynamic projects={projectTableData} />
-
+        <ResponsiveGrid className="project-grid" style={{ gap: theme.spacing[5] }}>
           {/* Overall Progress */}
           <div
             style={{
               backgroundColor: theme.colors.surface,
               border: `1px solid ${theme.colors.border}`,
               borderRadius: '20px',
-              padding: theme.spacing[6],
+              padding: theme.spacing[8],
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              minHeight: '420px',
             }}
           >
             <h2
@@ -452,62 +392,62 @@ export default async function EnhancedDashboardPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Today Tasks */}
-        <TodayTasksDynamic tasks={todayTasks} />
+          {/* Project Table */}
+          <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
+            <ProjectTableDynamic projects={projectTableData} />
+          </div>
+        </ResponsiveGrid>
 
-        {/* Quick Actions */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: theme.spacing[4],
-          }}
-        >
-          {[
-            { label: 'View All Jobs', href: '/contractor/bid', icon: '📋' },
-            { label: 'Manage Quotes', href: '/contractor/quotes', icon: '📝' },
-            { label: 'Finance Dashboard', href: '/contractor/finance', icon: '💰' },
-            { label: 'View Analytics', href: '/analytics', icon: '📊' },
-          ].map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
+        {/* Today Tasks & Quick Actions Grid */}
+        <ResponsiveGrid className="tasks-actions-grid" style={{ gap: theme.spacing[5] }}>
+          {/* Today Tasks */}
+          <div style={{ minHeight: '420px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+            <TodayTasksDynamic tasks={todayTasks} />
+          </div>
+
+          {/* Quick Actions */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[5],
+              minHeight: '420px',
+              backgroundColor: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '20px',
+              padding: theme.spacing[8],
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <h2
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[3],
-                padding: theme.spacing[4],
-                backgroundColor: theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '16px',
-                textDecoration: 'none',
+                margin: 0,
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.bold,
                 color: theme.colors.textPrimary,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = `0 4px 12px ${theme.colors.border}`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <span style={{ fontSize: '24px' }}>{action.icon}</span>
-              <span
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                {action.label}
-              </span>
-            </Link>
-          ))}
+              Quick Actions
+            </h2>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[3],
+              }}
+            >
+              <ActionCard label="View All Jobs" href="/contractor/bid" icon="clipboard" />
+              <ActionCard label="Manage Quotes" href="/contractor/quotes" icon="fileText" />
+              <ActionCard label="Finance Dashboard" href="/contractor/finance" icon="currencyDollar" />
+              <ActionCard label="View Analytics" href="/contractor/reporting" icon="chart" />
+            </div>
+          </div>
+        </ResponsiveGrid>
         </div>
       </div>
-    </ContractorLayoutShell>
+    </DashboardContentWrapper>
   );
 }

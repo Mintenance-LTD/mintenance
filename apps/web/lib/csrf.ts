@@ -39,9 +39,13 @@ export async function validateCSRF(request: NextRequest): Promise<boolean> {
     const headerToken = request.headers.get('x-csrf-token');
     
     // Get CSRF token from cookie
+    // Use different cookie name in development vs production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = parseCookie(cookieHeader);
-    const cookieToken = cookies['__Host-csrf-token'];
+    const cookieToken = cookies[cookieName];
     
     // Both tokens must exist and match
     if (!headerToken || !cookieToken) {

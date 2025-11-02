@@ -18,9 +18,9 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
   style = {},
 }) => {
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     }).format(amount);
   };
 

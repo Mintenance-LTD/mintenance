@@ -37,9 +37,24 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
     return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(parsed);
   }, [job.budget]);
 
+  const formattedDate = useMemo(() => {
+    if (!job.createdAt) return '';
+    // Use consistent locale to avoid hydration mismatches
+    return new Date(job.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+  }, [job.createdAt]);
+
   const handleSubmit = async () => {
     if (!amount || !description) {
       setFeedback({ type: 'error', message: 'Please add a bid amount and short proposal.' });
+      return;
+    }
+
+    if (!job.id) {
+      setFeedback({ type: 'error', message: 'Invalid job. Please try again from the jobs page.' });
       return;
     }
 
@@ -49,29 +64,246 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       return;
     }
 
+    // Validate proposal text length (minimum 50 characters)
+    if (description.trim().length < 50) {
+      setFeedback({ 
+        type: 'error', 
+        message: `Proposal description must be at least 50 characters. You have ${description.trim().length} characters. Please provide more details about your approach, timeline, and experience.` 
+      });
+      return;
+    }
+
+    if (description.trim().length > 5000) {
+      setFeedback({ type: 'error', message: 'Proposal description cannot exceed 5000 characters.' });
+      return;
+    }
+
     try {
       setSubmitting(true);
       setFeedback(null);
 
+      const requestBody = {
+        jobId: job.id,
+        bidAmount: bidAmount,
+        proposalText: description.trim(),
+      };
+
+      console.log('Submitting bid:', { jobId: job.id, bidAmount, proposalLength: description.trim().length });
+
       const response = await fetch('/api/contractor/submit-bid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId: job.id,
-          amount: bidAmount,
-          description,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to submit bid.');
+      // Log response details immediately
+      console.log('Response received:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
+
+      let responseData: any = {};
+      let responseText = '';
+      
+      try {
+        responseText = await response.text();
+        console.log('API Response status:', response.status);
+        console.log('API Response statusText:', response.statusText);
+        console.log('API Response text:', responseText);
+        console.log('API Response text length:', responseText.length);
+        console.log('API Response is empty:', !responseText || responseText.trim().length === 0);
+        
+        if (responseText && responseText.trim()) {
+          try {
+            responseData = JSON.parse(responseText);
+            console.log('API Response data:', responseData);
+          } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError, 'Response text:', responseText);
+            // If we can't parse JSON but have a status, use the status
+            if (!response.ok) {
+              throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}. ${responseText.substring(0, 200)}`);
+            }
+            throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
+          }
+        } else if (!response.ok) {
+          // Empty response but error status - this is the issue!
+          console.warn('Empty response body with error status:', {
+            status: response.status,
+            statusText: response.statusText,
+          });
+          // Create a meaningful error message based on status code
+          const statusMessages: Record<number, string> = {
+            400: 'Invalid request. Please check your bid details.',
+            401: 'You must be logged in to submit a bid.',
+            403: 'Only contractors can submit bids.',
+            404: 'Job not found. Please try again.',
+            409: 'You have already submitted a bid for this job.',
+            422: 'Invalid bid data. Please check your inputs.',
+            429: 'Too many requests. Please try again later.',
+            500: 'Server error. Please try again later.',
+            502: 'Bad gateway. Please try again later.',
+            503: 'Service unavailable. Please try again later.',
+          };
+          const errorMsg = statusMessages[response.status] || `Request failed with status ${response.status}: ${response.statusText || 'Unknown error'}`;
+          throw new Error(errorMsg);
+        }
+      } catch (readError: any) {
+        // If we can't read the response at all
+        console.error('Error reading response:', readError);
+        if (!response.ok) {
+          const statusMessages: Record<number, string> = {
+            400: 'Invalid request. Please check your bid details.',
+            401: 'You must be logged in to submit a bid.',
+            403: 'Only contractors can submit bids.',
+            404: 'Job not found. Please try again.',
+            409: 'You have already submitted a bid for this job.',
+            500: 'Server error. Please try again later.',
+          };
+          const errorMsg = statusMessages[response.status] || `Server error (${response.status}): ${response.statusText || 'Failed to read response'}`;
+          throw new Error(errorMsg);
+        }
+        throw readError;
       }
 
-      setFeedback({ type: 'success', message: 'Your bid has been submitted.' });
-      setTimeout(() => router.push('/jobs'), 1200);
+      if (!response.ok) {
+        // Define status messages first
+        const getStatusMessage = (status: number): string => {
+          const statusMessages: Record<number, string> = {
+            400: 'Invalid request. Please check your bid details.',
+            401: 'You must be logged in to submit a bid.',
+            403: 'Only contractors can submit bids.',
+            404: 'Job not found. Please try again.',
+            409: 'You have already submitted a bid for this job.',
+            422: 'Invalid bid data. Please check your inputs.',
+            429: 'Too many requests. Please try again later.',
+            500: 'Server error. Please try again later.',
+            502: 'Bad gateway. Please try again later.',
+            503: 'Service unavailable. Please try again later.',
+          };
+          return statusMessages[status] || `Request failed with status ${status}: ${response.statusText || 'Unknown error'}`;
+        };
+
+        // Log everything about the response
+        const responseDataKeys = Object.keys(responseData);
+        const isEmptyResponse = responseDataKeys.length === 0;
+        
+        // Log primitive values first to avoid console rendering issues
+        console.error('=== API ERROR DEBUG START ===');
+        console.error('Status:', response.status);
+        console.error('Status Text:', response.statusText);
+        console.error('Response Data Keys Length:', responseDataKeys.length);
+        console.error('Response Data Keys:', responseDataKeys);
+        console.error('Is Empty Response:', isEmptyResponse);
+        console.error('Response Text:', responseText);
+        console.error('Response Text Length:', responseText.length);
+        console.error('JSON Stringified:', JSON.stringify(responseData));
+        console.error('responseData.error:', responseData.error);
+        console.error('responseData.message:', responseData.message);
+        console.error('responseData.detail:', responseData.detail);
+        console.error('=== API ERROR DEBUG END ===');
+
+        // Check if response is empty FIRST, before any other processing
+        if (isEmptyResponse) {
+          const defaultMessage = getStatusMessage(response.status);
+          console.error('>>> EMPTY RESPONSE - Throwing status-based error:', defaultMessage);
+          throw new Error(defaultMessage);
+        }
+        
+        console.error('>>> RESPONSE NOT EMPTY - Keys found:', responseDataKeys.length);
+
+        // Handle validation errors with details (Zod validation)
+        if (responseData.details && Array.isArray(responseData.details)) {
+          const errorMessages = responseData.details.map((err: any) => {
+            if (err.path && err.path.length > 0) {
+              const field = err.path[0];
+              if (field === 'proposalText') {
+                return err.message || 'Proposal description is invalid';
+              }
+              if (field === 'bidAmount') {
+                return err.message || 'Bid amount is invalid';
+              }
+              if (field === 'jobId') {
+                return err.message || 'Job ID is invalid';
+              }
+            }
+            return err.message || 'Invalid input';
+          });
+          const combinedError = errorMessages.join('. ') || responseData.error || 'Validation failed';
+          throw new Error(combinedError);
+        }
+
+        // Try different error message fields
+        const errorFromError = responseData.error;
+        const errorFromMessage = responseData.message;
+        const errorFromDetail = responseData.detail;
+        const errorIfString = typeof responseData === 'string' && responseData.trim() ? responseData : '';
+        
+        const errorMessage = errorFromError || errorFromMessage || errorFromDetail || errorIfString;
+        
+        // Log primitive values
+        console.error('=== ERROR MESSAGE EXTRACTION ===');
+        console.error('errorFromError:', errorFromError);
+        console.error('errorFromMessage:', errorFromMessage);
+        console.error('errorFromDetail:', errorFromDetail);
+        console.error('errorIfString:', errorIfString);
+        console.error('finalErrorMessage:', errorMessage);
+        console.error('errorMessageType:', typeof errorMessage);
+        console.error('errorMessageLength:', typeof errorMessage === 'string' ? errorMessage.length : 'N/A');
+        console.error('=== END ERROR MESSAGE EXTRACTION ===');
+        
+        // Check if we have a valid, non-empty error message
+        const hasValidErrorMessage = typeof errorMessage === 'string' && errorMessage.trim().length > 0;
+        
+        console.error('>>> Has Valid Error Message:', hasValidErrorMessage);
+        
+        if (!hasValidErrorMessage) {
+          const defaultMessage = getStatusMessage(response.status);
+          console.error('>>> NO VALID ERROR - Throwing status-based error:', defaultMessage);
+          throw new Error(defaultMessage);
+        }
+        
+        // We have a valid error message from the API
+        // BUT check if it's the generic "Failed to submit bid" message (which shouldn't happen)
+        if (errorMessage === 'Failed to submit bid' || errorMessage === 'Failed to submit bid.') {
+          const defaultMessage = getStatusMessage(response.status);
+          console.error('>>> DETECTED GENERIC ERROR MESSAGE - Replacing with status-based error:', defaultMessage);
+          throw new Error(defaultMessage);
+        }
+        
+        console.error('>>> USING API ERROR MESSAGE:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      setFeedback({ 
+        type: 'success', 
+        message: responseData.message || (responseData.updated ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.') 
+      });
+      setTimeout(() => router.push('/contractor/bid'), 1200);
     } catch (error: any) {
-      setFeedback({ type: 'error', message: error.message || 'Failed to submit bid.' });
+      console.error('Bid submission error:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error?.message);
+      console.error('Error string:', error?.toString());
+      
+      // Handle network errors
+      if (error instanceof TypeError && error.message?.includes('fetch')) {
+        setFeedback({ type: 'error', message: 'Network error. Please check your connection and try again.' });
+        return;
+      }
+      
+      // Extract meaningful error message
+      let errorMessage = error?.message || error?.toString() || '';
+      
+      // If we still have the generic "Failed to submit bid" message, something went wrong
+      // This should never happen with our error handling above, but just in case...
+      if (!errorMessage || errorMessage === 'Failed to submit bid' || errorMessage === 'Failed to submit bid.' || errorMessage === 'Failed to submit bid. Please try again.') {
+        errorMessage = 'An error occurred while submitting your bid. Please try again or contact support if the issue persists.';
+        console.error('Generic error message detected in catch block. This indicates an unexpected error flow.');
+      }
+      
+      setFeedback({ type: 'error', message: errorMessage });
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +392,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
             </p>
           </div>
           <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-            {job.createdAt ? `Posted ${new Date(job.createdAt).toLocaleDateString()}` : ''}
+            {formattedDate ? `Posted ${formattedDate}` : ''}
           </span>
         </header>
 
@@ -234,9 +466,14 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
           rows={6}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="Explain how you plan to complete this job and what's included in your quote."
-          maxLength={1000}
+          placeholder="Explain how you plan to complete this job and what's included in your quote. Minimum 50 characters."
+          maxLength={5000}
         />
+        {description && (
+          <div style={{ fontSize: theme.typography.fontSize.xs, color: description.trim().length < 50 ? theme.colors.error : theme.colors.textSecondary }}>
+            {description.trim().length} / 50 characters minimum {description.trim().length >= 50 && '✓'}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing[3] }}>
           <Button variant="ghost" onClick={() => router.back()} disabled={submitting}>
             Cancel

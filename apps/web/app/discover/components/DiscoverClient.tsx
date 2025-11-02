@@ -85,7 +85,6 @@ export function DiscoverClient({ user, contractors, jobs }: DiscoverClientProps)
               userRole={user?.role}
               onPass={() => handleSwipe('pass')}
               onLike={() => handleSwipe('like')}
-              onSuperLike={!isContractor ? () => handleSwipe('super_like') : undefined}
             />
           </>
         )}

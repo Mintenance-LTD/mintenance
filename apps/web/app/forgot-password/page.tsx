@@ -41,12 +41,21 @@ export default function ForgotPasswordPage() {
           throw new Error('Too many password reset requests. Please try again later.');
         } else if (response.status === 403) {
           throw new Error('Access denied. Please refresh the page and try again.');
+        } else if (response.status === 400) {
+          throw new Error(data.error || 'Invalid email address. Please check and try again.');
+        } else if (response.status === 500 || response.status === 503) {
+          throw new Error(data.error || 'Service temporarily unavailable. Please try again later.');
         } else {
-          throw new Error('Failed to send reset email. Please try again.');
+          throw new Error(data.error || 'Failed to send reset email. Please try again.');
         }
       }
 
-      setStatus('success');
+      // Check if response indicates success (API always returns 200 for security)
+      if (data.success) {
+        setStatus('success');
+      } else {
+        throw new Error(data.error || 'Failed to send reset email. Please try again.');
+      }
     } catch (error: any) {
       setStatus('error');
       setErrorMessage(error.message || 'Failed to send reset email. Please try again.');
@@ -121,7 +130,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="you@example.com"
                     disabled={status === 'submitting'}
                   />
@@ -156,7 +165,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Security Notice */}
-        <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+        <div className="mt-8 mb-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
           <div className="flex items-start">
             <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

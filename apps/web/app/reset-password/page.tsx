@@ -17,23 +17,69 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     // Get access token from URL hash (Supabase sends it in the hash)
+    // Format: #access_token=xxx&type=recovery&expires_in=3600&refresh_token=xxx
     const hash = window.location.hash;
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get('access_token');
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get('access_token');
+      const type = params.get('type');
 
-    if (!token) {
-      setStatus('error');
-      setErrorMessage('Invalid or expired reset link. Please request a new one.');
+      // Verify this is a password recovery token
+      if (!token || type !== 'recovery') {
+        setStatus('error');
+        setErrorMessage('Invalid or expired reset link. Please request a new one.');
+      } else {
+        setAccessToken(token);
+      }
     } else {
-      setAccessToken(token);
+      // Also check query parameters as fallback
+      const token = searchParams.get('token') || searchParams.get('access_token');
+      if (token) {
+        setAccessToken(token);
+      } else {
+        setStatus('error');
+        setErrorMessage('No reset token found. Please check your email for the reset link.');
+      }
     }
-  }, []);
+  }, [searchParams]);
 
   const validatePassword = () => {
+    // Clear any previous errors first
+    setErrorMessage('');
+    
     if (!password || password.length < 8) {
       setErrorMessage('Password must be at least 8 characters long');
       return false;
     }
+    
+    // Check password complexity - allow all special characters (not just @$!%*?&)
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(password); // Any non-alphanumeric character
+    
+    // Debug logging (remove in production)
+    console.log('Password validation:', {
+      password,
+      length: password.length,
+      hasUppercase,
+      hasLowercase,
+      hasNumber,
+      hasSpecialChar,
+      allValid: hasUppercase && hasLowercase && hasNumber && hasSpecialChar
+    });
+    
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      const missing = [];
+      if (!hasUppercase) missing.push('uppercase letter');
+      if (!hasLowercase) missing.push('lowercase letter');
+      if (!hasNumber) missing.push('number');
+      if (!hasSpecialChar) missing.push('special character');
+      
+      setErrorMessage(`Password must contain at least one ${missing.join(', ')}`);
+      return false;
+    }
+    
     if (password !== confirmPassword) {
       setErrorMessage('Passwords do not match');
       return false;
@@ -116,7 +162,7 @@ function ResetPasswordForm() {
             <>
               {status === 'error' && errorMessage && (
                 <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start">
-                  <svg className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-3 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-sm">{errorMessage}</p>
@@ -132,13 +178,27 @@ function ResetPasswordForm() {
                     type="password"
                     id="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      // Clear error when user starts typing
+                      if (status === 'error') {
+                        setErrorMessage('');
+                        setStatus('idle');
+                      }
+                    }}
+                    onBlur={() => {
+                      // Only validate silently on blur - don't show errors until submit
+                      // This allows users to type without seeing errors immediately
+                    }}
                     required
                     minLength={8}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-                    placeholder="Enter new password (min 8 characters)"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
+                    placeholder="Enter new password"
                     disabled={status === 'submitting' || !accessToken}
                   />
+                  <p className="mt-2 text-xs text-gray-500">
+                    Must contain: 8+ characters, uppercase, lowercase, number, and special character
+                  </p>
                 </div>
 
                 <div>
@@ -152,7 +212,7 @@ function ResetPasswordForm() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
                     placeholder="Confirm new password"
                     disabled={status === 'submitting' || !accessToken}
                   />
@@ -179,7 +239,7 @@ function ResetPasswordForm() {
         {/* Security Notice */}
         <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div>

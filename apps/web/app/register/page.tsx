@@ -67,7 +67,10 @@ function RegisterForm() {
         } else if (response.status === 400) {
           throw new Error(data.error || 'Invalid registration data. Please check your information.');
         } else if (response.status === 403) {
-          throw new Error('Access denied. Please refresh the page and try again.');
+          // CSRF validation failed - suggest refreshing to get new token
+          throw new Error(data.error === 'CSRF validation failed' 
+            ? 'Security token expired. Please refresh the page and try again.'
+            : 'Access denied. Please refresh the page and try again.');
         } else {
           throw new Error('Registration failed. Please try again.');
         }
@@ -182,7 +185,7 @@ function RegisterForm() {
                   id="firstName"
                   type="text"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                   placeholder="John"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -196,7 +199,7 @@ function RegisterForm() {
                   id="lastName"
                   type="text"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                   placeholder="Smith"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -213,7 +216,7 @@ function RegisterForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -228,7 +231,7 @@ function RegisterForm() {
                 id="phone"
                 type="tel"
                 autoComplete="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="+44 7700 900000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -244,7 +247,7 @@ function RegisterForm() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -1,12 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { BidSubmissionClient } from './components/BidSubmissionClient';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export default async function BidSubmissionPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -16,15 +11,27 @@ export default async function BidSubmissionPage({ params }: { params: Promise<{ 
     redirect('/login');
   }
 
-  const { data: job } = await supabase
+  const { data: job, error: jobError } = await serverSupabase
     .from('jobs')
     .select('*')
     .eq('id', jobId)
     .single();
 
-  if (!job) {
-    redirect('/jobs');
+  if (jobError || !job) {
+    redirect('/contractor/bid');
   }
 
-  return <BidSubmissionClient job={job} />;
+  // Map database fields to component expected format
+  const mappedJob = {
+    id: job.id,
+    title: job.title || 'Untitled Job',
+    description: job.description || '',
+    budget: job.budget ? String(job.budget) : undefined,
+    location: job.location || undefined,
+    category: job.category || undefined,
+    createdAt: job.created_at || undefined,
+    postedBy: undefined, // Can be fetched separately if needed
+  };
+
+  return <BidSubmissionClient job={mappedJob} />;
 }

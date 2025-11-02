@@ -22,7 +22,7 @@ export default async function ContractorProfilePage() {
 
   const { data: skills } = await supabase
     .from('contractor_skills')
-    .select('skill_name')
+    .select('skill_name, skill_icon')
     .eq('contractor_id', user.id);
 
   const { data: reviews } = await supabase
