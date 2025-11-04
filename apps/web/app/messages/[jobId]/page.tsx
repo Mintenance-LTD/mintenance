@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use, Suspense } from 'react';
+import React, { useState, useEffect, useRef, use, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
@@ -10,7 +10,10 @@ import { MessageInput } from '@/components/messaging/MessageInput';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
 import { logger } from '@/lib/logger';
+import { Icon } from '@/components/ui/Icon';
 import type { Message, User } from '@mintenance/types';
+import { CreateContractModal } from '@/app/contractor/messages/components/CreateContractModal';
+import { QuoteViewModal } from './components/QuoteViewModal';
 
 interface ChatPageProps {
   params: Promise<{
@@ -23,24 +26,105 @@ function ChatContent({ params }: ChatPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [homeownerProfile, setHomeownerProfile] = useState<{ profile_image_url?: string | null } | null>(null);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   // Get params from URL
   const otherUserId = searchParams.get('userId');
   const otherUserName = searchParams.get('userName');
   const jobTitle = searchParams.get('jobTitle');
 
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  const loadUserAndMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      const currentUser = await fetchCurrentUser();
+
+      if (!currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      setUser(currentUser);
+
+      // Load messages for this job
+      const jobMessages = await MessagingService.getJobMessages(jobId);
+      // Deduplicate messages by ID to prevent duplicate keys
+      const uniqueMessages = Array.from(
+        new Map(jobMessages.map(msg => [msg.id, msg])).values()
+      );
+      setMessages(uniqueMessages);
+
+      // Mark messages as read
+      await MessagingService.markMessagesAsRead(jobId, currentUser.id);
+    } catch (err) {
+      logger.error('Error loading chat', err);
+      setError('Failed to load conversation');
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId, router]);
+
   useEffect(() => {
     loadUserAndMessages();
+  }, [loadUserAndMessages]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
+  // Fetch homeowner profile information from job data
+  useEffect(() => {
+    const fetchHomeownerProfile = async () => {
+      if (!jobId) return;
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const job = data.job;
+          if (job?.homeowner?.profile_image_url) {
+            setHomeownerProfile({
+              profile_image_url: job.homeowner.profile_image_url,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching homeowner profile:', err);
+      }
+    };
+
+    if (jobId) {
+      fetchHomeownerProfile();
+    }
   }, [jobId]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Set up real-time message subscription
   useRealTimeMessages(jobId, {
@@ -74,38 +158,13 @@ function ChatContent({ params }: ChatPageProps) {
     }
   });
 
-  const loadUserAndMessages = async () => {
-    try {
-      setLoading(true);
-      const currentUser = await fetchCurrentUser();
-
-      if (!currentUser) {
-        router.push('/login');
-        return;
-      }
-
-      setUser(currentUser);
-
-      // Load messages for this job
-      const jobMessages = await MessagingService.getJobMessages(jobId);
-      setMessages(jobMessages);
-
-      // Mark messages as read
-      await MessagingService.markMessagesAsRead(jobId, currentUser.id);
-    } catch (err) {
-      logger.error('Error loading chat', err);
-      setError('Failed to load conversation');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleSendMessage = async (messageText: string) => {
-    if (!user || !otherUserId || sending) return;
+    if (!user || !jobId || !otherUserId || sending) {
+      if (!otherUserId) {
+        alert('Unable to determine recipient. Please refresh the page.');
+      }
+      return;
+    }
 
     try {
       setSending(true);
@@ -121,7 +180,10 @@ function ChatContent({ params }: ChatPageProps) {
       scrollToBottom();
     } catch (err) {
       logger.error('Error sending message', err);
-      alert('Failed to send message. Please try again.');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to send message. Please try again.';
+      alert(errorMessage);
     } finally {
       setSending(false);
     }
@@ -148,8 +210,13 @@ function ChatContent({ params }: ChatPageProps) {
   };
 
   const groupMessagesByDate = (messages: Message[]) => {
+    // Deduplicate messages by ID first to prevent duplicate keys
+    const uniqueMessages = Array.from(
+      new Map(messages.map(msg => [msg.id, msg])).values()
+    );
+    
     const groups: { [key: string]: Message[] } = {};
-    messages.forEach((message) => {
+    uniqueMessages.forEach((message) => {
       const dateKey = new Date(message.createdAt).toDateString();
       if (!groups[dateKey]) {
         groups[dateKey] = [];
@@ -244,7 +311,7 @@ function ChatContent({ params }: ChatPageProps) {
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+        <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
           <Button
             onClick={loadUserAndMessages}
             variant="ghost"
@@ -253,13 +320,168 @@ function ChatContent({ params }: ChatPageProps) {
           >
             🔄
           </Button>
-          <Button
-            onClick={() => alert('Video call feature coming soon!')}
-            variant="outline"
-            size="sm"
-          >
-            📞 Call
-          </Button>
+          
+          {/* Homeowner Profile Dropdown */}
+          <div ref={profileMenuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: theme.colors.primary,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.bold,
+                padding: 0,
+                overflow: 'hidden',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              aria-label="Homeowner profile menu"
+              aria-expanded={showProfileMenu}
+            >
+              {homeownerProfile?.profile_image_url ? (
+                <img
+                  src={homeownerProfile.profile_image_url}
+                  alt={otherUserName || 'Homeowner'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <span>
+                  {otherUserName
+                    ? otherUserName
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : 'H'}
+                </span>
+              )}
+            </button>
+            
+            {showProfileMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: theme.spacing[1],
+                  backgroundColor: theme.colors.white,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  boxShadow: theme.shadows.lg,
+                  minWidth: '180px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  onClick={() => {
+                    // Open contract modal on current page
+                    setShowContractModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                    textAlign: 'left',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textPrimary,
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Icon name="document" size={16} color={theme.colors.primary} />
+                  <span>Contract</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowQuoteModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                    textAlign: 'left',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textPrimary,
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Icon name="fileText" size={16} color={theme.colors.primary} />
+                  <span>View Quote</span>
+                </button>
+                <button
+                  onClick={() => {
+                    alert('Video call feature coming soon!');
+                    setShowProfileMenu(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                    textAlign: 'left',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textPrimary,
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Icon name="phone" size={16} color={theme.colors.primary} />
+                  <span>Call</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -399,13 +621,42 @@ function ChatContent({ params }: ChatPageProps) {
           placeholder={sending ? 'Sending...' : 'Type a message...'}
         />
       </div>
+
+      {/* Create Contract Modal */}
+      {showContractModal && (
+        <CreateContractModal
+          isOpen={showContractModal}
+          onClose={() => setShowContractModal(false)}
+          jobId={jobId}
+          jobTitle={jobTitle || 'Contract'}
+          onContractCreated={async () => {
+            setShowContractModal(false);
+            logger.info('Contract created, refreshing messages', { jobId });
+            // Add a small delay to ensure database transaction has committed
+            // The real-time subscription should also pick it up, but this ensures we have it
+            setTimeout(async () => {
+              await loadUserAndMessages();
+              logger.info('Messages refreshed after contract creation', { jobId });
+            }, 500);
+          }}
+        />
+      )}
+
+      {/* Quote View Modal */}
+      {showQuoteModal && (
+        <QuoteViewModal
+          isOpen={showQuoteModal}
+          onClose={() => setShowQuoteModal(false)}
+          jobId={jobId}
+        />
+      )}
     </div>
   );
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
       <ChatContent params={params} />
     </Suspense>
   );

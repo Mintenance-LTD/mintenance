@@ -18,6 +18,8 @@ import { PredictiveRecommendations } from './components/PredictiveRecommendation
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMoney } from '@/lib/utils/currency';
 import { RecommendationsService } from '@/lib/services/RecommendationsService';
+import { OnboardingService } from '@/lib/services/OnboardingService';
+import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -63,6 +65,9 @@ export default async function DashboardPage() {
 
   // Fetch recommendations
   const recommendations = await RecommendationsService.getRecommendations(user.id);
+
+  // Fetch onboarding status
+  const onboardingStatus = await OnboardingService.checkOnboardingStatus(user.id);
 
   // Fetch remaining data in parallel (now that we have job IDs)
   const [
@@ -431,13 +436,17 @@ export default async function DashboardPage() {
       });
     });
 
-  // Sort activities by timestamp (most recent first) and limit to 10
+  // Sort activities by timestamp (most recent first) and limit to 4
   activities.sort((a, b) => b.timestampDate.getTime() - a.timestampDate.getTime());
 
-  const recentActivities = activities.slice(0, 10).map(({ timestampDate, ...rest }) => rest);
+  const recentActivities = activities.slice(0, 4).map(({ timestampDate, ...rest }) => rest);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+    <OnboardingWrapper
+      userRole="homeowner"
+      onboardingCompleted={onboardingStatus.completed}
+    >
+      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
       {/* Unified Sidebar */}
       <UnifiedSidebar 
         userRole="homeowner"
@@ -538,6 +547,7 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </OnboardingWrapper>
   );
 }

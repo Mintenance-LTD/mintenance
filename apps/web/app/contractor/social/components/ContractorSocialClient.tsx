@@ -10,6 +10,7 @@ import { CreatePostModal } from './CreatePostModal';
 import { CommentsSection } from './CommentsSection';
 import { FollowButton } from './FollowButton';
 import { ShareModal } from './ShareModal';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface SocialPost {
   id: string;
@@ -38,6 +39,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
   const [notification, setNotification] = useState<{ tone: 'info' | 'success' | 'warning'; message: string } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { csrfToken } = useCSRF();
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [postTypeFilter, setPostTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,8 +98,17 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
     );
 
     try {
+      if (!csrfToken) {
+        setNotification({ tone: 'warning', message: 'Security token not available. Please refresh the page.' });
+        return;
+      }
+
       const response = await fetch(`/api/contractor/posts/${postId}/like`, {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {

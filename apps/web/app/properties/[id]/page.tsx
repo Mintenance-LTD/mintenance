@@ -293,27 +293,22 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                 const config = statusConfig[job.status as keyof typeof statusConfig] || statusConfig.posted;
 
                 return (
-                  <Link
-                    key={job.id}
-                    href={`/jobs/${job.id}`}
-                    style={{
-                      textDecoration: 'none',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: theme.spacing[4],
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      transition: 'all 0.2s',
-                      backgroundColor: 'transparent',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
+                  <span className={`property-job-link-${job.id}`}>
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.id}`}
+                      style={{
+                        textDecoration: 'none',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: theme.spacing[4],
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        transition: 'all 0.2s',
+                        backgroundColor: 'transparent',
+                      }}
+                    >
                     <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
                       <div style={{
                         width: '40px',
@@ -352,12 +347,20 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                       £{Number(job.budget || 0).toLocaleString()}
                     </div>
                   </Link>
+                  </span>
                 );
               })}
             </div>
           )}
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          [class^="property-job-link-"]:hover a {
+            background-color: ${theme.colors.backgroundSecondary} !important;
+          }
+        `
+      }} />
     </HomeownerLayoutShell>
   );
 }

@@ -36,6 +36,11 @@ import { checkWebhookRateLimit } from '@/lib/rate-limiter';
  * - payment_intent.payment_failed - Payment failed
  * - payment_intent.canceled - Payment canceled
  * - charge.refunded - Payment refunded
+ * - customer.subscription.created - Subscription created
+ * - customer.subscription.updated - Subscription updated
+ * - customer.subscription.deleted - Subscription canceled
+ * - invoice.payment_succeeded - Subscription payment succeeded
+ * - invoice.payment_failed - Subscription payment failed
  */
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -182,6 +187,23 @@ export async function POST(request: NextRequest) {
 
         case 'charge.refunded':
           await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
+
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
+
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+
+        case 'invoice.payment_succeeded':
+          await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+          break;
+
+        case 'invoice.payment_failed':
+          await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
           break;
 
         default:
@@ -407,6 +429,232 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     });
   } catch (error) {
     logger.error('Error in handleChargeRefunded', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Handle subscription created/updated
+ */
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  logger.info('Subscription updated webhook received', { 
+    service: 'stripe-webhook',
+    subscriptionId: subscription.id 
+  });
+
+  try {
+    const contractorId = subscription.metadata?.contractorId;
+    if (!contractorId) {
+      logger.warn('Subscription missing contractorId metadata', { 
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id 
+      });
+      return;
+    }
+
+    const planType = subscription.metadata?.planType || 'basic';
+    const currentPeriodStart = new Date(subscription.current_period_start * 1000);
+    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+
+    // Determine status
+    let status: string = 'active';
+    if (subscription.status === 'trialing') {
+      status = 'trial';
+    } else if (subscription.status === 'past_due') {
+      status = 'past_due';
+    } else if (subscription.status === 'canceled' || subscription.cancel_at_period_end) {
+      status = subscription.cancel_at_period_end ? 'active' : 'canceled';
+    } else if (subscription.status === 'unpaid') {
+      status = 'unpaid';
+    }
+
+    // Update subscription in database
+    const { error: updateError } = await serverSupabase
+      .from('contractor_subscriptions')
+      .upsert({
+        stripe_subscription_id: subscription.id,
+        contractor_id: contractorId,
+        stripe_customer_id: subscription.customer as string,
+        stripe_price_id: subscription.items.data[0]?.price.id || '',
+        plan_type: planType,
+        plan_name: planType.charAt(0).toUpperCase() + planType.slice(1),
+        status,
+        amount: subscription.items.data[0]?.price.unit_amount ? subscription.items.data[0].price.unit_amount / 100 : 0,
+        currency: subscription.currency,
+        trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
+        trial_end: trialEnd ? trialEnd.toISOString() : null,
+        current_period_start: currentPeriodStart.toISOString(),
+        current_period_end: currentPeriodEnd.toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end || false,
+        canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'stripe_subscription_id',
+      });
+
+    if (updateError) {
+      logger.error('Failed to update subscription', updateError, { 
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id 
+      });
+      return;
+    }
+
+    // Update user subscription status
+    await serverSupabase
+      .from('users')
+      .update({ subscription_status: status })
+      .eq('id', contractorId);
+
+    logger.info('Subscription updated successfully', { 
+      service: 'stripe-webhook',
+      subscriptionId: subscription.id,
+      contractorId 
+    });
+  } catch (error) {
+    logger.error('Error in handleSubscriptionUpdated', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Handle subscription deleted
+ */
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  logger.info('Subscription deleted webhook received', { 
+    service: 'stripe-webhook',
+    subscriptionId: subscription.id 
+  });
+
+  try {
+    const { error: updateError } = await serverSupabase
+      .from('contractor_subscriptions')
+      .update({
+        status: 'canceled',
+        canceled_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_subscription_id', subscription.id);
+
+    if (updateError) {
+      logger.error('Failed to update canceled subscription', updateError, { 
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id 
+      });
+      return;
+    }
+
+    const contractorId = subscription.metadata?.contractorId;
+    if (contractorId) {
+      await serverSupabase
+        .from('users')
+        .update({ subscription_status: 'expired' })
+        .eq('id', contractorId);
+    }
+
+    logger.info('Subscription marked as canceled', { 
+      service: 'stripe-webhook',
+      subscriptionId: subscription.id 
+    });
+  } catch (error) {
+    logger.error('Error in handleSubscriptionDeleted', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Handle successful subscription invoice payment
+ */
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+  logger.info('Invoice payment succeeded webhook received', { 
+    service: 'stripe-webhook',
+    invoiceId: invoice.id 
+  });
+
+  try {
+    const subscriptionId = invoice.subscription as string;
+    if (!subscriptionId) {
+      return; // Not a subscription invoice
+    }
+
+    // Get subscription to find contractor
+    const { data: subscription } = await serverSupabase
+      .from('contractor_subscriptions')
+      .select('id, contractor_id')
+      .eq('stripe_subscription_id', subscriptionId)
+      .single();
+
+    if (!subscription) {
+      logger.warn('Subscription not found for invoice', { 
+        service: 'stripe-webhook',
+        subscriptionId 
+      });
+      return;
+    }
+
+    // Record payment in payment_tracking
+    const amount = invoice.amount_paid / 100; // Convert from cents
+    const stripeFee = (invoice.amount_paid * 0.029 + 30) / 100; // 2.9% + £0.30
+    const netRevenue = amount - stripeFee;
+
+    await serverSupabase
+      .from('payment_tracking')
+      .insert({
+        payment_type: 'subscription',
+        contractor_id: subscription.contractor_id,
+        subscription_id: subscription.id,
+        amount,
+        currency: invoice.currency || 'gbp',
+        stripe_fee: stripeFee,
+        net_revenue: netRevenue,
+        status: 'completed',
+        stripe_invoice_id: invoice.id,
+        stripe_payment_intent_id: invoice.payment_intent as string,
+        completed_at: new Date().toISOString(),
+      });
+
+    logger.info('Subscription payment recorded', { 
+      service: 'stripe-webhook',
+      invoiceId: invoice.id,
+      contractorId: subscription.contractor_id 
+    });
+  } catch (error) {
+    logger.error('Error in handleInvoicePaymentSucceeded', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Handle failed subscription invoice payment
+ */
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  logger.info('Invoice payment failed webhook received', { 
+    service: 'stripe-webhook',
+    invoiceId: invoice.id 
+  });
+
+  try {
+    const subscriptionId = invoice.subscription as string;
+    if (!subscriptionId) {
+      return;
+    }
+
+    // Update subscription status to past_due
+    await serverSupabase
+      .from('contractor_subscriptions')
+      .update({
+        status: 'past_due',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_subscription_id', subscriptionId);
+
+    logger.info('Subscription marked as past_due', { 
+      service: 'stripe-webhook',
+      subscriptionId 
+    });
+  } catch (error) {
+    logger.error('Error in handleInvoicePaymentFailed', error, { service: 'stripe-webhook' });
     throw error;
   }
 }

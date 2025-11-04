@@ -57,7 +57,7 @@
 .project-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 32px;
+  gap: 16px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;

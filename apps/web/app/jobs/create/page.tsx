@@ -199,8 +199,10 @@ export default function CreateJobPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload images');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to upload images';
+        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       const data = await response.json();
@@ -208,7 +210,8 @@ export default function CreateJobPage() {
       return data.urls || [];
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert(error instanceof Error ? error.message : 'Failed to upload images. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
+      alert(errorMessage);
       return [];
     } finally {
       setIsUploadingImages(false);

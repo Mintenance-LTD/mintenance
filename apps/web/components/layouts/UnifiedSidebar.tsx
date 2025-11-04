@@ -37,16 +37,18 @@ const SIDEBAR_COLORS = {
 };
 
 // Navigation items based on user role - defined outside component to ensure stable references
-const homeownerNav: NavItem[] = [
+// Using Object.freeze to prevent any accidental mutations
+const homeownerNav: readonly NavItem[] = Object.freeze([
   { icon: 'dashboard', label: 'Dashboard', href: '/dashboard' },
   { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
   { icon: 'briefcase', label: 'Jobs', href: '/jobs' },
+  { icon: 'messages', label: 'Messages', href: '/messages' },
   { icon: 'home', label: 'Properties', href: '/properties' },
   { icon: 'currencyDollar', label: 'Financials', href: '/financials' },
   { icon: 'settings', label: 'Settings', href: '/settings' },
-];
+]);
 
-const contractorNav: NavItem[] = [
+const contractorNav: readonly NavItem[] = Object.freeze([
   { icon: 'dashboard', label: 'Dashboard', href: '/contractor/dashboard-enhanced' },
   { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
   { icon: 'briefcase', label: 'Jobs', href: '/contractor/bid' },
@@ -55,7 +57,7 @@ const contractorNav: NavItem[] = [
   { icon: 'currencyDollar', label: 'Financials', href: '/contractor/finance' },
   { icon: 'building', label: 'Company', href: '/contractor/profile' },
   { icon: 'trendingUp', label: 'Reporting', href: '/contractor/reporting' },
-];
+]);
 
 export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   const pathname = usePathname();
@@ -67,6 +69,10 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Ensure userRole has a default value to prevent hydration mismatches
+  // This ensures consistent array selection during SSR and client
+  const resolvedUserRole = userRole || 'contractor';
 
   // Handle logout properly - call API then redirect
   const handleLogout = async (): Promise<void> => {
@@ -94,15 +100,17 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   };
 
   // Select navigation items based on user role - use stable reference
-  // Force a stable reference to prevent hydration mismatches
-  const navItems = React.useMemo(
-    () => (userRole === 'contractor' ? contractorNav : homeownerNav),
-    [userRole]
-  );
+  // Use resolvedUserRole to ensure consistent selection during SSR and client
+  const navItems = React.useMemo(() => {
+    if (resolvedUserRole === 'contractor') {
+      return contractorNav;
+    }
+    return homeownerNav;
+  }, [resolvedUserRole]);
 
   const isActive = (href: string) => {
     // During SSR, pathname might not be available, so return false to ensure consistency
-    if (!mounted || !pathname) {
+    if (!pathname) {
       return false;
     }
     if (href === '/dashboard' || href === '/contractor/dashboard-enhanced') {
@@ -114,6 +122,8 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   // Use CSS classes to avoid hydration mismatches from inline style normalization
   const sidebarClassName = `${styles.sidebar} ${isCollapsed && mounted ? styles.sidebarCollapsed : ''}`;
 
+  // Always render the same structure to prevent hydration mismatches
+  // The nav element must always be present, even during SSR
   return (
     <>
       {/* Sidebar */}
@@ -133,24 +143,26 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
         {/* Navigation Items */}
         <nav className={styles.nav} suppressHydrationWarning>
           {navItems.map((item) => {
-            // Ensure active state is consistent - always false during SSR
-            const active = mounted ? isActive(item.href) : false;
+            // Always return false for active during SSR to ensure consistency
+            // Only calculate active state after component is mounted
+            const active = mounted && isActive(item.href);
             const linkClassName = `${styles.navLink} ${active ? styles.navLinkActive : ''}`;
             const textClassName = `${styles.navLinkText} ${active ? styles.navLinkTextActive : ''}`;
             
             return (
               <Link
-                key={item.href}
+                key={`${resolvedUserRole}-nav-${item.href}`}
                 href={item.href}
                 className={linkClassName}
+                suppressHydrationWarning
               >
                 <Icon name={item.icon} size={20} color={SIDEBAR_COLORS.text} />
                 {!isCollapsed && (
-                  <span className={textClassName}>
+                  <span className={textClassName} suppressHydrationWarning>
                     {item.label}
                   </span>
                 )}
-                {active && (
+                {active && mounted && (
                   <div className={styles.activeIndicator} />
                 )}
               </Link>

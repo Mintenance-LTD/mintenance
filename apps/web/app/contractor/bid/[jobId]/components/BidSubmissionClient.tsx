@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { QuoteLineItems, QuoteLineItem } from './QuoteLineItems';
 
 interface BidSubmissionClientProps {
   job: {
@@ -18,6 +19,7 @@ interface BidSubmissionClientProps {
     category?: string;
     createdAt?: string;
     postedBy?: { name?: string };
+    homeowner?: { first_name?: string; last_name?: string; email?: string };
   };
 }
 
@@ -29,6 +31,10 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
   const [description, setDescription] = useState('');
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showAdvancedQuote, setShowAdvancedQuote] = useState(false);
+  const [lineItems, setLineItems] = useState<QuoteLineItem[]>([]);
+  const [taxRate, setTaxRate] = useState(20); // Default 20% VAT
+  const [terms, setTerms] = useState('');
 
   const budgetLabel = useMemo(() => {
     if (!job.budget) return 'Budget TBD';
@@ -46,6 +52,25 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       day: 'numeric',
     });
   }, [job.createdAt]);
+
+  // Calculate subtotal from line items
+  const subtotal = useMemo(() => {
+    if (lineItems.length === 0) {
+      // If no line items, use the manual amount
+      return parseFloat(amount) || 0;
+    }
+    return lineItems.reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems, amount]);
+
+  const taxAmount = (subtotal * taxRate) / 100;
+  const totalAmount = subtotal + taxAmount;
+
+  // Update amount when line items change (if using line items)
+  useEffect(() => {
+    if (lineItems.length > 0 && subtotal > 0) {
+      setAmount(totalAmount.toFixed(2));
+    }
+  }, [totalAmount, lineItems.length, subtotal]);
 
   const handleSubmit = async () => {
     if (!amount || !description) {
@@ -82,13 +107,29 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       setSubmitting(true);
       setFeedback(null);
 
-      const requestBody = {
-        jobId: job.id,
-        bidAmount: bidAmount,
-        proposalText: description.trim(),
+      // Prepare quote data
+      const quoteData = {
+        lineItems: lineItems.length > 0 ? lineItems.map(item => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+        })) : undefined,
+        subtotal: subtotal,
+        taxRate: taxRate,
+        taxAmount: taxAmount,
+        totalAmount: totalAmount,
+        terms: terms.trim() || undefined,
       };
 
-      console.log('Submitting bid:', { jobId: job.id, bidAmount, proposalLength: description.trim().length });
+      const requestBody = {
+        jobId: job.id,
+        bidAmount: totalAmount, // Use calculated total
+        proposalText: description.trim(),
+        ...quoteData,
+      };
+
+      console.log('Submitting bid:', { jobId: job.id, bidAmount: totalAmount, proposalLength: description.trim().length });
 
       const response = await fetch('/api/contractor/submit-bid', {
         method: 'POST',
@@ -452,29 +493,128 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
           gap: theme.spacing[4],
         }}
       >
-        <Input
-          label="Bid amount (£) *"
-          type="number"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          min="0"
-          step="0.01"
-          placeholder="Enter the price for this job"
-        />
-        <Textarea
-          label="Proposal description *"
-          rows={6}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Explain how you plan to complete this job and what's included in your quote. Minimum 50 characters."
-          maxLength={5000}
-        />
-        {description && (
-          <div style={{ fontSize: theme.typography.fontSize.xs, color: description.trim().length < 50 ? theme.colors.error : theme.colors.textSecondary }}>
-            {description.trim().length} / 50 characters minimum {description.trim().length >= 50 && '✓'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{
+              fontSize: theme.typography.fontSize.lg,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              margin: 0,
+            }}>
+              Quote Details
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedQuote(!showAdvancedQuote)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                backgroundColor: showAdvancedQuote ? theme.colors.primary : 'transparent',
+                color: showAdvancedQuote ? theme.colors.textInverse : theme.colors.textPrimary,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Icon 
+                name={showAdvancedQuote ? 'chevronUp' : 'chevronDown'} 
+                size={16} 
+                color={showAdvancedQuote ? theme.colors.textInverse : theme.colors.textPrimary} 
+              />
+              {showAdvancedQuote ? 'Hide Details' : 'Advanced Quote Details'}
+            </button>
           </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing[3] }}>
+
+          {!showAdvancedQuote ? (
+            <>
+              <Input
+                label="Total amount (£) *"
+                type="number"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="Enter the total price for this job"
+              />
+              <div style={{
+                padding: theme.spacing[3],
+                backgroundColor: theme.colors.backgroundSecondary,
+                borderRadius: theme.borderRadius.md,
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                💡 Tip: Use "Advanced Quote Details" to break down your pricing with line items, taxes, and terms.
+              </div>
+            </>
+          ) : (
+            <QuoteLineItems
+              lineItems={lineItems}
+              onChange={setLineItems}
+              subtotal={subtotal}
+              taxRate={taxRate}
+              onTaxRateChange={setTaxRate}
+            />
+          )}
+
+          <Textarea
+            label="Proposal description *"
+            rows={6}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Explain how you plan to complete this job and what's included in your quote. Minimum 50 characters."
+            maxLength={5000}
+          />
+          {description && (
+            <div style={{ fontSize: theme.typography.fontSize.xs, color: description.trim().length < 50 ? theme.colors.error : theme.colors.textSecondary }}>
+              {description.trim().length} / 50 characters minimum {description.trim().length >= 50 && '✓'}
+            </div>
+          )}
+
+          {showAdvancedQuote && (
+            <Textarea
+              label="Terms and conditions (optional)"
+              rows={4}
+              value={terms}
+              onChange={(event) => setTerms(event.target.value)}
+              placeholder="Payment terms, warranty information, or any special conditions..."
+              maxLength={2000}
+            />
+          )}
+
+          {showAdvancedQuote && lineItems.length > 0 && (
+            <div style={{
+              padding: theme.spacing[4],
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[2],
+              }}>
+                <span>Final Total:</span>
+                <span>£{totalAmount.toFixed(2)}</span>
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                This amount will be used as your bid amount.
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing[3], paddingTop: theme.spacing[4], borderTop: `1px solid ${theme.colors.border}` }}>
           <Button variant="ghost" onClick={() => router.back()} disabled={submitting}>
             Cancel
           </Button>

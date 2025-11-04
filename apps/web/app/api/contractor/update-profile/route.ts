@@ -60,6 +60,8 @@ const profileUpdateSchema = z.object({
   city: z.string().max(100, 'City must be less than 100 characters').optional(),
   country: z.string().max(100, 'Country must be less than 100 characters').optional(),
   phone: z.string().regex(/^\+?[\d\s\-()]+$/, 'Invalid phone number format').optional(),
+  companyName: z.string().max(255, 'Company name must be less than 255 characters').optional(),
+  licenseNumber: z.string().max(100, 'License number must be less than 100 characters').optional(),
   isAvailable: z.boolean(),
 });
 
@@ -119,6 +121,8 @@ export async function POST(request: NextRequest) {
       city: formData.get('city') as string,
       country: formData.get('country') as string,
       phone: formData.get('phone') as string,
+      companyName: formData.get('companyName') as string,
+      licenseNumber: formData.get('licenseNumber') as string,
       isAvailable: formData.get('isAvailable') === 'true',
     };
 
@@ -253,6 +257,8 @@ export async function POST(request: NextRequest) {
       city,
       country,
       phone,
+      company_name: rawData.companyName || null,
+      license_number: rawData.licenseNumber ? rawData.licenseNumber.trim().toUpperCase() : null,
       is_available: isAvailable,
       updated_at: new Date().toISOString(),
     };

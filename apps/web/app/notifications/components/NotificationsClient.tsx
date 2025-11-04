@@ -79,7 +79,27 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         }
         break;
       case 'message_received':
-        router.push('/messages');
+        // Navigate to specific message thread if jobId is available
+        if (notification.data?.jobId || notification.action_url?.includes('/messages/')) {
+          const jobId = notification.data?.jobId || notification.action_url?.split('/messages/')[1]?.split('?')[0];
+          const receiverId = notification.data?.senderId;
+          const receiverName = notification.data?.senderName;
+          const jobTitle = notification.data?.jobTitle;
+          
+          if (jobId) {
+            // Build URL with query params for the message thread
+            const params = new URLSearchParams();
+            if (receiverId) params.set('userId', receiverId);
+            if (receiverName) params.set('userName', receiverName);
+            if (jobTitle) params.set('jobTitle', jobTitle);
+            
+            router.push(`/messages/${jobId}${params.toString() ? `?${params.toString()}` : ''}`);
+          } else {
+            router.push('/messages');
+          }
+        } else {
+          router.push('/messages');
+        }
         break;
       case 'payment_received':
         router.push('/payments');

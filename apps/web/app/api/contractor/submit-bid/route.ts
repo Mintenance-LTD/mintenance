@@ -15,6 +15,18 @@ const submitBidSchema = z.object({
   proposedStartDate: z.string().optional(),
   materialsCost: z.number().nonnegative().optional(),
   laborCost: z.number().nonnegative().optional(),
+  // Quote fields
+  lineItems: z.array(z.object({
+    description: z.string(),
+    quantity: z.number().nonnegative(),
+    unitPrice: z.number().nonnegative(),
+    total: z.number().nonnegative(),
+  })).optional(),
+  subtotal: z.number().nonnegative().optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  taxAmount: z.number().nonnegative().optional(),
+  totalAmount: z.number().positive().optional(),
+  terms: z.string().max(2000).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -46,6 +58,13 @@ export async function POST(request: NextRequest) {
         role: user.role
       });
       return NextResponse.json({ error: 'Only contractors can submit bids' }, { status: 403 });
+    }
+
+    // Check subscription requirement
+    const { requireSubscriptionForAction } = await import('@/lib/middleware/subscription-check');
+    const subscriptionCheck = await requireSubscriptionForAction(request, 'submit_bid');
+    if (subscriptionCheck) {
+      return subscriptionCheck;
     }
 
     // Parse and validate request body
@@ -141,7 +160,7 @@ export async function POST(request: NextRequest) {
     // Check if contractor already has a bid on this job
     const { data: existingBid } = await serverSupabase
       .from('bids')
-      .select('id')
+      .select('id, quote_id')
       .eq('job_id', validatedData.jobId)
       .eq('contractor_id', user.id)
       .single();
@@ -339,9 +358,115 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to submit bid' }, { status: 500 });
     }
 
+    // Create or update quote linked to this bid
+    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    const homeownerName = homeowner 
+      ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Client'
+      : 'Client';
+    const homeownerEmail = homeowner?.email || '';
+
+    // Prepare quote data
+    const quoteSubtotal = validatedData.subtotal ?? validatedData.bidAmount;
+    const quoteTaxRate = validatedData.taxRate ?? 0;
+    const quoteTaxAmount = validatedData.taxAmount ?? ((quoteSubtotal * quoteTaxRate) / 100);
+    const quoteTotalAmount = validatedData.totalAmount ?? validatedData.bidAmount;
+    const quoteLineItems = validatedData.lineItems && validatedData.lineItems.length > 0
+      ? validatedData.lineItems
+      : [];
+
+    // Check if quote already exists for this bid
+    const { data: existingQuote } = existingBid?.id
+      ? await serverSupabase
+          .from('contractor_quotes')
+          .select('id')
+          .eq('id', existingBid.quote_id || '')
+          .single()
+      : { data: null, error: null };
+
+    const quotePayload = {
+      contractor_id: user.id,
+      job_id: validatedData.jobId,
+      client_name: homeownerName,
+      client_email: homeownerEmail,
+      title: `Quote for ${job.title}`,
+      description: validatedData.proposalText.trim(),
+      subtotal: quoteSubtotal,
+      tax_rate: quoteTaxRate,
+      tax_amount: quoteTaxAmount,
+      total_amount: quoteTotalAmount,
+      line_items: quoteLineItems.length > 0 ? quoteLineItems : [],
+      terms: validatedData.terms?.trim() || null,
+      status: 'sent' as const, // Quote status: sent when bid is pending
+      quote_date: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString(),
+    };
+
+    let quote;
+    if (existingQuote?.id) {
+      // Update existing quote
+      const { data: updatedQuote, error: quoteUpdateError } = await serverSupabase
+        .from('contractor_quotes')
+        .update(quotePayload)
+        .eq('id', existingQuote.id)
+        .select()
+        .single();
+
+      if (quoteUpdateError) {
+        logger.error('Failed to update quote', {
+          service: 'contractor',
+          contractorId: user.id,
+          jobId: validatedData.jobId,
+          quoteId: existingQuote.id,
+          error: quoteUpdateError.message,
+        });
+        // Don't fail the bid if quote update fails, but log it
+      } else {
+        quote = updatedQuote;
+      }
+    } else {
+      // Create new quote
+      const { data: newQuote, error: quoteInsertError } = await serverSupabase
+        .from('contractor_quotes')
+        .insert({
+          ...quotePayload,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (quoteInsertError) {
+        logger.error('Failed to create quote', {
+          service: 'contractor',
+          contractorId: user.id,
+          jobId: validatedData.jobId,
+          error: quoteInsertError.message,
+        });
+        // Don't fail the bid if quote creation fails, but log it
+      } else {
+        quote = newQuote;
+
+        // Link quote to bid
+        const { error: linkError } = await serverSupabase
+          .from('bids')
+          .update({ quote_id: newQuote.id })
+          .eq('id', bid.id);
+
+        if (linkError) {
+          logger.error('Failed to link quote to bid', {
+            service: 'contractor',
+            contractorId: user.id,
+            jobId: validatedData.jobId,
+            bidId: bid.id,
+            quoteId: newQuote.id,
+            error: linkError.message,
+          });
+          // Don't fail the bid if linking fails
+        }
+      }
+    }
+
     // Send email notification to homeowner (only for new bids, not updates)
     if (!isUpdate) {
-      const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
       if (homeowner?.email) {
         const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
         const homeownerName = `${homeowner.first_name} ${homeowner.last_name}`.trim() || 'Valued Client';

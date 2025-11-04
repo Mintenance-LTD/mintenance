@@ -76,6 +76,20 @@ export default async function ContractorProfilePage() {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
+  // Fetch bids to calculate real win rate
+  const { data: bids } = await supabase
+    .from('bids')
+    .select('id, status')
+    .eq('contractor_id', user.id);
+
+  // Calculate win rate: accepted bids / total bids with a decision (accepted or rejected)
+  // Only count bids that have a final status (accepted or rejected), not pending
+  const totalBidsWithDecision = bids?.filter(b => b.status === 'accepted' || b.status === 'rejected').length || 0;
+  const acceptedBids = bids?.filter(b => b.status === 'accepted').length || 0;
+  const winRate = totalBidsWithDecision > 0 
+    ? Math.round((acceptedBids / totalBidsWithDecision) * 100)
+    : 0; // If no bids with decisions, show 0% instead of defaulting to 42%
+
   return (
     <ContractorProfileClient
       contractor={contractor}
@@ -88,6 +102,7 @@ export default async function ContractorProfilePage() {
         averageRating,
         totalReviews: reviews?.length ?? 0,
         jobsCompleted: completedJobs?.length ?? 0,
+        winRate, // Add real win rate
       }}
     />
   );

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { fetchCurrentUser } from '@/lib/auth-client';
 
 interface CreateContractModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function CreateContractModal({
 }: CreateContractModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingCompanyName, setLoadingCompanyName] = useState(true);
   
   const [formData, setFormData] = useState({
     title: jobTitle,
@@ -29,7 +31,38 @@ export function CreateContractModal({
     start_date: '',
     end_date: '',
     terms: '',
+    contractor_company_name: '',
+    contractor_license_registration: '',
+    contractor_license_type: '',
   });
+
+  // Fetch contractor company name and license from verification API
+  useEffect(() => {
+    const loadContractorInfo = async () => {
+      try {
+        setLoadingCompanyName(true);
+        const response = await fetch('/api/contractor/verification');
+        if (response.ok) {
+          const verificationData = await response.json();
+          if (verificationData.data) {
+            setFormData(prev => ({
+              ...prev,
+              contractor_company_name: verificationData.data.company_name || '',
+              contractor_license_registration: verificationData.data.license_number || '',
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error loading contractor verification info:', err);
+      } finally {
+        setLoadingCompanyName(false);
+      }
+    };
+
+    if (isOpen) {
+      loadContractorInfo();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -64,24 +97,59 @@ export function CreateContractModal({
       setError('End date is required');
       return;
     }
+    
+    // Validate date format and convert to Date objects
     const startDate = new Date(formData.start_date);
     const endDate = new Date(formData.end_date);
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime())) {
+      setError('Invalid start date format');
+      return;
+    }
+    if (isNaN(endDate.getTime())) {
+      setError('Invalid end date format');
+      return;
+    }
+    
     if (endDate <= startDate) {
       setError('End date must be after start date');
+      return;
+    }
+    if (!formData.contractor_company_name.trim()) {
+      setError('Company name is required');
+      return;
+    }
+    if (!formData.contractor_license_registration.trim()) {
+      setError('License registration number is required');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // For datetime-local inputs, ensure we have valid ISO strings
+      // If time is not provided, use start of day for start_date and end of day for end_date
+      const startDateObj = new Date(formData.start_date);
+      const endDateObj = new Date(formData.end_date);
+      
+      // Set start_date to beginning of day if time not specified
+      const startDateISO = startDateObj.toISOString();
+      
+      // Set end_date to end of day (23:59:59) if time not specified
+      const endDateISO = endDateObj.toISOString();
+      
       const contractData = {
         job_id: jobId,
         title: formData.title.trim(),
         description: formData.description.trim(),
         amount: amount,
-        start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString(),
+        start_date: startDateISO,
+        end_date: endDateISO,
         terms: formData.terms.trim() || undefined,
+        contractor_company_name: formData.contractor_company_name.trim(),
+        contractor_license_registration: formData.contractor_license_registration.trim(),
+        contractor_license_type: formData.contractor_license_type.trim() || undefined,
       };
 
       const response = await fetch('/api/contracts', {
@@ -101,7 +169,8 @@ export function CreateContractModal({
       onContractCreated();
       onClose();
       
-      // Reset form
+      // Reset form (but keep company name if it was loaded)
+      const currentCompanyName = formData.contractor_company_name;
       setFormData({
         title: jobTitle,
         description: '',
@@ -109,6 +178,9 @@ export function CreateContractModal({
         start_date: '',
         end_date: '',
         terms: '',
+        contractor_company_name: currentCompanyName,
+        contractor_license_registration: '',
+        contractor_license_type: '',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create contract');
@@ -304,6 +376,14 @@ export function CreateContractModal({
               }}
               required
             />
+            <p style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing[1],
+              marginBottom: 0,
+            }}>
+              Select the date and time when work will begin
+            </p>
           </div>
 
           {/* End Date */}
@@ -331,6 +411,127 @@ export function CreateContractModal({
               }}
               required
             />
+            <p style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing[1],
+              marginBottom: 0,
+            }}>
+              Select the date and time when work will be completed
+            </p>
+          </div>
+
+          {/* Contractor Company Name */}
+          <div style={{ marginBottom: theme.spacing[4] }}>
+            <label style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}>
+              Company Name *
+            </label>
+            <input
+              type="text"
+              value={formData.contractor_company_name}
+              onChange={(e) => handleInputChange('contractor_company_name', e.target.value)}
+              disabled={loadingCompanyName}
+              style={{
+                width: '100%',
+                padding: theme.spacing[3],
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textPrimary,
+                opacity: loadingCompanyName ? 0.6 : 1,
+              }}
+              placeholder={loadingCompanyName ? "Loading..." : "Enter your company name"}
+              required
+            />
+            {loadingCompanyName && (
+              <p style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+                marginTop: theme.spacing[1],
+                margin: 0,
+              }}>
+                Loading your company name...
+              </p>
+            )}
+          </div>
+
+          {/* License Registration */}
+          <div style={{ marginBottom: theme.spacing[4] }}>
+            <label style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}>
+              License Registration Number *
+            </label>
+            <input
+              type="text"
+              value={formData.contractor_license_registration}
+              onChange={(e) => handleInputChange('contractor_license_registration', e.target.value)}
+              style={{
+                width: '100%',
+                padding: theme.spacing[3],
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textPrimary,
+              }}
+              placeholder="Enter your license registration number"
+              required
+            />
+            <p style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing[1],
+              margin: 0,
+            }}>
+              This will be visible to the homeowner for verification and trust
+            </p>
+          </div>
+
+          {/* License Type */}
+          <div style={{ marginBottom: theme.spacing[4] }}>
+            <label style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}>
+              License Type (Optional)
+            </label>
+            <select
+              value={formData.contractor_license_type}
+              onChange={(e) => handleInputChange('contractor_license_type', e.target.value)}
+              style={{
+                width: '100%',
+                padding: theme.spacing[3],
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textPrimary,
+                backgroundColor: theme.colors.white,
+              }}
+            >
+              <option value="">Select license type</option>
+              <option value="General Contractor">General Contractor</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Plumbing">Plumbing</option>
+              <option value="HVAC">HVAC</option>
+              <option value="Roofing">Roofing</option>
+              <option value="Landscaping">Landscaping</option>
+              <option value="Painting">Painting</option>
+              <option value="Carpentry">Carpentry</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
 
           {/* Terms */}

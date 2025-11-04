@@ -10,7 +10,7 @@ import {
   SupabaseJobRow,
   SupabaseMessageRow,
   toTimestamp,
-} from '../utils';
+} from '@/app/api/messages/utils';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
 
     const fetchLimit = Math.min(limit * 3, 150);
 
+    // First, get jobs where user is homeowner or contractor
     const { data: jobsData, error: jobsError } = await serverSupabase
       .from('jobs')
       .select(`
@@ -63,23 +64,59 @@ export async function GET(request: NextRequest) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role),
-        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role)
+        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name),
+        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
       `)
       .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
       .limit(fetchLimit);
+    
+    // Also get jobs where user has sent or received messages (in case job association isn't perfect)
+    const { data: messageJobsData } = await serverSupabase
+      .from('messages')
+      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name), contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name))')
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .limit(50);
+    
+    // Combine and deduplicate jobs
+    const allJobs = new Map<string, any>();
+    
+    // Add jobs from direct query
+    if (jobsData) {
+      for (const job of jobsData) {
+        allJobs.set(job.id, job);
+      }
+    }
+    
+    // Add jobs from messages query
+    if (messageJobsData) {
+      for (const msgRow of messageJobsData) {
+        const job = (msgRow as any).jobs;
+        if (job && !allJobs.has(job.id)) {
+          allJobs.set(job.id, job);
+        }
+      }
+    }
+    
+    const combinedJobsData = Array.from(allJobs.values());
 
     if (jobsError) {
       logger.error('Failed to load message threads - jobs query failed', jobsError, { 
         service: 'messages',
         userId: user.id
       });
-      return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
+      // Don't fail completely - try to continue with message-based jobs
     }
 
-    const jobRows = (jobsData ?? []) as SupabaseJobRow[];
+    const jobRows = (combinedJobsData ?? []) as SupabaseJobRow[];
     if (jobRows.length === 0) {
+      logger.info('No jobs found for user', {
+        service: 'messages',
+        userId: user.id,
+        userRole: user.role,
+        directJobsCount: jobsData?.length || 0,
+        messageJobsCount: messageJobsData?.length || 0,
+      });
       return NextResponse.json({ threads: [], nextCursor: undefined, limit });
     }
 
@@ -88,7 +125,9 @@ export async function GET(request: NextRequest) {
     const lastMessages = new Map<string, ReturnType<typeof mapMessageRow>>();
     if (jobIds.length > 0) {
       const messageLimit = Math.min(Math.max(jobIds.length * 5, limit), 500);
-      const { data: messageData, error: messageError } = await serverSupabase
+      
+      // Try to fetch messages with message_text first
+      let messageQuery = serverSupabase
         .from('messages')
         .select(`
           id,
@@ -98,29 +137,67 @@ export async function GET(request: NextRequest) {
           message_text,
           message_type,
           attachment_url,
-          call_id,
-          call_duration,
           read,
           created_at,
-          sender:users!messages_sender_id_fkey(first_name, last_name, role)
+          sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
         `)
         .in('job_id', jobIds)
         .order('created_at', { ascending: false })
         .limit(messageLimit);
 
+      let { data: messageData, error: messageError } = await messageQuery;
+
+      // If message_text column doesn't exist, try with content
+      if (messageError && (messageError.message?.includes('message_text') || (messageError.message?.includes('column') && messageError.message?.includes('message_text')))) {
+        logger.warn('message_text column not found in threads route, trying with content', {
+          service: 'messages',
+          userId: user.id,
+        });
+        
+        const fallbackQuery = serverSupabase
+          .from('messages')
+          .select(`
+            id,
+            job_id,
+            sender_id,
+            receiver_id,
+            content,
+            message_type,
+            attachment_url,
+            read,
+            created_at,
+            sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
+          `)
+          .in('job_id', jobIds)
+          .order('created_at', { ascending: false })
+          .limit(messageLimit);
+        
+        const result = await fallbackQuery;
+        // Map content to message_text for consistency
+        messageData = result.data?.map((m: any) => ({
+          ...m,
+          message_text: m.content || null,
+        })) || null;
+        messageError = result.error;
+      }
+
       if (messageError) {
         logger.error('Failed to load message threads - messages query failed', messageError, {
           service: 'messages',
           userId: user.id,
-          jobCount: jobIds.length
+          jobCount: jobIds.length,
+          errorMessage: messageError.message,
         });
-        return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
+        // Don't fail the entire request - just continue without messages
+        messageData = null;
       }
 
-      const messageRows = (messageData ?? []) as SupabaseMessageRow[];
-      for (const row of messageRows) {
-        if (!lastMessages.has(row.job_id)) {
-          lastMessages.set(row.job_id, mapMessageRow(row));
+      if (messageData) {
+        const messageRows = (messageData ?? []) as SupabaseMessageRow[];
+        for (const row of messageRows) {
+          if (!lastMessages.has(row.job_id)) {
+            lastMessages.set(row.job_id, mapMessageRow(row));
+          }
         }
       }
     }
@@ -180,8 +257,12 @@ export async function GET(request: NextRequest) {
     logger.info('Message threads retrieved', {
       service: 'messages',
       userId: user.id,
+      userRole: user.role,
+      jobCount: jobRows.length,
+      jobsWithMessages: lastMessages.size,
       threadCount: limitedThreads.length,
-      hasMore
+      hasMore,
+      jobIds: jobRows.map(j => j.id).slice(0, 5), // Log first 5 job IDs for debugging
     });
 
     return NextResponse.json({

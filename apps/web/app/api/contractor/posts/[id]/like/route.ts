@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { validateCSRF } from '@/lib/csrf-validator';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,16 +10,24 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    // Validate CSRF token
+    const csrfValidation = await validateCSRF(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error || 'CSRF validation failed' }, { status: 403 });
+    }
+
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    // Handle async params in Next.js 15
+    const resolvedParams = await Promise.resolve(params);
+    const postId = resolvedParams.id;
 
     // Check if like already exists
     const { data: existingLike } = await supabase

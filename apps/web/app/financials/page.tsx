@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
+import { InvoiceLink } from './components/InvoiceLink';
 
 export default async function FinancialsPage() {
   const user = await getCurrentUserFromCookies();
@@ -424,16 +425,15 @@ export default async function FinancialsPage() {
           </div>
 
           {invoicesList.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: theme.spacing[8],
-              color: theme.colors.textSecondary,
-            }}>
+            <InvoiceLink href="/payments">
               <Icon name="fileText" size={48} color={theme.colors.textTertiary} style={{ marginBottom: theme.spacing[2] }} />
               <p style={{ margin: 0, fontSize: theme.typography.fontSize.base }}>
                 No invoices yet
               </p>
-            </div>
+              <p style={{ margin: 0, marginTop: theme.spacing[2], fontSize: theme.typography.fontSize.sm, color: theme.colors.textTertiary }}>
+                Click to view payment page
+              </p>
+            </InvoiceLink>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
               {invoicesList.map((invoice) => {
@@ -451,14 +451,10 @@ export default async function FinancialsPage() {
                 const isOverdue = invoice.due_date && new Date(invoice.due_date) < now && invoice.status !== 'paid';
 
                 return (
-                  <div
+                  <InvoiceLink
                     key={invoice.id}
-                    style={{
-                      padding: theme.spacing[4],
-                      borderRadius: theme.borderRadius.lg,
-                      border: `1px solid ${theme.colors.border}`,
-                      transition: 'all 0.2s',
-                    }}
+                    href={`/payments${invoice.id ? `?invoice=${invoice.id}` : ''}`}
+                    isCard={true}
                   >
                     <div style={{
                       display: 'flex',
@@ -526,7 +522,7 @@ export default async function FinancialsPage() {
                         {formatMoney(Number(invoice.total_amount || 0))}
                       </div>
                     </div>
-                  </div>
+                  </InvoiceLink>
                 );
               })}
             </div>

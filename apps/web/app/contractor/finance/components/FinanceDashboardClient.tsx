@@ -219,7 +219,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
             maximumFractionDigits: 2,
           })}`}
           subtitle={`${financialData.completedJobs} completed jobs`}
-          icon="currencyDollar"
+          icon="currencyPound"
           trend={{
             direction: revenueChange >= 0 ? 'up' : 'down',
             value: `${Math.abs(revenueChange).toFixed(1)}%`,

@@ -101,8 +101,12 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         e.currentTarget.style.backgroundColor = theme.colors.white;
       }}
     >
-      {/* Profile Avatar */}
+      {/* Profile Avatar - Clickable */}
       <div
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent double-triggering
+          onClick();
+        }}
         style={{
           width: '50px',
           height: '50px',
@@ -116,7 +120,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
           color: theme.colors.white,
           fontWeight: theme.typography.fontWeight.bold,
           flexShrink: 0,
+          cursor: 'pointer',
         }}
+        title={`Click to message ${displayName}`}
       >
         {avatarInitial}
       </div>
@@ -134,6 +140,10 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             <span
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent double-triggering
+                onClick();
+              }}
               style={{
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: conversation.unreadCount > 0
@@ -144,7 +154,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                cursor: 'pointer',
               }}
+              title={`Click to message ${displayName}`}
             >
               {displayName}
             </span>

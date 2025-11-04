@@ -20,6 +20,7 @@ interface ReportingDashboardProps {
     activeClients: number;
     averageJobValue: number;
     customerSatisfaction: number;
+    customerSatisfactionChange?: number;
     jobsByCategory: Array<{ category: string; count: number; revenue: number }>;
     revenueByMonth: Array<{ month: string; revenue: number; jobs: number }>;
     topClients: Array<{ name: string; totalSpent: number; jobsCount: number }>;
@@ -521,7 +522,7 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
           value={`£${analytics.totalRevenue.toLocaleString('en-GB')}`}
           change="+18.2%"
           changeType="positive"
-          icon="currencyDollar"
+          icon="currencyPound"
           color={theme.colors.success}
         />
         <MetricCard
@@ -559,8 +560,12 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
         <MetricCard
           title="Customer Satisfaction"
           value={`${analytics.customerSatisfaction.toFixed(1)}/5.0`}
-          change="+0.2"
-          changeType="positive"
+          change={analytics.customerSatisfactionChange !== undefined && analytics.customerSatisfactionChange !== 0
+            ? `${analytics.customerSatisfactionChange >= 0 ? '+' : ''}${analytics.customerSatisfactionChange.toFixed(1)}`
+            : undefined}
+          changeType={analytics.customerSatisfactionChange !== undefined
+            ? analytics.customerSatisfactionChange >= 0 ? 'positive' : 'negative'
+            : 'neutral'}
           icon="star"
           color={theme.colors.warning}
         />

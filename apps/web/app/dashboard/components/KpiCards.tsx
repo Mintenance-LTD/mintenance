@@ -43,30 +43,24 @@ function KpiCard({ title, stats, actionLabel, actionHref }: KpiCardProps) {
           {title}
         </h2>
         {actionLabel && actionHref && (
-          <Link
-            href={actionHref}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              textDecoration: 'none',
-              transition: 'opacity 0.2s ease, transform 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.7';
-              e.currentTarget.style.transform = 'translateX(2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.transform = 'translateX(0)';
-            }}
-          >
-            {actionLabel}
-            <Icon name="chevronRight" size={16} color={theme.colors.primary} />
-          </Link>
+          <span className="kpi-card-action-link">
+            <Link
+              href={actionHref}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[1],
+                color: theme.colors.primary,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                textDecoration: 'none',
+                transition: 'opacity 0.2s ease, transform 0.2s ease',
+              }}
+            >
+              {actionLabel}
+              <Icon name="chevronRight" size={16} color={theme.colors.primary} />
+            </Link>
+          </span>
         )}
       </div>
 
@@ -132,6 +126,14 @@ function KpiCard({ title, stats, actionLabel, actionHref }: KpiCardProps) {
           </div>
         ))}
       </div>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .kpi-card-action-link:hover a {
+            opacity: 0.7;
+            transform: translateX(2px);
+          }
+        `
+      }} />
     </div>
   );
 }

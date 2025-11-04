@@ -76,6 +76,49 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to sign contract' }, { status: 500 });
     }
 
+    // Notify the other party that they need to sign (if contract is not yet fully accepted)
+    if (updatedContract.status !== 'accepted') {
+      const otherPartyId = isContractor ? contract.homeowner_id : contract.contractor_id;
+      const otherPartyRole = isContractor ? 'homeowner' : 'contractor';
+      
+      // Get user's name for the notification message
+      const { data: signerData } = await serverSupabase
+        .from('users')
+        .select('first_name, last_name, company_name')
+        .eq('id', user.id)
+        .single();
+      
+      const signerName = signerData 
+        ? (signerData.first_name && signerData.last_name 
+            ? `${signerData.first_name} ${signerData.last_name}`
+            : signerData.company_name || 'Contractor')
+        : (user.role === 'contractor' ? 'The contractor' : 'The homeowner');
+      
+      try {
+        await serverSupabase
+          .from('notifications')
+          .insert({
+            user_id: otherPartyId,
+            title: 'Contract Pending Your Signature 📝',
+            message: `${signerName} has signed the contract for "${updatedContract.title || 'your job'}". Your signature is required to proceed.`,
+            type: 'contract_pending_signature',
+            read: false,
+            action_url: otherPartyRole === 'contractor' ? `/contractor/jobs/${contract.job_id}` : `/jobs/${contract.job_id}`,
+            created_at: new Date().toISOString(),
+          });
+        
+        console.log('Contract signature notification sent', {
+          contractId,
+          signerRole: user.role,
+          notifiedUserId: otherPartyId,
+          contractStatus: updatedContract.status,
+        });
+      } catch (notificationError) {
+        console.error('Failed to create signature notification:', notificationError);
+        // Don't fail the request if notification fails
+      }
+    }
+
     // If contract is now accepted, create notifications and schedule job
     if (updatedContract.status === 'accepted') {
       // Notify both parties
@@ -107,34 +150,44 @@ export async function POST(
         // Don't fail the request
       }
 
-      // Update job status if needed
-      const { data: job } = await serverSupabase
-        .from('jobs')
-        .select('status')
-        .eq('id', contract.job_id)
-        .single();
+      // Update job with contract dates and schedule on both calendars
+      if (updatedContract.start_date || updatedContract.end_date) {
+        const jobUpdateData: Record<string, any> = {
+          updated_at: new Date().toISOString(),
+        };
 
-      if (job && job.status === 'assigned') {
-        // Job can now proceed to scheduling phase
-        // Status will change to 'in_progress' when work actually starts
-      }
-    } else {
-      // Notify the other party that contract needs their signature
-      const otherPartyId = isContractor ? contract.homeowner_id : contract.contractor_id;
-      try {
-        await serverSupabase
-          .from('notifications')
-          .insert({
-            user_id: otherPartyId,
-            title: 'Contract Pending Your Signature',
-            message: `${user.role === 'contractor' ? 'Contractor' : 'Homeowner'} has signed the contract. Your signature is required.`,
-            type: 'contract_pending_signature',
-            read: false,
-            action_url: user.role === 'contractor' ? `/jobs/${contract.job_id}` : `/contractor/jobs/${contract.job_id}`,
-            created_at: new Date().toISOString(),
+        // Set scheduled_date to start_date for calendar display
+        // This will appear on both homeowner and contractor calendars
+        if (updatedContract.start_date) {
+          jobUpdateData.scheduled_date = updatedContract.start_date;
+        }
+        
+        // Also store start and end dates if they exist in the jobs table
+        // (Some schemas have these fields)
+        if (updatedContract.start_date) {
+          jobUpdateData.scheduled_start_date = updatedContract.start_date;
+        }
+        if (updatedContract.end_date) {
+          jobUpdateData.scheduled_end_date = updatedContract.end_date;
+        }
+
+        // Update job with contract dates
+        const { error: jobUpdateError } = await serverSupabase
+          .from('jobs')
+          .update(jobUpdateData)
+          .eq('id', contract.job_id);
+
+        if (jobUpdateError) {
+          console.error('Failed to update job with contract dates:', jobUpdateError);
+          // Don't fail the request, but log the error
+        } else {
+          console.log('Job scheduled with contract dates', {
+            jobId: contract.job_id,
+            startDate: updatedContract.start_date,
+            endDate: updatedContract.end_date,
+            scheduledDate: updatedContract.start_date,
           });
-      } catch (notificationError) {
-        console.error('Failed to create signature notification:', notificationError);
+        }
       }
     }
 

@@ -42,6 +42,24 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]['key'];
 
+// Consistent date formatting function that works on both server and client
+// This prevents hydration mismatches by using a fixed format
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    // Use a consistent format: MM/DD/YYYY
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  } catch {
+    return 'Invalid date';
+  }
+};
+
 export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhancedProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -320,7 +338,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Icon name="currencyDollar" size={20} color="#3730A3" />
+              <Icon name="currencyPound" size={20} color="#3730A3" />
             </div>
           </div>
           <div style={{
@@ -620,7 +638,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
                     color: theme.colors.textPrimary,
                     fontVariantNumeric: 'tabular-nums',
                   }}>
-                    ${client.total_spent.toLocaleString()}
+                    £{client.total_spent.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -637,7 +655,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
                   fontSize: theme.typography.fontSize.xs,
                   color: theme.colors.textTertiary,
                 }}>
-                  Last contact: {new Date(client.last_contact).toLocaleDateString()}
+                  Last contact: {formatDate(client.last_contact)}
                 </span>
                 <div style={{
                   padding: `${theme.spacing[1]} ${theme.spacing[2]}`,

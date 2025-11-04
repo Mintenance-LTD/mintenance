@@ -8,7 +8,7 @@ import {
   mapMessageRow,
   SupabaseJobRow,
   SupabaseMessageRow,
-} from '../../utils';
+} from '@/app/api/messages/utils';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
@@ -64,8 +64,8 @@ export async function GET(request: NextRequest, context: Params) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role),
-        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role)
+        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name),
+        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
       `)
       .eq('id', threadId)
       .single();
@@ -81,6 +81,8 @@ export async function GET(request: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Fetch messages - try message_text first, then fallback to content if needed
+    // Note: We select only what we need to avoid query errors if columns don't exist
     let messageQuery = serverSupabase
       .from('messages')
       .select(`
@@ -91,11 +93,9 @@ export async function GET(request: NextRequest, context: Params) {
         message_text,
         message_type,
         attachment_url,
-        call_id,
-        call_duration,
         read,
         created_at,
-        sender:users!messages_sender_id_fkey(first_name, last_name, role)
+        sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
       `)
       .eq('job_id', threadId)
       .order('created_at', { ascending: false })
@@ -105,11 +105,74 @@ export async function GET(request: NextRequest, context: Params) {
       messageQuery = messageQuery.lt('created_at', cursorIso);
     }
 
-    const { data: messageData, error: messagesError } = await messageQuery;
-    if (messagesError) {
-      console.error('[API] thread GET messages error', messagesError);
-      return NextResponse.json({ error: 'Failed to load messages' }, { status: 500 });
+    let { data: messageData, error: messagesError } = await messageQuery;
+    
+    // If message_text column doesn't exist, try with content
+    if (messagesError && (messagesError.message?.includes('message_text') || (messagesError.message?.includes('column') && messagesError.message?.includes('message_text')))) {
+      console.warn('[API] thread GET message_text column not found, trying with content', messagesError);
+      let fallbackQuery = serverSupabase
+        .from('messages')
+        .select(`
+          id,
+          job_id,
+          sender_id,
+          receiver_id,
+          content,
+          message_type,
+          attachment_url,
+          read,
+          created_at,
+          sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
+        `)
+        .eq('job_id', threadId)
+        .order('created_at', { ascending: false })
+        .limit(limit + 1);
+      
+      if (cursorIso) {
+        fallbackQuery = fallbackQuery.lt('created_at', cursorIso);
+      }
+      
+      const result = await fallbackQuery;
+      // Map content to message_text for consistency
+      messageData = result.data?.map((m: any) => ({
+        ...m,
+        message_text: m.content || null,
+      })) || null;
+      messagesError = result.error;
     }
+    
+    if (messagesError) {
+      console.error('[API] thread GET messages error', {
+        error: messagesError,
+        threadId,
+        userId: user.id,
+        jobHomeownerId: job.homeowner_id,
+        jobContractorId: job.contractor_id,
+        errorMessage: messagesError.message,
+        errorCode: messagesError.code,
+        errorDetails: messagesError.details,
+      });
+      return NextResponse.json({ 
+        error: 'Failed to load messages',
+        details: messagesError.message || 'Database query failed'
+      }, { status: 500 });
+    }
+    
+    // Log message retrieval for debugging - includes sender/receiver info
+    console.log('[API] thread GET messages retrieved', {
+      threadId,
+      userId: user.id,
+      messageCount: messageData?.length || 0,
+      jobHomeownerId: job.homeowner_id,
+      jobContractorId: job.contractor_id,
+      messageDetails: messageData?.map((m: any) => ({ 
+        id: m.id, 
+        senderId: m.sender_id, 
+        receiverId: m.receiver_id,
+        hasText: !!(m.message_text || m.content),
+        textLength: (m.message_text || m.content || '').length,
+      })) || [],
+    });
 
     const rows = (messageData ?? []) as SupabaseMessageRow[];
     const hasMore = rows.length > limit;

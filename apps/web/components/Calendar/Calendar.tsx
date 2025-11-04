@@ -21,26 +21,45 @@ export function Calendar({ events }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const router = useRouter();
 
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   // Debug: Log events and current date in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
+      const eventsByMonth = events.map(e => {
+        const eventDate = typeof e.date === 'string' ? new Date(e.date) : e.date;
+        if (isNaN(eventDate.getTime())) return null;
+        const dateStr = typeof e.date === 'string' ? e.date : e.date.toISOString();
+        const dateParts = dateStr.split('T')[0].split('-');
+        return {
+          title: e.title,
+          dateISO: dateStr,
+          year: parseInt(dateParts[0]),
+          month: parseInt(dateParts[1]) - 1, // 0-indexed
+          day: parseInt(dateParts[2]),
+        };
+      }).filter(Boolean);
+
       console.log('📅 Calendar Component Debug:', {
         eventsCount: events.length,
         currentDate: currentDate.toISOString(),
         currentMonth: currentDate.getMonth(),
         currentYear: currentDate.getFullYear(),
-        events: events.slice(0, 5).map(e => ({
+        currentMonthName: monthNames[currentDate.getMonth()],
+        eventsInCurrentMonth: eventsByMonth.filter(e => 
+          e && e.month === currentDate.getMonth() && e.year === currentDate.getFullYear()
+        ).length,
+        eventsByMonth: eventsByMonth.slice(0, 10),
+        allEvents: events.slice(0, 10).map(e => ({
           title: e.title,
           date: typeof e.date === 'string' ? e.date : e.date.toISOString(),
         }))
       });
     }
-  }, [events, currentDate]);
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  }, [events, currentDate, monthNames]);
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -327,9 +346,13 @@ export function Calendar({ events }: CalendarProps) {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
                     {dayEvents.map((event) => {
-                      // Extract job ID from event ID (handle prefixed IDs like "job-posted-{id}")
-                      const jobId = event.id.replace(/^(job-posted-|appointment-|meeting-|job-scheduled-|maintenance-)/, '');
-                      const isJobEvent = event.id.startsWith('job-posted-') || event.id.startsWith('job-scheduled-') || !event.id.includes('-');
+                      // Extract job ID from event ID (handle prefixed IDs like "job-posted-{id}", "appointment-{id}", etc.)
+                      const jobId = event.id.replace(/^(job-posted-|appointment-|appointment-end-|meeting-|job-scheduled-|maintenance-)/, '');
+                      // Job events include posted, scheduled, and appointment events (but not maintenance)
+                      const isJobEvent = event.id.startsWith('job-posted-') || 
+                                        event.id.startsWith('job-scheduled-') || 
+                                        event.id.startsWith('appointment-') ||
+                                        (!event.id.includes('-') && !event.id.startsWith('maintenance-'));
                       
                       return (
                       <div

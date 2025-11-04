@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,7 @@ const ConversationCard = dynamic(() => import('@/components/messaging/Conversati
 
 export default function MessagesPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<MessageThread[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +36,47 @@ export default function MessagesPage() {
     loadUserAndMessages();
   }, []);
 
+  // Reload conversations when navigating back to messages page
+  // Use a ref to track the last pathname to avoid duplicate loads
+  const lastPathnameRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Only reload if we're on /messages and we just navigated here (not initial load)
+    if (pathname === '/messages' && user && lastPathnameRef.current !== '/messages' && lastPathnameRef.current !== null) {
+      // User navigated back to messages page, reload conversations
+      loadUserAndMessages();
+    }
+    lastPathnameRef.current = pathname;
+  }, [pathname, user]);
+
+  // Reload conversations when page becomes visible (user returns from chat)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user && pathname === '/messages') {
+        // Reload conversations when user returns to the page
+        loadUserAndMessages();
+      }
+    };
+
+    const handleFocus = () => {
+      if (user && pathname === '/messages') {
+        // Also reload on window focus (e.g., switching tabs back)
+        loadUserAndMessages();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user, pathname]);
+
   const loadUserAndMessages = async () => {
     try {
       setLoading(true);
+      setError(null);
       const currentUser = await fetchCurrentUser();
 
       if (!currentUser) {
@@ -46,10 +85,16 @@ export default function MessagesPage() {
       }
 
       setUser(currentUser);
+      console.log('[MessagesPage] Loading conversations for user:', currentUser.id);
       const userConversations = await MessagingService.getUserMessageThreads(currentUser.id);
+      console.log('[MessagesPage] Loaded conversations:', userConversations.length, userConversations);
       setConversations(userConversations);
+      
+      if (userConversations.length === 0) {
+        console.log('[MessagesPage] No conversations found. User ID:', currentUser.id, 'User role:', currentUser.role);
+      }
     } catch (err) {
-      console.error('Error loading messages:', err);
+      console.error('[MessagesPage] Error loading messages:', err);
       setError('Failed to load messages');
     } finally {
       setLoading(false);
@@ -145,8 +190,8 @@ export default function MessagesPage() {
     >
       <div style={{
         maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing.lg
+        padding: `${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing[6]}`
+        // Top right bottom left padding - increased left padding to add space from sidebar
       }}>
         {/* Breadcrumbs */}
         <Breadcrumbs 

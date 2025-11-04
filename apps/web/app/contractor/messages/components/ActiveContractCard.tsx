@@ -24,6 +24,7 @@ interface ActiveContractCardProps {
   } | null;
   onCreateContract: () => void;
   onViewMessages: () => void;
+  onViewJob: () => void;
 }
 
 export function ActiveContractCard({
@@ -31,8 +32,8 @@ export function ActiveContractCard({
   contract,
   onCreateContract,
   onViewMessages,
+  onViewJob,
 }: ActiveContractCardProps) {
-  const homeownerName = `${job.homeowner.first_name} ${job.homeowner.last_name}`;
   const homeownerInitial = job.homeowner.first_name.charAt(0).toUpperCase();
   
   // Determine contract status display
@@ -57,115 +58,101 @@ export function ActiveContractCard({
 
   const contractStatus = getContractStatus();
   const canCreateContract = !contract;
+  const needsContractorSignature = contract && contract.status === 'pending_contractor' && !contract.contractor_signed_at;
+
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only navigate if there's a contract (buttons inside have stopPropagation)
+    if (contract) {
+      onViewJob();
+    }
+  };
+
+  const handleButtonContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+  };
+
+  const cardStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing[4],
+    backgroundColor: theme.colors.white,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing[3],
+    cursor: contract ? 'pointer' : 'default',
+    transition: 'all 0.2s',
+  };
 
   return (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: theme.spacing[4],
-        borderBottom: `1px solid ${theme.colors.border}`,
-        backgroundColor: theme.colors.white,
-        transition: 'background-color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = theme.colors.white;
-      }}
+      onClick={handleCardClick}
+      style={cardStyle}
     >
-      {/* Profile Avatar */}
-      <div
-        style={{
-          width: '50px',
-          height: '50px',
-          borderRadius: '50%',
-          backgroundColor: theme.colors.primary,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: theme.spacing[4],
-          fontSize: theme.typography.fontSize.xl,
-          color: theme.colors.white,
-          fontWeight: theme.typography.fontWeight.bold,
-          flexShrink: 0,
-          overflow: 'hidden',
-        }}
-      >
-        {job.homeowner.profile_image_url ? (
-          <img
-            src={job.homeowner.profile_image_url}
-            alt={homeownerName}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-          />
-        ) : (
-          homeownerInitial
-        )}
-      </div>
-
-      {/* Middle Section - Homeowner & Job Info */}
-      <div style={{ flex: 1, minWidth: 0, marginRight: theme.spacing[4] }}>
-        {/* Homeowner Name */}
+      {/* Left Section - Job Info */}
+      <div data-card-content style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], flex: 1 }}>
+        {/* Avatar */}
         <div
           style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            backgroundColor: theme.colors.primary,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing[1],
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.bold,
+            flexShrink: 0,
           }}
         >
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {homeownerName}
-          </span>
+          {homeownerInitial}
         </div>
 
-        {/* Job Title */}
-        <div
-          style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[1],
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          📋 {job.title}
-        </div>
-
-        {/* Contract Status Badge */}
-        <div style={{ display: 'inline-block' }}>
-          <span
+        {/* Job Details */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1], flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], flexWrap: 'wrap' }}>
+            <Icon name="document" size={20} color={theme.colors.primary} />
+            <div
+              style={{
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {job.title}
+            </div>
+            <div
+              style={{
+                padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: contractStatus.bg,
+                color: contractStatus.color,
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.medium,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {contractStatus.label}
+            </div>
+          </div>
+          <div
             style={{
-              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-              borderRadius: theme.borderRadius.full,
-              backgroundColor: contractStatus.bg,
-              color: contractStatus.color,
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
             }}
           >
-            {contractStatus.label}
-          </span>
+            {job.homeowner.first_name} {job.homeowner.last_name}
+          </div>
         </div>
       </div>
 
       {/* Right Section - Action Buttons */}
-      <div style={{ display: 'flex', gap: theme.spacing[2], flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: theme.spacing[2], flexShrink: 0 }} onClick={handleButtonContainerClick}>
         {canCreateContract ? (
           <button
             onClick={onCreateContract}
@@ -183,45 +170,55 @@ export function ActiveContractCard({
               gap: theme.spacing[2],
               transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.primaryDark || theme.colors.primary;
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.primary;
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
           >
             <Icon name="fileText" size={16} color="white" />
             Create Contract
           </button>
         ) : (
-          <button
-            onClick={onViewMessages}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: 'transparent',
-              color: theme.colors.primary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <Icon name="messages" size={16} color={theme.colors.primary} />
-            View Messages
-          </button>
+          <>
+            {needsContractorSignature && (
+              <button
+                onClick={onViewJob}
+                style={{
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                  backgroundColor: theme.colors.success,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: theme.borderRadius.md,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Icon name="checkCircle" size={16} color="white" />
+                Sign Contract
+              </button>
+            )}
+            <button
+              onClick={onViewMessages}
+              style={{
+                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                backgroundColor: 'transparent',
+                color: theme.colors.primary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.md,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+                transition: 'all 0.2s',
+              }}
+            >
+              <Icon name="messages" size={16} color={theme.colors.primary} />
+              View Messages
+            </button>
+          </>
         )}
       </div>
     </div>

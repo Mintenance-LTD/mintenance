@@ -114,8 +114,39 @@ export default async function ReportingPage() {
       jobsCount: c.jobsCount,
     }));
 
-  // Customer satisfaction (mock for now - would need to calculate from reviews/ratings)
-  const customerSatisfaction = 4.5;
+  // Calculate customer satisfaction from reviews
+  const { data: reviews } = await serverSupabase
+    .from('reviews')
+    .select('rating, created_at')
+    .eq('reviewed_id', user.id)
+    .order('created_at', { ascending: false });
+
+  const allRatings = reviews?.map(r => r.rating) || [];
+  const customerSatisfaction = allRatings.length > 0
+    ? allRatings.reduce((sum, rating) => sum + rating, 0) / allRatings.length
+    : 0;
+
+  // Calculate change from previous period (last 30 days vs previous 30 days)
+  const currentDate = new Date();
+  const last30Days = new Date(currentDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const previous30Days = new Date(currentDate.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+  const recentRatings = reviews?.filter(r => new Date(r.created_at) >= last30Days).map(r => r.rating) || [];
+  const previousRatings = reviews?.filter(r => {
+    const reviewDate = new Date(r.created_at);
+    return reviewDate >= previous30Days && reviewDate < last30Days;
+  }).map(r => r.rating) || [];
+
+  const recentAverage = recentRatings.length > 0
+    ? recentRatings.reduce((sum, rating) => sum + rating, 0) / recentRatings.length
+    : 0;
+  const previousAverage = previousRatings.length > 0
+    ? previousRatings.reduce((sum, rating) => sum + rating, 0) / previousRatings.length
+    : 0;
+
+  const satisfactionChange = recentAverage > 0 && previousAverage > 0
+    ? recentAverage - previousAverage
+    : 0;
 
   const analytics = {
     totalJobs,
@@ -126,6 +157,7 @@ export default async function ReportingPage() {
     activeClients,
     averageJobValue,
     customerSatisfaction,
+    customerSatisfactionChange: satisfactionChange,
     jobsByCategory,
     revenueByMonth,
     topClients,

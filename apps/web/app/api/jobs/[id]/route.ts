@@ -222,3 +222,109 @@ export async function PATCH(request: NextRequest, context: Params) {
   }
 }
 
+export async function DELETE(request: NextRequest, context: Params) {
+  try {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await context.params;
+
+    // Fetch the job to verify ownership and status
+    const { data: existing, error: fetchError } = await serverSupabase
+      .from('jobs')
+      .select('id, homeowner_id, status, contractor_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        logger.warn('Job not found for deletion', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id
+        });
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      logger.error('Failed to fetch job for deletion', fetchError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
+      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+    }
+
+    // Verify ownership - only homeowner can delete their own job
+    if (!existing || existing.homeowner_id !== user.id) {
+      logger.warn('Unauthorized job deletion attempt', {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id,
+        homeownerId: existing?.homeowner_id
+      });
+      return NextResponse.json({ error: 'Forbidden: You can only delete your own jobs' }, { status: 403 });
+    }
+
+    // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)
+    // For posted jobs, allow deletion (pending bids are OK)
+    // For other statuses, check restrictions
+    if (existing.status !== 'posted') {
+      // Check if there are accepted bids
+      const { data: acceptedBids } = await serverSupabase
+        .from('bids')
+        .select('id')
+        .eq('job_id', id)
+        .eq('status', 'accepted')
+        .limit(1);
+
+      if (acceptedBids && acceptedBids.length > 0) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with accepted bids. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+
+      // If contractor is assigned, don't allow deletion
+      if (existing.contractor_id) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+    } else {
+      // For posted jobs, also check if contractor is assigned (shouldn't happen, but safety check)
+      if (existing.contractor_id) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+    }
+
+    // Delete the job (cascade will handle related records like bids, attachments, etc.)
+    const { error: deleteError } = await serverSupabase
+      .from('jobs')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      logger.error('Failed to delete job', deleteError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
+      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+    }
+
+    logger.info('Job deleted successfully', {
+      service: 'jobs',
+      userId: user.id,
+      jobId: id
+    });
+
+    return NextResponse.json({ message: 'Job deleted successfully' }, { status: 200 });
+  } catch (err) {
+    logger.error('Failed to delete job', err, {
+      service: 'jobs'
+    });
+    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+  }
+}
+

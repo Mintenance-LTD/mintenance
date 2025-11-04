@@ -22,6 +22,9 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string; place_id: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<Array<{ file: File; preview: string }>>([]);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   // Reset form when modal opens/closes
   React.useEffect(() => {
@@ -35,7 +38,14 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
       setError('');
       setLocationSuggestions([]);
       setShowSuggestions(false);
+      // Clean up image previews
+      setImagePreviews(prev => {
+        prev.forEach(({ preview }) => URL.revokeObjectURL(preview));
+        return [];
+      });
+      setUploadedImages([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Debounced address search for autocomplete
@@ -90,6 +100,86 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
     setLocationSuggestions([]);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Validate file count
+    if (imagePreviews.length + files.length > 10) {
+      alert('Maximum 10 photos allowed');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image file`);
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is too large. Maximum size is 5MB`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    // Create previews
+    const newPreviews = validFiles.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+    
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImagePreviews(prev => {
+      const removed = prev[index];
+      URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async (): Promise<string[]> => {
+    if (imagePreviews.length === 0) return [];
+
+    setIsUploadingImages(true);
+    try {
+      const formData = new FormData();
+      imagePreviews.forEach(({ file }) => {
+        formData.append('photos', file);
+      });
+
+      const response = await fetch('/api/properties/upload-photos', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to upload images';
+        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
+      }
+
+      const data = await response.json();
+      setUploadedImages(data.urls || []);
+      return data.urls || [];
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
+      alert(errorMessage);
+      return [];
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -108,12 +198,31 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
     setIsSubmitting(true);
 
     try {
+      // Upload images first if there are any
+      let photoUrls: string[] = [];
+      if (imagePreviews.length > 0) {
+        photoUrls = await uploadImages();
+        if (photoUrls.length === 0 && imagePreviews.length > 0) {
+          // If upload failed but user selected images, ask if they want to continue
+          const shouldContinue = window.confirm(
+            'Failed to upload some photos. Do you want to continue without photos?'
+          );
+          if (!shouldContinue) {
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       const response = await fetch('/api/properties', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          photos: photoUrls,
+        }),
       });
 
       const data = await response.json();
@@ -378,6 +487,125 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
               <option value="commercial">Commercial</option>
               <option value="rental">Rental</option>
             </select>
+          </div>
+
+          {/* Property Photos */}
+          <div>
+            <label htmlFor="property_photos" style={{
+              display: 'block',
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}>
+              Property Photos {imagePreviews.length > 0 && `(${imagePreviews.length}/10)`}
+            </label>
+            <input
+              type="file"
+              id="property_photos"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              disabled={isUploadingImages || isSubmitting}
+              style={{ display: 'none' }}
+            />
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[3],
+            }}>
+              <label
+                htmlFor="property_photos"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing[2],
+                  padding: theme.spacing[4],
+                  border: `2px dashed ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  cursor: (isUploadingImages || isSubmitting) ? 'not-allowed' : 'pointer',
+                  opacity: (isUploadingImages || isSubmitting) ? 0.5 : 1,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isUploadingImages && !isSubmitting) {
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.border;
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }}
+              >
+                <Icon name="image" size={20} color={theme.colors.primary} />
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textPrimary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}>
+                  {isUploadingImages ? 'Uploading...' : 'Click to add photos (max 10)'}
+                </span>
+              </label>
+
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: theme.spacing[2],
+                }}>
+                  {imagePreviews.map((preview, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        position: 'relative',
+                        aspectRatio: '1',
+                        borderRadius: theme.borderRadius.md,
+                        overflow: 'hidden',
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: theme.colors.backgroundSecondary,
+                      }}
+                    >
+                      <img
+                        src={preview.preview}
+                        alt={`Property photo ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        disabled={isUploadingImages || isSubmitting}
+                        style={{
+                          position: 'absolute',
+                          top: theme.spacing[1],
+                          right: theme.spacing[1],
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          border: 'none',
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          color: 'white',
+                          cursor: (isUploadingImages || isSubmitting) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                        }}
+                      >
+                        <Icon name="x" size={14} color="white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Primary Property Checkbox */}

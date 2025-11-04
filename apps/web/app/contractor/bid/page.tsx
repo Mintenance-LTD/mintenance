@@ -20,6 +20,11 @@ interface Job {
   postedBy?: {
     name: string;
   };
+  hasBid?: boolean;
+  bidAmount?: number;
+  bidStatus?: string;
+  bidCreatedAt?: string;
+  isStarting?: boolean;
 }
 
 type FilterKey = 'available' | 'recommended' | 'saved';
@@ -50,6 +55,8 @@ export default function ContractorBidsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [bids, setBids] = useState<BidWithJob[]>([]);
   const [allBids, setAllBids] = useState<BidWithJob[]>([]); // Store all bids to check against jobs
+  const [startingJobs, setStartingJobs] = useState<Job[]>([]); // Jobs with accepted contracts
+  const [viewedJobIds, setViewedJobIds] = useState<Set<string>>(new Set()); // Jobs the contractor has viewed
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>('available');
 
@@ -57,7 +64,7 @@ export default function ContractorBidsPage() {
     document.title = 'Jobs & Bids | Mintenance';
   }, []);
 
-  // Fetch bids separately to check against jobs
+  // Fetch bids and viewed jobs separately to check against jobs
   useEffect(() => {
     const loadBids = async () => {
       try {
@@ -75,12 +82,34 @@ export default function ContractorBidsPage() {
       }
     };
 
-    loadBids();
+    const loadViewedJobs = async () => {
+      try {
+        // Fetch jobs the contractor has viewed
+        const response = await fetch('/api/jobs/viewed');
+        if (response.ok) {
+          const data = await response.json();
+          const viewedIds = Array.isArray(data.jobIds) ? data.jobIds : [];
+          console.log('[ContractorBidsPage] Loaded viewed job IDs:', viewedIds);
+          setViewedJobIds(new Set(viewedIds));
+        } else {
+          const errorText = await response.text();
+          console.error('Error loading viewed jobs:', response.status, errorText);
+          setViewedJobIds(new Set());
+        }
+      } catch (error) {
+        console.error('Error loading viewed jobs:', error);
+        setViewedJobIds(new Set());
+      }
+    };
 
-    // Refresh bids when page becomes visible (e.g., after returning from bid submission)
+    loadBids();
+    loadViewedJobs();
+
+    // Refresh bids and viewed jobs when page becomes visible (e.g., after returning from bid submission)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         loadBids();
+        loadViewedJobs();
       }
     };
 
@@ -112,23 +141,112 @@ export default function ContractorBidsPage() {
         } else {
           // Fetch available jobs
           const response = await fetch(`/api/jobs?limit=20&status=posted`);
+          let jobsData: Job[] = [];
+          
           if (response.ok) {
             const data = await response.json();
             // Ensure we always set an array, and filter out any invalid job objects
-            const jobsData = Array.isArray(data.jobs) 
+            jobsData = Array.isArray(data.jobs) 
               ? data.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
               : [];
-            setJobs(jobsData);
-            setBids([]); // Clear bids when showing jobs
-          } else {
-            // On error, ensure we still have an empty array
-            setJobs([]);
           }
+          
+          // Also fetch viewed jobs that might not be in "posted" status
+          // This ensures viewed jobs appear even if their status changed
+          const viewedJobsResponse = await fetch('/api/jobs/viewed');
+          if (viewedJobsResponse.ok) {
+            const viewedData = await viewedJobsResponse.json();
+            const viewedJobIds = Array.isArray(viewedData.jobIds) ? viewedData.jobIds : [];
+            
+            if (viewedJobIds.length > 0) {
+              // Fetch each viewed job by ID (they might have different statuses)
+              // Note: This will only fetch jobs the contractor is authorized to view
+              const viewedJobsPromises = viewedJobIds.map(async (jobId: string) => {
+                try {
+                  const jobResponse = await fetch(`/api/jobs/${jobId}`);
+                  if (jobResponse.ok) {
+                    const jobData = await jobResponse.json();
+                    const job = jobData.job;
+                    // Transform JobDetail to Job format
+                    if (job) {
+                      return {
+                        id: job.id,
+                        title: job.title,
+                        description: job.description,
+                        status: job.status,
+                        createdAt: job.createdAt || job.created_at,
+                        // Add other fields as needed
+                      } as Job;
+                    }
+                  }
+                  return null;
+                } catch (error) {
+                  console.warn(`Failed to fetch viewed job ${jobId}:`, error);
+                  return null;
+                }
+              });
+              
+              const viewedJobs = (await Promise.all(viewedJobsPromises))
+                .filter((job): job is Job => job !== null && typeof job === 'object' && !!job.id);
+              
+              // Merge viewed jobs with posted jobs, avoiding duplicates
+              const existingJobIds = new Set(jobsData.map(j => j.id));
+              viewedJobs.forEach(viewedJob => {
+                if (!existingJobIds.has(viewedJob.id)) {
+                  jobsData.push(viewedJob);
+                }
+              });
+              
+              console.log(`[ContractorBidsPage] Merged ${viewedJobs.length} viewed jobs into jobs list`);
+            }
+          }
+          
+          setJobs(jobsData);
+          
+          // Fetch assigned jobs with accepted contracts for "Recommended" tab
+          const assignedResponse = await fetch(`/api/jobs?status[]=assigned&limit=50`);
+          let startingJobsData: Job[] = [];
+          
+          if (assignedResponse.ok) {
+            const assignedData = await assignedResponse.json();
+            const assignedJobs = Array.isArray(assignedData.jobs) 
+              ? assignedData.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
+              : [];
+            
+            // Filter to only include jobs with accepted contracts
+            const jobsWithContracts = await Promise.all(
+              assignedJobs.map(async (job: any) => {
+                try {
+                  const contractResponse = await fetch(`/api/contracts?job_id=${job.id}`);
+                  if (contractResponse.ok) {
+                    const contractData = await contractResponse.json();
+                    const contract = contractData.contracts?.[0];
+                    // Only include if contract is accepted or both parties have signed
+                    if (contract && (contract.status === 'accepted' || (contract.contractor_signed_at && contract.homeowner_signed_at))) {
+                      return {
+                        ...job,
+                        createdAt: job.created_at || job.createdAt || new Date().toISOString(),
+                      };
+                    }
+                  }
+                  return null;
+                } catch {
+                  return null;
+                }
+              })
+            );
+            
+            startingJobsData = jobsWithContracts.filter((job): job is Job => job !== null);
+          }
+          
+          setStartingJobs(startingJobsData);
+          setBids([]); // Clear bids when showing jobs
         }
       } catch (error) {
         console.error('Error loading data:', error);
         setJobs([]); // Ensure we always have an array, even on error
         setBids([]);
+        setStartingJobs([]);
       } finally {
         setLoading(false);
       }
@@ -210,31 +328,93 @@ export default function ContractorBidsPage() {
           .filter((id): id is string => typeof id === 'string' && id.length > 0)
       );
       
-      // Filter out jobs that have been bid on from available/recommended tabs
-      // They should only appear in the "saved" tab
-      // Use safeJobs which is already validated as an array
-      const jobsWithoutBids = safeJobs.filter((job) => {
+      // For "available" tab: show jobs that haven't been bid on OR jobs that have been viewed
+      // This ensures viewed jobs appear even if they have bids
+      const safeViewedJobIds = viewedJobIds instanceof Set ? viewedJobIds : new Set<string>();
+      const availableJobs = safeJobs.filter((job) => {
         if (!job || typeof job !== 'object') return false;
         if (!job.id || typeof job.id !== 'string') return false;
-        return !bidJobIds.has(job.id);
+        
+        const hasBid = bidJobIds.has(job.id);
+        const isViewed = safeViewedJobIds.has(job.id);
+        const shouldInclude = !hasBid || isViewed;
+        
+        // Debug logging
+        if (process.env.NODE_ENV === 'development' && isViewed) {
+          console.log(`[Filter] Job ${job.id} (${job.title}): hasBid=${hasBid}, isViewed=${isViewed}, include=${shouldInclude}`);
+        }
+        
+        // Include if: no bid OR contractor has viewed it
+        return shouldInclude;
       });
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Filter] Available jobs: ${availableJobs.length} out of ${safeJobs.length} total jobs`, {
+          totalJobs: safeJobs.length,
+          jobsWithBids: Array.from(bidJobIds).length,
+          viewedJobs: safeViewedJobIds.size,
+          availableJobs: availableJobs.length,
+        });
+      }
+      
       if (filter === 'available') {
-        return Array.isArray(jobsWithoutBids) ? jobsWithoutBids : [];
+        return Array.isArray(availableJobs) ? availableJobs : [];
       }
+      
       if (filter === 'recommended') {
-        if (!Array.isArray(jobsWithoutBids)) {
-          return [];
-        }
-        const recommended = jobsWithoutBids.slice(0, Math.min(5, jobsWithoutBids.length));
-        return Array.isArray(recommended) ? recommended : [];
+        // "Recommended" should show:
+        // 1. Jobs where contractor has made a bid
+        // 2. Jobs with accepted contracts (starting jobs)
+        const recommendedJobs: Job[] = [];
+        
+        // Add jobs with bids (convert bids to job format)
+        safeAllBids.forEach((bid) => {
+          if (bid?.jobs && typeof bid.jobs === 'object' && bid.jobs.id) {
+            recommendedJobs.push({
+              id: bid.jobs.id,
+              title: bid.jobs.title || 'Untitled Job',
+              description: bid.jobs.description,
+              budget: bid.jobs.budget,
+              location: bid.jobs.location,
+              category: bid.jobs.category,
+              status: bid.jobs.status,
+              createdAt: bid.jobs.created_at || bid.created_at,
+              photos: Array.isArray(bid.jobs.photos) ? bid.jobs.photos : [],
+              hasBid: true,
+              bidAmount: bid.amount,
+              bidStatus: bid.status,
+            });
+          }
+        });
+        
+        // Add starting jobs (assigned jobs with accepted contracts)
+        const safeStartingJobs = Array.isArray(startingJobs) ? startingJobs : [];
+        safeStartingJobs.forEach((job) => {
+          // Avoid duplicates if a job already appears from bids
+          if (!recommendedJobs.find((j) => j.id === job.id)) {
+            recommendedJobs.push({
+              ...job,
+              isStarting: true, // Mark as starting job
+            });
+          }
+        });
+        
+        // Sort by most recent (bids by updated_at, starting jobs by job updated_at)
+        recommendedJobs.sort((a, b) => {
+          const aDate = a.bidCreatedAt || a.createdAt || '';
+          const bDate = b.bidCreatedAt || b.createdAt || '';
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
+        
+        return recommendedJobs;
       }
+      
       return [];
     } catch (error) {
       console.error('Error computing filteredJobs:', error);
       return [];
     }
-  }, [jobs, bids, allBids, filter]);
+  }, [jobs, bids, allBids, startingJobs, filter, viewedJobIds]);
 
   // Ensure jobs is always an array for summary cards
   const safeJobsArray = Array.isArray(jobs) ? jobs : [];
@@ -245,10 +425,14 @@ export default function ContractorBidsPage() {
   const jobsLength = Array.isArray(safeJobsArray) ? safeJobsArray.length : 0;
   const allBidsLength = Array.isArray(safeAllBidsArray) ? safeAllBidsArray.length : 0;
   
+  // Ensure all values are numbers before creating summaryCards
+  const safeJobsLength = typeof jobsLength === 'number' ? jobsLength : 0;
+  const safeAllBidsLength = typeof allBidsLength === 'number' ? allBidsLength : 0;
+  
   const summaryCards = [
-    { label: 'Jobs available', value: jobsLength },
-    { label: 'Recommended for you', value: Math.min(5, jobsLength) },
-    { label: 'Saved bids', value: allBidsLength }, // Use allBids instead of bids to show count regardless of filter
+    { label: 'Jobs available', value: safeJobsLength },
+    { label: 'Recommended for you', value: Math.min(5, safeJobsLength) },
+    { label: 'Saved bids', value: safeAllBidsLength }, // Use allBids instead of bids to show count regardless of filter
   ];
   
   // Ensure summaryCards is always an array
@@ -270,7 +454,7 @@ export default function ContractorBidsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
+      <header>
         <div>
           <h1
             style={{
@@ -290,10 +474,6 @@ export default function ContractorBidsPage() {
             Browse open projects, review requirements, and submit a tailored bid in minutes.
           </p>
         </div>
-
-        <Button variant='primary' size='sm' onClick={() => router.push('/contractor/quotes/create')}>
-          Create Quick Quote
-        </Button>
       </header>
 
       <section
@@ -368,7 +548,7 @@ export default function ContractorBidsPage() {
           <div
             style={{
               textAlign: 'center',
-              padding: `${theme?.spacing?.[12] || '48px'} 0`,
+              padding: `${theme.spacing[12] || '48px'} 0`,
               color: theme.colors.textSecondary,
               borderRadius: '20px',
               border: `1px dashed ${theme.colors.border}`,
@@ -376,7 +556,7 @@ export default function ContractorBidsPage() {
             }}
           >
             <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-              <Icon name='briefcase' size={48} color={theme?.colors?.textTertiary || theme?.colors?.textSecondary || '#9CA3AF'} />
+              <Icon name='briefcase' size={48} color={theme.colors.textTertiary || theme.colors.textSecondary || '#6B7280'} />
             </div>
             <h3 style={{ fontSize: theme.typography.fontSize.xl, marginBottom: theme.spacing[2], color: theme.colors.textPrimary }}>
               No jobs in this view yet

@@ -595,28 +595,24 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <Link
-              href="/notifications"
-              style={{
-                padding: theme.spacing[3],
-                textAlign: 'center',
-                borderTop: `1px solid ${theme.colors.border}`,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                color: theme.colors.primary,
-                textDecoration: 'none',
-                display: 'block',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              View all notifications
-            </Link>
+            <span className="notification-dropdown-footer-link">
+              <Link
+                href="/notifications"
+                style={{
+                  padding: theme.spacing[3],
+                  textAlign: 'center',
+                  borderTop: `1px solid ${theme.colors.border}`,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.primary,
+                  textDecoration: 'none',
+                  display: 'block',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                View all notifications
+              </Link>
+            </span>
           )}
         </div>
       )}
@@ -626,6 +622,9 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         }
         .icon-btn:hover svg {
           stroke: ${theme.colors.primary};
+        }
+        .notification-dropdown-footer-link:hover a {
+          background-color: ${theme.colors.backgroundSecondary} !important;
         }
       `}</style>
     </div>

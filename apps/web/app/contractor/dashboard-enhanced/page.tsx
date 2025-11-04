@@ -13,6 +13,10 @@ import dynamic from 'next/dynamic';
 import { ResponsiveGrid } from './components/ResponsiveGrid';
 import { ActionCard } from './components/ActionCard';
 import { DashboardContentWrapper } from './components/DashboardContentWrapper';
+import { TrialService } from '@/lib/services/subscription/TrialService';
+import { TrialStatusBanner } from '@/app/contractor/subscription/components/TrialStatusBanner';
+import { OnboardingService } from '@/lib/services/OnboardingService';
+import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 
 // Dynamic imports for code splitting
 const ProjectTableDynamic = dynamic(() => import('@/components/ui/ProjectTable').then(mod => ({ default: mod.ProjectTable })), {
@@ -37,6 +41,9 @@ export default async function EnhancedDashboardPage() {
 
   
 
+  // Fetch onboarding status
+  const onboardingStatus = await OnboardingService.checkOnboardingStatus(user.id);
+
   // Fetch all necessary data in parallel
   const [
     contractorProfileResponse,
@@ -44,6 +51,7 @@ export default async function EnhancedDashboardPage() {
     bidsResponse,
     quotesResponse,
     paymentsResponse,
+    trialStatus,
   ] = await Promise.all([
     serverSupabase
       .from('users')
@@ -64,6 +72,9 @@ export default async function EnhancedDashboardPage() {
           first_name,
           last_name,
           email
+        ),
+        job_progress (
+          progress_percentage
         )
       `)
       .eq('contractor_id', user.id)
@@ -81,6 +92,7 @@ export default async function EnhancedDashboardPage() {
       .from('payments')
       .select('amount, status, created_at')
       .eq('payee_id', user.id),
+    TrialService.getTrialStatus(user.id),
   ]);
 
   const contractor = contractorProfileResponse.data;
@@ -129,6 +141,30 @@ export default async function EnhancedDashboardPage() {
   // Prepare project table data
   const projectTableData = jobs.slice(0, 5).map((job) => {
     const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    // Get real progress from job_progress table, or fallback to status-based estimation
+    const jobProgress = Array.isArray(job.job_progress) 
+      ? job.job_progress[0] 
+      : job.job_progress;
+    const realProgress = jobProgress?.progress_percentage 
+      ? parseFloat(jobProgress.progress_percentage.toString())
+      : null;
+    
+    // Use real progress if available, otherwise estimate based on status
+    let progress: number;
+    if (realProgress !== null && !isNaN(realProgress)) {
+      progress = Math.round(realProgress);
+    } else {
+      // Fallback to status-based estimation
+      progress =
+        job.status === 'completed'
+          ? 100
+          : job.status === 'in_progress'
+            ? 60
+            : job.status === 'assigned'
+              ? 30
+              : 0;
+    }
+    
     return {
       id: job.id,
       name: job.title || 'Untitled Project',
@@ -145,14 +181,7 @@ export default async function EnhancedDashboardPage() {
             : job.status === 'posted'
               ? ('posted' as const)
               : ('pending' as const),
-      progress:
-        job.status === 'completed'
-          ? 100
-          : job.status === 'in_progress'
-            ? 60
-            : job.status === 'assigned'
-              ? 30
-              : 0,
+      progress,
     };
   });
 
@@ -195,10 +224,34 @@ export default async function EnhancedDashboardPage() {
       : contractor?.company_name ?? 'Mintenance Contractor';
 
   return (
-    <DashboardContentWrapper>
+    <OnboardingWrapper
+      userRole="contractor"
+      onboardingCompleted={onboardingStatus.completed}
+    >
+      <DashboardContentWrapper>
       {/* Page Content */}
-      <div style={{ flex: 1, padding: `${theme.spacing[8]} ${theme.spacing[6]} ${theme.spacing[10]} 0`, width: '100%', overflowX: 'visible', position: 'relative', zIndex: 100 }}>
+      <div style={{ 
+        flexGrow: 1, 
+        flexShrink: 1, 
+        flexBasis: '0%',
+        paddingTop: '32px',
+        paddingRight: '24px',
+        paddingBottom: '40px',
+        paddingLeft: '0px',
+        width: '100%', 
+        overflowX: 'visible', 
+        position: 'relative', 
+        zIndex: 100 
+      }}>
         <div className="dashboard-inner-content">
+        
+        {/* Trial/Subscription Status Banner */}
+        {trialStatus && trialStatus.daysRemaining !== null && (
+          <TrialStatusBanner
+            daysRemaining={trialStatus.daysRemaining}
+            trialEndsAt={trialStatus.trialEndsAt}
+          />
+        )}
 
         {/* Overview Metrics */}
         <ResponsiveGrid className="metrics-grid">
@@ -206,7 +259,7 @@ export default async function EnhancedDashboardPage() {
             label="Total Revenue"
             value={formatMoney(totalRevenue)}
             subtitle={`${payments.filter((p) => p.status === 'completed').length} payments`}
-            icon="currencyDollar"
+            icon="currencyPound"
             trend={{
               direction: revenueChange >= 0 ? 'up' : 'down',
               value: `${Math.abs(revenueChange).toFixed(1)}%`,
@@ -256,7 +309,7 @@ export default async function EnhancedDashboardPage() {
         </ResponsiveGrid>
 
         {/* Project Summary & Progress */}
-        <ResponsiveGrid className="project-grid" style={{ gap: theme.spacing[5] }}>
+        <ResponsiveGrid className="project-grid" style={{ gap: theme.spacing[3], marginTop: theme.spacing[4] }}>
           {/* Overall Progress */}
           <div
             style={{
@@ -403,7 +456,7 @@ export default async function EnhancedDashboardPage() {
         </ResponsiveGrid>
 
         {/* Today Tasks & Quick Actions Grid */}
-        <ResponsiveGrid className="tasks-actions-grid" style={{ gap: theme.spacing[5] }}>
+        <ResponsiveGrid className="tasks-actions-grid" style={{ gap: theme.spacing[5], marginTop: theme.spacing[2] }}>
           {/* Today Tasks */}
           <div style={{ minHeight: '420px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
             <TodayTasksDynamic 
@@ -455,5 +508,6 @@ export default async function EnhancedDashboardPage() {
         </div>
       </div>
     </DashboardContentWrapper>
+    </OnboardingWrapper>
   );
 }

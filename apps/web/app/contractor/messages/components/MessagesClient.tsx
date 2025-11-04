@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -10,15 +10,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { MessagingService } from '@/lib/services/MessagingService';
 import type { MessageThread, User } from '@mintenance/types';
-import dynamic from 'next/dynamic';
+import { ConversationCard } from '@/components/messaging/ConversationCard';
 import { ActiveContractCard } from './ActiveContractCard';
-import { CreateContractModal } from './CreateContractModal';
-
-// Dynamic import for ConversationCard to reduce initial bundle size
-const ConversationCard = dynamic(() => import('@/components/messaging/ConversationCard').then(mod => ({ default: mod.ConversationCard })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-20 rounded-lg" />,
-  ssr: false
-});
 
 interface ActiveJob {
   id: string;
@@ -40,12 +33,12 @@ interface ActiveJob {
 
 export function MessagesClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<MessageThread[]>([]);
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedJobForContract, setSelectedJobForContract] = useState<string | null>(null);
 
   // Set page title
   useEffect(() => {
@@ -70,13 +63,112 @@ export function MessagesClient() {
       
       // Load conversations
       const userConversations = await MessagingService.getUserMessageThreads(currentUser.id);
-      // Sort conversations by most recent message first
-      const sortedConversations = [...userConversations].sort((a, b) => {
-        const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
-        const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
-        return bTime - aTime; // Most recent first
-      });
-      setConversations(sortedConversations);
+      
+      // Fetch clients from accepted bids and create conversation threads if they don't exist
+      try {
+        const bidsResponse = await fetch(`/api/contractor/bids?status=accepted`);
+        if (bidsResponse.ok) {
+          const bidsData = await bidsResponse.json();
+          const acceptedBids = bidsData.bids || [];
+          
+          // Get unique homeowners from accepted bids
+          const homeownerJobMap = new Map<string, { jobId: string; jobTitle: string; homeowner: any; bidDate: string }>();
+          
+          acceptedBids.forEach((bid: any) => {
+            const job = Array.isArray(bid.jobs) ? bid.jobs[0] : bid.jobs;
+            if (!job || !job.homeowner_id) return;
+            
+            const homeownerId = job.homeowner_id;
+            const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+            
+            // Only add if not already in conversations and this is the most recent bid for this homeowner
+            const existingThread = userConversations.find(c => {
+              const otherParticipant = c.participants.find(p => p.id === homeownerId);
+              return otherParticipant !== undefined;
+            });
+            
+            if (!existingThread) {
+              const existing = homeownerJobMap.get(homeownerId);
+              const bidDate = bid.created_at || bid.updated_at || new Date().toISOString();
+              
+              // Keep the most recent bid for each homeowner
+              if (!existing || new Date(bidDate) > new Date(existing.bidDate)) {
+                homeownerJobMap.set(homeownerId, {
+                  jobId: job.id,
+                  jobTitle: job.title || 'Untitled Job',
+                  homeowner: {
+                    id: homeownerId,
+                    name: homeowner?.first_name && homeowner?.last_name
+                      ? `${homeowner.first_name} ${homeowner.last_name}`
+                      : homeowner?.email || 'Homeowner',
+                    email: homeowner?.email || '',
+                    profile_image_url: homeowner?.profile_image_url || null,
+                  },
+                  bidDate,
+                });
+              }
+            }
+          });
+          
+          // Create conversation threads for accepted bid clients
+          const acceptedBidThreads: MessageThread[] = Array.from(homeownerJobMap.values()).map(({ jobId, jobTitle, homeowner, bidDate }) => ({
+            jobId,
+            jobTitle,
+            participants: [
+              {
+                id: currentUser.id,
+                name: currentUser.first_name && currentUser.last_name
+                  ? `${currentUser.first_name} ${currentUser.last_name}`
+                  : currentUser.email || 'You',
+                role: currentUser.role || 'contractor',
+              },
+              {
+                id: homeowner.id,
+                name: homeowner.name,
+                role: 'homeowner',
+              },
+            ],
+            unreadCount: 0,
+            lastMessage: undefined,
+          }));
+          
+          // Merge with existing conversations, avoiding duplicates
+          const existingJobIds = new Set(userConversations.map(c => c.jobId));
+          const newThreads = acceptedBidThreads.filter(t => !existingJobIds.has(t.jobId));
+          const allConversations = [...userConversations, ...newThreads];
+          
+          // Sort conversations by most recent activity first
+          // For threads without messages, use a timestamp from bid date
+          const bidTimestamps = new Map(Array.from(homeownerJobMap.entries()).map(([homeownerId, data]) => [data.jobId, new Date(data.bidDate).getTime()]));
+          const sortedConversations = [...allConversations].sort((a, b) => {
+            const aTime = a.lastMessage?.createdAt 
+              ? new Date(a.lastMessage.createdAt).getTime() 
+              : bidTimestamps.get(a.jobId) || 0;
+            const bTime = b.lastMessage?.createdAt 
+              ? new Date(b.lastMessage.createdAt).getTime() 
+              : bidTimestamps.get(b.jobId) || 0;
+            return bTime - aTime; // Most recent first
+          });
+          setConversations(sortedConversations);
+        } else {
+          // Fallback to just existing conversations if bids fetch fails
+          const sortedConversations = [...userConversations].sort((a, b) => {
+            const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+            const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+            return bTime - aTime;
+          });
+          setConversations(sortedConversations);
+        }
+      } catch (bidsErr) {
+        console.error('Error loading accepted bids:', bidsErr);
+        // Fallback to just existing conversations
+        const sortedConversations = [...userConversations].sort((a, b) => {
+          const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+          const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+          return bTime - aTime;
+        });
+        setConversations(sortedConversations);
+      }
 
       // Load active jobs (assigned jobs for contractor)
       try {
@@ -202,8 +294,8 @@ export function MessagesClient() {
   return (
     <div style={{
       maxWidth: '1440px',
-      margin: '0 auto',
-      padding: theme.spacing.lg
+      padding: `${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing[6]}`
+      // Top right bottom left padding - increased left padding to add space from sidebar
     }}>
       {/* Breadcrumbs */}
       <Breadcrumbs 
@@ -251,7 +343,7 @@ export function MessagesClient() {
             }
           </p>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+        <div style={{ display: 'flex', gap: theme.spacing.sm, position: 'relative' }}>
           <Button
             onClick={() => router.push('/contractor/bid')}
             variant="outline"
@@ -262,17 +354,7 @@ export function MessagesClient() {
               <span>View Jobs</span>
             </div>
           </Button>
-          <Button
-            onClick={loadUserAndMessages}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Icon name="refresh" size={16} color={theme.colors.textPrimary} />
-              <span>Refresh</span>
-            </div>
-          </Button>
+          
         </div>
       </div>
 
@@ -316,9 +398,16 @@ export function MessagesClient() {
                 key={job.id}
                 job={job}
                 contract={job.contract}
-                onCreateContract={() => setSelectedJobForContract(job.id)}
+                onCreateContract={() => {
+                  // Navigate to the message page instead - user can create contract from there
+                  router.push(`/messages/${job.id}?userId=${job.homeowner.id}&userName=${encodeURIComponent(`${job.homeowner.first_name} ${job.homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title)}`);
+                }}
                 onViewMessages={() => {
                   router.push(`/messages/${job.id}?userId=${job.homeowner.id}&userName=${encodeURIComponent(`${job.homeowner.first_name} ${job.homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title)}`);
+                }}
+                onViewJob={() => {
+                  // Navigate to contractor job detail page where they can sign the contract
+                  router.push(`/contractor/jobs/${job.id}`);
                 }}
               />
             ))}
@@ -472,16 +561,6 @@ export function MessagesClient() {
         </div>
       )}
 
-      {/* Create Contract Modal */}
-      {selectedJobForContract && (
-        <CreateContractModal
-          isOpen={!!selectedJobForContract}
-          onClose={() => setSelectedJobForContract(null)}
-          jobId={selectedJobForContract}
-          jobTitle={activeJobs.find(j => j.id === selectedJobForContract)?.title || 'Contract'}
-          onContractCreated={loadUserAndMessages}
-        />
-      )}
     </div>
   );
 }

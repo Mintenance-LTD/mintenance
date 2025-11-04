@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 
@@ -35,11 +35,9 @@ export function ContractManagement({ jobId, userRole, userId }: ContractManageme
   const [isEditing, setIsEditing] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
 
-  useEffect(() => {
-    fetchContract();
-  }, [jobId]);
-
-  const fetchContract = async () => {
+  const fetchContract = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/contracts?job_id=${jobId}`);
       if (!response.ok) {
@@ -57,27 +55,43 @@ export function ContractManagement({ jobId, userRole, userId }: ContractManageme
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId]);
+
+  useEffect(() => {
+    fetchContract();
+  }, [fetchContract]);
 
   const handleSignContract = async () => {
-    if (!contract) return;
+    if (!contract || isSigning) return;
 
     setIsSigning(true);
+    setError(null);
     try {
       const response = await fetch(`/api/contracts/${contract.id}/accept`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to sign contract');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to sign contract: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      setContract(data.contract);
-      alert(data.message || 'Contract signed successfully!');
+      
+      // Refetch the contract to get the latest state
+      await fetchContract();
+      
+      // Show success message
+      if (data.message) {
+        alert(data.message);
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to sign contract');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign contract. Please try again.';
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setIsSigning(false);
     }
@@ -362,27 +376,47 @@ export function ContractManagement({ jobId, userRole, userId }: ContractManageme
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div style={{
+          padding: theme.spacing[3],
+          backgroundColor: theme.colors.error + '20',
+          borderRadius: theme.borderRadius.md,
+          color: theme.colors.error,
+          fontSize: theme.typography.fontSize.sm,
+          marginBottom: theme.spacing[4],
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[2],
+        }}>
+          <Icon name="xCircle" size={20} color={theme.colors.error} />
+          {error}
+        </div>
+      )}
+
       {/* Action Buttons */}
       {needsSignature && canSign && (
         <button
           onClick={handleSignContract}
-          disabled={isSigning}
+          disabled={isSigning || !contract}
           style={{
             width: '100%',
             padding: theme.spacing[3],
-            backgroundColor: theme.colors.primary,
+            backgroundColor: (isSigning || !contract) ? theme.colors.textTertiary : theme.colors.primary,
             color: 'white',
             border: 'none',
             borderRadius: theme.borderRadius.md,
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.semibold,
-            cursor: isSigning ? 'not-allowed' : 'pointer',
-            opacity: isSigning ? 0.6 : 1,
+            cursor: (isSigning || !contract) ? 'not-allowed' : 'pointer',
+            opacity: (isSigning || !contract) ? 0.6 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: theme.spacing[2],
+            transition: 'all 0.2s',
           }}
+          type="button"
         >
           {isSigning ? (
             <>

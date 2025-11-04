@@ -32,12 +32,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         return '📞';
       case 'video_call_missed':
         return '📞';
+      case 'contract_submitted':
+        return '📋';
       default:
         return null;
     }
   };
 
   const isSystemMessage = message.messageType.includes('video_call');
+  
+  // Contract messages should be styled more prominently
+  const isContractMessage = message.messageType === 'contract_submitted';
 
   return (
     <div
@@ -70,17 +75,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           minWidth: '100px',
           padding: theme.spacing.sm,
           borderRadius: theme.borderRadius.lg,
-          backgroundColor: isCurrentUser
-            ? isSystemMessage
-              ? theme.colors.backgroundSecondary
-              : theme.colors.primary
-            : theme.colors.backgroundSecondary,
+          backgroundColor: isContractMessage
+            ? '#FEF3C7' // Amber/yellow background for contract messages
+            : isCurrentUser
+              ? isSystemMessage
+                ? theme.colors.backgroundSecondary
+                : theme.colors.primary
+              : theme.colors.backgroundSecondary,
           color: isCurrentUser && !isSystemMessage
             ? theme.colors.white
             : theme.colors.text,
           position: 'relative',
           wordWrap: 'break-word',
           wordBreak: 'break-word',
+          border: isContractMessage ? '2px solid #F59E0B' : undefined,
           ...(isSystemMessage && {
             backgroundColor: theme.colors.backgroundTertiary,
             color: theme.colors.textSecondary,

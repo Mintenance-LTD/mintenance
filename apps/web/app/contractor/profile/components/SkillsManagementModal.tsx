@@ -264,11 +264,20 @@ export function SkillsManagementModal({ currentSkills, onClose, onSave }: Skills
                         <span>{skill}</span>
                       </div>
                       {isSelected && (
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Change icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             setExpandedSkill(isExpanded ? null : skill);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setExpandedSkill(isExpanded ? null : skill);
+                            }
                           }}
                           style={{
                             background: 'rgba(255, 255, 255, 0.2)',
@@ -279,10 +288,17 @@ export function SkillsManagementModal({ currentSkills, onClose, onSave }: Skills
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            outline: 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
                           }}
                         >
                           <Icon name="chevronDown" size={12} color="white" />
-                        </button>
+                        </div>
                       )}
                     </button>
                     

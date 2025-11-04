@@ -359,7 +359,7 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
           value={`£${financialData.totalRevenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           change={`${Math.abs(revenueChange).toFixed(1)}%`}
           changeType={revenueChange >= 0 ? 'positive' : 'negative'}
-          icon="currencyDollar"
+          icon="currencyPound"
           subtitle={`${financialData.completedJobs} completed jobs`}
         />
         <KpiCard

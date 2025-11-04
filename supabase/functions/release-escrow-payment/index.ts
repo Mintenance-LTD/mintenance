@@ -71,6 +71,43 @@ serve(async (req) => {
       },
     });
 
+    // Get escrow payment details for tracking
+    const { data: escrowPayment } = await supabase
+      .from('escrow_payments')
+      .select('id, job_id, amount')
+      .eq('payment_intent_id', transaction.payment_intent_id)
+      .single();
+
+    // Track transaction fee revenue in payment_tracking
+    if (escrowPayment) {
+      const transactionAmount = transaction.amount;
+      const platformFeeAmount = platformFee / 100; // Convert from cents
+      const stripeFeeAmount = transactionAmount * 0.029 + 0.30; // 2.9% + £0.30
+      const netRevenue = platformFeeAmount - stripeFeeAmount;
+
+      await supabase
+        .from('payment_tracking')
+        .insert({
+          payment_type: 'transaction_fee',
+          contractor_id: contractorId,
+          job_id: escrowPayment.job_id,
+          escrow_payment_id: escrowPayment.id,
+          amount: platformFeeAmount,
+          currency: 'gbp',
+          platform_fee: platformFeeAmount,
+          stripe_fee: stripeFeeAmount,
+          net_revenue: netRevenue > 0 ? netRevenue : 0,
+          status: 'completed',
+          stripe_payment_intent_id: transaction.payment_intent_id,
+          stripe_charge_id: paymentIntent.latest_charge as string,
+          completed_at: new Date().toISOString(),
+        })
+        .catch((err) => {
+          console.error('Failed to track transaction fee:', err);
+          // Don't fail the release if tracking fails
+        });
+    }
+
     // Create notification for contractor
     await supabase.from('notifications').insert([{
       user_id: contractorId,

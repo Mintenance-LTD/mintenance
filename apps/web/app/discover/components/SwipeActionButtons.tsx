@@ -8,13 +8,14 @@ interface SwipeActionButtonsProps {
   onPass: () => void;
   onLike: () => void;
   onSuperLike?: () => void;
+  disabled?: boolean;
 }
 
 /**
  * Action buttons for swipe interactions
  * Shows pass, like, and optional super-like buttons
  */
-export function SwipeActionButtons({ userRole, onPass, onLike, onSuperLike }: SwipeActionButtonsProps) {
+export function SwipeActionButtons({ userRole, onPass, onLike, onSuperLike, disabled = false }: SwipeActionButtonsProps) {
   const isContractor = userRole === 'contractor';
   
   const buttonStyle = (size: number, bgColor: string) => ({
@@ -51,12 +52,17 @@ export function SwipeActionButtons({ userRole, onPass, onLike, onSuperLike }: Sw
         {/* Pass Button */}
         <button
           onClick={onPass}
-          style={buttonStyle(60, theme.colors.error)}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          disabled={disabled}
+          style={{
+            ...buttonStyle(60, theme.colors.error),
+            opacity: disabled ? 0.5 : 1,
+            cursor: disabled ? 'not-allowed' : 'pointer'
+          }}
+          onMouseDown={disabled ? undefined : handleMouseDown}
+          onMouseUp={disabled ? undefined : handleMouseUp}
+          onMouseLeave={disabled ? undefined : handleMouseUp}
           aria-label="Pass"
-          onMouseEnter={(e) => {
+          onMouseEnter={disabled ? undefined : (e) => {
             e.currentTarget.style.transform = 'scale(1.05)';
             e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)';
           }}
@@ -69,12 +75,17 @@ export function SwipeActionButtons({ userRole, onPass, onLike, onSuperLike }: Sw
         {/* Like Button - Mint Leaf */}
         <button
           onClick={onLike}
-          style={buttonStyle(64, '#10B981')}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          disabled={disabled}
+          style={{
+            ...buttonStyle(64, '#10B981'),
+            opacity: disabled ? 0.5 : 1,
+            cursor: disabled ? 'not-allowed' : 'pointer'
+          }}
+          onMouseDown={disabled ? undefined : handleMouseDown}
+          onMouseUp={disabled ? undefined : handleMouseUp}
+          onMouseLeave={disabled ? undefined : handleMouseUp}
           aria-label={isContractor ? "Interested" : "Like"}
-          onMouseEnter={(e) => {
+          onMouseEnter={disabled ? undefined : (e) => {
             e.currentTarget.style.transform = 'scale(1.08)';
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.35)';
           }}

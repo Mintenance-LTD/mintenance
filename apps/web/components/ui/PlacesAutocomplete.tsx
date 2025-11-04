@@ -64,10 +64,15 @@ export function PlacesAutocomplete({
   useEffect(() => {
     // Check if Google Maps is already loaded
     const checkGoogleMaps = () => {
-      if (typeof window !== 'undefined' && (window as any).google?.maps?.places?.Autocomplete) {
-        setIsLoaded(true);
-        isLoadedRef.current = true;
-        return true;
+      try {
+        if (typeof window !== 'undefined' && (window as any).google?.maps?.places?.Autocomplete) {
+          setIsLoaded(true);
+          isLoadedRef.current = true;
+          return true;
+        }
+      } catch (error) {
+        // If accessing google.maps.places throws an error, it's not available
+        return false;
       }
       return false;
     };
@@ -88,11 +93,25 @@ export function PlacesAutocomplete({
       
       const checkInterval = setInterval(() => {
         attempts++;
-        if (checkGoogleMaps()) {
+        try {
+          if (checkGoogleMaps()) {
+            clearInterval(checkInterval);
+            return;
+          }
+          
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            if (typeof console !== 'undefined' && console.warn) {
+              console.warn('Google Maps Places API script exists but failed to initialize after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
+            }
+            setIsLoaded(false);
+          }
+        } catch (error) {
           clearInterval(checkInterval);
-        } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          console.warn('Google Maps Places API script exists but failed to initialize after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
+          setIsLoaded(false);
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Error checking Google Maps Places API:', error);
+          }
         }
       }, 100);
 
@@ -114,11 +133,25 @@ export function PlacesAutocomplete({
         const maxAttempts = 100; // 10 seconds
         const checkInterval = setInterval(() => {
           attempts++;
-          if (checkGoogleMaps()) {
+          try {
+            if (checkGoogleMaps()) {
+              clearInterval(checkInterval);
+              return;
+            }
+            
+            if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              if (typeof console !== 'undefined' && console.warn) {
+                console.warn('Google Maps Places API failed to load after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
+              }
+              setIsLoaded(false);
+            }
+          } catch (error) {
             clearInterval(checkInterval);
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            console.error('Google Maps Places API failed to load after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
+            setIsLoaded(false);
+            if (typeof console !== 'undefined' && console.warn) {
+              console.warn('Error checking Google Maps Places API:', error);
+            }
           }
         }, 100);
         cleanup = () => clearInterval(checkInterval);
@@ -139,19 +172,39 @@ export function PlacesAutocomplete({
           
           const checkInterval = setInterval(() => {
             attempts++;
-            if (checkGoogleMaps()) {
+            try {
+              if (checkGoogleMaps()) {
+                clearInterval(checkInterval);
+                // Success - API is loaded, no need to log
+                return;
+              }
+              
+              if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                // Only log as warning, not error - autocomplete is optional
+                // Suppress error to prevent React from treating it as unhandled
+                if (typeof console !== 'undefined' && console.warn) {
+                  console.warn('Google Maps Places API did not initialize after 5 seconds. Autocomplete will be unavailable, but manual address entry still works. Ensure Places API is enabled in Google Cloud Console.');
+                }
+                // Set loaded to false so component knows autocomplete isn't available
+                setIsLoaded(false);
+              }
+            } catch (error) {
+              // Catch any errors during the check to prevent them from bubbling up
               clearInterval(checkInterval);
-              // Success - API is loaded, no need to log
-            } else if (attempts >= maxAttempts) {
-              clearInterval(checkInterval);
-              // Only log as warning, not error - autocomplete is optional
-              console.warn('Google Maps Places API did not initialize after 5 seconds. Autocomplete will be unavailable, but manual address entry still works.');
+              setIsLoaded(false);
+              if (typeof console !== 'undefined' && console.warn) {
+                console.warn('Error checking Google Maps Places API availability:', error);
+              }
             }
           }, 100);
         };
 
         script.onerror = () => {
-          console.error('Failed to load Google Maps Places API script. Check your API key and ensure Places API is enabled.');
+          // Log as warning instead of error - autocomplete is optional functionality
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Failed to load Google Maps Places API script. Check your API key and ensure Places API is enabled in Google Cloud Console. Manual address entry will still work.');
+          }
           setIsLoaded(false);
         };
 
@@ -181,8 +234,13 @@ export function PlacesAutocomplete({
     }
 
     // Double-check that Google Maps Places API is actually available
-    if (typeof window === 'undefined' || !(window as any).google?.maps?.places?.Autocomplete) {
-      console.warn('Google Maps Places API not available, autocomplete disabled');
+    try {
+      if (typeof window === 'undefined' || !(window as any).google?.maps?.places?.Autocomplete) {
+        // Silently disable autocomplete - manual entry still works
+        return undefined;
+      }
+    } catch (error) {
+      // If checking throws an error, autocomplete isn't available
       return undefined;
     }
 
@@ -297,12 +355,81 @@ export function PlacesAutocomplete({
     };
   }, [isLoaded]); // Removed 'value' from dependencies - don't recreate autocomplete when value changes
 
+  // Function to geocode manually entered address
+  const handleManualGeocode = async () => {
+    if (!value || value.trim().length === 0) {
+      return;
+    }
+
+    if (!isLoaded) {
+      console.warn('Google Maps API not loaded yet');
+      return;
+    }
+
+    setIsGeocoding(true);
+
+    try {
+      // Use the Geocoding API to geocode the manually entered address
+      const response = await fetch(`/api/geocode?address=${encodeURIComponent(value.trim())}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to geocode address');
+      }
+
+      const data = await response.json();
+      
+      if (data.latitude && data.longitude && data.formatted_address) {
+        // Extract city and country from formatted address
+        const addressParts = data.formatted_address.split(',');
+        const city = addressParts[0]?.trim() || '';
+        const countryPart = addressParts[addressParts.length - 1]?.trim() || '';
+        
+        // Try to extract country code from the last part
+        let country = 'UK'; // Default
+        if (countryPart.includes('United Kingdom') || countryPart.includes('UK')) {
+          country = 'UK';
+        } else if (countryPart.includes('United States') || countryPart.includes('USA')) {
+          country = 'US';
+        } else if (countryPart.includes('Canada')) {
+          country = 'CA';
+        } else if (countryPart.includes('Australia')) {
+          country = 'AU';
+        }
+
+        // Update the input value with the formatted address
+        onChangeRef.current(data.formatted_address);
+
+        // Call onPlaceSelect callback with geocoded data
+        if (onPlaceSelectRef.current) {
+          onPlaceSelectRef.current({
+            city: city,
+            country: country,
+            address: data.formatted_address,
+            latitude: data.latitude,
+            longitude: data.longitude,
+          });
+        }
+      } else {
+        throw new Error('No location data returned');
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      alert('Unable to geocode this address. Please try selecting from the autocomplete suggestions or check your address format.');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const hasApiKey = !!apiKey;
   
   // Allow manual typing even if autocomplete isn't loaded yet
   // Autocomplete is a nice-to-have, but users should always be able to type
   const isInputDisabled = false; // Never disable - allow manual entry even without autocomplete
+
+  // Show geocode button if address is entered and API is loaded
+  const showGeocodeButton = isLoaded && hasApiKey && value && value.trim().length > 0 && !isGeocoding;
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
@@ -314,7 +441,7 @@ export function PlacesAutocomplete({
         placeholder={isLoaded ? placeholder : hasApiKey ? 'Type address (autocomplete loading...)' : placeholder}
         style={{
           ...style,
-          paddingRight: isGeocoding ? '40px' : style?.paddingRight,
+          paddingRight: isGeocoding || showGeocodeButton ? '80px' : style?.paddingRight,
           opacity: 1, // Always fully visible
         }}
         required={required}
@@ -351,6 +478,38 @@ export function PlacesAutocomplete({
             />
           </div>
         </>
+      )}
+      {showGeocodeButton && (
+        <button
+          type="button"
+          onClick={handleManualGeocode}
+          style={{
+            position: 'absolute',
+            right: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            padding: '4px 8px',
+            fontSize: '12px',
+            fontWeight: 500,
+            color: '#10B981',
+            backgroundColor: 'transparent',
+            border: '1px solid #10B981',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#10B981';
+            e.currentTarget.style.color = 'white';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#10B981';
+          }}
+          title="Geocode this address to get coordinates"
+        >
+          Geocode
+        </button>
       )}
       {!hasApiKey && (
         <div style={{

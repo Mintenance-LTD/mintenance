@@ -29,6 +29,8 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
     city: contractor?.city || '',
     country: contractor?.country || 'UK',
     phone: contractor?.phone || '',
+    companyName: contractor?.company_name || '',
+    licenseNumber: contractor?.license_number || '',
     isAvailable: contractor?.is_available ?? true,
     latitude: contractor?.latitude || undefined,
     longitude: contractor?.longitude || undefined,
@@ -486,6 +488,78 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
                   }}
                   placeholder="+44 7700 900000"
                 />
+              </div>
+
+              {/* Company Name */}
+              <div style={{ marginBottom: theme.spacing[6] }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.text,
+                  marginBottom: theme.spacing[2],
+                }}>
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: theme.spacing[3],
+                    fontSize: theme.typography.fontSize.base,
+                    borderRadius: theme.borderRadius.md,
+                    border: `1px solid ${theme.colors.border}`,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    color: theme.colors.text,
+                  }}
+                  placeholder="ABC Plumbing Ltd"
+                />
+                <p style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                  marginTop: theme.spacing[1],
+                  margin: 0,
+                }}>
+                  Your company name helps build trust with homeowners
+                </p>
+              </div>
+
+              {/* License Number */}
+              <div style={{ marginBottom: theme.spacing[6] }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.text,
+                  marginBottom: theme.spacing[2],
+                }}>
+                  License Registration Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.licenseNumber}
+                  onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value.toUpperCase() })}
+                  style={{
+                    width: '100%',
+                    padding: theme.spacing[3],
+                    fontSize: theme.typography.fontSize.base,
+                    borderRadius: theme.borderRadius.md,
+                    border: `1px solid ${theme.colors.border}`,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    color: theme.colors.text,
+                  }}
+                  placeholder="LIC-12345-UK"
+                />
+                <p style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                  marginTop: theme.spacing[1],
+                  margin: 0,
+                }}>
+                  Your license number will be verified by our admin team. Once verified, you'll receive a verification badge.
+                </p>
               </div>
 
               {/* Skills & Professions */}

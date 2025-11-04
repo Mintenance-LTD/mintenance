@@ -12,39 +12,41 @@ interface ActionCardProps {
 
 export function ActionCard({ label, href, icon }: ActionCardProps) {
   return (
-    <Link
-      href={href}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[3],
-        padding: theme.spacing[4],
-        backgroundColor: theme.colors.surface,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: '16px',
-        textDecoration: 'none',
-        color: theme.colors.textPrimary,
-        transition: 'all 0.2s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = `0 4px 12px ${theme.colors.border}`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    >
-      <Icon name={icon} size={24} color={theme.colors.primary} />
-      <span
+    <span className="action-card-wrapper">
+      <Link
+        href={href}
         style={{
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[3],
+          padding: theme.spacing[4],
+          backgroundColor: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: '16px',
+          textDecoration: 'none',
+          color: theme.colors.textPrimary,
+          transition: 'all 0.2s',
         }}
       >
-        {label}
-      </span>
-    </Link>
+        <Icon name={icon} size={24} color={theme.colors.primary} />
+        <span
+          style={{
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+          }}
+        >
+          {label}
+        </span>
+      </Link>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .action-card-wrapper:hover a {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px ${theme.colors.border};
+          }
+        `
+      }} />
+    </span>
   );
 }
 

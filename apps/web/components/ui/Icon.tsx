@@ -17,7 +17,7 @@ export interface IconProps {
 }
 
 // Move icons outside component to prevent recreation and ensure consistent server/client rendering
-const ICONS: Record<string, JSX.Element> = {
+const ICONS: Readonly<Record<string, JSX.Element>> = Object.freeze({
     // Navigation
     home: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -110,6 +110,9 @@ const ICONS: Record<string, JSX.Element> = {
     currencyDollar: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     ),
+    currencyPound: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4m9-1.5a9 9 0 11-18 0 9 9 0 0118 0z" />
+    ),
     creditCard: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25A2.25 2.25 0 014.5 6h15a2.25 2.25 0 012.25 2.25v7.5A2.25 2.25 0 0119.5 18h-15a2.25 2.25 0 01-2.25-2.25v-7.5zM2.25 10.5h19.5M6 15h3" />
     ),
@@ -175,6 +178,9 @@ const ICONS: Record<string, JSX.Element> = {
     refresh: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     ),
+    loader: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    ),
     trash: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     ),
@@ -186,6 +192,9 @@ const ICONS: Record<string, JSX.Element> = {
     ),
     upload: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    ),
+    printer: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
     ),
     filter: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -230,6 +239,12 @@ const ICONS: Record<string, JSX.Element> = {
     heart: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     ),
+    bookmark: (
+      <path strokeLinecap="round" strokeLinejoin="round" fillRule="evenodd" fill="currentColor" d="M6 19V7a2 2 0 012-2h8a2 2 0 012 2v12l-6-3.5L6 19z" />
+    ),
+    bookmarkOutline: (
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+    ),
     userPlus: (
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
     ),
@@ -273,7 +288,7 @@ const ICONS: Record<string, JSX.Element> = {
         <path d="M12 12.5l0 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </g>
     ),
-};
+});
 
 export function Icon({ name, size = 20, color = 'currentColor', className = '', style = {}, title }: IconProps) {
   // Ensure name is always a string and trim whitespace
@@ -288,13 +303,13 @@ export function Icon({ name, size = 20, color = 'currentColor', className = '', 
   const normalizedName = trimmedName.toLowerCase();
   const iconPath = ICONS[trimmedName] || ICONS[normalizedName];
   
-  if (!iconPath) {
-    // Return null consistently on both server and client to prevent hydration mismatch
+  // If icon not found, use a fallback to prevent hydration mismatch
+  // Use 'info' as a safe fallback that exists in all cases
+  const finalIconPath = iconPath || ICONS.info;
+  
+  if (!iconPath && typeof window !== 'undefined') {
     // Only log in browser to prevent console spam during SSR
-    if (typeof window !== 'undefined') {
-      console.error(`Icon "${name}" not found. Available icons:`, Object.keys(ICONS));
-    }
-    return null;
+    console.warn(`Icon "${name}" not found, using fallback. Available icons:`, Object.keys(ICONS).slice(0, 10));
   }
 
   return (
@@ -313,9 +328,10 @@ export function Icon({ name, size = 20, color = 'currentColor', className = '', 
       aria-hidden={title ? undefined : "true"}
       role={title ? "img" : undefined}
       aria-label={title}
+      suppressHydrationWarning
     >
       {title && <title>{title}</title>}
-      {iconPath}
+      {finalIconPath}
     </svg>
   );
 }

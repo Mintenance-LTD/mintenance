@@ -117,7 +117,8 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
   }
 
   // Ensure consistent icon names between server and client
-  const getTypeIcon = (type: MaintenanceRecommendation['type']): string => {
+  // Use useMemo to ensure consistent icon selection between server and client
+  const getTypeIcon = React.useCallback((type: MaintenanceRecommendation['type']): string => {
     switch (type) {
       case 'maintenance_schedule':
         return 'calendar';
@@ -130,7 +131,7 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
       default:
         return 'info';
     }
-  };
+  }, []);
 
   const getPriorityColor = (priority: MaintenanceRecommendation['priority']) => {
     switch (priority) {
@@ -200,7 +201,10 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
         flexDirection: 'column',
         gap: theme.spacing[3],
       }}>
-        {recommendations.slice(0, 5).map((rec) => (
+        {recommendations.slice(0, 5).map((rec) => {
+          // Ensure icon name is determined consistently before rendering
+          const iconName = getTypeIcon(rec.type);
+          return (
           <div
             key={rec.id}
             style={{
@@ -232,7 +236,7 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
               color: getPriorityColor(rec.priority),
               flexShrink: 0,
             }}>
-              <Icon name={getTypeIcon(rec.type)} size={20} />
+              <Icon name={iconName} size={20} />
             </div>
 
             <div style={{ flex: 1 }}>
@@ -354,7 +358,8 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
               </Link>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {recommendations.length > 5 && (
@@ -364,23 +369,26 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
           borderTop: `1px solid ${theme.colors.border}`,
           textAlign: 'center',
         }}>
-          <Link
-            href="/recommendations"
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.primary,
-              textDecoration: 'none',
-              fontWeight: theme.typography.fontWeight.medium,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.textDecoration = 'underline';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.textDecoration = 'none';
-            }}
-          >
-            View all {recommendations.length} recommendations
-          </Link>
+          <span className="predictive-recommendations-link">
+            <Link
+              href="/recommendations"
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.primary,
+                textDecoration: 'none',
+                fontWeight: theme.typography.fontWeight.medium,
+              }}
+            >
+              View all {recommendations.length} recommendations
+            </Link>
+          </span>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .predictive-recommendations-link:hover a {
+                text-decoration: underline !important;
+              }
+            `
+          }} />
         </div>
       )}
     </div>

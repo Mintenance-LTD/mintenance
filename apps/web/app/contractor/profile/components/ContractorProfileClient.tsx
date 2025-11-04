@@ -24,6 +24,7 @@ interface ContractorProfileClientProps {
     averageRating: number;
     totalReviews: number;
     jobsCompleted: number;
+    winRate?: number; // Optional for backward compatibility
   };
 }
 
@@ -62,6 +63,8 @@ export function ContractorProfileClient({
       formData.append('city', data.city);
       formData.append('country', data.country);
       formData.append('phone', data.phone);
+      formData.append('companyName', data.companyName || '');
+      formData.append('licenseNumber', data.licenseNumber || '');
       formData.append('isAvailable', data.isAvailable.toString());
 
       // Add coordinates and address if available from Places Autocomplete
@@ -90,7 +93,8 @@ export function ContractorProfileClient({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
+        const errorMessage = error.details || error.message || error.error || 'Failed to update profile';
+        throw new Error(errorMessage);
       }
 
       // Save skills if provided
@@ -180,7 +184,15 @@ export function ContractorProfileClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[12] }}>
+    <div 
+      suppressHydrationWarning
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        rowGap: theme.spacing[12],
+        columnGap: theme.spacing[12],
+        paddingLeft: theme.spacing[6] 
+      }}>
       <ProfileHeader
         contractor={contractor}
         metrics={metrics}

@@ -11,6 +11,9 @@ const createContractSchema = z.object({
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
   terms: z.record(z.any()).optional(),
+  contractor_company_name: z.string().min(1),
+  contractor_license_registration: z.string().min(1),
+  contractor_license_type: z.string().optional(),
 });
 
 const updateContractSchema = z.object({
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { job_id, title, description, amount, start_date, end_date, terms } = parsed.data;
+    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type } = parsed.data;
 
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase
@@ -141,6 +144,9 @@ export async function POST(request: NextRequest) {
         start_date: start_date || null,
         end_date: end_date || null,
         terms: terms || {},
+        contractor_company_name,
+        contractor_license_registration,
+        contractor_license_type: contractor_license_type || null,
         status: 'pending_homeowner', // Contractor creates, homeowner needs to sign
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -169,6 +175,128 @@ export async function POST(request: NextRequest) {
     } catch (notificationError) {
       console.error('Failed to create notification:', notificationError);
       // Don't fail the request
+    }
+
+    // Create a message in the chat history for both parties to see
+    try {
+      // Get contractor name for the message
+      const { data: contractorData } = await serverSupabase
+        .from('users')
+        .select('first_name, last_name, company_name')
+        .eq('id', user.id)
+        .single();
+      
+      const contractorName = contractorData 
+        ? (contractorData.first_name && contractorData.last_name 
+            ? `${contractorData.first_name} ${contractorData.last_name}`
+            : contractorData.company_name || 'Contractor')
+        : 'Contractor';
+      
+      // Create message text about the contract
+      const contractMessageText = `📋 New contract submitted: £${amount.toLocaleString()}\n\n${title || `Contract for ${job.title || 'your job'}`}${description ? `\n\n${description}` : ''}`;
+      
+      console.log('[API] Creating contract message', {
+        jobId: job_id,
+        senderId: user.id,
+        receiverId: job.homeowner_id,
+        messageType: 'contract_submitted',
+        messageLength: contractMessageText.length,
+      });
+      
+      // Determine message_text vs content column
+      const messagePayload: any = {
+        job_id: job_id,
+        sender_id: user.id,
+        receiver_id: job.homeowner_id,
+        message_type: 'contract_submitted',
+        read: false,
+      };
+      
+      // Try to insert with message_text first, fallback to content
+      let messageInserted = false;
+      let insertedMessageId: string | null = null;
+      
+      try {
+        const { data: insertedMessage, error: msgError } = await serverSupabase
+          .from('messages')
+          .insert({
+            ...messagePayload,
+            message_text: contractMessageText,
+          })
+          .select('id, message_type, created_at')
+          .single();
+        
+        if (msgError) {
+          console.error('[API] First attempt to create contract message failed', {
+            error: msgError,
+            message: msgError.message,
+            code: msgError.code,
+          });
+          throw msgError;
+        }
+        
+        messageInserted = true;
+        insertedMessageId = insertedMessage?.id || null;
+        console.log('[API] Contract message created successfully with message_text', {
+          messageId: insertedMessageId,
+          messageType: insertedMessage?.message_type,
+          createdAt: insertedMessage?.created_at,
+        });
+      } catch (msgError: any) {
+        if (msgError.message?.includes('message_text') || msgError.message?.includes('column') || msgError.code === 'PGRST116') {
+          console.warn('[API] message_text column not found, trying with content');
+          // Try with content column instead
+          const { data: insertedMessage, error: contentError } = await serverSupabase
+            .from('messages')
+            .insert({
+              ...messagePayload,
+              content: contractMessageText,
+            })
+            .select('id, message_type, created_at')
+            .single();
+          
+          if (contentError) {
+            console.error('[API] Second attempt to create contract message failed', {
+              error: contentError,
+              message: contentError.message,
+              code: contentError.code,
+            });
+            throw contentError;
+          }
+          
+          messageInserted = true;
+          insertedMessageId = insertedMessage?.id || null;
+          console.log('[API] Contract message created successfully with content', {
+            messageId: insertedMessageId,
+            messageType: insertedMessage?.message_type,
+            createdAt: insertedMessage?.created_at,
+          });
+        } else {
+          console.error('[API] Unexpected error creating contract message', {
+            error: msgError,
+            message: msgError.message,
+            code: msgError.code,
+          });
+          throw msgError;
+        }
+      }
+      
+      // Update job's updated_at so it appears at the top of messages list
+      if (messageInserted) {
+        await serverSupabase
+          .from('jobs')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', job_id);
+        console.log('[API] Job updated_at timestamp updated for contract message', {
+          jobId: job_id,
+          messageId: insertedMessageId,
+        });
+      } else {
+        console.warn('[API] Contract message was not inserted, but contract creation succeeded');
+      }
+    } catch (messageError) {
+      console.error('[API] Failed to create contract message:', messageError);
+      // Don't fail the request if message creation fails, but log it clearly
     }
 
     return NextResponse.json({ contract }, { status: 201 });

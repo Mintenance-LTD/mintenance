@@ -75,6 +75,33 @@ export async function POST(request: NextRequest) {
       role: result.user!.role
     });
 
+    // Initialize trial period for contractors
+    if (result.user!.role === 'contractor') {
+      try {
+        const { TrialService } = await import('@/lib/services/subscription/TrialService');
+        const { TrialNotifications } = await import('@/lib/services/notifications/TrialNotifications');
+        
+        const trialInitialized = await TrialService.initializeTrial(result.user!.id);
+        if (trialInitialized) {
+          // Send welcome email (non-blocking)
+          TrialNotifications.sendTrialWelcomeEmail(result.user!.id).catch((err) => {
+            logger.error('Failed to send trial welcome email', {
+              service: 'auth',
+              userId: result.user!.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      } catch (trialError) {
+        // Log but don't fail registration
+        logger.error('Failed to initialize trial period', {
+          service: 'auth',
+          userId: result.user!.id,
+          error: trialError instanceof Error ? trialError.message : String(trialError),
+        });
+      }
+    }
+
     // Create response
     const response = NextResponse.json(
       {

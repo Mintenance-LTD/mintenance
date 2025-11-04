@@ -14,6 +14,8 @@ import { BidListClient } from './components/BidListClient';
 import { ContractManagement } from './components/ContractManagement';
 import { LocationTracking } from './components/LocationTracking';
 import { JobScheduling } from './components/JobScheduling';
+import { MessageContractorButton } from './components/MessageContractorButton';
+import { DeleteJobButton } from './components/DeleteJobButton';
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -71,7 +73,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: contractor } = job.contractor_id ? await serverSupabase
     .from('users')
-    .select('id, first_name, last_name, email, phone, profile_image_url')
+    .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
     .eq('id', job.contractor_id)
     .single() : { data: null };
 
@@ -83,7 +85,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       description,
       status,
       created_at,
-      contractor_id
+      contractor_id,
+      quote_id
     `)
     .eq('job_id', resolvedParams.id);
 
@@ -93,7 +96,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       if (bid.contractor_id) {
         const { data: contractor } = await serverSupabase
           .from('users')
-          .select('id, first_name, last_name, email, phone, profile_image_url')
+          .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
           .eq('id', bid.contractor_id)
           .single();
         
@@ -232,6 +235,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               </p>
             )}
           </div>
+          {/* Delete button - only show for homeowners on posted jobs */}
+          {user.role === 'homeowner' && job.status === 'posted' && (
+            <DeleteJobButton jobId={resolvedParams.id} jobTitle={job.title || 'Untitled Job'} />
+          )}
         </div>
 
         <div style={{
@@ -422,6 +429,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.spacing[3],
+                  marginBottom: theme.spacing[4],
                 }}>
                   <div style={{
                     width: '56px',
@@ -437,7 +445,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   }}>
                     {contractor.first_name?.[0]}{contractor.last_name?.[0]}
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: theme.typography.fontSize.lg,
                       fontWeight: theme.typography.fontWeight.semibold,
@@ -462,6 +470,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     )}
                   </div>
                 </div>
+
+                {/* Message Contractor Button */}
+                <MessageContractorButton
+                  jobId={resolvedParams.id}
+                  contractorId={contractor.id}
+                  contractorName={`${contractor.first_name} ${contractor.last_name}`}
+                  jobTitle={job.title || 'Job'}
+                />
               </div>
             )}
 

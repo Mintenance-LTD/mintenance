@@ -1,13 +1,11 @@
 'use client';
 
-import React, { ReactNode, useMemo, useEffect, useState } from 'react';
+import React, { ReactNode, useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import Logo from '../../components/Logo';
-import { Icon } from '@/components/ui/Icon';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { Icon } from '@/components/ui/Icon';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { ProfileDropdown } from '@/components/profile/ProfileDropdown';
 
@@ -27,29 +25,22 @@ interface ContractorLayoutShellProps {
   userId?: string | null;
 }
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: string;
-  badge?: number;
-};
-
-type NavSection = {
-  heading: string;
-  items: NavItem[];
-};
-
 // UnifiedSidebar handles navigation sections internally
 
 export function ContractorLayoutShell({ children, contractor, email, userId }: ContractorLayoutShellProps) {
   const pathname = usePathname();
-  const { counts } = useNotificationCounts();
   const [mounted, setMounted] = useState(false);
+  const isDashboard = mounted && pathname === '/contractor/dashboard-enhanced';
 
-  // Prevent hydration mismatch - pathname is not available on server
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const contractorFullName = useMemo(() => {
+    return contractor?.first_name || contractor?.last_name
+      ? `${contractor?.first_name ?? ''} ${contractor?.last_name ?? ''}`.trim()
+      : contractor?.company_name ?? 'Mintenance Contractor';
+  }, [contractor?.first_name, contractor?.last_name, contractor?.company_name]);
 
   const initials = useMemo(() => {
     const first = contractor?.first_name?.charAt(0) ?? '';
@@ -57,15 +48,6 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
     const fallback = email?.charAt(0) ?? 'M';
     return (first + last || fallback).toUpperCase();
   }, [contractor?.first_name, contractor?.last_name, email]);
-
-  const contractorFullName =
-    contractor?.first_name || contractor?.last_name
-      ? `${contractor?.first_name ?? ''} ${contractor?.last_name ?? ''}`.trim()
-      : contractor?.company_name ?? 'Mintenance Contractor';
-
-  const locationLabel = contractor?.city || contractor?.country
-    ? [contractor?.city, contractor?.country].filter(Boolean).join(', ')
-    : 'Set your location';
 
   const userInfo = {
     name: contractorFullName,
@@ -103,56 +85,31 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
           suppressHydrationWarning
           style={{
             display: 'flex',
-            alignItems: mounted && pathname === '/contractor/dashboard-enhanced' ? 'flex-start' : 'center',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            padding: mounted && pathname === '/contractor/dashboard-enhanced' 
-              ? `${theme.spacing[4]} ${theme.spacing[8]}` 
-              : `${theme.spacing[6]} ${theme.spacing[8]}`,
+            padding: `${theme.spacing[6]} ${theme.spacing[8]}`,
             backgroundColor: theme.colors.surface,
             borderBottom: `1px solid ${theme.colors.border}`,
             position: 'sticky',
             top: 0,
             zIndex: 10,
-            flexWrap: mounted && pathname === '/contractor/dashboard-enhanced' ? 'wrap' : 'nowrap',
+            flexWrap: 'nowrap',
             gap: theme.spacing[4],
           }}
         >
-          {/* Left Side - Conditional content based on page */}
+          {/* Left Side - Search */}
           <div
             suppressHydrationWarning
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing[4],
-              flex: mounted && pathname === '/contractor/dashboard-enhanced' ? '0 1 auto' : 1,
+              flex: 1,
               minWidth: 0,
             }}
           >
-            {mounted && pathname === '/contractor/dashboard-enhanced' ? (
-              // Dashboard: Show title and welcome message
-              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize['3xl'],
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  Dashboard
-                </h1>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  Welcome back, {contractor?.first_name || contractor?.company_name || email || 'Contractor'}
-                </p>
-              </div>
-            ) : (
-              // Non-dashboard pages: Show search bar (or placeholder on server)
+            {/* Always render search form on server, hide/show conditionally after mount */}
+            <div style={{ display: isDashboard ? 'none' : 'flex', flex: 1 }}>
               <form
                 action="/contractors"
                 method="get"
@@ -198,6 +155,30 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
                   Search
                 </button>
               </form>
+            </div>
+            {/* Dashboard content - only show after mount to prevent hydration mismatch */}
+            {isDashboard && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: theme.typography.fontSize['3xl'],
+                    fontWeight: theme.typography.fontWeight.bold,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  Dashboard
+                </h1>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  Welcome back, {contractor?.first_name || contractor?.company_name || email || 'Contractor'}
+                </p>
+              </div>
             )}
           </div>
 
@@ -211,8 +192,8 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
               flexWrap: 'wrap',
             }}
           >
-            {/* Dashboard-specific actions */}
-            {mounted && pathname === '/contractor/dashboard-enhanced' ? (
+            {/* Dashboard-specific actions - Only render after mount to prevent hydration mismatch */}
+            {isDashboard ? (
               <>
                 <Link
                   href="/contractor/bid"
@@ -299,12 +280,6 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
                   transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
                 }}
                 aria-label="Notifications"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.background;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                }}
               >
                 <Icon name="bell" size={18} color={theme.colors.textSecondary} />
               </button>
@@ -320,12 +295,19 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
         </header>
 
         <main
+          suppressHydrationWarning
           style={{
-            flex: 1,
-            padding: `${theme.spacing[8]} ${theme.spacing[8]} ${theme.spacing[10]}`,
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: '0%',
+            paddingTop: '32px',
+            paddingRight: '32px',
+            paddingBottom: '40px',
+            paddingLeft: '24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: theme.spacing[8],
+            rowGap: '32px',
+            columnGap: '32px',
             position: 'relative',
             zIndex: 1,
           }}

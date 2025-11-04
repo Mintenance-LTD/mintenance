@@ -12,6 +12,12 @@ interface ProfileQuickActionsProps {
 export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickActionsProps) {
   const actions = [
     {
+      href: '/contractor/verification',
+      icon: 'badge',
+      label: 'Company & License Verification',
+      description: 'Add company name and license to build homeowner trust',
+    },
+    {
       href: '/messages',
       icon: 'messages',
       label: 'Messages',

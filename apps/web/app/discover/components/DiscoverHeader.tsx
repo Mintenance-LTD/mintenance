@@ -8,13 +8,15 @@ import { theme } from '@/lib/theme';
 interface DiscoverHeaderProps {
   userRole?: 'contractor' | 'homeowner' | 'admin';
   remainingCount: number;
+  progressPercentage?: number;
+  matchCount?: number;
 }
 
 /**
  * Header component for the Discover page
  * Shows logo, title, and remaining items count
  */
-export function DiscoverHeader({ userRole, remainingCount }: DiscoverHeaderProps) {
+export function DiscoverHeader({ userRole, remainingCount, progressPercentage = 0, matchCount = 0 }: DiscoverHeaderProps) {
   const isContractor = userRole === 'contractor';
   
   return (
@@ -54,9 +56,11 @@ export function DiscoverHeader({ userRole, remainingCount }: DiscoverHeaderProps
           justifyContent: 'space-between',
           alignItems: 'center',
           paddingLeft: '20px',
-          paddingRight: '20px'
+          paddingRight: '20px',
+          gap: '20px',
+          flexWrap: 'wrap'
         }}>
-          <div>
+          <div style={{ flex: 1, minWidth: '200px' }}>
             <h1 style={{
               fontSize: theme.typography.fontSize['3xl'],
               fontWeight: theme.typography.fontWeight.bold,
@@ -78,27 +82,72 @@ export function DiscoverHeader({ userRole, remainingCount }: DiscoverHeaderProps
             </p>
           </div>
           <div style={{ 
-            textAlign: 'right',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(10px)',
-            padding: '12px 20px',
-            borderRadius: '16px',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
+            display: 'flex',
+            gap: '16px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
           }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: 'white',
-              margin: 0
+            {/* Match Count Badge */}
+            {matchCount > 0 && (
+              <div style={{ 
+                textAlign: 'center',
+                backgroundColor: theme.colors.success,
+                padding: '12px 20px',
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}>
+                <div style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: 'white',
+                  margin: 0
+                }}>
+                  {matchCount}
+                </div>
+                <div style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  margin: 0
+                }}>
+                  {matchCount === 1 ? 'match' : 'matches'}
+                </div>
+              </div>
+            )}
+            
+            {/* Remaining Count */}
+            <div style={{ 
+              textAlign: 'right',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+              padding: '12px 20px',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.3)'
             }}>
-              {remainingCount}
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: 'rgba(255, 255, 255, 0.9)',
-              margin: 0
-            }}>
-              remaining
+              <div style={{
+                fontSize: theme.typography.fontSize['2xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: 'white',
+                margin: 0
+              }}>
+                {remainingCount}
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: 'rgba(255, 255, 255, 0.9)',
+                margin: 0
+              }}>
+                remaining
+              </div>
+              {progressPercentage > 0 && (
+                <div style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  marginTop: '4px'
+                }}>
+                  {progressPercentage}% complete
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { property_name, address, property_type, is_primary } = body;
+    const { property_name, address, property_type, is_primary, photos } = body;
 
     // Validation
     if (!property_name || !property_name.trim()) {
@@ -52,15 +52,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the property
+    const insertData: any = {
+      owner_id: user.id,
+      property_name: property_name.trim(),
+      address: address.trim(),
+      property_type: property_type,
+      is_primary: is_primary || false,
+    };
+
+    // Add photos if provided (as JSONB array or text array)
+    if (photos && Array.isArray(photos) && photos.length > 0) {
+      insertData.photos = photos;
+    }
+
     const { data: property, error: createError } = await serverSupabase
       .from('properties')
-      .insert({
-        owner_id: user.id,
-        property_name: property_name.trim(),
-        address: address.trim(),
-        property_type: property_type,
-        is_primary: is_primary || false,
-      })
+      .insert(insertData)
       .select()
       .single();
 

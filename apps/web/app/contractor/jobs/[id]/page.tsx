@@ -47,17 +47,18 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     .eq('id', user.id)
     .single();
 
-  // Fetch contract for this job (if exists)
+  // Fetch contract for this job (if exists) - include start_date and end_date for scheduling
   const { data: contract } = await serverSupabase
     .from('contracts')
-    .select('id, status, contractor_signed_at, homeowner_signed_at')
+    .select('id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date')
     .eq('job_id', resolvedParams.id)
     .single();
 
   // Determine contract status for scheduling
+  // Contract is accepted if status is 'accepted' OR both parties have signed
   const contractStatus = !contract 
     ? 'none' 
-    : contract.status === 'accepted' 
+    : contract.status === 'accepted' || (contract.contractor_signed_at && contract.homeowner_signed_at)
       ? 'accepted' 
       : 'pending';
 
@@ -75,8 +76,8 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     <ContractorLayoutShell contractor={contractor} email={user.email} userId={user.id}>
       <div style={{
         maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
+        margin: 0,
+        padding: `${theme.spacing[6]} ${theme.spacing[6]} ${theme.spacing[6]} 0`,
       }}>
         {/* Header */}
         <div style={{
@@ -331,34 +332,28 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                   flexDirection: 'column',
                   gap: theme.spacing[3],
                 }}>
-                  <Link
-                    href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: theme.spacing[2],
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      backgroundColor: theme.colors.primary,
-                      color: 'white',
-                      borderRadius: theme.borderRadius.md,
-                      textDecoration: 'none',
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.primary;
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <Icon name="messages" size={20} color="white" />
-                    Message Homeowner
-                  </Link>
+                  <span className="message-homeowner-link">
+                    <Link
+                      href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: theme.spacing[2],
+                        padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                        backgroundColor: theme.colors.primary,
+                        color: 'white',
+                        borderRadius: theme.borderRadius.md,
+                        textDecoration: 'none',
+                        fontSize: theme.typography.fontSize.base,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Icon name="messages" size={20} color="white" />
+                      Message Homeowner
+                    </Link>
+                  </span>
                   <Link
                     href={`/contractor/messages`}
                     style={{
@@ -399,8 +394,9 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 userRole="contractor"
                 userId={user.id}
                 currentSchedule={{
-                  scheduled_start_date: job.scheduled_start_date || null,
-                  scheduled_end_date: job.scheduled_end_date || null,
+                  // Use contract dates if job scheduled dates are not set
+                  scheduled_start_date: job.scheduled_start_date || contract?.start_date || null,
+                  scheduled_end_date: job.scheduled_end_date || contract?.end_date || null,
                   scheduled_duration_hours: job.scheduled_duration_hours || null,
                 }}
                 contractStatus={contractStatus}
@@ -486,6 +482,14 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
           </div>
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .message-homeowner-link:hover a {
+            background-color: ${theme.colors.primaryLight} !important;
+            transform: translateY(-1px);
+          }
+        `
+      }} />
     </ContractorLayoutShell>
   );
 }

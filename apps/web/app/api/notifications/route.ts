@@ -10,13 +10,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
+    // Calculate date 24 hours ago
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
     // Fetch notifications from database
+    // Keep notifications that are:
+    // 1. Created within the last 24 hours, OR
+    // 2. Unread (regardless of age)
+    // Also limit to max 7 notifications to auto-remove older ones
     const { data: notifications, error } = await serverSupabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
+      .or(`created_at.gte.${twentyFourHoursAgo.toISOString()},read.eq.false`)
       .order('created_at', { ascending: false })
-      .limit(50); // Increased limit to ensure we capture all notification types
+      .limit(7); // Maximum 7 notifications - older ones will be automatically excluded when 8th is added
 
     if (error) {
       console.error('Error fetching notifications:', error);
@@ -157,15 +166,23 @@ export async function GET(request: NextRequest) {
             : 'Someone';
           
           const messageContent = msg.content || msg.message_text || '';
+          const jobTitle = (msg.jobs as any)?.title || 'Job';
+          
+          // Build message thread URL with query params for proper routing
+          const actionUrl = msg.job_id 
+            ? `/messages/${msg.job_id}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=${encodeURIComponent(jobTitle)}`
+            : '/messages';
+          
           realTimeNotifications.push({
             id: `msg-${msg.id}`,
-            type: 'message',
+            type: 'message_received', // Use message_received type for proper routing
             title: 'New Message',
             message: `${senderName}: ${messageContent.substring(0, 80)}${messageContent.length > 80 ? '...' : ''}`,
             read: false,
             created_at: msg.created_at || new Date().toISOString(),
-            action_url: msg.job_id ? `/jobs/${msg.job_id}` : '/messages',
-          });
+            action_url: actionUrl,
+            // Store job info in action_url query params, which the notification handler will parse
+          } as any);
         }
       });
     }

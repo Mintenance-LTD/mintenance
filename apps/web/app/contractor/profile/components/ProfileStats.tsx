@@ -9,16 +9,22 @@ interface ProfileStatsProps {
     averageRating: number;
     totalReviews: number;
     jobsCompleted: number;
+    winRate?: number; // Optional for backward compatibility
   };
   skills: Array<{ skill_name: string }>;
   onManageSkills?: () => void;
 }
 
 export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsProps) {
+  // Calculate win rate: use real win rate if available, otherwise fallback to formula
+  const winRate = metrics.winRate !== undefined 
+    ? metrics.winRate 
+    : (metrics.jobsCompleted > 0 ? Math.min(95, 40 + metrics.jobsCompleted * 2) : 42);
+
   const metricCards = [
     {
       label: 'Win Rate',
-      value: metrics.jobsCompleted > 0 ? `${Math.min(95, 40 + metrics.jobsCompleted * 2)}%` : '42%',
+      value: `${winRate}%`,
       helper: 'Based on accepted proposals',
     },
     {

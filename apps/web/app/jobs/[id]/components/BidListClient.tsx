@@ -188,13 +188,32 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
                     gap: theme.spacing[2],
                   }}>
                     <div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                        color: theme.colors.textPrimary,
-                        marginBottom: '2px',
-                      }}>
-                        {contractorName}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+                        <div style={{
+                          fontSize: theme.typography.fontSize.base,
+                          fontWeight: theme.typography.fontWeight.semibold,
+                          color: theme.colors.textPrimary,
+                          marginBottom: '2px',
+                        }}>
+                          {contractorName}
+                        </div>
+                        {bidContractor?.admin_verified && (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: '#10B981',
+                              padding: '2px',
+                            }}
+                            title="Verified Contractor - License and company verified by admin"
+                          >
+                            <Icon name="mintLeaf" size={18} color="white" />
+                          </div>
+                        )}
                       </div>
                       {bidContractor?.email && (
                         <div style={{
@@ -221,6 +240,26 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
                       £{Number(bid.amount).toLocaleString()}
                     </div>
                   </div>
+
+                  {/* Quote Available Indicator */}
+                  {bid.quote_id && (
+                    <div style={{
+                      marginTop: theme.spacing[2],
+                      padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                      backgroundColor: theme.colors.primary + '10',
+                      borderRadius: theme.borderRadius.md,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.primary,
+                    }}>
+                      <Icon name="fileText" size={14} color={theme.colors.primary} />
+                      <span style={{ fontWeight: theme.typography.fontWeight.medium }}>
+                        Detailed quote with line items available
+                      </span>
+                    </div>
+                  )}
 
                   {/* Bid Description */}
                   {bid.description && (

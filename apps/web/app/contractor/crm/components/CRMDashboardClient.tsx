@@ -219,7 +219,7 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           label="Avg Lifetime Value"
           value={`£${analytics.client_lifetime_value.toFixed(2)}`}
           subtitle="Per client"
-          icon="currencyDollar"
+          icon="currencyPound"
           color={theme.colors.info}
         />
       </section>

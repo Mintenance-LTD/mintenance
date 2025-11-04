@@ -21,6 +21,23 @@ const MAX_FILES = 10; // Maximum 10 photos per job
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     // Get current user
     const user = await getCurrentUserFromCookies();
 
@@ -80,34 +97,66 @@ export async function POST(request: NextRequest) {
 
       const fileName = `job-photos/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Upload to Supabase Storage (create job-photos bucket if it doesn't exist)
+      // Upload to Supabase Storage (using Job-storage bucket that exists)
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('job-photos')
+        .from('Job-storage')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
         });
 
       if (uploadError) {
-        // If bucket doesn't exist, try creating it (this might fail, but we'll try)
-        console.error('Upload error:', uploadError);
-        continue; // Skip this file but continue with others
+        console.error('Upload error for file:', file.name, uploadError);
+        
+        // Check if it's a bucket not found error
+        if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+          return NextResponse.json(
+            { error: 'Storage bucket not configured. Please contact support.' },
+            { status: 500 }
+          );
+        }
+        
+        // Check if it's a permissions error
+        if (uploadError.message?.includes('permission') || uploadError.message?.includes('access')) {
+          return NextResponse.json(
+            { error: 'Permission denied. Please check your account settings.' },
+            { status: 403 }
+          );
+        }
+        
+        // For other errors, skip this file but continue with others
+        // We'll collect all errors and return them if all files fail
+        continue;
       }
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('job-photos')
+        .from('Job-storage')
         .getPublicUrl(fileName);
 
       if (urlData?.publicUrl) {
         uploadedUrls.push(urlData.publicUrl);
+      } else {
+        console.error('Failed to get public URL for uploaded file:', fileName);
       }
     }
 
     if (uploadedUrls.length === 0) {
+      // All uploads failed - provide more context
+      console.error('All photo uploads failed. Attempted to upload:', photoFiles.length, 'files');
       return NextResponse.json(
-        { error: 'Failed to upload photos. Please try again.' },
+        { 
+          error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
+          details: 'Ensure the Supabase storage bucket "Job-storage" is created and accessible.'
+        },
         { status: 500 }
+      );
+    }
+    
+    // If some files failed but at least one succeeded, log a warning
+    if (uploadedUrls.length < photoFiles.length) {
+      console.warn(
+        `Only ${uploadedUrls.length} of ${photoFiles.length} photos uploaded successfully.`
       );
     }
 
@@ -118,8 +167,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error uploading job photos:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to upload photos. Please try again.' },
+      { 
+        error: 'Failed to upload photos. Please try again.',
+        details: errorMessage
+      },
       { status: 500 }
     );
   }

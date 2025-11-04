@@ -85,14 +85,28 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not scheduled';
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      // Format consistently to avoid hydration mismatches
+      // Use manual formatting to ensure server and client produce identical output
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      
+      const weekday = weekdays[date.getDay()];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      // Always use the same format: "Sunday 28 December 2025 at 09:30" (no comma)
+      return `${weekday} ${day} ${month} ${year} at ${hours}:${minutes}`;
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const hasSchedule = currentSchedule?.scheduled_start_date;

@@ -87,7 +87,8 @@ function detectCurrencyFromLocation(): CurrencyCode {
 }
 
 /**
- * Get current currency from user settings or detect from location
+ * Get current currency from user settings or default to GBP
+ * Always defaults to GBP for British app (no auto-detection)
  */
 export function getCurrentCurrency(): CurrencyCode {
   if (typeof window === 'undefined') return DEFAULT_CURRENCY;
@@ -97,8 +98,8 @@ export function getCurrentCurrency(): CurrencyCode {
     return stored as CurrencyCode;
   }
   
-  // Auto-detect from location if no preference set
-  return detectCurrencyFromLocation();
+  // Always default to GBP for British app (no auto-detection)
+  return DEFAULT_CURRENCY;
 }
 
 /**
