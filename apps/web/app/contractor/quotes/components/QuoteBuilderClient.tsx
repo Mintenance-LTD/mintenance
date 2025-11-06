@@ -91,7 +91,7 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
       { label: 'Sent', value: stats.sent_quotes.toString(), icon: 'megaphone' },
       { label: 'Accepted', value: stats.accepted_quotes.toString(), icon: 'checkCircle' },
       { label: 'Rejected', value: stats.rejected_quotes.toString(), icon: 'xCircle' },
-      { label: 'Total value', value: formatCurrency(stats.total_value), icon: 'currencyDollar' },
+      { label: 'Total value', value: formatCurrency(stats.total_value), icon: 'currencyPound' },
     ],
     [stats],
   );

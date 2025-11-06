@@ -20,12 +20,20 @@ interface JobAnalysisResult {
   confidence: number;
   reasoning: string[];
   detectedKeywords: string[];
+  imageAnalysis?: {
+    detectedFeatures: string[];
+    propertyType?: string;
+    condition?: string;
+    complexity?: string;
+    confidence: number;
+  };
 }
 
 interface SmartJobAnalysisProps {
   title: string;
   description: string;
   location?: string;
+  imageUrls?: string[];
   onCategorySelect: (category: string) => void;
   onBudgetSelect: (budget: number) => void;
   onUrgencySelect: (urgency: 'low' | 'medium' | 'high') => void;
@@ -35,6 +43,7 @@ export function SmartJobAnalysis({
   title,
   description,
   location,
+  imageUrls = [],
   onCategorySelect,
   onBudgetSelect,
   onUrgencySelect,
@@ -45,14 +54,18 @@ export function SmartJobAnalysis({
 
   // Debounced analysis
   useEffect(() => {
-    if (!title && !description) {
+    // Analyze if we have text OR images
+    const hasText = (title + description).trim().length > 0;
+    const hasImages = imageUrls && imageUrls.length > 0;
+
+    if (!hasText && !hasImages) {
       setAnalysis(null);
       setShowSuggestions(false);
       return;
     }
 
-    // Only analyze if we have at least 20 characters
-    if ((title + description).length < 20) {
+    // For text-only, require at least 20 characters
+    if (hasText && !hasImages && (title + description).length < 20) {
       setAnalysis(null);
       setShowSuggestions(false);
       return;
@@ -70,6 +83,7 @@ export function SmartJobAnalysis({
             title,
             description,
             location,
+            imageUrls: imageUrls || [],
           }),
         });
 
@@ -83,10 +97,10 @@ export function SmartJobAnalysis({
       } finally {
         setLoading(false);
       }
-    }, 1000); // Wait 1 second after user stops typing
+    }, hasImages ? 500 : 1000); // Faster response when images are provided
 
     return () => clearTimeout(timer);
-  }, [title, description, location]);
+  }, [title, description, location, imageUrls]);
 
   if (!showSuggestions || !analysis) {
     return null;
@@ -164,7 +178,9 @@ export function SmartJobAnalysis({
             fontSize: theme.typography.fontSize.xs,
             color: theme.colors.textSecondary,
           }}>
-            AI suggestions based on your description
+            {analysis.imageAnalysis
+              ? 'AI suggestions based on your description and images'
+              : 'AI suggestions based on your description'}
           </p>
         </div>
         <div style={{
@@ -194,7 +210,9 @@ export function SmartJobAnalysis({
           textAlign: 'center',
           color: theme.colors.textSecondary,
         }}>
-          Analyzing job description...
+          {imageUrls && imageUrls.length > 0
+            ? 'Analyzing images and description...'
+            : 'Analyzing job description...'}
         </div>
       ) : (
         <div style={{
@@ -394,6 +412,56 @@ export function SmartJobAnalysis({
               </button>
             </div>
           </div>
+
+          {/* Image Analysis Insights */}
+          {analysis.imageAnalysis && analysis.imageAnalysis.detectedFeatures.length > 0 && (
+            <div style={{
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.backgroundTertiary,
+              borderRadius: theme.borderRadius.md,
+              borderLeft: `3px solid ${theme.colors.primary}`,
+              marginBottom: theme.spacing[2],
+            }}>
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing[2],
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[1],
+              }}>
+                <Icon name="camera" size={14} />
+                Image Analysis Detected:
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+                lineHeight: 1.6,
+              }}>
+                {analysis.imageAnalysis.detectedFeatures.slice(0, 5).join(', ')}
+                {analysis.imageAnalysis.detectedFeatures.length > 5 && '...'}
+              </div>
+              {analysis.imageAnalysis.condition && (
+                <div style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                  marginTop: theme.spacing[1],
+                }}>
+                  Property condition: <strong>{analysis.imageAnalysis.condition}</strong>
+                </div>
+              )}
+              {analysis.imageAnalysis.complexity && (
+                <div style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                  marginTop: theme.spacing[1],
+                }}>
+                  Job complexity: <strong>{analysis.imageAnalysis.complexity}</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reasoning */}
           {analysis.reasoning.length > 0 && (

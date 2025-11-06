@@ -11,7 +11,9 @@ import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
 import { Card } from '@/components/ui/Card.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { Badge as StatusChip } from '@/components/ui/Badge.unified';
+import { Badge } from '@/components/ui/Badge.unified';
+
+const StatusChip = Badge;
 
 interface LineItem {
   description: string;
@@ -167,10 +169,12 @@ export function CreateQuoteClient() {
                   }}
                 >
                   <StatusChip
-                    label={step.label}
-                    tone={stepCompletionMap[step.id] ? 'success' : 'neutral'}
+                    variant={stepCompletionMap[step.id] ? 'success' : 'neutral'}
                     withDot
-                  />
+                    size="sm"
+                  >
+                    {step.label}
+                  </StatusChip>
                   <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                     {stepCompletionMap[step.id] ? 'Done' : 'Pending'}
                   </span>

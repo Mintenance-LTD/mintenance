@@ -246,14 +246,56 @@ export default async function DashboardPage() {
     },
   };
 
-  // Prepare upcoming jobs
-  const upcomingJobs = scheduledJobs.slice(0, 2).map(job => ({
-    id: job.id,
-    title: job.title || 'Seasonal Maintenance',
-    location: job.location || '1234 Elmwood Drive, Springfield, IL 62704',
-    scheduledTime: 'Scheduled: 12:00 pm',
-    avatar: undefined,
-  }));
+  // Prepare upcoming jobs with real scheduled dates
+  const upcomingJobs = scheduledJobs
+    .filter(job => job.scheduled_date) // Only include jobs with scheduled dates
+    .sort((a, b) => {
+      const dateA = new Date(a.scheduled_date || 0).getTime();
+      const dateB = new Date(b.scheduled_date || 0).getTime();
+      return dateA - dateB; // Sort by earliest first
+    })
+    .slice(0, 2)
+    .map(job => {
+      const scheduledDate = job.scheduled_date ? new Date(job.scheduled_date) : null;
+      let scheduledTime = 'Not scheduled';
+      
+      if (scheduledDate) {
+        const timeStr = scheduledDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        scheduledTime = `Scheduled: ${timeStr}`;
+      }
+      
+      return {
+        id: job.id,
+        title: job.title || 'Seasonal Maintenance',
+        location: job.location || '1234 Elmwood Drive, Springfield, IL 62704',
+        scheduledTime,
+        avatar: undefined,
+      };
+    });
+  
+  // Calculate the date header from the earliest scheduled job
+  const upcomingJobsDate = upcomingJobs.length > 0 && scheduledJobs.length > 0
+    ? (() => {
+        const jobsWithDates = scheduledJobs
+          .filter(job => job.scheduled_date)
+          .map(job => new Date(job.scheduled_date!))
+          .sort((a, b) => a.getTime() - b.getTime());
+        
+        if (jobsWithDates.length > 0) {
+          return jobsWithDates[0].toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          });
+        }
+        return null;
+      })()
+    : null;
 
   // Prepare upcoming estimates - show most recent bids
   const upcomingEstimates = allBids
@@ -271,6 +313,22 @@ export default async function DashboardPage() {
         avatar: contractor?.profile_image_url,
       };
     });
+  
+  // Calculate the date header from the most recent bid
+  const upcomingEstimatesDate = upcomingEstimates.length > 0
+    ? (() => {
+        const mostRecentBid = allBids
+          .map(bid => new Date(bid.created_at || bid.updated_at || Date.now()))
+          .sort((a, b) => b.getTime() - a.getTime())[0];
+        
+        return mostRecentBid.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      })()
+    : null;
 
   // Prepare recent activities from real data
   const activities: Array<{
@@ -519,13 +577,13 @@ export default async function DashboardPage() {
               <UpcomingList
                 title="Upcoming Jobs"
                 items={upcomingJobs}
-                date="Fri Apr 26, 2024"
+                date={upcomingJobsDate || undefined}
                 actionHref="/jobs"
               />
               <UpcomingList
                 title="Upcoming Estimates"
                 items={upcomingEstimates}
-                date="Fri Apr 27, 2024"
+                date={upcomingEstimatesDate || undefined}
                 actionHref="/financials"
               />
             </div>

@@ -500,7 +500,7 @@ export default async function EnhancedDashboardPage() {
             >
               <ActionCard label="View All Jobs" href="/contractor/bid" icon="clipboard" />
               <ActionCard label="Manage Quotes" href="/contractor/quotes" icon="fileText" />
-              <ActionCard label="Finance Dashboard" href="/contractor/finance" icon="currencyDollar" />
+              <ActionCard label="Finance Dashboard" href="/contractor/finance" icon="currencyPound" />
               <ActionCard label="View Analytics" href="/contractor/reporting" icon="chart" />
             </div>
           </div>

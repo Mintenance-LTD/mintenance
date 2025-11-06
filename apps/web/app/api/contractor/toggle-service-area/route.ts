@@ -91,11 +91,11 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       logger.warn('Invalid toggle service area data', {
         service: 'contractor',
-        errors: error.errors
+        errors: error.issues
       });
       return NextResponse.json({
         error: 'Invalid request data',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
 

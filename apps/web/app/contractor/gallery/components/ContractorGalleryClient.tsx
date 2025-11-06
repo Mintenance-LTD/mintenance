@@ -5,7 +5,7 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card.unified';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 
 interface GalleryImage {
   id: string;
@@ -232,7 +232,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                 </span>
                 <span style={{ fontSize: theme.typography.fontSize.xs, opacity: 0.9 }}>{image.projectType}</span>
                 <div style={{ marginTop: theme.spacing[1] }}>
-                  <StatusBadge status={image.category} size="sm" />
+                  <StatusBadge status={image.category as BadgeStatus} size="sm" />
                 </div>
               </div>
             </div>

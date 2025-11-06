@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
 if (!process.env.STRIPE_SECRET_KEY) {

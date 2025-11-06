@@ -43,10 +43,8 @@ export function HomeownerLayoutShell({
       >
         {/* Header */}
         {userName && (
-          <DashboardHeader 
+          <DashboardHeader
             userName={userName}
-            mobileMenuOpen={mobileMenuOpen}
-            onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           />
         )}
         

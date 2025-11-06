@@ -21,7 +21,7 @@ export const queryClient = new QueryClient({
       // Retry configuration with smart error handling
       retry: (failureCount: number, error: Error | { status?: number; name?: string; message?: string }) => {
         // Don't retry 4xx errors (client errors)
-        if (error?.status >= 400 && error?.status < 500) return false;
+        if ((error as any)?.status >= 400 && (error as any)?.status < 500) return false;
         
         // Don't retry network errors immediately
         if (error?.name === 'NetworkError' || error?.message?.includes('fetch')) {

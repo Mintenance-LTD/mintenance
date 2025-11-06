@@ -124,8 +124,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000), // Truncate for storage
-      details: 'Potential XSS attack detected in input',
+      payload: JSON.stringify(payload).substring(0, 1000) as any, // Truncate for storage
+      details: 'Potential XSS attack detected in input' as any,
     });
   }
 
@@ -146,8 +146,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000),
-      details: `Potential ${injectionType} injection detected`,
+      payload: JSON.stringify(payload).substring(0, 1000) as any,
+      details: `Potential ${injectionType} injection detected` as any,
     });
   }
 
@@ -324,8 +324,10 @@ export class SecurityMonitor {
   }
 
   private groupBy(data: Record<string, unknown>[], key: string): Record<string, number> {
-    return data.reduce((acc, item) => {
-      acc[item[key]] = (acc[item[key]] || 0) + 1;
+    return data.reduce<Record<string, number>>((acc, item) => {
+      const keyVal = String(item[key]);
+      const currentCount = acc[keyVal] as number | undefined;
+      acc[keyVal] = (currentCount || 0) + 1;
       return acc;
     }, {});
   }

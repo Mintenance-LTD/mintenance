@@ -10,7 +10,7 @@ const createContractSchema = z.object({
   amount: z.number().positive(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
-  terms: z.record(z.any()).optional(),
+  terms: z.record(z.string(), z.any()).optional(),
   contractor_company_name: z.string().min(1),
   contractor_license_registration: z.string().min(1),
   contractor_license_type: z.string().optional(),
@@ -22,7 +22,7 @@ const updateContractSchema = z.object({
   amount: z.number().positive().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
-  terms: z.record(z.any()).optional(),
+  terms: z.record(z.string(), z.any()).optional(),
 });
 
 export async function GET(request: NextRequest) {

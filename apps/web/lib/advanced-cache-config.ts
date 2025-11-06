@@ -68,7 +68,7 @@ export const queryClientConfig: QueryClientConfig = {
       refetchOnReconnect: true,
 
       // Enable placeholder data from cache while fetching
-      placeholderData: (previousData) => previousData,
+      placeholderData: (previousData: any) => previousData,
 
       // Structural sharing to avoid unnecessary re-renders
       structuralSharing: true,
@@ -104,7 +104,7 @@ export function createOptimizedQueryClient(): QueryClient {
         totalQueries: queries.length,
         activeQueries: queries.filter(q => q.isActive()).length,
         staleQueries: queries.filter(q => q.isStale()).length,
-        fetchingQueries: queries.filter(q => q.state.isFetching).length,
+        fetchingQueries: queries.filter(q => (q.state as any).isFetching).length,
       });
     }, 60000); // Every minute
   }

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 
 interface FinanceDashboardClientProps {
@@ -104,7 +104,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (payment) => <StatusBadge status={payment.status} size="sm" />,
+      render: (payment) => <StatusBadge status={payment.status as BadgeStatus} size="sm" />,
     },
   ];
 
@@ -132,7 +132,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (job) => <StatusBadge status={job.status} size="sm" />,
+      render: (job) => <StatusBadge status={job.status as BadgeStatus} size="sm" />,
     },
     {
       key: 'price',

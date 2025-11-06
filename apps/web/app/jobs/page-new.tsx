@@ -98,8 +98,8 @@ export default function JobsPage() {
       data = data.filter(
         (j) =>
           j.title.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q) ||
-          j.location.toLowerCase().includes(q) ||
+          (j.description && j.description.toLowerCase().includes(q)) ||
+          (j.location && j.location.toLowerCase().includes(q)) ||
           (j.customer && j.customer.toLowerCase().includes(q))
       );
     }

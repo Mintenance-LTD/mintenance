@@ -6,8 +6,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; bidId: string }> }
 ) {
+  let jobId: string | undefined;
+  let bidId: string | undefined;
+
   try {
-    const { id: jobId, bidId } = await params;
+    const paramsResolved = await params;
+    jobId = paramsResolved.id;
+    bidId = paramsResolved.bidId;
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
@@ -55,66 +60,72 @@ export async function POST(
       return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
     }
 
-    if (bid.status === 'accepted') {
-      return NextResponse.json({ error: 'Bid has already been accepted' }, { status: 400 });
-    }
-
-    // Accept the bid
-    const { error: acceptError } = await serverSupabase
-      .from('bids')
-      .update({ status: 'accepted' })
-      .eq('id', bidId);
+    // Use atomic function to accept bid, reject others, and update job status
+    // This prevents race conditions where multiple bids could be accepted for the same job
+    const { data: acceptResult, error: acceptError } = await serverSupabase
+      .rpc('accept_bid_atomic', {
+        p_bid_id: bidId,
+        p_job_id: jobId,
+        p_contractor_id: bid.contractor_id,
+        p_homeowner_id: user.id,
+      })
+      .single();
 
     if (acceptError) {
-      console.error('Failed to accept bid', {
+      console.error('Failed to accept bid atomically', {
         service: 'jobs',
         bidId,
+        jobId,
         error: acceptError.message,
+        errorCode: acceptError.code,
       });
+
+      // Handle unique constraint violation (race condition detected)
+      if (acceptError.code === '23505' || acceptError.message?.includes('unique constraint') || acceptError.message?.includes('duplicate key')) {
+        return NextResponse.json({ 
+          error: 'A bid has already been accepted for this job. Please refresh the page.',
+        }, { status: 409 }); // 409 Conflict
+      }
+
       return NextResponse.json({ error: 'Failed to accept bid' }, { status: 500 });
     }
 
-    // Reject all other bids for this job
-    const { error: rejectError } = await serverSupabase
-      .from('bids')
-      .update({ status: 'rejected' })
-      .eq('job_id', jobId)
-      .neq('id', bidId);
-
-    if (rejectError) {
-      console.error('Failed to reject other bids', {
+    // Check function return value
+    if (!acceptResult || !acceptResult.success) {
+      const errorMessage = acceptResult?.error_message || 'Failed to accept bid';
+      
+      console.error('Bid acceptance failed', {
         service: 'jobs',
+        bidId,
         jobId,
-        error: rejectError.message,
+        errorMessage,
+        acceptedBidId: acceptResult?.accepted_bid_id,
       });
-      // Don't fail the request if this fails, but log it
+
+      // Handle specific error cases
+      if (errorMessage.includes('already been accepted')) {
+        return NextResponse.json({ 
+          error: 'A bid has already been accepted for this job. Please refresh the page.',
+        }, { status: 409 }); // 409 Conflict
+      }
+
+      if (errorMessage.includes('not found')) {
+        return NextResponse.json({ error: errorMessage }, { status: 404 });
+      }
+
+      if (errorMessage.includes('Not authorized')) {
+        return NextResponse.json({ error: errorMessage }, { status: 403 });
+      }
+
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Fetch job title for notification
+    // Fetch job title for notification (after successful acceptance)
     const { data: jobDetails } = await serverSupabase
       .from('jobs')
       .select('title, amount')
       .eq('id', jobId)
       .single();
-
-    // Update job status to assigned and set contractor
-    const { error: updateJobError } = await serverSupabase
-      .from('jobs')
-      .update({
-        status: 'assigned',
-        contractor_id: bid.contractor_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (updateJobError) {
-      console.error('Failed to update job', {
-        service: 'jobs',
-        jobId,
-        error: updateJobError.message,
-      });
-      return NextResponse.json({ error: 'Failed to update job status' }, { status: 500 });
-    }
 
     // Create notification for contractor
     try {

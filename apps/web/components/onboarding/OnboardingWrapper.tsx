@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { WelcomeModal } from './WelcomeModal';
-import { TooltipManager, type TooltipConfig } from './TooltipManager';
+import { TooltipManager } from './TooltipManager';
+import type { TooltipConfig } from '@/hooks/useOnboardingTooltips';
 
 interface OnboardingWrapperProps {
   userRole: 'homeowner' | 'contractor';

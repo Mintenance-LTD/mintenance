@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { LoadingSpinner, ErrorView } from '@/components/ui';
+import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string; place_id: string }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (!loadingUser && user) {
@@ -358,6 +360,68 @@ export default function ProfilePage() {
               </Button>
             </div>
           )}
+
+          {/* Delete Account Section */}
+          <div style={{
+            marginTop: theme.spacing[8],
+            padding: theme.spacing[6],
+            borderTop: `1px solid ${theme.colors.border}`,
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[3],
+            }}>
+              <h3 style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                Danger Zone
+              </h3>
+              <p style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+                lineHeight: 1.6,
+              }}>
+                Once you delete your account, there is no going back. Please be certain.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                disabled={isSaving}
+                style={{
+                  padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
+                  backgroundColor: 'transparent',
+                  border: `1px solid #EF4444`,
+                  borderRadius: theme.borderRadius.lg,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: '#EF4444',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  opacity: isSaving ? 0.6 : 1,
+                  width: 'fit-content',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSaving) {
+                    e.currentTarget.style.backgroundColor = '#FEE2E2';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <Icon name="trash" size={16} color="#EF4444" />
+                Delete Account
+              </button>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -779,6 +843,15 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && user && (
+        <DeleteAccountModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          userId={user.id}
+        />
+      )}
     </HomeownerLayoutShell>
   );
 }

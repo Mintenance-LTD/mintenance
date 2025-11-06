@@ -72,10 +72,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Payment method does not belong to customer' }, { status: 403 });
       }
 
-      // Verify payment method is not deleted
-      if (paymentMethod.deleted) {
-        return NextResponse.json({ error: 'Payment method has been deleted' }, { status: 400 });
-      }
+      // Note: Stripe API doesn't return deleted payment methods in retrieve() calls
+      // If the payment method was deleted, Stripe would return a 404 error above
 
       logger.info('Payment method verified successfully', {
         service: 'payments',

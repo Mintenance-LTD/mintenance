@@ -22,7 +22,7 @@ interface RateLimitConfig {
 }
 
 export class RedisRateLimiter {
-  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null;
+  private redis: { incr: (key: string) => Promise<number>; expire: (key: string, seconds: number) => Promise<number> } | null = null;
   private initialized = false;
 
   constructor() {
@@ -59,16 +59,16 @@ export class RedisRateLimiter {
 
       // Use Promise.race to timeout Redis operations
       const count = await Promise.race([
-        this.redis.incr(key),
+        this.redis!.incr(key),
         new Promise<number>((_, reject) => {
           setTimeout(() => reject(new Error('Redis timeout')), 5000); // 5 second timeout
         })
       ]);
-      
+
       // Set expiration if this is the first request in the window
       if (count === 1) {
         await Promise.race([
-          this.redis.expire(key, Math.ceil(config.windowMs / 1000)),
+          this.redis!.expire(key, Math.ceil(config.windowMs / 1000)),
           new Promise<number>((_, reject) => {
             setTimeout(() => reject(new Error('Redis timeout')), 2000); // 2 second timeout
           })

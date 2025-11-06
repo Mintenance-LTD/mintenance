@@ -147,11 +147,11 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       logger.warn('Invalid quote creation data', {
         service: 'contractor',
-        errors: error.errors
+        errors: error.issues
       });
       return NextResponse.json({
         error: 'Invalid quote data',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
 

@@ -39,7 +39,7 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
       priceRange: {
         ...priceRange,
         [field]: numValue
-      }
+      } as PriceRange
     });
   };
 

@@ -90,7 +90,7 @@ export async function POST(
     }
 
     // Create notification for homeowner
-    await serverSupabase
+    const { error: notificationError } = await serverSupabase
       .from('notifications')
       .insert({
         user_id: job.homeowner_id,
@@ -99,13 +99,14 @@ export async function POST(
         type: 'job_update',
         read: false,
         action_url: `/jobs/${jobId}`,
-      })
-      .catch((err) => {
-        logger.error('Failed to create completion notification', {
-          service: 'jobs',
-          error: err instanceof Error ? err.message : String(err),
-        });
       });
+
+    if (notificationError) {
+      logger.error('Failed to create completion notification', {
+        service: 'jobs',
+        error: notificationError.message,
+      });
+    }
 
     logger.info('Job completed successfully', {
       service: 'jobs',

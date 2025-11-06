@@ -91,6 +91,23 @@ export default function CreateJobPage() {
   const [imagePreviews, setImagePreviews] = useState<Array<{ file: File; preview: string }>>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
 
+  const [verificationStatus, setVerificationStatus] = React.useState<{
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    canPostJobs: boolean;
+    missingRequirements: string[];
+  } | null>(null);
+
+  // Check verification status
+  React.useEffect(() => {
+    if (user && user.role === 'homeowner') {
+      fetch('/api/auth/verification-status')
+        .then(res => res.json())
+        .then(data => setVerificationStatus(data))
+        .catch(() => {});
+    }
+  }, [user]);
+
   // Redirect if not logged in or not a homeowner
   React.useEffect(() => {
     if (!loadingUser && (!user || user.role !== 'homeowner')) {
@@ -310,10 +327,10 @@ export default function CreateJobPage() {
     
     if (!formData.description.trim()) {
       errors.description = 'Description is required';
-    } else if (formData.description.trim().length < 20) {
-      errors.description = 'Description must be at least 20 characters';
-    } else if (formData.description.trim().length > 500) {
-      errors.description = 'Description cannot exceed 500 characters';
+    } else if (formData.description.trim().length < 50) {
+      errors.description = 'Description must be at least 50 characters';
+    } else if (formData.description.trim().length > 5000) {
+      errors.description = 'Description cannot exceed 5000 characters';
     }
     
     if (!formData.location.trim()) {
@@ -339,6 +356,8 @@ export default function CreateJobPage() {
         errors.budget = 'Please enter a valid budget amount';
       } else if (budgetNum > 50000) {
         errors.budget = 'Budget cannot exceed £50,000';
+      } else if (budgetNum > 500 && uploadedImages.length === 0) {
+        errors.photoUrls = 'At least one photo is required for jobs over £500';
       }
     }
     
@@ -428,6 +447,56 @@ export default function CreateJobPage() {
 
   if (!user || user.role !== 'homeowner') {
     return null;
+  }
+
+  // Show verification requirement if not verified
+  if (verificationStatus && !verificationStatus.canPostJobs) {
+    return (
+      <HomeownerLayoutShell
+        currentPath="/jobs/create"
+        userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
+        userEmail={user.email}
+      >
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: theme.spacing[6],
+        }}>
+          <div style={{
+            backgroundColor: '#FEF3C7',
+            border: '1px solid #F59E0B',
+            borderRadius: '12px',
+            padding: theme.spacing[6],
+            marginBottom: theme.spacing[6],
+          }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: theme.spacing[4] }}>
+              Verification Required
+            </h2>
+            <p style={{ marginBottom: theme.spacing[4] }}>
+              Please verify your account before posting jobs:
+            </p>
+            <ul style={{ marginBottom: theme.spacing[4], paddingLeft: theme.spacing[6] }}>
+              {verificationStatus.missingRequirements.map((req, i) => (
+                <li key={i} style={{ marginBottom: theme.spacing[2] }}>{req}</li>
+              ))}
+            </ul>
+            {!verificationStatus.phoneVerified && (
+              <Link href="/verify-phone" style={{
+                display: 'inline-block',
+                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}>
+                Verify Phone Number
+              </Link>
+            )}
+          </div>
+        </div>
+      </HomeownerLayoutShell>
+    );
   }
 
   return (
@@ -567,6 +636,7 @@ export default function CreateJobPage() {
                 title={formData.title}
                 description={formData.description}
                 location={formData.location}
+                imageUrls={uploadedImages}
                 onCategorySelect={(category) => {
                   setFormData({ ...formData, category });
                 }}

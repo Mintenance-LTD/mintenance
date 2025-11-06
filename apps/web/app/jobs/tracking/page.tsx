@@ -56,7 +56,11 @@ export default async function JobTrackingPage() {
     .order('created_at', { ascending: false });
 
   const jobs = jobsData || [];
-  const selectedJob = jobs[0]; // Select first job by default
+  const selectedJobRaw = jobs[0];
+  const selectedJob = selectedJobRaw ? {
+    ...selectedJobRaw,
+    contractor: Array.isArray(selectedJobRaw.contractor) ? selectedJobRaw.contractor[0] : selectedJobRaw.contractor
+  } : undefined;
 
   // Fetch messages for selected job
   let messages: any[] = [];
@@ -185,7 +189,7 @@ export default async function JobTrackingPage() {
             height: '40px',
             borderRadius: theme.borderRadius.full,
             backgroundColor: theme.colors.primary,
-            backgroundImage: user.profile_image_url ? `url(${user.profile_image_url})` : undefined,
+            backgroundImage: (user as any).profile_image_url ? `url(${(user as any).profile_image_url})` : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }} />
@@ -255,7 +259,7 @@ export default async function JobTrackingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
               {jobs.map((job, index) => {
                 const isSelected = index === 0;
-                const contractor = job.contractor;
+                const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
 
                 // Determine status color
                 let statusColor = theme.colors.info;

@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Try to reverse the transfer if DB update fails
-      await stripe.transfers.reverse(transfer.id).catch(err =>
+      await stripe.transfers.createReversal(transfer.id).catch(err =>
         logger.error('Failed to reverse transfer after DB error', err, {
           service: 'payments',
           transferId: transfer.id
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Try to reverse the transfer due to race condition
-      await stripe.transfers.reverse(transfer.id).catch(err =>
+      await stripe.transfers.createReversal(transfer.id).catch(err =>
         logger.error('Failed to reverse transfer after race condition', err, {
           service: 'payments',
           transferId: transfer.id

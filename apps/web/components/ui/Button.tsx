@@ -9,6 +9,7 @@ export type ButtonVariant =
   | 'outline'
   | 'ghost'
   | 'danger'
+  | 'destructive'
   | 'success';
 
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
@@ -132,6 +133,11 @@ export function Button({
       color: theme.colors.textInverse,
       boxShadow: disabled || loading ? 'none' : theme.shadows.base,
     },
+    destructive: {
+      backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.error,
+      color: theme.colors.textInverse,
+      boxShadow: disabled || loading ? 'none' : theme.shadows.base,
+    },
     success: {
       backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.success,
       color: theme.colors.textInverse,
@@ -159,6 +165,11 @@ export function Button({
       backgroundColor: theme.colors.backgroundSecondary,
     },
     danger: {
+      backgroundColor: theme.colors.errorDark,
+      transform: 'translateY(-1px)',
+      boxShadow: theme.shadows.lg,
+    },
+    destructive: {
       backgroundColor: theme.colors.errorDark,
       transform: 'translateY(-1px)',
       boxShadow: theme.shadows.lg,

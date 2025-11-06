@@ -66,7 +66,7 @@ export default async function JobsNearYouPage() {
         address: contractor?.address,
       }}
       contractorSkills={contractorSkillNames}
-      jobs={jobs || []}
+      jobs={(jobs || []) as any}
     />
   );
 }

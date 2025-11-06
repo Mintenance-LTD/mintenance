@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+import { ImageAnalysisService, ImageAnalysisResult } from './ImageAnalysisService';
 
 export interface JobAnalysisResult {
   suggestedCategory: string;
@@ -15,12 +16,143 @@ export interface JobAnalysisResult {
   confidence: number;
   reasoning: string[];
   detectedKeywords: string[];
+  imageAnalysis?: {
+    detectedFeatures: string[];
+    propertyType?: string;
+    condition?: string;
+    complexity?: string;
+    confidence: number;
+  };
 }
 
 /**
  * Service to analyze job descriptions and suggest category, budget, and timeline
  */
 export class JobAnalysisService {
+  /**
+   * Analyze job with both text and images
+   */
+  static async analyzeJobWithImages(
+    title: string,
+    description: string,
+    imageUrls?: string[],
+    location?: string
+  ): Promise<JobAnalysisResult> {
+    // Perform text analysis
+    const textAnalysis = await this.analyzeJobDescription(title, description, location);
+
+    // Perform image analysis if images are provided
+    let imageAnalysis: ImageAnalysisResult | null = null;
+    if (imageUrls && imageUrls.length > 0) {
+      try {
+        imageAnalysis = await ImageAnalysisService.analyzePropertyImages(imageUrls);
+      } catch (error) {
+        logger.warn('Image analysis failed, falling back to text-only', { error });
+      }
+    }
+
+    // Combine results if image analysis is available
+    if (imageAnalysis) {
+      return this.combineAnalyses(textAnalysis, imageAnalysis);
+    }
+
+    return textAnalysis;
+  }
+
+  /**
+   * Combine text and image analysis results
+   */
+  private static combineAnalyses(
+    textAnalysis: JobAnalysisResult,
+    imageAnalysis: ImageAnalysisResult
+  ): JobAnalysisResult {
+    // Merge category suggestions with weighted scoring
+    const categoryScores: Record<string, number> = {};
+
+    // Text analysis contributes 60% weight
+    categoryScores[textAnalysis.suggestedCategory] = (textAnalysis.confidence / 100) * 0.6;
+
+    // Image analysis contributes 40% weight
+    imageAnalysis.suggestedCategories.forEach(imgCat => {
+      const currentScore = categoryScores[imgCat.category] || 0;
+      categoryScores[imgCat.category] = currentScore + (imgCat.confidence / 100) * 0.4;
+    });
+
+    // Find best category
+    const sortedCategories = Object.entries(categoryScores).sort((a, b) => b[1] - a[1]);
+    const combinedCategory = sortedCategories[0][0];
+
+    // Adjust budget based on image analysis factors
+    const imageMultipliers = imageAnalysis.estimatedCostFactors;
+    const combinedMultiplier =
+      imageMultipliers.complexityMultiplier *
+      imageMultipliers.conditionMultiplier *
+      imageMultipliers.sizeMultiplier;
+
+    const adjustedBudget = {
+      min: Math.round(textAnalysis.suggestedBudget.min * combinedMultiplier),
+      max: Math.round(textAnalysis.suggestedBudget.max * combinedMultiplier),
+      recommended: Math.round(textAnalysis.suggestedBudget.recommended * combinedMultiplier),
+    };
+
+    // Adjust timeline based on image complexity
+    let adjustedTimeline = { ...textAnalysis.suggestedTimeline };
+    if (imageAnalysis.complexity === 'complex') {
+      adjustedTimeline = {
+        ...adjustedTimeline,
+        minDays: Math.ceil(adjustedTimeline.minDays * 1.3),
+        maxDays: Math.ceil(adjustedTimeline.maxDays * 1.5),
+      };
+    } else if (imageAnalysis.complexity === 'simple') {
+      adjustedTimeline = {
+        ...adjustedTimeline,
+        minDays: Math.max(1, Math.floor(adjustedTimeline.minDays * 0.8)),
+        maxDays: Math.ceil(adjustedTimeline.maxDays * 0.9),
+      };
+    }
+
+    // Calculate combined confidence (weighted average)
+    const combinedConfidence = Math.round(
+      textAnalysis.confidence * 0.6 + imageAnalysis.confidence * 0.4
+    );
+
+    // Merge reasoning
+    const combinedReasoning = [...textAnalysis.reasoning];
+    if (imageAnalysis.detectedFeatures.length > 0) {
+      combinedReasoning.push(
+        `Image analysis detected: ${imageAnalysis.detectedFeatures.slice(0, 5).join(', ')}`
+      );
+    }
+    if (imageAnalysis.condition) {
+      combinedReasoning.push(`Property condition: ${imageAnalysis.condition}`);
+    }
+    if (imageAnalysis.complexity) {
+      combinedReasoning.push(`Job complexity: ${imageAnalysis.complexity}`);
+    }
+
+    // Merge keywords
+    const combinedKeywords = [
+      ...textAnalysis.detectedKeywords,
+      ...imageAnalysis.detectedFeatures.map(f => `image_${f}`),
+    ];
+
+    return {
+      suggestedCategory: combinedCategory,
+      suggestedBudget: adjustedBudget,
+      suggestedTimeline: adjustedTimeline,
+      confidence: combinedConfidence,
+      reasoning: combinedReasoning,
+      detectedKeywords: Array.from(new Set(combinedKeywords)),
+      imageAnalysis: {
+        detectedFeatures: imageAnalysis.detectedFeatures,
+        propertyType: imageAnalysis.propertyType,
+        condition: imageAnalysis.condition,
+        complexity: imageAnalysis.complexity,
+        confidence: imageAnalysis.confidence,
+      },
+    };
+  }
+
   /**
    * Analyze job description and return suggestions
    */

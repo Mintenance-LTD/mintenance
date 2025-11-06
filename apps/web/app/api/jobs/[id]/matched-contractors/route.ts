@@ -140,7 +140,7 @@ export async function GET(
           email: match.contractor.email,
           phone: match.contractor.phone,
           profileImageUrl: match.contractor.profile_image_url,
-          location: match.contractor.location,
+          location: match.contractor.location || match.contractor.businessAddress || '',
           companyName: match.contractor.companyName,
           yearsExperience: match.contractor.yearsExperience,
           hourlyRate: match.contractor.hourlyRate,

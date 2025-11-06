@@ -36,8 +36,8 @@ export default async function DiscoverPage() {
   }
 
   // Fetch cached data based on user role
-  let contractors = [];
-  let jobs = [];
+  let contractors: any[] = [];
+  let jobs: any[] = [];
   let contractorLocation: { latitude: number; longitude: number } | null = null;
   let contractorSkills: string[] = [];
 

@@ -569,7 +569,7 @@ export function JobsNearYouClient({
                 <span
                   key={idx}
                   style={{
-                    padding: `${theme.spacing[0.5]} ${theme.spacing[2]}`,
+                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
                     backgroundColor: theme.colors.success + '20',
                     color: theme.colors.success,
                     borderRadius: theme.borderRadius.md,
@@ -583,7 +583,7 @@ export function JobsNearYouClient({
               {job.matchedSkills.length > 3 && (
                 <span
                   style={{
-                    padding: `${theme.spacing[0.5]} ${theme.spacing[2]}`,
+                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
                     backgroundColor: theme.colors.backgroundSecondary,
                     color: theme.colors.textSecondary,
                     borderRadius: theme.borderRadius.md,
@@ -829,10 +829,10 @@ export function JobsNearYouClient({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: viewMode === 'list' ? '1fr' : '1.5fr 1fr',
+          gridTemplateColumns: viewMode === 'list' ? '1fr' : '2fr 1fr',
           gap: theme.spacing[6],
-          height: viewMode === 'list' ? 'auto' : 'calc(100vh - 500px)',
-          minHeight: viewMode === 'list' ? 'auto' : '500px',
+          height: viewMode === 'list' ? 'auto' : 'calc(100vh - 400px)',
+          minHeight: viewMode === 'list' ? 'auto' : '600px',
         }}
       >
         {/* Map */}

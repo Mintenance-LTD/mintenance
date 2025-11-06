@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
           .select('id')
           .eq('id', existingBid.quote_id || '')
           .single()
-      : { data: null, error: null };
+      : { data: null };
 
     const quotePayload = {
       contractor_id: user.id,

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { PopularArticlesSection } from './components/PopularArticlesSection';
 
 export default function HelpCentrePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +68,9 @@ export default function HelpCentrePage() {
         { title: 'Payment methods accepted', content: 'Supported payment options and how to add them.' },
         { title: 'Releasing payment', content: 'When and how to approve payment to your tradesperson.' },
         { title: 'Refunds and disputes', content: 'Process for handling payment issues and disagreements.' },
+        { title: 'Dispute resolution process', content: 'Step-by-step guide to creating and resolving disputes, including mediation options and SLA timelines.' },
+        { title: 'Submitting evidence for disputes', content: 'What documentation and evidence you need to support your dispute claim.' },
+        { title: 'Mediation services', content: 'How to request and participate in mediation sessions to resolve disputes.' },
         { title: 'VAT and invoices', content: 'Understanding tax documentation and receipt generation.' },
       ],
     },
@@ -280,33 +284,7 @@ export default function HelpCentrePage() {
       </section>
 
       {/* Popular Articles */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-primary mb-12 text-center">Most Popular Articles</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { title: 'How to create an account', category: 'Getting Started', views: '12.5k' },
-              { title: 'How to post a job', category: 'Posting Jobs', views: '10.2k' },
-              { title: 'How payments work', category: 'Payments & Billing', views: '8.7k' },
-              { title: 'Receiving and comparing quotes', category: 'Bids & Quotes', views: '7.9k' },
-              { title: 'Finding jobs near you', category: 'For Tradespeople', views: '7.3k' },
-              { title: 'Our verification process', category: 'Safety & Trust', views: '6.8k' },
-            ].map((article, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-primary flex-1">{article.title}</h3>
-                  <span className="text-sm text-gray-500 ml-4">{article.views} views</span>
-                </div>
-                <p className="text-sm text-secondary font-medium">{article.category}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PopularArticlesSection />
 
       {/* Contact Support CTA */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-secondary to-secondary-dark">

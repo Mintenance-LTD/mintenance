@@ -89,11 +89,11 @@ export async function DELETE(request: NextRequest) {
     if (error instanceof z.ZodError) {
       logger.warn('Invalid delete quote data', {
         service: 'contractor',
-        errors: error.errors
+        errors: error.issues
       });
       return NextResponse.json({
         error: 'Invalid request data',
-        details: error.errors
+        details: error.issues
       }, { status: 400 });
     }
 

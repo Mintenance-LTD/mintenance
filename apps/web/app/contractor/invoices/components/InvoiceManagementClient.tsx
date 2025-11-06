@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
 import { Card } from '@/components/ui/Card.unified';
-import { Badge as StatusChip } from '@/components/ui/Badge.unified';
+import { Badge } from '@/components/ui/Badge.unified';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 
 type InvoiceStatus = 'draft' | 'sent' | 'overdue' | 'paid';
@@ -39,7 +39,7 @@ const FILTERS: Array<{ id: 'all' | InvoiceStatus; label: string }> = [
   { id: 'paid', label: 'Paid' },
 ];
 
-const STATUS_TONE: Record<InvoiceStatus, 'neutral' | 'info' | 'warning' | 'success'> = {
+const STATUS_VARIANT: Record<InvoiceStatus, 'neutral' | 'info' | 'warning' | 'success'> = {
   draft: 'neutral',
   sent: 'info',
   overdue: 'warning',
@@ -80,7 +80,7 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
     <PageLayout
       sidebar={
         <>
-          <StandardCard title="Cash flow health" description="Track billing performance for the current cycle.">
+          <Card>
             <ProgressBar
               value={paidRatio}
               label="Payment completion"
@@ -101,7 +101,7 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
                       alignItems: 'center',
                     }}
                   >
-                    <StatusChip label={STATUS_LABEL[filter.id]} tone={STATUS_TONE[filter.id]} withDot />
+                    <Badge variant={STATUS_VARIANT[filter.id]} withDot size="sm">{STATUS_LABEL[filter.id]}</Badge>
                     <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                       {count} invoices
                     </span>
@@ -109,16 +109,16 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
                 );
               })}
             </div>
-          </StandardCard>
+          </Card>
 
-          <StandardCard title="Need to create one?" description="Draft invoices faster with your saved client details.">
+          <Card>
             <Link href="/contractor/invoices/create" style={{ textDecoration: 'none' }}>
               <Button variant="primary" fullWidth>
                 <Icon name="plus" size={16} color={theme.colors.white} />
                 <span style={{ marginLeft: theme.spacing[2] }}>Create invoice</span>
               </Button>
             </Link>
-          </StandardCard>
+          </Card>
         </>
       }
     >
@@ -137,20 +137,18 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
 
       <div style={{ display: 'grid', gap: theme.spacing[4], gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
         {summaryCards.map((card) => (
-          <StatCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-            variant={card.variant === 'error' ? 'error' : card.variant === 'warning' ? 'warning' : card.variant === 'success' ? 'success' : 'default'}
-          />
+          <Card key={card.label}>
+            <div style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold }}>
+              {card.value}
+            </div>
+            <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginTop: theme.spacing[2] }}>
+              {card.label}
+            </div>
+          </Card>
         ))}
       </div>
 
-      <StandardCard
-        title="Invoice list"
-        description="Filter by status to focus on what needs attention."
-      >
+      <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
           <nav style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
             {FILTERS.map((filter) => {
@@ -251,11 +249,13 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
                       <strong style={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.textPrimary }}>
                         {formatCurrency(invoice.total_amount)}
                       </strong>
-                      <StatusChip
-                        label={STATUS_LABEL[invoice.status]}
-                        tone={STATUS_TONE[invoice.status]}
+                      <Badge
+                        variant={STATUS_VARIANT[invoice.status]}
                         withDot
-                      />
+                        size="sm"
+                      >
+                        {STATUS_LABEL[invoice.status]}
+                      </Badge>
                     </div>
                   </header>
 
@@ -299,7 +299,7 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
             </div>
           )}
         </div>
-      </StandardCard>
+      </Card>
     </PageLayout>
   );
 }

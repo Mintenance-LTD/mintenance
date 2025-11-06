@@ -5,7 +5,7 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 
 interface ConnectionRequest {
@@ -142,7 +142,7 @@ export function ConnectionsClient({
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (request) => <StatusBadge status={request.status} size="sm" />,
+      render: (request) => <StatusBadge status={request.status as BadgeStatus} size="sm" />,
     },
     {
       key: 'actions',

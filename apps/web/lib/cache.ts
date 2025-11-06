@@ -284,21 +284,37 @@ export const getCachedContractorById = unstable_cache(
  * Cache invalidation utilities
  */
 export async function revalidateContractors() {
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag(CACHE_TAGS.CONTRACTORS);
+  try {
+    const { revalidateTag } = await import('next/cache');
+    (revalidateTag as any)(CACHE_TAGS.CONTRACTORS);
+  } catch (error) {
+    console.error('Error revalidating contractors:', error);
+  }
 }
 
 export async function revalidateJobs() {
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag(CACHE_TAGS.JOBS);
+  try {
+    const { revalidateTag } = await import('next/cache');
+    (revalidateTag as any)(CACHE_TAGS.JOBS);
+  } catch (error) {
+    console.error('Error revalidating jobs:', error);
+  }
 }
 
 export async function revalidateServiceCategories() {
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag(CACHE_TAGS.CATEGORIES);
+  try {
+    const { revalidateTag } = await import('next/cache');
+    (revalidateTag as any)(CACHE_TAGS.CATEGORIES);
+  } catch (error) {
+    console.error('Error revalidating categories:', error);
+  }
 }
 
 export async function revalidateUserProfile(userId: string) {
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag(CACHE_TAGS.USER_PROFILES);
+  try {
+    const { revalidateTag } = await import('next/cache');
+    (revalidateTag as any)(CACHE_TAGS.USER_PROFILES);
+  } catch (error) {
+    console.error('Error revalidating user profile:', error);
+  }
 }

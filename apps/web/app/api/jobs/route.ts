@@ -230,6 +230,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check phone verification for homeowners
+    if (user.role === 'homeowner') {
+      const { HomeownerVerificationService } = await import('@/lib/services/verification/HomeownerVerificationService');
+      const verificationStatus = await HomeownerVerificationService.isFullyVerified(user.id);
+      
+      if (!verificationStatus.canPostJobs) {
+        return NextResponse.json(
+          { 
+            error: 'Phone verification required',
+            message: 'Please verify your phone number before posting jobs',
+            verificationStatus,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json();
     const parsed = createJobSchema.safeParse(body);
     if (!parsed.success) {
@@ -330,13 +347,25 @@ export async function POST(request: NextRequest) {
         service: 'jobs',
         userId: user.id,
         errorDetails: error,
-        insertPayload,
       });
-      const errorMessage = error?.message || 'Failed to create job';
-      return NextResponse.json({ 
-        error: errorMessage,
-        details: error 
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+    }
+
+    // Calculate and update serious buyer score
+    try {
+      const { SeriousBuyerService } = await import('@/lib/services/jobs/SeriousBuyerService');
+      const photoUrls = payload.photoUrls || [];
+      await SeriousBuyerService.updateScore(data.id, user.id, {
+        description: payload.description,
+        budget: payload.budget,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+      });
+    } catch (scoreError) {
+      // Log but don't fail job creation
+      logger.error('Failed to calculate serious buyer score', scoreError, {
+        service: 'jobs',
+        jobId: data.id,
+      });
     }
 
     const jobRow = data as unknown as JobRow;

@@ -10,11 +10,12 @@ export default async function AdminLayout({
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
+  // At this point we know user.role is 'admin' due to the check above
   return (
-    <AdminLayoutShell user={user}>
+    <AdminLayoutShell user={user as typeof user & { role: 'admin' }}>
       {children}
     </AdminLayoutShell>
   );

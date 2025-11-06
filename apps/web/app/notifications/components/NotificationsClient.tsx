@@ -70,8 +70,8 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         break;
       case 'bid_received':
         // For homeowners, route to the job page. For contractors, route to finance.
-        if (notification.action_url) {
-          router.push(notification.action_url);
+        if ((notification as any).action_url) {
+          router.push((notification as any).action_url);
         } else if (notification.data?.jobId) {
           router.push(`/jobs/${notification.data.jobId}`);
         } else {
@@ -80,8 +80,8 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         break;
       case 'message_received':
         // Navigate to specific message thread if jobId is available
-        if (notification.data?.jobId || notification.action_url?.includes('/messages/')) {
-          const jobId = notification.data?.jobId || notification.action_url?.split('/messages/')[1]?.split('?')[0];
+        if (notification.data?.jobId || (notification as any).action_url?.includes('/messages/')) {
+          const jobId = notification.data?.jobId || (notification as any).action_url?.split('/messages/')[1]?.split('?')[0];
           const receiverId = notification.data?.senderId;
           const receiverName = notification.data?.senderName;
           const jobTitle = notification.data?.jobTitle;
@@ -89,9 +89,9 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
           if (jobId) {
             // Build URL with query params for the message thread
             const params = new URLSearchParams();
-            if (receiverId) params.set('userId', receiverId);
-            if (receiverName) params.set('userName', receiverName);
-            if (jobTitle) params.set('jobTitle', jobTitle);
+            if (receiverId) params.set('userId', String(receiverId));
+            if (receiverName) params.set('userName', String(receiverName));
+            if (jobTitle) params.set('jobTitle', String(jobTitle));
             
             router.push(`/messages/${jobId}${params.toString() ? `?${params.toString()}` : ''}`);
           } else {

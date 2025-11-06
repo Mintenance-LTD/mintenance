@@ -101,8 +101,8 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Format validation errors for easy debugging
-      const errorMessage = error.errors
-        .map((err) => {
+      const errorMessage = error.issues
+        .map((err: any) => {
           const path = err.path.join('.');
           return `  - ${path}: ${err.message}`;
         })

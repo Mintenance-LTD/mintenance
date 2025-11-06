@@ -803,12 +803,12 @@ export default function ContractorBidsPage() {
                       {safeJob.category || 'General'}
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name='currencyDollar' size={14} color={theme.colors.success} />
+                      <Icon name='currencyPound' size={14} color={theme.colors.success} />
                       {safeJob.budget || 'Budget TBD'}
                     </span>
                     {'bidAmount' in safeJob && safeJob.bidAmount && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: theme.colors.primary, fontWeight: theme.typography.fontWeight.semibold }}>
-                        <Icon name='currencyDollar' size={14} color={theme.colors.primary} />
+                        <Icon name='currencyPound' size={14} color={theme.colors.primary} />
                         Your bid: £{typeof safeJob.bidAmount === 'number' ? safeJob.bidAmount.toFixed(2) : safeJob.bidAmount}
                       </span>
                     )}

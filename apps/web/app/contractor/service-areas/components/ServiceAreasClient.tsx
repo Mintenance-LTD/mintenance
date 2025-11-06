@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 import { ServiceAreasMap } from './ServiceAreasMap';
 import { findOverlappingAreas, getOverlapWarningMessage, type ServiceArea as OverlapServiceArea } from '@/lib/maps';

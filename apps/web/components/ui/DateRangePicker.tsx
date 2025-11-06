@@ -140,7 +140,7 @@ export function DateRangePicker({
   const isDateSelected = (date: Date): boolean => {
     if (!value.from && !value.to) return false;
     const dateStr = date.toDateString();
-    return (
+    return Boolean(
       (value.from && dateStr === value.from.toDateString()) ||
       (value.to && dateStr === value.to.toDateString())
     );

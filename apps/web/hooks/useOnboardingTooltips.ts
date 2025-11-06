@@ -34,7 +34,7 @@ export function useOnboardingTooltips(
       // Load dismissed tooltips from localStorage
       try {
         const stored = localStorage.getItem('onboarding_tooltips_dismissed');
-        const dismissed = stored ? new Set(JSON.parse(stored)) : new Set();
+        const dismissed = stored ? new Set<string>(JSON.parse(stored)) : new Set<string>();
         
         setState({
           currentTooltipIndex: 0,

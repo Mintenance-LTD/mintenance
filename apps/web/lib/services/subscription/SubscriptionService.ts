@@ -237,7 +237,7 @@ export class SubscriptionService {
       });
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
+      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent;
 
       return {
         subscriptionId: subscription.id,
@@ -382,8 +382,7 @@ export class SubscriptionService {
       },
       product_data: {
         name: `${this.PLAN_PRICING[planType].name} Plan`,
-        description: `Mintenance ${this.PLAN_PRICING[planType].name} subscription plan`,
-      },
+      } as any,
     });
 
     return price.id;

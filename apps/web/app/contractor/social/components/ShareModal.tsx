@@ -163,7 +163,7 @@ export function ShareModal({ postId, postTitle, shareLink, onClose }: ShareModal
           </div>
 
           {/* Native Share Button (if available) */}
-          {navigator.share && (
+          {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
             <Button
               variant="primary"
               onClick={handleShareNative}

@@ -445,7 +445,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
             {job.location || 'Location not specified'}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <Icon name="currencyDollar" size={16} color={theme.colors.success} />
+            <Icon name="currencyPound" size={16} color={theme.colors.success} />
             {budgetLabel}
           </span>
           {job.postedBy?.name && (

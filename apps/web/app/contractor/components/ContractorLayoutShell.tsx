@@ -72,8 +72,11 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
       />
 
       <div
+        suppressHydrationWarning
         style={{
-          flex: 1,
+          flexGrow: 1,
+          flexShrink: 1,
+          flexBasis: '0%',
           width: 'calc(100% - 280px)',
           marginLeft: '280px',
           display: 'flex',
@@ -104,17 +107,22 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing[4],
-              flex: 1,
+              flexGrow: 1,
+              flexShrink: 1,
+              flexBasis: '0%',
               minWidth: 0,
             }}
           >
             {/* Always render search form on server, hide/show conditionally after mount */}
-            <div style={{ display: isDashboard ? 'none' : 'flex', flex: 1 }}>
+            <div suppressHydrationWarning style={{ display: isDashboard ? 'none' : 'flex', flexGrow: 1, flexShrink: 1, flexBasis: '0%' }}>
               <form
                 action="/contractors"
                 method="get"
+                suppressHydrationWarning
                 style={{
-                  flex: 1,
+                  flexGrow: 1,
+                  flexShrink: 1,
+                  flexBasis: '0%',
                   display: 'flex',
                   alignItems: 'center',
                   backgroundColor: theme.colors.backgroundSecondary,
@@ -130,8 +138,11 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
                   name="query"
                   type="search"
                   placeholder="Search contractors or projects"
+                  suppressHydrationWarning
                   style={{
-                    flex: 1,
+                    flexGrow: 1,
+                    flexShrink: 1,
+                    flexBasis: '0%',
                     border: 'none',
                     outline: 'none',
                     background: 'transparent',
@@ -300,14 +311,10 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
             flexGrow: 1,
             flexShrink: 1,
             flexBasis: '0%',
-            paddingTop: '32px',
-            paddingRight: '32px',
-            paddingBottom: '40px',
-            paddingLeft: '24px',
+            padding: '32px 32px 40px 24px',
             display: 'flex',
             flexDirection: 'column',
-            rowGap: '32px',
-            columnGap: '32px',
+            gap: '32px',
             position: 'relative',
             zIndex: 1,
           }}

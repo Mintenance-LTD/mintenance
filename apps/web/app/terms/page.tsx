@@ -198,14 +198,18 @@ export default function TermsOfServicePage() {
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">9.1 User Disputes</h3>
               <p className="text-gray-700 leading-relaxed mb-4">
-                While we encourage users to resolve disputes amicably, we provide a dispute resolution process:
+                While we encourage users to resolve disputes amicably, we provide a comprehensive dispute resolution process:
               </p>
               <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-                <li>Contact our support team within 14 days of the issue</li>
-                <li>Provide documentation and evidence</li>
-                <li>Participate in good faith mediation</li>
-                <li>Accept our decision on fund release (if in escrow)</li>
+                <li><strong>Submit Dispute:</strong> Create a dispute through our platform within 30 days of job completion, providing detailed description and evidence (photos, documents)</li>
+                <li><strong>Review Period:</strong> Our team reviews your dispute within 1-3 days. Resolution times vary by priority: Low (14 days), Medium (7 days), High (3 days), Critical (24 hours)</li>
+                <li><strong>Mediation (Optional):</strong> Either party can request mediation. We schedule a session with an assigned mediator to help reach a resolution</li>
+                <li><strong>Resolution:</strong> We make a final decision based on evidence and platform policies. Decisions on fund release (if in escrow) are binding</li>
+                <li><strong>Appeal Process:</strong> If you disagree with the resolution, you may request a review within 7 days with additional evidence</li>
               </ul>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                For detailed dispute resolution procedures, visit our <a href="/help" className="text-blue-600 hover:underline">Help Center</a>.
+              </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">9.2 Legal Disputes with Mintenance</h3>
               <p className="text-gray-700 leading-relaxed">

@@ -31,7 +31,7 @@ export type BadgeVariant =
   | 'info'
   | 'neutral';
 
-export type BadgeStatus = 
+export type BadgeStatus =
   | 'completed'
   | 'in_progress'
   | 'pending'
@@ -47,7 +47,10 @@ export type BadgeStatus =
   | 'sent'
   | 'accepted'
   | 'declined'
-  | 'cancelled';
+  | 'cancelled'
+  | 'active'
+  | 'inactive'
+  | 'failed';
 
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -116,6 +119,7 @@ const statusToVariant = (status: BadgeStatus): BadgeVariant => {
     completed: 'success',
     approved: 'success',
     accepted: 'success',
+    active: 'success',
     in_progress: 'warning',
     on_going: 'warning',
     assigned: 'warning',
@@ -127,6 +131,8 @@ const statusToVariant = (status: BadgeStatus): BadgeVariant => {
     at_risk: 'error',
     declined: 'error',
     cancelled: 'error',
+    inactive: 'error',
+    failed: 'error',
     in_review: 'warning',
     draft: 'neutral',
   };

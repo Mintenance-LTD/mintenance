@@ -453,8 +453,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     }
 
     const planType = subscription.metadata?.planType || 'basic';
-    const currentPeriodStart = new Date(subscription.current_period_start * 1000);
-    const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    const currentPeriodStart = new Date((subscription as any).current_period_start * 1000);
+    const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
     const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
 
     // Determine status
@@ -573,7 +573,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   });
 
   try {
-    const subscriptionId = invoice.subscription as string;
+    const invoiceAny = invoice as any;
+    const subscriptionId = (typeof invoiceAny.subscription === 'string'
+      ? invoiceAny.subscription
+      : invoiceAny.subscription?.id) as string | undefined;
     if (!subscriptionId) {
       return; // Not a subscription invoice
     }
@@ -610,7 +613,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
         net_revenue: netRevenue,
         status: 'completed',
         stripe_invoice_id: invoice.id,
-        stripe_payment_intent_id: invoice.payment_intent as string,
+        stripe_payment_intent_id: (typeof invoiceAny.payment_intent === 'string' ? invoiceAny.payment_intent : invoiceAny.payment_intent?.id) as string | undefined,
         completed_at: new Date().toISOString(),
       });
 
@@ -635,7 +638,10 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   });
 
   try {
-    const subscriptionId = invoice.subscription as string;
+    const invoiceAny = invoice as any;
+    const subscriptionId = (typeof invoiceAny.subscription === 'string'
+      ? invoiceAny.subscription
+      : invoiceAny.subscription?.id) as string | undefined;
     if (!subscriptionId) {
       return;
     }

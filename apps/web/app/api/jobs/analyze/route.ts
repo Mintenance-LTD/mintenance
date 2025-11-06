@@ -17,19 +17,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, location } = body;
+    const { title, description, location, imageUrls } = body;
 
-    if (!title && !description) {
+    if (!title && !description && (!imageUrls || imageUrls.length === 0)) {
       return NextResponse.json(
-        { error: 'Title or description is required' },
+        { error: 'Title, description, or image URLs are required' },
         { status: 400 }
       );
     }
 
-    // Analyze the job description
-    const analysis = await JobAnalysisService.analyzeJobDescription(
+    // Analyze the job with text and images
+    const analysis = await JobAnalysisService.analyzeJobWithImages(
       title || '',
       description || '',
+      imageUrls || [],
       location
     );
 

@@ -32,6 +32,7 @@ const adminNav: readonly NavItem[] = Object.freeze([
   { icon: 'trendingUp', label: 'Revenue', href: '/admin/revenue' },
   { icon: 'users', label: 'Users', href: '/admin/users' },
   { icon: 'shield', label: 'Security', href: '/admin/security' },
+  { icon: 'messageSquare', label: 'Communications', href: '/admin/communications' },
   { icon: 'settings', label: 'Settings', href: '/admin/settings' },
 ]);
 

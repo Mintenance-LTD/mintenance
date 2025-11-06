@@ -2,11 +2,22 @@
 
 import React, { useState } from 'react';
 import { fetchCurrentUser } from '@/lib/auth-client';
-import { VideoCall } from '@/components/video-call/VideoCall';
+// import { VideoCall as VideoCallComponent } from '@/components/video-call/VideoCall';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
 import Link from 'next/link';
 import type { VideoCall, User } from '@mintenance/types';
+
+// Placeholder components until video call implementation is complete
+const VideoCallInterface = ({ call, currentUserId, onEndCall }: any) => (
+  <div>Video Call Interface - Coming Soon</div>
+);
+const VideoCallHistory = ({ userId }: any) => (
+  <div>Video Call History - Coming Soon</div>
+);
+const VideoCallScheduler = ({ currentUserId, onSchedule, onCancel }: any) => (
+  <div>Video Call Scheduler - Coming Soon</div>
+);
 
 export default function VideoCallsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

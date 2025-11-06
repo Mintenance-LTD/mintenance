@@ -65,5 +65,5 @@ export default async function ContractorSocialPage() {
     } : null,
   }));
 
-  return <ContractorSocialClient posts={formattedPosts} currentUserId={user.id} />;
+  return <ContractorSocialClient posts={formattedPosts as any} currentUserId={user.id} />;
 }

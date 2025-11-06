@@ -128,6 +128,7 @@ export async function POST(
 
     // Create scheduled reminder notifications
     // Note: In production, you'd use a cron job or Supabase Edge Function to check and send these
+    // The NoShowReminderService will handle these via the cron endpoint
     // For now, we'll create them with future timestamps and handle them via a scheduled task
     const reminderNotifications = [
       {

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 
 interface Client {

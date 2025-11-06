@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Button } from '@/components/ui/Button';
 
 interface FinanceDashboardEnhancedProps {
@@ -271,8 +271,8 @@ function InvoiceCard({ invoice }: InvoiceCardProps) {
           £{invoice.amount.toFixed(2)}
         </span>
         <StatusBadge
-          status={invoice.status === 'paid' ? 'success' : invoice.status === 'overdue' ? 'error' : 'warning'}
-          label={invoice.status}
+          status={invoice.status === 'paid' ? 'completed' : invoice.status === 'overdue' ? 'delayed' : 'pending'}
+          size="sm"
         />
       </div>
     </Card>
@@ -471,7 +471,7 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
                       <span style={{ fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold }}>
                         £{transaction.amount.toFixed(2)}
                       </span>
-                      <StatusBadge status={transaction.status} size="sm" />
+                      <StatusBadge status={transaction.status as BadgeStatus} size="sm" />
                     </div>
                   </div>
                 ))

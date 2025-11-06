@@ -39,7 +39,7 @@ const statusColors: Record<Job['status'], { bg: string; text: string }> = {
   assigned: { bg: '#E0E7FF', text: '#3730A3' },
 };
 
-const priorityColors: Record<Job['priority'], { bg: string; text: string }> = {
+const priorityColors: Record<NonNullable<Job['priority']>, { bg: string; text: string }> = {
   low: { bg: '#F3F4F6', text: '#6B7280' },
   medium: { bg: '#FEF3C7', text: '#92400E' },
   high: { bg: '#FED7AA', text: '#9A3412' },

@@ -93,8 +93,8 @@ export async function exportToPDFAdvanced(
 ): Promise<void> {
   try {
     // Dynamic import to avoid bundling if not used
-    const jsPDF = (await import('jspdf')).default;
-    const html2canvas = (await import('html2canvas')).default;
+    const jsPDF = (await import('jspdf' as any)).default;
+    const html2canvas = (await import('html2canvas' as any)).default;
     
     const element = document.getElementById(elementId);
     if (!element) {

@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { Badge as StatusChip } from '@/components/ui/Badge.unified';
+import { Badge } from '@/components/ui/Badge.unified';
+
+const StatusChip = Badge;
 
 interface PhotoUploadModalProps {
   onClose: () => void;
@@ -206,10 +208,12 @@ export function PhotoUploadModal({ onClose, onUpload }: PhotoUploadModalProps) {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <StatusChip
-              label={`${selectedFiles.length}/${MAX_FILES} selected`}
-              tone={selectedFiles.length ? 'info' : 'neutral'}
+              variant={selectedFiles.length ? 'info' : 'neutral'}
               withDot
-            />
+              size="sm"
+            >
+              {`${selectedFiles.length}/${MAX_FILES} selected`}
+            </StatusChip>
             <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
               Max file size {Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB
             </span>
