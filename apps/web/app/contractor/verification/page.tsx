@@ -62,12 +62,21 @@ export default function ContractorVerificationPage() {
   const loadVerificationStatus = async () => {
     try {
       setLoading(true);
+      setFeedback(null);
       const response = await fetch('/api/contractor/verification');
+      
       if (!response.ok) {
-        throw new Error('Unable to load verification status.');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Failed to load verification data (${response.status}). Please try again shortly.`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       setStatus(data);
       if (data.data) {
         setCompanyName(data.data.company_name || '');
@@ -79,7 +88,9 @@ export default function ContractorVerificationPage() {
         setInsuranceExpiryDate(data.data.insurance_expiry_date || '');
       }
     } catch (error: any) {
-      setFeedback({ tone: 'error', message: error.message || 'Failed to load verification status.' });
+      console.error('Verification load error:', error);
+      const errorMessage = error.message || 'We could not load your verification data. Please try again shortly.';
+      setFeedback({ tone: 'error', message: errorMessage });
     } finally {
       setLoading(false);
     }

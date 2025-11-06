@@ -77,13 +77,45 @@ export class RecommendationsService {
       recommendations.push(...this.generateCostSavingRecommendations(jobs || []));
       recommendations.push(...this.generatePreventiveRecommendations(jobs || [], properties || []));
 
-      // Sort by priority (high first) and limit to top 10
-      return recommendations
-        .sort((a, b) => {
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        })
-        .slice(0, 10);
+      // Score recommendations using ML prediction (engagement prediction)
+      const scoredRecommendations = recommendations.map((rec) => {
+        // Simple ML scoring based on user history and recommendation type
+        let engagementScore = 0;
+
+        // Higher score for recommendations matching user's past job categories
+        if (jobs && jobs.length > 0) {
+          const matchingJobs = jobs.filter((job) => job.category === rec.category);
+          engagementScore += matchingJobs.length * 10;
+        }
+
+        // Higher score for high-priority recommendations
+        const priorityScore = { high: 30, medium: 20, low: 10 };
+        engagementScore += priorityScore[rec.priority];
+
+        // Higher score if user has subscription in this category
+        if (subscriptions && subscriptions.length > 0) {
+          const matchingSub = subscriptions.find((sub) => sub.category === rec.category);
+          if (matchingSub) {
+            engagementScore += 20;
+          }
+        }
+
+        // Higher score if recommendation has cost savings
+        if (rec.potentialSavings && rec.potentialSavings > 0) {
+          engagementScore += 15;
+        }
+
+        return {
+          ...rec,
+          engagementScore: Math.min(100, engagementScore),
+        };
+      });
+
+      // Sort by ML-predicted engagement score (highest first) and limit to top 5
+      return scoredRecommendations
+        .sort((a, b) => (b as any).engagementScore - (a as any).engagementScore)
+        .slice(0, 5)
+        .map(({ engagementScore, ...rec }) => rec); // Remove engagementScore from final output
 
     } catch (error) {
       logger.error('Failed to generate recommendations', error, { service: 'recommendations', userId });

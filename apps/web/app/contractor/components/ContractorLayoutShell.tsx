@@ -23,14 +23,20 @@ interface ContractorLayoutShellProps {
   contractor?: ContractorSummary | null;
   email?: string | null;
   userId?: string | null;
+  initialPathname?: string;
 }
 
 // UnifiedSidebar handles navigation sections internally
 
-export function ContractorLayoutShell({ children, contractor, email, userId }: ContractorLayoutShellProps) {
+export function ContractorLayoutShell({ children, contractor, email, userId, initialPathname }: ContractorLayoutShellProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const isDashboard = mounted && pathname === '/contractor/dashboard-enhanced';
+  
+  // Use pathname from hook, fallback to initialPathname for consistent SSR/client rendering
+  // This ensures the same page type is detected on both server and client
+  const currentPath = pathname ?? initialPathname ?? '';
+  const isDashboard = currentPath === '/contractor/dashboard-enhanced';
+  const isJobDetail = currentPath.startsWith('/contractor/jobs/');
 
   useEffect(() => {
     setMounted(true);
@@ -74,14 +80,13 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
       <div
         suppressHydrationWarning
         style={{
-          flexGrow: 1,
-          flexShrink: 1,
-          flexBasis: '0%',
+          flex: '1 1 0%',
           width: 'calc(100% - 280px)',
           marginLeft: '280px',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minWidth: 0,
         }}
       >
         <header
@@ -107,70 +112,67 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing[4],
-              flexGrow: 1,
-              flexShrink: 1,
-              flexBasis: '0%',
+              flex: '1 1 0%',
               minWidth: 0,
             }}
           >
-            {/* Always render search form on server, hide/show conditionally after mount */}
-            <div suppressHydrationWarning style={{ display: isDashboard ? 'none' : 'flex', flexGrow: 1, flexShrink: 1, flexBasis: '0%' }}>
-              <form
-                action="/contractors"
-                method="get"
-                suppressHydrationWarning
-                style={{
-                  flexGrow: 1,
-                  flexShrink: 1,
-                  flexBasis: '0%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: '14px',
-                  padding: '10px 16px',
-                  border: `1px solid ${theme.colors.border}`,
-                  maxWidth: '420px',
-                  gap: theme.spacing[2],
-                }}
-              >
-                <Icon name="discover" size={18} color={theme.colors.textQuaternary} />
-                <input
-                  name="query"
-                  type="search"
-                  placeholder="Search contractors or projects"
+            {/* Search form - hide on dashboard and job detail pages, show on other pages */}
+            {!isDashboard && !isJobDetail && (
+              <div suppressHydrationWarning style={{ display: 'flex', flex: '1 1 0%' }}>
+                <form
+                  action="/contractors"
+                  method="get"
                   suppressHydrationWarning
                   style={{
-                    flexGrow: 1,
-                    flexShrink: 1,
-                    flexBasis: '0%',
-                    border: 'none',
-                    outline: 'none',
-                    background: 'transparent',
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textPrimary,
-                  }}
-                />
-                <button
-                  type="submit"
-                  style={{
-                    background: theme.colors.primary,
-                    color: theme.colors.textInverse,
-                    border: 'none',
-                    borderRadius: theme.borderRadius.md,
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
+                    flex: '1 1 0%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: '14px',
+                    padding: '10px 16px',
+                    border: `1px solid ${theme.colors.border}`,
+                    maxWidth: '420px',
+                    gap: theme.spacing[2],
                   }}
                 >
-                  Search
-                </button>
-              </form>
-            </div>
-            {/* Dashboard content - only show after mount to prevent hydration mismatch */}
+                  <Icon name="discover" size={18} color={theme.colors.textQuaternary} />
+                  <input
+                    name="query"
+                    type="search"
+                    placeholder="Search contractors or projects"
+                    suppressHydrationWarning
+                    style={{
+                      flex: '1 1 0%',
+                      border: 'none',
+                      outline: 'none',
+                      backgroundColor: 'transparent',
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textPrimary,
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      background: theme.colors.primary,
+                      color: theme.colors.textInverse,
+                      border: 'none',
+                      borderRadius: theme.borderRadius.md,
+                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                      fontSize: theme.typography.fontSize.xs,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Search
+                  </button>
+                </form>
+              </div>
+            )}
+            {/* Dashboard content - show when on dashboard page */}
             {isDashboard && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+              <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
                 <h1
+                  suppressHydrationWarning
                   style={{
                     margin: 0,
                     fontSize: theme.typography.fontSize['3xl'],
@@ -181,6 +183,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
                   Dashboard
                 </h1>
                 <p
+                  suppressHydrationWarning
                   style={{
                     margin: 0,
                     fontSize: theme.typography.fontSize.sm,
@@ -305,20 +308,19 @@ export function ContractorLayoutShell({ children, contractor, email, userId }: C
           </div>
         </header>
 
-        <main
-          suppressHydrationWarning
-          style={{
-            flexGrow: 1,
-            flexShrink: 1,
-            flexBasis: '0%',
-            padding: '32px 32px 40px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '32px',
-            position: 'relative',
-            zIndex: 1,
-          }}
-        >
+                <main
+                  suppressHydrationWarning
+                  style={{
+                    flex: '1 1 0%',
+                    // Consistent padding based on page type
+                    padding: isJobDetail ? '32px 32px 32px 24px' : '32px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0,
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
           {children}
         </main>
       </div>

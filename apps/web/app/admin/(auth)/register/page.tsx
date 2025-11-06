@@ -57,7 +57,7 @@ export default function AdminRegisterPage() {
           password,
           firstName,
           lastName,
-          phone,
+          phone: phone.trim() || undefined, // Convert empty string to undefined for optional field
           role: 'admin', // Force admin role
         }),
       });
@@ -68,7 +68,19 @@ export default function AdminRegisterPage() {
         if (response.status === 429) {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
-          throw new Error(data.error || 'Invalid registration data. Please check your information.');
+          // Show detailed validation errors if available
+          const errorMessage = data.error || 'Invalid registration data. Please check your information.';
+          const details = data.details || data.errors;
+          if (details && typeof details === 'object') {
+            const detailMessages = Object.entries(details)
+              .map(([field, errors]) => {
+                const errorArray = Array.isArray(errors) ? errors : [errors];
+                return `${field}: ${errorArray.join(', ')}`;
+              })
+              .join('\n');
+            throw new Error(`${errorMessage}\n\n${detailMessages}`);
+          }
+          throw new Error(errorMessage);
         } else if (response.status === 403) {
           throw new Error('Access denied. Please refresh the page and try again.');
         } else {
@@ -158,31 +170,26 @@ export default function AdminRegisterPage() {
               <input
                 id="email"
                 type="email"
-                autoComplete="email"
                 required
                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400 ${
-                  emailError ? 'border-red-300' : 'border-gray-300'
+                  emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="admin@mintenance.co.uk"
+                placeholder="liam@mintenance.co.uk"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               {emailError && (
                 <p className="mt-1 text-sm text-red-600">{emailError}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Must be a @mintenance.co.uk email address
-              </p>
             </div>
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone number
+                Phone (optional)
               </label>
               <input
                 id="phone"
                 type="tel"
-                autoComplete="tel"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="+44 7700 900000"
                 value={phone}
@@ -197,23 +204,15 @@ export default function AdminRegisterPage() {
               <input
                 id="password"
                 type="password"
-                autoComplete="new-password"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <div className="mt-2 space-y-1">
-                <p className="text-xs font-medium text-gray-700">Password must contain:</p>
-                <ul className="text-xs text-gray-600 space-y-0.5 ml-4">
-                  <li>• At least 8 characters</li>
-                  <li>• One uppercase letter (A-Z)</li>
-                  <li>• One lowercase letter (a-z)</li>
-                  <li>• One number (0-9)</li>
-                  <li>• One special character (!@#$%^&*)</li>
-                </ul>
-              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 8 characters with uppercase, lowercase, number, and special character
+              </p>
             </div>
 
             {error && (
@@ -222,15 +221,13 @@ export default function AdminRegisterPage() {
               </div>
             )}
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading || csrfLoading || !!emailError}
-                className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {csrfLoading ? 'Loading...' : loading ? 'Creating account...' : 'Create admin account'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || csrfLoading || !!emailError}
+              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {csrfLoading ? 'Loading...' : loading ? 'Creating account...' : 'Create Admin Account'}
+            </button>
           </form>
         </div>
       </div>

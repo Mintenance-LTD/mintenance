@@ -56,7 +56,9 @@ export function SubscriptionClient({
 
       if (data.clientSecret && data.requiresPayment) {
         // Redirect to checkout page to complete payment
-        window.location.href = `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`;
+        if (typeof window !== 'undefined') {
+          window.location.href = `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(data.clientSecret)}&subscriptionId=${encodeURIComponent(data.stripeSubscriptionId)}&planType=${encodeURIComponent(planType)}`;
+        }
         return;
       } else {
         // Refresh subscription status

@@ -168,20 +168,21 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
               style={{
                 position: 'relative',
                 paddingBottom: '100%',
-                borderRadius: '20px',
+                borderRadius: theme.borderRadius.xl,
                 overflow: 'hidden',
                 backgroundColor: theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
                 cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: theme.shadows.sm,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                e.currentTarget.style.boxShadow = theme.shadows.xl;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = theme.shadows.sm;
               }}
             >
               <img

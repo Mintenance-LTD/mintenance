@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { csrfToken, loading: csrfLoading } = useCSRF();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!csrfToken) {
@@ -33,7 +33,11 @@ export default function AdminLoginPage() {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify({ email, password, rememberMe }),
+        body: JSON.stringify({
+          email,
+          password,
+          rememberMe,
+        }),
       });
 
       const data = await response.json();
@@ -48,11 +52,6 @@ export default function AdminLoginPage() {
         } else {
           throw new Error('Login failed. Please try again.');
         }
-      }
-
-      // Check if user is admin after login
-      if (data.user?.role !== 'admin') {
-        throw new Error('Access denied. Admin access required.');
       }
 
       router.push('/admin');
@@ -89,6 +88,10 @@ export default function AdminLoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email address
@@ -121,20 +124,16 @@ export default function AdminLoginPage() {
 
             <div className="flex items-center">
               <input
-                id="remember-me"
+                id="rememberMe"
                 type="checkbox"
+                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
                 Remember me for 30 days
               </label>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
-            )}
 
             <button
               type="submit"

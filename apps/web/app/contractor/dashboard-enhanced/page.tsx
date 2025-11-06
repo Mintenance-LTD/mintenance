@@ -11,12 +11,14 @@ import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ResponsiveGrid } from './components/ResponsiveGrid';
-import { ActionCard } from './components/ActionCard';
 import { DashboardContentWrapper } from './components/DashboardContentWrapper';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { TrialStatusBanner } from '@/app/contractor/subscription/components/TrialStatusBanner';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle } from '@/lib/theme-enhancements';
+import { WelcomeHeader } from './components/WelcomeHeader';
 
 // Dynamic imports for code splitting
 const ProjectTableDynamic = dynamic(() => import('@/components/ui/ProjectTable').then(mod => ({ default: mod.ProjectTable })), {
@@ -230,20 +232,20 @@ export default async function EnhancedDashboardPage() {
     >
       <DashboardContentWrapper>
       {/* Page Content */}
-      <div style={{ 
-        flexGrow: 1, 
-        flexShrink: 1, 
-        flexBasis: '0%',
-        paddingTop: '32px',
-        paddingRight: '24px',
-        paddingBottom: '40px',
-        paddingLeft: '0px',
+      <div suppressHydrationWarning style={{ 
+        flex: '1 1 0%',
         width: '100%', 
         overflowX: 'visible', 
         position: 'relative', 
         zIndex: 100 
       }}>
-        <div className="dashboard-inner-content">
+        <div suppressHydrationWarning style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '32px',
+          width: '100%',
+          maxWidth: '100%',
+        }}>
         
         {/* Trial/Subscription Status Banner */}
         {trialStatus && trialStatus.daysRemaining !== null && (
@@ -253,11 +255,19 @@ export default async function EnhancedDashboardPage() {
           />
         )}
 
+        {/* Welcome Header */}
+        <WelcomeHeader
+          contractorFullName={contractorFullName}
+          activeJobsCount={activeJobs.length}
+          pendingBidsCount={pendingBids.length}
+          thisMonthRevenue={thisMonthRevenue}
+        />
+
         {/* Overview Metrics */}
-        <ResponsiveGrid className="metrics-grid">
+        <ResponsiveGrid className="metrics-grid" style={{ gap: theme.spacing[4] }}>
           <MetricCard
             label="Total Revenue"
-            value={formatMoney(totalRevenue)}
+            value={<AnimatedCounter value={totalRevenue} formatType="currency" currency="GBP" prefix="£" />}
             subtitle={`${payments.filter((p) => p.status === 'completed').length} payments`}
             icon="currencyPound"
             trend={{
@@ -266,11 +276,13 @@ export default async function EnhancedDashboardPage() {
               label: 'from last month',
             }}
             color={theme.colors.success}
+            gradient={true}
+            gradientVariant="success"
           />
 
           <MetricCard
             label="Projects"
-            value={totalProjects.toString()}
+            value={<AnimatedCounter value={totalProjects} />}
             subtitle={`${completedJobs.length} completed`}
             icon="briefcase"
             trend={{
@@ -279,11 +291,13 @@ export default async function EnhancedDashboardPage() {
               label: 'finished this month',
             }}
             color={theme.colors.primary}
+            gradient={true}
+            gradientVariant="primary"
           />
 
           <MetricCard
             label="Active Jobs"
-            value={activeJobs.length.toString()}
+            value={<AnimatedCounter value={activeJobs.length} />}
             subtitle="Currently in progress"
             icon="clock"
             trend={{
@@ -292,11 +306,13 @@ export default async function EnhancedDashboardPage() {
               label: 'need attention',
             }}
             color="#F59E0B"
+            gradient={true}
+            gradientVariant="warning"
           />
 
           <MetricCard
             label="Pending Bids"
-            value={pendingBids.length.toString()}
+            value={<AnimatedCounter value={pendingBids.length} />}
             subtitle="Awaiting response"
             icon="fileText"
             trend={{
@@ -305,17 +321,44 @@ export default async function EnhancedDashboardPage() {
               label: 'total bids',
             }}
             color={theme.colors.info}
+            gradient={true}
+            gradientVariant="primary"
           />
         </ResponsiveGrid>
 
         {/* Project Summary & Progress */}
-        <ResponsiveGrid className="project-grid" style={{ gap: theme.spacing[3], marginTop: theme.spacing[4] }}>
+        <ResponsiveGrid className="project-grid" style={{ gap: theme.spacing[5], marginTop: theme.spacing[6] }}>
+          {/* Project Table & Today Tasks Column */}
+          <div style={{ 
+            width: '100%', 
+            maxWidth: '100%', 
+            minWidth: 0, 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[5],
+          }}>
+            {/* Project Table */}
+            <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
+              <ProjectTableDynamic 
+                projects={projectTableData} 
+                jobUrlPattern="/contractor/jobs/{id}"
+              />
+            </div>
+
+            {/* Today Tasks */}
+            <div style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+              <TodayTasksDynamic
+                tasks={todayTasks}
+                taskUrlPattern="/contractor/jobs/{id}"
+              />
+            </div>
+          </div>
+
           {/* Overall Progress */}
           <div
+            className="card-interactive"
             style={{
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '20px',
+              ...getGradientCardStyle('primary'),
               padding: theme.spacing[8],
               display: 'flex',
               flexDirection: 'column',
@@ -323,7 +366,10 @@ export default async function EnhancedDashboardPage() {
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
-              minHeight: '420px',
+              minHeight: '480px',
+              position: 'relative',
+              overflow: 'hidden',
+              borderTop: `3px solid ${theme.colors.primary}`,
             }}
           >
             <h2
@@ -334,6 +380,7 @@ export default async function EnhancedDashboardPage() {
                 fontWeight: theme.typography.fontWeight.bold,
                 color: theme.colors.textPrimary,
                 alignSelf: 'flex-start',
+                letterSpacing: '-0.02em',
               }}
             >
               Overall Progress
@@ -341,8 +388,8 @@ export default async function EnhancedDashboardPage() {
 
             <CircularProgress
               value={Math.round(completionRate)}
-              size={200}
-              strokeWidth={14}
+              size={220}
+              strokeWidth={15}
               label="Completed"
             />
 
@@ -372,6 +419,7 @@ export default async function EnhancedDashboardPage() {
                     margin: 0,
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
+                    marginTop: theme.spacing[1],
                   }}
                 >
                   Total projects
@@ -394,6 +442,7 @@ export default async function EnhancedDashboardPage() {
                     margin: 0,
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
+                    marginTop: theme.spacing[1],
                   }}
                 >
                   Completed
@@ -416,6 +465,7 @@ export default async function EnhancedDashboardPage() {
                     margin: 0,
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
+                    marginTop: theme.spacing[1],
                   }}
                 >
                   Delayed
@@ -438,70 +488,12 @@ export default async function EnhancedDashboardPage() {
                     margin: 0,
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
+                    marginTop: theme.spacing[1],
                   }}
                 >
                   On going
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Project Table */}
-          <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
-            <ProjectTableDynamic 
-              projects={projectTableData} 
-              jobUrlPattern="/contractor/jobs/{id}"
-            />
-          </div>
-        </ResponsiveGrid>
-
-        {/* Today Tasks & Quick Actions Grid */}
-        <ResponsiveGrid className="tasks-actions-grid" style={{ gap: theme.spacing[5], marginTop: theme.spacing[2] }}>
-          {/* Today Tasks */}
-          <div style={{ minHeight: '420px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-            <TodayTasksDynamic 
-              tasks={todayTasks} 
-              taskUrlPattern="/contractor/jobs/{id}"
-            />
-          </div>
-
-          {/* Quick Actions */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[5],
-              minHeight: '420px',
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '20px',
-              padding: theme.spacing[8],
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              Quick Actions
-            </h2>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing[3],
-              }}
-            >
-              <ActionCard label="View All Jobs" href="/contractor/bid" icon="clipboard" />
-              <ActionCard label="Manage Quotes" href="/contractor/quotes" icon="fileText" />
-              <ActionCard label="Finance Dashboard" href="/contractor/finance" icon="currencyPound" />
-              <ActionCard label="View Analytics" href="/contractor/reporting" icon="chart" />
             </div>
           </div>
         </ResponsiveGrid>

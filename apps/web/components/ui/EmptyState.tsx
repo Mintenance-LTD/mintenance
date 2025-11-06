@@ -2,101 +2,133 @@
 
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { Button } from './Button';
 import { Icon } from './Icon';
+import { Button } from './Button';
+import { getFadeInStyle } from '@/lib/theme-enhancements';
 
 export interface EmptyStateProps {
-  icon?: React.ReactNode;
+  icon?: string;
   title: string;
-  description: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  variant?: 'default' | 'minimal';
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  variant?: 'default' | 'minimal' | 'illustrated';
 }
 
 /**
- * Empty State Component
- * Displays a friendly message when there's no data to show
+ * EmptyState Component
+ * 
+ * Displays an empty state with icon, title, description, and optional action.
+ * Enhanced with better visual design and animations.
+ * 
+ * @example
+ * <EmptyState
+ *   icon="briefcase"
+ *   title="No jobs found"
+ *   description="Check back later or adjust your filters"
+ *   actionLabel="Browse Jobs"
+ *   onAction={() => router.push('/jobs')}
+ * />
  */
-export function EmptyState({ icon, title, description, action, variant = 'default' }: EmptyStateProps) {
-  if (variant === 'minimal') {
-    return (
-      <div style={{
-        padding: theme.spacing[6],
+export function EmptyState({
+  icon = 'inbox',
+  title,
+  description,
+  actionLabel,
+  onAction,
+  className = '',
+  style = {},
+  variant = 'default',
+}: EmptyStateProps) {
+  const isMinimal = variant === 'minimal';
+  const isIllustrated = variant === 'illustrated';
+
+  return (
+    <div
+      className={`empty-state ${className}`}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMinimal ? theme.spacing[8] : theme.spacing[12],
         textAlign: 'center',
-      }}>
-        <div style={{
-          fontSize: theme.typography.fontSize['4xl'],
-          marginBottom: theme.spacing[4],
-        }}>
-          {icon || <Icon name="inbox" size={48} color={theme.colors.textTertiary} />}
+        borderRadius: theme.borderRadius.xl,
+        border: `1px dashed ${theme.colors.border}`,
+        backgroundColor: theme.colors.backgroundSecondary,
+        ...getFadeInStyle(100),
+        ...style,
+      }}
+    >
+      {/* Icon */}
+      {!isMinimal && (
+        <div
+          style={{
+            width: isIllustrated ? '120px' : '80px',
+            height: isIllustrated ? '120px' : '80px',
+            borderRadius: '50%',
+            background: `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.primary}08 100%)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: theme.spacing[6],
+            border: `2px solid ${theme.colors.primary}20`,
+          }}
+        >
+          <Icon
+            name={icon}
+            size={isIllustrated ? 48 : 32}
+            color={theme.colors.primary}
+          />
         </div>
-        <h3 style={{
+      )}
+
+      {/* Title */}
+      <h3
+        style={{
+          margin: 0,
+          marginBottom: description ? theme.spacing[2] : theme.spacing[4],
           fontSize: theme.typography.fontSize.xl,
           fontWeight: theme.typography.fontWeight.bold,
           color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[2],
-          margin: 0,
-        }}>
-          {title}
-        </h3>
-        <p style={{
-          color: theme.colors.textSecondary,
-          fontSize: theme.typography.fontSize.base,
-          marginBottom: action ? theme.spacing[6] : 0,
-          margin: 0,
-        }}>
-          {description}
-        </p>
-        {action && (
-          <Button onClick={action.onClick} variant="primary">
-            {action.label}
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div style={{
-      padding: theme.spacing[8],
-      textAlign: 'center',
-      backgroundColor: theme.colors.surface,
-      borderRadius: theme.borderRadius.xl,
-      border: `1px solid ${theme.colors.border}`,
-    }}>
-      <div style={{
-        fontSize: theme.typography.fontSize['4xl'],
-        marginBottom: theme.spacing[6],
-      }}>
-        {icon || <Icon name="inbox" size={64} color={theme.colors.textTertiary} />}
-      </div>
-      <h3 style={{
-        fontSize: theme.typography.fontSize.xl,
-        fontWeight: theme.typography.fontWeight.bold,
-        color: theme.colors.textPrimary,
-        marginBottom: theme.spacing[2],
-        margin: 0,
-      }}>
+        }}
+      >
         {title}
       </h3>
-      <p style={{
-        color: theme.colors.textSecondary,
-        fontSize: theme.typography.fontSize.base,
-        maxWidth: '500px',
-        margin: '0 auto',
-        marginBottom: action ? theme.spacing[6] : 0,
-      }}>
-        {description}
-      </p>
-      {action && (
-        <Button onClick={action.onClick} variant="primary">
-          {action.label}
+
+      {/* Description */}
+      {description && (
+        <p
+          style={{
+            margin: 0,
+            marginBottom: actionLabel ? theme.spacing[6] : 0,
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.textSecondary,
+            maxWidth: '400px',
+            lineHeight: theme.typography.lineHeight.relaxed,
+          }}
+        >
+          {description}
+        </p>
+      )}
+
+      {/* Action Button */}
+      {actionLabel && onAction && (
+        <Button
+          variant="primary"
+          size="md"
+          onClick={onAction}
+          style={{
+            marginTop: theme.spacing[2],
+          }}
+        >
+          {actionLabel}
         </Button>
       )}
     </div>
   );
 }
 
+export default EmptyState;

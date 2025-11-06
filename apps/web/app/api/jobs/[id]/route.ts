@@ -5,6 +5,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
+import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
+import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -211,6 +213,24 @@ export async function PATCH(request: NextRequest, context: Params) {
       service: 'jobs',
       userId: user.id,
       jobId: id
+    });
+
+    // Trigger agent analysis after job update
+    // Run asynchronously to avoid blocking the response
+    Promise.allSettled([
+      PredictiveAgent.analyzeJob(id, {
+        jobId: id,
+        userId: user.id,
+      }),
+      JobStatusAgent.evaluateAutoCancel(id, {
+        jobId: id,
+        userId: user.id,
+      }),
+    ]).catch((error) => {
+      logger.error('Error in agent analysis', error, {
+        service: 'jobs',
+        jobId: id,
+      });
     });
 
     return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });

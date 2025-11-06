@@ -108,6 +108,32 @@ export async function POST(
       });
     }
 
+    // Calculate auto-release date for escrow (async, don't block)
+    if (job.contractor_id) {
+      const { EscrowReleaseAgent } = await import('@/lib/services/agents/EscrowReleaseAgent');
+      
+      // Get escrow transaction for this job
+      const { data: escrow } = await serverSupabase
+        .from('escrow_transactions')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('status', 'held')
+        .limit(1)
+        .single();
+
+      if (escrow) {
+        EscrowReleaseAgent.calculateAutoReleaseDate(escrow.id, jobId, job.contractor_id).catch(
+          (error) => {
+            logger.error('Failed to calculate auto-release date', error, {
+              service: 'jobs',
+              jobId,
+              escrowId: escrow.id,
+            });
+          }
+        );
+      }
+    }
+
     logger.info('Job completed successfully', {
       service: 'jobs',
       jobId,

@@ -61,6 +61,15 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id);
     }
 
+    // Get customer to find default payment method
+    const customer = await stripe.customers.retrieve(stripeCustomerId);
+    const defaultPaymentMethodId = 
+      typeof customer !== 'deleted' && customer.invoice_settings?.default_payment_method
+        ? (typeof customer.invoice_settings.default_payment_method === 'string'
+            ? customer.invoice_settings.default_payment_method
+            : customer.invoice_settings.default_payment_method.id)
+        : null;
+
     // Retrieve payment methods from Stripe
     const paymentMethods = await stripe.paymentMethods.list({
       customer: stripeCustomerId,
@@ -71,6 +80,7 @@ export async function GET(request: NextRequest) {
     const formattedMethods = paymentMethods.data.map((pm) => ({
       id: pm.id,
       type: pm.type,
+      isDefault: pm.id === defaultPaymentMethodId,
       card: pm.card
         ? {
             brand: pm.card.brand,
@@ -86,12 +96,14 @@ export async function GET(request: NextRequest) {
     logger.info('Payment methods retrieved', {
       service: 'payments',
       userId: user.id,
-      methodCount: formattedMethods.length
+      methodCount: formattedMethods.length,
+      defaultPaymentMethodId,
     });
 
     const response = NextResponse.json({
       paymentMethods: formattedMethods,
       stripeCustomerId,
+      defaultPaymentMethodId,
     });
 
     // Add rate limit headers

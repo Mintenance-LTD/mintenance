@@ -41,10 +41,15 @@ export const registerSchema = z.object({
     .max(100, 'Last name too long')
     .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters'),
   role: z.enum(['homeowner', 'contractor', 'admin']),
-  phone: z.string()
-    .transform(val => val.replace(/[\s\-()]/g, '')) // Strip spaces, dashes, and parentheses
-    .pipe(z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'))
-    .optional(),
+  phone: z.preprocess(
+    (val) => {
+      if (!val || typeof val !== 'string' || val.trim() === '') {
+        return undefined;
+      }
+      return val.replace(/[\s\-()]/g, ''); // Strip spaces, dashes, and parentheses
+    },
+    z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number').optional()
+  ),
 }).refine((data) => {
   // Require phone for homeowners
   if (data.role === 'homeowner' && !data.phone) {
@@ -55,13 +60,13 @@ export const registerSchema = z.object({
   message: 'Phone number is required for homeowners',
   path: ['phone'],
 }).refine((data) => {
-  // Require @mintenan.co.uk domain for admin
-  if (data.role === 'admin' && !data.email.endsWith('@mintenan.co.uk')) {
+  // Require @mintenance.co.uk domain for admin
+  if (data.role === 'admin' && !data.email.endsWith('@mintenance.co.uk')) {
     return false;
   }
   return true;
 }, {
-  message: 'Admin accounts must use @mintenan.co.uk email address',
+  message: 'Admin accounts must use @mintenance.co.uk email address',
   path: ['email'],
 });
 

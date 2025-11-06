@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { Modal } from '@/components/ui/Modal';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function ContactPage() {
     message: '',
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +108,10 @@ export default function ContactPage() {
               </div>
               <h3 className="text-xl font-semibold text-primary mb-2">Live Chat</h3>
               <p className="text-gray-600 mb-4">Chat with our support team in real-time</p>
-              <button className="text-purple-500 hover:underline font-medium">
+              <button 
+                onClick={() => setShowLiveChatModal(true)}
+                className="text-purple-500 hover:underline font-medium"
+              >
                 Start Chat →
               </button>
             </div>
@@ -308,17 +313,27 @@ export default function ContactPage() {
 
             {/* Interactive Google Maps */}
             <div className="rounded-xl h-96 overflow-hidden shadow-lg relative">
-              <iframe
-                src="https://maps.google.com/maps?q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&hl=en&z=15&output=embed"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="w-full h-full"
-                title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
-              />
+              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+                <iframe
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&zoom=15`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full"
+                  title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="text-center p-8">
+                    <p className="text-gray-600 mb-2">Map unavailable</p>
+                    <p className="text-sm text-gray-500">Suite 2 J2 Business Park</p>
+                    <p className="text-sm text-gray-500">Bridge Hall Lane, Bury, BL9 7NY</p>
+                  </div>
+                </div>
+              )}
               <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 text-sm z-10">
                 <p className="font-semibold text-gray-900">Suite 2 J2 Business Park</p>
                 <p className="text-gray-600">Bridge Hall Lane, Bury, BL9 7NY</p>
@@ -373,6 +388,92 @@ export default function ContactPage() {
           </p>
         </div>
       </footer>
+
+      {/* Live Chat Modal */}
+      <Modal
+        isOpen={showLiveChatModal}
+        onClose={() => setShowLiveChatModal(false)}
+        title="Live Chat Coming Soon"
+        maxWidth={500}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <svg 
+              className="w-16 h-16 text-purple-500 mx-auto mb-4" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
+              />
+            </svg>
+          </div>
+          <p style={{ 
+            fontSize: '16px', 
+            color: '#374151', 
+            marginBottom: '24px',
+            lineHeight: '1.6'
+          }}>
+            Our live chat feature is currently under development and will be available soon!
+          </p>
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#6B7280', 
+            marginBottom: '32px',
+            lineHeight: '1.6'
+          }}>
+            In the meantime, please reach out to us via email and we'll respond as quickly as possible.
+          </p>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '12px',
+            alignItems: 'center'
+          }}>
+            <a
+              href="mailto:support@mintenance.co.uk"
+              style={{
+                display: 'inline-block',
+                padding: '12px 24px',
+                backgroundColor: '#1F2937',
+                color: 'white',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1F2937';
+              }}
+            >
+              Email Us: support@mintenance.co.uk
+            </a>
+            <button
+              onClick={() => setShowLiveChatModal(false)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'transparent',
+                color: '#6B7280',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { theme } from '@/lib/theme';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface ProfileStatsProps {
   metrics: {
@@ -43,10 +45,7 @@ export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsPr
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
       <div
         style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: '24px',
-          border: `1px solid ${theme.colors.border}`,
-          boxShadow: 'none',
+          ...getGradientCardStyle('primary'),
           padding: theme.spacing[6],
           display: 'flex',
           flexDirection: 'column',
@@ -82,17 +81,28 @@ export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsPr
             gap: theme.spacing[4],
           }}
         >
-          {metricCards.map((metric) => (
+          {metricCards.map((metric, index) => {
+            const variants: Array<'primary' | 'success' | 'warning'> = ['primary', 'success', 'warning'];
+            const variant = variants[index % variants.length] || 'primary';
+            
+            return (
             <div
               key={metric.label}
               style={{
-                borderRadius: '18px',
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.backgroundSecondary,
-                padding: '18px',
+                ...getGradientCardStyle(variant),
+                padding: theme.spacing[5],
                 display: 'flex',
                 flexDirection: 'column',
                 gap: theme.spacing[2],
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = theme.shadows.lg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = theme.shadows.sm;
               }}
             >
               <span
@@ -100,20 +110,29 @@ export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsPr
                   fontSize: theme.typography.fontSize.xs,
                   textTransform: 'uppercase',
                   letterSpacing: '1.2px',
-                  color: theme.colors.textQuaternary,
+                  color: theme.colors.textSecondary,
+                  fontWeight: theme.typography.fontWeight.medium,
                 }}
               >
                 {metric.label}
               </span>
-              <span
+              <div
                 style={{
                   fontSize: theme.typography.fontSize['3xl'],
                   fontWeight: theme.typography.fontWeight.bold,
                   color: theme.colors.textPrimary,
                 }}
               >
-                {metric.value}
-              </span>
+                {metric.label === 'Win Rate' || metric.label === 'Profile Strength' ? (
+                  <AnimatedCounter 
+                    value={typeof metric.value === 'string' ? parseFloat(metric.value.replace('%', '')) : parseFloat(String(metric.value).replace('%', ''))} 
+                    suffix="%" 
+                    decimals={0}
+                  />
+                ) : (
+                  <AnimatedCounter value={typeof metric.value === 'number' ? metric.value : parseInt(String(metric.value)) || 0} />
+                )}
+              </div>
               <span
                 style={{
                   fontSize: theme.typography.fontSize.xs,
@@ -123,7 +142,8 @@ export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsPr
                 {metric.helper}
               </span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -208,15 +228,24 @@ export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsPr
               <span
                 key={`${skill.skill_name}-${index}`}
                 style={{
-                  padding: '8px 14px',
-                borderRadius: '999px',
-                backgroundColor: theme.colors.backgroundSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textSecondary,
-                transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-              }}
+                  padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                  borderRadius: theme.borderRadius.full,
+                  background: `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.primary}08 100%)`,
+                  border: `1px solid ${theme.colors.primary}30`,
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.primary,
+                  transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
+                  boxShadow: theme.shadows.sm,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = theme.shadows.md;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                }}
               >
                 {skill.skill_name}
               </span>

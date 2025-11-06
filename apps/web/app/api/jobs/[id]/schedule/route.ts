@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
 
 const scheduleSchema = z.object({
@@ -169,6 +170,18 @@ export async function POST(
         created_at: reminder1h.toISOString(),
       },
     ];
+
+    // Get schedule suggestions from SchedulingAgent
+    // Run asynchronously to avoid blocking the response
+    SchedulingAgent.suggestOptimalSchedule(jobId, {
+      jobId,
+      userId: user.id,
+    }).catch((error) => {
+      console.error('Error getting schedule suggestions', error, {
+        service: 'schedule',
+        jobId,
+      });
+    });
 
     // Store reminder schedule (you'd typically use a separate scheduled_notifications table)
     // For now, we'll create them but they'll need a background job to send at the right time

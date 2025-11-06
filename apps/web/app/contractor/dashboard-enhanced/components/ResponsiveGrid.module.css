@@ -56,7 +56,7 @@
 
 .project-grid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1.2fr 1.8fr;
   gap: 16px;
   width: 100%;
   max-width: 100%;

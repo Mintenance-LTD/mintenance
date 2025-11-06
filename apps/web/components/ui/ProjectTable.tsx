@@ -63,6 +63,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
         }}
       >
         <h2
+          suppressHydrationWarning
           style={{
             margin: 0,
             fontSize: theme.typography.fontSize['2xl'],
@@ -76,6 +77,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
 
       <div style={{ overflowX: 'auto' }}>
         <table
+          suppressHydrationWarning
           style={{
             width: '100%',
             borderCollapse: 'collapse',
@@ -83,11 +85,13 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
         >
           <thead>
             <tr
+              suppressHydrationWarning
               style={{
                 borderBottom: `1px solid ${theme.colors.border}`,
               }}
             >
               <th
+                suppressHydrationWarning
                 style={{
                   textAlign: 'left',
                   padding: theme.spacing[3],
@@ -99,6 +103,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                 Name
               </th>
               <th
+                suppressHydrationWarning
                 style={{
                   textAlign: 'left',
                   padding: theme.spacing[3],
@@ -110,6 +115,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                 Project Manager
               </th>
               <th
+                suppressHydrationWarning
                 style={{
                   textAlign: 'left',
                   padding: theme.spacing[3],
@@ -121,6 +127,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                 Due Date
               </th>
               <th
+                suppressHydrationWarning
                 style={{
                   textAlign: 'left',
                   padding: theme.spacing[3],
@@ -132,6 +139,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                 Status
               </th>
               <th
+                suppressHydrationWarning
                 style={{
                   textAlign: 'right',
                   padding: theme.spacing[3],

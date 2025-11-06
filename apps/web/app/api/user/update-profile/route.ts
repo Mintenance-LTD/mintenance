@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
+import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -158,8 +159,16 @@ export async function POST(request: NextRequest) {
       if (body.location !== undefined) updateData.location = body.location ? sanitizeText(body.location, 256) : null;
       if (body.profile_image_url !== undefined) updateData.profile_image_url = body.profile_image_url;
 
+      // Handle automation preferences if provided
+      if (body.automationPreferences) {
+        await AutomationPreferencesService.updatePreferences(
+          user.id,
+          body.automationPreferences
+        );
+      }
+
       // Don't attempt update if no fields to update
-      if (Object.keys(updateData).length === 0) {
+      if (Object.keys(updateData).length === 0 && !body.automationPreferences) {
         return NextResponse.json({
           success: true,
           message: 'No changes to update',

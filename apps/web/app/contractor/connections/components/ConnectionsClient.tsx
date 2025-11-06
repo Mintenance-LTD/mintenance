@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface ConnectionRequest {
   id: string;
@@ -82,21 +84,16 @@ export function ConnectionsClient({
       label: 'Requester',
       render: (request) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              backgroundColor: theme.colors.backgroundSecondary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-            }}
-          >
-            {request.requester.name.split(' ').map(n => n[0]).join('')}
+          <div style={getIconContainerStyle(theme.colors.primary, 48)}>
+            <span
+              style={{
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.primary,
+                fontSize: theme.typography.fontSize.sm,
+              }}
+            >
+              {request.requester.name.split(' ').map(n => n[0]).join('')}
+            </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
@@ -167,21 +164,16 @@ export function ConnectionsClient({
       label: 'Connection',
       render: (connection) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              backgroundColor: theme.colors.backgroundSecondary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-            }}
-          >
-            {connection.user.name.split(' ').map(n => n[0]).join('')}
+          <div style={getIconContainerStyle(theme.colors.primary, 48)}>
+            <span
+              style={{
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.primary,
+                fontSize: theme.typography.fontSize.sm,
+              }}
+            >
+              {connection.user.name.split(' ').map(n => n[0]).join('')}
+            </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
@@ -274,31 +266,37 @@ export function ConnectionsClient({
       >
         <Card.Metric
           label="Total Connections"
-          value={mutualConnections.length.toString()}
+          value={<AnimatedCounter value={mutualConnections.length} />}
           subtitle="Active network"
           icon="users"
           color={theme.colors.primary}
+          gradient={true}
+          gradientVariant="primary"
         />
 
         <Card.Metric
           label="Pending Requests"
-          value={connectionRequests.length.toString()}
+          value={<AnimatedCounter value={connectionRequests.length} />}
           subtitle="Awaiting response"
           icon="userPlus"
           color={theme.colors.warning || '#F59E0B'}
+          gradient={true}
+          gradientVariant="warning"
         />
 
         <Card.Metric
           label="This Month"
-          value={(mutualConnections.filter(c => {
+          value={<AnimatedCounter value={mutualConnections.filter(c => {
             const connectedDate = new Date(c.connectedAt);
             const monthAgo = new Date();
             monthAgo.setMonth(monthAgo.getMonth() - 1);
             return connectedDate >= monthAgo;
-          }).length).toString()}
+          }).length} />}
           subtitle="New connections"
           icon="trendingUp"
           color={theme.colors.success}
+          gradient={true}
+          gradientVariant="success"
         />
       </section>
 

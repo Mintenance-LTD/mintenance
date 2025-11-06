@@ -274,10 +274,10 @@ function RegisterForm() {
             <div>
               <button
                 type="submit"
-                disabled={loading || csrfLoading}
+                disabled={loading || (!csrfToken && csrfLoading)}
                 className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {csrfLoading ? 'Loading...' : loading ? 'Creating account...' : 'Create account'}
+                {loading ? 'Creating account...' : 'Create account'}
               </button>
             </div>
 

@@ -5,6 +5,8 @@ import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EmailService } from '@/lib/email-service';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
+import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
+import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 
 // Validation schema
 const submitBidSchema = z.object({
@@ -165,6 +167,34 @@ export async function POST(request: NextRequest) {
       .eq('contractor_id', user.id)
       .single();
 
+    // Get pricing recommendation (async, don't block)
+    const pricingRecommendation = await PricingAgent.generateRecommendation(
+      validatedData.jobId,
+      user.id,
+      validatedData.bidAmount
+    ).catch((error) => {
+      logger.error('Error generating pricing recommendation', error, {
+        service: 'contractor',
+        jobId: validatedData.jobId,
+      });
+      return null;
+    });
+
+    // Calculate competitiveness score if recommendation exists
+    let competitivenessScore: number | undefined;
+    let pricingRecommendationId: string | undefined;
+    let suggestedPriceRange: Record<string, number> | undefined;
+
+    if (pricingRecommendation) {
+      competitivenessScore = pricingRecommendation.competitivenessScore;
+      pricingRecommendationId = (pricingRecommendation as any).id || undefined;
+      suggestedPriceRange = {
+        min: pricingRecommendation.recommendedMinPrice,
+        max: pricingRecommendation.recommendedMaxPrice,
+        optimal: pricingRecommendation.recommendedOptimalPrice,
+      };
+    }
+
     // Prepare the bid payload (align with existing DB schema: amount, description, status)
     const bidPayload = {
       job_id: validatedData.jobId,
@@ -172,6 +202,10 @@ export async function POST(request: NextRequest) {
       amount: validatedData.bidAmount,
       description: (validatedData.proposalText || '').trim(),
       status: 'pending' as const,
+      competitiveness_score: competitivenessScore,
+      pricing_recommendation_id: pricingRecommendationId,
+      suggested_price_range: suggestedPriceRange,
+      was_price_recommended: pricingRecommendation ? Math.abs(validatedData.bidAmount - pricingRecommendation.recommendedOptimalPrice) < 0.01 : false,
       updated_at: new Date().toISOString(),
     };
 
@@ -557,6 +591,28 @@ export async function POST(request: NextRequest) {
       jobId: validatedData.jobId,
       bidAmount: validatedData.bidAmount
     });
+
+    // Trigger auto-accept evaluation asynchronously (fire-and-forget)
+    // Only evaluate new bids, not updates
+    if (!isUpdate && bid.status === 'pending') {
+      BidAcceptanceAgent.evaluateAutoAccept(
+        validatedData.jobId,
+        bid.id,
+        {
+          jobId: validatedData.jobId,
+          userId: homeowner?.id,
+          contractorId: user.id,
+        }
+      ).catch((error) => {
+        // Log error but don't block the response
+        logger.error('Error in auto-accept evaluation', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          bidId: bid.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
 
     return NextResponse.json({
       success: true,

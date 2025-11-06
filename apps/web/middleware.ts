@@ -27,11 +27,19 @@ export async function middleware(request: NextRequest) {
 
   // Define public routes that don't require authentication
   const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms'];
-  const isPublicRoute = pathname === '/' || publicRoutes.some(route => pathname.startsWith(route)) || pathname.startsWith('/contractor/');
+  // Admin auth routes (login, register) are also public
+  const adminAuthRoutes = ['/admin/login', '/admin/register'];
+  const isPublicRoute = pathname === '/' || 
+    publicRoutes.some(route => pathname.startsWith(route)) || 
+    pathname.startsWith('/contractor/') ||
+    adminAuthRoutes.includes(pathname);
 
   // Skip middleware for public routes
   if (isPublicRoute) {
-    const response = NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    // Add pathname for consistent server-side rendering
+    requestHeaders.set('x-pathname', pathname);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
     
     // Generate CSRF token on first visit if not present
     const isDevelopment = process.env.NODE_ENV === 'development';
@@ -129,6 +137,9 @@ export async function middleware(request: NextRequest) {
     // Add request ID for tracing
     const requestId = crypto.randomUUID();
     requestHeaders.set('x-request-id', requestId);
+
+    // Add pathname for consistent server-side rendering
+    requestHeaders.set('x-pathname', pathname);
 
     // Generate CSP nonce for script security
     const nonce = crypto.randomUUID().replace(/-/g, '');

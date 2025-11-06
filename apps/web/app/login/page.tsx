@@ -52,15 +52,25 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Sanitize error messages - don't expose system details
+        // Provide more specific error messages with actionable suggestions
         if (response.status === 429) {
-          throw new Error('Too many login attempts. Please try again later.');
+          throw new Error('Too many login attempts. Please wait a few minutes and try again.');
         } else if (response.status === 401) {
-          throw new Error('Invalid email or password');
+          // Check if the error provides more detail
+          const errorMessage = data.error || data.message || '';
+          if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('not found')) {
+            throw new Error('No account found with this email address. Please check your email or sign up for a new account.');
+          } else if (errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('invalid')) {
+            throw new Error('Incorrect password. Please check your password or use "Forgot password" to reset it.');
+          } else {
+            throw new Error('Invalid email or password. Please check your credentials and try again.');
+          }
         } else if (response.status === 403) {
           throw new Error('Access denied. Please refresh the page and try again.');
+        } else if (response.status === 400) {
+          throw new Error(data.error || 'Invalid request. Please check your email and password format.');
         } else {
-          throw new Error('Login failed. Please try again.');
+          throw new Error(data.error || 'Login failed. Please try again or contact support if the problem persists.');
         }
       }
 
@@ -151,19 +161,57 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="font-medium">{error}</p>
+                    {(error.toLowerCase().includes('password') || error.toLowerCase().includes('incorrect')) && (
+                      <p className="mt-2 text-xs text-red-600">
+                        <Link href="/forgot-password" className="underline font-medium hover:text-red-800">
+                          Reset your password
+                        </Link>
+                        {' '}if you've forgotten it.
+                      </p>
+                    )}
+                    {error.toLowerCase().includes('email') && !error.toLowerCase().includes('password') && (
+                      <p className="mt-2 text-xs text-red-600">
+                        <Link href="/register" className="underline font-medium hover:text-red-800">
+                          Create an account
+                        </Link>
+                        {' '}if you don't have one yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
 
             <button
               type="submit"
-              disabled={loading || csrfLoading}
+              disabled={loading || (!csrfToken && csrfLoading)}
               className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              {csrfLoading ? 'Loading...' : loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
 
-            <div className="text-center">
-              <Link href="/forgot-password" className="text-sm font-medium text-primary hover:text-primary-light">Forgot your password?</Link>
+            <div className="flex items-center justify-between pt-2">
+              <Link 
+                href="/forgot-password" 
+                className="text-sm font-medium text-primary hover:text-primary-light hover:underline"
+              >
+                Forgot your password?
+              </Link>
+              {error && error.toLowerCase().includes('password') && (
+                <Link 
+                  href="/forgot-password" 
+                  className="text-sm font-semibold text-primary hover:text-primary-light underline"
+                >
+                  Reset Password →
+                </Link>
+              )}
             </div>
           </form>
 

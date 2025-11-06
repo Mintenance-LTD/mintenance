@@ -6,6 +6,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Button } from '@/components/ui/Button';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface FinanceDashboardEnhancedProps {
   financialData: {
@@ -65,21 +67,49 @@ interface KpiCardProps {
 }
 
 function KpiCard({ title, value, change, changeType, icon, subtitle }: KpiCardProps) {
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const getGradientVariant = () => {
+    if (changeType === 'positive') return 'success';
+    if (changeType === 'negative') return 'warning';
+    return 'primary';
+  };
+
+  const getColor = () => {
+    if (changeType === 'positive') return theme.colors.success;
+    if (changeType === 'negative') return theme.colors.warning;
+    return theme.colors.primary;
+  };
+
   return (
-    <Card style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+    <Card
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[4],
+        ...getGradientCardStyle(getGradientVariant()),
+        borderTop: `3px solid ${getColor()}`,
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'default',
+      }}
+      onMouseEnter={(e) => {
+        setIsHovered(true);
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = theme.shadows.xl;
+      }}
+      onMouseLeave={(e) => {
+        setIsHovered(false);
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = theme.shadows.sm;
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            backgroundColor: `${theme.colors.primary}15`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon name={icon as any} size={24} color={theme.colors.primary} />
+        <div style={{
+          ...getIconContainerStyle(getColor(), 52),
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isHovered ? 'scale(1.05) rotate(5deg)' : 'scale(1) rotate(0deg)',
+        }}>
+          <Icon name={icon as any} size={26} color={getColor()} />
         </div>
         {change && (
           <div
@@ -129,29 +159,34 @@ function KpiCard({ title, value, change, changeType, icon, subtitle }: KpiCardPr
         <p
           style={{
             margin: 0,
-            fontSize: theme.typography.fontSize.sm,
+            fontSize: theme.typography.fontSize.xs,
             color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[1],
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing[2],
           }}
         >
           {title}
         </p>
-        <h3
+        <div
           style={{
             margin: 0,
-            fontSize: theme.typography.fontSize['2xl'],
+            fontSize: theme.typography.fontSize['4xl'],
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.textPrimary,
+            letterSpacing: '-0.02em',
+            lineHeight: '1.1',
           }}
         >
           {value}
-        </h3>
+        </div>
         <p
           style={{
             margin: 0,
-            fontSize: theme.typography.fontSize.xs,
+            fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textSecondary,
-            marginTop: theme.spacing[1],
+            marginTop: theme.spacing[2],
           }}
         >
           {subtitle}
@@ -169,20 +204,21 @@ function RevenueChart({ data }: RevenueChartProps) {
   const maxValue = Math.max(...data.map(d => Math.max(d.revenue, d.expenses)));
 
   return (
-    <Card>
+    <Card style={{ borderTop: `3px solid ${theme.colors.primary}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[6] }}>
         <div>
           <h3
             style={{
               margin: 0,
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary,
+              letterSpacing: '-0.02em',
             }}
           >
             Revenue vs Expenses
           </h3>
-          <p style={{ margin: 0, fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, marginTop: theme.spacing[1] }}>
+          <p style={{ margin: 0, fontSize: theme.typography.fontSize.base, color: theme.colors.textSecondary, marginTop: theme.spacing[2] }}>
             Monthly comparison
           </p>
         </div>
@@ -214,20 +250,22 @@ function RevenueChart({ data }: RevenueChartProps) {
                 style={{
                   flex: 1,
                   height: `${(item.revenue / maxValue) * 100}%`,
-                  backgroundColor: theme.colors.success,
+                  background: `linear-gradient(180deg, ${theme.colors.success} 0%, #34D399 100%)`,
                   borderRadius: '4px 4px 0 0',
                   minHeight: '8px',
-                  transition: 'height 0.3s',
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: theme.shadows.sm,
                 }}
               />
               <div
                 style={{
                   flex: 1,
                   height: `${(item.expenses / maxValue) * 100}%`,
-                  backgroundColor: theme.colors.error,
+                  background: `linear-gradient(180deg, ${theme.colors.error} 0%, #F87171 100%)`,
                   borderRadius: '4px 4px 0 0',
                   minHeight: '8px',
-                  transition: 'height 0.3s',
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: theme.shadows.sm,
                 }}
               />
             </div>
@@ -254,7 +292,24 @@ interface InvoiceCardProps {
 
 function InvoiceCard({ invoice }: InvoiceCardProps) {
   return (
-    <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing[4] }}>
+    <Card 
+      style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: theme.spacing[4],
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: theme.shadows.sm,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = theme.shadows.md;
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = theme.shadows.sm;
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
         <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
           {invoice.invoiceNumber || `Invoice #${invoice.id.slice(0, 8)}`}
@@ -335,14 +390,29 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
                 onClick={() => setSelectedPeriod(period)}
                 style={{
                   padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: isActive ? theme.colors.primary : 'transparent',
+                  borderRadius: theme.borderRadius.md,
+                  border: `2px solid ${isActive ? theme.colors.primary : 'transparent'}`,
+                  background: isActive 
+                    ? `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`
+                    : 'transparent',
                   color: isActive ? 'white' : theme.colors.textSecondary,
                   fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: isActive ? theme.shadows.sm : 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = theme.colors.textPrimary;
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = theme.colors.textSecondary;
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
                 }}
               >
                 {period}
@@ -356,7 +426,7 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: theme.spacing[4] }}>
         <KpiCard
           title="Total Revenue"
-          value={`£${financialData.totalRevenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={<AnimatedCounter value={financialData.totalRevenue} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
           change={`${Math.abs(revenueChange).toFixed(1)}%`}
           changeType={revenueChange >= 0 ? 'positive' : 'negative'}
           icon="currencyPound"
@@ -364,13 +434,13 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
         />
         <KpiCard
           title="Pending Payments"
-          value={`£${financialData.pendingPayments.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={<AnimatedCounter value={financialData.pendingPayments} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
           icon="clock"
           subtitle="Awaiting release"
         />
         <KpiCard
           title="Average Job Value"
-          value={`£${financialData.avgJobValue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={<AnimatedCounter value={financialData.avgJobValue} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
           change={financialData.avgJobValueChange !== 0 ? `${financialData.avgJobValueChange >= 0 ? '+' : ''}${financialData.avgJobValueChange.toFixed(1)}%` : undefined}
           changeType={financialData.avgJobValueChange >= 0 ? 'positive' : 'negative'}
           icon="briefcase"
@@ -378,7 +448,7 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
         />
         <KpiCard
           title="Profit Margin"
-          value={`${financialData.profitMargin.toFixed(1)}%`}
+          value={<AnimatedCounter value={financialData.profitMargin} formatType="percentage" decimals={1} />}
           change={financialData.profitMarginChange !== 0 ? `${financialData.profitMarginChange >= 0 ? '+' : ''}${financialData.profitMarginChange.toFixed(1)}%` : undefined}
           changeType={financialData.profitMarginChange >= 0 ? 'positive' : 'negative'}
           icon="chart"
@@ -455,8 +525,18 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: theme.spacing[3],
-                      borderRadius: '8px',
-                      backgroundColor: theme.colors.background,
+                      borderRadius: theme.borderRadius.md,
+                      backgroundColor: theme.colors.surface,
+                      border: `1px solid ${theme.colors.border}`,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                      e.currentTarget.style.boxShadow = theme.shadows.sm;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.surface;
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>

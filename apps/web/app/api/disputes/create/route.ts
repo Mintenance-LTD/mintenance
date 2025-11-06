@@ -68,6 +68,14 @@ export async function POST(request: NextRequest) {
     // Set priority and SLA
     await DisputeWorkflowService.setDisputePriority(escrowId, priority);
 
+    // Attempt auto-resolution (runs asynchronously)
+    DisputeWorkflowService.attemptAutoResolution(escrowId).catch((error) => {
+      logger.error('Error in auto-resolution attempt', error, {
+        service: 'disputes',
+        escrowId,
+      });
+    });
+
     return NextResponse.json({
       message: 'Dispute created successfully',
       disputeId: escrowId,

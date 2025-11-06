@@ -428,20 +428,27 @@ export default function ContractorsPage() {
                     View Profile
                   </button>
                 </Link>
-                <button style={{
-                  flex: 1,
-                  height: '40px',
-                  padding: `0 ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: 'none',
-                  backgroundColor: theme.colors.primary,
-                  color: 'white',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                }}>
+                <Link
+                  href={`/contractors/${contractor.id}`}
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    padding: `0 ${theme.spacing[4]}`,
+                    borderRadius: theme.borderRadius.lg,
+                    border: 'none',
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
                   Contact
-                </button>
+                </Link>
               </div>
             </div>
           ))}

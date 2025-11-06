@@ -40,9 +40,11 @@ export function MessagesClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Set page title
+  // Set page title - only on client to prevent hydration issues
   useEffect(() => {
-    document.title = 'Messages | Mintenance';
+    if (typeof document !== 'undefined') {
+      document.title = 'Messages | Mintenance';
+    }
   }, []);
 
   useEffect(() => {

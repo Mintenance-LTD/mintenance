@@ -1,0 +1,268 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
+import { theme } from '@/lib/theme';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+
+// Initialize Stripe promise
+let stripePromise: Promise<any> | null = null;
+
+const getStripe = () => {
+  if (!stripePromise) {
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    if (!publishableKey) {
+      throw new Error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
+    }
+    stripePromise = loadStripe(publishableKey);
+  }
+  return stripePromise;
+};
+
+interface AddPaymentMethodFormProps {
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [setAsDefault, setSetAsDefault] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      setError('Stripe is not loaded. Please refresh the page.');
+      return;
+    }
+
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) {
+      setError('Card element not found. Please refresh the page.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Create payment method
+      const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+
+      if (pmError) {
+        throw new Error(pmError.message || 'Failed to create payment method');
+      }
+
+      if (!paymentMethod) {
+        throw new Error('Failed to create payment method');
+      }
+
+      // Add payment method to user's account
+      const response = await fetch('/api/payments/add-method', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentMethodId: paymentMethod.id,
+          setAsDefault,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add payment method');
+      }
+
+      // Success - reload payment methods
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add payment method');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cardElementOptions = {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: theme.colors.textPrimary,
+        fontFamily: 'Inter, system-ui, sans-serif',
+        '::placeholder': {
+          color: theme.colors.textTertiary,
+        },
+      },
+      invalid: {
+        color: theme.colors.error,
+        iconColor: theme.colors.error,
+      },
+    },
+    hidePostalCode: false,
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+      {/* Card Element */}
+      <div style={{
+        padding: theme.spacing[4],
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.surface,
+      }}>
+        <label style={{
+          display: 'block',
+          marginBottom: theme.spacing[2],
+          fontSize: theme.typography.fontSize.sm,
+          fontWeight: theme.typography.fontWeight.semibold,
+          color: theme.colors.textPrimary,
+        }}>
+          Card Information
+        </label>
+        <div style={{ minHeight: '40px' }}>
+          <CardElement options={cardElementOptions} />
+        </div>
+      </div>
+
+      {/* Set as Default Checkbox */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: theme.spacing[2],
+      }}>
+        <input
+          type="checkbox"
+          id="setAsDefault"
+          checked={setAsDefault}
+          onChange={(e) => setSetAsDefault(e.target.checked)}
+          style={{
+            width: '20px',
+            height: '20px',
+            cursor: 'pointer',
+          }}
+        />
+        <label
+          htmlFor="setAsDefault"
+          style={{
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.textSecondary,
+            cursor: 'pointer',
+          }}
+        >
+          Set as default payment method
+        </label>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div style={{
+          padding: theme.spacing[3],
+          backgroundColor: '#FEE2E2',
+          border: `1px solid ${theme.colors.error}`,
+          borderRadius: theme.borderRadius.md,
+          color: '#991B1B',
+          fontSize: theme.typography.fontSize.sm,
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[2],
+        }}>
+          <Icon name="xCircle" size={16} color={theme.colors.error} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Buttons */}
+      <div style={{
+        display: 'flex',
+        gap: theme.spacing[3],
+        justifyContent: 'flex-end',
+        marginTop: theme.spacing[2],
+      }}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={loading || !stripe}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+          }}
+        >
+          {loading ? (
+            <>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: `2px solid ${theme.colors.surface}`,
+                borderTop: `2px solid transparent`,
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }} />
+              Adding...
+            </>
+          ) : (
+            <>
+              <Icon name="check" size={16} />
+              Add Payment Method
+            </>
+          )}
+        </Button>
+      </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </form>
+  );
+}
+
+export function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div style={{
+        padding: theme.spacing[4],
+        textAlign: 'center',
+        color: theme.colors.textSecondary,
+      }}>
+        Loading Stripe...
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={getStripe()}>
+      <PaymentForm onSuccess={onSuccess} onCancel={onCancel} />
+    </Elements>
+  );
+}
+

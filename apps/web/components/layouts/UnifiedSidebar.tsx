@@ -109,7 +109,8 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
   }, [resolvedUserRole]);
 
   const isActive = (href: string) => {
-    // During SSR, pathname might not be available, so return false to ensure consistency
+    // Use pathname directly - it's available on both server and client in Next.js 15
+    // Return false if pathname is not available (shouldn't happen, but defensive)
     if (!pathname) {
       return false;
     }
@@ -143,9 +144,8 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
         {/* Navigation Items */}
         <nav className={styles.nav} suppressHydrationWarning>
           {navItems.map((item) => {
-            // Always return false for active during SSR to ensure consistency
-            // Only calculate active state after component is mounted
-            const active = mounted && isActive(item.href);
+            // Calculate active state - pathname is available on both server and client
+            const active = isActive(item.href);
             const linkClassName = `${styles.navLink} ${active ? styles.navLinkActive : ''}`;
             const textClassName = `${styles.navLinkText} ${active ? styles.navLinkTextActive : ''}`;
             
@@ -162,7 +162,7 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
                     {item.label}
                   </span>
                 )}
-                {active && mounted && (
+                {active && (
                   <div className={styles.activeIndicator} />
                 )}
               </Link>

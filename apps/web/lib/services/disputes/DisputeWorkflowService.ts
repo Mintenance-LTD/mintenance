@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { DisputeResolutionAgent } from '../agents/DisputeResolutionAgent';
 
 export type DisputePriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -52,6 +53,41 @@ export class DisputeWorkflowService {
       return true;
     } catch (error) {
       logger.error('Error setting dispute priority', error, {
+        service: 'DisputeWorkflowService',
+        escrowId,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Attempt auto-resolution for a dispute
+   */
+  static async attemptAutoResolution(escrowId: string): Promise<boolean> {
+    try {
+      // Get escrow details
+      const { data: escrowDetails } = await serverSupabase
+        .from('escrow_payments')
+        .select('homeowner_id, contractor_id')
+        .eq('id', escrowId)
+        .single();
+
+      if (!escrowDetails) {
+        return false;
+      }
+
+      // Attempt auto-resolution
+      const result = await DisputeResolutionAgent.attemptAutoResolution(
+        escrowId,
+        undefined, // jobId will be fetched from escrow
+        {
+          userId: escrowDetails.homeowner_id,
+        }
+      );
+
+      return result?.success || false;
+    } catch (error) {
+      logger.error('Error attempting auto-resolution', error, {
         service: 'DisputeWorkflowService',
         escrowId,
       });

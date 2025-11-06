@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -231,6 +232,51 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(allNotifications.slice(0, 20));
   } catch (error) {
     console.error('Notification API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+/**
+ * Track notification engagement (PATCH endpoint)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { notificationId, userId, action } = body; // action: 'opened', 'clicked', 'dismissed'
+
+    if (!notificationId || !userId || !action) {
+      return NextResponse.json(
+        { error: 'Missing required fields: notificationId, userId, action' },
+        { status: 400 }
+      );
+    }
+
+    if (!['opened', 'clicked', 'dismissed'].includes(action)) {
+      return NextResponse.json(
+        { error: 'Invalid action. Must be: opened, clicked, or dismissed' },
+        { status: 400 }
+      );
+    }
+
+    // Update notification read status if opened/clicked
+    if (action === 'opened' || action === 'clicked') {
+      await serverSupabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', userId);
+    }
+
+    // Track engagement via NotificationService
+    await NotificationService.trackEngagement(notificationId, userId, {
+      opened: action === 'opened' || action === 'clicked',
+      clicked: action === 'clicked',
+      dismissed: action === 'dismissed',
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Notification engagement tracking error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

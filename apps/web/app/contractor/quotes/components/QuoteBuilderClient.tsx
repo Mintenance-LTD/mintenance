@@ -11,6 +11,9 @@ import { Card } from '@/components/ui/Card.unified';
 import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
 
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
 
@@ -86,12 +89,12 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
   const summaryCards = useMemo(
     () => [
-      { label: 'Total quotes', value: stats.total_quotes.toString(), icon: 'document' },
-      { label: 'Draft', value: stats.draft_quotes.toString(), icon: 'clipboard' },
-      { label: 'Sent', value: stats.sent_quotes.toString(), icon: 'megaphone' },
-      { label: 'Accepted', value: stats.accepted_quotes.toString(), icon: 'checkCircle' },
-      { label: 'Rejected', value: stats.rejected_quotes.toString(), icon: 'xCircle' },
-      { label: 'Total value', value: formatCurrency(stats.total_value), icon: 'currencyPound' },
+      { label: 'Total quotes', value: stats.total_quotes, icon: 'document', variant: 'primary' as const },
+      { label: 'Draft', value: stats.draft_quotes, icon: 'clipboard', variant: 'primary' as const },
+      { label: 'Sent', value: stats.sent_quotes, icon: 'megaphone', variant: 'primary' as const },
+      { label: 'Accepted', value: stats.accepted_quotes, icon: 'checkCircle', variant: 'success' as const },
+      { label: 'Rejected', value: stats.rejected_quotes, icon: 'xCircle', variant: 'warning' as const },
+      { label: 'Total value', value: stats.total_value, icon: 'currencyPound', variant: 'success' as const, isCurrency: true },
     ],
     [stats],
   );
@@ -250,7 +253,18 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
       <StatsGrid>
         {summaryCards.map((card) => (
-          <Card.Metric key={card.label} label={card.label} value={card.value} icon={card.icon} />
+          <Card.Metric 
+            key={card.label} 
+            label={card.label} 
+            value={
+              card.isCurrency 
+                ? <AnimatedCounter value={card.value} formatType="currency" currency="GBP" prefix="£" />
+                : <AnimatedCounter value={card.value} />
+            }
+            icon={card.icon}
+            gradient={true}
+            gradientVariant={card.variant}
+          />
         ))}
       </StatsGrid>
 
@@ -269,15 +283,31 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                   key={filter.id}
                   onClick={() => setSelectedFilter(filter.id)}
                   style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    borderRadius: 999,
-                    border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                    backgroundColor: isActive ? theme.colors.backgroundSecondary : theme.colors.surface,
+                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                    borderRadius: theme.borderRadius.full,
+                    border: `2px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
+                    background: isActive 
+                      ? `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.primary}08 100%)`
+                      : theme.colors.surface,
                     color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                     cursor: 'pointer',
                     textTransform: 'capitalize',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isActive ? theme.shadows.sm : 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderColor = theme.colors.primary;
+                      e.currentTarget.style.color = theme.colors.textPrimary;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.borderColor = theme.colors.border;
+                      e.currentTarget.style.color = theme.colors.textSecondary;
+                    }
                   }}
                 >
                   {filter.label}
@@ -287,60 +317,82 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
           </nav>
 
           {filteredQuotes.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: `${theme.spacing[12]} ${theme.spacing[6]}`,
-                color: theme.colors.textSecondary,
-                border: `1px dashed ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                backgroundColor: theme.colors.backgroundSecondary,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: theme.spacing[4] }}>
-                <Icon name="fileText" size={40} color={theme.colors.textQuaternary} />
-              </div>
-              <h3 style={{ margin: 0, marginBottom: theme.spacing[2], color: theme.colors.textPrimary }}>
-                No quotes in this view
-              </h3>
-              <p style={{ margin: 0 }}>
-                {selectedFilter === 'all'
+            <EmptyState
+              icon="fileText"
+              title="No quotes in this view"
+              description={
+                selectedFilter === 'all'
                   ? 'Create your first quote to start tracking proposals.'
-                  : `There are no ${selectedFilter} quotes right now.`}
-              </p>
-            </div>
+                  : `There are no ${selectedFilter} quotes right now.`
+              }
+              actionLabel={selectedFilter === 'all' ? 'Create Quote' : undefined}
+              onAction={selectedFilter === 'all' ? () => router.push('/contractor/quotes/create') : undefined}
+              variant="illustrated"
+            />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
               {filteredQuotes.map((quote) => {
                 const busy = actionBusyId === quote.id;
+                const statusColor = STATUS_TONE[quote.status] === 'success'
+                  ? theme.colors.success
+                  : STATUS_TONE[quote.status] === 'error'
+                    ? theme.colors.error
+                    : theme.colors.primary;
+
                 return (
                   <article
                     key={quote.id}
                     style={{
-                      borderRadius: '18px',
+                      borderRadius: '20px',
                       border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      padding: theme.spacing[5],
+                      borderLeft: `4px solid ${statusColor}`,
+                      backgroundColor: theme.colors.surface,
+                      padding: theme.spacing[6],
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: theme.spacing[3],
+                      gap: theme.spacing[4],
+                      boxShadow: theme.shadows.sm,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = theme.shadows.xl;
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = theme.shadows.sm;
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
+                    {/* Status indicator overlay */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: '200px',
+                      background: `linear-gradient(90deg, transparent 0%, ${statusColor}05 100%)`,
+                      pointerEvents: 'none',
+                    }} />
                     <header
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         gap: theme.spacing[3],
+                        position: 'relative',
+                        zIndex: 1,
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
                         <h3
                           style={{
                             margin: 0,
-                            fontSize: theme.typography.fontSize.lg,
-                            fontWeight: theme.typography.fontWeight.semibold,
+                            fontSize: theme.typography.fontSize.xl,
+                            fontWeight: theme.typography.fontWeight.bold,
                             color: theme.colors.textPrimary,
+                            letterSpacing: '-0.01em',
                           }}
                         >
                           {quote.project_title || 'Untitled quote'}

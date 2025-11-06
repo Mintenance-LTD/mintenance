@@ -175,7 +175,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
         setShareModalPost({
           id: postId,
           title: post?.title || '',
-          shareLink: data.share_link || `${window.location.origin}/contractor/social/post/${postId}`,
+          shareLink: data.share_link || (typeof window !== 'undefined' ? `${window.location.origin}/contractor/social/post/${postId}` : `/contractor/social/post/${postId}`),
         });
       }
     } catch (error) {
@@ -357,12 +357,22 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                 key={post.id}
                 style={{
                   backgroundColor: theme.colors.surface,
-                  borderRadius: '20px',
+                  borderRadius: theme.borderRadius.xl,
                   border: `1px solid ${theme.colors.border}`,
                   padding: theme.spacing[6],
                   display: 'flex',
                   flexDirection: 'column',
                   gap: theme.spacing[4],
+                  boxShadow: theme.shadows.sm,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = theme.shadows.md;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 <header style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>

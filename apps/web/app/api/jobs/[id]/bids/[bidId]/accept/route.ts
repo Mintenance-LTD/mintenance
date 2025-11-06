@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
+import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
+import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 
 export async function POST(
   request: NextRequest,
@@ -292,7 +295,7 @@ export async function POST(
     try {
       const { data: rejectedBids } = await serverSupabase
         .from('bids')
-        .select('contractor_id, amount')
+        .select('id, contractor_id, amount')
         .eq('job_id', jobId)
         .eq('status', 'rejected');
 
@@ -317,6 +320,16 @@ export async function POST(
             error: rejectedNotificationError.message,
           });
         }
+
+        // Learn from rejected bids for pricing agent
+        rejectedBids.forEach((rejectedBid) => {
+          PricingAgent.learnFromBidOutcome(rejectedBid.id, false).catch((error) => {
+            console.error('Error learning from rejected bid for pricing', error, {
+              service: 'jobs',
+              bidId: rejectedBid.id,
+            });
+          });
+        });
       }
     } catch (rejectedNotificationError) {
       console.error('Unexpected error creating rejected bid notifications', {
@@ -324,6 +337,27 @@ export async function POST(
         error: rejectedNotificationError instanceof Error ? rejectedNotificationError.message : 'Unknown error',
       });
     }
+
+    // Learn from this acceptance for future matching improvements
+    LearningMatchingService.learnFromAcceptance(
+      jobId,
+      user.id,
+      bid.contractor_id,
+      Number((bid as any).amount || (bid as any).bid_amount || 0)
+    ).catch((error) => {
+      console.error('Error learning from acceptance', error, {
+        service: 'jobs',
+        jobId,
+      });
+    });
+
+    // Learn from bid acceptance for pricing agent
+    PricingAgent.learnFromBidOutcome(bidId, true).catch((error) => {
+      console.error('Error learning from bid acceptance for pricing', error, {
+        service: 'jobs',
+        bidId,
+      });
+    });
 
     console.log('Bid accepted successfully', {
       service: 'jobs',

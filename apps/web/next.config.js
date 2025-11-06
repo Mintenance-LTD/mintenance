@@ -91,7 +91,7 @@ const nextConfig = {
       { key: 'X-Frame-Options', value: 'DENY' },
       { key: 'X-XSS-Protection', value: '1; mode=block' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=()' },
+      { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")' },
     ];
 
     // Add CSP (relaxed in development, strict in production)

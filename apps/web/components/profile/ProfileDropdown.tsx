@@ -56,10 +56,6 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
     router.push(href);
   };
 
-  if (!mounted) {
-    return null;
-  }
-
   return (
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       {/* Profile Button */}
@@ -115,8 +111,8 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
         )}
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
+      {/* Dropdown Menu - Only render when mounted to prevent hydration issues */}
+      {mounted && isOpen && (
         <div
           style={{
             position: 'absolute',
@@ -216,6 +212,72 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
               </div>
             </div>
           </button>
+
+          {/* Quick Actions Separator */}
+          <div
+            style={{
+              height: '1px',
+              backgroundColor: theme.colors.border,
+              margin: `${theme.spacing[2]} 0`,
+            }}
+          />
+
+          {/* Quick Actions */}
+          {[
+            { label: 'View All Jobs', href: '/contractor/bid', icon: 'clipboard' },
+            { label: 'Manage Quotes', href: '/contractor/quotes', icon: 'fileText' },
+            { label: 'Finance Dashboard', href: '/contractor/finance', icon: 'currencyPound' },
+            { label: 'View Analytics', href: '/contractor/reporting', icon: 'chart' },
+          ].map((action) => (
+            <button
+              key={action.href}
+              type="button"
+              onClick={() => handleMenuItemClick(action.href)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                borderRadius: theme.borderRadius.md,
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: `${theme.colors.primary}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name={action.icon as any} size={18} color={theme.colors.primary} />
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                {action.label}
+              </div>
+            </button>
+          ))}
 
           <button
             type="button"

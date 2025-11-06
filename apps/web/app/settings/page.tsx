@@ -255,6 +255,35 @@ export default function SettingsPage() {
               flexDirection: 'column',
               gap: theme.spacing[2],
             }}>
+              <Link
+                href="/settings/payment-methods"
+                style={{
+                  width: '100%',
+                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textPrimary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  transition: 'all 0.2s',
+                  textAlign: 'left',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }}
+              >
+                <Icon name="creditCard" size={16} />
+                <span>Payment Methods</span>
+              </Link>
               <button
                 onClick={() => setShowPrivacyModal(true)}
                 style={{

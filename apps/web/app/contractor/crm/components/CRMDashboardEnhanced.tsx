@@ -4,6 +4,8 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { useRouter } from 'next/navigation';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface Client {
   id: string;
@@ -161,11 +163,19 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
         gap: theme.spacing[4],
       }}>
         <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.xl,
+          ...getGradientCardStyle('primary'),
           padding: theme.spacing[5],
-          border: `1px solid ${theme.colors.border}`,
-        }}>
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = theme.shadows.lg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = theme.shadows.sm;
+        }}
+        >
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -179,15 +189,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             }}>
               Total Clients
             </span>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: '#DBEAFE',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <div style={getIconContainerStyle('#2563EB', 40)}>
               <Icon name="users" size={20} color="#2563EB" />
             </div>
           </div>
@@ -197,16 +199,24 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             color: theme.colors.textPrimary,
             fontVariantNumeric: 'tabular-nums',
           }}>
-            {analytics.total_clients}
+            <AnimatedCounter value={analytics.total_clients} />
           </div>
         </div>
 
         <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.xl,
+          ...getGradientCardStyle('success'),
           padding: theme.spacing[5],
-          border: `1px solid ${theme.colors.border}`,
-        }}>
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = theme.shadows.lg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = theme.shadows.sm;
+        }}
+        >
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -220,15 +230,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             }}>
               New This Month
             </span>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: '#D1FAE5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <div style={getIconContainerStyle('#065F46', 40)}>
               <Icon name="plus" size={20} color="#065F46" />
             </div>
           </div>
@@ -243,7 +245,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
               color: theme.colors.textPrimary,
               fontVariantNumeric: 'tabular-nums',
             }}>
-              {analytics.new_clients_this_month}
+              <AnimatedCounter value={analytics.new_clients_this_month} />
             </div>
             {analytics.month_over_month_change !== undefined && analytics.month_over_month_change !== 0 && (
               <div style={{
@@ -261,11 +263,19 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
         </div>
 
         <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.xl,
+          ...getGradientCardStyle('warning'),
           padding: theme.spacing[5],
-          border: `1px solid ${theme.colors.border}`,
-        }}>
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = theme.shadows.lg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = theme.shadows.sm;
+        }}
+        >
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -279,15 +289,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             }}>
               Repeat Clients
             </span>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: '#FEF3C7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <div style={getIconContainerStyle('#92400E', 40)}>
               <Icon name="briefcase" size={20} color="#92400E" />
             </div>
           </div>
@@ -298,7 +300,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             fontVariantNumeric: 'tabular-nums',
             marginBottom: '4px',
           }}>
-            {analytics.repeat_clients}
+            <AnimatedCounter value={analytics.repeat_clients} />
           </div>
           <div style={{
             fontSize: theme.typography.fontSize.xs,
@@ -311,11 +313,19 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
         </div>
 
         <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.xl,
+          ...getGradientCardStyle('success'),
           padding: theme.spacing[5],
-          border: `1px solid ${theme.colors.border}`,
-        }}>
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = theme.shadows.lg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = theme.shadows.sm;
+        }}
+        >
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -329,15 +339,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             }}>
               Avg Lifetime Value
             </span>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: '#E0E7FF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <div style={getIconContainerStyle('#3730A3', 40)}>
               <Icon name="currencyPound" size={20} color="#3730A3" />
             </div>
           </div>
@@ -347,7 +349,13 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             color: theme.colors.textPrimary,
             fontVariantNumeric: 'tabular-nums',
           }}>
-            £{analytics.client_lifetime_value.toFixed(0)}
+            <AnimatedCounter 
+              value={analytics.client_lifetime_value} 
+              formatType="currency" 
+              currency="GBP" 
+              prefix="£" 
+              decimals={0}
+            />
           </div>
         </div>
       </div>

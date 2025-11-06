@@ -1,6 +1,7 @@
 import './globals.css'
 import '../styles/responsive.css'
 import '../styles/print.css'
+import '../styles/animations-enhanced.css'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import CookieConsent from '../components/CookieConsent'

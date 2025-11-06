@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
+import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 /**
  * Unified Card Component
@@ -34,7 +35,7 @@ import { Icon } from './Icon';
  * />
  */
 
-export type CardVariant = 'default' | 'elevated' | 'outlined' | 'highlighted' | 'bordered';
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'highlighted' | 'bordered' | 'gradient-primary' | 'gradient-success' | 'gradient-warning';
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
 export interface CardProps {
@@ -103,6 +104,15 @@ export function Card({
       border: `2px solid ${theme.colors.border}`,
       boxShadow: 'none',
     },
+    'gradient-primary': {
+      ...getGradientCardStyle('primary'),
+    },
+    'gradient-success': {
+      ...getGradientCardStyle('success'),
+    },
+    'gradient-warning': {
+      ...getGradientCardStyle('warning'),
+    },
   };
 
   // Padding values
@@ -124,12 +134,11 @@ export function Card({
     position: 'relative',
   };
 
-  // Hover styles
+  // Hover styles - Enhanced with better lift effect
   const hoverStyles: React.CSSProperties =
     isInteractive && (hover || isHovered)
       ? {
-          transform: 'translateY(-2px)',
-          boxShadow: theme.shadows.xl,
+          ...getCardHoverStyle(),
         }
       : {};
 
@@ -308,7 +317,7 @@ Card.Footer = CardFooter;
  */
 interface MetricCardProps {
   label: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   subtitle?: string;
   icon?: string;
   trend?: {
@@ -326,7 +335,9 @@ export function MetricCard({
   icon,
   trend,
   color = theme.colors.primary,
-}: MetricCardProps) {
+  gradient = false,
+  gradientVariant = 'primary',
+}: MetricCardProps & { gradient?: boolean; gradientVariant?: 'primary' | 'success' | 'warning' }) {
   const getTrendIcon = () => {
     if (!trend) return null;
     switch (trend.direction) {
@@ -351,8 +362,20 @@ export function MetricCard({
     }
   };
 
+  const cardStyle = gradient
+    ? getGradientCardStyle(gradientVariant)
+    : {};
+
   return (
-    <Card padding="lg">
+    <Card 
+      padding="lg" 
+      hover={true}
+      style={{
+        ...cardStyle,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
       <div
         style={{
@@ -375,25 +398,14 @@ export function MetricCard({
           {label}
         </span>
         {icon && (
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: `${color}15`,
-              border: `1px solid ${color}40`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Icon name={icon} size={20} color={color} />
+          <div style={getIconContainerStyle(color, 48)}>
+            <Icon name={icon} size={24} color={color} />
           </div>
         )}
       </div>
 
       {/* Value */}
-      <span
+      <div
         style={{
           fontSize: theme.typography.fontSize['4xl'],
           fontWeight: theme.typography.fontWeight.bold,
@@ -404,7 +416,7 @@ export function MetricCard({
         }}
       >
         {value}
-      </span>
+      </div>
 
       {/* Subtitle or Trend */}
       {(subtitle || trend) && (

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { theme } from '@/lib/theme';
+import { getGradient } from '@/lib/theme-enhancements';
 
 export type ButtonVariant =
   | 'primary'
@@ -10,7 +12,9 @@ export type ButtonVariant =
   | 'ghost'
   | 'danger'
   | 'destructive'
-  | 'success';
+  | 'success'
+  | 'gradient-primary'
+  | 'gradient-success';
 
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -100,13 +104,13 @@ export function Button({
     outline: cn(
       'bg-transparent border-2',
       isDisabled ? 'border-gray-300 text-gray-500' : 'border-primary text-primary',
-      !isDisabled && 'hover:bg-gray-50 hover:border-primary-800',
+      !isDisabled && 'hover:bg-gray-50 hover:border-primary-800 hover:shadow-md',
       !isDisabled && 'active:scale-[0.98]'
     ),
     ghost: cn(
       'bg-transparent',
       isDisabled ? 'text-gray-500' : 'text-gray-900',
-      !isDisabled && 'hover:bg-gray-100',
+      !isDisabled && 'hover:bg-gray-100 hover:shadow-sm',
       !isDisabled && 'active:scale-[0.98]'
     ),
     danger: cn(
@@ -124,6 +128,33 @@ export function Button({
       !isDisabled && 'hover:bg-[#248A3D] hover:-translate-y-0.5 hover:shadow-lg',
       !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
     ),
+    'gradient-primary': cn(
+      isDisabled ? 'bg-gray-400' : 'text-white shadow-md',
+      !isDisabled && 'hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+    'gradient-success': cn(
+      isDisabled ? 'bg-gray-400' : 'text-white shadow-md',
+      !isDisabled && 'hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+  };
+  
+  // Get gradient background style for gradient variants
+  const getGradientStyle = (): React.CSSProperties => {
+    if (isDisabled) return {};
+    
+    if (variant === 'gradient-primary') {
+      return {
+        background: getGradient('primary'),
+      };
+    }
+    if (variant === 'gradient-success') {
+      return {
+        background: getGradient('success'),
+      };
+    }
+    return {};
   };
 
   // Focus classes (always applied for accessibility)
@@ -137,6 +168,8 @@ export function Button({
   const effectiveAriaBusy = ariaBusy !== undefined ? ariaBusy : loading;
   const effectiveAriaDisabled = ariaDisabled !== undefined ? ariaDisabled : isDisabled;
 
+  const gradientStyle = getGradientStyle();
+
   return (
     <button
       {...props}
@@ -149,6 +182,10 @@ export function Button({
         activeClasses,
         className
       )}
+      style={{
+        ...gradientStyle,
+        ...props.style,
+      }}
       disabled={isDisabled}
       aria-label={effectiveAriaLabel}
       aria-busy={effectiveAriaBusy}

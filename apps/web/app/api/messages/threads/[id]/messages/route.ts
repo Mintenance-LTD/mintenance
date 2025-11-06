@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import {
   mapMessageRow,
   MESSAGE_TYPES,
@@ -246,6 +247,18 @@ export async function POST(request: NextRequest, context: Params) {
         jobId: threadId,
       });
     }
+
+    // Trigger job status evaluation after new message (for auto-complete detection)
+    // Run asynchronously to avoid blocking the response
+    JobStatusAgent.evaluateAutoComplete(threadId, {
+      jobId: threadId,
+      userId: user.id,
+    }).catch((error) => {
+      console.error('Error in job status evaluation', error, {
+        service: 'messages',
+        jobId: threadId,
+      });
+    });
     
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {

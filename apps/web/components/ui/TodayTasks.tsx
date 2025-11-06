@@ -53,6 +53,7 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
       }}
     >
       <h2
+        suppressHydrationWarning
         style={{
           margin: 0,
           marginBottom: theme.spacing[6],
@@ -77,6 +78,7 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            suppressHydrationWarning
             style={{
               background: 'none',
               border: 'none',
@@ -95,6 +97,7 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
           >
             {tab.label}
             <span
+              suppressHydrationWarning
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

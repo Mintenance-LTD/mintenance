@@ -6,6 +6,10 @@ import { GoogleMapContainer } from '@/components/maps/GoogleMapContainer';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge.unified';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 import { formatMoney } from '@/lib/utils/currency';
 
 interface ContractorLocation {
@@ -424,206 +428,285 @@ export function JobsNearYouClient({
   const renderJobCard = (job: JobWithDistance, isRecommended = false) => (
     <Card
       key={job.id}
-      padding="md"
+      padding="lg"
       hover={true}
       onClick={() => router.push(`/contractor/bid/${job.id}`)}
       style={{
         cursor: 'pointer',
         position: 'relative',
-        border: isRecommended ? `2px solid ${theme.colors.primary}` : undefined,
+        ...getCardHoverStyle(),
+        border: isRecommended ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
+        boxShadow: isRecommended ? theme.shadows.lg : theme.shadows.md,
+        borderRadius: theme.borderRadius.xl,
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {isRecommended && (
-        <div
+        <Badge
+          variant="primary"
           style={{
             position: 'absolute',
-            top: theme.spacing[2],
-            right: theme.spacing[2],
-            backgroundColor: theme.colors.primary,
-            color: theme.colors.white,
-            padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-            borderRadius: theme.borderRadius.md,
-            fontSize: theme.typography.fontSize.xs,
-            fontWeight: theme.typography.fontWeight.semibold,
+            top: theme.spacing[3],
+            right: theme.spacing[3],
             zIndex: 10,
+            boxShadow: theme.shadows.sm,
           }}
         >
           Recommended
-        </div>
+        </Badge>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3] }}>
+      
+      {/* Header with title and bookmark */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: theme.spacing[2], marginBottom: theme.spacing[2] }}>
-            <h3
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2] }}>
+            {job.category && (
+              <Badge variant="info" style={{ fontSize: theme.typography.fontSize.xs }}>
+                {job.category}
+              </Badge>
+            )}
+            {job.created_at && new Date(job.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 && (
+              <Badge variant="success" style={{ fontSize: theme.typography.fontSize.xs }}>
+                NEW
+              </Badge>
+            )}
+          </div>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              lineHeight: 1.3,
+              marginBottom: theme.spacing[2],
+            }}
+          >
+            {job.title}
+          </h3>
+          {job.description && (
+            <p
               style={{
                 margin: 0,
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                flex: 1,
-              }}
-            >
-              {job.title}
-            </h3>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSaveJob(job.id, job.isSaved || false);
-              }}
-              disabled={savingJobId === job.id}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: savingJobId === job.id ? 'wait' : 'pointer',
-                padding: theme.spacing[1],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              aria-label={job.isSaved ? 'Unsave job' : 'Save job'}
-            >
-              {savingJobId === job.id ? (
-                <Icon 
-                  name="loader" 
-                  size={20} 
-                  color={theme.colors.textSecondary}
-                  style={{
-                    animation: 'spin 1s linear infinite',
-                  }}
-                />
-              ) : (
-                <Icon 
-                  name={job.isSaved ? "bookmark" : "bookmarkOutline"} 
-                  size={20} 
-                  color={job.isSaved ? theme.colors.primary : theme.colors.textSecondary} 
-                />
-              )}
-            </button>
-          </div>
-          
-          {job.location && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-                marginTop: theme.spacing[1],
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.textSecondary,
+                lineHeight: 1.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
               }}
             >
-              <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
-              <span>{job.location}</span>
-            </div>
-          )}
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginTop: theme.spacing[2] }}>
-            {job.distance !== undefined && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1],
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.primary,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                <Icon name="mapPin" size={14} color={theme.colors.primary} />
-                <span>{job.distance.toFixed(1)} km</span>
-              </div>
-            )}
-            
-            {job.skillMatchCount !== undefined && job.skillMatchCount > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1],
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.success,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                <Icon name="checkCircle" size={14} color={theme.colors.success} />
-                <span>{job.skillMatchCount} match{job.skillMatchCount !== 1 ? 'es' : ''}</span>
-              </div>
-            )}
-            
-            {job.budget && (
-              <div
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.success,
-                }}
-              >
-                {formatMoney(parseFloat(job.budget))}
-              </div>
-            )}
-          </div>
-
-          {job.matchedSkills && job.matchedSkills.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[1], marginTop: theme.spacing[2] }}>
-              {job.matchedSkills.slice(0, 3).map((skill, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                    backgroundColor: theme.colors.success + '20',
-                    color: theme.colors.success,
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.medium,
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
-              {job.matchedSkills.length > 3 && (
-                <span
-                  style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.textSecondary,
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.xs,
-                  }}
-                >
-                  +{job.matchedSkills.length - 3}
-                </span>
-              )}
-            </div>
+              {job.description}
+            </p>
           )}
         </div>
-      </div>
-      
-      {job.description && (
-        <p
-          style={{
-            margin: `${theme.spacing[2]} 0 0 0`,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSaveJob(job.id, job.isSaved || false);
           }}
+          disabled={savingJobId === job.id}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: savingJobId === job.id ? 'wait' : 'pointer',
+            padding: theme.spacing[2],
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: theme.borderRadius.md,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            if (savingJobId !== job.id) {
+              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+          aria-label={job.isSaved ? 'Unsave job' : 'Save job'}
         >
-          {job.description}
-        </p>
+          {savingJobId === job.id ? (
+            <Icon 
+              name="loader" 
+              size={20} 
+              color={theme.colors.textSecondary}
+              style={{
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+          ) : (
+            <Icon 
+              name={job.isSaved ? "bookmark" : "bookmarkOutline"} 
+              size={20} 
+              color={job.isSaved ? theme.colors.primary : theme.colors.textSecondary} 
+            />
+          )}
+        </button>
+      </div>
+
+      {/* Budget and Location Metrics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: theme.spacing[3],
+        marginBottom: theme.spacing[4],
+        padding: theme.spacing[4],
+        ...getGradientCardStyle('success'),
+        borderRadius: theme.borderRadius.lg,
+        border: `1px solid ${theme.colors.success}20`,
+      }}>
+        {job.budget && (
+          <div>
+            <div style={{
+              fontSize: theme.typography.fontSize.xs,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textSecondary,
+              marginBottom: theme.spacing[1],
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}>
+              Budget
+            </div>
+            <div style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+            }}>
+              <AnimatedCounter value={parseFloat(job.budget)} formatType="currency" currency="GBP" />
+            </div>
+          </div>
+        )}
+        {job.location && (
+          <div>
+            <div style={{
+              fontSize: theme.typography.fontSize.xs,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textSecondary,
+              marginBottom: theme.spacing[1],
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}>
+              Location
+            </div>
+            <div style={{
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[1],
+            }}>
+              <Icon name="mapPin" size={16} color={theme.colors.primary} />
+              <span>{job.location.split(',').slice(-2).join(',').trim()}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Job Metadata */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[3] }}>
+        {job.distance !== undefined && (
+          <Badge variant="primary" style={{ fontSize: theme.typography.fontSize.xs }}>
+            <Icon name="mapPin" size={12} color={theme.colors.primary} style={{ marginRight: theme.spacing[1] }} />
+            {job.distance.toFixed(1)} km
+          </Badge>
+        )}
+        
+        {job.skillMatchCount !== undefined && job.skillMatchCount > 0 && (
+          <Badge variant="success" style={{ fontSize: theme.typography.fontSize.xs }}>
+            <Icon name="checkCircle" size={12} color={theme.colors.success} style={{ marginRight: theme.spacing[1] }} />
+            {job.skillMatchCount} match{job.skillMatchCount !== 1 ? 'es' : ''}
+          </Badge>
+        )}
+      </div>
+
+      {/* Matched Skills */}
+      {job.matchedSkills && job.matchedSkills.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[4] }}>
+          {job.matchedSkills.slice(0, 3).map((skill, idx) => (
+            <Badge
+              key={idx}
+              variant="success"
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                backgroundColor: `${theme.colors.success}20`,
+                color: theme.colors.success,
+                border: `1px solid ${theme.colors.success}40`,
+              }}
+            >
+              {skill}
+            </Badge>
+          ))}
+          {job.matchedSkills.length > 3 && (
+            <Badge variant="info" style={{ fontSize: theme.typography.fontSize.xs }}>
+              +{job.matchedSkills.length - 3}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Posted By */}
+      {job.homeowner && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[2],
+          marginBottom: theme.spacing[4],
+          padding: theme.spacing[2],
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderRadius: theme.borderRadius.md,
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: theme.borderRadius.full,
+            backgroundColor: theme.colors.primary + '20',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <span style={{
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.primary,
+            }}>
+              {job.homeowner.first_name?.[0] || job.homeowner.email?.[0] || 'U'}
+            </span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              marginBottom: theme.spacing[1],
+            }}>
+              Posted by
+            </div>
+            <div style={{
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              {job.homeowner.first_name && job.homeowner.last_name
+                ? `${job.homeowner.first_name} ${job.homeowner.last_name}`
+                : job.homeowner.email || 'Unknown'}
+            </div>
+          </div>
+        </div>
       )}
       
+      {/* Footer with date and action */}
       <div
         style={{
-          marginTop: theme.spacing[3],
-          paddingTop: theme.spacing[3],
+          paddingTop: theme.spacing[4],
           borderTop: `1px solid ${theme.colors.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: theme.spacing[2],
+          gap: theme.spacing[3],
         }}
       >
         <span
@@ -632,39 +715,23 @@ export function JobsNearYouClient({
             color: theme.colors.textTertiary,
           }}
         >
-          {new Date(job.created_at).toLocaleDateString()}
+          {new Date(job.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
-        <button
+        <Button
+          variant="primary"
           onClick={(e) => {
             e.stopPropagation();
             router.push(`/contractor/bid/${job.id}`);
           }}
           style={{
-            padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-            backgroundColor: theme.colors.primary,
-            color: theme.colors.textInverse,
-            border: 'none',
-            borderRadius: theme.borderRadius.md,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.semibold,
-            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: theme.spacing[1],
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.primary;
-            e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
           Quick Bid
-          <Icon name="arrowRight" size={14} color={theme.colors.textInverse} />
-        </button>
+          <Icon name="arrowRight" size={14} />
+        </Button>
       </div>
     </Card>
   );
@@ -693,76 +760,132 @@ export function JobsNearYouClient({
       {/* Header */}
       <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: theme.spacing[4],
+          ...getGradientCardStyle('primary'),
+          padding: theme.spacing[8],
+          borderRadius: theme.borderRadius.xl,
+          border: `1px solid ${theme.colors.border}`,
+          boxShadow: theme.shadows.md,
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            Jobs Near You
-          </h1>
-          <p
-            style={{
-              margin: `${theme.spacing[2]} 0 0 0`,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {contractorLocation.city || contractorLocation.country
-              ? `Showing jobs near ${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}`
-              : 'Find jobs in your area'}
-          </p>
-        </div>
-        <button
-          onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
+        <div
           style={{
-            padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-            backgroundColor: theme.colors.backgroundSecondary,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.md,
-            cursor: 'pointer',
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: theme.spacing[2],
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.textPrimary,
+            flexWrap: 'wrap',
+            gap: theme.spacing[4],
           }}
         >
-              <Icon name={viewMode === 'map' ? 'menu' : 'mapPin'} size={18} color={theme.colors.textPrimary} />
-          {viewMode === 'map' ? 'List View' : 'Map View'}
-        </button>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+              <div style={getIconContainerStyle(theme.colors.primary, 48)}>
+                <Icon name="mapPin" size={24} color={theme.colors.primary} />
+              </div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: theme.typography.fontSize['3xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Discover Jobs
+              </h1>
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textSecondary,
+                marginLeft: '72px', // Align with title after icon
+              }}
+            >
+              {contractorLocation.city || contractorLocation.country
+                ? `Find your next project opportunity near ${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}`
+                : 'Find your next project opportunity'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+            {filteredAndSortedJobs.length > 0 && (
+              <div
+                style={{
+                  ...getGradientCardStyle('success'),
+                  padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
+                  borderRadius: theme.borderRadius.lg,
+                  border: `1px solid ${theme.colors.success}20`,
+                  textAlign: 'center',
+                  minWidth: '100px',
+                }}
+              >
+                <div style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
+                  <AnimatedCounter value={filteredAndSortedJobs.length} />
+                </div>
+                <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, marginTop: theme.spacing[1] }}>
+                  remaining
+                </div>
+              </div>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}
+            >
+              <Icon name={viewMode === 'map' ? 'menu' : 'mapPin'} size={18} />
+              {viewMode === 'map' ? 'List View' : 'Map View'}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Filters and Sorting */}
-      <Card padding="md">
+      <Card 
+        padding="lg" 
+        hover={false}
+        style={{
+          ...getGradientCardStyle('primary'),
+          border: `1px solid ${theme.colors.border}`,
+          boxShadow: theme.shadows.sm,
+        }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[3], alignItems: 'center' }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+          }}>
+            Filters & Sorting
+          </h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[4], alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
                 Sort:
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
                 style={{
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                   border: `1px solid ${theme.colors.border}`,
                   borderRadius: theme.borderRadius.md,
                   fontSize: theme.typography.fontSize.sm,
                   backgroundColor: theme.colors.background,
                   color: theme.colors.textPrimary,
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.primary;
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.border;
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 <option value="skillMatch">Best Match</option>
@@ -773,20 +896,29 @@ export function JobsNearYouClient({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
                 Max Distance:
               </label>
               <select
                 value={filters.maxDistance}
                 onChange={(e) => setFilters({ ...filters, maxDistance: Number(e.target.value) })}
                 style={{
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                   border: `1px solid ${theme.colors.border}`,
                   borderRadius: theme.borderRadius.md,
                   fontSize: theme.typography.fontSize.sm,
                   backgroundColor: theme.colors.background,
                   color: theme.colors.textPrimary,
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.primary;
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.border;
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 <option value={5}>5 km</option>
@@ -799,20 +931,29 @@ export function JobsNearYouClient({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textSecondary }}>
+              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
                 Min Skill Match:
               </label>
               <select
                 value={filters.minSkillMatch}
                 onChange={(e) => setFilters({ ...filters, minSkillMatch: Number(e.target.value) })}
                 style={{
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                   border: `1px solid ${theme.colors.border}`,
                   borderRadius: theme.borderRadius.md,
                   fontSize: theme.typography.fontSize.sm,
                   backgroundColor: theme.colors.background,
                   color: theme.colors.textPrimary,
                   cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.primary;
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.border;
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 <option value={0}>Any</option>
@@ -912,29 +1053,63 @@ export function JobsNearYouClient({
               />
             </div>
           ) : filteredAndSortedJobs.length === 0 ? (
-            <Card padding="lg">
+            <Card 
+              padding="lg"
+              style={{
+                ...getGradientCardStyle('primary'),
+                border: `1px solid ${theme.colors.border}`,
+                boxShadow: theme.shadows.sm,
+              }}
+            >
               <div
                 style={{
                   textAlign: 'center',
                   color: theme.colors.textSecondary,
-                  padding: theme.spacing[4],
+                  padding: theme.spacing[8],
                 }}
               >
-                <Icon name="briefcase" size={48} color={theme.colors.textTertiary} />
-                <p style={{ marginTop: theme.spacing[4], fontSize: theme.typography.fontSize.lg }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  margin: '0 auto',
+                  ...getIconContainerStyle(theme.colors.primary, 80),
+                }}>
+                  <Icon name="briefcase" size={40} color={theme.colors.primary} />
+                </div>
+                <p style={{ 
+                  marginTop: theme.spacing[4], 
+                  fontSize: theme.typography.fontSize.xl,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.textPrimary,
+                }}>
                   No jobs found
                 </p>
-                <p style={{ marginTop: theme.spacing[2], fontSize: theme.typography.fontSize.sm }}>
+                <p style={{ 
+                  marginTop: theme.spacing[2], 
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}>
                   Try adjusting your filters to see more opportunities.
                 </p>
               </div>
             </Card>
           ) : (
             <>
-              <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+              <div style={{ 
+                fontSize: theme.typography.fontSize.sm, 
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing[2],
+              }}>
                 Showing {filteredAndSortedJobs.length} job{filteredAndSortedJobs.length !== 1 ? 's' : ''}
               </div>
-              {filteredAndSortedJobs.map((job) => renderJobCard(job))}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[4],
+              }}>
+                {filteredAndSortedJobs.map((job) => renderJobCard(job))}
+              </div>
             </>
           )}
         </div>
@@ -947,21 +1122,32 @@ export function JobsNearYouClient({
               marginTop: theme.spacing[6],
             }}
           >
-            <h2
-              style={{
-                margin: `0 0 ${theme.spacing[4]} 0`,
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              Recommended for You
-            </h2>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[3],
+              marginBottom: theme.spacing[5],
+            }}>
+              <div style={getIconContainerStyle(theme.colors.primary, 40)}>
+                <Icon name="star" size={20} color={theme.colors.primary} />
+              </div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Recommended for You
+              </h2>
+            </div>
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: theme.spacing[4],
+                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                gap: theme.spacing[5],
               }}
             >
               {recommendations.map(job => renderJobCard(job, true))}
