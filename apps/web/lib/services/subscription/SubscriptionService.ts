@@ -76,21 +76,28 @@ export class SubscriptionService {
         return [];
       }
 
-      return (features || []).map((feature) => ({
-        planType: feature.plan_type as SubscriptionPlan,
-        name: this.PLAN_PRICING[feature.plan_type as SubscriptionPlan]?.name || feature.plan_type,
-        price: this.PLAN_PRICING[feature.plan_type as SubscriptionPlan]?.amount || 0 / 100,
-        currency: 'gbp',
-        features: {
-          maxJobs: feature.max_jobs,
-          maxActiveJobs: feature.max_active_jobs || 0,
-          prioritySupport: feature.priority_support || false,
-          advancedAnalytics: feature.advanced_analytics || false,
-          customBranding: feature.custom_branding || false,
-          apiAccess: feature.api_access || false,
-          additionalFeatures: feature.additional_features || {},
-        },
-      }));
+      return (features || []).map((feature) => {
+        const planPricing = this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
+        const amountInPence = planPricing?.amount || 0;
+        // Convert from pence to pounds for display
+        const priceInPounds = amountInPence / 100;
+        
+        return {
+          planType: feature.plan_type as SubscriptionPlan,
+          name: planPricing?.name || feature.plan_type,
+          price: priceInPounds,
+          currency: 'gbp',
+          features: {
+            maxJobs: feature.max_jobs,
+            maxActiveJobs: feature.max_active_jobs || 0,
+            prioritySupport: feature.priority_support || false,
+            advancedAnalytics: feature.advanced_analytics || false,
+            customBranding: feature.custom_branding || false,
+            apiAccess: feature.api_access || false,
+            additionalFeatures: feature.additional_features || {},
+          },
+        };
+      });
     } catch (err) {
       logger.error('Error getting available plans', {
         service: 'SubscriptionService',
@@ -109,7 +116,7 @@ export class SubscriptionService {
         .from('contractor_subscriptions')
         .select('*')
         .eq('contractor_id', contractorId)
-        .in('status', ['trial', 'active'])
+        .in('status', ['trial', 'active', 'incomplete', 'unpaid', 'past_due'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -276,6 +283,18 @@ export class SubscriptionService {
         .eq('id', contractorId)
         .single();
 
+      // First, ensure any existing subscriptions for this contractor are marked as canceled
+      // This releases the unique constraint that only allows one 'trial' or 'active' subscription
+      await serverSupabase
+        .from('contractor_subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('contractor_id', contractorId)
+        .in('status', ['trial', 'active']);
+
       const { data: subscription, error } = await serverSupabase
         .from('contractor_subscriptions')
         .insert({
@@ -317,6 +336,163 @@ export class SubscriptionService {
         service: 'SubscriptionService',
         contractorId,
         error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
+  }
+
+  /**
+   * Update existing subscription plan (upgrade/downgrade)
+   */
+  static async updateSubscriptionPlan(
+    contractorId: string,
+    newPlanType: SubscriptionPlan,
+    existingStripeSubscriptionId: string
+  ): Promise<{ subscriptionId: string; clientSecret: string | null; requiresPayment: boolean }> {
+    try {
+      const planPricing = this.PLAN_PRICING[newPlanType];
+      if (!planPricing) {
+        throw new Error(`Invalid plan type: ${newPlanType}`);
+      }
+
+      // Retrieve current subscription
+      let currentSubscription: Stripe.Subscription;
+      try {
+        currentSubscription = await stripe.subscriptions.retrieve(existingStripeSubscriptionId);
+      } catch (stripeError: any) {
+        logger.error('Failed to retrieve Stripe subscription', {
+          service: 'SubscriptionService',
+          contractorId,
+          subscriptionId: existingStripeSubscriptionId,
+          error: stripeError.message,
+          stripeErrorCode: stripeError.code,
+        });
+        throw new Error(`Failed to retrieve subscription: ${stripeError.message || 'Subscription not found'}`);
+      }
+
+      // Check if subscription is in a state that allows updates
+      const allowedStatuses = ['active', 'trialing', 'past_due'];
+      if (!allowedStatuses.includes(currentSubscription.status)) {
+        logger.warn('Attempting to update subscription with non-standard status', {
+          service: 'SubscriptionService',
+          contractorId,
+          subscriptionId: existingStripeSubscriptionId,
+          status: currentSubscription.status,
+          allowedStatuses,
+        });
+        // For incomplete subscriptions, we should handle differently
+        if (currentSubscription.status === 'incomplete' || currentSubscription.status === 'incomplete_expired') {
+          throw new Error(`Cannot update incomplete subscription. Please cancel and create a new subscription. Current status: ${currentSubscription.status}`);
+        }
+        // For other statuses, log but try to proceed
+        logger.warn('Proceeding with update despite non-standard status', {
+          service: 'SubscriptionService',
+          status: currentSubscription.status,
+        });
+      }
+
+      const currentItemId = currentSubscription.items.data[0]?.id;
+      if (!currentItemId) {
+        throw new Error('Current subscription item not found');
+      }
+
+      // Get or create new Stripe Price ID
+      const newPriceId = await this.getOrCreateStripePrice(newPlanType, planPricing.amount);
+
+      // Update subscription with new plan
+      let updatedSubscription: Stripe.Subscription;
+      try {
+        updatedSubscription = await stripe.subscriptions.update(existingStripeSubscriptionId, {
+          items: [
+            {
+              id: currentItemId,
+              price: newPriceId,
+            },
+          ],
+          metadata: {
+            ...currentSubscription.metadata,
+            planType: newPlanType,
+          },
+          proration_behavior: 'always_invoice', // Charge/credit for prorated amount
+          expand: ['latest_invoice.payment_intent'],
+        });
+      } catch (updateError: any) {
+        logger.error('Failed to update Stripe subscription', {
+          service: 'SubscriptionService',
+          contractorId,
+          subscriptionId: existingStripeSubscriptionId,
+          error: updateError.message,
+          stripeErrorCode: updateError.code,
+          stripeErrorType: updateError.type,
+        });
+        throw new Error(`Failed to update subscription: ${updateError.message || 'Unknown error'}`);
+      }
+
+      // Get payment intent if invoice requires payment
+      // When subscription is updated, Stripe may create a new invoice
+      // We need to check if payment is required
+      const invoice = updatedSubscription.latest_invoice;
+      let clientSecret: string | null = null;
+      let requiresPayment = false;
+
+      if (invoice && typeof invoice !== 'string') {
+        // Invoice is expanded - access payment_intent through type assertion
+        const expandedInvoice = invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent | string | null };
+        const paymentIntentValue = expandedInvoice.payment_intent;
+        
+        if (paymentIntentValue) {
+          if (typeof paymentIntentValue === 'string') {
+            // Payment intent is just an ID - we'd need to retrieve it
+            // For subscription updates with proration, payment is usually handled automatically
+            // But we should check the invoice status
+            requiresPayment = expandedInvoice.status === 'open' || expandedInvoice.status === 'draft';
+          } else if (paymentIntentValue && typeof paymentIntentValue === 'object') {
+            // Payment intent is expanded
+            const paymentIntent = paymentIntentValue as Stripe.PaymentIntent;
+            clientSecret = paymentIntent.client_secret || null;
+            requiresPayment = paymentIntent.status !== 'succeeded' && 
+                            paymentIntent.status !== 'processing';
+          }
+        } else {
+          // No payment intent - check invoice status
+          requiresPayment = expandedInvoice.status === 'open' || expandedInvoice.status === 'draft';
+        }
+      }
+
+      // Update database
+      const { error: updateError } = await serverSupabase
+        .from('contractor_subscriptions')
+        .update({
+          plan_type: newPlanType,
+          plan_name: planPricing.name,
+          stripe_price_id: newPriceId,
+          amount: planPricing.amount / 100,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', existingStripeSubscriptionId);
+
+      if (updateError) {
+        logger.error('Failed to update subscription in database', {
+          service: 'SubscriptionService',
+          contractorId,
+          error: updateError.message,
+        });
+        // Don't throw here - Stripe update succeeded, DB update is secondary
+      }
+
+      return {
+        subscriptionId: existingStripeSubscriptionId,
+        clientSecret,
+        requiresPayment: !!requiresPayment,
+      };
+    } catch (err) {
+      logger.error('Error updating subscription plan', {
+        service: 'SubscriptionService',
+        contractorId,
+        newPlanType,
+        subscriptionId: existingStripeSubscriptionId,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
       });
       throw err;
     }

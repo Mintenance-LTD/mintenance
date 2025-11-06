@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 
@@ -26,7 +26,7 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function useToast() {
-  const context = useContext(ToastContext);
+  const context = React.use(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within ToastProvider');
   }

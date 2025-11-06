@@ -47,7 +47,11 @@ export function SubscriptionClient({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create subscription');
+        // Include details if available for better debugging
+        const errorMessage = data.error || 'Failed to create subscription';
+        const details = data.details ? `: ${data.details}` : '';
+        const debugInfo = data.debug ? ` (Debug: ${JSON.stringify(data.debug)})` : '';
+        throw new Error(`${errorMessage}${details}${debugInfo}`);
       }
 
       if (data.clientSecret && data.requiresPayment) {
@@ -59,10 +63,18 @@ export function SubscriptionClient({
         const statusResponse = await fetch('/api/subscriptions/status');
         const statusData = await statusResponse.json();
         setCurrentSubscription(statusData.subscription);
+        
+        // Show success message
+        if (data.isUpgrade) {
+          alert(`Successfully ${planType === currentSubscription?.planType ? 'updated' : 'upgraded'} to ${planType} plan!`);
+        } else {
+          alert('Subscription created successfully!');
+        }
       }
     } catch (error) {
       console.error('Error subscribing:', error);
-      alert('Failed to create subscription. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create subscription. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }

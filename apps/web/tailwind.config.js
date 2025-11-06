@@ -60,6 +60,18 @@ module.exports = {
           light: '#FCD34D',
           dark: '#D97706',
         },
+        // Error Colors (Red)
+        error: {
+          DEFAULT: '#FF3B30',
+          light: '#FF6B61',
+          dark: '#D70015',
+        },
+        // Success Colors (Green)
+        success: {
+          DEFAULT: '#34C759',
+          light: '#5DD579',
+          dark: '#248A3D',
+        },
       },
 
       // ========================================

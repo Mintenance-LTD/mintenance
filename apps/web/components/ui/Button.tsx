@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { theme } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 export type ButtonVariant =
   | 'primary'
@@ -32,7 +32,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
  * Enhanced Button Component with Full Accessibility Support
  *
  * Features:
- * - 6 variants (primary, secondary, outline, ghost, danger, success)
+ * - 7 variants (primary, secondary, outline, ghost, danger, destructive, success)
  * - 4 sizes (sm, md, lg, xl)
  * - Loading states with proper ARIA announcements
  * - Left/right icon support
@@ -64,149 +64,75 @@ export function Button({
   const [isFocused, setIsFocused] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
 
-  // Compute base styles
-  const baseStyles: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: theme.typography.fontFamily.regular,
-    fontWeight: theme.typography.fontWeight.semibold,
-    borderRadius: theme.borderRadius.xl,
-    border: 'none',
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s ease',
-    outline: 'none',
-    position: 'relative',
-    minWidth: fullWidth ? '100%' : undefined,
-    width: fullWidth ? '100%' : undefined,
-    // WCAG AA minimum touch target
-    minHeight: '44px',
+  const isDisabled = disabled || loading;
+
+  // Base classes
+  const baseClasses = cn(
+    'inline-flex items-center justify-center',
+    'relative outline-none transition-all duration-200',
+    'font-semibold',
+    'rounded-xl',
+    'border-none',
+    fullWidth && 'w-full',
+    isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
+  );
+
+  // Size classes
+  const sizeClasses = {
+    sm: 'px-3 py-2 text-sm min-h-[32px]',
+    md: 'px-4 py-3 text-base min-h-[40px]',
+    lg: 'px-6 py-3 text-lg min-h-[48px]',
+    xl: 'px-8 py-4 text-xl min-h-[56px]',
   };
 
-  // Size-specific styles
-  const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
-    sm: {
-      padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-      fontSize: theme.typography.fontSize.sm,
-      minHeight: '32px',
-    },
-    md: {
-      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-      fontSize: theme.typography.fontSize.base,
-      minHeight: '40px',
-    },
-    lg: {
-      padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-      fontSize: theme.typography.fontSize.lg,
-      minHeight: '48px',
-    },
-    xl: {
-      padding: `${theme.spacing[4]} ${theme.spacing[8]}`,
-      fontSize: theme.typography.fontSize.xl,
-      minHeight: '56px',
-    },
+  // Variant classes
+  const variantClasses = {
+    primary: cn(
+      isDisabled ? 'bg-gray-400' : 'bg-primary text-white shadow',
+      !isDisabled && 'hover:bg-primary-800 hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+    secondary: cn(
+      isDisabled ? 'bg-gray-200' : 'bg-secondary text-white shadow-sm',
+      !isDisabled && 'hover:bg-secondary-600 hover:-translate-y-0.5 hover:shadow-md',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+    outline: cn(
+      'bg-transparent border-2',
+      isDisabled ? 'border-gray-300 text-gray-500' : 'border-primary text-primary',
+      !isDisabled && 'hover:bg-gray-50 hover:border-primary-800',
+      !isDisabled && 'active:scale-[0.98]'
+    ),
+    ghost: cn(
+      'bg-transparent',
+      isDisabled ? 'text-gray-500' : 'text-gray-900',
+      !isDisabled && 'hover:bg-gray-100',
+      !isDisabled && 'active:scale-[0.98]'
+    ),
+    danger: cn(
+      isDisabled ? 'bg-gray-400' : 'bg-error text-white shadow',
+      !isDisabled && 'hover:bg-[#D70015] hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+    destructive: cn(
+      isDisabled ? 'bg-gray-400' : 'bg-error text-white shadow',
+      !isDisabled && 'hover:bg-[#D70015] hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
+    success: cn(
+      isDisabled ? 'bg-gray-400' : 'bg-success text-white shadow',
+      !isDisabled && 'hover:bg-[#248A3D] hover:-translate-y-0.5 hover:shadow-lg',
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+    ),
   };
 
-  // Variant-specific styles
-  const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
-    primary: {
-      backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.primary,
-      color: theme.colors.textInverse,
-      boxShadow: disabled || loading ? 'none' : theme.shadows.base,
-    },
-    secondary: {
-      backgroundColor: disabled || loading ? theme.colors.backgroundSecondary : theme.colors.secondary,
-      color: theme.colors.textInverse,
-      boxShadow: disabled || loading ? 'none' : theme.shadows.sm,
-    },
-    outline: {
-      backgroundColor: 'transparent',
-      color: disabled || loading ? theme.colors.textTertiary : theme.colors.primary,
-      border: `2px solid ${disabled || loading ? theme.colors.border : theme.colors.primary}`,
-    },
-    ghost: {
-      backgroundColor: 'transparent',
-      color: disabled || loading ? theme.colors.textTertiary : theme.colors.textPrimary,
-    },
-    danger: {
-      backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.error,
-      color: theme.colors.textInverse,
-      boxShadow: disabled || loading ? 'none' : theme.shadows.base,
-    },
-    destructive: {
-      backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.error,
-      color: theme.colors.textInverse,
-      boxShadow: disabled || loading ? 'none' : theme.shadows.base,
-    },
-    success: {
-      backgroundColor: disabled || loading ? theme.colors.borderDark : theme.colors.success,
-      color: theme.colors.textInverse,
-      boxShadow: disabled || loading ? 'none' : theme.shadows.base,
-    },
-  };
+  // Focus classes (always applied for accessibility)
+  const focusClasses = 'focus-visible:outline-[3px] focus-visible:outline-primary focus-visible:outline-offset-2';
 
-  // Hover styles (only when not disabled/loading)
-  const hoverStyles: Record<ButtonVariant, React.CSSProperties> = {
-    primary: {
-      backgroundColor: theme.colors.primaryLight,
-      transform: 'translateY(-1px)',
-      boxShadow: theme.shadows.lg,
-    },
-    secondary: {
-      backgroundColor: theme.colors.secondaryDark,
-      transform: 'translateY(-1px)',
-      boxShadow: theme.shadows.md,
-    },
-    outline: {
-      backgroundColor: theme.colors.backgroundSecondary,
-      borderColor: theme.colors.primaryLight,
-    },
-    ghost: {
-      backgroundColor: theme.colors.backgroundSecondary,
-    },
-    danger: {
-      backgroundColor: theme.colors.errorDark,
-      transform: 'translateY(-1px)',
-      boxShadow: theme.shadows.lg,
-    },
-    destructive: {
-      backgroundColor: theme.colors.errorDark,
-      transform: 'translateY(-1px)',
-      boxShadow: theme.shadows.lg,
-    },
-    success: {
-      backgroundColor: theme.colors.successDark,
-      transform: 'translateY(-1px)',
-      boxShadow: theme.shadows.lg,
-    },
-  };
-
-  // Focus styles for accessibility
-  const focusStyles: React.CSSProperties = isFocused
-    ? {
-        outline: `3px solid ${theme.colors.primary}`,
-        outlineOffset: '2px',
-      }
-    : {};
-
-  // Active/pressed styles
-  const activeStyles: React.CSSProperties = isPressed && !disabled && !loading
-    ? {
-        transform: 'translateY(0) scale(0.98)',
-      }
-    : {};
-
-  // Combine all styles
-  const buttonStyles: React.CSSProperties = {
-    ...baseStyles,
-    ...sizeStyles[size],
-    ...variantStyles[variant],
-    ...focusStyles,
-    ...activeStyles,
-  };
+  // Active/pressed classes
+  const activeClasses = isPressed && !isDisabled ? 'scale-[0.98]' : '';
 
   // Determine effective ARIA attributes
-  const isDisabled = disabled || loading;
   const effectiveAriaLabel = ariaLabel || (typeof children === 'string' ? children : undefined);
   const effectiveAriaBusy = ariaBusy !== undefined ? ariaBusy : loading;
   const effectiveAriaDisabled = ariaDisabled !== undefined ? ariaDisabled : isDisabled;
@@ -215,8 +141,14 @@ export function Button({
     <button
       {...props}
       type={type}
-      className={className}
-      style={buttonStyles}
+      className={cn(
+        baseClasses,
+        sizeClasses[size],
+        variantClasses[variant],
+        focusClasses,
+        activeClasses,
+        className
+      )}
       disabled={isDisabled}
       aria-label={effectiveAriaLabel}
       aria-busy={effectiveAriaBusy}
@@ -263,14 +195,7 @@ export function Button({
     >
       {/* Left Icon */}
       {leftIcon && !loading && (
-        <span
-          style={{
-            display: 'inline-flex',
-            marginRight: theme.spacing[2],
-            alignItems: 'center',
-          }}
-          aria-hidden="true"
-        >
+        <span className="inline-flex items-center mr-2" aria-hidden="true">
           {leftIcon}
         </span>
       )}
@@ -278,26 +203,18 @@ export function Button({
       {/* Loading Spinner */}
       {loading && (
         <span
-          style={{
-            display: 'inline-flex',
-            marginRight: theme.spacing[2],
-            alignItems: 'center',
-          }}
+          className="inline-flex items-center mr-2"
           role="status"
           aria-label="Loading"
         >
           <svg
-            style={{
-              width: '1rem',
-              height: '1rem',
-              animation: 'spin 1s linear infinite',
-            }}
+            className="w-4 h-4 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
           >
             <circle
-              style={{ opacity: 0.25 }}
+              className="opacity-25"
               cx="12"
               cy="12"
               r="10"
@@ -305,7 +222,7 @@ export function Button({
               strokeWidth="4"
             />
             <path
-              style={{ opacity: 0.75 }}
+              className="opacity-75"
               fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
@@ -318,40 +235,10 @@ export function Button({
 
       {/* Right Icon */}
       {rightIcon && !loading && (
-        <span
-          style={{
-            display: 'inline-flex',
-            marginLeft: theme.spacing[2],
-            alignItems: 'center',
-          }}
-          aria-hidden="true"
-        >
+        <span className="inline-flex items-center ml-2" aria-hidden="true">
           {rightIcon}
         </span>
       )}
-
-      {/* CSS Animations */}
-      <style jsx>{`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        button:hover:not(:disabled) {
-          ${!disabled && !loading ? Object.entries(hoverStyles[variant])
-            .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value};`)
-            .join('\n          ') : ''}
-        }
-
-        button:focus-visible {
-          outline: 3px solid ${theme.colors.primary};
-          outline-offset: 2px;
-        }
-      `}</style>
     </button>
   );
 }
