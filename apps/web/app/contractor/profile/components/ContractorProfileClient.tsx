@@ -2,20 +2,20 @@
 
 import React, { useState } from 'react';
 import { ProfileHeader } from './ProfileHeader';
-import { ProfileStats } from './ProfileStats';
+import { ProfileStats, PerformanceSnapshot } from './ProfileStats';
 import { ProfileGallery } from './ProfileGallery';
 import { ProfileReviews } from './ProfileReviews';
 import { ProfileQuickActions } from './ProfileQuickActions';
-import { EditProfileModal } from './EditProfileModal';
-import { SkillsManagementModal } from './SkillsManagementModal';
-import { PhotoUploadModal } from './PhotoUploadModal';
+import { EditProfileDialog } from './EditProfileDialog';
+import { SkillsManagementDialog } from './SkillsManagementDialog';
+import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface ContractorProfileClientProps {
   contractor: any;
-  skills: Array<{ skill_name: string }>;
+  skills: Array<{ skill_name: string; skill_icon?: string | null }>;
   reviews: any[];
   completedJobs: any[];
   posts: any[];
@@ -24,6 +24,7 @@ interface ContractorProfileClientProps {
     averageRating: number;
     totalReviews: number;
     jobsCompleted: number;
+    winRate?: number; // Optional for backward compatibility
   };
 }
 
@@ -62,7 +63,20 @@ export function ContractorProfileClient({
       formData.append('city', data.city);
       formData.append('country', data.country);
       formData.append('phone', data.phone);
+      formData.append('companyName', data.companyName || '');
+      formData.append('licenseNumber', data.licenseNumber || '');
       formData.append('isAvailable', data.isAvailable.toString());
+
+      // Add coordinates and address if available from Places Autocomplete
+      if (data.latitude !== undefined) {
+        formData.append('latitude', data.latitude.toString());
+      }
+      if (data.longitude !== undefined) {
+        formData.append('longitude', data.longitude.toString());
+      }
+      if (data.address) {
+        formData.append('address', data.address);
+      }
 
       if (data.profileImage) {
         formData.append('profileImage', data.profileImage);
@@ -73,12 +87,38 @@ export function ContractorProfileClient({
         headers: {
           'x-csrf-token': csrfToken,
         },
+        credentials: 'include', // Include cookies for CSRF validation
         body: formData,
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
+        const errorMessage = error.details || error.message || error.error || 'Failed to update profile';
+        throw new Error(errorMessage);
+      }
+
+      // Save skills if provided
+      if (data.skills && Array.isArray(data.skills) && data.skills.length > 0) {
+        try {
+          const skillsResponse = await fetch('/api/contractor/manage-skills', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-csrf-token': csrfToken,
+            },
+            credentials: 'include', // Include cookies for CSRF validation
+            body: JSON.stringify({ skills: data.skills }),
+          });
+
+          if (!skillsResponse.ok) {
+            const skillsError = await skillsResponse.json();
+            console.warn('Failed to update skills:', skillsError.message || 'Unknown error');
+            // Don't throw - profile update succeeded, skills update is secondary
+          }
+        } catch (skillsError) {
+          console.warn('Error updating skills:', skillsError);
+          // Don't throw - profile update succeeded, skills update is secondary
+        }
       }
 
       // Refresh the page to show updated data
@@ -88,7 +128,7 @@ export function ContractorProfileClient({
     }
   };
 
-  const handleSaveSkills = async (selectedSkills: string[]) => {
+  const handleSaveSkills = async (selectedSkills: Array<{ skill_name: string; skill_icon: string }> | string[]) => {
     try {
       if (!csrfToken) {
         throw new Error('Security token not available. Please refresh the page.');
@@ -100,6 +140,7 @@ export function ContractorProfileClient({
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
+        credentials: 'include', // Include cookies for CSRF validation
         body: JSON.stringify({ skills: selectedSkills }),
       });
 
@@ -143,7 +184,15 @@ export function ContractorProfileClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[12] }}>
+    <div 
+      suppressHydrationWarning
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        rowGap: theme.spacing[12],
+        columnGap: theme.spacing[12],
+        paddingLeft: theme.spacing[6] 
+      }}>
       <ProfileHeader
         contractor={contractor}
         metrics={metrics}
@@ -169,6 +218,7 @@ export function ContractorProfileClient({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[8] }}>
+          <PerformanceSnapshot metrics={metrics} />
           <ProfileGallery
             completedJobs={completedJobs || []}
             posts={posts || []}
@@ -178,29 +228,26 @@ export function ContractorProfileClient({
         </div>
       </div>
 
-      {showEditModal && (
-        <EditProfileModal
-          contractor={contractor}
-          skills={skills}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleSaveProfile}
-        />
-      )}
+      <EditProfileDialog
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        contractor={contractor}
+        skills={skills}
+        onSave={handleSaveProfile}
+      />
 
-      {showSkillsModal && (
-        <SkillsManagementModal
-          currentSkills={skills || []}
-          onClose={() => setShowSkillsModal(false)}
-          onSave={handleSaveSkills}
-        />
-      )}
+      <SkillsManagementDialog
+        open={showSkillsModal}
+        onOpenChange={setShowSkillsModal}
+        currentSkills={skills || []}
+        onSave={handleSaveSkills}
+      />
 
-      {showPhotoModal && (
-        <PhotoUploadModal
-          onClose={() => setShowPhotoModal(false)}
-          onUpload={handleUploadPhotos}
-        />
-      )}
+      <PhotoUploadDialog
+        open={showPhotoModal}
+        onOpenChange={setShowPhotoModal}
+        onUpload={handleUploadPhotos}
+      />
     </div>
   );
 }

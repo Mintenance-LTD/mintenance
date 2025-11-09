@@ -35,7 +35,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "geolocation=(), microphone=(), camera=()"
+          "value": "geolocation=(), microphone=(), camera=(), payment=(self \"https://js.stripe.com\")"
         },
         {
           "key": "Strict-Transport-Security",

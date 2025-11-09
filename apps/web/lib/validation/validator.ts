@@ -35,7 +35,7 @@ export async function validateRequestBody<T>(
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const errors: ValidationError[] = error.errors.map((err) => ({
+      const errors: ValidationError[] = error.issues.map((err: any) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -76,7 +76,7 @@ export function validateQueryParams<T>(
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const errors: ValidationError[] = error.errors.map((err) => ({
+      const errors: ValidationError[] = error.issues.map((err: any) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

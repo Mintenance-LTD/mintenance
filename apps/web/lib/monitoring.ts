@@ -1,5 +1,11 @@
 // import * as Sentry from '@sentry/nextjs'; // Temporarily disabled for Next.js 15 compatibility
 
+// Mock Sentry for type safety when disabled
+const Sentry = {
+  setUser: (_user: any) => {},
+  setTag: (_key: string, _value: any) => {},
+};
+
 /**
  * Initialize Sentry for error tracking and performance monitoring
  */

@@ -18,6 +18,9 @@ const createJobSchema = z.object({
   status: z.string().optional().transform(val => val ? sanitizeText(val, 50) : val),
   category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
   budget: z.coerce.number().positive().optional(),
+  location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
+  photoUrls: z.array(z.string().url()).optional(),
+  requiredSkills: z.array(z.string().max(100)).max(10).optional(),
 });
 
 // Enriched query with JOINs for complete data
@@ -33,7 +36,7 @@ const jobSelectFields = `
   location,
   created_at,
   updated_at,
-  homeowner:users!homeowner_id(id,first_name,last_name,email),
+  homeowner:users!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:users!contractor_id(id,first_name,last_name,email),
   bids(count)
 `.replace(/\s+/g, ' ').trim();
@@ -43,6 +46,12 @@ type UserData = {
   first_name: string;
   last_name: string;
   email: string;
+  profile_image_url?: string | null;
+};
+
+type JobAttachment = {
+  file_url: string;
+  file_type: string;
 };
 
 type JobRow = {
@@ -112,16 +121,33 @@ export async function GET(request: NextRequest) {
 
     const { limit, cursor, status } = parsed.data;
 
+    // For contractors viewing available jobs (status=posted), show all posted jobs not yet assigned
+    // For homeowners or contractors viewing their own jobs, show jobs they're associated with
     let query = serverSupabase
       .from('jobs')
-      .select(jobSelectFields)
-      .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+      .select(jobSelectFields);
+
+    // Check if contractor is requesting available jobs (posted status)
+    const isContractorViewingAvailableJobs = user.role === 'contractor' && status?.includes('posted');
+    
+    if (isContractorViewingAvailableJobs) {
+      // Contractors should see all posted jobs that aren't assigned yet
+      query = query
+        .eq('status', 'posted')
+        .is('contractor_id', null);
+    } else {
+      // Homeowners see their own jobs, contractors see jobs assigned to them
+      query = query
+        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
+      
+      if (status?.length) {
+        query = query.in('status', status);
+      }
+    }
+
+    query = query
       .order('created_at', { ascending: false })
       .limit(limit + 1);
-
-    if (status?.length) {
-      query = query.in('status', status);
-    }
 
     if (cursor) {
       query = query.lt('created_at', cursor);
@@ -139,9 +165,47 @@ export async function GET(request: NextRequest) {
     const rows = data as unknown as JobRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const nextCursor = hasMore ? limitedRows.at(-1)?.created_at ?? undefined : undefined;
+    const nextCursor = hasMore ? limitedRows[limitedRows.length - 1]?.created_at ?? undefined : undefined;
 
-    const items: JobSummary[] = limitedRows.map(mapRowToJobSummary);
+    // Fetch attachments separately for each job (more reliable than nested query)
+    const jobIds = limitedRows.map(row => row.id);
+    let attachmentsData: { job_id: string; file_url: string; file_type: string }[] | null = null;
+    
+    if (jobIds.length > 0) {
+      const { data } = await serverSupabase
+        .from('job_attachments')
+        .select('job_id, file_url, file_type')
+        .in('job_id', jobIds)
+        .eq('file_type', 'image');
+      attachmentsData = data;
+    }
+
+    // Group attachments by job_id
+    const attachmentsByJobId = new Map<string, JobAttachment[]>();
+    if (attachmentsData) {
+      attachmentsData.forEach((att: { job_id: string; file_url: string; file_type: string }) => {
+        if (!attachmentsByJobId.has(att.job_id)) {
+          attachmentsByJobId.set(att.job_id, []);
+        }
+        attachmentsByJobId.get(att.job_id)!.push({
+          file_url: att.file_url,
+          file_type: att.file_type,
+        });
+      });
+    }
+
+    // Map rows to job summaries with photos
+    const items: (JobSummary & { photos?: string[] })[] = limitedRows.map(row => {
+      const jobAttachments = attachmentsByJobId.get(row.id) || [];
+      const photos = jobAttachments
+        .filter(att => att.file_type === 'image')
+        .map(att => att.file_url);
+      
+      return {
+        ...mapRowToJobSummary(row),
+        photos: photos.length > 0 ? photos : undefined,
+      };
+    });
 
     logger.info('Jobs list retrieved', {
       service: 'jobs',
@@ -166,10 +230,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check phone verification for homeowners
+    if (user.role === 'homeowner') {
+      const { HomeownerVerificationService } = await import('@/lib/services/verification/HomeownerVerificationService');
+      const verificationStatus = await HomeownerVerificationService.isFullyVerified(user.id);
+      
+      if (!verificationStatus.canPostJobs) {
+        return NextResponse.json(
+          { 
+            error: 'Phone verification required',
+            message: 'Please verify your phone number before posting jobs',
+            verificationStatus,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json();
     const parsed = createJobSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      // Convert field errors object to a readable string message
+      const errorMessages = Object.entries(fieldErrors)
+        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+        .join('; ');
+      logger.error('Job creation validation failed', {
+        service: 'jobs',
+        userId: user.id,
+        errors: fieldErrors,
+      });
+      return NextResponse.json({ 
+        error: errorMessages || 'Validation failed',
+        details: fieldErrors 
+      }, { status: 400 });
     }
 
     const payload = parsed.data;
@@ -180,6 +274,8 @@ export async function POST(request: NextRequest) {
       description?: string;
       category?: string | null;
       budget?: number;
+      location?: string | null;
+      required_skills?: string[] | null;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
@@ -193,30 +289,264 @@ export async function POST(request: NextRequest) {
       insertPayload.category = payload.category?.trim() ?? null;
     }
     if (payload.budget !== undefined) insertPayload.budget = payload.budget;
+    if (payload.location !== undefined) {
+      insertPayload.location = payload.location?.trim() ?? null;
+    }
+    // Only include required_skills if provided - column may not exist in all environments
+    if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
+      insertPayload.required_skills = payload.requiredSkills;
+    }
 
-    const { data, error } = await serverSupabase
+    let data: any;
+    let error: any;
+    
+    // Try insert with required_skills first
+    let result = await serverSupabase
       .from('jobs')
       .insert(insertPayload)
       .select(jobSelectFields)
       .single();
+    
+    data = result.data;
+    error = result.error;
+
+    // If insert fails due to missing required_skills column, retry without it
+    if (error && insertPayload.required_skills && (
+      error.message?.includes('required_skills') || 
+      error.code === '42703' || // undefined_column
+      error.message?.includes('column') && error.message?.includes('required_skills')
+    )) {
+      logger.warn('Required_skills column not found, retrying without it', {
+        service: 'jobs',
+        userId: user.id,
+        originalError: error.message,
+      });
+      
+      // Remove required_skills and retry
+      const { required_skills, ...payloadWithoutSkills } = insertPayload;
+      result = await serverSupabase
+        .from('jobs')
+        .insert(payloadWithoutSkills)
+        .select(jobSelectFields)
+        .single();
+      
+      data = result.data;
+      error = result.error;
+      
+      if (!error) {
+        logger.info('Job created successfully without required_skills column', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: data?.id,
+        });
+      }
+    }
 
     if (error || !data) {
       logger.error('Failed to create job', error, {
         service: 'jobs',
-        userId: user.id
+        userId: user.id,
+        errorDetails: error,
       });
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+    }
+
+    // Calculate and update serious buyer score
+    try {
+      const { SeriousBuyerService } = await import('@/lib/services/jobs/SeriousBuyerService');
+      const photoUrls = payload.photoUrls || [];
+      await SeriousBuyerService.updateScore(data.id, user.id, {
+        description: payload.description,
+        budget: payload.budget,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+      });
+    } catch (scoreError) {
+      // Log but don't fail job creation
+      logger.error('Failed to calculate serious buyer score', scoreError, {
+        service: 'jobs',
+        jobId: data.id,
+      });
     }
 
     const jobRow = data as unknown as JobRow;
     const job = mapRowToJobDetail(jobRow);
 
+    // Save photos to job_attachments if provided
+    if (payload.photoUrls && payload.photoUrls.length > 0) {
+      try {
+        const attachments = payload.photoUrls.map((url: string) => ({
+          job_id: job.id,
+          file_url: url,
+          file_type: 'image',
+          uploaded_by: user.id,
+        }));
+
+        const { error: attachError } = await serverSupabase
+          .from('job_attachments')
+          .insert(attachments);
+
+        if (attachError) {
+          logger.warn('Failed to save job attachments', {
+            service: 'jobs',
+            userId: user.id,
+            jobId: job.id,
+            error: attachError,
+          });
+          // Don't fail the job creation if attachments fail
+        }
+      } catch (attachErr) {
+        logger.warn('Error saving job attachments', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: job.id,
+          error: attachErr,
+        });
+        // Don't fail the job creation if attachments fail
+      }
+    }
+
     logger.info('Job created successfully', {
       service: 'jobs',
       userId: user.id,
       jobId: job.id,
-      title: job.title
+      title: job.title,
+      photoCount: payload.photoUrls?.length || 0,
     });
+
+    // Notify nearby contractors about the new job
+    if (job.location) {
+      try {
+        // Geocode the job location to get lat/lng using Google Maps API directly
+        let jobLat: number | null = null;
+        let jobLng: number | null = null;
+        
+        const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+        if (apiKey) {
+          // Handle both string and { lat, lng } formats
+          if (typeof job.location === 'string') {
+            const encodedAddress = encodeURIComponent(job.location);
+            const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+            
+            const geocodeResponse = await fetch(geocodeUrl);
+            const geocodeData = await geocodeResponse.json();
+            
+            if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
+              const location = geocodeData.results[0].geometry.location;
+              jobLat = location.lat;
+              jobLng = location.lng;
+            }
+          } else if (typeof job.location === 'object' && job.location !== null && 'lat' in job.location && 'lng' in job.location) {
+            jobLat = job.location.lat;
+            jobLng = job.location.lng;
+          }
+        }
+
+        // Only proceed if we have coordinates
+        if (jobLat && jobLng) {
+          // Calculate distance between two points using Haversine formula
+          const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = ((lat2 - lat1) * Math.PI) / 180;
+            const dLon = ((lon2 - lon1) * Math.PI) / 180;
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos((lat1 * Math.PI) / 180) *
+                Math.cos((lat2 * Math.PI) / 180) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+          };
+
+          // Fetch all contractors with location data
+          const { data: contractors, error: contractorsError } = await serverSupabase
+            .from('users')
+            .select('id, first_name, last_name, latitude, longitude, is_available')
+            .eq('role', 'contractor')
+            .not('latitude', 'is', null)
+            .not('longitude', 'is', null)
+            .eq('is_available', true);
+
+          if (!contractorsError && contractors && contractors.length > 0) {
+            // Find contractors within 25km radius
+            const nearbyContractors = contractors.filter((contractor: any) => {
+              const distance = calculateDistance(jobLat!, jobLng!, contractor.latitude, contractor.longitude);
+              return distance <= 25; // 25km radius
+            });
+
+            // If job has required skills, filter contractors by skills
+            let contractorsToNotify = nearbyContractors;
+            if (insertPayload.required_skills && insertPayload.required_skills.length > 0) {
+              // Get contractor skills
+              const contractorIds = nearbyContractors.map((c: any) => c.id);
+              const { data: contractorSkills } = await serverSupabase
+                .from('contractor_skills')
+                .select('contractor_id, skill_name')
+                .in('contractor_id', contractorIds);
+
+              // Filter to only contractors with matching skills
+              const contractorsWithMatchingSkills = nearbyContractors.filter((contractor: any) => {
+                const contractorSkillNames = (contractorSkills || [])
+                  .filter((cs: any) => cs.contractor_id === contractor.id)
+                  .map((cs: any) => cs.skill_name);
+                
+                // Check if contractor has at least one matching skill
+                return insertPayload.required_skills!.some(skill => contractorSkillNames.includes(skill));
+              });
+
+              contractorsToNotify = contractorsWithMatchingSkills.length > 0 
+                ? contractorsWithMatchingSkills 
+                : nearbyContractors; // If no matches, notify all nearby contractors
+            }
+
+            // Create notifications for matching contractors
+            if (contractorsToNotify.length > 0) {
+              const notifications = contractorsToNotify.map((contractor: any) => {
+                const budgetText = insertPayload.budget ? `£${insertPayload.budget.toLocaleString()}` : 'Negotiable';
+                const skillsText = insertPayload.required_skills && insertPayload.required_skills.length > 0
+                  ? `Requires: ${insertPayload.required_skills.join(', ')}. `
+                  : '';
+                
+                return {
+                  user_id: contractor.id,
+                  title: 'New Job Near You',
+                  message: `New job "${job.title}" posted near you. ${skillsText}Budget: ${budgetText}`,
+                  type: 'job_nearby',
+                  read: false,
+                  action_url: `/jobs/${job.id}`,
+                  created_at: new Date().toISOString(),
+                };
+              });
+
+              const { error: notificationError } = await serverSupabase
+                .from('notifications')
+                .insert(notifications);
+
+              if (notificationError) {
+                console.error('[Job Create] Failed to create job_nearby notifications', {
+                  service: 'jobs',
+                  jobId: job.id,
+                  error: notificationError.message,
+                });
+              } else {
+                console.log('[Job Create] Created job_nearby notifications', {
+                  service: 'jobs',
+                  jobId: job.id,
+                  contractorCount: notifications.length,
+                });
+              }
+            }
+          }
+        }
+      } catch (notifyError) {
+        // Don't fail job creation if notification fails
+        console.error('[Job Create] Error creating job_nearby notifications', {
+          service: 'jobs',
+          jobId: job.id,
+          error: notifyError instanceof Error ? notifyError.message : 'Unknown error',
+        });
+      }
+    }
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {

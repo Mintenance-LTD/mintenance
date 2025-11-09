@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
 import { requireCSRF } from '@/lib/csrf';
+import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -108,6 +109,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: stateValidation.error }, { status: 400 });
     }
 
+    // If auto-release is enabled and job is completed, evaluate auto-release conditions
+    if (releaseReason === 'job_completed' && job.status === 'completed') {
+      const autoReleaseEval = await EscrowReleaseAgent.evaluateAutoRelease(escrowTransactionId);
+      
+      // If auto-release evaluation delayed the release due to risk, inform the user
+      if (autoReleaseEval && autoReleaseEval.message?.includes('delayed')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Auto-release delayed due to risk assessment. Escrow will be held longer.',
+          metadata: autoReleaseEval.metadata,
+        }, { status: 200 }); // 200 because it's not an error, just information
+      }
+    }
+
+    // Calculate auto-release date if not set (for future reference)
+    if (releaseReason === 'job_completed' && job.status === 'completed') {
+      await EscrowReleaseAgent.calculateAutoReleaseDate(
+        escrowTransactionId,
+        job.id,
+        job.contractor_id
+      ).catch((error) => {
+        // Don't fail the release if auto-release date calculation fails
+        logger.error('Failed to calculate auto-release date', error, {
+          service: 'payments',
+          escrowTransactionId,
+        });
+      });
+    }
+
     // Get contractor's Stripe Connect account
     const { data: contractor, error: contractorError } = await serverSupabase
       .from('users')
@@ -165,7 +195,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Try to reverse the transfer if DB update fails
-      await stripe.transfers.reverse(transfer.id).catch(err =>
+      await stripe.transfers.createReversal(transfer.id).catch(err =>
         logger.error('Failed to reverse transfer after DB error', err, {
           service: 'payments',
           transferId: transfer.id
@@ -188,7 +218,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Try to reverse the transfer due to race condition
-      await stripe.transfers.reverse(transfer.id).catch(err =>
+      await stripe.transfers.createReversal(transfer.id).catch(err =>
         logger.error('Failed to reverse transfer after race condition', err, {
           service: 'payments',
           transferId: transfer.id

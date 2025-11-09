@@ -42,6 +42,20 @@ export async function POST(request: NextRequest) {
 
     const { email, password, firstName, lastName, role, phone } = validation.data;
 
+    // Validate admin email domain
+    if (role === 'admin' && !email.endsWith('@mintenance.co.uk')) {
+      logger.warn('Admin registration attempt with invalid email domain', {
+        service: 'auth',
+        email,
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
+      return NextResponse.json(
+        { error: 'Admin accounts must use @mintenance.co.uk email address' },
+        { status: 400 }
+      );
+    }
+
     // Register user
     const result = await authManager.register({
       email,
@@ -75,6 +89,68 @@ export async function POST(request: NextRequest) {
       role: result.user!.role
     });
 
+    // Initialize trial period for contractors
+    if (result.user!.role === 'contractor') {
+      try {
+        const { TrialService } = await import('@/lib/services/subscription/TrialService');
+        const { TrialNotifications } = await import('@/lib/services/notifications/TrialNotifications');
+        
+        const trialInitialized = await TrialService.initializeTrial(result.user!.id);
+        if (trialInitialized) {
+          // Send welcome email (non-blocking)
+          TrialNotifications.sendTrialWelcomeEmail(result.user!.id).catch((err) => {
+            logger.error('Failed to send trial welcome email', {
+              service: 'auth',
+              userId: result.user!.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      } catch (trialError) {
+        // Log but don't fail registration
+        logger.error('Failed to initialize trial period', {
+          service: 'auth',
+          userId: result.user!.id,
+          error: trialError instanceof Error ? trialError.message : String(trialError),
+        });
+      }
+    }
+
+    // Send welcome email and phone verification for homeowners
+    if (result.user!.role === 'homeowner') {
+      try {
+        const { HomeownerNotifications } = await import('@/lib/services/notifications/HomeownerNotifications');
+        
+        // Send welcome email (non-blocking)
+        HomeownerNotifications.sendWelcomeEmail(result.user!.id).catch((err) => {
+          logger.error('Failed to send homeowner welcome email', {
+            service: 'auth',
+            userId: result.user!.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+
+        // Send phone verification code if phone provided
+        if (phone) {
+          const { PhoneVerificationService } = await import('@/lib/services/verification/PhoneVerificationService');
+          PhoneVerificationService.sendVerificationCode(result.user!.id, phone).catch((err) => {
+            logger.error('Failed to send phone verification code', {
+              service: 'auth',
+              userId: result.user!.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      } catch (emailError) {
+        // Log but don't fail registration
+        logger.error('Failed to send homeowner welcome email', {
+          service: 'auth',
+          userId: result.user!.id,
+          error: emailError instanceof Error ? emailError.message : String(emailError),
+        });
+      }
+    }
+
     // Create response
     const response = NextResponse.json(
       {
@@ -91,6 +167,13 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
+    // Add cookie headers from auth result
+    if (result.cookieHeaders) {
+      result.cookieHeaders.forEach((value, key) => {
+        response.headers.append(key, value);
+      });
+    }
+
     // Add rate limit headers to successful response
     const headers = createRateLimitHeaders(rateLimitResult);
     Object.entries(headers).forEach(([key, value]) => {
@@ -104,11 +187,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'CSRF validation failed') {
       logger.warn('CSRF validation failed', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        hasHeaderToken: !!request.headers.get('x-csrf-token'),
+        cookies: request.headers.get('cookie')?.substring(0, 100) || 'none'
       });
 
       return NextResponse.json(
-        { error: 'CSRF validation failed' },
+        { error: 'CSRF validation failed', message: 'Please refresh the page and try again.' },
         { status: 403 }
       );
     }

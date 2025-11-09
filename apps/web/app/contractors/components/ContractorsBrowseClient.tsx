@@ -326,33 +326,32 @@ export function ContractorsBrowseClient({
 
         {/* Clear Filters Link */}
         {(currentFilters.skill || currentFilters.location || currentFilters.minRating) && (
-          <Link
-            href="/contractors"
+          <span
+            className="clear-filters-link-wrapper"
             style={{
               display: 'inline-block',
               marginTop: theme.spacing[4],
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              color: theme.colors.text,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '12px',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.primary;
-              e.currentTarget.style.color = 'white';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              e.currentTarget.style.color = theme.colors.text;
             }}
           >
-            Clear All Filters
-          </Link>
+            <Link
+              href="/contractors"
+              style={{
+                display: 'inline-block',
+                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                backgroundColor: theme.colors.backgroundSecondary,
+                color: theme.colors.text,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '12px',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Clear All Filters
+            </Link>
+          </span>
         )}
       </div>
 
@@ -407,19 +406,24 @@ export function ContractorsBrowseClient({
               cursor: 'pointer',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
+            className="clear-search-button"
           >
             Clear search and filters
           </button>
         </div>
       )}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .clear-filters-link-wrapper:hover a {
+            background-color: ${theme.colors.primary} !important;
+            color: white !important;
+          }
+          .clear-search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          }
+        `
+      }} />
     </>
   );
 }

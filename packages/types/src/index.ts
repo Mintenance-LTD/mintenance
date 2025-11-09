@@ -11,6 +11,8 @@ export interface User {
   updated_at: string;
   email_verified?: boolean;
   phone?: string;
+  location?: string;
+  profile_image_url?: string;
   // Computed fields for backward compatibility
   firstName?: string;
   lastName?: string;
@@ -182,7 +184,7 @@ export interface Message {
   senderId: string;
   receiverId: string;
   messageText: string;
-  messageType: 'text' | 'image' | 'file' | 'video_call_invitation' | 'video_call_started' | 'video_call_ended' | 'video_call_missed';
+  messageType: 'text' | 'image' | 'file' | 'video_call_invitation' | 'video_call_started' | 'video_call_ended' | 'video_call_missed' | 'contract_submitted';
   attachmentUrl?: string;
   read: boolean;
   createdAt: string;

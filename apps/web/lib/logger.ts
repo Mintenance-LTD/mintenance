@@ -103,9 +103,9 @@ class Logger {
     if (typeof input === 'object')
       return this.sanitizeContext(input as LogContext);
     try {
-      return { value: String(input) };
+      return { value: String(input) } as LogContext;
     } catch (_) {
-      return { value: '[Unserializable]' };
+      return { value: '[Unserializable]' } as LogContext;
     }
   }
 
@@ -176,7 +176,7 @@ class Logger {
 
     try {
       // Create a safe copy without circular references
-      const sanitized: LogContext = {};
+      const sanitized: Record<string, JsonValue> = {};
       for (const [key, value] of Object.entries(context)) {
         if (key === 'contexts' || key === 'logContext') {
           sanitized[key] = '[Omitted to prevent circular reference]';
@@ -187,9 +187,9 @@ class Logger {
           sanitized[key] = value;
         }
       }
-      return sanitized;
+      return sanitized as LogContext;
     } catch (error) {
-      return { error: 'Failed to sanitize context' };
+      return { error: 'Failed to sanitize context' } as LogContext;
     }
   }
 
@@ -208,7 +208,7 @@ class Logger {
       ? (errorOrContextOrMessage as Error)
       : undefined;
     const ctx = isErr ? context : this.toContext(errorOrContextOrMessage);
-    const sanitizedContext = ctx ? this.sanitizeContext(ctx) : undefined;
+    const sanitizedContext = ctx ? (this.sanitizeContext(ctx) as LogContext | undefined) : undefined;
     const formattedMessage = this.formatMessage(
       'error',
       message,
@@ -223,12 +223,12 @@ class Logger {
       message: `Error: ${message}`,
       category: 'error',
       level: 'error',
-      data: { ...sanitizedContext, error: err?.message },
+      data: { ...(sanitizedContext || {}), error: err?.message },
     });
 
     if (err) {
       sentryFunctions.captureException(err, {
-        contexts: { logContext: sanitizedContext },
+        contexts: { logContext: sanitizedContext || {} },
       });
     } else {
       sentryFunctions.captureMessage(message, 'error');

@@ -2,10 +2,22 @@
 
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Plus, Grid3x3, Activity, Check, TrendingUp, Briefcase, Heart, LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { MetricCard } from '@/components/ui/MetricCard';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Card } from '@/components/ui/Card.unified';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
+
+// Helper function to map category icon names to Lucide components
+function getCategoryIcon(iconName: string): LucideIcon {
+  const iconMap: Record<string, LucideIcon> = {
+    collection: Grid3x3,
+    activity: Activity,
+    check: Check,
+    progress: TrendingUp,
+    briefcase: Briefcase,
+  };
+  return iconMap[iconName] || Grid3x3; // Default to Grid3x3 if not found
+}
 
 interface GalleryImage {
   id: string;
@@ -68,8 +80,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
             Highlight your craftsmanship with curated project imagery.
           </p>
         </div>
-        <Button variant="primary" size="sm">
-          <Icon name="plus" size={16} color="#FFFFFF" />
+        <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4 text-white" />}>
           Upload Photo
         </Button>
       </header>
@@ -81,7 +92,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Photos"
           value={images.length.toString()}
           subtitle="In your portfolio"
@@ -89,7 +100,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Completed Projects"
           value={completedImages.toString()}
           subtitle="Showcased work"
@@ -97,7 +108,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Total Likes"
           value={totalLikes.toString()}
           subtitle="Client appreciation"
@@ -127,7 +138,10 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                 cursor: 'pointer',
               }}
             >
-              <Icon name={category.icon} size={16} color={isActive ? theme.colors.primary : theme.colors.textSecondary} />
+              {React.createElement(getCategoryIcon(category.icon), { 
+                className: "h-4 w-4", 
+                style: { color: isActive ? theme.colors.primary : theme.colors.textSecondary } 
+              })}
               {category.name}
             </button>
           );
@@ -146,7 +160,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           }}
         >
           <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-            <Icon name='collection' size={48} color={theme.colors.textQuaternary} />
+            <Grid3x3 className="h-12 w-12" style={{ color: theme.colors.textQuaternary }} />
           </div>
           <h3 style={{ marginBottom: theme.spacing[2], fontSize: theme.typography.fontSize.xl, color: theme.colors.textPrimary }}>
             No photos yet
@@ -168,20 +182,21 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
               style={{
                 position: 'relative',
                 paddingBottom: '100%',
-                borderRadius: '20px',
+                borderRadius: theme.borderRadius.xl,
                 overflow: 'hidden',
                 backgroundColor: theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
                 cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: theme.shadows.sm,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                e.currentTarget.style.boxShadow = theme.shadows.xl;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = theme.shadows.sm;
               }}
             >
               <img
@@ -210,7 +225,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                     fontWeight: theme.typography.fontWeight.semibold,
                   }}
                 >
-                  <Icon name="heart" size={14} color={theme.colors.error} />
+                  <Heart className="h-3.5 w-3.5" style={{ color: theme.colors.error }} />
                   {image.likes}
                 </div>
               </div>
@@ -232,7 +247,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                 </span>
                 <span style={{ fontSize: theme.typography.fontSize.xs, opacity: 0.9 }}>{image.projectType}</span>
                 <div style={{ marginTop: theme.spacing[1] }}>
-                  <StatusBadge status={image.category} size="sm" />
+                  <StatusBadge status={image.category as BadgeStatus} size="sm" />
                 </div>
               </div>
             </div>
@@ -299,13 +314,16 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                   size='sm'
                   onClick={() => handleLike(selectedImage.id)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: theme.spacing[2] }}
+                  leftIcon={
+                    <Heart
+                      className="h-4 w-4"
+                      style={{ 
+                        color: selectedImage.liked ? theme.colors.error : theme.colors.textSecondary,
+                        fill: selectedImage.liked ? theme.colors.error : 'none'
+                      }}
+                    />
+                  }
                 >
-                  <Icon
-                    name='heart'
-                    size={16}
-                    color={selectedImage.liked ? theme.colors.error : theme.colors.textSecondary}
-                    style={{ stroke: selectedImage.liked ? theme.colors.error : theme.colors.textSecondary }}
-                  />
                   {selectedImage.likes}
                 </Button>
                 <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>

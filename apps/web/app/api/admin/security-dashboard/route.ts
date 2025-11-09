@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { securityMonitor } from '@/lib/security-monitor';
+import { IPBlockingService } from '@/lib/services/admin/IPBlockingService';
+import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,6 +66,16 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    // Get blocked IPs
+    const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({ activeOnly: true, limit: 50 });
+    
+    // Mark which IPs are already blocked
+    const blockedIPSet = new Set(blockedIPs.map(bip => bip.ip_address));
+    const topOffendingIPsWithBlockStatus = topOffendingIPs.map(item => ({
+      ...item,
+      is_blocked: blockedIPSet.has(item.ip),
+    }));
+
     return NextResponse.json({
       timeframe,
       metrics: metrics[0] || {
@@ -75,7 +87,8 @@ export async function GET(request: NextRequest) {
         recent_critical_events: []
       },
       recent_events: recentEvents,
-      top_offending_ips: topOffendingIPs,
+      top_offending_ips: topOffendingIPsWithBlockStatus,
+      blocked_ips: blockedIPs,
       last_updated: new Date().toISOString()
     });
 
@@ -116,26 +129,96 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to resolve event' }, { status: 500 });
       }
 
+      // Log admin activity
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'resolve_security_event',
+        'security',
+        `Resolved security event: ${eventId}`,
+        'security_event',
+        eventId
+      );
+
       return NextResponse.json({ message: 'Event resolved successfully' });
     }
 
     if (action === 'block_ip') {
-      const { ipAddress, reason } = body;
+      const { ipAddress, reason, expiresAt } = body;
       
-      // Log admin action
+      if (!ipAddress || !reason) {
+        return NextResponse.json({ error: 'IP address and reason are required' }, { status: 400 });
+      }
+
+      // Block IP using IPBlockingService
+      const blocked = await IPBlockingService.blockIP({
+        ipAddress,
+        reason,
+        blockedBy: user.id,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        metadata: {
+          blocked_from: 'security_dashboard',
+          security_events: body.securityEventIds || [],
+        },
+      });
+
+      if (!blocked) {
+        return NextResponse.json({ error: 'Failed to block IP address' }, { status: 500 });
+      }
+
+      // Log admin activity
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'block_ip',
+        'security',
+        `Blocked IP address: ${ipAddress}`,
+        'ip_address',
+        blocked.id,
+        { ip_address: ipAddress, reason, expires_at: expiresAt }
+      );
+
+      // Also log via security monitor
       await securityMonitor.logAdminAction(
         request,
         'block_ip',
         user.id,
         undefined,
-        { ip_address: ipAddress, reason }
+        { ip_address: ipAddress, reason, blocked_ip_id: blocked.id }
       );
 
-      // Note: In a real implementation, you would add the IP to a blocklist
-      // This could be done via firewall rules, CDN configuration, or database
-      console.log(`Admin ${user.id} blocked IP ${ipAddress}: ${reason}`);
+      return NextResponse.json({ 
+        message: 'IP blocked successfully',
+        blocked_ip: blocked 
+      });
+    }
 
-      return NextResponse.json({ message: 'IP blocked successfully' });
+    if (action === 'unblock_ip') {
+      const { ipAddress } = body;
+      
+      if (!ipAddress) {
+        return NextResponse.json({ error: 'IP address is required' }, { status: 400 });
+      }
+
+      const unblocked = await IPBlockingService.unblockIP(ipAddress);
+
+      if (!unblocked) {
+        return NextResponse.json({ error: 'Failed to unblock IP address' }, { status: 500 });
+      }
+
+      // Log admin activity
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'unblock_ip',
+        'security',
+        `Unblocked IP address: ${ipAddress}`,
+        'ip_address',
+        undefined,
+        { ip_address: ipAddress }
+      );
+
+      return NextResponse.json({ message: 'IP unblocked successfully' });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

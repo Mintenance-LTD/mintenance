@@ -40,13 +40,34 @@ export const registerSchema = z.object({
     .min(1, 'Last name required')
     .max(100, 'Last name too long')
     .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters'),
-  role: z.enum(['homeowner', 'contractor', 'admin'], {
-    errorMap: () => ({ message: 'Role must be either homeowner, contractor, or admin' })
-  }),
-  phone: z.string()
-    .transform(val => val.replace(/[\s\-()]/g, '')) // Strip spaces, dashes, and parentheses
-    .pipe(z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'))
-    .optional(),
+  role: z.enum(['homeowner', 'contractor', 'admin']),
+  phone: z.preprocess(
+    (val) => {
+      if (!val || typeof val !== 'string' || val.trim() === '') {
+        return undefined;
+      }
+      return val.replace(/[\s\-()]/g, ''); // Strip spaces, dashes, and parentheses
+    },
+    z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number').optional()
+  ),
+}).refine((data) => {
+  // Require phone for homeowners
+  if (data.role === 'homeowner' && !data.phone) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Phone number is required for homeowners',
+  path: ['phone'],
+}).refine((data) => {
+  // Require @mintenance.co.uk domain for admin
+  if (data.role === 'admin' && !data.email.endsWith('@mintenance.co.uk')) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Admin accounts must use @mintenance.co.uk email address',
+  path: ['email'],
 });
 
 export const passwordResetSchema = z.object({
@@ -76,9 +97,7 @@ export const paymentIntentSchema = z.object({
     .positive('Amount must be positive')
     .max(10000, 'Amount exceeds maximum ($10,000)')
     .transform(val => Math.round(val * 100) / 100), // Round to 2 decimals
-  currency: z.enum(['usd', 'eur', 'gbp'], {
-    errorMap: () => ({ message: 'Invalid currency' })
-  }).default('usd'),
+  currency: z.enum(['usd', 'eur', 'gbp']).default('usd'),
   jobId: z.string()
     .uuid('Invalid job ID'),
   contractorId: z.string()
@@ -117,7 +136,7 @@ export const createJobSchema = z.object({
     .max(200, 'Title too long')
     .transform(val => val.trim()),
   description: z.string()
-    .min(10, 'Description must be at least 10 characters')
+    .min(50, 'Description must be at least 50 characters')
     .max(5000, 'Description too long')
     .transform(val => val.trim()),
   category: z.string()
@@ -138,6 +157,17 @@ export const createJobSchema = z.object({
   images: z.array(
     z.string().url('Invalid image URL')
   ).max(10, 'Maximum 10 images allowed').optional(),
+  requiredSkills: z.array(z.string().max(100)).max(10, 'Maximum 10 skills allowed').optional(),
+  preferredStartDate: z.string().optional(),
+}).refine((data) => {
+  // Require at least one photo for jobs over £500
+  if (data.budget && data.budget > 500 && (!data.images || data.images.length === 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'At least one photo is required for jobs over £500',
+  path: ['images'],
 });
 
 export const updateJobSchema = createJobSchema.partial().extend({
@@ -164,9 +194,7 @@ export const fileUploadSchema = z.object({
     .min(1, 'File name required')
     .max(255, 'File name too long')
     .regex(/^[a-zA-Z0-9._-]+$/, 'File name contains invalid characters'),
-  fileType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'], {
-    errorMap: () => ({ message: 'Invalid file type' })
-  }),
+  fileType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
   fileSize: z.number()
     .positive('File size must be positive')
     .max(10485760, 'File size exceeds 10MB limit'), // 10MB max
@@ -228,16 +256,12 @@ export const gdprEmailSchema = z.object({
 
 export const gdprAnonymizeSchema = z.object({
   email: z.string().email('Invalid email format'),
-  confirmation: z.literal('ANONYMIZE MY DATA', {
-    errorMap: () => ({ message: 'Please type "ANONYMIZE MY DATA" to confirm' })
-  })
+  confirmation: z.literal('ANONYMIZE MY DATA')
 });
 
 export const gdprDeleteSchema = z.object({
   email: z.string().email('Invalid email format'),
-  confirmation: z.literal('DELETE MY DATA', {
-    errorMap: () => ({ message: 'Please type "DELETE MY DATA" to confirm' })
-  })
+  confirmation: z.literal('DELETE MY DATA')
 });
 
 // ============================================================================

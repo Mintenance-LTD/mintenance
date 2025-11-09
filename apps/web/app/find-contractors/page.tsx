@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -29,6 +30,7 @@ export default function ContractorMapPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedContractor, setSelectedContractor] = useState<ContractorMarker | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [showContactDialog, setShowContactDialog] = useState(false);
 
   // Set page title
   useEffect(() => {
@@ -496,7 +498,7 @@ export default function ContractorMapPage() {
             </div>
 
             <div style={{ display: 'flex', gap: theme.spacing.sm }}>
-              <Button variant="primary" fullWidth onClick={() => alert('Contact feature coming soon!')}>
+              <Button variant="primary" fullWidth onClick={() => setShowContactDialog(true)}>
                 Contact Contractor
               </Button>
               <Button variant="outline" fullWidth onClick={() => setSelectedContractor(null)}>
@@ -506,6 +508,23 @@ export default function ContractorMapPage() {
           </div>
         </div>
       )}
+
+      {/* Contact Feature Dialog */}
+      <AlertDialog open={showContactDialog} onOpenChange={(open: boolean) => setShowContactDialog(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Contact Feature</AlertDialogTitle>
+            <AlertDialogDescription>
+              The contact feature is coming soon! You'll be able to message contractors directly from this page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowContactDialog(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* CSS Animation */}
       <style jsx>{`

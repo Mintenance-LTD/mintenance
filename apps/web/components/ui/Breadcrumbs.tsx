@@ -42,6 +42,15 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     transition: 'color 0.15s ease',
   };
 
+  const breadcrumbLinkStyles = `
+    .breadcrumb-link:hover {
+      color: ${theme.colors.primary};
+    }
+    .breadcrumb-separator {
+      user-select: none;
+    }
+  `;
+
   const currentStyles: React.CSSProperties = {
     color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
@@ -53,51 +62,49 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   };
 
   return (
-    <nav 
-      className={`breadcrumbs ${className}`}
-      style={containerStyles}
-      aria-label="Breadcrumb navigation"
-    >
-      <ol style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: theme.spacing[2],
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-      }}>
-        {items.map((item, index) => (
-          <li key={index} style={itemStyles}>
-            {index > 0 && (
-              <span style={separatorStyles} aria-hidden="true">
-                ›
-              </span>
-            )}
-            {item.href && !item.current ? (
-              <Link 
-                href={item.href}
-                style={linkStyles}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = theme.colors.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = theme.colors.textSecondary;
-                }}
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <span 
-                style={item.current ? currentStyles : linkStyles}
-                aria-current={item.current ? 'page' : undefined}
-              >
-                {item.label}
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
+    <>
+      <nav 
+        className={`breadcrumbs ${className}`}
+        style={containerStyles}
+        aria-label="Breadcrumb navigation"
+      >
+        <ol style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: theme.spacing[2],
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+        }}>
+          {items.map((item, index) => (
+            <li key={index} style={itemStyles}>
+              {index > 0 && (
+                <span className="breadcrumb-separator" style={separatorStyles} aria-hidden="true">
+                  ›
+                </span>
+              )}
+              {item.href && !item.current ? (
+                <Link 
+                  href={item.href}
+                  className="breadcrumb-link"
+                  style={linkStyles}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span 
+                  style={item.current ? currentStyles : linkStyles}
+                  aria-current={item.current ? 'page' : undefined}
+                >
+                  {item.label}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <style jsx>{breadcrumbLinkStyles}</style>
+    </>
   );
 };
 

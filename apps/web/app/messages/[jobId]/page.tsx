@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, use, Suspense } from 'react';
+import React, { useState, useEffect, useRef, use, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
@@ -10,7 +10,12 @@ import { MessageInput } from '@/components/messaging/MessageInput';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
 import { logger } from '@/lib/logger';
+import { Icon } from '@/components/ui/Icon';
 import type { Message, User } from '@mintenance/types';
+import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
+import { QuoteViewDialog } from './components/QuoteViewDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { FileText, Phone, FileCheck } from 'lucide-react';
 
 interface ChatPageProps {
   params: Promise<{
@@ -23,24 +28,125 @@ function ChatContent({ params }: ChatPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [user, setUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [homeownerProfile, setHomeownerProfile] = useState<{ 
+    profile_image_url?: string | null;
+    name?: string;
+  } | null>(null);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
 
   // Get params from URL
   const otherUserId = searchParams.get('userId');
   const otherUserName = searchParams.get('userName');
   const jobTitle = searchParams.get('jobTitle');
 
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  const loadUserAndMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      const currentUser = await fetchCurrentUser();
+
+      if (!currentUser) {
+        router.push('/login');
+        return;
+      }
+
+      setUser(currentUser);
+
+      // Load messages for this job
+      const jobMessages = await MessagingService.getJobMessages(jobId);
+      // Deduplicate messages by ID to prevent duplicate keys
+      const uniqueMessages = Array.from(
+        new Map(jobMessages.map(msg => [msg.id, msg])).values()
+      );
+      setMessages(uniqueMessages);
+
+      // Mark messages as read
+      await MessagingService.markMessagesAsRead(jobId, currentUser.id);
+    } catch (err) {
+      logger.error('Error loading chat', err);
+      setError('Failed to load conversation');
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId, router]);
+
+  // Determine the correct back route based on user role
+  const getBackRoute = () => {
+    if (!user) return '/messages';
+    return user.role === 'contractor' ? '/contractor/messages' : '/messages';
+  };
+
   useEffect(() => {
     loadUserAndMessages();
-  }, [jobId]);
+  }, [loadUserAndMessages]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
+  // Fetch homeowner profile information from job data
+  useEffect(() => {
+    const fetchHomeownerProfile = async () => {
+      if (!jobId) return;
+      try {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const job = data.job;
+          if (job?.homeowner) {
+            const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+            const homeownerName = homeowner?.first_name && homeowner?.last_name
+              ? `${homeowner.first_name} ${homeowner.last_name}`.trim()
+              : homeowner?.email || 'Homeowner';
+            
+            // Update homeowner profile state
+            setHomeownerProfile({
+              profile_image_url: homeowner?.profile_image_url || null,
+              name: homeownerName,
+            });
+          }
+        } else if (response.status === 403) {
+          // Access denied - this shouldn't happen if user is a participant, but handle gracefully
+          console.warn('Access denied when fetching homeowner profile - user may not be a participant');
+        }
+      } catch (err) {
+        console.error('Error fetching homeowner profile:', err);
+      }
+    };
+
+    if (jobId) {
+      fetchHomeownerProfile();
+    }
+  }, [jobId, otherUserName]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Set up real-time message subscription
   useRealTimeMessages(jobId, {
@@ -74,38 +180,13 @@ function ChatContent({ params }: ChatPageProps) {
     }
   });
 
-  const loadUserAndMessages = async () => {
-    try {
-      setLoading(true);
-      const currentUser = await fetchCurrentUser();
-
-      if (!currentUser) {
-        router.push('/login');
-        return;
-      }
-
-      setUser(currentUser);
-
-      // Load messages for this job
-      const jobMessages = await MessagingService.getJobMessages(jobId);
-      setMessages(jobMessages);
-
-      // Mark messages as read
-      await MessagingService.markMessagesAsRead(jobId, currentUser.id);
-    } catch (err) {
-      logger.error('Error loading chat', err);
-      setError('Failed to load conversation');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleSendMessage = async (messageText: string) => {
-    if (!user || !otherUserId || sending) return;
+    if (!user || !jobId || !otherUserId || sending) {
+      if (!otherUserId) {
+        alert('Unable to determine recipient. Please refresh the page.');
+      }
+      return;
+    }
 
     try {
       setSending(true);
@@ -121,7 +202,10 @@ function ChatContent({ params }: ChatPageProps) {
       scrollToBottom();
     } catch (err) {
       logger.error('Error sending message', err);
-      alert('Failed to send message. Please try again.');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to send message. Please try again.';
+      alert(errorMessage);
     } finally {
       setSending(false);
     }
@@ -148,8 +232,13 @@ function ChatContent({ params }: ChatPageProps) {
   };
 
   const groupMessagesByDate = (messages: Message[]) => {
+    // Deduplicate messages by ID first to prevent duplicate keys
+    const uniqueMessages = Array.from(
+      new Map(messages.map(msg => [msg.id, msg])).values()
+    );
+    
     const groups: { [key: string]: Message[] } = {};
-    messages.forEach((message) => {
+    uniqueMessages.forEach((message) => {
       const dateKey = new Date(message.createdAt).toDateString();
       if (!groups[dateKey]) {
         groups[dateKey] = [];
@@ -160,6 +249,29 @@ function ChatContent({ params }: ChatPageProps) {
   };
 
   if (!user) {
+    // Show loading while checking auth, don't show access denied immediately
+    if (loading) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.backgroundSecondary
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: theme.typography.fontSize.lg,
+              color: theme.colors.textSecondary
+            }}>
+              Loading...
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Only show access denied after loading completes and user is still null
     return (
       <div style={{
         minHeight: '100vh',
@@ -218,7 +330,7 @@ function ChatContent({ params }: ChatPageProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Button
-            onClick={() => router.push('/messages')}
+            onClick={() => router.push(getBackRoute())}
             variant="ghost"
             size="sm"
             style={{ marginRight: theme.spacing.sm }}
@@ -233,7 +345,7 @@ function ChatContent({ params }: ChatPageProps) {
               margin: 0,
               marginBottom: '2px'
             }}>
-              {otherUserName || 'Unknown User'}
+              {homeownerProfile?.name || otherUserName || 'Unknown User'}
             </h1>
             <p style={{
               fontSize: theme.typography.fontSize.sm,
@@ -244,7 +356,7 @@ function ChatContent({ params }: ChatPageProps) {
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+        <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
           <Button
             onClick={loadUserAndMessages}
             variant="ghost"
@@ -253,13 +365,103 @@ function ChatContent({ params }: ChatPageProps) {
           >
             🔄
           </Button>
-          <Button
-            onClick={() => alert('Video call feature coming soon!')}
-            variant="outline"
-            size="sm"
-          >
-            📞 Call
-          </Button>
+          
+          {/* Homeowner Profile Dropdown */}
+          <div ref={profileMenuRef} style={{ position: 'relative' }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label="Homeowner profile menu"
+              aria-expanded={showProfileMenu}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: theme.colors.primary,
+                padding: 0,
+                overflow: 'hidden',
+              }}
+            >
+              {homeownerProfile?.profile_image_url ? (
+                <img
+                  src={homeownerProfile.profile_image_url}
+                  alt={homeownerProfile?.name || otherUserName || 'Homeowner'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <span style={{ color: 'white', fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold }}>
+                  {(homeownerProfile?.name || otherUserName || 'H')
+                    ? (homeownerProfile?.name || otherUserName || 'H')
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : 'H'}
+                </span>
+              )}
+            </Button>
+            
+            {showProfileMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: theme.spacing[1],
+                  backgroundColor: theme.colors.white,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  boxShadow: theme.shadows.lg,
+                  minWidth: '180px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowContractModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full justify-start"
+                  leftIcon={<FileCheck className="h-4 w-4" />}
+                >
+                  Contract
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowQuoteModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full justify-start"
+                  leftIcon={<FileText className="h-4 w-4" />}
+                >
+                  View Quote
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowVideoCallDialog(true);
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full justify-start"
+                  leftIcon={<Phone className="h-4 w-4" />}
+                >
+                  Call
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -399,6 +601,44 @@ function ChatContent({ params }: ChatPageProps) {
           placeholder={sending ? 'Sending...' : 'Type a message...'}
         />
       </div>
+
+      {/* Create Contract Dialog */}
+      <CreateContractDialog
+        open={showContractModal}
+        onOpenChange={setShowContractModal}
+        jobId={jobId}
+        jobTitle={jobTitle || 'Contract'}
+        onContractCreated={async () => {
+          setShowContractModal(false);
+          logger.info('Contract created, refreshing messages', { jobId });
+          setTimeout(async () => {
+            await loadUserAndMessages();
+            logger.info('Messages refreshed after contract creation', { jobId });
+          }, 500);
+        }}
+      />
+
+      {/* Quote View Dialog */}
+      <QuoteViewDialog
+        open={showQuoteModal}
+        onOpenChange={setShowQuoteModal}
+        jobId={jobId}
+      />
+
+      {/* Video Call Alert Dialog */}
+      <AlertDialog open={showVideoCallDialog} onOpenChange={setShowVideoCallDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Video Call</AlertDialogTitle>
+            <AlertDialogDescription>
+              Video call feature coming soon! This functionality will allow you to have face-to-face conversations with contractors directly from the messaging interface.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowVideoCallDialog(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

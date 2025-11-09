@@ -5,6 +5,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
+import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
+import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -50,9 +52,15 @@ export async function GET(_req: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
+    // Build select query - include homeowner/contractor data based on user role
+    const isContractor = user.role === 'contractor';
+    const selectQuery = isContractor
+      ? `${jobSelectFields}, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, email, profile_image_url)`
+      : `${jobSelectFields}, contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, email, profile_image_url)`;
+
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select(jobSelectFields)
+      .select(selectQuery)
       .eq('id', id)
       .single();
 
@@ -73,7 +81,7 @@ export async function GET(_req: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
     }
 
-    const row = data as JobRow;
+    const row = data as any;
     if (row.homeowner_id !== user.id && row.contractor_id !== user.id) {
       logger.warn('Unauthorized job access attempt', {
         service: 'jobs',
@@ -91,7 +99,14 @@ export async function GET(_req: NextRequest, context: Params) {
       jobId: id
     });
 
-    return NextResponse.json({ job: mapRowToJobDetail(row) });
+    // Return job with homeowner/contractor data
+    return NextResponse.json({ 
+      job: {
+        ...mapRowToJobDetail(row),
+        homeowner: row.homeowner || null,
+        contractor: row.contractor || null,
+      }
+    });
   } catch (err) {
     logger.error('Failed to load job', err, {
       service: 'jobs'
@@ -213,12 +228,136 @@ export async function PATCH(request: NextRequest, context: Params) {
       jobId: id
     });
 
+    // Trigger agent analysis after job update
+    // Run asynchronously to avoid blocking the response
+    Promise.allSettled([
+      PredictiveAgent.analyzeJob(id, {
+        jobId: id,
+        userId: user.id,
+      }),
+      JobStatusAgent.evaluateAutoCancel(id, {
+        jobId: id,
+        userId: user.id,
+      }),
+    ]).catch((error) => {
+      logger.error('Error in agent analysis', error, {
+        service: 'jobs',
+        jobId: id,
+      });
+    });
+
     return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });
   } catch (err) {
     logger.error('Failed to update job', err, {
       service: 'jobs'
     });
     return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, context: Params) {
+  try {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await context.params;
+
+    // Fetch the job to verify ownership and status
+    const { data: existing, error: fetchError } = await serverSupabase
+      .from('jobs')
+      .select('id, homeowner_id, status, contractor_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        logger.warn('Job not found for deletion', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id
+        });
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      logger.error('Failed to fetch job for deletion', fetchError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
+      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+    }
+
+    // Verify ownership - only homeowner can delete their own job
+    if (!existing || existing.homeowner_id !== user.id) {
+      logger.warn('Unauthorized job deletion attempt', {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id,
+        homeownerId: existing?.homeowner_id
+      });
+      return NextResponse.json({ error: 'Forbidden: You can only delete your own jobs' }, { status: 403 });
+    }
+
+    // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)
+    // For posted jobs, allow deletion (pending bids are OK)
+    // For other statuses, check restrictions
+    if (existing.status !== 'posted') {
+      // Check if there are accepted bids
+      const { data: acceptedBids } = await serverSupabase
+        .from('bids')
+        .select('id')
+        .eq('job_id', id)
+        .eq('status', 'accepted')
+        .limit(1);
+
+      if (acceptedBids && acceptedBids.length > 0) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with accepted bids. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+
+      // If contractor is assigned, don't allow deletion
+      if (existing.contractor_id) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+    } else {
+      // For posted jobs, also check if contractor is assigned (shouldn't happen, but safety check)
+      if (existing.contractor_id) {
+        return NextResponse.json({ 
+          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
+        }, { status: 400 });
+      }
+    }
+
+    // Delete the job (cascade will handle related records like bids, attachments, etc.)
+    const { error: deleteError } = await serverSupabase
+      .from('jobs')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      logger.error('Failed to delete job', deleteError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id
+      });
+      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+    }
+
+    logger.info('Job deleted successfully', {
+      service: 'jobs',
+      userId: user.id,
+      jobId: id
+    });
+
+    return NextResponse.json({ message: 'Job deleted successfully' }, { status: 200 });
+  } catch (err) {
+    logger.error('Failed to delete job', err, {
+      service: 'jobs'
+    });
+    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
   }
 }
 

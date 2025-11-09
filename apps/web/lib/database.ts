@@ -201,7 +201,7 @@ export class DatabaseManager {
   static async getUserById(userId: string): Promise<Omit<User, 'password_hash'> | null> {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, location, profile_image_url')
       .eq('id', userId)
       .single();
 
@@ -218,7 +218,7 @@ export class DatabaseManager {
   static async getUserByEmail(email: string): Promise<Omit<User, 'password_hash'> | null> {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, location, profile_image_url')
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -324,13 +324,29 @@ export class DatabaseManager {
    * Check if user exists by email
    */
   static async userExists(email: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email.toLowerCase().trim())
-      .single();
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .single();
 
-    return !!data && !error;
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned, which is expected
+        logger.error('Error checking user existence', error, { 
+          service: 'database', 
+          email: normalizedEmail 
+        });
+      }
+
+      return !!data && !error;
+    } catch (error) {
+      logger.error('Exception checking user existence', error, { 
+        service: 'database', 
+        email 
+      });
+      return false;
+    }
   }
 
   /**

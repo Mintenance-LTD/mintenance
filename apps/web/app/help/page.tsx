@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { PopularArticlesSection } from './components/PopularArticlesSection';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Search, MessageCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export default function HelpCentrePage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
+  const [showLiveChatDialog, setShowLiveChatDialog] = React.useState(false);
 
   const categories = [
     {
@@ -67,6 +73,9 @@ export default function HelpCentrePage() {
         { title: 'Payment methods accepted', content: 'Supported payment options and how to add them.' },
         { title: 'Releasing payment', content: 'When and how to approve payment to your tradesperson.' },
         { title: 'Refunds and disputes', content: 'Process for handling payment issues and disagreements.' },
+        { title: 'Dispute resolution process', content: 'Step-by-step guide to creating and resolving disputes, including mediation options and SLA timelines.' },
+        { title: 'Submitting evidence for disputes', content: 'What documentation and evidence you need to support your dispute claim.' },
+        { title: 'Mediation services', content: 'How to request and participate in mediation sessions to resolve disputes.' },
         { title: 'VAT and invoices', content: 'Understanding tax documentation and receipt generation.' },
       ],
     },
@@ -161,26 +170,14 @@ export default function HelpCentrePage() {
 
           {/* Search Bar */}
           <div className="relative max-w-2xl mx-auto">
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for help articles..."
-              className="w-full px-6 py-4 pl-14 pr-4 rounded-xl text-lg border-2 border-transparent focus:border-secondary focus:outline-none"
+              className="w-full pl-12 pr-4 py-4 text-lg"
             />
-            <svg
-              className="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" />
           </div>
         </div>
       </section>
@@ -210,13 +207,15 @@ export default function HelpCentrePage() {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold text-primary mb-12 text-center">Browse by Category</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredCategories.map((category) => (
               <div
                 key={category.id}
-                className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-secondary transition-all cursor-pointer"
+                className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-secondary transition-all cursor-pointer group relative overflow-hidden"
                 onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
               >
+                {/* Gradient bar - appears on hover, always visible on large screens */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
                 <div className="flex items-center mb-4">
                   <div
                     className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl mr-4"
@@ -280,33 +279,7 @@ export default function HelpCentrePage() {
       </section>
 
       {/* Popular Articles */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-primary mb-12 text-center">Most Popular Articles</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { title: 'How to create an account', category: 'Getting Started', views: '12.5k' },
-              { title: 'How to post a job', category: 'Posting Jobs', views: '10.2k' },
-              { title: 'How payments work', category: 'Payments & Billing', views: '8.7k' },
-              { title: 'Receiving and comparing quotes', category: 'Bids & Quotes', views: '7.9k' },
-              { title: 'Finding jobs near you', category: 'For Tradespeople', views: '7.3k' },
-              { title: 'Our verification process', category: 'Safety & Trust', views: '6.8k' },
-            ].map((article, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-primary flex-1">{article.title}</h3>
-                  <span className="text-sm text-gray-500 ml-4">{article.views} views</span>
-                </div>
-                <p className="text-sm text-secondary font-medium">{article.category}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PopularArticlesSection />
 
       {/* Contact Support CTA */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-secondary to-secondary-dark">
@@ -318,26 +291,40 @@ export default function HelpCentrePage() {
             Can't find what you're looking for? Our support team is here to assist you.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link
-              href="/contact"
-              className="bg-white text-secondary px-10 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg inline-flex items-center justify-center"
-            >
-              Contact Support
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <Link href="/contact">
+              <Button variant="primary" size="lg" className="bg-white text-secondary hover:bg-gray-100">
+                Contact Support
+              </Button>
             </Link>
-            <button className="bg-primary text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-primary-light transition-colors shadow-lg inline-flex items-center justify-center">
-              Start Live Chat
-              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-            </button>
+            <Dialog open={showLiveChatDialog} onOpenChange={setShowLiveChatDialog}>
+              <DialogTrigger asChild>
+                <Button variant="primary" size="lg" className="bg-primary text-white hover:bg-primary-light">
+                  Start Live Chat
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Live Chat Coming Soon</DialogTitle>
+                  <DialogDescription>
+                    Our live chat feature is currently under development.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 text-center">
+                  <MessageCircle className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-6">
+                    Our live chat feature is currently under development and will be available soon!
+                  </p>
+                  <p className="text-sm text-gray-500 mb-6">
+                    In the meantime, please reach out to us via email and we'll respond as quickly as possible.
+                  </p>
+                  <a href="mailto:support@mintenance.co.uk" className="inline-block">
+                    <Button variant="primary">
+                      Email Us: support@mintenance.co.uk
+                    </Button>
+                  </a>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </section>

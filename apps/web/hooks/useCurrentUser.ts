@@ -11,22 +11,41 @@ export function useCurrentUser() {
 
   useEffect(() => {
     const controller = new AbortController();
+    let mounted = true;
 
     const load = async () => {
       try {
         const current = await fetchCurrentUser(controller.signal);
-        setUser(current);
+        if (mounted) {
+          setUser(current);
+        }
       } catch (err) {
-        console.error('[Auth] Failed to load current user', err);
-        setError('Unable to load current user');
+        // Ignore abort errors - these are expected during unmount/route changes
+        if (err && typeof err === 'object' && (err as any).name === 'AbortError') {
+          return;
+        }
+        if (mounted) {
+          console.error('[Auth] Failed to load current user', err);
+          setError('Unable to load current user');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     load();
 
-    return () => controller.abort();
+    return () => {
+      mounted = false;
+      // Use requestIdleCallback or setTimeout to suppress console errors during unmount
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        requestIdleCallback(() => controller.abort(), { timeout: 0 });
+      } else {
+        setTimeout(() => controller.abort(), 0);
+      }
+    };
   }, []);
 
   return { user, loading, error };

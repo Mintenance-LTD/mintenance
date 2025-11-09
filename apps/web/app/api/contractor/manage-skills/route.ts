@@ -51,12 +51,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert new skills
+    // Insert new skills with icons
     if (skills.length > 0) {
-      const skillsData = skills.map(skillName => ({
-        contractor_id: user.id,
-        skill_name: skillName,
-      }));
+      const skillsData = skills.map((skill: string | { skill_name: string; skill_icon: string }) => {
+        // Support both old format (string) and new format (object with icon)
+        if (typeof skill === 'string') {
+          return {
+            contractor_id: user.id,
+            skill_name: skill,
+          };
+        }
+        return {
+          contractor_id: user.id,
+          skill_name: skill.skill_name,
+          skill_icon: skill.skill_icon,
+        };
+      });
 
       const { data, error: insertError } = await supabase
         .from('contractor_skills')

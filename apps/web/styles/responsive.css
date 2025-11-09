@@ -1,0 +1,428 @@
+/**
+ * Responsive utilities for mobile-optimized layouts
+ * Mobile-first approach with progressive enhancement
+ */
+
+/* Breakpoints:
+ * sm: 640px  - Small tablets
+ * md: 768px  - Tablets
+ * lg: 1024px - Desktops
+ * xl: 1280px - Large desktops
+ */
+
+/* Base mobile styles */
+:root {
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 80px;
+  --header-height: 64px;
+  --spacing-base: 16px;
+}
+
+/* Container responsive padding */
+.container-responsive {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+/* Grid responsive */
+.grid-responsive {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    gap: 24px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+/* Card stacking on mobile */
+.card-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Sidebar responsive behavior */
+.sidebar {
+  width: var(--sidebar-width);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1023px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    z-index: 1000;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+  }
+}
+
+/* Main content area adjustment */
+.main-content {
+  margin-left: 0;
+  padding: 16px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  .main-content {
+    margin-left: var(--sidebar-width);
+    padding: 32px;
+  }
+}
+
+/* Header responsive */
+.header {
+  height: var(--header-height);
+  padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .header {
+    padding: 0 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .header {
+    padding: 0 32px;
+  }
+}
+
+/* Search bar responsive */
+.search-bar {
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .search-bar {
+    max-width: 320px;
+  }
+}
+
+@media (min-width: 768px) {
+  .search-bar {
+    max-width: 420px;
+  }
+}
+
+/* Table responsive - scroll on mobile */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .table-container table {
+    min-width: 600px;
+  }
+}
+
+/* Hide on mobile */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Hide on desktop */
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* Typography responsive */
+.text-responsive-xl {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-xl {
+    font-size: 32px;
+  }
+}
+
+.text-responsive-lg {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-lg {
+    font-size: 24px;
+  }
+}
+
+/* Button responsive sizing */
+.btn-responsive {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .btn-responsive {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+}
+
+/* Spacing utilities responsive */
+.gap-responsive {
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .gap-responsive {
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gap-responsive {
+    gap: 24px;
+  }
+}
+
+/* Flex responsive - stack on mobile */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+    gap: 16px;
+  }
+}
+
+/* Card padding responsive */
+.card-responsive {
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .card-responsive {
+    padding: 24px;
+  }
+}
+
+/* Modal responsive */
+.modal-content {
+  width: 90%;
+  max-width: 600px;
+  margin: 20px auto;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  .modal-content {
+    width: 95%;
+    margin: 10px auto;
+    max-height: calc(100vh - 20px);
+  }
+}
+
+/* Chart responsive */
+.chart-container {
+  height: 200px;
+}
+
+@media (min-width: 640px) {
+  .chart-container {
+    height: 240px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chart-container {
+    height: 300px;
+  }
+}
+
+/* KPI cards responsive */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Touch targets on mobile */
+@media (max-width: 767px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Date picker responsive */
+.date-picker-dropdown {
+  min-width: 280px;
+  max-width: 90vw;
+}
+
+@media (min-width: 768px) {
+  .date-picker-dropdown {
+    min-width: 600px;
+  }
+}
+
+/* Export menu responsive */
+.export-menu-dropdown {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+@media (min-width: 768px) {
+  .export-menu-dropdown {
+    position: absolute;
+    bottom: auto;
+    left: auto;
+    right: 0;
+    border-radius: 12px;
+  }
+}
+
+/* Dashboard layout responsive */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout {
+    gap: 24px;
+  }
+}
+
+/* Two-column layout responsive */
+.two-col-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .two-col-responsive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Sidebar content responsive */
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 240px;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-content {
+    min-width: 280px;
+  }
+}
+
+/* Mobile menu */
+.mobile-menu-toggle {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .mobile-menu-toggle {
+    display: none;
+  }
+}
+
+/* Truncate text on mobile */
+@media (max-width: 767px) {
+  .truncate-mobile {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+

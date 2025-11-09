@@ -1,35 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import Logo from '../components/Logo';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/Textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
+
+const contactFormSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  subject: z.string().min(5, 'Subject must be at least 5 characters'),
+  category: z.enum(['general', 'technical', 'billing', 'partnerships', 'press', 'feedback']),
+  message: z.string().min(10, 'Message must be at least 10 characters'),
+  consent: z.boolean().refine((val) => val === true, {
+    message: 'You must agree to the Privacy Policy',
+  }),
+});
+
+type ContactFormData = z.infer<typeof contactFormSchema>;
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    category: 'general',
-    message: '',
+  const [showLiveChatDialog, setShowLiveChatDialog] = React.useState(false);
+  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = React.useState('');
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    reset,
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      subject: '',
+      category: 'general',
+      message: '',
+      consent: false,
+    },
   });
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus('submitting');
+  const category = watch('category');
+  const consent = watch('consent');
 
-    // Simulate form submission (replace with actual API call)
-    setTimeout(() => {
-      setStatus('success');
-      setFormData({ name: '', email: '', subject: '', category: 'general', message: '' });
+  const onSubmit = async (data: ContactFormData) => {
+    setSubmitStatus('idle');
+    setErrorMessage('');
 
-      // Reset status after 5 seconds
-      setTimeout(() => setStatus('idle'), 5000);
-    }, 1500);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    try {
+      // TODO: Replace with actual API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      setSubmitStatus('success');
+      reset();
+      
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 5000);
+    } catch (error) {
+      setErrorMessage('Failed to send message. Please try again.');
+      setSubmitStatus('error');
+    }
   };
 
   return (
@@ -70,7 +114,9 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {/* Email */}
-            <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
+            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -84,7 +130,9 @@ export default function ContactPage() {
             </div>
 
             {/* Phone */}
-            <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
+            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -98,7 +146,9 @@ export default function ContactPage() {
             </div>
 
             {/* Live Chat */}
-            <div className="bg-white rounded-xl p-8 text-center shadow-lg border border-gray-200">
+            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -106,9 +156,38 @@ export default function ContactPage() {
               </div>
               <h3 className="text-xl font-semibold text-primary mb-2">Live Chat</h3>
               <p className="text-gray-600 mb-4">Chat with our support team in real-time</p>
-              <button className="text-purple-500 hover:underline font-medium">
-                Start Chat →
-              </button>
+              <Dialog open={showLiveChatDialog} onOpenChange={setShowLiveChatDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" className="text-purple-500 hover:text-purple-600">
+                    Start Chat →
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Live Chat Coming Soon</DialogTitle>
+                    <DialogDescription>
+                      Our live chat feature is currently under development.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 text-center">
+                    <MessageCircle className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-6">
+                      Our live chat feature is currently under development and will be available soon!
+                    </p>
+                    <p className="text-sm text-gray-500 mb-6">
+                      In the meantime, please reach out to us via email and we'll respond as quickly as possible.
+                    </p>
+                    <a
+                      href="mailto:support@mintenance.co.uk"
+                      className="inline-block"
+                    >
+                      <Button variant="primary">
+                        Email Us: support@mintenance.co.uk
+                      </Button>
+                    </a>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -124,130 +203,120 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 md:p-12">
-            {status === 'success' && (
-              <div className="mb-8 bg-secondary/10 border border-secondary text-secondary rounded-lg p-4 flex items-start">
-                <svg className="w-6 h-6 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="font-semibold">Message sent successfully!</p>
-                  <p className="text-sm">We'll get back to you within 24 hours.</p>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 md:p-12 group relative overflow-hidden">
+            {/* Gradient bar - appears on hover, always visible on large screens */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+            {submitStatus === 'success' && (
+              <Alert className="mb-6 border-green-500 bg-green-50">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Message Sent Successfully!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  We'll get back to you within 24 hours.
+                </AlertDescription>
+              </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {submitStatus === 'error' && errorMessage && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-primary mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
                     id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    {...register('name')}
+                    error={errors.name?.message}
                     placeholder="John Smith"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-primary mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
                     id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                    type="email"
+                    {...register('email')}
+                    error={errors.email?.message}
                     placeholder="john.smith@example.com"
                   />
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="category" className="block text-sm font-semibold text-primary mb-2">
-                  Category *
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
-                >
-                  <option value="general">General Enquiry</option>
-                  <option value="technical">Technical Support</option>
-                  <option value="billing">Billing & Payments</option>
-                  <option value="partnerships">Partnership Opportunities</option>
-                  <option value="press">Press & Media</option>
-                  <option value="feedback">Feedback & Suggestions</option>
-                </select>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select value={category} onValueChange={(value: ContactFormData['category']) => setValue('category', value)}>
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General Enquiry</SelectItem>
+                    <SelectItem value="technical">Technical Support</SelectItem>
+                    <SelectItem value="billing">Billing & Payments</SelectItem>
+                    <SelectItem value="partnerships">Partnership Opportunities</SelectItem>
+                    <SelectItem value="press">Press & Media</SelectItem>
+                    <SelectItem value="feedback">Feedback & Suggestions</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.category && (
+                  <p className="text-sm text-red-600">{errors.category.message}</p>
+                )}
               </div>
 
-              <div>
-                <label htmlFor="subject" className="block text-sm font-semibold text-primary mb-2">
-                  Subject *
-                </label>
-                <input
-                  type="text"
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject *</Label>
+                <Input
                   id="subject"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all"
+                  {...register('subject')}
+                  error={errors.subject?.message}
                   placeholder="How can we help you?"
                 />
               </div>
 
-              <div>
-                <label htmlFor="message" className="block text-sm font-semibold text-primary mb-2">
-                  Message *
-                </label>
-                <textarea
+              <div className="space-y-2">
+                <Label htmlFor="message">Message *</Label>
+                <Textarea
                   id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
+                  {...register('message')}
+                  errorText={errors.message?.message}
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all resize-none"
                   placeholder="Please provide as much detail as possible..."
                 />
               </div>
 
-              <div className="flex items-start">
-                <input
-                  type="checkbox"
+              <div className="flex items-start space-x-2">
+                <Checkbox
                   id="consent"
-                  required
-                  className="w-5 h-5 text-secondary bg-gray-100 border-gray-300 rounded focus:ring-secondary mt-0.5"
+                  {...register('consent')}
+                  checked={consent}
                 />
-                <label htmlFor="consent" className="ml-3 text-sm text-gray-600">
+                <Label htmlFor="consent" className="font-normal cursor-pointer text-sm text-gray-600">
                   I agree to the{' '}
                   <Link href="/privacy" className="text-secondary hover:underline">
                     Privacy Policy
                   </Link>{' '}
                   and consent to Mintenance contacting me regarding my enquiry. *
-                </label>
+                </Label>
               </div>
+              {errors.consent && (
+                <p className="text-sm text-red-600">{errors.consent.message}</p>
+              )}
 
-              <button
+              <Button
                 type="submit"
-                disabled={status === 'submitting'}
-                className="w-full bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={isSubmitting}
+                disabled={isSubmitting}
               >
-                {status === 'submitting' ? 'Sending...' : 'Send Message'}
-              </button>
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </Button>
             </form>
           </div>
         </div>
@@ -256,12 +325,12 @@ export default function ContactPage() {
       {/* Office Location */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-bold text-primary mb-6">Our Office</h2>
               <div className="space-y-6">
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -278,7 +347,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
@@ -292,7 +361,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div>
@@ -306,14 +375,32 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p className="font-medium">Interactive Map</p>
-                <p className="text-sm">Suite 2 J2 Business Park, Bury</p>
+            {/* Interactive Google Maps */}
+            <div className="rounded-xl h-96 overflow-hidden shadow-lg relative">
+              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+                <iframe
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&zoom=15`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full"
+                  title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="text-center p-8">
+                    <p className="text-gray-600 mb-2">Map unavailable</p>
+                    <p className="text-sm text-gray-500">Suite 2 J2 Business Park</p>
+                    <p className="text-sm text-gray-500">Bridge Hall Lane, Bury, BL9 7NY</p>
+                  </div>
+                </div>
+              )}
+              <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 text-sm z-10">
+                <p className="font-semibold text-gray-900">Suite 2 J2 Business Park</p>
+                <p className="text-gray-600">Bridge Hall Lane, Bury, BL9 7NY</p>
               </div>
             </div>
           </div>
@@ -365,6 +452,7 @@ export default function ContactPage() {
           </p>
         </div>
       </footer>
+
     </div>
   );
 }

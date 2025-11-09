@@ -3,11 +3,17 @@
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { getSkillIcon, AVAILABLE_SKILL_ICONS } from '@/lib/skills/skill-icon-mapping';
+
+interface SkillWithIcon {
+  skill_name: string;
+  skill_icon?: string | null;
+}
 
 interface SkillsManagementModalProps {
-  currentSkills: Array<{ skill_name: string }>;
+  currentSkills: Array<SkillWithIcon>;
   onClose: () => void;
-  onSave: (skills: string[]) => Promise<void>;
+  onSave: (skills: Array<{ skill_name: string; skill_icon: string }>) => Promise<void>;
 }
 
 /**
@@ -19,9 +25,18 @@ interface SkillsManagementModalProps {
  * @filesize Target: <350 lines
  */
 export function SkillsManagementModal({ currentSkills, onClose, onSave }: SkillsManagementModalProps) {
+  // Store skills with their icons
+  const [skillIcons, setSkillIcons] = useState<Record<string, string>>(
+    currentSkills.reduce((acc, skill) => {
+      acc[skill.skill_name] = skill.skill_icon || getSkillIcon(skill.skill_name);
+      return acc;
+    }, {} as Record<string, string>)
+  );
+  
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
     currentSkills.map(s => s.skill_name)
   );
+  const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,14 +72,24 @@ export function SkillsManagementModal({ currentSkills, onClose, onSave }: Skills
   const handleToggleSkill = (skill: string) => {
     if (selectedSkills.includes(skill)) {
       setSelectedSkills(selectedSkills.filter(s => s !== skill));
+      setExpandedSkill(null);
     } else {
       if (selectedSkills.length >= 15) {
         setError('Maximum 15 skills allowed');
         return;
       }
       setSelectedSkills([...selectedSkills, skill]);
+      // Set default icon if not already set
+      if (!skillIcons[skill]) {
+        setSkillIcons({ ...skillIcons, [skill]: getSkillIcon(skill) });
+      }
       setError(null);
     }
+  };
+
+  const handleIconChange = (skill: string, icon: string) => {
+    setSkillIcons({ ...skillIcons, [skill]: icon });
+    setExpandedSkill(null);
   };
 
   const handleSubmit = async () => {
@@ -77,7 +102,11 @@ export function SkillsManagementModal({ currentSkills, onClose, onSave }: Skills
     setError(null);
 
     try {
-      await onSave(selectedSkills);
+      const skillsWithIcons = selectedSkills.map(skillName => ({
+        skill_name: skillName,
+        skill_icon: skillIcons[skillName] || getSkillIcon(skillName),
+      }));
+      await onSave(skillsWithIcons);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update skills');
@@ -187,42 +216,140 @@ export function SkillsManagementModal({ currentSkills, onClose, onSave }: Skills
             }}>
               {availableSkills.map((skill) => {
                 const isSelected = selectedSkills.includes(skill);
+                const currentIcon = skillIcons[skill] || getSkillIcon(skill);
+                const isExpanded = expandedSkill === skill;
+                
                 return (
-                  <button
-                    key={skill}
-                    type="button"
-                    onClick={() => handleToggleSkill(skill)}
-                    style={{
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
-                      color: isSelected ? 'white' : theme.colors.text,
-                      border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.border}`,
-                      borderRadius: theme.borderRadius.lg,
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      textAlign: 'left',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = theme.colors.primary;
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = theme.colors.border;
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }
-                    }}
-                  >
-                    <span>{skill}</span>
-                    {isSelected && <Icon name="check" size={16} color="white" />}
-                  </button>
+                  <div key={skill} style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSkill(skill)}
+                      style={{
+                        padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                        backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
+                        color: isSelected ? 'white' : theme.colors.text,
+                        border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.border}`,
+                        borderRadius: theme.borderRadius.lg,
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = theme.colors.primary;
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = theme.colors.border;
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+                        {isSelected && (
+                          <Icon 
+                            name={currentIcon} 
+                            size={16} 
+                            color={isSelected ? 'white' : theme.colors.textSecondary} 
+                          />
+                        )}
+                        <span>{skill}</span>
+                      </div>
+                      {isSelected && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Change icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedSkill(isExpanded ? null : skill);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setExpandedSkill(isExpanded ? null : skill);
+                            }
+                          }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.2)',
+                            border: 'none',
+                            borderRadius: theme.borderRadius.md,
+                            padding: theme.spacing[1],
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            outline: 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                          }}
+                        >
+                          <Icon name="chevronDown" size={12} color="white" />
+                        </div>
+                      )}
+                    </button>
+                    
+                    {/* Icon Selection Dropdown */}
+                    {isSelected && isExpanded && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: theme.spacing[1],
+                          backgroundColor: theme.colors.background,
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: theme.borderRadius.lg,
+                          padding: theme.spacing[2],
+                          zIndex: 1000,
+                          boxShadow: theme.shadows.lg,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, 1fr)',
+                          gap: theme.spacing[2],
+                        }}
+                      >
+                        {AVAILABLE_SKILL_ICONS.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            onClick={() => handleIconChange(skill, icon)}
+                            style={{
+                              padding: theme.spacing[2],
+                              backgroundColor: currentIcon === icon ? theme.colors.primary : theme.colors.backgroundSecondary,
+                              border: `1px solid ${currentIcon === icon ? theme.colors.primary : theme.colors.border}`,
+                              borderRadius: theme.borderRadius.md,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s',
+                            }}
+                            title={icon}
+                          >
+                            <Icon 
+                              name={icon} 
+                              size={18} 
+                              color={currentIcon === icon ? 'white' : theme.colors.textSecondary} 
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

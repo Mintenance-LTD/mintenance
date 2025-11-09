@@ -38,11 +38,11 @@ export async function POST(request: NextRequest) {
 
     const { email } = validation.data;
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key for admin operations
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       logger.error('Missing Supabase configuration', { service: 'auth' });
       return NextResponse.json(
         { error: 'Service configuration error. Please contact support.' },
@@ -50,21 +50,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role key for admin operations (can send emails regardless of user state)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Check if user exists first (for better error handling)
+    const { data: userData } = await supabase.auth.admin.listUsers();
+    const user = userData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const userExists = !!user;
 
     // Send password reset email
+    // Use resetPasswordForEmail which sends the email automatically
+    const redirectUrl = `${request.nextUrl.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${request.nextUrl.origin}/reset-password`,
+      redirectTo: redirectUrl,
     });
 
     if (error) {
-      logger.warn('Password reset email failed (hidden from user)', {
+      logger.error('Password reset email failed', {
         service: 'auth',
         email,
-        errorMessage: error.message
+        errorMessage: error.message,
+        redirectUrl,
+        errorCode: error.status || 'unknown',
+        userExists,
+        emailConfirmed: user?.email_confirmed_at ? true : false
       });
 
-      // Provide user-friendly error messages for network issues only
+      // Provide user-friendly error messages for specific issues
       if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
         return NextResponse.json(
           { error: 'Network error. Please check your connection and try again.' },
@@ -72,8 +89,47 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Don't reveal if user exists or not (security best practice)
-      // Just return success regardless
+      // Check for Supabase configuration issues
+      if (error.message.includes('email rate limit') || error.message.includes('rate_limit_exceeded')) {
+        return NextResponse.json(
+          { error: 'Too many email requests. Please wait a few minutes and try again.' },
+          { status: 429 }
+        );
+      }
+
+      // If email not confirmed, try to confirm it first (if user exists)
+      if (user && !user.email_confirmed_at) {
+        logger.info('Attempting to confirm email before password reset', { email, userId: user.id, service: 'auth' });
+        try {
+          // Confirm email using admin API
+          const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
+            email_confirm: true,
+          });
+          
+          if (!confirmError) {
+            // Retry password reset after confirming email
+            const { error: retryError } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: redirectUrl,
+            });
+            
+            if (!retryError) {
+              logger.info('Password reset email sent after confirming email', { email, service: 'auth' });
+              // Continue to success response below
+            } else {
+              logger.error('Password reset still failed after email confirmation', retryError, { email, service: 'auth' });
+            }
+          }
+        } catch (confirmErr) {
+          logger.error('Failed to confirm email for password reset', confirmErr, { email, service: 'auth' });
+        }
+      }
+
+      // For other errors, log but don't reveal details (security best practice)
+      // Return success to prevent email enumeration attacks
+      // But log the error for debugging
+      if (!userExists) {
+        logger.warn('Password reset requested for non-existent email', { email, service: 'auth' });
+      }
     }
 
     logger.info('Password reset email requested', {

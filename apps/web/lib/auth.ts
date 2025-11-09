@@ -10,9 +10,13 @@ const config = ConfigManager.getInstance();
 
 
 // Centralized cookie names and TTLs
-const AUTH_COOKIE = '__Host-mintenance-auth';
-const REFRESH_COOKIE = '__Host-mintenance-refresh';
-const REMEMBER_COOKIE = '__Host-mintenance-remember';
+// Use __Host- prefix in production for additional security, regular names in development
+const isProduction = process.env.NODE_ENV === 'production';
+const COOKIE_PREFIX = isProduction ? '__Host-' : '';
+
+const AUTH_COOKIE = `${COOKIE_PREFIX}mintenance-auth`;
+const REFRESH_COOKIE = `${COOKIE_PREFIX}mintenance-refresh`;
+const REMEMBER_COOKIE = `${COOKIE_PREFIX}mintenance-remember`;
 
 // TTL constants (in seconds)
 const ACCESS_TTL_SEC = 3600; // 1 hour
@@ -167,7 +171,32 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 }
 
 /**
- * Set authentication cookies (access token + refresh token)
+ * Create Set-Cookie headers for authentication (use in API routes)
+ */
+export function createAuthCookieHeaders(token: string, rememberMe: boolean = false, refreshToken?: string): Headers {
+  const headers = new Headers();
+  const accessTokenMaxAge = ACCESS_TTL_SEC; // 1 hour
+  const refreshTokenMaxAge = rememberMe ? REFRESH_TTL_SEC_LONG : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
+  const isProduction = config.isProduction();
+
+  // Set access token (short-lived)
+  headers.append('Set-Cookie', `${AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${accessTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+
+  // Set refresh token (long-lived, HTTP-only for security)
+  if (refreshToken) {
+    headers.append('Set-Cookie', `${REFRESH_COOKIE}=${refreshToken}; HttpOnly; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+  }
+
+  // Set remember-me flag for UI (non-sensitive)
+  if (rememberMe) {
+    headers.append('Set-Cookie', `${REMEMBER_COOKIE}=true; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+  }
+
+  return headers;
+}
+
+/**
+ * Set authentication cookies (access token + refresh token) - use in Server Components
  */
 export async function setAuthCookie(token: string, rememberMe: boolean = false, refreshToken?: string) {
   const cookieStore = await cookies();

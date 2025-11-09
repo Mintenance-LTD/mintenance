@@ -1,6 +1,7 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -15,6 +16,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [isComposing, setIsComposing] = useState(false);
+  const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
+  const [showEmojiPickerDialog, setShowEmojiPickerDialog] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
@@ -49,12 +52,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleFileUpload = () => {
     // TODO: implement file upload
-    alert('File upload feature coming soon!');
+    setShowFileUploadDialog(true);
   };
 
   const handleEmojiPicker = () => {
     // TODO: implement emoji picker
-    alert('Emoji picker coming soon!');
+    setShowEmojiPickerDialog(true);
   };
 
   return (
@@ -183,6 +186,36 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       >
         ↗️
       </Button>
+
+      {/* File Upload Alert Dialog */}
+      <AlertDialog open={showFileUploadDialog} onOpenChange={setShowFileUploadDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>File Upload</AlertDialogTitle>
+            <AlertDialogDescription>
+              File upload feature coming soon! This functionality will allow you to attach images and documents to your messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowFileUploadDialog(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Emoji Picker Alert Dialog */}
+      <AlertDialog open={showEmojiPickerDialog} onOpenChange={setShowEmojiPickerDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Emoji Picker</AlertDialogTitle>
+            <AlertDialogDescription>
+              Emoji picker feature coming soon! This functionality will allow you to add emojis to your messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowEmojiPickerDialog(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

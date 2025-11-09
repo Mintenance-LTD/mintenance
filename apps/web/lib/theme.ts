@@ -36,11 +36,12 @@ export const theme = {
     infoLight: '#339FFF',
     infoDark: '#0051D5',
 
-    // Neutral Colors
+    // Neutral Colors - Enhanced with expanded gray scale
     background: '#FFFFFF',
     backgroundSecondary: '#F8FAFC',
     backgroundTertiary: '#F1F5F9',
     backgroundDark: '#1F2937',
+    backgroundSubtle: '#FCFCFD', // New - very subtle background
     surface: '#FFFFFF',
     surfaceSecondary: '#F8FAFC',
     surfaceTertiary: '#F1F5F9',
@@ -48,6 +49,19 @@ export const theme = {
     // Common utility colors
     white: '#FFFFFF',
     black: '#000000',
+
+    // Gray Scale - Expanded
+    gray25: '#FCFCFD',
+    gray50: '#F9FAFB',
+    gray100: '#F3F4F6',
+    gray200: '#E5E7EB',
+    gray300: '#D1D5DB',
+    gray400: '#9CA3AF',
+    gray500: '#6B7280',
+    gray600: '#4B5563',
+    gray700: '#374151',
+    gray800: '#1F2937',
+    gray900: '#111827',
 
     // Text Colors (WCAG AA Compliant)
     textPrimary: '#1F2937',
@@ -114,26 +128,36 @@ export const theme = {
       bold: '700',
     },
 
-    // Font Sizes (web pixel values)
+    // Font Sizes (web pixel values) - Enhanced for better hierarchy
     fontSize: {
-      xs: '10px',
-      sm: '12px',
-      base: '14px',
+      xs: '11px',
+      sm: '13px',
+      base: '15px',
       md: '16px',
-      lg: '16px',
-      xl: '18px',
-      '2xl': '20px',
-      '3xl': '24px',
-      '4xl': '32px',
+      lg: '17px',
+      xl: '19px',
+      '2xl': '22px',
+      '3xl': '28px',
+      '4xl': '36px',
       '5xl': '48px',
     },
 
     // Line Heights
     lineHeight: {
       tight: '1.2',
-      normal: '1.4',
+      normal: '1.5',
       relaxed: '1.6',
       loose: '1.8',
+    },
+
+    // Letter Spacing - New for enhanced typography
+    letterSpacing: {
+      tighter: '-0.02em',
+      tight: '-0.01em',
+      normal: '0',
+      wide: '0.025em',
+      wider: '0.05em',
+      widest: '0.1em',
     },
   },
 
@@ -173,12 +197,42 @@ export const theme = {
     full: '9999px',
   },
 
-  // Shadows (CSS box-shadow)
+  // Shadows (CSS box-shadow) - Enhanced with more depth and colored shadows
   shadows: {
     sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
     base: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    lg: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    xl: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    '3xl': '0 35px 60px -15px rgba(0, 0, 0, 0.3)',
+    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+    // Hover shadows for interactive elements
+    hover: '0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08)',
+    // Colored shadows for emphasis
+    primaryGlow: '0 8px 16px rgba(15, 23, 42, 0.15)',
+    successGlow: '0 8px 16px rgba(16, 185, 129, 0.2)',
+    warningGlow: '0 8px 16px rgba(245, 158, 11, 0.2)',
+    errorGlow: '0 8px 16px rgba(239, 68, 68, 0.2)',
+  },
+  
+  // Gradients - Professional, subtle gradients
+  gradients: {
+    primary: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+    primaryLight: 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
+    success: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+    successLight: 'linear-gradient(135deg, #34D399 0%, #6EE7B7 100%)',
+    warning: 'linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%)',
+    error: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
+    info: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+    // Subtle background gradients
+    backgroundSubtle: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)',
+    backgroundWarm: 'linear-gradient(180deg, #FFFFFF 0%, #FEF3C7 100%)',
+    backgroundCool: 'linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%)',
+    // Card gradients
+    cardPrimary: 'linear-gradient(135deg, rgba(15, 23, 42, 0.05) 0%, rgba(30, 41, 59, 0.02) 100%)',
+    cardSuccess: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%)',
+    cardWarning: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(252, 211, 77, 0.05) 100%)',
   },
 
   // Component Variants
@@ -293,9 +347,9 @@ export const theme = {
     duration: {
       instant: '100ms',
       fast: '150ms',
-      normal: '300ms',
-      slow: '500ms',
-      slower: '750ms',
+      normal: '200ms',
+      slow: '300ms',
+      slower: '500ms',
     },
     easing: {
       linear: 'linear',
@@ -305,6 +359,27 @@ export const theme = {
       easeInOut: 'ease-in-out',
       bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
       spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    },
+  },
+  
+  // Visual effects
+  effects: {
+    // Glassmorphism
+    glass: {
+      background: 'rgba(255, 255, 255, 0.7)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid rgba(255, 255, 255, 0.18)',
+    },
+    // Hover lift
+    lift: {
+      transform: 'translateY(-2px)',
+      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    },
+    // Scale on hover
+    scale: {
+      transform: 'scale(1.02)',
+      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     },
   },
 };

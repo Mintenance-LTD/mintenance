@@ -11,16 +11,21 @@ interface ContractorCardProps {
  * Card component displaying contractor details for homeowners
  */
 export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) => {
+  const rating = contractor.rating || 0;
+  const reviewCount = contractor.total_jobs_completed || 0;
+  const specialties = contractor.contractor_skills?.map((s: any) => s.skill_name) || [];
+  
   return (
     <div style={{
       width: '100%',
       height: '100%',
       backgroundColor: theme.colors.surface,
-      borderRadius: '20px',
-      boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
+      borderRadius: '24px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
       overflow: 'hidden',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      border: `1px solid ${theme.colors.border}`
     }}>
       {/* Header with Photo */}
       <div style={{
@@ -46,24 +51,27 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
             }}
           />
-          {/* Verified Badge */}
-          <div style={{
-            position: 'absolute',
-            bottom: '5px',
-            right: '5px',
-            backgroundColor: theme.colors.success,
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `2px solid white`
-          }}>
-            <svg width="14" height="14" fill="white" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          </div>
+          {/* Verified Badge - Only show if email is verified */}
+          {contractor.email_verified && (
+            <div style={{
+              position: 'absolute',
+              bottom: '5px',
+              right: '5px',
+              backgroundColor: '#3B82F6',
+              borderRadius: '50%',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: `2px solid white`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}>
+              <svg width="16" height="16" fill="white" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
@@ -88,14 +96,19 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
           }}>
             {contractor.company_name || 'Independent Contractor'}
           </p>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.primary,
-            fontWeight: theme.typography.fontWeight.semibold,
-            margin: 0
-          }}>
-            General Contractor
-          </p>
+          {contractor.bio && (
+            <p style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              margin: 0,
+              maxWidth: '300px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {contractor.bio}
+            </p>
+          )}
         </div>
 
         {/* Rating */}
@@ -116,13 +129,13 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
             fontWeight: theme.typography.fontWeight.semibold,
             color: theme.colors.textPrimary
           }}>
-            4.7
+            {rating.toFixed(1)}
           </span>
           <span style={{
             fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textTertiary
           }}>
-            (3 reviews)
+            ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
           </span>
         </div>
 
@@ -141,13 +154,13 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary
             }}>
-              5.2 km
+              {contractor.city || 'Unknown'}
             </div>
             <div style={{
               fontSize: theme.typography.fontSize.sm,
               color: theme.colors.textTertiary
             }}>
-              Away
+              Location
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -156,13 +169,13 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary
             }}>
-              $45
+              {contractor.total_jobs_completed || 0}
             </div>
             <div style={{
               fontSize: theme.typography.fontSize.sm,
               color: theme.colors.textTertiary
             }}>
-              Per Hour
+              Jobs Done
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -171,13 +184,13 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary
             }}>
-              8
+              {contractor.rating ? rating.toFixed(1) : 'N/A'}
             </div>
             <div style={{
               fontSize: theme.typography.fontSize.sm,
               color: theme.colors.textTertiary
             }}>
-              Years Exp
+              Rating
             </div>
           </div>
         </div>
@@ -192,8 +205,8 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
           }}>
             Specialties
           </h4>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['Plumbing', 'Electrical', 'Carpentry'].map((specialty, index) => (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {specialties.length > 0 ? specialties.slice(0, 4).map((specialty: string, index: number) => (
               <span
                 key={index}
                 style={{
@@ -207,7 +220,15 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
               >
                 {specialty}
               </span>
-            ))}
+            )) : (
+              <span style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.fontSize.sm,
+                fontStyle: 'italic'
+              }}>
+                No specialties listed
+              </span>
+            )}
           </div>
         </div>
 
@@ -217,16 +238,19 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) =>
           marginTop: 'auto'
         }}>
           <div style={{
-            backgroundColor: theme.colors.success,
+            backgroundColor: contractor.is_available ? '#10B981' : '#6B7280',
             color: 'white',
             padding: '10px 20px',
             borderRadius: '24px',
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.semibold,
-            display: 'inline-block',
-            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            🟢 Available Now
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'white', display: 'inline-block' }}></span>
+            {contractor.is_available ? 'Available Now' : 'Currently Unavailable'}
           </div>
         </div>
       </div>

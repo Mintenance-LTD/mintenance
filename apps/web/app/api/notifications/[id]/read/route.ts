@@ -1,32 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getCurrentUserFromCookies } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
 
-export async function PUT(
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: notificationId } = await params;
+    const user = await getCurrentUserFromCookies();
+    const { id } = await params;
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const { error } = await serverSupabase
+    // Verify notification belongs to user
+    const { data: notification, error: fetchError } = await supabase
       .from('notifications')
-      .update({ read: true, updated_at: new Date().toISOString() })
-      .eq('id', notificationId);
+      .select('id, user_id')
+      .eq('id', id)
+      .single();
 
-    if (error) {
-      console.error('Mark as read error:', error);
-      return NextResponse.json(
-        { error: 'Failed to mark notification as read' },
-        { status: 500 }
-      );
+    if (fetchError || !notification) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+    }
+
+    if (notification.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Mark as read
+    const { error: updateError } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('Error marking notification as read:', updateError);
+      return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Mark as read API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error in POST /api/notifications/[id]/read:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

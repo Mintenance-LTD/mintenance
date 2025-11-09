@@ -1,12 +1,14 @@
-import { createToken, verifyToken, setAuthCookie, clearAuthCookie, createTokenPair, rotateTokens, revokeAllTokens } from './auth';
+import { createToken, verifyToken, setAuthCookie, clearAuthCookie, createTokenPair, rotateTokens, revokeAllTokens, createAuthCookieHeaders } from './auth';
 import { DatabaseManager, type User, type CreateUserData } from './database';
 import { config } from './config';
 import { logger } from '@mintenance/shared';
+import { serverSupabase } from './api/supabaseServer';
 
 export interface AuthResult {
   success: boolean;
   user?: Omit<User, 'password_hash'>;
   error?: string;
+  cookieHeaders?: Headers;
 }
 
 export interface LoginCredentials {
@@ -33,7 +35,7 @@ export class AuthManager {
   }
 
   /**
-   * Authenticate user with email and password
+   * Authenticate user with email and password using Supabase Auth
    */
   async login(credentials: LoginCredentials, rememberMe: boolean = false): Promise<AuthResult> {
     try {
@@ -55,29 +57,102 @@ export class AuthManager {
         };
       }
 
-      // Authenticate with database
-      const user = await DatabaseManager.authenticateUser(email, password);
+      logger.info('Attempting login with Supabase Auth', { email, service: 'auth' });
 
-      if (!user) {
+      // Authenticate with Supabase Auth
+      const { data: authData, error: authError } = await serverSupabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        logger.error('Supabase Auth login failed', authError, { email, service: 'auth' });
+
+        // Handle specific Supabase Auth errors with better messages
+        if (authError.message?.includes('Invalid login credentials') || 
+            authError.message?.includes('invalid_password')) {
+          return {
+            success: false,
+            error: 'Invalid email or password'
+          };
+        }
+        
+        // Handle email confirmation requirement
+        if (authError.message?.includes('email_not_confirmed') ||
+            authError.message?.includes('Email not confirmed') ||
+            authError.code === 'email_not_confirmed') {
+          return {
+            success: false,
+            error: 'Please verify your email address before signing in. Check your inbox for a confirmation email.'
+          };
+        }
+        
+        // Handle rate limiting
+        if (authError.message?.includes('too many requests') ||
+            authError.message?.includes('rate limit')) {
+          return {
+            success: false,
+            error: 'Too many login attempts. Please try again later.'
+          };
+        }
+
         return {
           success: false,
-          error: 'Invalid email or password'
+          error: authError.message || 'Login failed. Please try again.'
         };
       }
 
-      // Create and set JWT token pair
+      if (!authData.user) {
+        logger.error('No user returned from Supabase Auth login', undefined, { service: 'auth' });
+        return {
+          success: false,
+          error: 'Login failed. Please try again.'
+        };
+      }
+
+      logger.info('Supabase Auth login successful', { userId: authData.user.id, service: 'auth' });
+
+      // Get user profile from public.users (created by trigger)
+      const { data: userProfile, error: profileError } = await serverSupabase
+        .from('users')
+        .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        logger.warn('User profile not found in public.users', { 
+          userId: authData.user.id,
+          error: profileError,
+          service: 'auth' 
+        });
+        // Return fallback user from auth metadata
+      }
+
+      const user = userProfile || {
+        id: authData.user.id,
+        email: authData.user.email || email,
+        first_name: authData.user.user_metadata?.first_name || '',
+        last_name: authData.user.user_metadata?.last_name || '',
+        role: authData.user.user_metadata?.role || 'homeowner',
+        created_at: authData.user.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        email_verified: !!authData.user.email_confirmed_at,
+        phone: undefined
+      };
+
+      // Create and set JWT token pair from Supabase session
       const { accessToken, refreshToken } = await createTokenPair({
         id: user.id,
         email: user.email,
         role: user.role,
       }, undefined, undefined);
 
-      await setAuthCookie(accessToken, rememberMe, refreshToken);
-      // Note: Refresh token is stored in database AND as HTTP-only cookie
+      const cookieHeaders = createAuthCookieHeaders(accessToken, rememberMe, refreshToken);
 
       return {
         success: true,
-        user
+        user,
+        cookieHeaders
       };
 
     } catch (error) {
@@ -94,7 +169,7 @@ export class AuthManager {
    */
   async register(userData: RegisterData): Promise<AuthResult> {
     try {
-      logger.info('Starting user registration', { email: userData.email, service: 'auth' });
+      logger.info('Starting user registration with Supabase Auth', { email: userData.email, service: 'auth' });
       
       // Validate email format
       if (!DatabaseManager.isValidEmail(userData.email)) {
@@ -121,21 +196,142 @@ export class AuthManager {
       }
       logger.info('Password validation passed', { service: 'auth' });
 
-      // Check if user already exists
-      logger.info('Checking if user already exists', { email: userData.email, service: 'auth' });
-      const existingUser = await DatabaseManager.userExists(userData.email);
-      if (existingUser) {
-        logger.warn('User already exists', { email: userData.email, service: 'auth' });
+      // Use Supabase Auth to create user (unified with mobile app)
+      logger.info('Creating user with Supabase Auth', { email: userData.email, service: 'auth' });
+      const { data: authData, error: authError } = await serverSupabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            role: userData.role,
+            phone: userData.phone || null,
+            full_name: `${userData.first_name} ${userData.last_name}`,
+          },
+        },
+      });
+
+      if (authError) {
+        logger.error('Supabase Auth registration failed', authError, { 
+          email: userData.email, 
+          service: 'auth' 
+        });
+        
+        // Handle specific Supabase Auth errors
+        if (authError.message.includes('already registered') || 
+            authError.message.includes('already exists') ||
+            authError.message.includes('User already registered') ||
+            authError.message.includes('email address is already registered')) {
+          logger.warn('Registration attempted with existing email', { email: userData.email, service: 'auth' });
+          return {
+            success: false,
+            error: 'An account with this email already exists. Please sign in instead.'
+          };
+        }
+        
+        // Handle other specific errors
+        if (authError.message.includes('Password should be at least')) {
+          return {
+            success: false,
+            error: 'Password is too short. Please use a password with at least 8 characters.'
+          };
+        }
+        
         return {
           success: false,
-          error: 'An account with this email already exists'
+          error: authError.message || 'Registration failed. Please try again.'
         };
       }
 
-      // Create user
-      logger.info('Creating new user', { email: userData.email, service: 'auth' });
-      const user = await DatabaseManager.createUser(userData);
-      logger.info('User created successfully', { userId: user.id, email: user.email, service: 'auth' });
+      if (!authData.user) {
+        logger.error('No user returned from Supabase Auth', undefined, { service: 'auth' });
+        return {
+          success: false,
+          error: 'Registration failed. Please try again.'
+        };
+      }
+
+      logger.info('User created in Supabase Auth', { 
+        userId: authData.user.id, 
+        email: authData.user.email, 
+        service: 'auth' 
+      });
+
+      // Wait for the database trigger to create profile in public.users
+      // Retry up to 3 times with increasing delays
+      let publicUserProfile = null;
+      let fetchError = null;
+      const maxRetries = 3;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        
+        const { data, error } = await serverSupabase
+          .from('users')
+          .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+          .eq('id', authData.user.id)
+          .single();
+        
+        if (data && !error) {
+          publicUserProfile = data;
+          fetchError = null;
+          break;
+        }
+        
+        fetchError = error;
+        logger.warn(`Attempt ${attempt + 1} to fetch user profile failed`, { 
+          userId: authData.user.id,
+          error: fetchError,
+          service: 'auth' 
+        });
+      }
+
+      if (fetchError || !publicUserProfile) {
+        logger.warn('User not found in public.users after trigger retries', { 
+          userId: authData.user.id,
+          error: fetchError,
+          service: 'auth' 
+        });
+        
+        // Try to manually create the profile if trigger failed
+        try {
+          const { data: manualProfile, error: manualError } = await serverSupabase
+            .from('users')
+            .insert({
+              id: authData.user.id,
+              email: authData.user.email || userData.email,
+              first_name: userData.first_name,
+              last_name: userData.last_name,
+              role: userData.role,
+              phone: userData.phone || null,
+              email_verified: authData.user.email_confirmed_at ? true : false,
+              password_hash: null, // Supabase Auth users don't have password_hash
+            })
+            .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+            .single();
+          
+          if (manualProfile && !manualError) {
+            logger.info('Manually created user profile after trigger failure', { userId: authData.user.id, service: 'auth' });
+            publicUserProfile = manualProfile;
+          }
+        } catch (manualError) {
+          logger.error('Failed to manually create user profile', manualError, { userId: authData.user.id, service: 'auth' });
+          // Continue with fallback user data
+        }
+      }
+
+      const user = publicUserProfile || {
+        id: authData.user.id,
+        email: authData.user.email || userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        role: userData.role,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        email_verified: authData.user.email_confirmed_at ? true : false,
+        phone: undefined
+      };
 
       // Create and set JWT token pair for immediate login
       logger.info('Creating JWT tokens', { userId: user.id, service: 'auth' });
@@ -146,15 +342,15 @@ export class AuthManager {
       }, undefined, undefined);
       logger.info('JWT tokens created', { userId: user.id, service: 'auth' });
 
-      logger.info('Setting authentication cookies', { userId: user.id, service: 'auth' });
-      await setAuthCookie(accessToken, false, refreshToken);
-      // Note: Refresh token is stored in database AND as HTTP-only cookie
-      logger.info('Authentication cookies set', { userId: user.id, service: 'auth' });
+      logger.info('Creating authentication cookie headers', { userId: user.id, service: 'auth' });
+      const cookieHeaders = createAuthCookieHeaders(accessToken, false, refreshToken);
+      logger.info('Authentication cookie headers created', { userId: user.id, service: 'auth' });
 
       logger.info('Registration completed successfully', { userId: user.id, email: user.email, service: 'auth' });
       return {
         success: true,
-        user
+        user,
+        cookieHeaders
       };
 
     } catch (error) {

@@ -1,9 +1,10 @@
-import { logger } from '@/lib/logger';
+import { logger } from '@mintenance/shared';
 import { ContractorDataService } from './matching/ContractorDataService';
 import { ScoringService } from './matching/ScoringService';
 import { MatchAnalysisService } from './matching/MatchAnalysisService';
 import { InsightsService } from './matching/InsightsService';
 import { PreferencesService } from './matching/PreferencesService';
+import { LearningMatchingService } from './agents/LearningMatchingService';
 import type {
   MatchingCriteria,
   ContractorMatch,
@@ -27,7 +28,16 @@ export class AIMatchingService {
       const matches: ContractorMatch[] = [];
 
       for (const contractor of contractors) {
-        const matchScore = await ScoringService.calculateMatchScore(contractor, criteria);
+        let matchScore = await ScoringService.calculateMatchScore(contractor, criteria);
+
+        // Apply learning-based adjustments if homeowner ID is available
+        // Note: criteria.jobId would need to be passed to get homeownerId
+        // For now, we'll skip learning adjustments in this context
+        // matchScore = await LearningMatchingService.adjustMatchScore(
+        //   contractor.id,
+        //   homeownerId,
+        //   matchScore
+        // );
 
         if (matchScore.overallScore >= 30) { // Minimum threshold
           const match: ContractorMatch = {

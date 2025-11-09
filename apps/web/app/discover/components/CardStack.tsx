@@ -41,7 +41,7 @@ export function CardStack({
       {/* Background Cards (Preview of upcoming items) */}
       {upcomingItems.map((item, index) => (
         <div
-          key={item.id}
+          key={item.id || `upcoming-${index}`}
           style={{
             position: 'absolute',
             top: `${(index + 1) * 4}px`,
@@ -53,6 +53,8 @@ export function CardStack({
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             zIndex: index + 1,
             opacity: 1 - (index + 1) * 0.2,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: `scale(${1 - (index + 1) * 0.02})`,
           }}
         />
       ))}
@@ -71,6 +73,7 @@ export function CardStack({
             right: 0,
             bottom: 0,
             zIndex: 10,
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           {renderCard(currentItem)}

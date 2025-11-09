@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
 
 interface ProfileGalleryProps {
   completedJobs: any[];
@@ -54,19 +56,10 @@ export function ProfileGallery({ completedJobs, posts, onAddPhotos }: ProfileGal
         gap: theme.spacing[4],
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <h2 style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text,
-            margin: 0,
-          }}>
-          Portfolio Gallery
+          <h2 className="text-xl font-[560] text-gray-900 m-0 tracking-normal">
+            Portfolio Gallery
           </h2>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-          }}>
+          <p className="text-xs font-[460] text-gray-600 m-0">
             Share before-and-after projects and social showcases.
           </p>
         </div>
@@ -74,70 +67,36 @@ export function ProfileGallery({ completedJobs, posts, onAddPhotos }: ProfileGal
         <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center' }}>
           {/* Add Photos Button */}
           {onAddPhotos && (
-            <button
+            <Button
               type="button"
               onClick={onAddPhotos}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                backgroundColor: theme.colors.backgroundSecondary,
-                color: theme.colors.textPrimary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '14px',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.background;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
+              variant="outline"
+              size="sm"
+              leftIcon={<Plus className="h-4 w-4" />}
             >
-              <span style={{ fontSize: theme.typography.fontSize.lg }}>+</span>
               Add Photos
-            </button>
+            </Button>
           )}
 
           {/* Tab Buttons */}
-          <button
+          <Button
             type="button"
             onClick={() => setActiveTab('jobs')}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: activeTab === 'jobs' ? theme.colors.primary : theme.colors.backgroundSecondary,
-              color: activeTab === 'jobs' ? theme.colors.textInverse : theme.colors.text,
-              border: `1px solid ${activeTab === 'jobs' ? theme.colors.primary : theme.colors.border}`,
-              borderRadius: '999px',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              cursor: 'pointer',
-              transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-            }}
+            variant={activeTab === 'jobs' ? 'primary' : 'ghost'}
+            size="sm"
+            className="rounded-full"
           >
             Completed Jobs ({jobPhotos.length})
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setActiveTab('posts')}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: activeTab === 'posts' ? theme.colors.primary : theme.colors.backgroundSecondary,
-              color: activeTab === 'posts' ? theme.colors.textInverse : theme.colors.text,
-              border: `1px solid ${activeTab === 'posts' ? theme.colors.primary : theme.colors.border}`,
-              borderRadius: '999px',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              cursor: 'pointer',
-              transition: `all ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-            }}
+            variant={activeTab === 'posts' ? 'primary' : 'ghost'}
+            size="sm"
+            className="rounded-full"
           >
             Showcases ({postPhotos.length})
-          </button>
+          </Button>
         </div>
       </div>
 

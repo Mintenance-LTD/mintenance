@@ -1,5 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorLayoutShell } from './components/ContractorLayoutShell';
@@ -21,8 +22,17 @@ export default async function ContractorLayout({ children }: ContractorLayoutPro
     .eq('id', authUser.id)
     .single();
 
+  // Get pathname from headers for consistent server-side rendering
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
+
   return (
-    <ContractorLayoutShell contractor={contractorProfile} email={authUser.email}>
+    <ContractorLayoutShell 
+      contractor={contractorProfile} 
+      email={authUser.email} 
+      userId={authUser.id}
+      initialPathname={pathname}
+    >
       {children}
     </ContractorLayoutShell>
   );

@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { DemoModal } from '../ui/DemoModal';
 
 /**
  * Hero section for landing page
  * Main call-to-action with phone mockup visual
  */
 export function HeroSection() {
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
   return (
     <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light relative overflow-hidden" role="banner">
       <div className="max-w-7xl mx-auto">
@@ -76,7 +80,12 @@ export function HeroSection() {
                             <h4 className="font-semibold text-sm">{contractor.name}</h4>
                             <p className="text-xs text-gray-600">{contractor.role} • {contractor.rating}★</p>
                           </div>
-                          <button className="bg-secondary text-white px-3 py-1 rounded text-xs">Contact</button>
+                          <button 
+                            onClick={() => setShowDemoModal(true)}
+                            className="bg-secondary text-white px-3 py-1 rounded text-xs hover:bg-secondary-dark transition-colors"
+                          >
+                            Contact
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -122,6 +131,16 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      {/* Demo Modal */}
+      <DemoModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+        title="This is a Demo"
+        message="These contractor cards are for demonstration purposes. Sign up to contact real verified tradespeople and get your projects done!"
+        ctaText="Sign Up to Get Started"
+        ctaLink="/register?role=homeowner"
+      />
     </section>
   );
 }

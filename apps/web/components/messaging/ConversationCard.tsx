@@ -85,24 +85,14 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   return (
     <div
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: theme.spacing.md,
-        borderBottom: `1px solid ${theme.colors.border}`,
-        cursor: 'pointer',
-        backgroundColor: theme.colors.white,
-        transition: 'background-color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = theme.colors.white;
-      }}
+      className="flex items-center p-4 border-b border-gray-200 cursor-pointer bg-white transition-colors duration-200 hover:bg-gray-50"
     >
-      {/* Profile Avatar */}
+      {/* Profile Avatar - Clickable */}
       <div
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent double-triggering
+          onClick();
+        }}
         style={{
           width: '50px',
           height: '50px',
@@ -116,7 +106,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
           color: theme.colors.white,
           fontWeight: theme.typography.fontWeight.bold,
           flexShrink: 0,
+          cursor: 'pointer',
         }}
+        title={`Click to message ${displayName}`}
       >
         {avatarInitial}
       </div>
@@ -134,17 +126,16 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             <span
-              style={{
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: conversation.unreadCount > 0
-                  ? theme.typography.fontWeight.bold
-                  : theme.typography.fontWeight.medium,
-                color: theme.colors.text,
-                marginRight: theme.spacing.xs,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent double-triggering
+                onClick();
               }}
+              className={`text-base mr-2 overflow-hidden text-ellipsis whitespace-nowrap cursor-pointer ${
+                conversation.unreadCount > 0
+                  ? 'font-[560] text-gray-900'
+                  : 'font-[460] text-gray-700'
+              }`}
+              title={`Click to message ${displayName}`}
             >
               {displayName}
             </span>
@@ -202,18 +193,11 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 
         {/* Last message preview */}
         <div
-          style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: conversation.unreadCount > 0
-              ? theme.colors.text
-              : theme.colors.textSecondary,
-            fontWeight: conversation.unreadCount > 0
-              ? theme.typography.fontWeight.medium
-              : theme.typography.fontWeight.normal,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
+          className={`text-sm overflow-hidden text-ellipsis whitespace-nowrap ${
+            conversation.unreadCount > 0
+              ? 'font-[560] text-gray-900'
+              : 'font-[460] text-gray-600'
+          }`}
         >
           {getLastMessagePreview()}
         </div>

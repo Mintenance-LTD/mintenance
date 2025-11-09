@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import Link from 'next/link';
+import { StatusBadge } from '@/components/ui/figma';
 
 export interface Task {
   id: string;
@@ -13,25 +15,12 @@ export interface Task {
 interface TodayTasksProps {
   tasks: Task[];
   onToggleTask?: (taskId: string) => void;
+  taskUrlPattern?: string; // e.g., '/jobs/{id}' or '/contractor/jobs/{id}'
 }
 
-export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
+export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' }: TodayTasksProps) {
+  const getUrl = (id: string) => taskUrlPattern.replace('{id}', id);
   const [activeTab, setActiveTab] = useState<'all' | 'important' | 'notes' | 'links'>('all');
-
-  const getStatusColor = (status: Task['status']) => {
-    switch (status) {
-      case 'approved':
-        return { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' };
-      case 'in_review':
-        return { bg: '#FEE2E2', text: '#DC2626', border: '#FCA5A5' };
-      case 'on_going':
-        return { bg: '#FEF3C7', text: '#EA580C', border: '#FDE68A' };
-      case 'pending':
-        return { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' };
-      default:
-        return { bg: theme.colors.backgroundSecondary, text: theme.colors.textSecondary, border: theme.colors.border };
-    }
-  };
 
   const tabs = [
     { id: 'all', label: 'All', count: tasks.length },
@@ -41,70 +30,37 @@ export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
   ] as const;
 
   return (
-    <div
-      style={{
-        backgroundColor: theme.colors.surface,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: '20px',
-        padding: theme.spacing[6],
-      }}
-    >
-      <h2
-        style={{
-          margin: 0,
-          marginBottom: theme.spacing[6],
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-        }}
-      >
+    <div>
+      <h2 className="text-subheading-md font-[560] text-gray-900 mb-6 tracking-normal">
         Today Tasks
       </h2>
 
       {/* Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: theme.spacing[4],
-          marginBottom: theme.spacing[6],
-          borderBottom: `1px solid ${theme.colors.border}`,
-        }}
-      >
+      <div className="flex gap-4 mb-6 border-b border-gray-200">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: activeTab === tab.id ? theme.colors.primary : theme.colors.textSecondary,
-              borderBottom: activeTab === tab.id ? `2px solid ${theme.colors.primary}` : 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              marginBottom: '-1px',
-            }}
+            className={`
+              bg-transparent border-none py-3 px-4 text-sm font-[560]
+              transition-all duration-200 flex items-center gap-2 -mb-px
+              ${
+                activeTab === tab.id
+                  ? 'text-primary-600 border-b-2 border-primary-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }
+            `}
           >
             {tab.label}
             <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '20px',
-                height: '20px',
-                padding: '0 6px',
-                borderRadius: '10px',
-                backgroundColor: activeTab === tab.id ? theme.colors.primary : theme.colors.border,
-                color: activeTab === tab.id ? theme.colors.white : theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.bold,
-              }}
+              className={`
+                inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-[560]
+                ${
+                  activeTab === tab.id
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }
+              `}
             >
               {tab.count}
             </span>
@@ -113,52 +69,27 @@ export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
       </div>
 
       {/* Task List */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[3],
-        }}
-      >
+      <div className="flex flex-col gap-3">
         {tasks.map((task) => {
-          const statusColors = getStatusColor(task.status);
-
           return (
             <div
               key={task.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[4],
-                padding: theme.spacing[4],
-                borderRadius: '12px',
-                backgroundColor: theme.colors.backgroundSecondary,
-                transition: 'all 0.2s',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.border;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
+              className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 cursor-pointer group"
             >
               {/* Checkbox */}
               <button
-                onClick={() => onToggleTask?.(task.id)}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  border: `2px solid ${task.completed ? theme.colors.success : theme.colors.border}`,
-                  backgroundColor: task.completed ? theme.colors.success : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  flexShrink: 0,
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleTask?.(task.id);
                 }}
+                className={`
+                  w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all duration-200 shrink-0
+                  ${
+                    task.completed
+                      ? 'bg-success-DEFAULT border-success-DEFAULT'
+                      : 'border-gray-300 hover:border-primary-600'
+                  }
+                `}
               >
                 {task.completed && (
                   <svg
@@ -180,48 +111,40 @@ export function TodayTasks({ tasks, onToggleTask }: TodayTasksProps) {
               </button>
 
               {/* Task Title */}
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: task.completed ? theme.colors.textSecondary : theme.colors.textPrimary,
-                  textDecoration: task.completed ? 'line-through' : 'none',
+              <Link
+                href={getUrl(task.id)}
+                className={`
+                  flex-1 text-sm font-[460] transition-colors duration-200
+                  ${
+                    task.completed
+                      ? 'text-gray-500 line-through'
+                      : 'text-gray-900 group-hover:text-primary-600'
+                  }
+                `}
+                onClick={(e) => {
+                  if (task.completed) {
+                    e.preventDefault();
+                  }
                 }}
               >
                 {task.title}
-              </span>
+              </Link>
 
               {/* Status Badge */}
-              <span
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  backgroundColor: statusColors.bg,
-                  color: statusColors.text,
-                  border: `1px solid ${statusColors.border}`,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  textTransform: 'capitalize',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {task.status.replace(/_/g, ' ')}
-              </span>
+              <StatusBadge status={task.status as any} />
             </div>
           );
         })}
       </div>
 
       {tasks.length === 0 && (
-        <div
-          style={{
-            padding: theme.spacing[8],
-            textAlign: 'center',
-            color: theme.colors.textSecondary,
-            fontSize: theme.typography.fontSize.sm,
-          }}
-        >
-          No tasks for today. You're all caught up! 🎉
+        <div className="p-8 text-center">
+          <p className="text-base font-[460] text-gray-700 mb-1 leading-[1.5]">
+            No tasks for today. You're all caught up! 🎉
+          </p>
+          <p className="text-sm font-[460] text-gray-500 leading-[1.5]">
+            New tasks will appear here as they're assigned
+          </p>
         </div>
       )}
     </div>

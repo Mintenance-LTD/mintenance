@@ -1,0 +1,947 @@
+---
+alwaysApply: true
+---
+# UI Design System Rules for Agents
+
+**Last Updated:** October 30, 2025  
+**For:** Professional Service Marketplace App  
+**Design Philosophy:** Modern, trustworthy, accessible, enterprise-grade
+
+---
+
+## Table of Contents
+
+1. [Design Philosophy](#design-philosophy)
+2. [Color System](#color-system)
+3. [Typography](#typography)
+4. [Spacing & Layout](#spacing--layout)
+5. [Component Patterns](#component-patterns)
+6. [Navigation & Structure](#navigation--structure)
+7. [States & Interactions](#states--interactions)
+8. [Accessibility Requirements](#accessibility-requirements)
+9. [Responsive Design](#responsive-design)
+10. [Do's and Don'ts](#dos-and-donts)
+
+---
+
+## Design Philosophy
+
+### Core Principles
+
+When implementing UI, always adhere to these principles:
+
+**Clarity Over Decoration** - Every design element must serve a functional purpose. Avoid unnecessary visual flourishes, gradients, or complex patterns. Use whitespace generously to reduce cognitive load.
+
+**Trustworthiness** - Professional service apps must convey reliability. This means consistent behavior, predictable interactions, and no surprising state changes. Use conservative color choices and avoid playful or casual design patterns.
+
+**Accessibility First** - All UI must meet WCAG AA standards minimum. This includes color contrast ratios of 4.5:1 for normal text and 3:1 for large text. Never rely solely on color to convey information—use text labels, icons, or patterns.
+
+**Consistency** - Every component must follow the established system. Do not create one-off designs for edge cases. If the system doesn't cover something, extend the system rather than break it.
+
+**Usability Over Aesthetics** - When there's a conflict between visual appeal and usability, always choose usability. Users care about completing their task quickly and confidently.
+
+---
+
+## Color System
+
+### Primary Colors
+
+Use these colors as defined. Do not create variations or custom shades without approval.
+
+**Deep Blue (#1F2937 or #0F172A)**
+- Purpose: Primary brand color, main navigation, primary headings
+- Usage: Sidebar backgrounds, main buttons, header elements
+- When to use: This is your "go to" color for main UI elements
+- When NOT to use: Don't use as background for large text areas (readability issue). Don't use for status indicators (use status colors instead).
+
+**Vibrant Blue (#3B82F6)**
+- Purpose: Action, CTAs, interactive elements, secondary buttons
+- Usage: Hover states, links, secondary actions, focus states
+- When to use: For elements that invite user interaction
+- When NOT to use: Don't use as a background for large content areas. Reserve for interactive elements only.
+
+### Status Colors
+
+These colors have semantic meaning and must be used consistently. Do not use them decoratively.
+
+**Success - Modern Green (#10B981)**
+- Meaning: Task completed, form valid, operation successful, approved
+- Examples: Checkmarks, success messages, positive indicators
+- Always pair with: ✓ icon or "Success" text label
+
+**Warning - Amber (#F59E0B)**
+- Meaning: Requires attention, caution needed, pending action, verify
+- Examples: Warning messages, unverified data, expiring items
+- Always pair with: ⚠ icon or "Warning" text label
+
+**Error - Rose Red (#EF4444)**
+- Meaning: Failed operation, invalid input, critical issue, blocked action
+- Examples: Form errors, failed requests, deleted items, blocked access
+- Always pair with: ✕ or ⚠ icon or "Error" text label
+
+**Info - Blue (#3B82F6)**
+- Meaning: Informational message, helpful context, neutral status
+- Examples: Tips, helpful hints, neutral notifications
+- Always pair with: ℹ icon or "Info" text label
+
+### Neutral Colors
+
+Use this grayscale system for text, borders, backgrounds, and surfaces.
+
+**Text Colors**
+- Text Primary (#111827): Main body text, important labels. Use for 90% of readable content.
+- Text Secondary (#6B7280): Secondary information, helper text, disabled states, metadata
+- Text Tertiary (#94A3B8): Placeholder text, very subtle hints, de-emphasized content
+
+**Background Colors**
+- Background Primary (#FFFFFF): Main page backgrounds, primary surface
+- Background Secondary (#F9FAFB): Subtle background variations, alternating rows, subtle sections
+- Background Tertiary (#F3F4F6): More pronounced backgrounds, alternative card backgrounds
+
+**Border Colors**
+- Border Default (#E5E7EB): Standard borders, dividers, subtle separations
+- Border Strong (#D1D5DB): Stronger borders, emphasized dividers
+- Border Focus (#3B82F6): Used only for focus states (should match Vibrant Blue)
+
+### Color Usage Rules
+
+**DO:**
+- Use deep blue and vibrant blue as your only brand colors
+- Pair every status color with an icon or text label
+- Use the neutral gray scale for backgrounds and text
+- Create sufficient contrast between foreground and background
+- Test all color combinations for accessibility before deployment
+
+**DON'T:**
+- Create custom shades or tints of brand colors
+- Use status colors for styling that isn't status-related
+- Use background colors as text colors
+- Combine colors that reduce contrast below 4.5:1 for text
+- Use color alone to communicate meaning (always add text or icon)
+
+---
+
+## Typography
+
+### Font Families
+
+**Primary Font: Inter** (or Geist Sans as fallback)
+- Purpose: All UI text—headings, body, labels
+- Weight range: 400 (regular) to 700 (bold)
+- Fallback stack: `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
+
+**Monospace Font: Fira Code or IBM Plex Mono**
+- Purpose: Code snippets, data values, amounts, technical information
+- Usage: Display only, never use for body text
+- Example: `$2,450.00` or `API_KEY_12345`
+
+### Type Scale
+
+All text must use one of these sizes. Do not create custom sizes.
+
+```
+12px (xs) - Small labels, captions, helper text
+14px (sm) - Secondary text, small body text, metadata
+15px (base) - Default body text, most content
+16px (md) - Form labels, secondary headings
+18px (lg) - Section headings, emphasis
+20px (xl) - Page section headers
+24px (2xl) - Page titles, major headings
+28px (3xl) - Hero headings (rare)
+32px (4xl) - Main page headings (rare)
+```
+
+### Font Weights
+
+Use only these weights. Do not use intermediate weights.
+
+- 400: Body text, regular content (most common)
+- 500: Emphasized body text, slightly heavier labels
+- 600: All headings, prominent labels, emphasis
+- 700: Strong emphasis, hero text (use sparingly)
+
+### Heading Hierarchy
+
+**H1 (32px, 700 weight)**
+- Purpose: Page title only. Maximum one per page.
+- Example: "Dashboard" or "Manage Services"
+- Spacing: 32px bottom margin
+
+**H2 (24px, 600 weight)**
+- Purpose: Section titles within a page
+- Example: "Recent Jobs" or "Account Settings"
+- Spacing: 24px bottom margin, 32px top margin
+
+**H3 (18px, 600 weight)**
+- Purpose: Subsection titles, card titles
+- Example: Card headers, form section titles
+- Spacing: 16px bottom margin
+
+**H4 (16px, 600 weight)**
+- Purpose: Form labels, small section headers
+- Example: Input labels, list item headers
+- Spacing: 12px bottom margin
+
+**Body Text (15px, 400 weight)**
+- Purpose: All readable content
+- Line height: 1.6 (24px)
+- Letter spacing: 0px (default)
+- Spacing: 16px paragraph margin
+
+**Small Text (12px, 400 weight)**
+- Purpose: Helper text, captions, metadata
+- Line height: 1.5 (18px)
+- Example: "Last updated 2 hours ago"
+
+### Typography Rules
+
+**DO:**
+- Use consistent font sizes from the scale
+- Maintain clear hierarchy: headings darker than body, body darker than helpers
+- Set line height to 1.6 for body text (improves readability)
+- Use 600 weight for all headings and emphasis
+- Add 16-24px bottom margin to headings
+
+**DON'T:**
+- Mix fonts within a section (stick to Inter for UI)
+- Use font sizes not in the type scale
+- Use weights other than 400, 500, 600, 700
+- Create custom line heights (use system defaults)
+- Use all caps for body text (use for labels only)
+- Stack multiple headings without body text between them
+
+---
+
+## Spacing & Layout
+
+### Spacing Grid
+
+All spacing must be a multiple of 8px. This is the fundamental unit.
+
+```
+4px   - Micro spacing (rare, only for fine adjustments)
+8px   - Smallest standard unit (gaps, tight spacing)
+16px  - Standard unit (default padding, margins)
+24px  - Medium spacing (section separation, larger gaps)
+32px  - Large spacing (major section breaks)
+40px  - Extra large (rare)
+48px  - Hero sections, major breaks
+64px  - Page sections, very large gaps
+80px  - Hero spacing (rare)
+96px  - Extreme spacing (almost never used)
+```
+
+### Component Padding
+
+**Buttons**
+- Horizontal padding: 16px
+- Vertical padding: 12px (40px total height)
+- Border radius: 8px (not overly rounded)
+
+**Input Fields**
+- Horizontal padding: 12px
+- Vertical padding: 10px
+- Height: 40px
+- Border radius: 8px
+
+**Cards**
+- Padding: 24px (all sides)
+- Border radius: 12px
+- Gap between items inside: 16px
+
+**Form Fields**
+- Label spacing: 8px above input
+- Helper text spacing: 4px below input
+- Gap between form fields: 16px
+
+### Layout Constraints
+
+**Max Content Width: 1440px**
+- Use for dashboard content areas
+- Content area should be centered with equal margins on sides
+- Never exceed this width for readability
+
+**Sidebar Width: 280px (expanded)**
+- Sidebar width when expanded
+- Collapsed width: 80px (icons only, no labels)
+- Transition smoothly between states (0.3s)
+
+**Column Grid**
+- Desktop: 12-column grid (each column ~120px at max width)
+- Tablet: 8-column grid
+- Mobile: 4-column grid
+- Gutter: 16px between columns
+
+### Spacing Rules
+
+**DO:**
+- Always use multiples of 8px
+- Maintain consistent spacing throughout
+- Use 24px padding for cards
+- Use 16px for standard gaps between elements
+- Add generous whitespace around important content
+
+**DON'T:**
+- Use arbitrary spacing values (1px, 3px, 5px, 7px, etc.)
+- Create padding that isn't a multiple of 8
+- Cram too much content together (allow breathing room)
+- Use inconsistent spacing for similar elements
+- Forget to account for spacing when responsive design
+
+---
+
+## Component Patterns
+
+### Buttons
+
+All buttons must follow this pattern. Do not create custom button styles.
+
+**Button Variants**
+
+**Primary Button**
+- Background: Deep Blue (#1F2937)
+- Text: White
+- Border: None
+- Height: 40px
+- Padding: 0 16px
+- Border radius: 8px
+- Font: 15px, 600 weight
+- Hover: Background lighter (shift to #374151), slight lift (+2px, shadow)
+- Active: Scale 0.98
+- Disabled: Background #D1D5DB, text #9CA3AF, cursor not-allowed
+- Focus: 3px solid blue outline, 4px offset
+
+**Secondary Button**
+- Background: Vibrant Blue (#3B82F6)
+- Text: White
+- Border: None
+- Height: 40px
+- Padding: 0 16px
+- Border radius: 8px
+- Hover: Background lighter (#2563EB)
+- Active: Scale 0.98
+- Disabled: Background #E5E7EB, text #9CA3AF
+
+**Outline Button**
+- Background: Transparent
+- Text: Deep Blue
+- Border: 2px solid Deep Blue
+- Height: 40px
+- Padding: 0 14px (account for border width)
+- Border radius: 8px
+- Hover: Background #F9FAFB
+- Active: Scale 0.98
+- Focus: Outline handled by border
+
+**Ghost Button**
+- Background: Transparent
+- Text: Vibrant Blue (#3B82F6)
+- Border: None
+- Height: 40px
+- Padding: 0 8px
+- Hover: Text darker, background #F3F4F6
+- Active: Scale 0.98
+- Use: Secondary actions, text-only actions
+
+**Button States**
+
+All buttons must support these states consistently:
+
+- **Default**: As specified above
+- **Hover**: Lift effect (-2px translateY), enhanced shadow
+- **Active/Pressed**: Scale 0.98 (slight compression)
+- **Focus**: 3px solid #3B82F6 outline, 4px offset (keyboard navigation)
+- **Disabled**: Grayed out (#D1D5DB background, #9CA3AF text), cursor not-allowed
+- **Loading**: Icon spinner rotating, text unchanged until complete
+
+### Cards
+
+**Card Structure**
+- Background: White (#FFFFFF)
+- Border: 1px solid #E5E7EB
+- Padding: 24px
+- Border radius: 12px
+- Shadow: `0 1px 3px rgba(0,0,0,0.1)`
+- Hover shadow: `0 10px 15px rgba(0,0,0,0.1)` (optional, for interactive cards)
+- Transition: 0.2s
+
+**Card Variations**
+
+**Elevated Card** (interactive, clickable)
+- Add: Hover state with lifted shadow
+- Cursor: Pointer
+- Scale on hover: 1.02
+
+**Flat Card** (informational)
+- Remove hover effects
+- Cursor: Default
+- Use for: Static content, data display
+
+**Highlighted Card** (featured, important)
+- Left border: 4px solid #3B82F6
+- Slightly enhanced shadow
+- Use for: Important metrics, featured items
+
+### Input Fields
+
+**Text Input**
+- Height: 40px
+- Padding: 12px horizontal, 10px vertical
+- Border: 1px solid #E5E7EB
+- Border radius: 8px
+- Background: #FFFFFF at rest
+- Font: 15px, 400 weight
+- Placeholder color: #94A3B8
+- Focus: Border #3B82F6 (2px), background unchanged, no outline (border is sufficient)
+- Disabled: Background #F3F4F6, text #9CA3AF, cursor not-allowed
+- Transition: 0.2s
+
+**Input with Error**
+- Border: 2px solid #EF4444
+- Background: #FEF2F2 (very light red)
+- Error text below: 12px, #EF4444, 4px margin-top
+- Icon: Red ✕ or ⚠ on right side
+
+**Input with Success**
+- Border: 2px solid #10B981
+- Icon: Green ✓ on right side
+
+**Label + Input Combination**
+- Label: 14px, 600 weight, text color #111827
+- Margin below label: 8px
+- Helper text: 12px, #6B7280, margin-top 4px
+- Error text: 12px, #EF4444, margin-top 4px
+
+### Badges & Tags
+
+**Status Badge**
+- Height: 24px
+- Padding: 0 12px
+- Border radius: 12px (pill-shaped)
+- Font: 12px, 600 weight
+- Success badge: Background #D1FAE5, text #065F46
+- Warning badge: Background #FEF3C7, text #92400E
+- Error badge: Background #FEE2E2, text #991B1B
+- Info badge: Background #DBEAFE, text #1E40AF
+
+**Tag**
+- Similar to badge but used for categorization
+- Background: #F3F4F6
+- Text: #111827
+- Font: 12px, 500 weight
+- Remove icon: Optional X on right side
+
+### Navigation
+
+**Sidebar Navigation**
+- Width expanded: 280px
+- Width collapsed: 80px
+- Background: Deep Blue (#1F2937)
+- Transition: 0.3s smooth width change
+- Item padding: 12px 16px
+- Item text color: White
+- Item font: 14px, 500 weight
+- Active item: Background lighter (#374151)
+- Active indicator: Left border 3px #3B82F6
+- Hover: Background #374151
+
+**Top Navigation Bar**
+- Height: 64px
+- Background: White
+- Border bottom: 1px #E5E7EB
+- Content: Logo (left), search bar (center), user menu (right)
+- Logo size: 32px height
+- Search: Full width until user menu, 40px height
+- User avatar: 40px circle, right side
+
+### Tables
+
+**Table Structure**
+- Background: White
+- Header background: #F9FAFB
+- Row height: 48px
+- Cell padding: 12px horizontal, 12px vertical
+- Border: 1px #E5E7EB between rows
+- Striped rows: Alternate white and #F9FAFB
+
+**Table Header**
+- Font: 12px, 600 weight
+- Text color: #6B7280
+- Sortable headers: Add ↑↓ icon on hover
+- Sticky header: Fixed to top on scroll
+
+**Table Row**
+- Hover: Background #F3F4F6
+- Cursor: Pointer if clickable
+- Active row: Left border 4px #3B82F6
+
+### Modals & Dialogs
+
+**Modal Backdrop**
+- Background: rgba(0, 0, 0, 0.5)
+- Transition: 0.2s fade in/out
+
+**Modal Content**
+- Background: White
+- Border radius: 12px
+- Shadow: `0 20px 25px rgba(0,0,0,0.15)`
+- Width: 90% max, max 600px
+- Padding: 32px
+- Close button: Top right, 24px icon, transparent background
+
+**Modal Header**
+- Font: 20px, 600 weight
+- Margin bottom: 24px
+
+**Modal Body**
+- Font: 15px, 400 weight
+- Line height: 1.6
+
+**Modal Footer**
+- Margin top: 32px
+- Button spacing: 12px between buttons
+- Primary action right, secondary left
+
+### Forms
+
+**Form Layout**
+- Stack vertically
+- Field spacing: 16px between fields
+- Form width: Max 600px (or responsive to container)
+
+**Form Sections**
+- Heading: 16px, 600 weight
+- Margin above: 24px
+- Margin below: 16px
+- Border or background separator optional
+
+**Validation Messages**
+- Success: Green (#10B981), ✓ icon, "This looks good"
+- Error: Red (#EF4444), ✕ icon, clear error message
+- Info: Blue (#3B82F6), ℹ icon, helpful hint
+- Show immediately on blur or after user input
+
+---
+
+## Navigation & Structure
+
+### Page Layout
+
+**Standard Page Structure**
+```
+┌─────────────────────────────────────┐
+│  Sidebar (280px)    Top Bar (64px)  │
+├─────────────────────────────────────┤
+│                                     │
+│  Content Area (max 1440px)         │
+│  - H1 Title + Breadcrumb           │
+│  - Primary content                 │
+│  - Cards, tables, forms            │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### Breadcrumb Navigation
+
+- Font: 12px, 400 weight
+- Text color: #6B7280
+- Active page: #111827 (dark gray)
+- Separator: " / " (slash)
+- Position: Below main title, 12px above main content
+- Links: Underline on hover, #3B82F6
+
+### Sidebar Menu Items
+
+**Menu Item Structure**
+- Icon: 20px, left side
+- Label: 14px, right side
+- Padding: 12px 16px
+- Spacing between items: 4px
+- Active state: Highlighted background, left 3px border
+
+**Menu Item Icons**
+- Consistent style (stroke, weight, size)
+- 20x20px dimensions
+- Centered vertically in 40px row height
+
+### Responsive Navigation
+
+**Desktop (1024px+)**
+- Sidebar visible (280px)
+- Full navigation labels
+- Top bar with search and user menu
+
+**Tablet (768px-1023px)**
+- Collapsed sidebar (80px, icons only)
+- Top bar with hamburger to expand
+- Labels hidden
+
+**Mobile (< 768px)**
+- Hidden sidebar (hamburger menu)
+- Bottom navigation or slide-out drawer
+- Top bar simplified (logo, menu icon)
+
+---
+
+## States & Interactions
+
+### Hover States
+
+Apply these consistently across interactive elements:
+
+**Light Interactive Element**
+- Background fade: +5-10% lightness
+- Text fade: Slightly darker
+- Cursor: Pointer
+- Transition: 0.2s
+
+**Button/Card Hover**
+- Lift effect: translateY(-2px)
+- Shadow increase: +5-10px blur
+- Transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1)
+
+**Disabled Hover**
+- No change
+- Cursor: not-allowed
+- No transition
+
+### Focus States
+
+All interactive elements must have clear keyboard focus indicators:
+
+- Focus outline: 3px solid #3B82F6
+- Outline offset: 4px
+- Apply to: Links, buttons, inputs, interactive elements
+- Keyboard navigation: Tab to focus, visible immediately
+
+### Active States
+
+**Button/Clickable Pressed**
+- Scale: 0.98 (slight compression)
+- Transition: 0.1s
+
+**Menu Item Active**
+- Background: Lighter shade of primary color
+- Left border: 3px #3B82F6
+- Font weight: 600
+
+### Loading States
+
+**Loading Spinner**
+- Size: 24px diameter
+- Animation: Smooth 360° rotation, 1s duration
+- Color: #3B82F6
+- Placement: Center of container or inline with text
+
+**Loading Skeleton**
+- Use pulse animation (opacity 0.5 → 1 → 0.5)
+- Match content dimensions
+- Color: #E5E7EB
+- Animation: 2s duration, smooth
+
+**Loading on Button**
+- Replace text with spinner
+- Button stays same size
+- Disable interactions while loading
+
+### Disabled States
+
+**Disabled Button**
+- Background: #E5E7EB
+- Text: #9CA3AF
+- Cursor: not-allowed
+- No hover effects
+- No focus outline (but keep visible for accessibility)
+
+**Disabled Input**
+- Background: #F3F4F6
+- Text: #9CA3AF
+- Border: 1px #E5E7EB
+- Cursor: not-allowed
+
+**Disabled Form Field**
+- Opacity: 0.6
+- Cursor: not-allowed
+- No focus state
+
+### Animations
+
+All animations must be smooth and purposeful. Never animate purely for decoration.
+
+**Standard Transition Timing**
+- Quick interactions: 0.15s
+- UI changes: 0.2s
+- Slower feedback: 0.3s
+- Easing: cubic-bezier(0.4, 0, 0.2, 1) (smooth)
+
+**Animation Guidelines**
+- Fade in: Opacity 0 → 1
+- Slide in: TranslateX/Y from negative/positive
+- Scale in: Scale 0.95 → 1
+- Never exceed 0.3s for UI animations (feels slow)
+- Disable animations for users with prefers-reduced-motion
+
+---
+
+## Accessibility Requirements
+
+### Color Contrast
+
+All text must meet these standards:
+
+- Normal text (14px+): 4.5:1 contrast ratio minimum
+- Large text (18px+, 600 weight+): 3:1 contrast ratio minimum
+- Graphics and UI components: 3:1 contrast ratio
+- Test with: WebAIM contrast checker or axe DevTools
+
+### Touch Targets
+
+All interactive elements must meet accessibility standards:
+
+- Minimum size: 44x44px (mobile)
+- Desktop buttons: 40x40px minimum
+- Link text: Underlined or otherwise distinguished
+- Spacing: At least 8px between touch targets
+
+### Keyboard Navigation
+
+All functionality must be accessible via keyboard:
+
+- Tab order: Logical left-to-right, top-to-bottom
+- Focus visible: Clear 3px outline, 4px offset
+- Escape: Close modals, cancel operations
+- Enter: Confirm actions, submit forms
+- Arrow keys: Navigate menus, sliders, tables
+
+### ARIA Labels
+
+Use ARIA when needed (not always necessary for semantic HTML):
+
+- Buttons: aria-label for icon-only buttons
+- Links: aria-label if text is unclear
+- Icons: aria-hidden="true" if decorative
+- Forms: label associated with input via `for` attribute
+- Dynamic content: Use aria-live="polite" for updates
+
+### Reading Order
+
+Ensure content is understandable when read top-to-bottom:
+
+- Headings in proper order (H1 → H2 → H3, not skipping)
+- Logical flow without CSS reordering
+- Important content before secondary content
+
+### Alternative Text
+
+- Images: Meaningful alt text (not "image1.jpg")
+- Icons: aria-label or hidden if decorative
+- Charts: Text summary if complex
+- Links: Descriptive text, not "click here"
+
+---
+
+## Responsive Design
+
+### Breakpoints
+
+Design and test at these viewport widths:
+
+- Mobile: 320px, 375px, 425px
+- Tablet: 640px, 768px, 1024px
+- Desktop: 1280px, 1440px, 1920px
+
+### Mobile-First Approach
+
+- Start with mobile layout
+- Add complexity as screen size increases
+- Use min-width media queries (mobile-first)
+
+### Responsive Typography
+
+- Body text: Always 15px on mobile (no smaller)
+- Headings: Reduce by 2-4px on mobile, increase on desktop
+- Line height: Increase to 1.8 on mobile (readability)
+- Container width: 90% with 8px margins on mobile
+
+### Responsive Spacing
+
+- 16px gaps on mobile
+- 24px gaps on tablet
+- 32px gaps on desktop
+- Reduce padding on mobile (12px instead of 24px for cards)
+
+### Responsive Images
+
+- Use `max-width: 100%` with height auto
+- Specify aspect ratio to prevent layout shift
+- Use srcset for resolution-dependent images
+- Compress images before deployment
+
+### Responsive Navigation
+
+See "Navigation & Structure" section above for detailed breakpoint guidelines.
+
+---
+
+## Do's and Don'ts
+
+### DO
+
+- ✅ Use the established color palette consistently
+- ✅ Follow the typography scale precisely
+- ✅ Use 8px multiples for all spacing
+- ✅ Maintain visual hierarchy with size and weight
+- ✅ Test components across all breakpoints
+- ✅ Ensure 4.5:1 color contrast for all text
+- ✅ Use semantic HTML for accessibility
+- ✅ Provide clear focus states for keyboard users
+- ✅ Include loading and error states for all interactions
+- ✅ Use consistent button styles and placement
+- ✅ Pair colors with text or icons for meaning
+- ✅ Use transitions for all interactive changes (0.2s)
+- ✅ Test with real content, not lorem ipsum
+- ✅ Validate forms inline with clear feedback
+- ✅ Use cards to group related content
+- ✅ Add generous whitespace around content
+
+### DON'T
+
+- ❌ Don't create custom colors outside the palette
+- ❌ Don't use font sizes not in the type scale
+- ❌ Don't use weights other than 400, 500, 600, 700
+- ❌ Don't use arbitrary spacing (not multiples of 8)
+- ❌ Don't rely on color alone to convey information
+- ❌ Don't create buttons that look like links (be clear)
+- ❌ Don't animate decorative elements
+- ❌ Don't use motion faster than 0.3s (feels jerky)
+- ❌ Don't create components with contrast below 4.5:1
+- ❌ Don't forget about mobile and tablet layouts
+- ❌ Don't use more than 2 font families
+- ❌ Don't stack modals or create nested modals
+- ❌ Don't use placeholder text as labels
+- ❌ Don't disable hover states on disabled buttons
+- ❌ Don't create layouts that exceed 1440px max width
+- ❌ Don't use red for anything except errors or critical actions
+- ❌ Don't mix rounded and sharp corners (stay consistent)
+- ❌ Don't create text smaller than 12px (readability)
+- ❌ Don't forget to test keyboard navigation
+- ❌ Don't break the grid system for "special" sections
+
+---
+
+## Implementation Checklist
+
+### Phase 1: Foundation
+- [ ] Set up CSS variables for colors, spacing, typography
+- [ ] Create Tailwind config (if using Tailwind)
+- [ ] Define design token JSON
+- [ ] Create utility classes for spacing and sizing
+- [ ] Test color contrast for all combinations
+
+### Phase 2: Core Components
+- [ ] Button (all variants and states)
+- [ ] Input field (text, error, success states)
+- [ ] Card (flat and elevated variants)
+- [ ] Badge/Tag
+- [ ] Link and text styles
+- [ ] Checkbox, Radio, Toggle
+
+### Phase 3: Layout Components
+- [ ] Sidebar navigation
+- [ ] Top navigation bar
+- [ ] Breadcrumb
+- [ ] Grid/Column system
+- [ ] Responsive containers
+
+### Phase 4: Complex Components
+- [ ] Modal/Dialog
+- [ ] Form field group
+- [ ] Table with sorting
+- [ ] Dropdown/Select
+- [ ] Pagination
+
+### Phase 5: Patterns
+- [ ] Loading states
+- [ ] Error states
+- [ ] Empty states
+- [ ] Success states
+- [ ] Skeleton screens
+
+### Phase 6: Pages
+- [ ] Dashboard layout
+- [ ] Job/Service listings
+- [ ] Detail page
+- [ ] User profile
+- [ ] Settings page
+- [ ] Form pages
+
+### Phase 7: Validation & Testing
+- [ ] Keyboard navigation (Tab, Enter, Escape)
+- [ ] Screen reader testing
+- [ ] Contrast ratio verification
+- [ ] Responsive breakpoint testing
+- [ ] Mobile touch target verification
+- [ ] Cross-browser testing
+
+---
+
+## Quick Reference
+
+### Copy-Paste Values
+
+**Colors**
+```
+Deep Blue: #1F2937
+Vibrant Blue: #3B82F6
+Emerald Green: #10B981
+Amber: #F59E0B
+Rose Red: #EF4444
+Text Primary: #111827
+Text Secondary: #6B7280
+Background: #FFFFFF
+Border: #E5E7EB
+```
+
+**Spacing**
+```
+4px, 8px, 12px, 16px, 24px, 32px, 40px, 48px, 64px, 80px, 96px
+```
+
+**Font Sizes**
+```
+12px (xs), 14px (sm), 15px (base), 16px (md), 18px (lg), 20px (xl), 24px (2xl), 28px (3xl), 32px (4xl)
+```
+
+**Button**
+```
+Height: 40px
+Padding: 0 16px
+Border radius: 8px
+Font: 15px, 600 weight
+```
+
+**Card**
+```
+Padding: 24px
+Border radius: 12px
+Border: 1px #E5E7EB
+```
+
+**Transitions**
+```
+0.2s cubic-bezier(0.4, 0, 0.2, 1)
+```
+
+---
+
+## Questions & Clarifications
+
+If you encounter a design situation not covered in this document:
+
+1. Check if a similar component exists in the guidelines
+2. Apply the same principles (contrast, spacing, hierarchy)
+3. Default to simplicity and clarity
+4. Extend the system rather than break it
+5. Ask for clarification before creating one-off designs
+
+Remember: **Consistency and clarity always come first.**

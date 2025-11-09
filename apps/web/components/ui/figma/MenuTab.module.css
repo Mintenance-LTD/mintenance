@@ -1,0 +1,87 @@
+.menuTab {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  border-radius: 24px;
+  position: relative;
+  text-decoration: none;
+  transition: all 200ms ease-out;
+}
+
+.menuTabExpanded {
+  justify-content: flex-start;
+  padding: 13px 16px 13px 26px;
+  gap: 16px;
+}
+
+.menuTabCollapsed {
+  justify-content: center;
+  width: 48px;
+  padding: 13px;
+  gap: 0;
+}
+
+.menuTabActive {
+  background-color: var(--menu-tab-active-bg, #FFFFFF);
+  color: var(--menu-tab-active-color, #10B981);
+}
+
+.menuTabActiveExpanded {
+  width: 184px;
+}
+
+.menuTabInactive {
+  background-color: transparent;
+  color: var(--menu-tab-inactive-color, #FFFFFF);
+}
+
+.menuTabIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+}
+
+.menuTabLabel {
+  font-size: 13px;
+  white-space: nowrap;
+  transition: opacity 200ms ease-out, visibility 200ms ease-out, width 200ms ease-out;
+}
+
+.menuTabLabelExpanded {
+  opacity: 1;
+  visibility: visible;
+  width: auto;
+  overflow: hidden;
+}
+
+.menuTabLabelCollapsed {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  overflow: hidden;
+}
+
+.menuTabLabelActive {
+  font-weight: 600;
+}
+
+.menuTabLabelInactive {
+  font-weight: 400;
+}
+
+.activeIndicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 24px;
+  background-color: var(--menu-tab-indicator-color, #10B981);
+  border-radius: 0 2px 2px 0;
+}
+

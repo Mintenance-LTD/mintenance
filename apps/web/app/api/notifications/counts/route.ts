@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromHeaders } from '@/lib/auth';
+import { getCurrentUserFromCookies } from '@/lib/auth';
 
 /**
  * API endpoint to fetch notification badge counts for the sidebar
@@ -8,8 +8,7 @@ import { getCurrentUserFromHeaders } from '@/lib/auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    const headers = await request.headers;
-    const user = getCurrentUserFromHeaders(headers);
+    const user = await getCurrentUserFromCookies();
 
     if (!user) {
       return NextResponse.json(
@@ -23,6 +22,7 @@ export async function GET(request: NextRequest) {
       messagesResponse,
       connectionsResponse,
       quoteRequestsResponse,
+      notificationsResponse,
     ] = await Promise.all([
       // Unread messages count
       serverSupabase
@@ -45,12 +45,20 @@ export async function GET(request: NextRequest) {
         .eq('contractor_id', user.id)
         .eq('status', 'open')
         .eq('quoted', false),
+
+      // Unread notifications count
+      serverSupabase
+        .from('notifications')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('read', false),
     ]);
 
     const counts = {
       messages: messagesResponse.count || 0,
       connections: connectionsResponse.count || 0,
       quoteRequests: quoteRequestsResponse.count || 0,
+      notifications: notificationsResponse.count || 0,
     };
 
     return NextResponse.json({
@@ -68,6 +76,7 @@ export async function GET(request: NextRequest) {
         messages: 0,
         connections: 0,
         quoteRequests: 0,
+        notifications: 0,
       },
     });
   }

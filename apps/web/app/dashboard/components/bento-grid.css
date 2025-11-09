@@ -1,0 +1,30 @@
+/* Bento Grid Styles */
+.bento-grid {
+  position: relative;
+}
+
+.bento-item {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-item:hover {
+  transform: translateY(-2px);
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .bento-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .bento-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bento-item {
+    min-height: 180px !important;
+  }
+}
+

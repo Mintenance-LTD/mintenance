@@ -1,13 +1,16 @@
 'use client';
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import Logo from '../../components/Logo';
-import { Icon } from '@/components/ui/Icon';
-import { AnimatedSidebar } from '@/components/ui/AnimatedSidebar';
-import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
+import { Briefcase, MapPin, Bell, Menu, X } from 'lucide-react';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { ProfileDropdown } from '@/components/profile/ProfileDropdown';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Search } from 'lucide-react';
 
 type ContractorSummary = {
   first_name?: string | null;
@@ -22,62 +25,49 @@ interface ContractorLayoutShellProps {
   children: ReactNode;
   contractor?: ContractorSummary | null;
   email?: string | null;
+  userId?: string | null;
+  initialPathname?: string;
 }
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: string;
-  badge?: number;
-};
+// UnifiedSidebar handles navigation sections internally
 
-type NavSection = {
-  heading: string;
-  items: NavItem[];
-};
-
-// Navigation sections for AnimatedSidebar (now a function that takes counts)
-const getNavSections = (counts: { messages?: number; connections?: number; quoteRequests?: number }) => [
-  {
-    title: 'Overview',
-    items: [
-      { icon: 'home', label: 'Dashboard', href: '/dashboard' },
-      { icon: 'briefcase', label: 'Jobs & Bids', href: '/contractor/bid', badge: counts.quoteRequests },
-      { icon: 'users', label: 'Connections', href: '/contractor/connections', badge: counts.connections },
-      { icon: 'mapPin', label: 'Service Areas', href: '/contractor/service-areas' },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { icon: 'fileText', label: 'Quotes & Invoices', href: '/contractor/quotes' },
-      { icon: 'currencyDollar', label: 'Finance', href: '/contractor/finance' },
-      { icon: 'messages', label: 'Messages', href: '/messages', badge: counts.messages },
-    ],
-  },
-  {
-    title: 'Growth',
-    items: [
-      { icon: 'profile', label: 'Profile', href: '/contractor/profile' },
-      { icon: 'idCard', label: 'Business Card', href: '/contractor/card-editor' },
-      { icon: 'collection', label: 'Portfolio', href: '/contractor/gallery' },
-      { icon: 'megaphone', label: 'Social Hub', href: '/contractor/social' },
-      { icon: 'notebook', label: 'CRM', href: '/contractor/crm' },
-    ],
-  },
-  {
-    title: 'Support',
-    items: [
-      { icon: 'help', label: 'Help & Support', href: '/contractor/support' },
-      { icon: 'shield', label: 'Verification', href: '/contractor/verification' },
-    ],
-  },
-];
-
-export function ContractorLayoutShell({ children, contractor, email }: ContractorLayoutShellProps) {
+export function ContractorLayoutShell({ children, contractor, email, userId, initialPathname }: ContractorLayoutShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { counts } = useNotificationCounts();
+  const [mounted, setMounted] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Calculate these consistently for both server and client initial render
+  // Use initialPathname for SSR consistency, fallback to pathname if available
+  const pathForCalculation = initialPathname ?? pathname ?? '';
+  const isDashboard = pathForCalculation === '/contractor/dashboard-enhanced';
+  const isJobDetail = pathForCalculation.startsWith('/contractor/jobs/');
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Check screen size for mobile menu
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 1024);
+      if (width >= 1024) {
+        setIsMobileOpen(false);
+      }
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+
+  const contractorFullName = useMemo(() => {
+    return contractor?.first_name || contractor?.last_name
+      ? `${contractor?.first_name ?? ''} ${contractor?.last_name ?? ''}`.trim()
+      : contractor?.company_name ?? 'Mintenance Contractor';
+  }, [contractor?.first_name, contractor?.last_name, contractor?.company_name]);
 
   const initials = useMemo(() => {
     const first = contractor?.first_name?.charAt(0) ?? '';
@@ -86,29 +76,11 @@ export function ContractorLayoutShell({ children, contractor, email }: Contracto
     return (first + last || fallback).toUpperCase();
   }, [contractor?.first_name, contractor?.last_name, email]);
 
-  const contractorFullName =
-    contractor?.first_name || contractor?.last_name
-      ? `${contractor?.first_name ?? ''} ${contractor?.last_name ?? ''}`.trim()
-      : contractor?.company_name ?? 'Mintenance Contractor';
-
-  const locationLabel = contractor?.city || contractor?.country
-    ? [contractor?.city, contractor?.country].filter(Boolean).join(', ')
-    : 'Set your location';
-
   const userInfo = {
     name: contractorFullName,
     email: email || '',
     avatar: contractor?.profile_image_url || undefined,
     role: 'contractor',
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed', error);
-    }
   };
 
   return (
@@ -121,154 +93,323 @@ export function ContractorLayoutShell({ children, contractor, email }: Contracto
         fontFamily: theme.typography.fontFamily.regular,
       }}
     >
-      <AnimatedSidebar
-        sections={getNavSections(counts)}
+      <UnifiedSidebar
+        userRole="contractor"
         userInfo={userInfo}
-        onLogout={handleLogout}
+        isMobileOpen={isMobileOpen}
+        onMobileClose={() => setIsMobileOpen(false)}
       />
 
       <div
+        suppressHydrationWarning
         style={{
-          flex: 1,
-          marginLeft: '280px', // Default expanded width
+          flex: '1 1 0%',
+          width: mounted && isMobile ? '100%' : 'calc(100% - 280px)',
+          marginLeft: mounted && isMobile ? '0' : '280px',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          minWidth: 0,
         }}
       >
         <header
+          suppressHydrationWarning
+          className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-gray-200"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: `${theme.spacing[6]} ${theme.spacing[8]}`,
-            backgroundColor: theme.colors.surface,
-            borderBottom: `1px solid ${theme.colors.border}`,
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
+            flexWrap: 'nowrap',
+            gap: theme.spacing[4],
           }}
         >
+          {/* Left Side - Mobile Menu Button & Search */}
           <div
+            suppressHydrationWarning
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing[4],
-              flex: 1,
+              flex: '1 1 0%',
+              minWidth: 0,
             }}
           >
-            <form
-              action="/contractors"
-              method="get"
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderRadius: '14px',
-                padding: '10px 16px',
-                border: `1px solid ${theme.colors.border}`,
-                maxWidth: '420px',
-                gap: theme.spacing[2],
-              }}
-            >
-              <Icon name="discover" size={18} color={theme.colors.textQuaternary} />
-              <input
-                name="query"
-                type="search"
-                placeholder="Search contractors or projects"
+            {/* Mobile Menu Toggle Button - Only visible on mobile */}
+            {mounted && isMobile && (
+              <button
+                onClick={() => setIsMobileOpen(!isMobileOpen)}
+                suppressHydrationWarning
                 style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  fontSize: theme.typography.fontSize.sm,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  border: `1px solid ${theme.colors.border}`,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  cursor: 'pointer',
+                  transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
+                }}
+                aria-label="Toggle menu"
+              >
+                {isMobileOpen ? (
+                  <X className="h-5 w-5" style={{ color: theme.colors.textPrimary }} />
+                ) : (
+                  <Menu className="h-5 w-5" style={{ color: theme.colors.textPrimary }} />
+                )}
+              </button>
+            )}
+            {/* Search form - hide on dashboard and job detail pages, show on other pages */}
+            {!isDashboard && !isJobDetail && (
+              <div suppressHydrationWarning style={{ display: 'flex', flex: '1 1 0%' }}>
+                <form
+                  action="/contractors"
+                  method="get"
+                  suppressHydrationWarning
+                  style={{
+                    flex: '1 1 0%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: '14px',
+                    padding: '10px 16px',
+                    border: `1px solid ${theme.colors.border}`,
+                    maxWidth: '420px',
+                    gap: theme.spacing[2],
+                  }}
+                >
+                  <Search className="h-4 w-4 text-gray-400" />
+                  <Input
+                    name="query"
+                    type="search"
+                    placeholder="Search contractors or projects"
+                    suppressHydrationWarning
+                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                  >
+                    Search
+                  </Button>
+                </form>
+              </div>
+            )}
+            {/* Dashboard content - show when on dashboard page */}
+            {/* Always render the same structure to avoid hydration mismatch */}
+            <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+              <h1
+                suppressHydrationWarning
+                style={{
+                  margin: 0,
+                  fontSize: theme.typography.fontSize['3xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
                   color: theme.colors.textPrimary,
                 }}
-              />
-              <button
-                type="submit"
-                style={{
-                  background: theme.colors.primary,
-                  color: theme.colors.textInverse,
-                  border: 'none',
-                  borderRadius: theme.borderRadius.md,
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  cursor: 'pointer',
-                }}
               >
-                Search
-              </button>
-            </form>
+                {(() => {
+                  // Use initialPathname for consistent SSR/client rendering
+                  const pathToUse = initialPathname ?? pathname ?? '';
+                  
+                  // Normalize pathname: remove query params, trailing slashes, and ensure consistent format
+                  const normalizedPath = pathToUse.split('?')[0].split('#')[0].replace(/\/$/, '') || '/contractor/dashboard-enhanced';
+                  
+                  // Debug logging (remove in production if needed)
+                  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                    console.log('[ContractorLayoutShell] Pathname resolution:', {
+                      initialPathname,
+                      pathname,
+                      pathToUse,
+                      normalizedPath
+                    });
+                  }
+                  
+                  // Map specific routes to their display titles
+                  const routeTitleMap: Record<string, string> = {
+                    '/contractor/dashboard-enhanced': 'Dashboard',
+                    '/contractor/crm': 'Customers',
+                    '/contractor/bid': 'Jobs & Bids',
+                    '/contractor/messages': 'Messages',
+                    '/contractor/profile': 'Profile',
+                    '/contractor/finance': 'Financials',
+                    '/contractor/jobs-near-you': 'Jobs Near You',
+                    '/contractor/connections': 'Connections',
+                    '/contractor/gallery': 'Gallery',
+                    '/contractor/resources': 'Resources',
+                    '/contractor/quotes': 'Quotes',
+                    '/contractor/invoices': 'Invoices',
+                    '/contractor/payouts': 'Payouts',
+                    '/contractor/reporting': 'Reporting',
+                    '/contractor/service-areas': 'Service Areas',
+                    '/contractor/social': 'Social',
+                    '/contractor/subscription': 'Subscription',
+                    '/contractor/support': 'Support',
+                    '/contractor/verification': 'Verification',
+                    '/contractor/card-editor': 'Card Editor',
+                    '/contractor/company': 'Company',
+                    '/scheduling': 'Scheduling',
+                  };
+                  
+                  // Check for exact match first
+                  if (routeTitleMap[normalizedPath]) {
+                    return routeTitleMap[normalizedPath];
+                  }
+                  
+                  // Check for dynamic routes (e.g., /contractor/bid/[jobId], /contractor/crm/[id])
+                  // For contractor routes, check if path starts with /contractor/ and has a known base route
+                  if (normalizedPath.startsWith('/contractor/')) {
+                    const pathSegments = normalizedPath.split('/').filter(Boolean);
+                    // pathSegments[0] = 'contractor', pathSegments[1] = route name (e.g., 'crm', 'bid')
+                    if (pathSegments.length >= 2) {
+                      const basePath = `/${pathSegments[0]}/${pathSegments[1]}`;
+                      if (routeTitleMap[basePath]) {
+                        return routeTitleMap[basePath];
+                      }
+                    }
+                  }
+                  
+                  // Fallback: extract page name from path
+                  const pageName = normalizedPath.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
+                  return pageName.charAt(0).toUpperCase() + pageName.slice(1);
+                })()}
+              </h1>
+            </div>
           </div>
 
+          {/* Right Side - Actions */}
           <div
+            suppressHydrationWarning
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: theme.spacing[4],
+              gap: theme.spacing[3],
+              flexWrap: 'wrap',
             }}
           >
-            <button
-              type="button"
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.backgroundSecondary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-              }}
-              aria-label="Notifications"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.background;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-            >
-              <Icon name="bell" size={18} color={theme.colors.textSecondary} />
-            </button>
+            {/* Dashboard-specific actions - Only render after mount to prevent hydration mismatch */}
+            {mounted && (pathname === '/contractor/dashboard-enhanced') ? (
+              <>
+                <Link
+                  href="/contractor/bid"
+                  suppressHydrationWarning
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
+                    borderRadius: theme.borderRadius.lg,
+                    backgroundColor: 'transparent',
+                    color: theme.colors.primary,
+                    textDecoration: 'none',
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    border: `1px solid ${theme.colors.primary}`,
+                  }}
+                >
+                  <Briefcase className="h-4 w-4" style={{ color: theme.colors.primary }} />
+                  View Jobs
+                </Link>
+                <Link
+                  href="/contractor/jobs-near-you"
+                  suppressHydrationWarning
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
+                    borderRadius: theme.borderRadius.lg,
+                    backgroundColor: theme.colors.primary,
+                    color: theme.colors.textInverse,
+                    textDecoration: 'none',
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    boxShadow: theme.shadows.sm,
+                    border: `1px solid ${theme.colors.primary}`,
+                  }}
+                >
+                  <MapPin className="h-4 w-4" style={{ color: theme.colors.textInverse }} />
+                  Jobs Near You
+                </Link>
+              </>
+            ) : (
+              /* Jobs Near You button for non-dashboard pages */
+              <Link
+                href="/contractor/jobs-near-you"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
+                  borderRadius: theme.borderRadius.lg,
+                  backgroundColor: theme.colors.primary,
+                  color: theme.colors.textInverse,
+                  textDecoration: 'none',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  boxShadow: theme.shadows.sm,
+                  border: `1px solid ${theme.colors.primary}`,
+                }}
+              >
+                <MapPin className="h-4 w-4" style={{ color: theme.colors.textInverse }} />
+                Jobs Near You
+              </Link>
+            )}
 
-            <Link
-              href="/contractor/quotes/create"
-              style={{
-                padding: '0 18px',
-                height: '44px',
-                borderRadius: '14px',
-                border: 'none',
-                backgroundColor: theme.colors.primary,
-                color: theme.colors.textInverse,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                textDecoration: 'none',
-              }}
-            >
-              <Icon name="plus" size={16} color={theme.colors.textInverse} />
-              New Quote
-            </Link>
+            {/* Notification button */}
+            {userId ? (
+              <div style={{ width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <NotificationDropdown userId={userId} />
+              </div>
+            ) : (
+              <button
+                type="button"
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  border: `1px solid ${theme.colors.border}`,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
+                }}
+                aria-label="Notifications"
+              >
+                <Bell className="h-[18px] w-[18px]" style={{ color: theme.colors.textSecondary }} />
+              </button>
+            )}
+
+            {/* Profile Dropdown */}
+            <ProfileDropdown
+              contractorName={contractorFullName}
+              profileImageUrl={contractor?.profile_image_url}
+              initials={initials}
+            />
           </div>
         </header>
 
-        <main
-          style={{
-            flex: 1,
-            padding: `${theme.spacing[8]} ${theme.spacing[8]} ${theme.spacing[10]}`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[8],
-          }}
-        >
+                <main
+                  suppressHydrationWarning
+                  style={{
+                    flex: '1 1 0%',
+                    // Consistent padding based on page type
+                    padding: isJobDetail ? '32px 32px 32px 24px' : '32px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '32px', // Add proper spacing between sections
+                    position: 'relative',
+                    zIndex: 1,
+                    backgroundColor: theme.colors.white,
+                  }}
+                >
           {children}
         </main>
       </div>

@@ -8,6 +8,9 @@ import {
   type PerformanceData,
   type PerformanceMetric,
 } from '@/lib/performance-monitor';
+import { Button } from '@/components/ui/Button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 export default function PerformancePage() {
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
@@ -77,12 +80,14 @@ export default function PerformancePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Unable to load performance data</p>
-          <button
+          <Button
             onClick={loadPerformanceData}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            variant="primary"
+            size="sm"
+            leftIcon={<RefreshCw className="h-4 w-4" />}
           >
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -102,7 +107,9 @@ export default function PerformancePage() {
         </div>
 
         {/* Health Score Card */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6 mb-8 group relative overflow-hidden">
+          {/* Gradient bar - appears on hover, always visible on large screens */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-700">
@@ -163,77 +170,58 @@ export default function PerformancePage() {
                 </div>
               </div>
 
-              <button
+              <Button
                 onClick={loadPerformanceData}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                variant="primary"
+                size="sm"
+                leftIcon={<RefreshCw className="h-4 w-4" />}
               >
                 Refresh Data
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Filter Tabs */}
         <div className="flex gap-4 mb-6">
-          <button
+          <Button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded font-medium transition ${
-              filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
+            variant={filter === 'all' ? 'primary' : 'outline'}
+            size="sm"
           >
             All Metrics
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setFilter('violations')}
-            className={`px-4 py-2 rounded font-medium transition ${
-              filter === 'violations'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
+            variant={filter === 'violations' ? 'primary' : 'outline'}
+            size="sm"
           >
             Violations Only ({performanceData.violations.length})
-          </button>
+          </Button>
         </div>
 
         {/* Violations Alert */}
         {performanceData.violations.length > 0 && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-yellow-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>{performanceData.violations.length}</strong> performance
-                  budget violation(s) detected.
-                </p>
-              </div>
-            </div>
-          </div>
+          <Alert className="mb-6 border-yellow-400 bg-yellow-50">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertDescription className="text-yellow-700">
+              <strong>{performanceData.violations.length}</strong> performance
+              budget violation(s) detected.
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           {filteredMetrics?.map((metric, index) => (
             <div
               key={`${metric.name}-${index}`}
               className={`bg-white rounded-lg shadow p-6 border-2 ${getMetricColor(
                 metric.rating
-              )}`}
+              )} group relative overflow-hidden`}
             >
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900">{metric.name}</h3>
                 <span
@@ -259,7 +247,9 @@ export default function PerformancePage() {
 
         {/* Budget Violations */}
         {performanceData.violations.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 mb-8 group relative overflow-hidden">
+            {/* Gradient bar - appears on hover, always visible on large screens */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               Budget Violations
             </h2>
@@ -295,7 +285,9 @@ export default function PerformancePage() {
         )}
 
         {/* Performance Budgets Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-hidden group relative">
+          {/* Gradient bar - appears on hover, always visible on large screens */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">
               Performance Budgets

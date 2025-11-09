@@ -1,91 +1,109 @@
 'use client';
 
 import React from 'react';
-import { Layout } from './ui/Layout';
-import { SkeletonCard, SkeletonList, SkeletonText, SkeletonButton } from './ui/SkeletonLoader';
-import { Breadcrumbs } from './ui/Breadcrumbs';
+import { UnifiedSidebar } from './layouts/UnifiedSidebar';
+import { SkeletonCard, SkeletonList, SkeletonText } from './ui/SkeletonLoader';
 import { theme } from '@/lib/theme';
 
 export const DashboardLoading: React.FC = () => {
   return (
-    <Layout
-      title="Dashboard"
-      subtitle="Loading..."
-      navigation={[
-        { label: 'Overview', href: '/dashboard', active: true },
-        { label: 'Jobs', href: '/jobs' },
-        { label: 'Contractors', href: '/contractors' },
-        { label: 'Messages', href: '/messages', badge: 3 },
-        { label: 'Payments', href: '/payments' },
-        { label: 'Analytics', href: '/analytics' },
-      ]}
-    >
-      {/* Breadcrumbs */}
-      <Breadcrumbs 
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Dashboard', current: true }
-        ]}
-        style={{ marginBottom: theme.spacing[6] }}
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+      {/* Unified Sidebar - matches actual dashboard */}
+      <UnifiedSidebar 
+        userRole="homeowner"
+        userInfo={{
+          name: undefined,
+          email: undefined,
+          avatar: undefined,
+        }}
       />
 
-      {/* Cards Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: theme.spacing[6],
-        marginBottom: theme.spacing[8],
-      }}>
-        {/* Welcome Card Skeleton */}
-        <SkeletonCard style={{ minHeight: '200px' }} />
-        
-        {/* Quick Actions Card Skeleton */}
-        <SkeletonCard style={{ minHeight: '200px' }} />
-        
-        {/* Recent Activity Card Skeleton */}
-        <SkeletonCard style={{ minHeight: '200px' }} />
-      </div>
-
-      {/* Stats Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
-        {Array.from({ length: 4 }, (_, index) => (
-          <div
-            key={index}
-            style={{
-              padding: theme.spacing[4],
-              backgroundColor: 'white',
-              borderRadius: theme.borderRadius.lg,
-              boxShadow: theme.shadows.base,
-              border: `1px solid ${theme.colors.border}`,
-            }}
-          >
-            <SkeletonText lines={2} />
-            <SkeletonButton width={60} style={{ marginTop: theme.spacing[2] }} />
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Jobs Skeleton */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: theme.borderRadius.lg,
-        boxShadow: theme.shadows.base,
-        border: `1px solid ${theme.colors.border}`,
-        overflow: 'hidden',
-      }}>
+      {/* Main Content */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {/* Header Skeleton */}
         <div style={{
-          padding: theme.spacing[4],
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: `${theme.spacing[6]} ${theme.spacing[8]}`,
+          backgroundColor: theme.colors.surface,
           borderBottom: `1px solid ${theme.colors.border}`,
         }}>
-          <SkeletonText lines={1} />
+          <div>
+            <div style={{
+              width: '200px',
+              height: '32px',
+              backgroundColor: theme.colors.backgroundTertiary,
+              borderRadius: theme.borderRadius.md,
+              marginBottom: theme.spacing[1],
+            }} />
+            <div style={{
+              width: '150px',
+              height: '16px',
+              backgroundColor: theme.colors.backgroundTertiary,
+              borderRadius: theme.borderRadius.md,
+            }} />
+          </div>
+          <div style={{ display: 'flex', gap: theme.spacing[3] }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: theme.borderRadius.full,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }} />
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: theme.borderRadius.full,
+              backgroundColor: theme.colors.backgroundTertiary,
+            }} />
+          </div>
         </div>
-        <SkeletonList count={5} />
+
+        {/* Page Content */}
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: theme.spacing[6], width: '100%' }}>
+          {/* KPI Cards Skeleton */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: theme.spacing[4],
+            marginBottom: theme.spacing[6],
+          }}>
+            {Array.from({ length: 4 }, (_, index) => (
+              <div
+                key={index}
+                style={{
+                  padding: theme.spacing[4],
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.borderRadius.lg,
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                <SkeletonText lines={2} />
+              </div>
+            ))}
+          </div>
+
+          {/* Main Content Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: theme.spacing[6],
+          }}>
+            {/* Left Column Skeleton */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+              <SkeletonCard style={{ minHeight: '300px' }} />
+              <SkeletonCard style={{ minHeight: '200px' }} />
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+              <SkeletonCard style={{ minHeight: '250px' }} />
+              <SkeletonCard style={{ minHeight: '200px' }} />
+            </div>
+          </div>
+        </div>
       </div>
-    </Layout>
+    </div>
   );
 };

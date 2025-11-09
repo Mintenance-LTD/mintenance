@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import { MapPin, List, Map } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { StatusBadge } from '@/components/ui/Badge.unified';
+import { Card } from '@/components/ui/Card.unified';
+import { ServiceAreasMap } from './ServiceAreasMap';
+import { findOverlappingAreas, getOverlapWarningMessage, type ServiceArea as OverlapServiceArea } from '@/lib/maps';
 
 interface ServiceArea {
   id: string;
@@ -30,6 +32,8 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
   const [newRadius, setNewRadius] = useState(25);
   const [isAdding, setIsAdding] = useState(false);
   const [notification, setNotification] = useState<{ tone: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
 
   const handleAddArea = async () => {
     if (!newLocation.trim()) {
@@ -87,13 +91,28 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
     .filter((a) => a.is_active)
     .reduce((sum, a) => sum + Math.PI * a.radius_km * a.radius_km, 0);
 
+  // Detect overlapping service areas
+  const overlaps = findOverlappingAreas(
+    serviceAreas
+      .filter(area => area.latitude && area.longitude)
+      .map(area => ({
+        id: area.id,
+        latitude: area.latitude!,
+        longitude: area.longitude!,
+        radius_km: area.radius_km,
+        city: area.city,
+        state: area.state,
+        is_active: area.is_active,
+      }))
+  );
+
   const areaColumns: Column<ServiceArea>[] = [
     {
       key: 'location',
       label: 'Location',
       render: (area) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-          <Icon name="mapPin" size={18} color={theme.colors.primary} />
+          <MapPin className="h-[18px] w-[18px]" style={{ color: theme.colors.primary }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
               {area.location}
@@ -177,6 +196,16 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
         />
       )}
 
+      {/* Overlap Detection Warnings */}
+      {overlaps.length > 0 && overlaps.slice(0, 3).map((overlap, index) => (
+        <NotificationBanner
+          key={`overlap-${index}`}
+          tone="warning"
+          message={getOverlapWarningMessage(overlap)}
+          onDismiss={() => {/* Keep showing until areas are adjusted */}}
+        />
+      ))}
+
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
         <div>
           <h1
@@ -206,7 +235,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
             color: theme.colors.textSecondary,
           }}
         >
-          <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
+          <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
           {serviceAreas.filter((a) => a.is_active).length} active zones
         </span>
       </header>
@@ -218,7 +247,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Areas"
           value={serviceAreas.length.toString()}
           subtitle="Including inactive zones"
@@ -226,7 +255,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Active Zones"
           value={serviceAreas.filter((a) => a.is_active).length.toString()}
           subtitle="Live regions receiving requests"
@@ -234,7 +263,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Total Coverage"
           value={`${totalCoverage.toFixed(0)} km²`}
           subtitle="Based on active radius zones"
@@ -316,12 +345,54 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
         </div>
       </section>
 
-      <DataTable
-        data={serviceAreas}
-        columns={areaColumns}
-        title="Your Service Areas"
-        emptyMessage="No service areas defined yet. Add your first area to start receiving job requests in your region."
-      />
+      {/* View Toggle Buttons */}
+      <div style={{ display: 'flex', gap: theme.spacing[2], justifyContent: 'flex-start' }}>
+        <Button
+          variant={viewMode === 'table' ? 'primary' : 'outline'}
+          size="md"
+          onClick={() => setViewMode('table')}
+          leftIcon={<List className="h-[18px] w-[18px]" />}
+        >
+          Table View
+        </Button>
+        <Button
+          variant={viewMode === 'map' ? 'primary' : 'outline'}
+          size="md"
+          onClick={() => setViewMode('map')}
+          leftIcon={<Map className="h-[18px] w-[18px]" />}
+        >
+          Map View
+        </Button>
+      </div>
+      {viewMode === 'map' ? (
+        <ServiceAreasMap
+          serviceAreas={serviceAreas
+            .filter(area => area.latitude && area.longitude)
+            .map(area => ({
+              id: area.id,
+              city: area.city || area.location,
+              state: area.state || '',
+              zipCode: area.zipCode || null,
+              latitude: area.latitude!,
+              longitude: area.longitude!,
+              radius_km: area.radius_km,
+              is_active: area.is_active,
+              priority: area.priority,
+            }))}
+          onAreaClick={(area) => {
+            setSelectedAreaId(area.id);
+            setViewMode('table'); // Switch to table to show details
+          }}
+          selectedAreaId={selectedAreaId}
+        />
+      ) : (
+        <DataTable
+          data={serviceAreas}
+          columns={areaColumns}
+          title="Your Service Areas"
+          emptyMessage="No service areas defined yet. Add your first area to start receiving job requests in your region."
+        />
+      )}
     </div>
   );
 }

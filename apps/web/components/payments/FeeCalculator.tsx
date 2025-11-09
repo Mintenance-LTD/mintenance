@@ -18,9 +18,9 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
   style = {},
 }) => {
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     }).format(amount);
   };
 
@@ -316,9 +316,9 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
                 lineHeight: theme.typography.lineHeight.relaxed,
               }}
             >
-              • Platform fee: 5% of payment amount (min $0.50, max $50)
+              • Platform fee: 5% of payment amount (min £0.50, max £50)
               <br />
-              • Processing fee: 2.9% + $0.30 per transaction
+              • Processing fee: 2.9% + £0.30 per transaction
               <br />
               • Funds are held securely in escrow until job completion
             </div>

@@ -169,3 +169,6 @@ private-keys/
 server-credentials/
 
 .vercel
+
+# Windows NUL files (device files)
+**/NUL

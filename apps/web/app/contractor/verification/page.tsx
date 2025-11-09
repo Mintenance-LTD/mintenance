@@ -2,14 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
+import { MapPin, Badge } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Icon } from '@/components/ui/Icon';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
-import { StandardCard } from '@/components/ui/StandardCard';
+import { Card } from '@/components/ui/Card.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { Badge as StatusChip } from '@/components/ui/Badge.unified';
 
 interface VerificationStatus {
   hasBusinessAddress: boolean;
@@ -62,12 +62,21 @@ export default function ContractorVerificationPage() {
   const loadVerificationStatus = async () => {
     try {
       setLoading(true);
+      setFeedback(null);
       const response = await fetch('/api/contractor/verification');
+      
       if (!response.ok) {
-        throw new Error('Unable to load verification status.');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Failed to load verification data (${response.status}). Please try again shortly.`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       setStatus(data);
       if (data.data) {
         setCompanyName(data.data.company_name || '');
@@ -79,7 +88,9 @@ export default function ContractorVerificationPage() {
         setInsuranceExpiryDate(data.data.insurance_expiry_date || '');
       }
     } catch (error: any) {
-      setFeedback({ tone: 'error', message: error.message || 'Failed to load verification status.' });
+      console.error('Verification load error:', error);
+      const errorMessage = error.message || 'We could not load your verification data. Please try again shortly.';
+      setFeedback({ tone: 'error', message: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -129,11 +140,13 @@ export default function ContractorVerificationPage() {
     return (
       <PageLayout>
         <PageHeader title="Verification" description="Confirm your business details to build homeowner trust." />
-        <StandardCard>
-          <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
-            Loading verification information...
-          </div>
-        </StandardCard>
+        <Card>
+          <Card.Content>
+            <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
+              Loading verification information...
+            </div>
+          </Card.Content>
+        </Card>
       </PageLayout>
     );
   }
@@ -142,11 +155,13 @@ export default function ContractorVerificationPage() {
     return (
       <PageLayout>
         <PageHeader title="Verification" description="Confirm your business details to build homeowner trust." />
-        <StandardCard>
-          <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
-            We could not load your verification data. Please try again shortly.
-          </div>
-        </StandardCard>
+        <Card>
+          <Card.Content>
+            <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
+              We could not load your verification data. Please try again shortly.
+            </div>
+          </Card.Content>
+        </Card>
       </PageLayout>
     );
   }
@@ -157,53 +172,65 @@ export default function ContractorVerificationPage() {
     <PageLayout
       sidebar={
         <>
-          <StandardCard title="Verification progress" description="Complete every step to unlock full visibility.">
-            <ProgressBar
-              value={progress}
-              tone={status.isFullyVerified ? 'success' : progress >= 50 ? 'warning' : 'neutral'}
-            />
-            <div style={{ marginTop: theme.spacing[4], display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-              {REQUIRED_STEPS.map((step) => (
-                <div
-                  key={step.key}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                    borderRadius: theme.borderRadius.md,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                  }}
-                >
-                  <StatusChip
-                    label={step.label}
-                    tone={stepCompletion(step.key) ? 'success' : 'neutral'}
-                    withDot
-                  />
-                  <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                    {stepCompletion(step.key) ? 'Complete' : 'Pending'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </StandardCard>
+          <Card>
+            <Card.Header>
+              <Card.Title>Verification progress</Card.Title>
+              <Card.Description>Complete every step to unlock full visibility.</Card.Description>
+            </Card.Header>
+            <Card.Content>
+              <ProgressBar
+                value={progress}
+                tone={status.isFullyVerified ? 'success' : progress >= 50 ? 'warning' : 'neutral'}
+              />
+              <div style={{ marginTop: theme.spacing[4], display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+                {REQUIRED_STEPS.map((step) => (
+                  <div
+                    key={step.key}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                      borderRadius: theme.borderRadius.md,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                    }}
+                  >
+                    <StatusChip
+                      variant={stepCompletion(step.key) ? 'success' : 'neutral'}
+                      withDot
+                    >
+                      {step.label}
+                    </StatusChip>
+                    <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                      {stepCompletion(step.key) ? 'Complete' : 'Pending'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card.Content>
+          </Card>
 
-          <StandardCard title="Why verification matters">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-              <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
-                <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
-                <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                  Verified contractors stay visible on the homeowner radar, even when logged out.
-                </p>
+          <Card>
+            <Card.Header>
+              <Card.Title>Why verification matters</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+                <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
+                  <MapPin className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
+                  <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Verified contractors stay visible on the homeowner radar, even when logged out.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
+                  <Badge className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
+                  <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                    Completed profiles receive a trust badge and higher placement in search.
+                  </p>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
-                <Icon name="badge" size={16} color={theme.colors.textSecondary} />
-                <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                  Completed profiles receive a trust badge and higher placement in search.
-                </p>
-              </div>
-            </div>
-          </StandardCard>
+            </Card.Content>
+          </Card>
         </>
       }
     >
@@ -220,11 +247,13 @@ export default function ContractorVerificationPage() {
         />
       )}
 
-      <StandardCard
-        title="Business details"
-        description="We only use this information to build trust and show your business in the right location."
-      >
-        <form
+      <Card>
+        <Card.Header>
+          <Card.Title>Business details</Card.Title>
+          <Card.Description>We only use this information to build trust and show your business in the right location.</Card.Description>
+        </Card.Header>
+        <Card.Content>
+          <form
           onSubmit={handleSubmit}
           style={{
             display: 'flex',
@@ -305,7 +334,8 @@ export default function ContractorVerificationPage() {
             </Button>
           </footer>
         </form>
-      </StandardCard>
+        </Card.Content>
+      </Card>
     </PageLayout>
   );
 }

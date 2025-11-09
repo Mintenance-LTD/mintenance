@@ -36,6 +36,11 @@ import { checkWebhookRateLimit } from '@/lib/rate-limiter';
  * - payment_intent.payment_failed - Payment failed
  * - payment_intent.canceled - Payment canceled
  * - charge.refunded - Payment refunded
+ * - customer.subscription.created - Subscription created
+ * - customer.subscription.updated - Subscription updated
+ * - customer.subscription.deleted - Subscription canceled
+ * - invoice.payment_succeeded - Subscription payment succeeded
+ * - invoice.payment_failed - Subscription payment failed
  */
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -182,6 +187,23 @@ export async function POST(request: NextRequest) {
 
         case 'charge.refunded':
           await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
+
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
+
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+
+        case 'invoice.payment_succeeded':
+          await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+          break;
+
+        case 'invoice.payment_failed':
+          await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
           break;
 
         default:

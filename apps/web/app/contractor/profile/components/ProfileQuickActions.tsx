@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Badge, MessageCircle, Briefcase, BarChart3, Search, ChevronRight } from 'lucide-react';
 
 interface ProfileQuickActionsProps {
   unreadMessagesCount?: number;
@@ -12,27 +12,33 @@ interface ProfileQuickActionsProps {
 export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickActionsProps) {
   const actions = [
     {
+      href: '/contractor/verification',
+      icon: <Badge className="h-5 w-5" />,
+      label: 'Company & License Verification',
+      description: 'Add company name and license to build homeowner trust',
+    },
+    {
       href: '/messages',
-      icon: 'messages',
+      icon: <MessageCircle className="h-5 w-5" />,
       label: 'Messages',
       description: 'Respond to new homeowner inquiries',
       badge: unreadMessagesCount,
     },
     {
       href: '/jobs',
-      icon: 'briefcase',
+      icon: <Briefcase className="h-5 w-5" />,
       label: 'Jobs Board',
       description: 'Browse open projects that match your skills',
     },
     {
       href: '/analytics',
-      icon: 'chart',
+      icon: <BarChart3 className="h-5 w-5" />,
       label: 'Performance Analytics',
       description: 'Track revenue, response time, and win rate',
     },
     {
       href: '/discover',
-      icon: 'discover',
+      icon: <Search className="h-5 w-5" />,
       label: 'Discover Leads',
       description: 'See what homeowners are searching for today',
     },
@@ -52,23 +58,10 @@ export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickAct
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}
-        >
+        <h2 className="text-xl font-[560] text-gray-900 m-0 tracking-normal">
           Quick Actions
         </h2>
-        <p
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-          }}
-        >
+        <p className="text-sm font-[460] text-gray-600 m-0">
           Stay on top of the work that moves your business forward.
         </p>
       </div>
@@ -117,7 +110,7 @@ export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickAct
                     color: theme.colors.primary,
                   }}
                 >
-                  <Icon name={action.icon} size={20} color={theme.colors.primary} />
+                  {action.icon}
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span
@@ -155,7 +148,7 @@ export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickAct
                     {action.badge > 99 ? '99+' : action.badge}
                   </span>
                 )}
-                <Icon name="chevronRight" size={16} color={theme.colors.textQuaternary} />
+                <ChevronRight className="h-4 w-4 text-gray-400" />
               </div>
             </div>
           </Link>

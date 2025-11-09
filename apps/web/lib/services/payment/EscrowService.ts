@@ -126,6 +126,62 @@ export class EscrowService {
   }
 
   /**
+   * Auto-release escrow based on contractor payout tier
+   */
+  static async autoReleaseByTier(jobId: string): Promise<boolean> {
+    try {
+      const { PayoutTierService } = await import('@/lib/services/payment/PayoutTierService');
+      
+      // Get escrow transaction
+      const { data: escrow, error: escrowError } = await supabase
+        .from('escrow_transactions')
+        .select('id, job:jobs(contractor_id, status)')
+        .eq('job_id', jobId)
+        .eq('status', 'held')
+        .single();
+
+      if (escrowError || !escrow || !escrow.job) {
+        return false;
+      }
+
+      const contractorId = escrow.job.contractor_id;
+      if (!contractorId) {
+        return false;
+      }
+
+      // Check if job is completed
+      if (escrow.job.status !== 'completed') {
+        return false;
+      }
+
+      // Get payout speed for contractor
+      const payoutHours = await PayoutTierService.getPayoutSpeed(contractorId);
+      const payoutDeadline = new Date(Date.now() + payoutHours * 60 * 60 * 1000);
+
+      // Check if payout deadline has passed
+      if (new Date() >= payoutDeadline) {
+        // Check if there are any active disputes
+        const { count: disputeCount } = await supabase
+          .from('escrow_payments')
+          .select('id', { count: 'exact', head: true })
+          .eq('job_id', jobId)
+          .eq('status', 'disputed');
+
+        if ((disputeCount || 0) === 0) {
+          // Auto-release
+          await this.releaseEscrowPayment(escrow.id);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      logger.error('Error in auto-release by tier', error);
+      return false;
+    }
+  }
+
+  /**
    * Refund escrow payment
    */
   static async refundEscrowPayment(

@@ -45,7 +45,6 @@ export class MessagingService {
         content: messageText,
         attachments: attachmentUrl ? [attachmentUrl] : undefined,
         receiverId,
-        senderId,
         messageType,
         callId,
         callDuration,
@@ -54,7 +53,14 @@ export class MessagingService {
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '');
-      throw new Error(`Failed to send message: ${text}`);
+      let errorDetails = text;
+      try {
+        const json = JSON.parse(text);
+        errorDetails = json.details || json.error || text;
+      } catch {
+        // If parsing fails, use the text as-is
+      }
+      throw new Error(`Failed to send message: ${errorDetails}`);
     }
 
     const { message } = (await resp.json()) as { message: Message };
@@ -62,19 +68,44 @@ export class MessagingService {
   }
 
   static async getJobMessages(jobId: string, limit = 50): Promise<Message[]> {
-    if (!jobId) return [];
-
-    const resp = await fetch(
-      `${API_BASE}/threads/${encodeURIComponent(jobId)}?limit=${encodeURIComponent(String(limit))}`,
-      { credentials: 'same-origin' }
-    );
-
-    if (!resp.ok) {
+    if (!jobId) {
+      logger.warn('[MessagingService] getJobMessages called without jobId');
       return [];
     }
 
-    const json = (await resp.json()) as ThreadMessagesResponse;
-    return json.messages ?? [];
+    try {
+      const resp = await fetch(
+        `${API_BASE}/threads/${encodeURIComponent(jobId)}?limit=${encodeURIComponent(String(limit))}`,
+        { credentials: 'same-origin' }
+      );
+
+      if (!resp.ok) {
+        const errorText = await resp.text().catch(() => '');
+        logger.error('[MessagingService] getJobMessages failed', {
+          jobId,
+          status: resp.status,
+          statusText: resp.statusText,
+          error: errorText,
+        });
+        return [];
+      }
+
+      const json = (await resp.json()) as ThreadMessagesResponse;
+      const messages = json.messages ?? [];
+      
+      logger.info('[MessagingService] getJobMessages success', {
+        jobId,
+        messageCount: messages.length,
+      });
+      
+      return messages;
+    } catch (error) {
+      logger.error('[MessagingService] getJobMessages exception', {
+        jobId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return [];
+    }
   }
 
   static async getUserMessageThreads(_userId: string): Promise<MessageThread[]> {

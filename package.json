@@ -51,6 +51,7 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/node": "^20",
+    "dotenv": "^17.2.3",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
     "globby": "^14.0.2",

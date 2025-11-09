@@ -36,23 +36,10 @@ export function ProfileReviews({ reviews }: ProfileReviewsProps) {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <h2
-          style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text,
-            margin: 0,
-          }}
-        >
+        <h2 className="text-xl font-[560] text-gray-900 m-0 tracking-normal">
           Client Feedback
         </h2>
-        <p
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-          }}
-        >
+        <p className="text-xs font-[460] text-gray-600 m-0">
           Build trust by collecting fresh testimonials.
         </p>
       </div>

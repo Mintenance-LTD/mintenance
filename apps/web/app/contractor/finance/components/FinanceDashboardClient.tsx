@@ -2,10 +2,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
+import { Card } from '@/components/ui/Card.unified';
 
 interface FinanceDashboardClientProps {
   financialData: {
@@ -104,7 +104,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (payment) => <StatusBadge status={payment.status} size="sm" />,
+      render: (payment) => <StatusBadge status={payment.status as BadgeStatus} size="sm" />,
     },
   ];
 
@@ -132,7 +132,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
       key: 'status',
       label: 'Status',
       align: 'center' as const,
-      render: (job) => <StatusBadge status={job.status} size="sm" />,
+      render: (job) => <StatusBadge status={job.status as BadgeStatus} size="sm" />,
     },
     {
       key: 'price',
@@ -179,26 +179,15 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           {PERIODS.map((period) => {
             const isActive = selectedPeriod === period;
             return (
-              <button
+              <Button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: '12px',
-                  border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                  backgroundColor: isActive
-                    ? `${theme.colors.primary}15`
-                    : theme.colors.surface,
-                  color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  transition: 'all 0.2s',
-                }}
+                variant={isActive ? 'primary' : 'ghost'}
+                size="sm"
+                className="capitalize"
               >
                 {period}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -212,14 +201,14 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Revenue"
           value={`£${financialData.totalRevenue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`}
           subtitle={`${financialData.completedJobs} completed jobs`}
-          icon="currencyDollar"
+          icon="currencyPound"
           trend={{
             direction: revenueChange >= 0 ? 'up' : 'down',
             value: `${Math.abs(revenueChange).toFixed(1)}%`,
@@ -228,7 +217,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Pending Payments"
           value={`£${financialData.pendingPayments.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
@@ -239,7 +228,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color="#F59E0B"
         />
 
-        <MetricCard
+        <Card.Metric
           label="Average Job Value"
           value={`£${avgJobValue.toLocaleString('en-GB', {
             minimumFractionDigits: 2,
@@ -250,7 +239,7 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Annual Projection"
           value={`£${revenueProjection.toLocaleString('en-GB', {
             minimumFractionDigits: 0,
@@ -269,19 +258,9 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
         title="Recent Payments"
         emptyMessage="No payments received yet"
         actions={
-          <button
-            type="button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-            }}
-          >
+          <Button variant="ghost" size="sm">
             View All
-          </button>
+          </Button>
         }
       />
 
@@ -292,19 +271,9 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
         title="Recent Completed Jobs"
         emptyMessage="No completed jobs yet"
         actions={
-          <button
-            type="button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-            }}
-          >
+          <Button variant="ghost" size="sm">
             View All Jobs
-          </button>
+          </Button>
         }
       />
     </div>

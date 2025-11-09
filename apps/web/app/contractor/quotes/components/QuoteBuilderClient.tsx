@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
-import { PageLayout, PageHeader, StatsGrid } from '@/components/ui/PageLayout';
-import { StatCard } from '@/components/ui/StatCard';
-import { StandardCard } from '@/components/ui/StandardCard';
-import { StatusChip } from '@/components/ui/StatusChip';
+import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
+import { Card } from '@/components/ui/Card.unified';
+import { StatusBadge, MetricCard } from '@/components/ui/figma';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
 
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
 
@@ -87,12 +89,12 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
   const summaryCards = useMemo(
     () => [
-      { label: 'Total quotes', value: stats.total_quotes.toString(), icon: 'document' },
-      { label: 'Draft', value: stats.draft_quotes.toString(), icon: 'clipboard' },
-      { label: 'Sent', value: stats.sent_quotes.toString(), icon: 'megaphone' },
-      { label: 'Accepted', value: stats.accepted_quotes.toString(), icon: 'checkCircle' },
-      { label: 'Rejected', value: stats.rejected_quotes.toString(), icon: 'xCircle' },
-      { label: 'Total value', value: formatCurrency(stats.total_value), icon: 'currencyDollar' },
+      { label: 'Total quotes', value: stats.total_quotes, icon: 'document', variant: 'primary' as const },
+      { label: 'Draft', value: stats.draft_quotes, icon: 'clipboard', variant: 'primary' as const },
+      { label: 'Sent', value: stats.sent_quotes, icon: 'megaphone', variant: 'primary' as const },
+      { label: 'Accepted', value: stats.accepted_quotes, icon: 'checkCircle', variant: 'success' as const },
+      { label: 'Rejected', value: stats.rejected_quotes, icon: 'xCircle', variant: 'warning' as const },
+      { label: 'Total value', value: stats.total_value, icon: 'currencyPound', variant: 'success' as const, isCurrency: true },
     ],
     [stats],
   );
@@ -163,46 +165,50 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
     <PageLayout
       sidebar={
         <>
-          <StandardCard
-            title="Pipeline health"
-            description="Monitor conversion across every stage."
-          >
-            <ProgressBar
-              value={acceptanceRate}
-              label="Acceptance rate"
-              tone={acceptanceRate >= 50 ? 'success' : 'warning'}
-            />
+          <Card>
+            <Card.Header>
+              <Card.Title>Pipeline health</Card.Title>
+              <Card.Description>Monitor conversion across every stage.</Card.Description>
+            </Card.Header>
+            <Card.Content>
+              <ProgressBar
+                value={acceptanceRate}
+                label="Acceptance rate"
+                tone={acceptanceRate >= 50 ? 'success' : 'warning'}
+              />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], marginTop: theme.spacing[4] }}>
-              {statusBreakdown.map(({ status, count }) => (
-                <div
-                  key={status}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                    borderRadius: theme.borderRadius.md,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                  }}
-                >
-                  <StatusChip
-                    label={STATUS_LABEL[status]}
-                    tone={STATUS_TONE[status]}
-                    withDot
-                  />
-                  <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-                    {count} ({Math.round((count / stageTotal) * 100)}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </StandardCard>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], marginTop: theme.spacing[4] }}>
+                {statusBreakdown.map(({ status, count }) => (
+                  <div
+                    key={status}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                      borderRadius: theme.borderRadius.md,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                    }}
+                  >
+                    <StatusBadge
+                      status={status === 'accepted' ? 'completed' : status === 'rejected' ? 'delayed' : status === 'sent' ? 'posted' : 'pending'}
+                      label={STATUS_LABEL[status]}
+                    />
+                    <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+                      {count} ({Math.round((count / stageTotal) * 100)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card.Content>
+          </Card>
 
-          <StandardCard
-            title="Need something quick?"
-            description="Create a new quote or duplicate a recent one."
-          >
+          <Card>
+            <Card.Header>
+              <Card.Title>Need something quick?</Card.Title>
+              <Card.Description>Create a new quote or duplicate a recent one.</Card.Description>
+            </Card.Header>
+            <Card.Content>
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
               <Link href="/contractor/quotes/create" style={{ textDecoration: 'none' }}>
                 <Button variant="primary" fullWidth>
@@ -216,7 +222,8 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                 </Button>
               </Link>
             </div>
-          </StandardCard>
+            </Card.Content>
+          </Card>
         </>
       }
     >
@@ -242,97 +249,130 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
         />
       )}
 
-      <StatsGrid>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(268px, 1fr))',
+        gap: theme.spacing[4],
+        marginBottom: theme.spacing[6],
+      }}>
         {summaryCards.map((card) => (
-          <StatCard key={card.label} label={card.label} value={card.value} icon={card.icon} />
+          <MetricCard
+            key={card.label}
+            label={card.label}
+            value={
+              card.isCurrency 
+                ? <AnimatedCounter value={card.value} formatType="currency" currency="GBP" prefix="£" />
+                : <AnimatedCounter value={card.value} />
+            }
+            icon={card.icon}
+            iconColor={card.variant === 'success' ? theme.colors.success : card.variant === 'warning' ? theme.colors.warning : theme.colors.primary}
+            gradient={true}
+            gradientVariant={card.variant}
+          />
         ))}
-      </StatsGrid>
+      </div>
 
-      <StandardCard
-        title="Quotes"
-        description="Filter by status to prioritise follow-ups."
-      >
+      <Card>
+        <Card.Header>
+          <Card.Title>Quotes</Card.Title>
+          <Card.Description>Filter by status to prioritise follow-ups.</Card.Description>
+        </Card.Header>
+        <Card.Content>
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
           <nav style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
             {STATUS_FILTERS.map((filter) => {
               const isActive = filter.id === selectedFilter;
               return (
-                <button
+                <Button
                   key={filter.id}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => setSelectedFilter(filter.id)}
-                  style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    borderRadius: 999,
-                    border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                    backgroundColor: isActive ? theme.colors.backgroundSecondary : theme.colors.surface,
-                    color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                  }}
+                  className="rounded-full capitalize"
                 >
                   {filter.label}
-                </button>
+                </Button>
               );
             })}
           </nav>
 
           {filteredQuotes.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: `${theme.spacing[12]} ${theme.spacing[6]}`,
-                color: theme.colors.textSecondary,
-                border: `1px dashed ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                backgroundColor: theme.colors.backgroundSecondary,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: theme.spacing[4] }}>
-                <Icon name="fileText" size={40} color={theme.colors.textQuaternary} />
-              </div>
-              <h3 style={{ margin: 0, marginBottom: theme.spacing[2], color: theme.colors.textPrimary }}>
-                No quotes in this view
-              </h3>
-              <p style={{ margin: 0 }}>
-                {selectedFilter === 'all'
+            <EmptyState
+              icon="fileText"
+              title="No quotes in this view"
+              description={
+                selectedFilter === 'all'
                   ? 'Create your first quote to start tracking proposals.'
-                  : `There are no ${selectedFilter} quotes right now.`}
-              </p>
-            </div>
+                  : `There are no ${selectedFilter} quotes right now.`
+              }
+              actionLabel={selectedFilter === 'all' ? 'Create Quote' : undefined}
+              onAction={selectedFilter === 'all' ? () => router.push('/contractor/quotes/create') : undefined}
+              variant="illustrated"
+            />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
               {filteredQuotes.map((quote) => {
                 const busy = actionBusyId === quote.id;
+                const statusColor = STATUS_TONE[quote.status] === 'success'
+                  ? theme.colors.success
+                  : STATUS_TONE[quote.status] === 'error'
+                    ? theme.colors.error
+                    : theme.colors.primary;
+
                 return (
                   <article
                     key={quote.id}
                     style={{
-                      borderRadius: '18px',
+                      borderRadius: '20px',
                       border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      padding: theme.spacing[5],
+                      borderLeft: `4px solid ${statusColor}`,
+                      backgroundColor: theme.colors.surface,
+                      padding: theme.spacing[6],
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: theme.spacing[3],
+                      gap: theme.spacing[4],
+                      boxShadow: theme.shadows.sm,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = theme.shadows.xl;
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = theme.shadows.sm;
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
+                    {/* Status indicator overlay */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: '200px',
+                      background: `linear-gradient(90deg, transparent 0%, ${statusColor}05 100%)`,
+                      pointerEvents: 'none',
+                    }} />
                     <header
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         gap: theme.spacing[3],
+                        position: 'relative',
+                        zIndex: 1,
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
                         <h3
                           style={{
                             margin: 0,
-                            fontSize: theme.typography.fontSize.lg,
-                            fontWeight: theme.typography.fontWeight.semibold,
+                            fontSize: theme.typography.fontSize.xl,
+                            fontWeight: theme.typography.fontWeight.bold,
                             color: theme.colors.textPrimary,
+                            letterSpacing: '-0.01em',
                           }}
                         >
                           {quote.project_title || 'Untitled quote'}
@@ -355,10 +395,9 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                         <strong style={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.primary }}>
                           {formatCurrency(quote.total_amount)}
                         </strong>
-                        <StatusChip
+                        <StatusBadge
+                          status={quote.status === 'accepted' ? 'completed' : quote.status === 'rejected' ? 'delayed' : quote.status === 'sent' ? 'posted' : 'pending'}
                           label={STATUS_LABEL[quote.status]}
-                          tone={STATUS_TONE[quote.status]}
-                          withDot
                         />
                       </div>
                     </header>
@@ -417,37 +456,44 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
             </div>
           )}
         </div>
-      </StandardCard>
+        </Card.Content>
+      </Card>
 
       {pendingDelete && (
-        <StandardCard title="Delete quote" description="This action cannot be undone.">
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[4],
-            }}
-          >
-            <NotificationBanner
-              tone="warning"
-              message={`Delete ${pendingDelete.project_title || pendingDelete.quote_number}?`}
-            />
-            <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
-              <Button variant="ghost" size="sm" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleDeleteQuote}
-                disabled={actionBusyId === pendingDelete.id}
-                style={{ backgroundColor: theme.colors.error }}
-              >
-                {actionBusyId === pendingDelete.id ? 'Deleting...' : 'Delete quote'}
-              </Button>
+        <Card>
+          <Card.Header>
+            <Card.Title>Delete quote</Card.Title>
+            <Card.Description>This action cannot be undone.</Card.Description>
+          </Card.Header>
+          <Card.Content>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[4],
+              }}
+            >
+              <NotificationBanner
+                tone="warning"
+                message={`Delete ${pendingDelete.project_title || pendingDelete.quote_number}?`}
+              />
+              <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
+                <Button variant="ghost" size="sm" onClick={() => setPendingDelete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleDeleteQuote}
+                  disabled={actionBusyId === pendingDelete.id}
+                  style={{ backgroundColor: theme.colors.error }}
+                >
+                  {actionBusyId === pendingDelete.id ? 'Deleting...' : 'Delete quote'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </StandardCard>
+          </Card.Content>
+        </Card>
       )}
     </PageLayout>
   );

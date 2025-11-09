@@ -222,7 +222,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               marginTop: theme.spacing.xs,
             }}
           >
-            Minimum: $1.00 • Maximum: $10,000.00
+            Minimum: £1.00 • Maximum: £10,000.00
           </div>
         </Card>
 

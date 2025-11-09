@@ -1,11 +1,18 @@
 /** @type {import('next').NextConfig} */
 
 // Validate environment variables at build time
-// This will throw an error if required variables are missing or invalid
-// Note: Validation runs in instrumentation.ts for runtime checks
+// Note: Full validation runs in instrumentation.ts for runtime checks
+// This is a simplified check since next.config.js runs before TypeScript compilation
 if (process.env.NODE_ENV !== 'test') {
   try {
-    require('./lib/env');
+    // Try to load dotenv if .env.local exists
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '.env.local');
+    if (fs.existsSync(envPath)) {
+      require('dotenv').config({ path: envPath });
+    }
+    // Skip TypeScript file require in config - validation happens at runtime in instrumentation.ts
   } catch (error) {
     // The error details should already be logged by lib/env.ts
     // But log the error object as well to ensure it's visible
@@ -38,6 +45,28 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        pathname: '/**',
+      },
+    ],
   },
 
   // Compression
@@ -46,14 +75,6 @@ const nextConfig = {
   // Bundle optimization
   experimental: {
     optimizePackageImports: ['@mintenance/shared', '@mintenance/types'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
 
   // Bundle analyzer (enable with ANALYZE=true)
@@ -95,7 +116,7 @@ const nextConfig = {
       { key: 'X-Frame-Options', value: 'DENY' },
       { key: 'X-XSS-Protection', value: '1; mode=block' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=()' },
+      { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")' },
     ];
 
     // Add CSP (relaxed in development, strict in production)

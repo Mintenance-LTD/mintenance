@@ -6,6 +6,8 @@ import { theme } from '@/lib/theme';
 import Logo from '@/app/components/Logo';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { NotificationService, NotificationData } from '@/lib/services/NotificationService';
 import type { User } from '@mintenance/types';
 
@@ -21,6 +23,7 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [showMarkAllDialog, setShowMarkAllDialog] = useState(false);
 
   const loadNotifications = async () => {
     if (!user) return;
@@ -69,10 +72,37 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         }
         break;
       case 'bid_received':
-        router.push('/contractor/finance');
+        // For homeowners, route to the job page. For contractors, route to finance.
+        if ((notification as any).action_url) {
+          router.push((notification as any).action_url);
+        } else if (notification.data?.jobId) {
+          router.push(`/jobs/${notification.data.jobId}`);
+        } else {
+          router.push('/contractor/finance');
+        }
         break;
       case 'message_received':
-        router.push('/messages');
+        // Navigate to specific message thread if jobId is available
+        if (notification.data?.jobId || (notification as any).action_url?.includes('/messages/')) {
+          const jobId = notification.data?.jobId || (notification as any).action_url?.split('/messages/')[1]?.split('?')[0];
+          const receiverId = notification.data?.senderId;
+          const receiverName = notification.data?.senderName;
+          const jobTitle = notification.data?.jobTitle;
+          
+          if (jobId) {
+            // Build URL with query params for the message thread
+            const params = new URLSearchParams();
+            if (receiverId) params.set('userId', String(receiverId));
+            if (receiverName) params.set('userName', String(receiverName));
+            if (jobTitle) params.set('jobTitle', String(jobTitle));
+            
+            router.push(`/messages/${jobId}${params.toString() ? `?${params.toString()}` : ''}`);
+          } else {
+            router.push('/messages');
+          }
+        } else {
+          router.push('/messages');
+        }
         break;
       case 'payment_received':
         router.push('/payments');
@@ -84,12 +114,15 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
 
   const handleMarkAllAsRead = async () => {
     if (!user || unreadCount === 0) return;
+    setShowMarkAllDialog(true);
+  };
 
-    if (confirm('Mark all notifications as read?')) {
-      await NotificationService.markAllAsRead(user.id);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    }
+  const confirmMarkAllAsRead = async () => {
+    if (!user) return;
+    await NotificationService.markAllAsRead(user.id);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+    setShowMarkAllDialog(false);
   };
 
   const getIconName = (type: NotificationData['type']) => {
@@ -193,91 +226,43 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
 
             <div style={{ display: 'flex', gap: theme.spacing[3] }}>
               {unreadCount > 0 && (
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={handleMarkAllAsRead}
-                  style={{
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                    backgroundColor: theme.colors.primary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
                 >
                   Mark All Read
-                </button>
+                </Button>
               )}
 
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  color: theme.colors.text,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '12px',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  cursor: refreshing ? 'not-allowed' : 'pointer',
-                  opacity: refreshing ? 0.6 : 1,
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}
               >
                 <Icon name="refresh" size={16} color={theme.colors.text} />
                 {refreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Filter Tabs */}
           <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-            <button
+            <Button
+              variant={filter === 'all' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setFilter('all')}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                backgroundColor: filter === 'all' ? theme.colors.primary : 'transparent',
-                color: filter === 'all' ? 'white' : theme.colors.text,
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
             >
               All ({notifications.length})
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={filter === 'unread' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setFilter('unread')}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                backgroundColor: filter === 'unread' ? theme.colors.primary : 'transparent',
-                color: filter === 'unread' ? 'white' : theme.colors.text,
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
             >
               Unread ({unreadCount})
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -432,6 +417,24 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
           </div>
         )}
       </div>
+
+      {/* Mark All Read Dialog */}
+      <AlertDialog open={showMarkAllDialog} onOpenChange={(open: boolean) => setShowMarkAllDialog(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark All as Read</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark all notifications as read? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMarkAllAsRead}>
+              Mark All Read
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

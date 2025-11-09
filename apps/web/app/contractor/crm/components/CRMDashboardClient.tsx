@@ -3,9 +3,11 @@
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { StatusBadge } from '@/components/ui/Badge.unified';
+import { Card } from '@/components/ui/Card.unified';
 
 interface Client {
   id: string;
@@ -191,7 +193,7 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           gap: theme.spacing[4],
         }}
       >
-        <MetricCard
+        <Card.Metric
           label="Total Clients"
           value={analytics.total_clients.toString()}
           subtitle="In your network"
@@ -199,7 +201,7 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           color={theme.colors.primary}
         />
 
-        <MetricCard
+        <Card.Metric
           label="New This Month"
           value={analytics.new_clients_this_month.toString()}
           subtitle="Recently added"
@@ -207,7 +209,7 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           color={theme.colors.success}
         />
 
-        <MetricCard
+        <Card.Metric
           label="Repeat Clients"
           value={analytics.repeat_clients.toString()}
           subtitle={`${analytics.total_clients > 0 ? Math.round((analytics.repeat_clients / analytics.total_clients) * 100) : 0}% return rate`}
@@ -215,11 +217,11 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           color="#F59E0B"
         />
 
-        <MetricCard
+        <Card.Metric
           label="Avg Lifetime Value"
           value={`£${analytics.client_lifetime_value.toFixed(2)}`}
           subtitle="Per client"
-          icon="currencyDollar"
+          icon="currencyPound"
           color={theme.colors.info}
         />
       </section>
@@ -233,44 +235,27 @@ export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientPro
           flexWrap: 'wrap',
         }}
       >
-        <input
+        <Input
           type="text"
           placeholder="Search clients by name or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            flex: '1 1 300px',
-            padding: theme.spacing[3],
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '12px',
-            fontSize: theme.typography.fontSize.sm,
-            backgroundColor: theme.colors.surface,
-          }}
+          className="flex-1 min-w-[300px]"
         />
 
         <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
           {FILTERS.map((filter) => {
             const isActive = selectedFilter === filter.key;
             return (
-              <button
+              <Button
                 key={filter.key}
+                variant={isActive ? 'primary' : 'outline'}
+                size="sm"
                 onClick={() => setSelectedFilter(filter.key)}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: '12px',
-                  border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                  backgroundColor: isActive
-                    ? `${theme.colors.primary}15`
-                    : theme.colors.surface,
-                  color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                className="rounded-xl capitalize"
               >
                 {filter.label}
-              </button>
+              </Button>
             );
           })}
         </div>

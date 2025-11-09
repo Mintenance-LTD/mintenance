@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 type JobMetricsRow = {
   id: string;
@@ -160,7 +160,7 @@ export class ContractorAnalyticsService {
    * Get job performance metrics
    */
   private static async getJobMetrics(contractorId: string) {
-    const { data: jobs, error } = await supabase
+    const { data: jobs, error } = await serverSupabase
       .from('jobs')
       .select('id, status, created_at, updated_at')
       .eq('contractor_id', contractorId)
@@ -188,7 +188,7 @@ export class ContractorAnalyticsService {
    * Get financial performance metrics
    */
   private static async getFinancialMetrics(contractorId: string) {
-    const { data: jobs, error: jobsError } = await supabase
+    const { data: jobs, error: jobsError } = await serverSupabase
       .from('jobs')
       .select('id, budget, created_at, status')
       .eq('contractor_id', contractorId)
@@ -199,7 +199,7 @@ export class ContractorAnalyticsService {
 
     const jobRows = jobs ?? [];
 
-    const { data: transactions, error: transError } = await supabase
+    const { data: transactions, error: transError } = await serverSupabase
       .from('escrow_transactions')
       .select('amount, created_at, status')
       .eq('payee_id', contractorId)
@@ -232,7 +232,7 @@ export class ContractorAnalyticsService {
       })
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
-    const { data: pendingTrans, error: pendingError } = await supabase
+    const { data: pendingTrans, error: pendingError } = await serverSupabase
       .from('escrow_transactions')
       .select('amount')
       .eq('payee_id', contractorId)
@@ -257,7 +257,7 @@ export class ContractorAnalyticsService {
    * Get rating and review metrics
    */
   private static async getRatingMetrics(contractorId: string) {
-    const { data: reviews, error } = await supabase
+    const { data: reviews, error } = await serverSupabase
       .from('reviews')
       .select('rating, comment, created_at')
       .eq('reviewed_id', contractorId)
@@ -290,7 +290,7 @@ export class ContractorAnalyticsService {
    * Get response time and quality metrics
    */
   private static async getResponseMetrics(contractorId: string) {
-    const { data: bids, error: bidsError } = await supabase
+    const { data: bids, error: bidsError } = await serverSupabase
       .from('bids')
       .select(`
         id, created_at, status,
@@ -323,7 +323,7 @@ export class ContractorAnalyticsService {
 
     const averageResponseTime = responseCount > 0 ? totalResponseTime / responseCount : 0;
 
-    const { data: successfulJobs, error: successError } = await supabase
+    const { data: successfulJobs, error: successError } = await serverSupabase
       .from('jobs')
       .select('id')
       .eq('contractor_id', contractorId)
@@ -336,7 +336,7 @@ export class ContractorAnalyticsService {
     const totalBids = bidRows.length;
     const jobSuccessRate = totalBids > 0 ? (successfulJobsCount / totalBids) * 100 : 0;
 
-    const { data: repeatCustomers, error: returnError } = await supabase
+    const { data: repeatCustomers, error: returnError } = await serverSupabase
       .from('jobs')
       .select('homeowner_id')
       .eq('contractor_id', contractorId)
@@ -376,7 +376,7 @@ export class ContractorAnalyticsService {
       const startOfMonth = new Date(year, date.getMonth(), 1);
       const endOfMonth = new Date(year, date.getMonth() + 1, 0);
 
-      const { data: monthlyJobs } = await supabase
+      const { data: monthlyJobs } = await serverSupabase
         .from('jobs')
         .select('id')
         .eq('contractor_id', contractorId)
@@ -397,7 +397,7 @@ export class ContractorAnalyticsService {
         change: jobChange
       });
 
-      const { data: monthlyEarnings } = await supabase
+      const { data: monthlyEarnings } = await serverSupabase
         .from('escrow_transactions')
         .select('amount')
         .eq('payee_id', contractorId)
@@ -419,7 +419,7 @@ export class ContractorAnalyticsService {
         change: earningsChange
       });
 
-      const { data: monthlyReviews } = await supabase
+      const { data: monthlyReviews } = await serverSupabase
         .from('reviews')
         .select('rating')
         .eq('reviewed_id', contractorId)
@@ -454,7 +454,7 @@ export class ContractorAnalyticsService {
    * Get market positioning data
    */
   private static async getMarketData(contractorId: string) {
-    const { data: contractorSkills } = await supabase
+    const { data: contractorSkills } = await serverSupabase
       .from('contractor_skills')
       .select('skill_name')
       .eq('contractor_id', contractorId)
@@ -464,7 +464,7 @@ export class ContractorAnalyticsService {
 
     const topSkills: SkillPerformance[] = [];
     for (const skill of skills.slice(0, 5)) {
-      const { data: skillJobs } = await supabase
+      const { data: skillJobs } = await serverSupabase
         .from('jobs')
         .select(`
           id, budget,

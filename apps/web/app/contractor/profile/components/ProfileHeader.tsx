@@ -3,6 +3,7 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
 import { CircularProgress } from '@/components/ui/CircularProgress';
+import { Button } from '@/components/ui/Button';
 
 interface ProfileHeaderProps {
   contractor: any;
@@ -93,15 +94,7 @@ export function ProfileHeader({
               >
                 Profile Overview
               </span>
-              <h1
-                style={{
-                  fontSize: theme.typography.fontSize['4xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  margin: 0,
-                  lineHeight: 1.2,
-                }}
-              >
+              <h1 className="text-heading-md font-[640] text-gray-900 m-0 leading-tight tracking-tighter">
                 {fullName}
               </h1>
               <p
@@ -193,66 +186,27 @@ export function ProfileHeader({
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: theme.spacing[3],
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="flex items-start gap-3 flex-wrap">
           {onManageSkills && (
-            <button
+            <Button
               type="button"
               onClick={onManageSkills}
-              style={{
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                letterSpacing: '0.2px',
-                cursor: 'pointer',
-                transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.background;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.surface;
-              }}
+              variant="outline"
+              size="sm"
             >
               Manage Skills
-            </button>
+            </Button>
           )}
 
           {onEditProfile && (
-            <button
+            <Button
               type="button"
               onClick={onEditProfile}
-              style={{
-                padding: '12px 22px',
-                borderRadius: '14px',
-                border: 'none',
-                backgroundColor: theme.colors.primary,
-                color: theme.colors.textInverse,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                letterSpacing: '0.2px',
-                cursor: 'pointer',
-                transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.primary;
-              }}
+              variant="primary"
+              size="sm"
             >
               Edit Profile
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -284,31 +238,13 @@ export function ProfileHeader({
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-            <span
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                textTransform: 'uppercase',
-                letterSpacing: '1.2px',
-                color: theme.colors.textQuaternary,
-              }}
-            >
+            <span className="text-xs font-[560] text-gray-600 uppercase tracking-wider">
               Jobs Completed
             </span>
-            <span
-              style={{
-                fontSize: theme.typography.fontSize['3xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}
-            >
+            <span className="text-3xl font-[640] text-gray-900">
               {metrics.jobsCompleted}
             </span>
-            <span
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}
-            >
+            <span className="text-xs font-[460] text-gray-600">
               Past 12 months
             </span>
           </div>
