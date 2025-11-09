@@ -61,10 +61,12 @@ export async function middleware(request: NextRequest) {
 
   // Skip middleware for static files and webhook endpoints only
   // SECURITY: All other API routes should have authentication and CSRF validation
+  const isStaticFile = /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/webhooks') || // Webhooks have their own signature validation
-    pathname.includes('.') // static files
+    isStaticFile // Only skip for actual static file extensions
   ) {
     return NextResponse.next();
   }

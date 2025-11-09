@@ -17,7 +17,7 @@ const envSchema = z.object({
   // JWT Configuration (CRITICAL)
   JWT_SECRET: z
     .string()
-    .min(32, 'JWT_SECRET must be at least 32 characters for security')
+    .min(64, 'JWT_SECRET must be at least 64 characters for production security')
     .describe('Secret key for JWT signing - must be strong and random'),
 
   // Supabase Configuration (CRITICAL)
@@ -101,19 +101,35 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Format validation errors for easy debugging
-      const errorMessage = error.issues
-        .map((err: any) => {
-          const path = err.path.join('.');
+      const errorMessages = error.errors
+        .map((err) => {
+          const path = err.path.join('.') || 'unknown';
           return `  - ${path}: ${err.message}`;
         })
         .join('\n');
 
-      console.error('❌ Environment variable validation failed:');
-      console.error(errorMessage);
-      console.error('\n📋 Please check your .env file and ensure all required variables are set.');
-      console.error('   See .env.example for reference.\n');
+      const fullErrorMessage = [
+        '',
+        '❌ Environment variable validation failed:',
+        errorMessages,
+        '',
+        '📋 Please check your .env file and ensure all required variables are set.',
+        '   See .env.example for reference.',
+        '',
+        'Required variables:',
+        '  - JWT_SECRET (min 64 characters)',
+        '  - NEXT_PUBLIC_SUPABASE_URL (valid URL)',
+        '  - SUPABASE_SERVICE_ROLE_KEY',
+        '  - STRIPE_SECRET_KEY (must start with sk_test_ or sk_live_)',
+        '  - STRIPE_WEBHOOK_SECRET (must start with whsec_)',
+        '  - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (must start with pk_test_ or pk_live_)',
+        ''
+      ].join('\n');
 
-      throw new Error('Invalid environment configuration. See console for details.');
+      // Write to stderr synchronously to ensure it's captured
+      process.stderr.write(fullErrorMessage);
+
+      throw new Error(fullErrorMessage);
     }
 
     throw error;

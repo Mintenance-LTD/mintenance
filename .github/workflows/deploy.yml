@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '18'
+          node-version: '20.19.4'
           cache: 'npm'
 
       - name: Install dependencies
@@ -38,6 +42,17 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Build Success Summary
+        if: success()
+        run: |
+          echo "# ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The web application has been built successfully and is ready for deployment." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Vercel will automatically deploy this build" >> $GITHUB_STEP_SUMMARY
+          echo "- Check the Vercel dashboard for deployment URL" >> $GITHUB_STEP_SUMMARY
 
       # NOTE: Uncomment when Vercel secrets are configured
       # - name: Deploy to Vercel (Production)

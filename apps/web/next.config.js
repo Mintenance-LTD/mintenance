@@ -14,13 +14,23 @@ if (process.env.NODE_ENV !== 'test') {
     }
     // Skip TypeScript file require in config - validation happens at runtime in instrumentation.ts
   } catch (error) {
-    // Silently continue - validation will happen at runtime
-    console.warn('⚠️  Environment validation will run at runtime');
+    // The error details should already be logged by lib/env.ts
+    // But log the error object as well to ensure it's visible
+    if (error instanceof Error && error.message) {
+      console.error(error.message);
+    }
+    console.error('\n❌ Build failed: Environment validation error');
+    console.error('   Fix the errors above and try again.\n');
+    process.exit(1);
   }
 }
 
 const nextConfig = {
   poweredByHeader: false,
+  // ESLint enabled during builds for code quality enforcement
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
   typescript: {
     ignoreBuildErrors: false,
   },
