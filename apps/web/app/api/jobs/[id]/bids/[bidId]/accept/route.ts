@@ -63,6 +63,25 @@ export async function POST(
       return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
     }
 
+    // Check if contractor has payment setup before accepting bid
+    const { data: contractor, error: contractorError } = await serverSupabase
+      .from('users')
+      .select('stripe_connect_account_id, first_name, last_name')
+      .eq('id', bid.contractor_id)
+      .single();
+
+    if (contractorError || !contractor?.stripe_connect_account_id) {
+      return NextResponse.json(
+        {
+          error: 'Payment setup required',
+          message: 'This contractor has not completed payment account setup. They must set up their payment account before accepting jobs.',
+          requiresPaymentSetup: true,
+          contractorId: bid.contractor_id,
+        },
+        { status: 400 }
+      );
+    }
+
     // Use atomic function to accept bid, reject others, and update job status
     // This prevents race conditions where multiple bids could be accepted for the same job
     const { data: acceptResult, error: acceptError } = await serverSupabase

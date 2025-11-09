@@ -25,7 +25,7 @@ const propertyFormSchema = z.object({
   property_name: z.string().min(2, 'Property name must be at least 2 characters'),
   address: z.string().min(5, 'Address is required'),
   property_type: z.enum(['residential', 'commercial', 'rental']),
-  is_primary: z.boolean().default(false),
+  is_primary: z.boolean().optional().default(false),
 });
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>;
@@ -34,10 +34,28 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
   const [locationSuggestions, setLocationSuggestions] = React.useState<Array<{ display_name: string; place_id: string }>>([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);
-  const [imagePreviews, setImagePreviews] = React.useState<Array<{ file: File; preview: string }>>([]);
-  const [uploadedImages, setUploadedImages] = React.useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = React.useState<Array<{ file: File; preview: string; category?: string }>>([]);
+  const [uploadedImages, setUploadedImages] = React.useState<Array<{ url: string; category: string }>>([]);
   const [isUploadingImages, setIsUploadingImages] = React.useState(false);
   const [submitError, setSubmitError] = React.useState('');
+
+  // Property photo categories for AI training
+  const photoCategories = [
+    { value: 'exterior', label: 'Exterior' },
+    { value: 'roof', label: 'Roof' },
+    { value: 'wall', label: 'Wall' },
+    { value: 'windows', label: 'Windows' },
+    { value: 'doors', label: 'Doors' },
+    { value: 'foundation', label: 'Foundation' },
+    { value: 'interior', label: 'Interior' },
+    { value: 'kitchen', label: 'Kitchen' },
+    { value: 'bathroom', label: 'Bathroom' },
+    { value: 'plumbing', label: 'Plumbing' },
+    { value: 'electrical', label: 'Electrical' },
+    { value: 'hvac', label: 'HVAC' },
+    { value: 'flooring', label: 'Flooring' },
+    { value: 'other', label: 'Other' },
+  ];
 
   const {
     register,
@@ -47,7 +65,7 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
     watch,
     reset,
   } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertyFormSchema),
+    resolver: zodResolver(propertyFormSchema) as any,
     defaultValues: {
       property_name: '',
       address: '',
@@ -149,6 +167,7 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
     const newPreviews = validFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file),
+      category: 'other', // Default category
     }));
 
     setImagePreviews(prev => [...prev, ...newPreviews]);
@@ -164,14 +183,21 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadImages = async (): Promise<string[]> => {
+  const updateImageCategory = (index: number, category: string) => {
+    setImagePreviews(prev => prev.map((item, i) => 
+      i === index ? { ...item, category } : item
+    ));
+  };
+
+  const uploadImages = async (): Promise<Array<{ url: string; category: string }>> => {
     if (imagePreviews.length === 0) return [];
 
     setIsUploadingImages(true);
     try {
       const formData = new FormData();
-      imagePreviews.forEach(({ file }) => {
+      imagePreviews.forEach(({ file, category = 'other' }) => {
         formData.append('photos', file);
+        formData.append('categories', category);
       });
 
       const response = await fetch('/api/properties/upload-photos', {
@@ -185,8 +211,13 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
       }
 
       const data = await response.json();
-      setUploadedImages(data.urls || []);
-      return data.urls || [];
+      // Use photos array if available (new format), otherwise fall back to urls
+      const categorizedPhotos = data.photos || (data.urls || []).map((url: string, index: number) => ({
+        url,
+        category: imagePreviews[index]?.category || 'other',
+      }));
+      setUploadedImages(categorizedPhotos);
+      return categorizedPhotos;
     } catch (error) {
       console.error('Error uploading images:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
@@ -201,10 +232,10 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
     setSubmitError('');
 
     try {
-      let photoUrls: string[] = [];
+      let categorizedPhotos: Array<{ url: string; category: string }> = [];
       if (imagePreviews.length > 0) {
-        photoUrls = await uploadImages();
-        if (photoUrls.length === 0 && imagePreviews.length > 0) {
+        categorizedPhotos = await uploadImages();
+        if (categorizedPhotos.length === 0 && imagePreviews.length > 0) {
           const shouldContinue = window.confirm(
             'Failed to upload some photos. Do you want to continue without photos?'
           );
@@ -221,19 +252,33 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
         },
         body: JSON.stringify({
           ...data,
-          photos: photoUrls,
+          photos: categorizedPhotos, // Send categorized photos
         }),
       });
 
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to create property');
+        // Log detailed error for debugging
+        console.error('Property creation failed:', {
+          status: response.status,
+          error: responseData.error,
+          details: responseData.details,
+          data: data,
+        });
+        
+        // Show more detailed error message
+        let errorMessage = responseData.error || 'Failed to create property';
+        if (responseData.details) {
+          errorMessage += `: ${responseData.details}`;
+        }
+        throw new Error(errorMessage);
       }
 
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
+      console.error('Error in onSubmit:', err);
       setSubmitError(err.message || 'Failed to create property. Please try again.');
     }
   };
@@ -258,16 +303,18 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 mt-4">
           {/* Property Name */}
           <div className="space-y-2">
             <Label htmlFor="property_name">Property Name *</Label>
             <Input
               id="property_name"
               {...register('property_name')}
-              error={errors.property_name?.message}
               placeholder="e.g., My Home, Rental Property, Office Building"
             />
+            {errors.property_name && (
+              <p className="text-sm text-red-600 mt-1">{errors.property_name.message}</p>
+            )}
           </div>
 
           {/* Address with Autocomplete */}
@@ -277,7 +324,6 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
               <Input
                 id="address"
                 {...register('address')}
-                error={errors.address?.message}
                 placeholder="Enter property address"
                 onFocus={() => {
                   if (locationSuggestions.length > 0) {
@@ -285,6 +331,9 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
                   }
                 }}
               />
+              {errors.address && (
+                <p className="text-sm text-red-600 mt-1">{errors.address.message}</p>
+              )}
               {isLoadingSuggestions && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -356,27 +405,53 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
                 </span>
               </label>
 
-              {/* Image Previews */}
+              {/* Image Previews with Categories */}
               {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-5 gap-2">
+                <div className="space-y-3">
                   {imagePreviews.map((preview, index) => (
                     <div
                       key={index}
-                      className="relative aspect-square rounded-md overflow-hidden border border-gray-200 bg-gray-50"
+                      className="flex gap-3 p-3 border border-gray-200 rounded-md bg-gray-50"
                     >
-                      <img
-                        src={preview.preview}
-                        alt={`Property photo ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        disabled={isUploadingImages || isSubmitting}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Icon name="x" size={14} color="white" />
-                      </button>
+                      <div className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden border border-gray-200 bg-gray-100">
+                        <img
+                          src={preview.preview}
+                          alt={`Property photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          disabled={isUploadingImages || isSubmitting}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label htmlFor={`photo-category-${index}`} className="text-xs font-medium text-gray-700 mb-1 block">
+                          Category *
+                        </Label>
+                        <Select
+                          value={preview.category || 'other'}
+                          onValueChange={(value) => updateImageCategory(index, value)}
+                          disabled={isUploadingImages || isSubmitting}
+                        >
+                          <SelectTrigger id={`photo-category-${index}`} className="h-8 text-sm">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {photoCategories.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Categorize to help AI training
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>

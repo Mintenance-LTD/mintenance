@@ -40,7 +40,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
   // Calculate these consistently for both server and client initial render
   // Use initialPathname for SSR consistency, fallback to pathname if available
   const pathForCalculation = initialPathname ?? pathname ?? '';
-  const isDashboard = pathForCalculation === '/contractor/dashboard-enhanced';
+  const isDashboard = pathForCalculation === '/contractor/dashboard-enhanced' || pathForCalculation.startsWith('/contractor/dashboard-enhanced');
   const isJobDetail = pathForCalculation.startsWith('/contractor/jobs/');
 
   useEffect(() => {
@@ -75,6 +75,64 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
     const fallback = email?.charAt(0) ?? 'M';
     return (first + last || fallback).toUpperCase();
   }, [contractor?.first_name, contractor?.last_name, email]);
+
+  // Memoize page title to prevent hydration mismatches
+  const pageTitle = useMemo(() => {
+    // Prioritize initialPathname for SSR consistency, only use pathname if initialPathname is not provided
+    const pathToUse = initialPathname || pathname || '';
+    
+    // Normalize pathname: remove query params, trailing slashes, and ensure consistent format
+    const normalizedPath = pathToUse.split('?')[0].split('#')[0].replace(/\/$/, '') || '/contractor/dashboard-enhanced';
+    
+    // Map specific routes to their display titles
+    const routeTitleMap: Record<string, string> = {
+      '/contractor/dashboard-enhanced': 'Dashboard',
+      '/contractor/crm': 'Customers',
+      '/contractor/bid': 'Jobs & Bids',
+      '/contractor/messages': 'Messages',
+      '/contractor/profile': 'Profile',
+      '/contractor/finance': 'Financials',
+      '/contractor/jobs-near-you': 'Jobs Near You',
+      '/contractor/discover': 'Discover Jobs',
+      '/contractor/connections': 'Connections',
+      '/contractor/gallery': 'Gallery',
+      '/contractor/resources': 'Resources',
+      '/contractor/quotes': 'Quotes',
+      '/contractor/invoices': 'Invoices',
+      '/contractor/payouts': 'Payouts',
+      '/contractor/reporting': 'Reporting',
+      '/contractor/service-areas': 'Service Areas',
+      '/contractor/social': 'Social',
+      '/contractor/subscription': 'Subscription',
+      '/contractor/support': 'Support',
+      '/contractor/verification': 'Verification',
+      '/contractor/card-editor': 'Card Editor',
+      '/contractor/company': 'Company',
+      '/scheduling': 'Scheduling',
+    };
+    
+    // Check for exact match first
+    if (routeTitleMap[normalizedPath]) {
+      return routeTitleMap[normalizedPath];
+    }
+    
+    // Check for dynamic routes (e.g., /contractor/bid/[jobId], /contractor/crm/[id])
+    // For contractor routes, check if path starts with /contractor/ and has a known base route
+    if (normalizedPath.startsWith('/contractor/')) {
+      const pathSegments = normalizedPath.split('/').filter(Boolean);
+      // pathSegments[0] = 'contractor', pathSegments[1] = route name (e.g., 'crm', 'bid', 'payouts')
+      if (pathSegments.length >= 2) {
+        const basePath = `/${pathSegments[0]}/${pathSegments[1]}`;
+        if (routeTitleMap[basePath]) {
+          return routeTitleMap[basePath];
+        }
+      }
+    }
+    
+    // Fallback: extract page name from path
+    const pageName = normalizedPath.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
+    return pageName.charAt(0).toUpperCase() + pageName.slice(1);
+  }, [initialPathname, pathname]);
 
   const userInfo = {
     name: contractorFullName,
@@ -163,7 +221,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
             )}
             {/* Search form - hide on dashboard and job detail pages, show on other pages */}
             {!isDashboard && !isJobDetail && (
-              <div suppressHydrationWarning style={{ display: 'flex', flex: '1 1 0%' }}>
+              <div suppressHydrationWarning style={{ display: 'flex', flex: '1 1 0%', maxWidth: '420px' }}>
                 <form
                   action="/contractors"
                   method="get"
@@ -176,7 +234,6 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                     borderRadius: '14px',
                     padding: '10px 16px',
                     border: `1px solid ${theme.colors.border}`,
-                    maxWidth: '420px',
                     gap: theme.spacing[2],
                   }}
                 >
@@ -201,85 +258,22 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                 </form>
               </div>
             )}
-            {/* Dashboard content - show when on dashboard page */}
-            {/* Always render the same structure to avoid hydration mismatch */}
-            <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-              <h1
-                suppressHydrationWarning
-                style={{
-                  margin: 0,
-                  fontSize: theme.typography.fontSize['3xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {(() => {
-                  // Use initialPathname for consistent SSR/client rendering
-                  const pathToUse = initialPathname ?? pathname ?? '';
-                  
-                  // Normalize pathname: remove query params, trailing slashes, and ensure consistent format
-                  const normalizedPath = pathToUse.split('?')[0].split('#')[0].replace(/\/$/, '') || '/contractor/dashboard-enhanced';
-                  
-                  // Debug logging (remove in production if needed)
-                  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-                    console.log('[ContractorLayoutShell] Pathname resolution:', {
-                      initialPathname,
-                      pathname,
-                      pathToUse,
-                      normalizedPath
-                    });
-                  }
-                  
-                  // Map specific routes to their display titles
-                  const routeTitleMap: Record<string, string> = {
-                    '/contractor/dashboard-enhanced': 'Dashboard',
-                    '/contractor/crm': 'Customers',
-                    '/contractor/bid': 'Jobs & Bids',
-                    '/contractor/messages': 'Messages',
-                    '/contractor/profile': 'Profile',
-                    '/contractor/finance': 'Financials',
-                    '/contractor/jobs-near-you': 'Jobs Near You',
-                    '/contractor/connections': 'Connections',
-                    '/contractor/gallery': 'Gallery',
-                    '/contractor/resources': 'Resources',
-                    '/contractor/quotes': 'Quotes',
-                    '/contractor/invoices': 'Invoices',
-                    '/contractor/payouts': 'Payouts',
-                    '/contractor/reporting': 'Reporting',
-                    '/contractor/service-areas': 'Service Areas',
-                    '/contractor/social': 'Social',
-                    '/contractor/subscription': 'Subscription',
-                    '/contractor/support': 'Support',
-                    '/contractor/verification': 'Verification',
-                    '/contractor/card-editor': 'Card Editor',
-                    '/contractor/company': 'Company',
-                    '/scheduling': 'Scheduling',
-                  };
-                  
-                  // Check for exact match first
-                  if (routeTitleMap[normalizedPath]) {
-                    return routeTitleMap[normalizedPath];
-                  }
-                  
-                  // Check for dynamic routes (e.g., /contractor/bid/[jobId], /contractor/crm/[id])
-                  // For contractor routes, check if path starts with /contractor/ and has a known base route
-                  if (normalizedPath.startsWith('/contractor/')) {
-                    const pathSegments = normalizedPath.split('/').filter(Boolean);
-                    // pathSegments[0] = 'contractor', pathSegments[1] = route name (e.g., 'crm', 'bid')
-                    if (pathSegments.length >= 2) {
-                      const basePath = `/${pathSegments[0]}/${pathSegments[1]}`;
-                      if (routeTitleMap[basePath]) {
-                        return routeTitleMap[basePath];
-                      }
-                    }
-                  }
-                  
-                  // Fallback: extract page name from path
-                  const pageName = normalizedPath.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
-                  return pageName.charAt(0).toUpperCase() + pageName.slice(1);
-                })()}
-              </h1>
-            </div>
+            {/* Page title - show for all pages except dashboard (dashboard has its own header) */}
+            {!isDashboard && (
+              <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1], flex: '0 0 auto' }}>
+                <h1
+                  suppressHydrationWarning
+                  style={{
+                    margin: 0,
+                    fontSize: theme.typography.fontSize['3xl'],
+                    fontWeight: theme.typography.fontWeight.bold,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  {pageTitle}
+                </h1>
+              </div>
+            )}
           </div>
 
           {/* Right Side - Actions */}

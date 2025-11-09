@@ -148,7 +148,8 @@ export class EscrowReleaseAgent {
   }
 
   /**
-   * Calculate auto-release date based on contractor tier and risk assessment
+   * Calculate auto-release date based on contractor trust score and risk assessment
+   * Now uses TrustScoreService for trust-based hold periods
    */
   static async calculateAutoReleaseDate(
     escrowId: string,
@@ -156,6 +157,9 @@ export class EscrowReleaseAgent {
     contractorId: string
   ): Promise<Date | null> {
     try {
+      // Import TrustScoreService
+      const { TrustScoreService } = await import('@/lib/services/contractor/TrustScoreService');
+
       // Get job details
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
@@ -166,6 +170,9 @@ export class EscrowReleaseAgent {
       if (jobError || !job) {
         return null;
       }
+
+      // Get trust-based hold period (14 days for new, 3 days for trusted)
+      const trustHoldPeriodDays = await TrustScoreService.getHoldPeriodDays(contractorId);
 
       // Get contractor tier (from payout tiers or default to standard)
       const { PayoutTierService } = await import('@/lib/services/payment/PayoutTierService');
@@ -191,16 +198,16 @@ export class EscrowReleaseAgent {
       // Get applicable auto-release rule
       const rule = await this.getApplicableRule(escrowTier, job.budget || 0, job.category || '');
 
-      if (!rule) {
-        return null;
+      // Use trust-based hold period as base, or rule hold period if no trust score
+      let holdPeriodDays = trustHoldPeriodDays;
+      if (rule) {
+        // Use the longer of trust period or rule period
+        holdPeriodDays = Math.max(holdPeriodDays, rule.holdPeriodDays);
       }
-
-      // Base hold period
-      let holdPeriodDays = rule.holdPeriodDays;
 
       // Apply risk multiplier
       const riskLevel = await this.assessJobRisk(jobId, contractorId);
-      holdPeriodDays = Math.ceil(holdPeriodDays * rule.riskMultiplier * riskLevel.multiplier);
+      holdPeriodDays = Math.ceil(holdPeriodDays * rule?.riskMultiplier || 1.0 * riskLevel.multiplier);
 
       // Add dispute history penalty
       const disputePenalty = await this.getDisputeHistoryPenalty(contractorId);
@@ -212,12 +219,14 @@ export class EscrowReleaseAgent {
       const releaseDate = new Date(baseDate);
       releaseDate.setDate(releaseDate.getDate() + holdPeriodDays);
 
-      // Update escrow with auto-release date
+      // Update escrow with auto-release date and trust score
+      const trustScore = await TrustScoreService.getTrustScore(contractorId);
       await serverSupabase
         .from('escrow_transactions')
         .update({
           auto_release_date: releaseDate.toISOString(),
           auto_release_enabled: true,
+          trust_score: trustScore,
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowId);
@@ -235,10 +244,22 @@ export class EscrowReleaseAgent {
 
   /**
    * Evaluate if escrow should be automatically released
+   * New release conditions (all must pass):
+   * 1. Admin approval (if admin_hold_status = 'pending_review' or 'admin_hold')
+   * 2. Homeowner approval OR auto-approval (7 days + AI verified)
+   * 3. Photo verification passed (AI + quality + before/after comparison)
+   * 4. Cooling-off period passed (48 hours after homeowner approval)
+   * 5. No active disputes
+   * 6. Trust-based hold period passed
    */
   static async evaluateAutoRelease(escrowId: string): Promise<AgentResult | null> {
     try {
-      // Get escrow details
+      // Import new services
+      const { TrustScoreService } = await import('@/lib/services/contractor/TrustScoreService');
+      const { HomeownerApprovalService } = await import('@/lib/services/escrow/HomeownerApprovalService');
+      const { EscrowStatusService } = await import('@/lib/services/escrow/EscrowStatusService');
+
+      // Get escrow details with all new fields
       const { data: escrow, error: escrowError } = await serverSupabase
         .from('escrow_transactions')
         .select(
@@ -254,6 +275,16 @@ export class EscrowReleaseAgent {
           photo_verification_status,
           photo_verification_score,
           risk_hold_extended,
+          admin_hold_status,
+          homeowner_approval,
+          homeowner_approval_at,
+          cooling_off_ends_at,
+          auto_approval_date,
+          photo_quality_passed,
+          geolocation_verified,
+          timestamp_verified,
+          before_after_comparison_score,
+          trust_score,
           jobs (
             id,
             status,
@@ -278,9 +309,97 @@ export class EscrowReleaseAgent {
         return null; // Job must be completed
       }
 
-      // Check if auto-release date has passed
+      // 1. Check admin approval
+      if (escrow.admin_hold_status === 'admin_hold' || escrow.admin_hold_status === 'pending_review') {
+        return null; // Admin hold active
+      }
+
+      if (escrow.admin_hold_status !== 'admin_approved' && escrow.admin_hold_status !== 'none') {
+        return null; // Waiting for admin approval
+      }
+
+      // 2. Check homeowner approval or auto-approval eligibility
+      if (!escrow.homeowner_approval) {
+        // Check if auto-approval is eligible
+        const autoApprovalEligible = await HomeownerApprovalService.checkAutoApprovalEligibility(escrowId);
+        if (!autoApprovalEligible) {
+          return null; // Not approved and not eligible for auto-approval
+        }
+        // Process auto-approval
+        await HomeownerApprovalService.processAutoApproval(escrowId);
+        // Re-fetch escrow to get updated homeowner_approval
+        const { data: updatedEscrow } = await serverSupabase
+          .from('escrow_transactions')
+          .select('homeowner_approval, cooling_off_ends_at')
+          .eq('id', escrowId)
+          .single();
+        if (!updatedEscrow?.homeowner_approval) {
+          return null; // Auto-approval failed
+        }
+        // Update escrow reference
+        escrow.homeowner_approval = updatedEscrow.homeowner_approval;
+        escrow.cooling_off_ends_at = updatedEscrow.cooling_off_ends_at;
+      }
+
+      // 3. Check photo verification (quality, geolocation, timestamp, before/after)
+      if (escrow.photo_verification_status !== 'verified') {
+        return null; // Photo verification not passed
+      }
+
+      if (!escrow.photo_quality_passed) {
+        return null; // Photo quality check failed
+      }
+
+      if (!escrow.geolocation_verified) {
+        return null; // Geolocation not verified
+      }
+
+      if (!escrow.timestamp_verified) {
+        return null; // Timestamp not verified
+      }
+
+      // Before/after comparison is optional but should be checked if available
+      if (escrow.before_after_comparison_score !== null && escrow.before_after_comparison_score < 0.6) {
+        return null; // Before/after comparison failed
+      }
+
+      // 4. Check cooling-off period (48 hours after homeowner approval)
+      if (escrow.cooling_off_ends_at) {
+        const coolingOffEnds = new Date(escrow.cooling_off_ends_at);
+        if (coolingOffEnds > new Date()) {
+          return null; // Still in cooling-off period
+        }
+      }
+
+      // 5. Check for active disputes
+      const { count: disputeCount } = await serverSupabase
+        .from('disputes')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', job.id)
+        .in('status', ['open', 'pending']);
+
+      if ((disputeCount || 0) > 0) {
+        return null; // Active dispute exists
+      }
+
+      // 6. Check trust-based hold period
+      // Calculate trust-based release date
+      const homeownerApprovalDate = escrow.homeowner_approval_at
+        ? new Date(escrow.homeowner_approval_at)
+        : new Date();
+      
+      const trustBasedReleaseDate = await TrustScoreService.getGraduatedReleaseDate(
+        escrowId,
+        homeownerApprovalDate
+      );
+
+      if (trustBasedReleaseDate > new Date()) {
+        return null; // Trust-based hold period not passed
+      }
+
+      // Check if auto-release date has passed (legacy check, now includes trust period)
       if (!escrow.auto_release_date) {
-        // Calculate auto-release date if not set
+        // Calculate auto-release date if not set (includes trust period)
         const releaseDate = await this.calculateAutoReleaseDate(
           escrowId,
           job.id,
@@ -401,11 +520,18 @@ export class EscrowReleaseAgent {
         agentName: 'escrow-release',
         decisionType: 'auto_release_approved',
         actionTaken: 'approved_auto_release',
-        confidence: 90,
-        reasoning: `Auto-release approved: Job completed, photo verified (if required), no disputes, risk assessment passed`,
+        confidence: 95,
+        reasoning: `Auto-release approved: All conditions met - admin approved, homeowner approved, photo verified (quality/geolocation/timestamp/before-after), cooling-off passed, no disputes, trust-based hold period passed`,
         jobId: job.id,
         userId: job.homeowner_id,
-        metadata: { escrowId, autoReleaseDate: escrow.auto_release_date },
+        metadata: {
+          escrowId,
+          autoReleaseDate: escrow.auto_release_date,
+          adminHoldStatus: escrow.admin_hold_status,
+          homeownerApproval: escrow.homeowner_approval,
+          photoVerificationStatus: escrow.photo_verification_status,
+          trustScore: escrow.trust_score,
+        },
       });
 
       return {

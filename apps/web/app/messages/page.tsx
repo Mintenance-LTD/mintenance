@@ -4,20 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
+import { MessageCircle, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import type { MessageThread, User } from '@mintenance/types';
-import dynamic from 'next/dynamic';
-
-// Dynamic import for ConversationCard to reduce initial bundle size
-const ConversationCard = dynamic(() => import('@/components/messaging/ConversationCard').then(mod => ({ default: mod.ConversationCard })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-20 rounded-lg" />,
-  ssr: false
-});
+import { ConversationCard } from '@/components/messaging/ConversationCard';
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -117,6 +111,35 @@ export default function MessagesPage() {
     }
   };
 
+  // Categorize conversations - same logic as contractor
+  const categorizeConversations = () => {
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    const allConversations = conversations;
+    // Ongoing = conversations with activity in the last 7 days (recently active)
+    const ongoingConversations = conversations.filter(c => {
+      if (c.lastMessage?.createdAt) {
+        return new Date(c.lastMessage.createdAt).getTime() > sevenDaysAgo;
+      }
+      // If no messages but conversation exists, consider it ongoing
+      return true;
+    });
+    const unreadConversations = conversations.filter(c => c.unreadCount > 0);
+    const activeTodayConversations = conversations.filter(c => 
+      c.lastMessage?.createdAt && 
+      new Date(c.lastMessage.createdAt).getTime() > oneDayAgo
+    );
+
+    return {
+      all: allConversations,
+      ongoing: ongoingConversations,
+      unread: unreadConversations,
+      activeToday: activeTodayConversations,
+    };
+  };
+
   const getTotalUnreadCount = () => {
     return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
   };
@@ -209,211 +232,185 @@ export default function MessagesPage() {
           style={{ marginBottom: theme.spacing[4] }}
         />
 
-        {/* Header */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing.lg,
-          marginBottom: theme.spacing.lg,
-          boxShadow: theme.shadows.sm,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        {/* Header - Modern Design (matching contractor) */}
+        <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-200 flex justify-between items-center group relative overflow-hidden">
+          {/* Gradient bar - appears on hover, always visible on large screens */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
           <div>
-            <h1 style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.text,
-              margin: 0,
-              marginBottom: theme.spacing[1]
-            }}>
-              <Icon name="messages" size={28} color={theme.colors.primary} />
+            <h1 className="flex items-center gap-3 text-4xl font-[640] text-gray-900 mb-2 tracking-tight">
+              <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center">
+                <MessageCircle className="h-6 w-6" style={{ color: theme.colors.primary }} />
+              </div>
               Messages
             </h1>
-            <p style={{
-              color: theme.colors.textSecondary,
-              fontSize: theme.typography.fontSize.base,
-              margin: 0
-            }}>
+            <p className="text-base font-[460] text-gray-600 m-0">
               {conversations.length > 0
-                ? `${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}${getTotalUnreadCount() > 0 ? ` (${getTotalUnreadCount()} unread)` : ''}`
+                ? `${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}${getTotalUnreadCount() > 0 ? ` • ${getTotalUnreadCount()} unread` : ''}`
                 : 'No conversations yet'
               }
             </p>
           </div>
-          <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+          <div className="flex gap-2 relative">
             <Button
               onClick={() => router.push('/jobs')}
-              variant="outline"
+              variant="secondary"
               size="sm"
+              className="font-[560]"
+              leftIcon={<Briefcase className="h-4 w-4 text-white" />}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Icon name="briefcase" size={16} color="white" />
-                <span>View Jobs</span>
-              </div>
+              View Jobs
             </Button>
+          </div>
+        </div>
+
+        {/* Messages Content - Categorized Cards (matching contractor) */}
+        {!loading && !error && conversations.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Conversations Card */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden group relative">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-[560] text-gray-900">Total Conversations</h3>
+                  <span className="text-2xl font-[640] text-primary-600">{conversations.length}</span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {conversations.map((conversation) => (
+                  <ConversationCard
+                    key={conversation.jobId}
+                    conversation={conversation}
+                    currentUserId={user?.id || ''}
+                    onClick={() => handleConversationClick(conversation)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Ongoing Conversations Card */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden group relative">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-[560] text-gray-900">Ongoing Conversations</h3>
+                  <span className="text-2xl font-[640] text-primary-600">
+                    {categorizeConversations().ongoing.length}
+                  </span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {categorizeConversations().ongoing.length > 0 ? (
+                  categorizeConversations().ongoing.map((conversation) => (
+                    <ConversationCard
+                      key={conversation.jobId}
+                      conversation={conversation}
+                      currentUserId={user?.id || ''}
+                      onClick={() => handleConversationClick(conversation)}
+                    />
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-gray-500 text-sm">
+                    No active conversations. Click on a conversation to start.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Unread Messages Card */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden group relative">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-[560] text-gray-900">Unread Messages</h3>
+                  <span className={`text-2xl font-[640] ${
+                    categorizeConversations().unread.length > 0 ? 'text-error-DEFAULT' : 'text-success-DEFAULT'
+                  }`}>
+                    {categorizeConversations().unread.length}
+                  </span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {categorizeConversations().unread.length > 0 ? (
+                  categorizeConversations().unread.map((conversation) => (
+                    <ConversationCard
+                      key={conversation.jobId}
+                      conversation={conversation}
+                      currentUserId={user?.id || ''}
+                      onClick={() => handleConversationClick(conversation)}
+                    />
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-gray-500 text-sm">
+                    All caught up! No unread messages.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Active Today Card */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden group relative">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-[560] text-gray-900">Active Today</h3>
+                  <span className="text-2xl font-[640] text-primary-600">
+                    {categorizeConversations().activeToday.length}
+                  </span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {categorizeConversations().activeToday.length > 0 ? (
+                  categorizeConversations().activeToday.map((conversation) => (
+                    <ConversationCard
+                      key={conversation.jobId}
+                      conversation={conversation}
+                      currentUserId={user?.id || ''}
+                      onClick={() => handleConversationClick(conversation)}
+                    />
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-gray-500 text-sm">
+                    No conversations active today.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="text-lg text-gray-600">
+              Loading conversations...
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="text-error-DEFAULT mb-4">
+              {error}
+            </div>
             <Button
               onClick={loadUserAndMessages}
               variant="outline"
               size="sm"
-              disabled={loading}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Icon name="refresh" size={16} color={theme.colors.textPrimary} />
-                <span>Refresh</span>
-              </div>
+              Try Again
             </Button>
           </div>
-        </div>
+        )}
 
-        {/* Messages Content */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.lg,
-          boxShadow: theme.shadows.sm,
-          overflow: 'hidden'
-        }}>
-          {loading && (
-            <div style={{
-              padding: theme.spacing.xl,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.lg,
-                color: theme.colors.textSecondary
-              }}>
-                Loading conversations...
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div style={{
-              padding: theme.spacing.xl,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                color: theme.colors.error,
-                fontSize: theme.typography.fontSize.base,
-                marginBottom: theme.spacing.md
-              }}>
-                {error}
-              </div>
-              <Button
-                onClick={loadUserAndMessages}
-                variant="outline"
-                size="sm"
-              >
-                Try Again
-              </Button>
-            </div>
-          )}
-
-          {!loading && !error && conversations.length === 0 && (
-            <EmptyState
-              variant="default"
-              icon={<Icon name="messages" size={64} color={theme.colors.textTertiary} />}
-              title="No conversations yet"
-              description="Start a conversation by posting a job or applying to jobs. Once you connect with contractors or homeowners, your conversations will appear here."
-              action={{
-                label: 'Browse Jobs',
-                onClick: () => router.push('/jobs')
-              }}
-            />
-          )}
-
-          {!loading && !error && conversations.length > 0 && (
-            <div>
-              {conversations.map((conversation) => (
-                <ConversationCard
-                  key={conversation.jobId}
-                  conversation={conversation}
-                  currentUserId={user?.id || ''}
-                  onClick={() => handleConversationClick(conversation)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Stats */}
-        {!loading && !error && conversations.length > 0 && (
-          <div style={{
-            marginTop: theme.spacing.lg,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: theme.spacing.md
-          }}>
-            <div style={{
-              backgroundColor: theme.colors.white,
-              padding: theme.spacing.md,
-              borderRadius: theme.borderRadius.md,
-              boxShadow: theme.shadows.sm,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.primary
-              }}>
-                {conversations.length}
-              </div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary
-              }}>
-                Total Conversations
-              </div>
-            </div>
-            <div style={{
-              backgroundColor: theme.colors.white,
-              padding: theme.spacing.md,
-              borderRadius: theme.borderRadius.md,
-              boxShadow: theme.shadows.sm,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: getTotalUnreadCount() > 0 ? theme.colors.error : theme.colors.success
-              }}>
-                {getTotalUnreadCount()}
-              </div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary
-              }}>
-                Unread Messages
-              </div>
-            </div>
-            <div style={{
-              backgroundColor: theme.colors.white,
-              padding: theme.spacing.md,
-              borderRadius: theme.borderRadius.md,
-              boxShadow: theme.shadows.sm,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.secondary
-              }}>
-                {conversations.filter(c => c.lastMessage?.createdAt &&
-                  new Date(c.lastMessage.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000
-                ).length}
-              </div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary
-              }}>
-                Active Today
-              </div>
-            </div>
-          </div>
+        {!loading && !error && conversations.length === 0 && (
+          <EmptyState
+            variant="default"
+            icon="messages"
+            title="No conversations yet"
+            description="Start a conversation by posting a job or applying to jobs. Once you connect with contractors or homeowners, your conversations will appear here."
+            actionLabel="Browse Jobs"
+            onAction={() => router.push('/jobs')}
+          />
         )}
       </div>
     </HomeownerLayoutShell>

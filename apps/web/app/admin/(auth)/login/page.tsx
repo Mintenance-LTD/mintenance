@@ -138,14 +138,22 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                {...register('rememberMe')}
-              />
-              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
-                Remember me for 30 days
-              </Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  {...register('rememberMe')}
+                />
+                <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                  Remember me for 30 days
+                </Label>
+              </div>
+              <Link
+                href="/admin/forgot-password"
+                className="text-sm font-medium text-primary hover:text-primary-light transition-colors"
+              >
+                Forgot password?
+              </Link>
             </div>
 
             <Button

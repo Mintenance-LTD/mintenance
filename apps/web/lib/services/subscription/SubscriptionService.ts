@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
-export type SubscriptionPlan = 'basic' | 'professional' | 'enterprise';
+export type SubscriptionPlan = 'free' | 'basic' | 'professional' | 'enterprise';
 
 export interface SubscriptionFeatures {
   maxJobs: number | null;
@@ -27,7 +27,7 @@ export interface Subscription {
   contractorId: string;
   planType: SubscriptionPlan;
   planName: string;
-  status: 'trial' | 'active' | 'past_due' | 'canceled' | 'expired' | 'unpaid';
+  status: 'free' | 'trial' | 'active' | 'past_due' | 'canceled' | 'expired' | 'unpaid';
   amount: number;
   currency: string;
   trialStart: Date | null;
@@ -53,6 +53,7 @@ export interface SubscriptionPlanDetails {
  */
 export class SubscriptionService {
   private static readonly PLAN_PRICING: Record<SubscriptionPlan, { amount: number; name: string }> = {
+    free: { amount: 0, name: 'Free' },
     basic: { amount: 1999, name: 'Basic' }, // £19.99
     professional: { amount: 4999, name: 'Professional' }, // £49.99
     enterprise: { amount: 9999, name: 'Enterprise' }, // £99.99
@@ -79,7 +80,7 @@ export class SubscriptionService {
       return (features || []).map((feature) => {
         const planPricing = this.PLAN_PRICING[feature.plan_type as SubscriptionPlan];
         const amountInPence = planPricing?.amount || 0;
-        // Convert from pence to pounds for display
+        // Convert from pence to pounds for display (free tier is 0)
         const priceInPounds = amountInPence / 100;
         
         return {
@@ -116,7 +117,7 @@ export class SubscriptionService {
         .from('contractor_subscriptions')
         .select('*')
         .eq('contractor_id', contractorId)
-        .in('status', ['trial', 'active', 'incomplete', 'unpaid', 'past_due'])
+        .in('status', ['free', 'trial', 'active', 'incomplete', 'unpaid', 'past_due'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -214,12 +215,21 @@ export class SubscriptionService {
 
   /**
    * Create Stripe subscription for contractor
+   * Free tier doesn't require Stripe subscription
    */
   static async createStripeSubscription(
     contractorId: string,
     planType: SubscriptionPlan,
     stripeCustomerId: string
   ): Promise<{ subscriptionId: string; clientSecret: string | null }> {
+    // Free tier doesn't need Stripe subscription
+    if (planType === 'free') {
+      return {
+        subscriptionId: 'free-tier',
+        clientSecret: null,
+      };
+    }
+
     try {
       const planPricing = this.PLAN_PRICING[planType];
       if (!planPricing) {
@@ -284,7 +294,7 @@ export class SubscriptionService {
         .single();
 
       // First, ensure any existing subscriptions for this contractor are marked as canceled
-      // This releases the unique constraint that only allows one 'trial' or 'active' subscription
+      // This releases the unique constraint that only allows one 'free', 'trial', or 'active' subscription
       await serverSupabase
         .from('contractor_subscriptions')
         .update({
@@ -293,22 +303,27 @@ export class SubscriptionService {
           updated_at: new Date().toISOString(),
         })
         .eq('contractor_id', contractorId)
-        .in('status', ['trial', 'active']);
+        .in('status', ['free', 'trial', 'active']);
+
+      // Determine status based on plan type
+      const status = planType === 'free' 
+        ? 'free' 
+        : (trialEnd && trialEnd > new Date() ? 'trial' : 'active');
 
       const { data: subscription, error } = await serverSupabase
         .from('contractor_subscriptions')
         .insert({
           contractor_id: contractorId,
-          stripe_subscription_id: stripeSubscriptionId,
-          stripe_customer_id: stripeCustomerId,
-          stripe_price_id: stripePriceId,
+          stripe_subscription_id: planType === 'free' ? null : stripeSubscriptionId,
+          stripe_customer_id: planType === 'free' ? null : stripeCustomerId,
+          stripe_price_id: planType === 'free' ? null : stripePriceId,
           plan_type: planType,
           plan_name: planName,
-          status: trialEnd && trialEnd > new Date() ? 'trial' : 'active',
+          status: status,
           amount: planPricing.amount / 100, // Convert from pence to pounds
           currency: 'gbp',
-          trial_start: user?.trial_started_at ? new Date(user.trial_started_at) : null,
-          trial_end: trialEnd || (user?.trial_ends_at ? new Date(user.trial_ends_at) : null),
+          trial_start: planType === 'free' ? null : (user?.trial_started_at ? new Date(user.trial_started_at) : null),
+          trial_end: planType === 'free' ? null : (trialEnd || (user?.trial_ends_at ? new Date(user.trial_ends_at) : null)),
         })
         .select('id')
         .single();
@@ -326,7 +341,7 @@ export class SubscriptionService {
       await serverSupabase
         .from('users')
         .update({
-          subscription_status: trialEnd && trialEnd > new Date() ? 'trial' : 'active',
+          subscription_status: status,
         })
         .eq('id', contractorId);
 
@@ -542,12 +557,29 @@ export class SubscriptionService {
   }
 
   /**
+   * Create free tier subscription for contractor
+   */
+  static async createFreeTierSubscription(contractorId: string): Promise<string> {
+    return this.saveSubscription(
+      contractorId,
+      'free',
+      'free-tier',
+      '',
+      'free-tier'
+    );
+  }
+
+  /**
    * Get or create Stripe Price ID for a plan
    */
   private static async getOrCreateStripePrice(
     planType: SubscriptionPlan,
     amountInPence: number
   ): Promise<string> {
+    // Free tier doesn't need Stripe price
+    if (planType === 'free') {
+      return 'free-tier';
+    }
     // Check if price exists in database metadata or create new one
     // For now, we'll create a new price each time (Stripe handles deduplication)
     const price = await stripe.prices.create({

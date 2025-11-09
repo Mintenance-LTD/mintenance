@@ -151,17 +151,8 @@ export function PayoutsPageClient({
         flexDirection: 'column',
         gap: theme.spacing[6]
       }}>
-        {/* Header */}
+        {/* Subtitle - Layout header already shows "Payouts" */}
         <div>
-          <h1 style={{
-            margin: 0,
-            marginBottom: theme.spacing[1],
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            Payout Accounts
-          </h1>
           <p style={{
             margin: 0,
             fontSize: theme.typography.fontSize.base,

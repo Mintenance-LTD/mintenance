@@ -21,6 +21,7 @@ const createJobSchema = z.object({
   location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
   photoUrls: z.array(z.string().url()).optional(),
   requiredSkills: z.array(z.string().max(100)).max(10).optional(),
+  property_id: z.string().uuid().optional(),
 });
 
 // Enriched query with JOINs for complete data
@@ -276,6 +277,7 @@ export async function POST(request: NextRequest) {
       budget?: number;
       location?: string | null;
       required_skills?: string[] | null;
+      property_id?: string | null;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
@@ -295,6 +297,10 @@ export async function POST(request: NextRequest) {
     // Only include required_skills if provided - column may not exist in all environments
     if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
       insertPayload.required_skills = payload.requiredSkills;
+    }
+    // Include property_id if provided
+    if (payload.property_id !== undefined) {
+      insertPayload.property_id = payload.property_id;
     }
 
     let data: any;

@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const photoFiles = formData.getAll('photos') as File[];
+    const categories = formData.getAll('categories') as string[];
 
     if (!photoFiles || photoFiles.length === 0) {
       return NextResponse.json(
@@ -75,10 +76,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and upload each file
-    const uploadedUrls: string[] = [];
+    const uploadedPhotos: Array<{ url: string; category: string }> = [];
     const uploadErrors: string[] = [];
 
-    for (const file of photoFiles) {
+    for (let i = 0; i < photoFiles.length; i++) {
+      const file = photoFiles[i];
+      const category = categories[i] || 'other';
       // Validate file type
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
         uploadErrors.push(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`);
@@ -121,13 +124,13 @@ export async function POST(request: NextRequest) {
         .getPublicUrl(fileName);
 
       if (urlData?.publicUrl) {
-        uploadedUrls.push(urlData.publicUrl);
+        uploadedPhotos.push({ url: urlData.publicUrl, category });
       } else {
         uploadErrors.push(`${file.name}: Failed to get public URL`);
       }
     }
 
-    if (uploadedUrls.length === 0) {
+    if (uploadedPhotos.length === 0) {
       // All uploads failed - provide more context
       console.error('All property photo uploads failed. Attempted to upload:', photoFiles.length, 'files');
       return NextResponse.json(
@@ -141,16 +144,17 @@ export async function POST(request: NextRequest) {
     }
     
     // If some files failed but at least one succeeded, log a warning
-    if (uploadedUrls.length < photoFiles.length) {
+    if (uploadedPhotos.length < photoFiles.length) {
       console.warn(
-        `Only ${uploadedUrls.length} of ${photoFiles.length} property photos uploaded successfully.`,
+        `Only ${uploadedPhotos.length} of ${photoFiles.length} property photos uploaded successfully.`,
         { errors: uploadErrors }
       );
     }
 
     return NextResponse.json({ 
-      urls: uploadedUrls,
-      uploaded: uploadedUrls.length,
+      urls: uploadedPhotos.map(p => p.url), // Keep for backward compatibility
+      photos: uploadedPhotos, // New format with categories
+      uploaded: uploadedPhotos.length,
       total: photoFiles.length,
       ...(uploadErrors.length > 0 && { warnings: uploadErrors })
     });

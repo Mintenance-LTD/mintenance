@@ -154,10 +154,22 @@ function getLucideIcon(iconName: string): LucideIcon | null {
   }
   
   if (!mappedName) {
+    // Log missing icon in development to help debug
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.warn(`Icon "${iconName}" not found in ICON_NAME_MAP`);
+    }
     return null;
   }
 
   const IconComponent = LucideIcons[mappedName];
+  if (!IconComponent) {
+    // Log missing Lucide icon in development
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.warn(`Lucide icon "${mappedName}" not found in lucide-react`);
+    }
+    return null;
+  }
+  
   return typeof IconComponent === 'function' ? (IconComponent as LucideIcon) : null;
 }
 

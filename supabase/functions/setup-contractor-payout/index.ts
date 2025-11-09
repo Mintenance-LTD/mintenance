@@ -65,7 +65,7 @@ serve(async (req) => {
       type: 'account_onboarding',
     });
 
-    // Save to database
+    // Save to database - both contractor_payout_accounts and users tables
     const { error: dbError } = await supabase
       .from('contractor_payout_accounts')
       .insert([{
@@ -83,6 +83,19 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('contractor_id', contractorId);
+    }
+
+    // Also update users table with stripe_connect_account_id for payment setup checks
+    const { error: userUpdateError } = await supabase
+      .from('users')
+      .update({
+        stripe_connect_account_id: account.id,
+      })
+      .eq('id', contractorId);
+
+    if (userUpdateError) {
+      console.error('Failed to update users.stripe_connect_account_id:', userUpdateError);
+      // Don't fail the whole request, but log the error
     }
 
     return new Response(

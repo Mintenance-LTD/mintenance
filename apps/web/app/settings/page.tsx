@@ -10,6 +10,7 @@ import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { PrivacyPolicyContent } from '@/components/settings/PrivacyPolicyContent';
 import { TermsOfServiceContent } from '@/components/settings/TermsOfServiceContent';
+import { GDPRSettings } from '@/components/settings/GDPRSettings';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -404,6 +405,9 @@ export default function SettingsPage() {
               </Button>
             </Link>
           </div>
+
+          {/* GDPR Settings Card */}
+          <GDPRSettings />
         </div>
 
         {/* Privacy Policy Dialog */}

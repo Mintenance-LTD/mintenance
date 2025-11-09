@@ -89,12 +89,29 @@ export async function POST(request: NextRequest) {
       role: result.user!.role
     });
 
-    // Initialize trial period for contractors
+    // Initialize trial period and free tier for contractors
     if (result.user!.role === 'contractor') {
       try {
         const { TrialService } = await import('@/lib/services/subscription/TrialService');
+        const { SubscriptionService } = await import('@/lib/services/subscription/SubscriptionService');
         const { TrialNotifications } = await import('@/lib/services/notifications/TrialNotifications');
         
+        // Initialize free tier subscription immediately
+        try {
+          await SubscriptionService.createFreeTierSubscription(result.user!.id);
+          logger.info('Free tier subscription created for new contractor', {
+            service: 'auth',
+            userId: result.user!.id,
+          });
+        } catch (freeTierError) {
+          logger.error('Failed to create free tier subscription', {
+            service: 'auth',
+            userId: result.user!.id,
+            error: freeTierError instanceof Error ? freeTierError.message : String(freeTierError),
+          });
+        }
+        
+        // Initialize trial period (for paid plan upgrades)
         const trialInitialized = await TrialService.initializeTrial(result.user!.id);
         if (trialInitialized) {
           // Send welcome email (non-blocking)
