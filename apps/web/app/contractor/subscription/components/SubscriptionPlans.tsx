@@ -3,7 +3,8 @@
 import React from 'react';
 import { SubscriptionPlanDetails } from '@/lib/services/subscription/SubscriptionService';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Check } from 'lucide-react';
 
 interface SubscriptionPlansProps {
   plans: SubscriptionPlanDetails[];
@@ -111,7 +112,7 @@ export function SubscriptionPlans({
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary,
                 }}>
-                  <Icon name="check" size={16} color={theme.colors.success} />
+                  <Check className="h-4 w-4 text-green-600" />
                   {plan.features.maxJobs === null ? 'Unlimited' : `${plan.features.maxJobs} jobs`}
                 </li>
                 <li style={{
@@ -122,7 +123,7 @@ export function SubscriptionPlans({
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary,
                 }}>
-                  <Icon name="check" size={16} color={theme.colors.success} />
+                  <Check className="h-4 w-4 text-green-600" />
                   Up to {plan.features.maxActiveJobs} active jobs
                 </li>
                 {plan.features.prioritySupport && (
@@ -134,7 +135,7 @@ export function SubscriptionPlans({
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
                   }}>
-                    <Icon name="check" size={16} color={theme.colors.success} />
+                    <Check className="h-4 w-4 text-green-600" />
                     Priority support
                   </li>
                 )}
@@ -147,7 +148,7 @@ export function SubscriptionPlans({
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
                   }}>
-                    <Icon name="check" size={16} color={theme.colors.success} />
+                    <Check className="h-4 w-4 text-green-600" />
                     Advanced analytics
                   </li>
                 )}
@@ -160,7 +161,7 @@ export function SubscriptionPlans({
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
                   }}>
-                    <Icon name="check" size={16} color={theme.colors.success} />
+                    <Check className="h-4 w-4 text-green-600" />
                     Custom branding
                   </li>
                 )}
@@ -173,38 +174,20 @@ export function SubscriptionPlans({
                     fontSize: theme.typography.fontSize.sm,
                     color: theme.colors.textSecondary,
                   }}>
-                    <Icon name="check" size={16} color={theme.colors.success} />
+                    <Check className="h-4 w-4 text-green-600" />
                     API access
                   </li>
                 )}
               </ul>
 
-              <button
+              <Button
                 onClick={() => onSubscribe(plan.planType)}
                 disabled={isLoading || isCurrentPlan}
-                style={{
-                  width: '100%',
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  backgroundColor: isCurrentPlan
-                    ? theme.colors.backgroundSecondary
-                    : isPopular
-                    ? theme.colors.primary
-                    : theme.colors.surface,
-                  border: `1px solid ${isCurrentPlan ? theme.colors.border : theme.colors.primary}`,
-                  borderRadius: theme.borderRadius.md,
-                  color: isCurrentPlan
-                    ? theme.colors.textSecondary
-                    : isPopular
-                    ? theme.colors.white
-                    : theme.colors.primary,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: isLoading || isCurrentPlan ? 'not-allowed' : 'pointer',
-                  opacity: isLoading || isCurrentPlan ? 0.5 : 1,
-                }}
+                variant={isCurrentPlan ? 'outline' : isPopular ? 'primary' : 'outline'}
+                fullWidth
               >
                 {isCurrentPlan ? 'Current Plan' : isLoading ? 'Processing...' : 'Subscribe'}
-              </button>
+              </Button>
             </div>
           );
         })}

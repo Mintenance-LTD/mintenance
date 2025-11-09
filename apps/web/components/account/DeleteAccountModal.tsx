@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -22,8 +28,6 @@ export function DeleteAccountModal({ isOpen, onClose, userId }: DeleteAccountMod
   const [confirmationText, setConfirmationText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   const handleDelete = async () => {
     if (confirmationText !== 'DELETE') {
@@ -67,118 +71,53 @@ export function DeleteAccountModal({ isOpen, onClose, userId }: DeleteAccountMod
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !loading) {
+      setConfirmationText('');
+      setError(null);
+      onClose();
+    }
+  };
+
   const isConfirmed = confirmationText === 'DELETE';
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: theme.spacing[4],
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-          width: '100%',
-          maxWidth: '500px',
-          boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[4],
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[3],
-          marginBottom: theme.spacing[2],
-        }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            backgroundColor: '#FEE2E2',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <Icon name="warning" size={24} color="#EF4444" />
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-[500px]">
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-bold">Delete Account</DialogTitle>
+              <DialogDescription className="mt-1">This action cannot be undone</DialogDescription>
+            </div>
           </div>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Delete Account
-            </h2>
-            <p style={{
-              margin: 0,
-              marginTop: theme.spacing[1],
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              This action cannot be undone
-            </p>
-          </div>
-        </div>
+        </DialogHeader>
 
         {/* Warning Message */}
-        <div style={{
-          padding: theme.spacing[4],
-          backgroundColor: '#FEF2F2',
-          border: `1px solid #FEE2E2`,
-          borderRadius: theme.borderRadius.md,
-        }}>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.base,
-            color: '#991B1B',
-            lineHeight: 1.6,
-          }}>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
             <strong>Warning:</strong> Deleting your account will permanently remove your profile and all associated data. 
             This includes:
-          </p>
-          <ul style={{
-            margin: `${theme.spacing[2]} 0 0 0`,
-            paddingLeft: theme.spacing[5],
-            color: '#991B1B',
-            fontSize: theme.typography.fontSize.sm,
-            lineHeight: 1.8,
-          }}>
-            <li>Your profile information</li>
-            <li>Job postings and bids</li>
-            <li>Messages and conversations</li>
-            <li>Payment and transaction history</li>
-          </ul>
-        </div>
+            <ul className="mt-2 ml-5 list-disc space-y-1">
+              <li>Your profile information</li>
+              <li>Job postings and bids</li>
+              <li>Messages and conversations</li>
+              <li>Payment and transaction history</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
 
         {/* Confirmation Input */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-          <label style={{
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.textPrimary,
-          }}>
+        <div className="space-y-2">
+          <Label htmlFor="confirmation">
             Type <strong>DELETE</strong> to confirm:
-          </label>
-          <input
+          </Label>
+          <Input
+            id="confirmation"
             type="text"
             value={confirmationText}
             onChange={(e) => {
@@ -187,87 +126,29 @@ export function DeleteAccountModal({ isOpen, onClose, userId }: DeleteAccountMod
             }}
             placeholder="DELETE"
             disabled={loading}
-            style={{
-              padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-              border: `1px solid ${error ? '#EF4444' : theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.base,
-              backgroundColor: theme.colors.background,
-              color: theme.colors.textPrimary,
-              width: '100%',
-              boxSizing: 'border-box',
-            }}
+            errorText={error || undefined}
           />
-          {error && (
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: '#EF4444',
-            }}>
-              {error}
-            </p>
-          )}
         </div>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing[3],
-          justifyContent: 'flex-end',
-          marginTop: theme.spacing[2],
-        }}>
-          <button
-            type="button"
+        <DialogFooter className="mt-4">
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={loading}
-            style={{
-              padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textPrimary,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-            }}
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="destructive"
             onClick={handleDelete}
             disabled={!isConfirmed || loading}
-            style={{
-              padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-              backgroundColor: isConfirmed && !loading ? '#EF4444' : '#FCA5A5',
-              border: 'none',
-              borderRadius: theme.borderRadius.lg,
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: 'white',
-              cursor: (isConfirmed && !loading) ? 'pointer' : 'not-allowed',
-              opacity: (isConfirmed && !loading) ? 1 : 0.6,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-            }}
+            leftIcon={loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           >
-            {loading ? (
-              <>
-                <Icon name="loader" size={16} className="animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Icon name="trash" size={16} />
-                Delete Account
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+            {loading ? 'Deleting...' : 'Delete Account'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

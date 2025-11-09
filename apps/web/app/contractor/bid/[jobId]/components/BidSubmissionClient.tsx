@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { QuoteLineItems, QuoteLineItem } from './QuoteLineItems';
 
 interface BidSubmissionClientProps {
@@ -374,42 +376,30 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       </header>
 
       {feedback && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[3],
-            borderRadius: '16px',
-            border: `1px solid ${
-              feedback.type === 'success' ? theme.colors.success : theme.colors.error
-            }`,
-            backgroundColor:
-              feedback.type === 'success'
-                ? 'rgba(52, 199, 89, 0.08)'
-                : 'rgba(255, 59, 48, 0.08)',
-            padding: theme.spacing[4],
-          }}
+        <Alert
+          variant={feedback.type === 'success' ? 'default' : 'destructive'}
+          className="relative"
         >
-          <Icon
-            name={feedback.type === 'success' ? 'checkCircle' : 'alert'}
-            size={20}
-            color={feedback.type === 'success' ? theme.colors.success : theme.colors.error}
-          />
-          <span style={{ fontSize: theme.typography.fontSize.sm }}>{feedback.message}</span>
+          {feedback.type === 'success' ? (
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <AlertTitle className={feedback.type === 'success' ? 'text-green-800' : ''}>
+            {feedback.type === 'success' ? 'Success' : 'Error'}
+          </AlertTitle>
+          <AlertDescription className={feedback.type === 'success' ? 'text-green-700' : ''}>
+            {feedback.message}
+          </AlertDescription>
           <button
             type="button"
             onClick={() => setFeedback(null)}
-            style={{
-              marginLeft: 'auto',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
+            className="absolute right-2 top-2 rounded-md p-1 hover:bg-black/10 transition-colors"
             aria-label="Dismiss message"
           >
-            <Icon name="x" size={16} color={theme.colors.textSecondary} />
+            <X className="h-4 w-4" />
           </button>
-        </div>
+        </Alert>
       )}
 
       <section

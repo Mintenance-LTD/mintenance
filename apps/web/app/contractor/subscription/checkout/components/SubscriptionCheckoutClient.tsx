@@ -10,7 +10,9 @@ import {
 } from '@stripe/react-stripe-js';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 // Initialize Stripe - will be set in component after mount
 let stripePromise: Promise<any> | null = null;
@@ -108,50 +110,21 @@ function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; pl
         </div>
 
         {error && (
-          <div style={{
-            padding: theme.spacing[3],
-            backgroundColor: theme.colors.error + '20',
-            borderRadius: theme.borderRadius.md,
-            marginBottom: theme.spacing[4],
-            color: theme.colors.error,
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            {error}
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={!stripe || isProcessing}
-          style={{
-            width: '100%',
-            padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-            backgroundColor: isProcessing || !stripe ? theme.colors.border : theme.colors.primary,
-            color: theme.colors.white,
-            border: 'none',
-            borderRadius: theme.borderRadius.md,
-            fontSize: theme.typography.fontSize.base,
-            fontWeight: theme.typography.fontWeight.semibold,
-            cursor: isProcessing || !stripe ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: theme.spacing[2],
-            opacity: isProcessing || !stripe ? 0.6 : 1,
-          }}
+          variant="primary"
+          fullWidth
+          leftIcon={isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
         >
-          {isProcessing ? (
-            <>
-              <Icon name="loader" size={20} color={theme.colors.white} className="animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Icon name="lock" size={20} color={theme.colors.white} />
-              Complete Subscription
-            </>
-          )}
-        </button>
+          {isProcessing ? 'Processing...' : 'Complete Subscription'}
+        </Button>
 
         <p style={{
           fontSize: theme.typography.fontSize.xs,

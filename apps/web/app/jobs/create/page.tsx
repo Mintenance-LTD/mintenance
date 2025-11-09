@@ -10,6 +10,9 @@ import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayout
 import { SmartJobAnalysis } from './components/SmartJobAnalysis';
 import { getSkillIcon } from '@/lib/skills/skill-icon-mapping';
 import Link from 'next/link';
+import { BuildingAssessmentDisplay } from '@/components/building-surveyor';
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const jobCategories = [
   { label: 'Handyman', value: 'handyman' },
@@ -90,6 +93,18 @@ export default function CreateJobPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [imagePreviews, setImagePreviews] = useState<Array<{ file: File; preview: string }>>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  
+  // Alert Dialog state
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string; onConfirm?: () => void; onCancel?: () => void }>({
+    open: false,
+    title: '',
+    message: '',
+  });
+  
+  // Building Surveyor AI Assessment
+  const [assessment, setAssessment] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [assessmentError, setAssessmentError] = useState<string>('');
 
   const [verificationStatus, setVerificationStatus] = React.useState<{
     emailVerified: boolean;
@@ -178,7 +193,11 @@ export default function CreateJobPage() {
 
     // Validate file count
     if (imagePreviews.length + files.length > 10) {
-      alert('Maximum 10 photos allowed');
+      setAlertDialog({
+        open: true,
+        title: 'Maximum Photos Reached',
+        message: 'Maximum 10 photos allowed',
+      });
       return;
     }
 
@@ -228,16 +247,120 @@ export default function CreateJobPage() {
     } catch (error) {
       console.error('Error uploading images:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
-      alert(errorMessage);
+      setAlertDialog({
+        open: true,
+        title: 'Upload Error',
+        message: errorMessage,
+      });
       return [];
     } finally {
       setIsUploadingImages(false);
     }
   };
 
+  // AI Building Surveyor Assessment
+  const handleAIAssessment = async () => {
+    if (imagePreviews.length === 0) {
+      setAssessmentError('Please upload photos first');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAssessmentError('');
+
+    try {
+      // Upload images first if not already uploaded
+      let imageUrls = uploadedImages;
+      if (imageUrls.length === 0) {
+        imageUrls = await uploadImages();
+        if (imageUrls.length === 0) {
+          throw new Error('Failed to upload images for assessment');
+        }
+      }
+
+      // Call assessment API
+      const response = await fetch('/api/building-surveyor/assess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrls: imageUrls.slice(0, 4), // Limit to 4 images
+          context: {
+            location: formData.location,
+            propertyType: 'residential',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Assessment failed');
+      }
+
+      const assessmentData = await response.json();
+      setAssessment(assessmentData);
+    } catch (error) {
+      console.error('Error assessing damage:', error);
+      setAssessmentError(
+        error instanceof Error ? error.message : 'Failed to assess damage. Please try again.'
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Pre-fill form with assessment data
+  const handleUseAssessment = () => {
+    if (!assessment) return;
+
+    const damageType = assessment.damageAssessment.damageType.replace(/_/g, ' ');
+    const location = assessment.damageAssessment.location.replace(/_/g, ' ');
+
+    // Map damage type to category
+    const categoryMap: Record<string, string> = {
+      water_damage: 'plumbing',
+      electrical_issue: 'electrical',
+      structural_crack: 'handyman',
+      roof_damage: 'roofing',
+      damp: 'handyman',
+      plumbing_issue: 'plumbing',
+    };
+    const suggestedCategory =
+      categoryMap[assessment.damageAssessment.damageType] || 'handyman';
+
+    // Map urgency to form urgency
+    const urgencyMap: Record<string, 'low' | 'medium' | 'high'> = {
+      immediate: 'high',
+      urgent: 'high',
+      soon: 'medium',
+      planned: 'low',
+      monitor: 'low',
+    };
+    const suggestedUrgency =
+      urgencyMap[assessment.urgency.urgency] || 'medium';
+
+    // Build description
+    const description = `${assessment.homeownerExplanation.whatIsIt}\n\n${assessment.homeownerExplanation.whatToDo}`;
+
+    // Update form
+    setFormData({
+      ...formData,
+      title: `${damageType} - ${location}`,
+      description: description,
+      category: suggestedCategory,
+      urgency: suggestedUrgency,
+      budget: assessment.contractorAdvice.estimatedCost.recommended.toString(),
+    });
+  };
+
   const detectLocation = async () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
+      setAlertDialog({
+        open: true,
+        title: 'Geolocation Not Supported',
+        message: 'Geolocation is not supported by your browser',
+      });
       return;
     }
 
@@ -281,7 +404,11 @@ export default function CreateJobPage() {
           setLocationSuggestions([]);
         } catch (error) {
           console.error('Error getting address:', error);
-          alert('Could not determine your address. Please enter it manually.');
+          setAlertDialog({
+            open: true,
+            title: 'Location Error',
+            message: 'Could not determine your address. Please enter it manually.',
+          });
         } finally {
           setIsDetectingLocation(false);
         }
@@ -304,7 +431,11 @@ export default function CreateJobPage() {
             message += 'An unknown error occurred.';
         }
         
-        alert(message);
+        setAlertDialog({
+          open: true,
+          title: 'Location Error',
+          message: message,
+        });
       },
       {
         enableHighAccuracy: true,
@@ -381,15 +512,36 @@ export default function CreateJobPage() {
       if (imagePreviews.length > 0) {
         photoUrls = await uploadImages();
         if (photoUrls.length === 0 && imagePreviews.length > 0) {
-          // If upload failed but user selected images, warn them
-          const continueWithout = confirm('Failed to upload some images. Continue without images?');
-          if (!continueWithout) {
-            setIsSubmitting(false);
-            return;
-          }
+          // If upload failed but user selected images, ask them
+          setAlertDialog({
+            open: true,
+            title: 'Image Upload Failed',
+            message: 'Failed to upload some images. Continue without images?',
+            onConfirm: async () => {
+              setAlertDialog({ open: false, title: '', message: '' });
+              await submitJob([]);
+            },
+            onCancel: () => {
+              setAlertDialog({ open: false, title: '', message: '' });
+              setIsSubmitting(false);
+            },
+          });
+          setIsSubmitting(false);
+          return;
         }
       }
+      
+      await submitJob(photoUrls);
+    } catch (err) {
+      console.error('Error creating job:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create job');
+      setIsSubmitting(false);
+    }
+  };
 
+  const submitJob = async (photoUrls: string[]) => {
+    setIsSubmitting(true);
+    try {
       const response = await fetch('/api/jobs', {
         method: 'POST',
         headers: {
@@ -432,7 +584,6 @@ export default function CreateJobPage() {
     } catch (err) {
       console.error('Error creating job:', err);
       setError(err instanceof Error ? err.message : 'Failed to create job');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -782,6 +933,59 @@ export default function CreateJobPage() {
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* AI Assessment Button */}
+              {imagePreviews.length > 0 && !assessment && (
+                <div style={{ marginTop: theme.spacing[4] }}>
+                  <button
+                    type="button"
+                    onClick={handleAIAssessment}
+                    disabled={isAnalyzing || isUploadingImages}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                      backgroundColor: isAnalyzing ? theme.colors.border : '#10B981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: theme.borderRadius.lg,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isAnalyzing) {
+                        e.currentTarget.style.backgroundColor = '#059669';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isAnalyzing) {
+                        e.currentTarget.style.backgroundColor = '#10B981';
+                      }
+                    }}
+                  >
+                    <Icon name="sparkles" size={20} color="white" />
+                    {isAnalyzing ? 'Analyzing Damage...' : 'Analyze with AI Building Surveyor'}
+                  </button>
+                  {assessmentError && (
+                    <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[2] }}>
+                      {assessmentError}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Assessment Results */}
+              {assessment && (
+                <div style={{ marginTop: theme.spacing[6] }}>
+                  <BuildingAssessmentDisplay
+                    assessment={assessment}
+                    onUseAssessment={handleUseAssessment}
+                  />
                 </div>
               )}
             </div>
@@ -1250,6 +1454,39 @@ export default function CreateJobPage() {
           </div>
         </form>
       </div>
+      
+      {/* Alert Dialog */}
+      <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => {
+        if (!open) {
+          setAlertDialog({ open: false, title: '', message: '' });
+          if (alertDialog.onCancel) {
+            alertDialog.onCancel();
+          }
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {alertDialog.onCancel && (
+              <AlertDialogCancel onClick={alertDialog.onCancel}>
+                Cancel
+              </AlertDialogCancel>
+            )}
+            {alertDialog.onConfirm ? (
+              <AlertDialogAction onClick={alertDialog.onConfirm}>
+                Continue
+              </AlertDialogAction>
+            ) : (
+              <AlertDialogAction onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
+                OK
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </HomeownerLayoutShell>
   );
 }

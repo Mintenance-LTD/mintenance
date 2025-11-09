@@ -74,19 +74,19 @@ export function Button({
   const baseClasses = cn(
     'inline-flex items-center justify-center',
     'relative outline-none transition-all duration-200',
-    'font-semibold',
-    'rounded-xl',
+    'font-[560]', // Consistent font weight from typography scale
+    'rounded-xl', // 12px border radius
     'border-none',
     fullWidth && 'w-full',
     isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
   );
 
-  // Size classes
+  // Size classes - Button text should be text-sm with font-[560] per plan
   const sizeClasses = {
     sm: 'px-3 py-2 text-sm min-h-[32px]',
-    md: 'px-4 py-3 text-base min-h-[40px]',
-    lg: 'px-6 py-3 text-lg min-h-[48px]',
-    xl: 'px-8 py-4 text-xl min-h-[56px]',
+    md: 'px-4 py-3 text-sm min-h-[40px]', // Changed to text-sm for consistency
+    lg: 'px-6 py-3 text-sm min-h-[48px]', // Changed to text-sm for consistency
+    xl: 'px-8 py-4 text-base min-h-[56px]', // Keep base for xl size
   };
 
   // Variant classes
@@ -97,9 +97,10 @@ export function Button({
       !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
     ),
     secondary: cn(
-      isDisabled ? 'bg-gray-200' : 'bg-secondary text-white shadow-sm',
+      isDisabled ? 'bg-gray-200 text-gray-500' : 'bg-secondary text-white shadow-sm',
       !isDisabled && 'hover:bg-secondary-600 hover:-translate-y-0.5 hover:shadow-md',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
+      !isDisabled && 'active:translate-y-0 active:scale-[0.98]',
+      // Green (secondary) for action buttons as specified
     ),
     outline: cn(
       'bg-transparent border-2',

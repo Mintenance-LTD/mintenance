@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { ContractorLayoutShell } from '../../components/ContractorLayoutShell';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { PayoutService } from '@/lib/services/payment/PayoutService';
 import Link from 'next/link';
@@ -171,36 +173,18 @@ export function PayoutsPageClient({
 
         {/* Error Message */}
         {error && (
-          <div style={{
-            padding: theme.spacing[4],
-            backgroundColor: '#FEE2E2',
-            border: '1px solid #EF4444',
-            borderRadius: theme.borderRadius.lg,
-            color: '#991B1B',
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <Icon name="xCircle" size={20} color="#EF4444" />
-              <span>{error}</span>
-            </div>
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Success Message */}
         {success && (
-          <div style={{
-            padding: theme.spacing[4],
-            backgroundColor: '#D1FAE5',
-            border: '1px solid #10B981',
-            borderRadius: theme.borderRadius.lg,
-            color: '#065F46',
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <Icon name="checkCircle" size={20} color="#10B981" />
-              <span>{success}</span>
-            </div>
-          </div>
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700">{success}</AlertDescription>
+          </Alert>
         )}
 
         {/* Setup Stripe Connect Button */}
@@ -410,33 +394,23 @@ export function PayoutsPageClient({
         )}
 
         {/* Information Card */}
-        <div style={{
-          backgroundColor: '#DBEAFE',
-          border: '1px solid #3B82F6',
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: theme.spacing[3],
-          }}>
-            <Icon name="info" size={24} color="#1E40AF" />
-            <div>
-              <h3 style={{
-                margin: 0,
-                marginBottom: theme.spacing[2],
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: '#1E40AF',
-              }}>
-                About Payout Accounts
-              </h3>
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-5 w-5 text-blue-600" />
+          <div>
+            <h3 style={{
+              margin: 0,
+              marginBottom: theme.spacing[2],
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: '#1E40AF',
+            }}>
+              About Payout Accounts
+            </h3>
+            <AlertDescription className="text-blue-700">
               <ul style={{
                 margin: 0,
                 paddingLeft: theme.spacing[5],
                 fontSize: theme.typography.fontSize.sm,
-                color: '#1E40AF',
                 lineHeight: 1.6,
               }}>
                 <li>Payments are processed securely through Stripe Connect</li>
@@ -444,9 +418,9 @@ export function PayoutsPageClient({
                 <li>You can set a primary payout account for automatic transfers</li>
                 <li>Bank account verification may take 1-2 business days</li>
               </ul>
-            </div>
+            </AlertDescription>
           </div>
-        </div>
+        </Alert>
       </div>
 
       <style jsx>{`

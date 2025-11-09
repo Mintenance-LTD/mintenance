@@ -4,9 +4,10 @@ import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
-import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
+import { StatusBadge } from '@/components/ui/figma';
 import { Button } from '@/components/ui/Button';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { MetricCard } from '@/components/ui/figma';
 import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface FinanceDashboardEnhancedProps {
@@ -57,144 +58,6 @@ interface FinanceDashboardEnhancedProps {
 
 const PERIODS = ['Week', 'Month', 'Quarter', 'Year'] as const;
 
-interface KpiCardProps {
-  title: string;
-  value: string;
-  change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
-  icon: string;
-  subtitle: string;
-}
-
-function KpiCard({ title, value, change, changeType, icon, subtitle }: KpiCardProps) {
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const getGradientVariant = () => {
-    if (changeType === 'positive') return 'success';
-    if (changeType === 'negative') return 'warning';
-    return 'primary';
-  };
-
-  const getColor = () => {
-    if (changeType === 'positive') return theme.colors.success;
-    if (changeType === 'negative') return theme.colors.warning;
-    return theme.colors.primary;
-  };
-
-  return (
-    <Card
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[4],
-        ...getGradientCardStyle(getGradientVariant()),
-        borderTop: `3px solid ${getColor()}`,
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: 'default',
-      }}
-      onMouseEnter={(e) => {
-        setIsHovered(true);
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = theme.shadows.xl;
-      }}
-      onMouseLeave={(e) => {
-        setIsHovered(false);
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = theme.shadows.sm;
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{
-          ...getIconContainerStyle(getColor(), 52),
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isHovered ? 'scale(1.05) rotate(5deg)' : 'scale(1) rotate(0deg)',
-        }}>
-          <Icon name={icon as any} size={26} color={getColor()} />
-        </div>
-        {change && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-              padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-              borderRadius: '8px',
-              backgroundColor:
-                changeType === 'positive'
-                  ? `${theme.colors.success}15`
-                  : changeType === 'negative'
-                    ? `${theme.colors.error}15`
-                    : `${theme.colors.textSecondary}15`,
-            }}
-          >
-            <Icon
-              name={changeType === 'positive' ? 'arrowUp' : changeType === 'negative' ? 'arrowDown' : 'minus'}
-              size={12}
-              color={
-                changeType === 'positive'
-                  ? theme.colors.success
-                  : changeType === 'negative'
-                    ? theme.colors.error
-                    : theme.colors.textSecondary
-              }
-            />
-            <span
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color:
-                  changeType === 'positive'
-                    ? theme.colors.success
-                    : changeType === 'negative'
-                      ? theme.colors.error
-                      : theme.colors.textSecondary,
-              }}
-            >
-              {change}
-            </span>
-          </div>
-        )}
-      </div>
-      <div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          {title}
-        </p>
-        <div
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize['4xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            letterSpacing: '-0.02em',
-            lineHeight: '1.1',
-          }}
-        >
-          {value}
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginTop: theme.spacing[2],
-          }}
-        >
-          {subtitle}
-        </p>
-      </div>
-    </Card>
-  );
-}
 
 interface RevenueChartProps {
   data: Array<{ month: string; revenue: number; expenses: number }>;
@@ -204,32 +67,24 @@ function RevenueChart({ data }: RevenueChartProps) {
   const maxValue = Math.max(...data.map(d => Math.max(d.revenue, d.expenses)));
 
   return (
-    <Card style={{ borderTop: `3px solid ${theme.colors.primary}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[6] }}>
+    <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-2xl p-6">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              letterSpacing: '-0.02em',
-            }}
-          >
+          <h3 className="text-subheading-md font-[560] text-gray-900 mb-2 tracking-normal">
             Revenue vs Expenses
           </h3>
-          <p style={{ margin: 0, fontSize: theme.typography.fontSize.base, color: theme.colors.textSecondary, marginTop: theme.spacing[2] }}>
-            Monthly comparison
+          <p className="text-sm font-[460] text-gray-600 m-0 leading-[1.5]">
+            Monthly financial overview
           </p>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing[4] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: theme.colors.success }} />
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Revenue</span>
+        <div className="flex gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-md bg-green-500" />
+            <span className="text-sm font-[560] text-gray-700">Revenue</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: theme.colors.error }} />
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Expenses</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-md bg-red-500" />
+            <span className="text-sm font-[560] text-gray-700">Expenses</span>
           </div>
         </div>
       </div>
@@ -250,8 +105,8 @@ function RevenueChart({ data }: RevenueChartProps) {
                 style={{
                   flex: 1,
                   height: `${(item.revenue / maxValue) * 100}%`,
-                  background: `linear-gradient(180deg, ${theme.colors.success} 0%, #34D399 100%)`,
-                  borderRadius: '4px 4px 0 0',
+                  background: theme.colors.success,
+                  borderRadius: '6px 6px 0 0',
                   minHeight: '8px',
                   transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                   boxShadow: theme.shadows.sm,
@@ -261,15 +116,15 @@ function RevenueChart({ data }: RevenueChartProps) {
                 style={{
                   flex: 1,
                   height: `${(item.expenses / maxValue) * 100}%`,
-                  background: `linear-gradient(180deg, ${theme.colors.error} 0%, #F87171 100%)`,
-                  borderRadius: '4px 4px 0 0',
+                  background: theme.colors.error,
+                  borderRadius: '6px 6px 0 0',
                   minHeight: '8px',
                   transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                   boxShadow: theme.shadows.sm,
                 }}
               />
             </div>
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, fontWeight: theme.typography.fontWeight.medium }}>
               {item.month}
             </span>
           </div>
@@ -292,45 +147,32 @@ interface InvoiceCardProps {
 
 function InvoiceCard({ invoice }: InvoiceCardProps) {
   return (
-    <Card 
-      style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        padding: theme.spacing[4],
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: theme.shadows.sm,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = theme.shadows.md;
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = theme.shadows.sm;
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-        <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-          {invoice.invoiceNumber || `Invoice #${invoice.id.slice(0, 8)}`}
-        </span>
-        <h4 style={{ margin: 0, fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold }}>
+    <div className="group flex justify-between items-center p-5 bg-white border border-gray-200 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden">
+      {/* Gradient bar - appears on hover, always visible on large screens */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-2">
+          <h4 className="text-base font-[560] text-gray-900 m-0">
+            {invoice.invoiceNumber || `Invoice #${invoice.id.slice(0, 8)}`}
+          </h4>
+          <StatusBadge
+            status={invoice.status === 'paid' ? 'completed' : invoice.status === 'overdue' ? 'delayed' : 'pending'}
+          />
+        </div>
+        <p className="text-sm font-[460] text-gray-600 m-0 mb-1">
           {invoice.client}
-        </h4>
-        <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-          Due: {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-        </span>
+        </p>
+        <p className="text-xs font-[460] text-gray-500 m-0">
+          Due {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: theme.spacing[2] }}>
-        <span style={{ fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold }}>
+      <div className="text-right">
+        <p className="text-lg font-[640] text-gray-900 m-0 tabular-nums">
           £{invoice.amount.toFixed(2)}
-        </span>
-        <StatusBadge
-          status={invoice.status === 'paid' ? 'completed' : invoice.status === 'overdue' ? 'delayed' : 'pending'}
-          size="sm"
-        />
+        </p>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -363,60 +205,29 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
+      {/* Header - Modern Design */}
+      <header className="flex justify-between items-start gap-4 flex-wrap">
         <div>
-          <h1
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-              margin: 0,
-            }}
-          >
+          <h1 className="text-heading-md font-[640] text-gray-900 mb-2 tracking-tighter">
             Finance Dashboard
           </h1>
-          <p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+          <p className="text-base font-[460] text-gray-600 m-0 leading-[1.5]">
             Track revenue, expenses, and financial performance
           </p>
         </div>
-        <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
+        <div className="flex gap-2 items-center bg-gray-50 rounded-xl p-1 border border-gray-200">
           {PERIODS.map((period) => {
             const isActive = selectedPeriod === period;
             return (
-              <button
+              <Button
                 key={period}
+                variant={isActive ? 'default' : 'ghost'}
+                size="sm"
                 onClick={() => setSelectedPeriod(period)}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.md,
-                  border: `2px solid ${isActive ? theme.colors.primary : 'transparent'}`,
-                  background: isActive 
-                    ? `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`
-                    : 'transparent',
-                  color: isActive ? 'white' : theme.colors.textSecondary,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isActive ? theme.shadows.sm : 'none',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = theme.colors.textPrimary;
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = theme.colors.textSecondary;
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
+                className="capitalize"
               >
                 {period}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -424,35 +235,56 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
 
       {/* KPI Cards */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: theme.spacing[4] }}>
-        <KpiCard
-          title="Total Revenue"
+        <MetricCard
+          label="Total Revenue"
           value={<AnimatedCounter value={financialData.totalRevenue} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
-          change={`${Math.abs(revenueChange).toFixed(1)}%`}
-          changeType={revenueChange >= 0 ? 'positive' : 'negative'}
-          icon="currencyPound"
           subtitle={`${financialData.completedJobs} completed jobs`}
+          icon="currencyPound"
+          iconColor={theme.colors.success}
+          trend={{
+            direction: revenueChange >= 0 ? 'up' : 'down',
+            value: `${Math.abs(revenueChange).toFixed(1)}%`,
+            label: 'from last month',
+          }}
+          gradient={true}
+          gradientVariant="success"
         />
-        <KpiCard
-          title="Pending Payments"
+        <MetricCard
+          label="Pending Payments"
           value={<AnimatedCounter value={financialData.pendingPayments} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
-          icon="clock"
           subtitle="Awaiting release"
+          icon="clock"
+          iconColor={theme.colors.warning}
+          gradient={true}
+          gradientVariant="warning"
         />
-        <KpiCard
-          title="Average Job Value"
+        <MetricCard
+          label="Average Job Value"
           value={<AnimatedCounter value={financialData.avgJobValue} formatType="currency" currency="GBP" prefix="£" decimals={2} />}
-          change={financialData.avgJobValueChange !== 0 ? `${financialData.avgJobValueChange >= 0 ? '+' : ''}${financialData.avgJobValueChange.toFixed(1)}%` : undefined}
-          changeType={financialData.avgJobValueChange >= 0 ? 'positive' : 'negative'}
-          icon="briefcase"
           subtitle="Per completed job"
+          icon="briefcase"
+          iconColor={theme.colors.primary}
+          trend={financialData.avgJobValueChange !== 0 ? {
+            direction: financialData.avgJobValueChange >= 0 ? 'up' : 'down',
+            value: `${Math.abs(financialData.avgJobValueChange).toFixed(1)}%`,
+            label: 'change',
+          } : undefined}
+          gradient={true}
+          gradientVariant="primary"
         />
-        <KpiCard
-          title="Profit Margin"
+        <MetricCard
+          label="Profit Margin"
           value={<AnimatedCounter value={financialData.profitMargin} formatType="percentage" decimals={1} />}
-          change={financialData.profitMarginChange !== 0 ? `${financialData.profitMarginChange >= 0 ? '+' : ''}${financialData.profitMarginChange.toFixed(1)}%` : undefined}
-          changeType={financialData.profitMarginChange >= 0 ? 'positive' : 'negative'}
-          icon="chart"
           subtitle="Last 6 months avg"
+          icon="chart"
+          iconColor={theme.colors.info}
+          trend={financialData.profitMarginChange !== 0 ? {
+            direction: financialData.profitMarginChange >= 0 ? 'up' : 'down',
+            value: `${Math.abs(financialData.profitMarginChange).toFixed(1)}%`,
+            label: 'change',
+          } : undefined}
+          gradient={true}
+          gradientVariant="primary"
         />
       </section>
 
@@ -463,15 +295,8 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: theme.spacing[6] }}>
         {/* Recent Invoices */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[4] }}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}
-            >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-[560] text-gray-900 m-0">
               Recent Invoices
             </h2>
             <Button variant="ghost" size="sm">View All</Button>
@@ -501,15 +326,8 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
 
         {/* Recent Transactions */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[4] }}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}
-            >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-[560] text-gray-900 m-0">
               Recent Transactions
             </h2>
             <Button variant="ghost" size="sm">View All</Button>
@@ -518,40 +336,20 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
               {financialData.transactions.length > 0 ? (
                 financialData.transactions.map(transaction => (
-                  <div
-                    key={transaction.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: theme.spacing[3],
-                      borderRadius: theme.borderRadius.md,
-                      backgroundColor: theme.colors.surface,
-                      border: `1px solid ${theme.colors.border}`,
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                      e.currentTarget.style.boxShadow = theme.shadows.sm;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.surface;
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-                      <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
+                  <div className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded-lg transition-all duration-200 hover:bg-gray-50 hover:shadow-sm">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-[560] text-gray-900">
                         {transaction.description}
                       </span>
-                      <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                      <span className="text-xs font-[460] text-gray-600">
                         {new Date(transaction.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-                      <span style={{ fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.semibold }}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-base font-[560] text-gray-900">
                         £{transaction.amount.toFixed(2)}
                       </span>
-                      <StatusBadge status={transaction.status as BadgeStatus} size="sm" />
+                      <StatusBadge status={transaction.status === 'completed' ? 'completed' : transaction.status === 'pending' ? 'pending' : 'delayed'} />
                     </div>
                   </div>
                 ))

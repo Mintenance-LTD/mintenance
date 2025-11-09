@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import Logo from '../../components/Logo';
-import { Icon } from '@/components/ui/Icon';
+import { ArrowLeft, Badge, CheckCircle2, XCircle, Star } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { notFound } from 'next/navigation';
 import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
 import { getCurrentUserFromCookies } from '@/lib/auth';
@@ -99,7 +100,7 @@ export default async function ContractorDetailPage(props: {
             textDecoration: 'none',
           }}
         >
-          <Icon name="arrowLeft" size={16} color={theme.colors.textSecondary} />
+          <ArrowLeft className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
           Back to Contractors
         </Link>
 
@@ -138,7 +139,7 @@ export default async function ContractorDetailPage(props: {
               }}>
                 {contractor.first_name} {contractor.last_name}
                 {contractor.email_verified && (
-                  <Icon name="badge" size={20} color="#3B82F6" style={{ marginLeft: theme.spacing[3] }} />
+                  <Badge className="h-5 w-5" style={{ color: '#3B82F6', marginLeft: theme.spacing[3] }} />
                 )}
               </h1>
 
@@ -172,7 +173,11 @@ export default async function ContractorDetailPage(props: {
                   fontSize: theme.typography.fontSize.sm,
                   fontWeight: theme.typography.fontWeight.medium,
                 }}>
-                  <Icon name={contractor.is_available ? 'checkCircle' : 'xCircle'} size={14} color={contractor.is_available ? '#065F46' : '#991B1B'} />
+                  {contractor.is_available ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: '#065F46' }} />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5" style={{ color: '#991B1B' }} />
+                  )}
                   {contractor.is_available ? 'Available' : 'Unavailable'}
                 </span>
               </div>
@@ -181,19 +186,11 @@ export default async function ContractorDetailPage(props: {
             {/* Contact Button */}
             <Link
               href={`/messages?contractor=${params.id}`}
-              style={{
-                padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-                backgroundColor: theme.colors.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: theme.borderRadius.lg,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                textDecoration: 'none',
-                display: 'inline-block',
-              }}
+              className="block"
             >
-              Contact Contractor
+              <Button variant="primary">
+                Contact Contractor
+              </Button>
             </Link>
           </div>
         </div>
@@ -239,7 +236,7 @@ export default async function ContractorDetailPage(props: {
               gap: theme.spacing[2],
               marginBottom: theme.spacing[2],
             }}>
-              <Icon name="star" size={24} color={theme.colors.warning} />
+              <Star className="h-6 w-6" style={{ color: theme.colors.warning }} />
               <span style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.primary }}>
                 {avgRating.toFixed(1)}
               </span>
@@ -381,7 +378,7 @@ export default async function ContractorDetailPage(props: {
                       fontWeight: theme.typography.fontWeight.bold,
                       color: theme.colors.primary,
                     }}>
-                      <Icon name="star" size={18} color={theme.colors.warning} />
+                      <Star className="h-[18px] w-[18px]" style={{ color: theme.colors.warning }} />
                       <span>{review.rating}</span>
                     </div>
                   </div>

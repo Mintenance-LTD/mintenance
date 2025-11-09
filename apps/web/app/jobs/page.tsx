@@ -7,9 +7,10 @@ import Image from 'next/image';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
 import { SearchBar } from '@/components/SearchBar';
-import { Button, Card, LoadingSpinner, ErrorView } from '@/components/ui';
+import { Card, LoadingSpinner, ErrorView } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Badge as StatusBadge, type BadgeStatus } from '@/components/ui/Badge.unified';
+import { StatusBadge } from '@/components/ui/figma';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { theme } from '@/lib/theme';
 import { logger } from '@/lib/logger';
@@ -185,42 +186,31 @@ export default function JobsPage() {
       >
         <div style={{ padding: theme.spacing[6], maxWidth: '1440px', margin: '0 auto' }}>
           {/* Page Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: theme.spacing[6],
-          }}>
-            <div>
-              <h1 style={{
-                fontSize: theme.typography.fontSize['3xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                margin: 0,
-                marginBottom: theme.spacing[2],
-              }}>
-                Jobs
-              </h1>
-              <p style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-              }}>
-                {allJobs.length} total job{allJobs.length !== 1 ? 's' : ''}
-              </p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8 -m-8 rounded-2xl mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center shadow-sm">
+                  <Icon name="briefcase" size={28} color={theme.colors.primary} />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+                    Your Jobs
+                  </h1>
+                  <p className="text-base font-medium text-gray-600 leading-relaxed">
+                    {allJobs.length} {allJobs.length === 1 ? 'job' : 'jobs'} total
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => router.push('/jobs/create')}
+                className="bg-secondary text-white hover:bg-secondary-600 shadow-md hover:shadow-lg"
+              >
+                <Icon name="plus" size={20} color="white" />
+                New Job
+              </Button>
             </div>
-            <Button
-              variant="primary"
-              onClick={() => router.push('/jobs/create')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-              }}
-            >
-              <Icon name="plus" size={20} color="white" />
-              New Job
-            </Button>
           </div>
 
           {/* Job List for Homeowners */}
@@ -229,7 +219,7 @@ export default function JobsPage() {
           ) : filteredJobs.length === 0 ? (
             <EmptyState
               variant="default"
-              icon={<Icon name="briefcase" size={64} color={theme.colors.textTertiary} />}
+              icon="briefcase"
               title="No jobs yet"
               description="Use the button above to post your first maintenance job and get competitive quotes from verified contractors in your area."
             />
@@ -334,45 +324,25 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
   return (
     <Link
       href={jobDetailUrl}
-      className="job-card-interactive"
+      className="job-card-interactive group bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 relative overflow-hidden"
       data-job-id={job.id}
       onClick={handleCardClick}
-      style={{
-        display: 'block',
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.lg,
-        border: `1px solid ${theme.colors.border}`,
-        padding: theme.spacing[6],
-        cursor: 'pointer',
-        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        pointerEvents: 'auto',
-        position: 'relative',
-        zIndex: 1,
-        textDecoration: 'none',
-        color: 'inherit',
-      }}
       data-href={jobDetailUrl}
     >
+      {/* Gradient bar - appears on hover, always visible on large screens */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
       {/* Card Layout: Photo on left, content on right */}
       <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }}>
         {/* Photo Section - Left Side */}
         <div style={{ flexShrink: 0 }}>
           {hasPhotos && job.photos && job.photos.length > 0 ? (
-            <div style={{
-              width: '200px',
-              height: '150px',
-              borderRadius: theme.borderRadius.lg,
-              overflow: 'hidden',
-              border: `1px solid ${theme.colors.border}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              position: 'relative'
-            }}>
+            <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 relative group-hover:shadow-lg transition-shadow duration-300">
               <Image
                 src={job.photos[0]}
                 alt={`${job.title} - Problem photo`}
                 width={200}
                 height={150}
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
                 style={{
                   display: 'block',
                   width: '100%',
@@ -386,15 +356,17 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
                   position: 'absolute',
                   top: theme.spacing[2],
                   right: theme.spacing[2],
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                  backdropFilter: 'blur(8px)',
                   color: 'white',
-                  padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                  borderRadius: theme.borderRadius.md,
+                  padding: `${theme.spacing[1]} ${theme.spacing[2.5]}`,
+                  borderRadius: theme.borderRadius.lg,
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.semibold,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: theme.spacing[1]
+                  gap: theme.spacing[1.5],
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
                 }}>
                   <Icon name="image" size={12} color="white" />
                   {job.photos.length}
@@ -402,18 +374,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               )}
             </div>
           ) : (
-            <div style={{
-              width: '200px',
-              height: '150px',
-              borderRadius: theme.borderRadius.lg,
-              border: `1px dashed ${theme.colors.border}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: theme.colors.textSecondary,
-              fontSize: theme.typography.fontSize.sm
-            }}>
+            <div className="w-[200px] h-[150px] rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 group-hover:border-gray-400 transition-colors duration-200">
               <Icon name="image" size={32} color={theme.colors.textSecondary} />
             </div>
           )}
@@ -424,13 +385,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
           {/* Header Row: Title, Priority, Budget */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3] }}>
             <div style={{ flex: 1 }}>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                margin: 0,
-                marginBottom: theme.spacing[2]
-              }}>
+              <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight group-hover:text-primary transition-colors">
                 {job.title}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], flexWrap: 'wrap' }}>
@@ -465,11 +420,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               alignItems: 'flex-end',
               gap: theme.spacing[1]
             }}>
-              <span style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.primary
-              }}>
+              <span className="text-2xl font-bold text-primary tracking-tight">
                 {formatMoney(Number(job.budget || 0), 'GBP')}
               </span>
               <span style={{
@@ -502,19 +453,22 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            paddingTop: theme.spacing[3],
+            paddingTop: theme.spacing[4],
             borderTop: `1px solid ${theme.colors.border}`
           }}>
             <div style={{
-              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-              borderRadius: '12px',
+              padding: `${theme.spacing[1.5]} ${theme.spacing[3]}`,
+              borderRadius: theme.borderRadius.lg,
               backgroundColor: theme.colors.backgroundSecondary,
               border: `1px solid ${theme.colors.border}`,
-            }}>
+            }}
+            className="group-hover:bg-gray-100 transition-colors duration-200"
+            >
               <span style={{
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textSecondary,
                 fontWeight: theme.typography.fontWeight.semibold,
+                letterSpacing: '0.5px'
               }}>
                 {(job.priority || 'NORMAL').toUpperCase()}
               </span>
@@ -528,21 +482,15 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
                     handleInteractiveClick(e);
                     handlePayNow(e);
                   }}
-                  style={{
-                    backgroundColor: theme.colors.success,
-                    borderColor: theme.colors.success,
-                  }}
+                  className="bg-success text-white hover:bg-success-dark"
                 >
                   Pay Now
                 </Button>
               )}
               {job.status !== 'all' && (
-                <StatusBadge 
-                  status={(job.status as unknown) as BadgeStatus} 
-                  size="sm"
-                >
-                  {job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
-                </StatusBadge>
+                <StatusBadge
+                  status={job.status === 'completed' ? 'completed' : job.status === 'in_progress' ? 'on_going' : job.status === 'posted' ? 'posted' : 'pending'}
+                />
               )}
             </div>
           </div>
@@ -550,11 +498,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
       </div>
       <style jsx>{`
         .job-card-interactive:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+          border-color: rgba(0, 0, 0, 0.12);
         }
         .job-card-interactive:active {
-          transform: scale(0.98);
+          transform: translateY(-2px) scale(0.99);
         }
       `}</style>
     </Link>

@@ -7,6 +7,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { WifiOff, Home, CheckCircle2 } from 'lucide-react';
 
 export default function OfflinePage() {
   const router = useRouter();
@@ -50,19 +52,7 @@ export default function OfflinePage() {
       <div className="max-w-md w-full text-center">
         {/* Offline Icon */}
         <div className="mx-auto w-24 h-24 mb-8">
-          <svg
-            className="w-full h-full text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"
-            />
-          </svg>
+          <WifiOff className="w-full h-full text-gray-400" />
         </div>
 
         {/* Status Message */}
@@ -92,24 +82,23 @@ export default function OfflinePage() {
 
         {/* Action Buttons */}
         <div className="space-y-4">
-          <button
+          <Button
             onClick={handleRetry}
             disabled={isOnline}
-            className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors ${
-              isOnline
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
+            variant="primary"
+            fullWidth
           >
             {isOnline ? 'Connecting...' : 'Try Again'}
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={() => router.push('/')}
-            className="w-full px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            variant="outline"
+            fullWidth
+            leftIcon={<Home className="h-4 w-4" />}
           >
             Go to Homepage
-          </button>
+          </Button>
         </div>
 
         {/* Helpful Tips */}
@@ -119,45 +108,15 @@ export default function OfflinePage() {
           </h3>
           <ul className="text-sm text-blue-800 space-y-2">
             <li className="flex items-start">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <CheckCircle2 className="w-5 h-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
               Previously viewed pages may be available offline
             </li>
             <li className="flex items-start">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <CheckCircle2 className="w-5 h-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
               Check your WiFi or mobile data connection
             </li>
             <li className="flex items-start">
-              <svg
-                className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <CheckCircle2 className="w-5 h-5 text-blue-600 mr-2 mt-0.5 shrink-0" />
               Try disabling VPN or proxy if enabled
             </li>
           </ul>

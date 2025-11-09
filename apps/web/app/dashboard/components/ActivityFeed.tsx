@@ -42,6 +42,9 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       padding: theme.spacing[6],
       border: `1px solid ${theme.colors.border}`,
       boxShadow: theme.shadows.sm,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
       <h2 style={{
         margin: 0,
@@ -62,19 +65,21 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
           No recent activity
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: theme.spacing[4],
+          overflowY: 'auto',
+          flex: 1,
+          minHeight: 0,
+          paddingRight: theme.spacing[2],
+          scrollbarWidth: 'thin',
+          scrollbarColor: `${theme.colors.border} transparent`,
+        }}>
           {activities.map((activity, index) => (
             <div
               key={activity.id}
-              style={{
-                display: 'flex',
-                gap: theme.spacing[3],
-                paddingBottom: index < activities.length - 1 ? theme.spacing[4] : 0,
-                borderBottom:
-                  index < activities.length - 1
-                    ? `1px solid ${theme.colors.border}`
-                    : 'none',
-              }}
+              className="group flex gap-3 pb-4 last:pb-0 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150 rounded-lg px-2 py-2 -mx-2"
             >
               <div style={{
                 width: '32px',

@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { VerificationBadge } from './VerificationBadge';
-import { UserDetailModal } from './UserDetailModal';
+import { UserDetailDialog } from './UserDetailDialog';
+import { BulkActionDialog } from './BulkActionDialog';
 
 interface User {
   id: string;
@@ -140,9 +141,9 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
     setSelectedUserIds(newSelected);
   };
 
-  const handleBulkAction = async (action: 'approve' | 'reject') => {
+  const handleBulkAction = async (action: 'approve' | 'reject', reason?: string) => {
     if (selectedUserIds.size === 0) return;
-    if (action === 'reject' && !bulkRejectReason.trim()) {
+    if (action === 'reject' && !reason?.trim()) {
       alert('Reason is required when rejecting verifications');
       return;
     }
@@ -155,7 +156,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
         body: JSON.stringify({
           userIds: Array.from(selectedUserIds),
           action,
-          reason: action === 'reject' ? bulkRejectReason : undefined,
+          reason: action === 'reject' ? reason : undefined,
         }),
       });
 
@@ -600,108 +601,35 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
         )}
       </Card>
 
-      {/* User Detail Modal */}
+      {/* User Detail Dialog */}
       {selectedUserId && (
-        <UserDetailModal
-          isOpen={showDetailModal}
-          onClose={() => {
-            setShowDetailModal(false);
+        <UserDetailDialog
+          open={showDetailModal}
+        onOpenChange={(open: boolean) => {
+          setShowDetailModal(open);
+          if (!open) {
             setSelectedUserId(null);
-          }}
-          userId={selectedUserId}
+          }
+        }}
+          userId={selectedUserId || ''}
           onVerificationUpdate={handleVerificationUpdate}
         />
       )}
 
-      {/* Bulk Action Modal */}
-      {showBulkActionModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: theme.spacing[4],
-          }}
-          onClick={() => {
+      {/* Bulk Action Dialog */}
+      <BulkActionDialog
+        open={!!showBulkActionModal}
+        onOpenChange={(open) => {
+          if (!open) {
             setShowBulkActionModal(null);
             setBulkRejectReason('');
-          }}
-        >
-          <Card
-            style={{
-              maxWidth: '500px',
-              width: '100%',
-              padding: theme.spacing[6],
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              marginBottom: theme.spacing[4],
-            }}>
-              Bulk {showBulkActionModal === 'approve' ? 'Approve' : 'Reject'} Verifications
-            </h2>
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[4],
-            }}>
-              You are about to {showBulkActionModal} {selectedUserIds.size} contractor verification{selectedUserIds.size > 1 ? 's' : ''}.
-            </p>
-            {showBulkActionModal === 'reject' && (
-              <div style={{ marginBottom: theme.spacing[4] }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: theme.spacing[1],
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}>
-                  Rejection Reason (Required)
-                </label>
-                <textarea
-                  value={bulkRejectReason}
-                  onChange={(e) => setBulkRejectReason(e.target.value)}
-                  placeholder="Enter reason for rejection..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[2],
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.base,
-                  }}
-                />
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: theme.spacing[3], justifyContent: 'flex-end' }}>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowBulkActionModal(null);
-                  setBulkRejectReason('');
-                }}
-                disabled={bulkActionLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant={showBulkActionModal === 'approve' ? 'primary' : 'destructive'}
-                onClick={() => handleBulkAction(showBulkActionModal)}
-                disabled={bulkActionLoading || (showBulkActionModal === 'reject' && !bulkRejectReason.trim())}
-              >
-                {bulkActionLoading ? 'Processing...' : `Confirm ${showBulkActionModal === 'approve' ? 'Approval' : 'Rejection'}`}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+          }
+        }}
+        action={showBulkActionModal}
+        selectedCount={selectedUserIds.size}
+        onConfirm={handleBulkAction}
+        loading={bulkActionLoading}
+      />
     </div>
   );
 }

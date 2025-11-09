@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { getCurrentUserFromHeaders, getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import UnauthenticatedCard from '@/components/UnauthenticatedCard';
-import { Icon } from '@/components/ui/Icon';
 import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { DashboardHeader } from './components/DashboardHeader';
@@ -15,12 +16,17 @@ import { UpcomingList } from './components/UpcomingList';
 import { InvoicesChart } from './components/InvoicesChart';
 import { ActivityFeed } from './components/ActivityFeed';
 import { PredictiveRecommendations } from './components/PredictiveRecommendations';
+import { BentoGrid, BentoItem } from './components/BentoGrid';
+import { LargeChart } from './components/LargeChart';
+import { BarChartsSection } from './components/BarChartsSection';
+import './components/bento-grid.css';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMoney } from '@/lib/utils/currency';
 import { RecommendationsService } from '@/lib/services/RecommendationsService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import type { Metadata } from 'next';
+import { DashboardMetric } from './components/dashboard-metrics.types';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -245,6 +251,144 @@ export default async function DashboardPage() {
       open: dueInvoices,
     },
   };
+
+  const allMetrics: DashboardMetric[] = [
+    {
+      key: 'average-job-size',
+      label: 'Average Job Size',
+      value: formatMoney(kpiData.jobsData.averageSize, 'GBP'),
+      icon: 'briefcase',
+      iconColor: theme.colors.primary,
+      trend: { direction: 'up', value: '+10%', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: true,
+    },
+    {
+      key: 'total-revenue',
+      label: 'Total Revenue',
+      value: formatMoney(kpiData.jobsData.totalRevenue, 'GBP'),
+      subtitle: `${kpiData.jobsData.completedJobs} completed jobs`,
+      icon: 'currencyPound',
+      iconColor: theme.colors.success,
+      trend: { direction: 'up', value: '+54%', label: 'from last month' },
+      gradientVariant: 'success',
+      gradient: true,
+    },
+    {
+      key: 'completed-jobs',
+      label: 'Completed Jobs',
+      value: kpiData.jobsData.completedJobs,
+      icon: 'checkCircle',
+      iconColor: theme.colors.success,
+      trend: { direction: 'up', value: '+39%', label: 'from last month' },
+      gradientVariant: 'success',
+      gradient: true,
+    },
+    {
+      key: 'scheduled-jobs',
+      label: 'Scheduled Jobs',
+      value: kpiData.jobsData.scheduledJobs,
+      icon: 'calendar',
+      iconColor: theme.colors.warning,
+      trend: { direction: 'up', value: '+5%', label: 'from last month' },
+      gradientVariant: 'warning',
+      gradient: true,
+    },
+    {
+      key: 'active-bids',
+      label: 'Active Bids',
+      value: kpiData.bidsData.activeBids,
+      icon: 'fileText',
+      iconColor: theme.colors.info,
+      trend: { direction: 'up', value: '+15%', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: true,
+    },
+    {
+      key: 'pending-review',
+      label: 'Pending Review',
+      value: kpiData.bidsData.pendingReview,
+      icon: 'clock',
+      iconColor: theme.colors.warning,
+      trend: { direction: 'up', value: '+25%', label: 'from last month' },
+      gradientVariant: 'warning',
+      gradient: true,
+    },
+    {
+      key: 'accepted-bids',
+      label: 'Accepted Bids',
+      value: kpiData.bidsData.acceptedBids,
+      icon: 'checkCircle',
+      iconColor: theme.colors.success,
+      trend: { direction: 'up', value: '+54%', label: 'from last month' },
+      gradientVariant: 'success',
+      gradient: true,
+    },
+    {
+      key: 'average-bid',
+      label: 'Average Bid',
+      value: formatMoney(kpiData.bidsData.averageBid, 'GBP'),
+      icon: 'currencyPound',
+      iconColor: theme.colors.primary,
+      trend: { direction: 'up', value: '+5%', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: true,
+    },
+    {
+      key: 'active-properties',
+      label: 'Active Properties',
+      value: kpiData.propertiesData.activeProperties,
+      icon: 'home',
+      iconColor: theme.colors.primary,
+      trend: { direction: 'up', value: '+6%', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: true,
+    },
+    {
+      key: 'pending-properties',
+      label: 'Pending Properties',
+      value: kpiData.propertiesData.pendingProperties,
+      icon: 'clock',
+      iconColor: theme.colors.warning,
+      trend: { direction: 'down', value: '-5%', label: 'from last month' },
+      gradientVariant: 'warning',
+      gradient: true,
+    },
+    {
+      key: 'active-subscriptions',
+      label: 'Active Subscriptions',
+      value: kpiData.propertiesData.activeSubscriptions,
+      icon: 'repeat',
+      iconColor: theme.colors.info,
+      trend: { direction: 'down', value: '-8%', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: true,
+    },
+    {
+      key: 'overdue-subscriptions',
+      label: 'Overdue Subscriptions',
+      value: kpiData.propertiesData.overdueSubscriptions,
+      icon: 'alertCircle',
+      iconColor: theme.colors.error,
+      trend: { direction: 'up', value: '+5%', label: 'from last month' },
+      gradientVariant: 'error',
+      gradient: true,
+    },
+  ];
+
+  const overflowMetricKeys = new Set([
+    'scheduled-jobs',
+    'pending-review',
+    'pending-properties',
+    'active-bids',
+    'average-bid',
+    'active-properties',
+    'overdue-subscriptions',
+    'active-subscriptions',
+  ]);
+
+  const primaryMetrics = allMetrics.filter((metric) => !overflowMetricKeys.has(metric.key));
+  const secondaryMetrics = allMetrics.filter((metric) => overflowMetricKeys.has(metric.key));
 
   // Prepare upcoming jobs with real scheduled dates
   const upcomingJobs = scheduledJobs
@@ -525,7 +669,7 @@ export default async function DashboardPage() {
         transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
         {/* Header */}
-        <DashboardHeader userName={userDisplayName} userId={user.id} />
+        <DashboardHeader userName={userDisplayName} userId={user.id} secondaryMetrics={secondaryMetrics} />
 
         {/* Page Content */}
         <div style={{ 
@@ -537,70 +681,150 @@ export default async function DashboardPage() {
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
             {/* Header */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing[4] }}>
-              <div>
-                <h1 style={{
-                  fontSize: theme.typography.fontSize['3xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  margin: 0,
-                  marginBottom: theme.spacing[1],
-                }}>
-                  Hi, {homeownerProfile?.first_name || 'Alex'}
-                </h1>
-                <p style={{
-                  margin: 0,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                }}>
-                  Short Description
-                </p>
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 rounded-2xl p-8 mb-6 border border-primary-700/50 shadow-xl">
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+              <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+                <div>
+                  <h1 className="text-heading-md font-[640] text-white mb-3 tracking-tighter">
+                    Hi, {homeownerProfile?.first_name || 'Alex'}
+                  </h1>
+                  <p className="text-base font-[460] text-gray-300 leading-[1.5]">
+                    Here's what's happening with your properties today
+                  </p>
+                </div>
+                <Link
+                  href="/jobs/create"
+                  className="block"
+                >
+                  <Button variant="primary" leftIcon={<Plus className="h-[18px] w-[18px]" />}>
+                    Post New Job
+                  </Button>
+                </Link>
               </div>
             </div>
 
-            {/* KPI Cards */}
-            <KpiCards
-              jobsData={kpiData.jobsData}
-              bidsData={kpiData.bidsData}
-              propertiesData={kpiData.propertiesData}
-            />
+            {/* Modern Grid Layout - Inspired by Aura.build */}
+            <div className="space-y-6">
+              {/* Top Row: KPI Cards - Modern Grid */}
+              <div className="grid grid-cols-12 gap-6">
+                {primaryMetrics.slice(0, 4).map((metric) => (
+                    <div key={metric.key} className="col-span-12 sm:col-span-6 xl:col-span-3">
+                    <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 h-full group relative overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+                      <div className="flex flex-col justify-between h-full">
+                        <div>
+                          <div className="text-xs font-[560] text-gray-600 mb-2 uppercase tracking-wider">
+                            {metric.label}
+                          </div>
+                          <div className="text-3xl font-[640] text-gray-900 mb-1 tracking-tight">
+                            {metric.value}
+                          </div>
+                          {metric.subtitle && (
+                            <div className="text-xs font-[460] text-gray-500 mt-1">
+                              {metric.subtitle}
+                            </div>
+                          )}
+                        </div>
+                        {metric.trend && (
+                          <div className={`inline-flex items-center gap-1.5 mt-4 px-2.5 py-1 rounded-lg text-xs font-[560] w-fit ${
+                            metric.trend.direction === 'up' 
+                              ? 'bg-green-50 text-green-700' 
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            <span>{metric.trend.direction === 'up' ? '↑' : '↓'}</span>
+                            {metric.trend.value}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-            {/* Predictive Recommendations */}
-            <PredictiveRecommendations recommendations={recommendations} />
+              {/* Second Row: Large Chart & Additional KPIs */}
+              <div className="grid grid-cols-12 gap-6">
+                {/* Large Chart - Takes 8 columns */}
+                <div className="col-span-12 xl:col-span-8">
+                  <LargeChart 
+                    title="Revenue Overview"
+                    subtitle="Last 6 months"
+                    data={[
+                      { label: 'Jan', value: totalRevenue * 0.7 },
+                      { label: 'Feb', value: totalRevenue * 0.8 },
+                      { label: 'Mar', value: totalRevenue * 0.75 },
+                      { label: 'Apr', value: totalRevenue * 0.9 },
+                      { label: 'May', value: totalRevenue * 0.85 },
+                      { label: 'Jun', value: totalRevenue },
+                    ]}
+                  />
+                </div>
 
-            {/* Upcoming Lists and Invoices */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: theme.spacing[6],
-            }}>
-              <UpcomingList
-                title="Upcoming Jobs"
-                items={upcomingJobs}
-                date={upcomingJobsDate || undefined}
-                actionHref="/jobs"
-              />
-              <UpcomingList
-                title="Upcoming Estimates"
-                items={upcomingEstimates}
-                date={upcomingEstimatesDate || undefined}
-                actionHref="/financials"
-              />
-            </div>
+                {/* Additional KPI Cards - Takes 4 columns */}
+                <div className="col-span-12 xl:col-span-4 space-y-6">
+                  {primaryMetrics.slice(4, 6).map((metric) => (
+                    <div key={metric.key} className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+                      <div className="flex flex-col justify-between h-full">
+                        <div>
+                          <div className="text-xs font-[560] text-gray-600 mb-2 uppercase tracking-wider">
+                            {metric.label}
+                          </div>
+                          <div className="text-3xl font-[640] text-gray-900 mb-1 tracking-tight">
+                            {metric.value}
+                          </div>
+                          {metric.subtitle && (
+                            <div className="text-xs font-[460] text-gray-500 mt-1">
+                              {metric.subtitle}
+                            </div>
+                          )}
+                        </div>
+                        {metric.trend && (
+                          <div className={`inline-flex items-center gap-1.5 mt-4 px-2.5 py-1 rounded-lg text-xs font-[560] w-fit ${
+                            metric.trend.direction === 'up' 
+                              ? 'bg-green-50 text-green-700' 
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            <span>{metric.trend.direction === 'up' ? '↑' : '↓'}</span>
+                            {metric.trend.value}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            {/* Bottom Row: Invoices and Activity */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: theme.spacing[6],
-            }}>
-              <InvoicesChart
-                pastDue={kpiData.invoicesData.pastDue}
-                due={kpiData.invoicesData.due}
-                unsent={kpiData.invoicesData.unsent}
-                openCount={kpiData.invoicesData.open}
-              />
-              <ActivityFeed activities={recentActivities} />
+              {/* Third Row: Bar Charts & Activity Feed */}
+              <div className="grid grid-cols-12 gap-6">
+                {/* Bar Charts - Takes 6 columns */}
+                <div className="col-span-12 xl:col-span-6">
+                  <BarChartsSection
+                    jobsData={[
+                      { label: 'Mon', value: activeJobs.length + 2, color: theme.colors.primary },
+                      { label: 'Tue', value: activeJobs.length + 5, color: theme.colors.primary },
+                      { label: 'Wed', value: activeJobs.length + 3, color: theme.colors.primary },
+                      { label: 'Thu', value: activeJobs.length + 7, color: theme.colors.primary },
+                      { label: 'Fri', value: activeJobs.length + 4, color: theme.colors.primary },
+                      { label: 'Sat', value: activeJobs.length + 1, color: theme.colors.primary },
+                      { label: 'Sun', value: activeJobs.length, color: theme.colors.primary },
+                    ]}
+                    revenueData={[
+                      { label: 'Week 1', value: totalRevenue * 0.2, color: theme.colors.success },
+                      { label: 'Week 2', value: totalRevenue * 0.25, color: theme.colors.success },
+                      { label: 'Week 3', value: totalRevenue * 0.22, color: theme.colors.success },
+                      { label: 'Week 4', value: totalRevenue * 0.3, color: theme.colors.success },
+                    ]}
+                  />
+                </div>
+
+                {/* Activity Feed - Takes 6 columns */}
+                <div className="col-span-12 xl:col-span-6">
+                  <ActivityFeed activities={recentActivities} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

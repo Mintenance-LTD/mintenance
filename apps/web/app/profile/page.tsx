@@ -9,6 +9,18 @@ import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { LoadingSpinner, ErrorView } from '@/components/ui';
 import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -29,6 +41,7 @@ export default function ProfilePage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [geolocationAlert, setGeolocationAlert] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   useEffect(() => {
     if (!loadingUser && user) {
@@ -90,7 +103,10 @@ export default function ProfilePage() {
 
   const detectLocation = async () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
+      setGeolocationAlert({
+        open: true,
+        message: 'Geolocation is not supported by your browser',
+      });
       return;
     }
 
@@ -388,53 +404,25 @@ export default function ProfilePage() {
               }}>
                 Once you delete your account, there is no going back. Please be certain.
               </p>
-              <button
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={() => setShowDeleteModal(true)}
                 disabled={isSaving}
-                style={{
-                  padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-                  backgroundColor: 'transparent',
-                  border: `1px solid #EF4444`,
-                  borderRadius: theme.borderRadius.lg,
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: '#EF4444',
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                  opacity: isSaving ? 0.6 : 1,
-                  width: 'fit-content',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSaving) {
-                    e.currentTarget.style.backgroundColor = '#FEE2E2';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                leftIcon={<Icon name="trash" size={16} />}
               >
-                <Icon name="trash" size={16} color="#EF4444" />
                 Delete Account
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {error && (
-          <div style={{
-            padding: theme.spacing[4],
-            backgroundColor: '#FEE2E2',
-            border: `1px solid #EF4444`,
-            borderRadius: theme.borderRadius.lg,
-            color: '#991B1B',
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            {error}
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Profile Card */}
@@ -792,38 +780,15 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
                       onClick={detectLocation}
                       disabled={isDetectingLocation}
-                      style={{
-                        padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                        borderRadius: theme.borderRadius.lg,
-                        border: `1px solid ${theme.colors.border}`,
-                        backgroundColor: theme.colors.primary,
-                        color: 'white',
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                        cursor: isDetectingLocation ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[2],
-                        whiteSpace: 'nowrap',
-                        opacity: isDetectingLocation ? 0.6 : 1,
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isDetectingLocation) {
-                          e.currentTarget.style.backgroundColor = '#1E293B';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.colors.primary;
-                      }}
+                      leftIcon={<Icon name="mapPin" size={16} />}
                     >
-                      <Icon name="mapPin" size={16} color="white" />
                       {isDetectingLocation ? 'Detecting...' : 'Use My Location'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -852,6 +817,21 @@ export default function ProfilePage() {
           userId={user.id}
         />
       )}
+
+      {/* Geolocation Alert Dialog */}
+      <AlertDialog open={geolocationAlert.open} onOpenChange={(open: boolean) => setGeolocationAlert({ ...geolocationAlert, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Geolocation Not Supported</AlertDialogTitle>
+            <AlertDialogDescription>{geolocationAlert.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setGeolocationAlert({ open: false, message: '' })}>
+              OK
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </HomeownerLayoutShell>
   );
 }

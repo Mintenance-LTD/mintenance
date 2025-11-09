@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Modal } from '@/components/ui/Modal';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
 import Link from 'next/link';
@@ -31,17 +33,18 @@ interface PaymentMethod {
 export default function PaymentMethodsPage() {
   const router = useRouter();
   const { user, loading: loadingUser } = useCurrentUser();
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [showAddDialog, setShowAddDialog] = React.useState(false);
+  const [removingId, setRemovingId] = React.useState<string | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       loadPaymentMethods();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadPaymentMethods = async () => {
@@ -196,19 +199,11 @@ export default function PaymentMethodsPage() {
 
         {/* Error Message */}
         {error && (
-          <div style={{
-            padding: theme.spacing[4],
-            backgroundColor: '#FEE2E2',
-            border: '1px solid #EF4444',
-            borderRadius: theme.borderRadius.lg,
-            color: '#991B1B',
-            fontSize: theme.typography.fontSize.sm,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <Icon name="xCircle" size={20} color="#EF4444" />
-              <span>{error}</span>
-            </div>
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Add Payment Method Button */}
@@ -218,7 +213,7 @@ export default function PaymentMethodsPage() {
         }}>
           <Button
             variant="primary"
-            onClick={() => setShowAddModal(true)}
+            onClick={() => setShowAddDialog(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -267,7 +262,7 @@ export default function PaymentMethodsPage() {
             </p>
             <Button
               variant="primary"
-              onClick={() => setShowAddModal(true)}
+              onClick={() => setShowAddDialog(true)}
             >
               Add Payment Method
             </Button>
@@ -393,30 +388,30 @@ export default function PaymentMethodsPage() {
           </div>
         )}
 
-        {/* Add Payment Method Modal */}
-        <Modal
-          isOpen={showAddModal}
-          onClose={() => {
-            setShowAddModal(false);
-            setError('');
-          }}
-          title="Add Payment Method"
-          maxWidth={600}
-        >
-          <div style={{ padding: theme.spacing[4] }}>
-            <AddPaymentMethodForm
-              onSuccess={() => {
-                setShowAddModal(false);
-                setError('');
-                loadPaymentMethods();
-              }}
-              onCancel={() => {
-                setShowAddModal(false);
-                setError('');
-              }}
-            />
-          </div>
-        </Modal>
+        {/* Add Payment Method Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add Payment Method</DialogTitle>
+              <DialogDescription>
+                Add a new payment method to your account for quick and easy payments
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <AddPaymentMethodForm
+                onSuccess={() => {
+                  setShowAddDialog(false);
+                  setError('');
+                  loadPaymentMethods();
+                }}
+                onCancel={() => {
+                  setShowAddDialog(false);
+                  setError('');
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </HomeownerLayoutShell>
   );

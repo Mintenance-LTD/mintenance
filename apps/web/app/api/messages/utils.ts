@@ -84,6 +84,14 @@ export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { e
     return fallback.email.split('@')[0];
   }
   
+  // If person exists but has no name, try person's own email/company
+  if (person.email) {
+    return person.email.split('@')[0];
+  }
+  if (person.company_name) {
+    return person.company_name;
+  }
+  
   return 'Unknown User';
 };
 
@@ -121,23 +129,37 @@ export const buildThreadParticipants = (job: SupabaseJobRow): MessageThread['par
   const participants: MessageThread['participants'] = [];
 
   if (job.homeowner_id) {
+    // Always include homeowner, even if data is missing
+    const homeownerName = formatDisplayName(job.homeowner, {
+      email: job.homeowner?.email ?? undefined,
+      company_name: job.homeowner?.company_name ?? undefined,
+    });
+    
+    // If we still get "Unknown User" but have homeowner_id, try to use a more descriptive name
+    const finalHomeownerName = homeownerName === 'Unknown User' && job.homeowner_id
+      ? `Homeowner ${job.homeowner_id.slice(0, 8)}` // Use first 8 chars of ID as fallback
+      : homeownerName;
+    
     participants.push({
       id: job.homeowner_id,
-      name: formatDisplayName(job.homeowner, {
-        email: job.homeowner?.email ?? undefined,
-        company_name: job.homeowner?.company_name ?? undefined,
-      }),
+      name: finalHomeownerName,
       role: job.homeowner?.role ?? 'homeowner',
     });
   }
 
   if (job.contractor_id) {
+    const contractorName = formatDisplayName(job.contractor, {
+      email: job.contractor?.email ?? undefined,
+      company_name: job.contractor?.company_name ?? undefined,
+    });
+    
+    const finalContractorName = contractorName === 'Unknown User' && job.contractor_id
+      ? `Contractor ${job.contractor_id.slice(0, 8)}`
+      : contractorName;
+    
     participants.push({
       id: job.contractor_id,
-      name: formatDisplayName(job.contractor, {
-        email: job.contractor?.email ?? undefined,
-        company_name: job.contractor?.company_name ?? undefined,
-      }),
+      name: finalContractorName,
       role: job.contractor?.role ?? 'contractor',
     });
   }

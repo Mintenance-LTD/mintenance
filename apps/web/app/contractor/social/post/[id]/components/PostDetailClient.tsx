@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { CommentsSection } from '../../../components/CommentsSection';
-import { ShareModal } from '../../../components/ShareModal';
+import { ShareDialog } from '../../../components/ShareDialog';
 import { FollowButton } from '../../../components/FollowButton';
 
 interface PostDetail {
@@ -524,14 +524,13 @@ export function PostDetailClient({ post: initialPost, currentUserId }: PostDetai
         />
       </article>
 
-      {showShareModal && (
-        <ShareModal
-          postId={post.id}
-          postTitle={post.title}
-          shareLink={shareLink}
-          onClose={() => setShowShareModal(false)}
-        />
-      )}
+      <ShareDialog
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        postId={post.id}
+        postTitle={post.title}
+        shareLink={shareLink}
+      />
     </div>
   );
 }

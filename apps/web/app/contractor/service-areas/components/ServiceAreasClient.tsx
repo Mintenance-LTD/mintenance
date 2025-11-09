@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import { MapPin, List, Map } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/Badge.unified';
@@ -112,7 +112,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       label: 'Location',
       render: (area) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-          <Icon name="mapPin" size={18} color={theme.colors.primary} />
+          <MapPin className="h-[18px] w-[18px]" style={{ color: theme.colors.primary }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
               {area.location}
@@ -235,7 +235,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
             color: theme.colors.textSecondary,
           }}
         >
-          <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
+          <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
           {serviceAreas.filter((a) => a.is_active).length} active zones
         </span>
       </header>
@@ -351,23 +351,19 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           variant={viewMode === 'table' ? 'primary' : 'outline'}
           size="md"
           onClick={() => setViewMode('table')}
-          style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}
+          leftIcon={<List className="h-[18px] w-[18px]" />}
         >
-          <Icon name="list" size={18} />
           Table View
         </Button>
         <Button
           variant={viewMode === 'map' ? 'primary' : 'outline'}
           size="md"
           onClick={() => setViewMode('map')}
-          style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}
+          leftIcon={<Map className="h-[18px] w-[18px]" />}
         >
-          <Icon name="map" size={18} />
           Map View
         </Button>
       </div>
-
-      {/* Conditional Rendering: Map or Table */}
       {viewMode === 'map' ? (
         <ServiceAreasMap
           serviceAreas={serviceAreas

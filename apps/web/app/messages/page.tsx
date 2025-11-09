@@ -84,6 +84,12 @@ export default function MessagesPage() {
         return;
       }
 
+      // Redirect contractors to their own messages page
+      if (currentUser.role === 'contractor') {
+        router.push('/contractor/messages');
+        return;
+      }
+
       setUser(currentUser);
       console.log('[MessagesPage] Loading conversations for user:', currentUser.id);
       const userConversations = await MessagingService.getUserMessageThreads(currentUser.id);

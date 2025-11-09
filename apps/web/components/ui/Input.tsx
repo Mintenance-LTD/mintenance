@@ -98,18 +98,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       paddingLeft: leftIcon ? theme.spacing[10] : theme.spacing[3],
       paddingRight: rightIcon ? theme.spacing[10] : theme.spacing[3],
 
-      fontSize: theme.typography.fontSize.lg,
+      fontSize: theme.typography.fontSize.base, // 16px for body text per plan
       fontFamily: theme.typography.fontFamily.regular,
-      fontWeight: theme.typography.fontWeight.regular,
-      lineHeight: theme.typography.lineHeight.normal,
+      fontWeight: theme.typography.fontWeight.regular, // font-[460] equivalent
+      lineHeight: theme.typography.lineHeight.normal, // 1.5 per plan
 
       backgroundColor: variantStyles.backgroundColor,
       color: variantStyles.color || theme.colors.textPrimary,
       border: `1px solid ${variantStyles.borderColor}`,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: '8px', // Consistent 8px border radius per plan
 
       outline: 'none',
-      transition: 'all 0.15s ease-in-out',
+      transition: 'all 0.2s ease-in-out', // Consistent 0.2s transition
 
       ...style,
     };

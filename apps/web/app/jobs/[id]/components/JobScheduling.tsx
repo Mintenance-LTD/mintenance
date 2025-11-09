@@ -2,6 +2,11 @@
 
 import React, { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { theme } from '@/lib/theme';
 
 interface JobSchedulingProps {
@@ -20,6 +25,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const [startDate, setStartDate] = useState(
     currentSchedule?.scheduled_start_date 
@@ -72,12 +78,16 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
       const data = await response.json();
       setIsEditing(false);
-      alert('Job scheduled successfully! Both parties will be notified.');
+      setSuccessMessage('Job scheduled successfully! Both parties will be notified.');
+      setError(null);
       
-      // Refresh the page to show updated schedule
-      window.location.reload();
+      // Refresh the page to show updated schedule after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to schedule job');
+      setSuccessMessage(null);
     } finally {
       setIsSaving(false);
     }
@@ -196,43 +206,29 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
           Schedule
         </h3>
         {!isEditing && hasSchedule && (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsEditing(true)}
-            style={{
-              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-              backgroundColor: 'transparent',
-              color: theme.colors.primary,
-              border: `1px solid ${theme.colors.primary}`,
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-            }}
           >
             <Icon name="edit" size={16} color={theme.colors.primary} />
             Edit
-          </button>
+          </Button>
         )}
       </div>
 
       {error && (
-        <div style={{
-          padding: theme.spacing[3],
-          backgroundColor: theme.colors.error + '20',
-          borderRadius: theme.borderRadius.md,
-          color: theme.colors.error,
-          fontSize: theme.typography.fontSize.sm,
-          marginBottom: theme.spacing[4],
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="alertCircle" size={20} color={theme.colors.error} />
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {successMessage && (
+        <Alert className="mb-4 border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
+        </Alert>
       )}
 
       {!isEditing ? (
@@ -327,110 +323,49 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
               }}>
                 No schedule set yet. Set a start date to coordinate with the {userRole === 'contractor' ? 'homeowner' : 'contractor'}.
               </p>
-              <button
+              <Button
                 onClick={() => setIsEditing(true)}
-                style={{
-                  padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-                  backgroundColor: theme.colors.primary,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  margin: '0 auto',
-                }}
+                variant="primary"
               >
                 <Icon name="calendar" size={20} color="white" />
                 Set Schedule
-              </button>
+              </Button>
             </div>
           )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Start Date & Time *
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="start-date">Start Date & Time *</Label>
+            <Input
+              id="start-date"
               type="datetime-local"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              style={{
-                width: '100%',
-                padding: theme.spacing[2],
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-              }}
               min={new Date().toISOString().slice(0, 16)}
             />
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              End Date & Time (Optional)
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="end-date">End Date & Time (Optional)</Label>
+            <Input
+              id="end-date"
               type="datetime-local"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              style={{
-                width: '100%',
-                padding: theme.spacing[2],
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-              }}
               min={startDate || new Date().toISOString().slice(0, 16)}
             />
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Estimated Duration (hours, Optional)
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="duration-hours">Estimated Duration (hours, Optional)</Label>
+            <Input
+              id="duration-hours"
               type="number"
               value={durationHours}
               onChange={(e) => setDurationHours(e.target.value)}
               placeholder="e.g., 8"
               min="1"
-              style={{
-                width: '100%',
-                padding: theme.spacing[2],
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-              }}
             />
           </div>
 
@@ -438,25 +373,11 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
             display: 'flex',
             gap: theme.spacing[3],
           }}>
-            <button
+            <Button
               onClick={handleSave}
               disabled={isSaving || !startDate}
-              style={{
-                flex: 1,
-                padding: theme.spacing[3],
-                backgroundColor: theme.colors.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                cursor: isSaving || !startDate ? 'not-allowed' : 'pointer',
-                opacity: isSaving || !startDate ? 0.6 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: theme.spacing[2],
-              }}
+              variant="primary"
+              className="flex-1"
             >
               {isSaving ? (
                 <>
@@ -469,11 +390,12 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
                   Save Schedule
                 </>
               )}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setIsEditing(false);
                 setError(null);
+                setSuccessMessage(null);
                 // Reset form
                 setStartDate(currentSchedule?.scheduled_start_date 
                   ? new Date(currentSchedule.scheduled_start_date).toISOString().slice(0, 16)
@@ -484,19 +406,10 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
                 setDurationHours(currentSchedule?.scheduled_duration_hours?.toString() || '');
               }}
               disabled={isSaving}
-              style={{
-                padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-                backgroundColor: 'transparent',
-                color: theme.colors.textSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: isSaving ? 'not-allowed' : 'pointer',
-              }}
+              variant="outline"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { theme } from '@/lib/theme';
+import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { AddPropertyModal } from './AddPropertyModal';
+import { AddPropertyDialog } from './AddPropertyDialog';
 import { useRouter } from 'next/navigation';
 
 export function AddPropertyButton() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const router = useRouter();
 
   const handleSuccess = () => {
@@ -17,37 +17,19 @@ export function AddPropertyButton() {
 
   return (
     <>
-      <button
-        onClick={() => setIsModalOpen(true)}
-        style={{
-          height: '40px',
-          padding: `0 ${theme.spacing[4]}`,
-          borderRadius: theme.borderRadius.lg,
-          border: 'none',
-          backgroundColor: theme.colors.primary,
-          color: 'white',
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.semibold,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#374151';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = theme.colors.primary;
-        }}
+      <Button
+        variant="primary"
+        size="lg"
+        onClick={() => setIsDialogOpen(true)}
+        className="bg-secondary text-white hover:bg-secondary-600 shadow-md hover:shadow-lg"
       >
-        <Icon name="plus" size={16} color="white" />
+        <Icon name="plus" size={18} color="white" />
         Add Property
-      </button>
+      </Button>
 
-      <AddPropertyModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+      <AddPropertyDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
         onSuccess={handleSuccess}
       />
     </>

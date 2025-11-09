@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { StatusBadge } from '@/components/ui/figma';
 import Link from 'next/link';
 
 export interface Job {
@@ -282,18 +282,9 @@ export function JobsTable({ jobs, onRowClick }: JobsTableProps) {
                 <td style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                 }}>
-                  <div style={{
-                    display: 'inline-flex',
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    borderRadius: theme.borderRadius.full,
-                    backgroundColor: statusColors[job.status].bg,
-                    color: statusColors[job.status].text,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    textTransform: 'capitalize',
-                  }}>
-                    {job.status.replace('_', ' ')}
-                  </div>
+                  <StatusBadge
+                    status={job.status === 'completed' ? 'completed' : job.status === 'in_progress' ? 'on_going' : job.status === 'posted' ? 'posted' : job.status === 'assigned' ? 'posted' : 'pending'}
+                  />
                 </td>
                 <td style={{
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,

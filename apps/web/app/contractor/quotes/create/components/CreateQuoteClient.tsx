@@ -6,12 +6,12 @@ import { theme } from '@/lib/theme';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
 import { Card } from '@/components/ui/Card.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Badge } from '@/components/ui/Badge.unified';
+import { Plus, Trash2 } from 'lucide-react';
 
 const StatusChip = Badge;
 
@@ -265,8 +265,7 @@ export function CreateQuoteClient() {
           title="Line items"
           subtitle="Break down labour, materials, or services to show how you reached the total."
           actions={
-            <Button variant="ghost" size="sm" type="button" onClick={handleAddLineItem}>
-              <Icon name="plus" size={16} color={theme.colors.primary} />
+            <Button variant="ghost" size="sm" type="button" onClick={handleAddLineItem} leftIcon={<Plus className="h-4 w-4" />}>
               <span style={{ marginLeft: theme.spacing[2] }}>Add item</span>
             </Button>
           }
@@ -317,8 +316,8 @@ export function CreateQuoteClient() {
                     size="sm"
                     onClick={() => handleRemoveLineItem(index)}
                     style={{ alignSelf: 'flex-start', marginTop: theme.spacing[2], color: theme.colors.error }}
+                    leftIcon={<Trash2 className="h-4 w-4 text-red-600" />}
                   >
-                    <Icon name="trash" size={16} color={theme.colors.error} />
                     <span style={{ marginLeft: theme.spacing[1] }}>Remove</span>
                   </Button>
                 )}

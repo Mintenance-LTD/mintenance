@@ -2,203 +2,79 @@
 
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
-import Link from 'next/link';
-import { formatMoney } from '@/lib/utils/currency';
-
-interface KpiCardProps {
-  title: string;
-  stats: Array<{
-    label: string;
-    value: string | number;
-    change?: string;
-    changeType?: 'positive' | 'negative' | 'neutral';
-  }>;
-  actionLabel?: string;
-  actionHref?: string;
-}
-
-function KpiCard({ title, stats, actionLabel, actionHref }: KpiCardProps) {
-  return (
-    <div style={{
-      backgroundColor: theme.colors.white,
-      borderRadius: '20px',
-      padding: `${theme.spacing[8]} ${theme.spacing[6]}`,
-      border: `1px solid ${theme.colors.border}`,
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-      transition: 'box-shadow 0.2s ease',
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing[6],
-      }}>
-        <h2 style={{
-          margin: 0,
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
-        }}>
-          {title}
-        </h2>
-        {actionLabel && actionHref && (
-          <span className="kpi-card-action-link">
-            <Link
-              href={actionHref}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-                color: theme.colors.primary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                textDecoration: 'none',
-                transition: 'opacity 0.2s ease, transform 0.2s ease',
-              }}
-            >
-              {actionLabel}
-              <Icon name="chevronRight" size={16} color={theme.colors.primary} />
-            </Link>
-          </span>
-        )}
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
-        gap: theme.spacing[6],
-      }}>
-        {stats.map((stat, idx) => (
-          <div key={idx} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[2],
-            minWidth: 0,
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-              lineHeight: '1.4',
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
-            }}>
-              {stat.label}
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: theme.spacing[2],
-              flexWrap: 'wrap',
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                fontVariantNumeric: 'tabular-nums',
-                lineHeight: '1.2',
-              }}>
-                {stat.value}
-              </div>
-              {stat.change && (
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  padding: `4px 10px`,
-                  borderRadius: theme.borderRadius.full,
-                  fontSize: '11px',
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  backgroundColor: 
-                    stat.changeType === 'positive' ? '#D1FAE5' :
-                    stat.changeType === 'negative' ? '#FEE2E2' :
-                    '#F3F4F6',
-                  color:
-                    stat.changeType === 'positive' ? '#065F46' :
-                    stat.changeType === 'negative' ? '#991B1B' :
-                    theme.colors.textSecondary,
-                }}>
-                  {stat.change}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          .kpi-card-action-link:hover a {
-            opacity: 0.7;
-            transform: translateX(2px);
-          }
-        `
-      }} />
-    </div>
-  );
-}
+import { MetricCard } from '@/components/ui/figma';
+import { DashboardMetric } from './dashboard-metrics.types';
 
 interface KpiCardsProps {
-  jobsData: {
-    averageSize: number;
-    totalRevenue: number;
-    completedJobs: number;
-    scheduledJobs: number;
-  };
-  bidsData: {
-    activeBids: number;
-    pendingReview: number;
-    acceptedBids: number;
-    averageBid: number;
-  };
-  propertiesData: {
-    activeProperties: number;
-    pendingProperties: number;
-    activeSubscriptions: number;
-    overdueSubscriptions: number;
-  };
+  metrics: DashboardMetric[];
 }
 
-export function KpiCards({ jobsData, bidsData, propertiesData }: KpiCardsProps) {
+export function KpiCards({ metrics }: KpiCardsProps) {
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-      gap: theme.spacing[6],
-    }}>
-      <KpiCard
-        title="Jobs"
-        actionLabel="See All"
-        actionHref="/jobs"
-        stats={[
-          { label: 'Average Job Size', value: formatMoney(jobsData.averageSize, 'GBP'), change: '+10%', changeType: 'positive' },
-          { label: 'Total Revenue', value: formatMoney(jobsData.totalRevenue, 'GBP'), change: '+54%', changeType: 'positive' },
-          { label: 'Completed Jobs', value: jobsData.completedJobs, change: '+39%', changeType: 'positive' },
-          { label: 'Scheduled Jobs', value: jobsData.scheduledJobs, change: '+5%', changeType: 'positive' },
-        ]}
-      />
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      {metrics.map((metric) => (
+        <div
+          key={metric.key}
+          className="group relative overflow-hidden bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        >
+          {/* Gradient bar - appears on hover, always visible on large screens */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+          {/* Background Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/0 via-gray-50/50 to-gray-100/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-      <KpiCard
-        title="Bids Received"
-        actionLabel="See All"
-        actionHref="/jobs"
-        stats={[
-          { label: 'Active Bids', value: bidsData.activeBids, change: '+15%', changeType: 'positive' },
-          { label: 'Pending Review', value: bidsData.pendingReview, change: '+25%', changeType: 'positive' },
-          { label: 'Accepted', value: bidsData.acceptedBids, change: '+54%', changeType: 'positive' },
-          { label: 'Average Bid', value: formatMoney(bidsData.averageBid, 'GBP'), change: '+5%', changeType: 'positive' },
-        ]}
-      />
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Icon and Label */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                {metric.icon && (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary-50 to-secondary-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <span style={{ color: metric.iconColor || theme.colors.secondary }}>
+                      {metric.icon}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-      <KpiCard
-        title="Properties & Subscriptions"
-        stats={[
-          { label: 'Active Properties', value: propertiesData.activeProperties, change: '+6%', changeType: 'positive' },
-          { label: 'Pending Properties', value: propertiesData.pendingProperties, change: '-5%', changeType: 'negative' },
-          { label: 'Active Subscriptions', value: propertiesData.activeSubscriptions, change: '-8%', changeType: 'negative' },
-          { label: 'Overdue Subscriptions', value: propertiesData.overdueSubscriptions, change: '+5%', changeType: 'positive' },
-        ]}
-      />
+            {/* Label */}
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
+              {metric.label}
+            </p>
+
+            {/* Value */}
+            <h3 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
+              {metric.value}
+            </h3>
+
+            {/* Subtitle */}
+            {metric.subtitle && (
+              <p className="text-sm font-medium text-gray-500 mb-3">
+                {metric.subtitle}
+              </p>
+            )}
+
+            {/* Trend */}
+            {metric.trend && (
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
+                  metric.trend.direction === 'up'
+                    ? 'bg-secondary-50 text-secondary-700'
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  <span className="text-sm font-bold">
+                    {metric.trend.direction === 'up' ? '↑' : '↓'}
+                  </span>
+                  <span className="text-xs font-semibold">
+                    {metric.trend.value}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-500">vs last period</span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

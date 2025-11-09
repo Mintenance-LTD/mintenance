@@ -6,6 +6,10 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlatformSetting } from '@/lib/services/admin/PlatformSettingsService';
 
 interface SettingsClientProps {
@@ -113,20 +117,19 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
       case 'boolean':
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], cursor: 'pointer' }}>
-              <input
-                type="checkbox"
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={key}
                 checked={localValue === true || localValue === 'true'}
-                onChange={(e) => {
-                  handleChange(e.target.checked);
-                  handleSave(setting, e.target.checked);
+                onCheckedChange={(checked: boolean) => {
+                  handleChange(checked);
+                  handleSave(setting, checked);
                 }}
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
               />
-              <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+              <Label htmlFor={key} className="text-sm text-gray-600 cursor-pointer">
                 {localValue === true || localValue === 'true' ? 'Enabled' : 'Disabled'}
-              </span>
-            </label>
+              </Label>
+            </div>
           </div>
         );
 
@@ -153,18 +156,11 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
       case 'json':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-            <textarea
+            <Textarea
               value={typeof localValue === 'string' ? localValue : JSON.stringify(localValue, null, 2)}
               onChange={(e) => handleChange(e.target.value)}
               rows={4}
-              style={{
-                width: '100%',
-                padding: theme.spacing[2],
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontFamily: 'monospace',
-                fontSize: theme.typography.fontSize.sm,
-              }}
+              className="font-mono text-sm"
             />
             <Button
               variant="primary"
@@ -250,25 +246,19 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
               {renderSettingInput(setting)}
 
               {errors[setting.setting_key] && (
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: '#EF4444',
-                  marginTop: theme.spacing[1],
-                  margin: 0,
-                }}>
-                  {errors[setting.setting_key]}
-                </p>
+                <Alert variant="destructive" className="mt-2">
+                  <AlertDescription>
+                    {errors[setting.setting_key]}
+                  </AlertDescription>
+                </Alert>
               )}
 
               {success[setting.setting_key] && (
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: '#10B981',
-                  marginTop: theme.spacing[1],
-                  margin: 0,
-                }}>
-                  ✓ Setting saved successfully
-                </p>
+                <Alert className="mt-2 border-green-200 bg-green-50">
+                  <AlertDescription className="text-green-800">
+                    ✓ Setting saved successfully
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           ))}

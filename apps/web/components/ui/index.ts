@@ -76,3 +76,51 @@ export type { ModalProps } from './Modal';
 // Re-export theme for component consumers
 export { theme, getColor, getSpacing, getFontSize, getShadow, getStatusColor, getPriorityColor } from '@/lib/theme';
 export type { Theme } from '@/lib/theme';
+
+// shadcn/ui Components
+export { Label } from './label';
+export { Separator } from './separator';
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+} from './select';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from './dialog';
+export { Alert, AlertTitle, AlertDescription } from './alert';
+export {
+  AlertDialog,
+  AlertDialogPortal,
+  AlertDialogOverlay,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from './alert-dialog';
+export { Checkbox } from './checkbox';
+export { RadioGroup, RadioGroupItem } from './radio-group';
+export { Switch } from './switch';
+
+export { GradientCard } from './GradientCard';

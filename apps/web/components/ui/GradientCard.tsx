@@ -1,81 +1,65 @@
 'use client';
 
-import React, { useState } from 'react';
-import { theme } from '@/lib/theme';
-import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
+import React, { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
-export type GradientVariant = 'primary' | 'success' | 'warning' | 'info' | 'subtle';
-
-export interface GradientCardProps {
-  children: React.ReactNode;
-  variant?: GradientVariant;
-  hover?: boolean;
-  onClick?: () => void;
+interface GradientCardProps {
+  children: ReactNode;
   className?: string;
-  style?: React.CSSProperties;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'sm' | 'md' | 'lg';
+  onClick?: () => void;
 }
 
+const paddingMap = {
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+};
+
 /**
- * GradientCard Component
+ * GradientCard - A reusable white box component with gradient hover effect
  * 
- * A card component with gradient background and enhanced hover effects.
- * Perfect for metric cards, feature highlights, and visual emphasis.
+ * Features:
+ * - White background with rounded corners
+ * - Border and shadow styling
+ * - Gradient bar that appears on hover (always visible on large screens)
+ * - Smooth hover animations (lift effect and shadow increase)
  * 
- * @example
- * <GradientCard variant="primary" hover>
- *   <h3>Total Revenue</h3>
- *   <p>£15,000</p>
+ * Usage:
+ * <GradientCard>
+ *   <h2>Card Title</h2>
+ *   <p>Card content</p>
  * </GradientCard>
  */
-export function GradientCard({
-  children,
-  variant = 'subtle',
-  hover = false,
-  onClick,
-  className = '',
-  style = {},
-  padding = 'lg',
+export function GradientCard({ 
+  children, 
+  className = '', 
+  padding = 'md',
+  onClick 
 }: GradientCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const paddingValues: Record<typeof padding, string> = {
-    none: '0',
-    sm: theme.spacing[4],
-    md: theme.spacing[6],
-    lg: theme.spacing[8],
-  };
-
-  const baseStyle = getGradientCardStyle(variant);
-  const hoverStyle = (hover || onClick) && isHovered ? getCardHoverStyle() : {};
-
+  const paddingClass = paddingMap[padding];
+  
   return (
     <div
-      className={`gradient-card ${className}`}
-      style={{
-        ...baseStyle,
-        padding: paddingValues[padding],
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        ...hoverStyle,
-        ...style,
-      }}
+      className={cn(
+        'bg-white rounded-2xl border border-gray-200 shadow-sm',
+        'hover:shadow-lg hover:-translate-y-0.5',
+        'transition-all duration-200',
+        'group relative overflow-hidden',
+        paddingClass,
+        onClick && 'cursor-pointer',
+        className
+      )}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          onClick();
-        }
-      }}
     >
+      {/* Gradient bar - appears on hover, always visible on large screens */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"
+        data-gradient-bar="true"
+        aria-hidden="true"
+      />
+      {/* Content */}
       {children}
     </div>
   );
 }
-
-export default GradientCard;
-

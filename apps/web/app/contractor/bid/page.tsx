@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Briefcase, Image as ImageIcon, CheckCircle2, MapPin, PoundSterling } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { MetricCard } from '@/components/ui/figma';
 import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface Job {
@@ -459,75 +460,49 @@ export default function ContractorBidsPage() {
   }
 
   return (
-    <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      <header suppressHydrationWarning>
-        <div suppressHydrationWarning>
-          <h1
-            suppressHydrationWarning
-            style={{
-              display: 'flex',
-              gap: theme.spacing[3],
-              alignItems: 'center',
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-            }}
-          >
-            <Icon name='briefcase' size={32} color={theme.colors.primary} />
-            Jobs & Bids
-          </h1>
-          <p suppressHydrationWarning style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
-            Browse open projects, review requirements, and submit a tailored bid in minutes.
-          </p>
+    <div className="flex flex-col gap-8 bg-white p-8 -m-8">
+      <header className="relative">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="flex gap-4 items-center mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center">
+                <Briefcase className="h-7 w-7" style={{ color: theme.colors.primary }} />
+              </div>
+              <h1 className="text-heading-md font-[640] text-gray-900 tracking-tighter">
+                Jobs & Bids
+              </h1>
+            </div>
+            <p className="text-base font-[460] text-gray-600 leading-[1.5] max-w-2xl">
+              Browse open projects, review requirements, and submit a tailored bid in minutes.
+            </p>
+          </div>
         </div>
       </header>
 
-      <section
-        suppressHydrationWarning
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
+      {/* Modern Grid Layout for Metrics */}
+      <div className="grid grid-cols-12 gap-6">
         {safeSummaryCards.map((card, index) => {
           const gradientVariants: Array<'primary' | 'success' | 'warning'> = ['primary', 'success', 'warning'];
           const variant = gradientVariants[index % gradientVariants.length] || 'primary';
+          const icons = ['briefcase', 'star', 'bookmark'];
+          const iconColors = [theme.colors.primary, theme.colors.warning, theme.colors.success];
           
           return (
-            <div
-              key={card.label}
-              suppressHydrationWarning
-              style={{
-                ...getGradientCardStyle(variant),
-                padding: theme.spacing[6],
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing[2],
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = theme.shadows.lg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = theme.shadows.sm;
-              }}
-            >
-              <span suppressHydrationWarning style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, fontWeight: theme.typography.fontWeight.medium }}>
-                {card.label}
-              </span>
-              <span suppressHydrationWarning style={{ fontSize: theme.typography.fontSize['3xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
-                <AnimatedCounter value={typeof card.value === 'number' ? card.value : parseInt(card.value) || 0} />
-              </span>
+            <div key={card.label} className="col-span-12 sm:col-span-6 xl:col-span-4">
+              <MetricCard
+                label={card.label}
+                value={<AnimatedCounter value={typeof card.value === 'number' ? card.value : parseInt(String(card.value)) || 0} />}
+                icon={icons[index] || 'briefcase'}
+                iconColor={iconColors[index]}
+                gradient={false}
+                gradientVariant={variant}
+              />
             </div>
           );
         })}
-      </section>
+      </div>
 
-      <nav suppressHydrationWarning style={{ display: 'flex', gap: theme.spacing[3], borderBottom: `1px solid ${theme.colors.border}`, position: 'relative' }}>
+      <nav className="flex gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
         {([
           { key: 'available', label: 'All jobs' },
           { key: 'recommended', label: 'Recommended' },
@@ -535,47 +510,21 @@ export default function ContractorBidsPage() {
         ] as { key: FilterKey; label: string }[]).map((item) => {
           const isActive = filter === item.key;
           return (
-            <button
+            <Button
               key={item.key}
               onClick={() => setFilter(item.key)}
-              suppressHydrationWarning
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                borderBottom: isActive ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
-                ...(isActive 
-                  ? { background: 'linear-gradient(to bottom, transparent 0%, rgba(15, 23, 42, 0.05) 100%)' }
-                  : { backgroundColor: 'transparent' }
-                ),
-                color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.color = theme.colors.textPrimary;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.color = theme.colors.textSecondary;
-                }
-              }}
+              variant={isActive ? 'primary' : 'ghost'}
+              size="sm"
+              className="flex-1 capitalize"
             >
               {item.label}
-            </button>
+            </Button>
           );
         })}
       </nav>
 
-      <section suppressHydrationWarning style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
-        gap: theme.spacing[4],
-        maxWidth: '100%',
-      }}>
+      {/* Modern Grid Layout for Job Cards */}
+      <div className="grid grid-cols-12 gap-6">
         {loading ? (
           <div style={{ color: theme.colors.textSecondary }}>Loading jobs...</div>
         ) : (() => {
@@ -714,36 +663,15 @@ export default function ContractorBidsPage() {
                   safeJob.photos = [];
                 }
                 
-                return (
-            <article
-              key={safeJob.id}
-              onClick={() => handleCardClick(safeJob.id)}
-              suppressHydrationWarning
-              style={{
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.surface,
-                borderRadius: theme.borderRadius.lg,
-                padding: theme.spacing[3],
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing[2],
-                cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: theme.shadows.sm,
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.primary;
-                e.currentTarget.style.boxShadow = theme.shadows.xl;
-                e.currentTarget.style.transform = 'translateY(-4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.border;
-                e.currentTarget.style.boxShadow = theme.shadows.sm;
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+                         return (
+                           <article
+                             key={safeJob.id}
+                             onClick={() => handleCardClick(safeJob.id)}
+                             className="col-span-12 md:col-span-6 xl:col-span-4 group border border-gray-200 bg-white rounded-2xl p-6 flex flex-col gap-4 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden"
+                           >
+              {/* Subtle top accent */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              
               {/* Job Image */}
               {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 0 && safeJob.photos[0] ? (
                 <div style={{ 
@@ -792,7 +720,7 @@ export default function ContractorBidsPage() {
                         boxShadow: theme.shadows.md,
                       }}
                     >
-                      <Icon name="image" size={12} color="white" />
+                      <ImageIcon className="h-3 w-3 text-white" />
                       {safeJob.photos && Array.isArray(safeJob.photos) ? safeJob.photos.length : 0}
                     </div>
                   )}
@@ -811,7 +739,7 @@ export default function ContractorBidsPage() {
                   }}
                 >
                   <div style={{ textAlign: 'center', color: theme.colors.textSecondary }}>
-                    <Icon name="image" size={20} color={theme.colors.textTertiary} />
+                    <ImageIcon className="h-5 w-5" style={{ color: theme.colors.textTertiary }} />
                     <p style={{ margin: `${theme.spacing[1]} 0 0 0`, fontSize: theme.typography.fontSize.xs }}>
                       No images available
                     </p>
@@ -819,75 +747,50 @@ export default function ContractorBidsPage() {
                 </div>
               )}
 
-              <header style={{ display: 'flex', justifyContent: 'space-between', gap: theme.spacing[2] }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-                    <h2
-                      style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: theme.typography.fontWeight.bold,
-                        margin: 0,
-                      }}
-                    >
+              <header className="flex justify-between gap-3 items-start">
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
                       {safeJob.title}
                     </h2>
                     {'hasBid' in safeJob && safeJob.hasBid && (
                       <span
-                        style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                          borderRadius: theme.borderRadius.md,
-                          background: `linear-gradient(135deg, ${theme.colors.success}20 0%, ${theme.colors.success}15 100%)`,
-                          border: `1px solid ${theme.colors.success}40`,
-                          color: theme.colors.success,
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          boxShadow: theme.shadows.sm,
-                        }}
+                        className="px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-[560] inline-flex items-center gap-1.5"
                       >
-                        <Icon name="checkCircle" size={12} color={theme.colors.success} />
+                        <CheckCircle2 className="h-3 w-3" style={{ color: theme.colors.success }} />
                         Bid Submitted
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name='mapPin' size={14} color={theme.colors.textSecondary} />
+                  <div className="flex flex-wrap gap-3 text-xs font-[460] text-gray-600">
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
                       {safeJob.location || 'Location not specified'}
                     </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name='briefcase' size={14} color={theme.colors.textSecondary} />
+                    <span className="inline-flex items-center gap-1.5">
+                      <Briefcase className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
                       {safeJob.category || 'General'}
                     </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name='currencyPound' size={14} color={theme.colors.success} />
+                    <span className="inline-flex items-center gap-1.5 font-[560] text-gray-900">
+                      <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.success }} />
                       {safeJob.budget || 'Budget TBD'}
                     </span>
                     {'bidAmount' in safeJob && safeJob.bidAmount && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: theme.colors.primary, fontWeight: theme.typography.fontWeight.semibold }}>
-                        <Icon name='currencyPound' size={14} color={theme.colors.primary} />
+                      <span className="inline-flex items-center gap-1.5 font-[560] text-primary-600">
+                        <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.primary }} />
                         Your bid: £{typeof safeJob.bidAmount === 'number' ? safeJob.bidAmount.toFixed(2) : safeJob.bidAmount}
                       </span>
                     )}
                   </div>
                 </div>
                 <span
-                  style={{
-                    alignSelf: 'flex-start',
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    borderRadius: '12px',
-                    border: `1px solid ${theme.colors.border}`,
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-[560] text-gray-700 whitespace-nowrap"
                 >
                   {safeJob.status || 'Open'}
                 </span>
               </header>
 
-              <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.xs, lineHeight: 1.5, margin: 0 }}>
+              <p className="text-sm font-[460] text-gray-700 leading-relaxed m-0 line-clamp-2">
                 {safeJob.description && typeof safeJob.description === 'string' && safeJob.description.length > 0
                   ? (safeJob.description.length > 120
                       ? `${safeJob.description.substring(0, 120)}...`
@@ -896,22 +799,14 @@ export default function ContractorBidsPage() {
               </p>
 
               <footer
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderTop: `1px solid ${theme.colors.border}`,
-                  paddingTop: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                }}
+                className="flex justify-between items-center border-t border-gray-100 pt-4 text-xs font-[460] text-gray-600"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent card click when clicking footer
                 }}
               >
                 <span>
                   Posted {new Date(safeJob.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  {'postedBy' in safeJob && safeJob.postedBy && ` - ${safeJob.postedBy.name}`}
+                  {'postedBy' in safeJob && safeJob.postedBy && ` • ${safeJob.postedBy.name}`}
                 </span>
                 <Button 
                   variant={'hasBid' in safeJob && safeJob.hasBid ? 'secondary' : 'primary'}
@@ -920,6 +815,7 @@ export default function ContractorBidsPage() {
                     e.stopPropagation(); // Prevent card click when clicking button
                     handleBidClick(safeJob.id);
                   }}
+                  className="font-[560]"
                 >
                   {'hasBid' in safeJob && safeJob.hasBid ? 'View/Update Bid' : 'Submit bid'}
                 </Button>
@@ -934,7 +830,7 @@ export default function ContractorBidsPage() {
             .filter((item) => item !== null); // Remove any null values from the map
           })()
         )}
-      </section>
+      </div>
     </div>
   );
 }

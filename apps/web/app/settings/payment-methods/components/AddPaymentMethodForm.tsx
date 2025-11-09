@@ -11,6 +11,10 @@ import {
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 // Initialize Stripe promise
 let stripePromise: Promise<any> | null = null;
@@ -138,50 +142,24 @@ function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
       </div>
 
       {/* Set as Default Checkbox */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-      }}>
-        <input
-          type="checkbox"
+      <div className="flex items-center space-x-2">
+        <Checkbox
           id="setAsDefault"
           checked={setAsDefault}
-          onChange={(e) => setSetAsDefault(e.target.checked)}
-          style={{
-            width: '20px',
-            height: '20px',
-            cursor: 'pointer',
-          }}
+          onCheckedChange={(checked) => setSetAsDefault(checked === true)}
         />
-        <label
-          htmlFor="setAsDefault"
-          style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            cursor: 'pointer',
-          }}
-        >
+        <Label htmlFor="setAsDefault" className="font-normal cursor-pointer">
           Set as default payment method
-        </label>
+        </Label>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          padding: theme.spacing[3],
-          backgroundColor: '#FEE2E2',
-          border: `1px solid ${theme.colors.error}`,
-          borderRadius: theme.borderRadius.md,
-          color: '#991B1B',
-          fontSize: theme.typography.fontSize.sm,
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="xCircle" size={16} color={theme.colors.error} />
-          <span>{error}</span>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Buttons */}

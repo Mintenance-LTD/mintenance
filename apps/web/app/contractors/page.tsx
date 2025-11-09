@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import Link from 'next/link';
@@ -114,23 +116,22 @@ export default function ContractorsPage() {
         gap: theme.spacing[6],
       }}>
         {/* Header */}
-        <div>
-          <h1 style={{
-            margin: 0,
-            marginBottom: theme.spacing[1],
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            Find Contractors
-          </h1>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-          }}>
-            {filteredContractors.length} verified contractors in your area
-          </p>
+        <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8 -m-8 rounded-2xl mb-8">
+          <div>
+            <div className="flex items-start gap-4 mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center shadow-sm">
+                <Icon name="users" size={28} color={theme.colors.primary} />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
+                  Find Contractors
+                </h1>
+                <p className="text-base font-medium text-gray-600 leading-relaxed">
+                  {filteredContractors.length} verified contractors in your area
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -143,25 +144,16 @@ export default function ContractorsPage() {
               top: '50%',
               transform: 'translateY(-50%)',
               pointerEvents: 'none',
+              zIndex: 10,
             }}>
               <Icon name="search" size={18} color={theme.colors.textTertiary} />
             </div>
-            <input
+            <Input
               type="text"
               placeholder="Search by name, company, or specialty..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: `0 ${theme.spacing[3]} 0 ${theme.spacing[10]}`,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textPrimary,
-                backgroundColor: theme.colors.white,
-                outline: 'none',
-              }}
+              className="w-full h-11 pl-12 pr-4"
             />
           </div>
 
@@ -172,23 +164,15 @@ export default function ContractorsPage() {
             flexWrap: 'wrap',
           }}>
             {specialties.map((specialty) => (
-              <button
+              <Button
                 key={specialty}
+                variant={selectedSpecialty === specialty.toLowerCase() ? 'primary' : 'outline'}
+                size="sm"
                 onClick={() => setSelectedSpecialty(specialty.toLowerCase())}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.full,
-                  border: `1px solid ${selectedSpecialty === specialty.toLowerCase() ? theme.colors.primary : theme.colors.border}`,
-                  backgroundColor: selectedSpecialty === specialty.toLowerCase() ? theme.colors.primary : theme.colors.white,
-                  color: selectedSpecialty === specialty.toLowerCase() ? 'white' : theme.colors.textPrimary,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                className="rounded-full capitalize"
               >
                 {specialty}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -202,23 +186,10 @@ export default function ContractorsPage() {
           {filteredContractors.map((contractor) => (
             <div
               key={contractor.id}
-              style={{
-                backgroundColor: theme.colors.white,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.xl,
-                padding: theme.spacing[5],
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = theme.shadows.md;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
+              className="bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 group relative overflow-hidden"
             >
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               {/* Header */}
               <div style={{
                 display: 'flex',
@@ -413,39 +384,13 @@ export default function ContractorsPage() {
                 marginTop: theme.spacing[4],
               }}>
                 <Link href={`/contractors/${contractor.id}`} style={{ flex: 1, textDecoration: 'none' }}>
-                  <button style={{
-                    width: '100%',
-                    height: '40px',
-                    padding: `0 ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: 'transparent',
-                    color: theme.colors.textPrimary,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: 'pointer',
-                  }}>
+                  <button className="w-full h-10 px-4 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-semibold cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:border-gray-400">
                     View Profile
                   </button>
                 </Link>
                 <Link
                   href={`/contractors/${contractor.id}`}
-                  style={{
-                    flex: 1,
-                    height: '40px',
-                    padding: `0 ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: 'none',
-                    backgroundColor: theme.colors.primary,
-                    color: 'white',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textDecoration: 'none',
-                  }}
+                  className="flex-1 h-10 px-4 rounded-xl border-none bg-secondary text-white text-sm font-semibold cursor-pointer flex items-center justify-center transition-all duration-200 hover:bg-secondary-600 active:scale-95 shadow-md hover:shadow-lg"
                 >
                   Contact
                 </Link>

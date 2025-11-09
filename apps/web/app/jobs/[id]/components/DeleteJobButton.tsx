@@ -3,6 +3,19 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { theme } from '@/lib/theme';
 
 interface DeleteJobButtonProps {
@@ -45,149 +58,68 @@ export function DeleteJobButton({ jobId, jobTitle }: DeleteJobButtonProps) {
     }
   };
 
-  if (showConfirm) {
-    return (
-      <div style={{
-        backgroundColor: theme.colors.error + '15',
-        border: `1px solid ${theme.colors.error}`,
-        borderRadius: theme.borderRadius.md,
-        padding: theme.spacing[4],
-        marginTop: theme.spacing[4],
-      }}>
-        <div style={{
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.error,
-          marginBottom: theme.spacing[2],
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="alertTriangle" size={20} color={theme.colors.error} />
-          Confirm Deletion
-        </div>
-        <p style={{
-          margin: 0,
-          marginBottom: theme.spacing[4],
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.textPrimary,
-          lineHeight: 1.6,
-        }}>
-          Are you sure you want to delete "{jobTitle}"? This action cannot be undone and will remove all associated bids, photos, and data.
-        </p>
-        {error && (
-          <div style={{
-            padding: theme.spacing[2],
-            backgroundColor: theme.colors.error + '20',
-            borderRadius: theme.borderRadius.sm,
-            color: theme.colors.error,
-            fontSize: theme.typography.fontSize.sm,
-            marginBottom: theme.spacing[3],
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-          }}>
-            <Icon name="xCircle" size={16} color={theme.colors.error} />
-            {error}
-          </div>
-        )}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing[3],
-        }}>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: isDeleting ? theme.colors.textTertiary : theme.colors.error,
-              color: 'white',
-              border: 'none',
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              cursor: isDeleting ? 'not-allowed' : 'pointer',
-              opacity: isDeleting ? 0.6 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              transition: 'all 0.2s',
-            }}
-            type="button"
-          >
-            {isDeleting ? (
-              <>
-                <Icon name="loader" size={16} color="white" className="animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Icon name="trash" size={16} color="white" />
-                Delete Job
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setShowConfirm(false);
-              setError(null);
-            }}
-            disabled={isDeleting}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: 'transparent',
-              color: theme.colors.textSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: isDeleting ? 'not-allowed' : 'pointer',
-              opacity: isDeleting ? 0.6 : 1,
-              transition: 'all 0.2s',
-            }}
-            type="button"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <button
+      <Button
+        variant="outline"
         onClick={() => setShowConfirm(true)}
-        style={{
-          padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-          backgroundColor: 'transparent',
-          color: theme.colors.error,
-          border: `1px solid ${theme.colors.error}`,
-          borderRadius: theme.borderRadius.md,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-          transition: 'all 0.2s',
-        }}
-        type="button"
+        leftIcon={<Trash2 className="h-4 w-4" />}
+        className="text-red-600 border-red-600 hover:bg-red-50"
       >
-        <Icon name="trash" size={16} color={theme.colors.error} />
         Delete Job
-      </button>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .animate-spin {
-            animation: spin 1s linear infinite;
-          }
-        `
-      }} />
+      </Button>
+
+      <AlertDialog open={showConfirm} onOpenChange={(open: boolean) => {
+        if (!open && !isDeleting) {
+          setShowConfirm(false);
+          setError(null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{jobTitle}"? This action cannot be undone and will remove all associated bids, photos, and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} onClick={() => {
+              setShowConfirm(false);
+              setError(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Job
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

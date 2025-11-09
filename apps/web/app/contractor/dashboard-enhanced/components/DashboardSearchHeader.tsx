@@ -1,8 +1,9 @@
 'use client';
 
-import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { useState } from 'react';
+import { Input } from '@/components/ui/Input';
+import { Search } from 'lucide-react';
 
 export function DashboardSearchHeader() {
   const [isFocused, setIsFocused] = useState(false);
@@ -48,24 +49,15 @@ export function DashboardSearchHeader() {
               display: 'flex',
               alignItems: 'center',
               pointerEvents: 'none',
+              zIndex: 1,
             }}
           >
-            <Icon name="search" size={20} color={theme.colors.textSecondary} />
+            <Search className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             type="text"
             placeholder="Search contractors or projects"
-            style={{
-              width: '100%',
-              padding: `${theme.spacing[3]} ${theme.spacing[3]} ${theme.spacing[3]} ${theme.spacing[10]}`,
-              fontSize: theme.typography.fontSize.base,
-              border: `1px solid ${isFocused ? theme.colors.primary : theme.colors.border}`,
-              borderRadius: '8px',
-              backgroundColor: theme.colors.backgroundSecondary,
-              color: theme.colors.textPrimary,
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
+            className="pl-10"
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />

@@ -91,6 +91,34 @@ module.exports = {
         '7xl': ['4.5rem', { lineHeight: '1' }],
         '8xl': ['6rem', { lineHeight: '1' }],
         '9xl': ['8rem', { lineHeight: '1' }],
+        // Custom typography scale
+        'heading-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.06em' }], // 60px
+        'heading-md': ['2.5rem', { lineHeight: '1', letterSpacing: '-0.06em' }], // 40px
+        'subheading-lg': ['2.25rem', { lineHeight: '1.2', letterSpacing: '0' }], // 36px
+        'subheading-md': ['1.75rem', { lineHeight: '1.2', letterSpacing: '0' }], // 28px
+      },
+      fontWeight: {
+        thin: '100',
+        extralight: '200',
+        light: '300',
+        normal: '400',
+        medium: '500',
+        semibold: '600',
+        bold: '700',
+        extrabold: '800',
+        black: '900',
+        // Custom font weights
+        '460': '460',
+        '560': '560',
+        '640': '640',
+      },
+      letterSpacing: {
+        tighter: '-0.06em',
+        tight: '-0.03em',
+        normal: '0',
+        wide: '0.025em',
+        wider: '0.05em',
+        widest: '0.1em',
       },
 
       // ========================================
@@ -194,5 +222,7 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/container-queries'),
+  ],
 }

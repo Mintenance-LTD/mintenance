@@ -47,6 +47,7 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
   );
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'location' | 'business' | 'skills'>('basic');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,11 +167,13 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
           style={{
             backgroundColor: theme.colors.background,
             borderRadius: theme.borderRadius.xl,
-            maxWidth: '600px',
+            maxWidth: '900px',
             width: '100%',
             maxHeight: '90vh',
-            overflow: 'auto',
+            overflow: 'hidden',
             boxShadow: theme.shadows.xl,
+            display: 'flex',
+            flexDirection: 'column',
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -181,12 +184,14 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            backgroundColor: theme.colors.surface,
           }}>
             <h2 style={{
               fontSize: theme.typography.fontSize['2xl'],
               fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.text,
+              color: theme.colors.textPrimary,
               margin: 0,
+              letterSpacing: '-0.02em',
             }}>
               Edit Profile
             </h2>
@@ -195,607 +200,794 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
               style={{
                 background: 'none',
                 border: 'none',
-                fontSize: theme.typography.fontSize['2xl'],
                 color: theme.colors.textSecondary,
                 cursor: 'pointer',
                 padding: theme.spacing[2],
+                borderRadius: theme.borderRadius.md,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Icon name="x" size={16} color={theme.colors.textSecondary} />
+              <Icon name="x" size={20} color={theme.colors.textSecondary} />
             </button>
           </div>
 
+          {/* Tabs */}
+          <div style={{
+            borderBottom: `1px solid ${theme.colors.border}`,
+            backgroundColor: theme.colors.surface,
+            paddingLeft: theme.spacing[6],
+            paddingRight: theme.spacing[6],
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: theme.spacing[8],
+            }}>
+              {[
+                { id: 'basic' as const, label: 'Basic Info' },
+                { id: 'location' as const, label: 'Location & Contact' },
+                { id: 'business' as const, label: 'Business Info' },
+                { id: 'skills' as const, label: 'Skills' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: `${theme.spacing[4]} 0`,
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: activeTab === tab.id ? theme.colors.primary : theme.colors.textSecondary,
+                    cursor: 'pointer',
+                    borderBottom: activeTab === tab.id ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+                    marginBottom: '-1px',
+                    transition: 'color 0.2s',
+                    letterSpacing: '0.015em',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.color = theme.colors.textPrimary;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.color = theme.colors.textSecondary;
+                    }
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Modal Body */}
-          <form onSubmit={handleSubmit}>
-            <div style={{ padding: theme.spacing[6] }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <div style={{ padding: theme.spacing[6], overflowY: 'auto', flex: 1 }}>
               {/* Error Message */}
               {error && (
                 <div style={{
-                  backgroundColor: theme.colors.errorLight,
+                  backgroundColor: '#FEE2E2',
                   color: theme.colors.error,
                   padding: theme.spacing[4],
                   borderRadius: theme.borderRadius.lg,
                   marginBottom: theme.spacing[6],
                   fontSize: theme.typography.fontSize.sm,
+                  border: `1px solid ${theme.colors.error}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
                 }}>
+                  <Icon name="alertCircle" size={18} color={theme.colors.error} />
                   {error}
                 </div>
               )}
 
-              {/* Profile Photo Upload */}
-              <div style={{ marginBottom: theme.spacing[6], textAlign: 'center' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[3],
-                }}>
-                  Profile Photo
-                </label>
-                
-                <div style={{
-                  width: '120px',
-                  height: '120px',
-                  borderRadius: '50%',
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  backgroundImage: imagePreview ? `url(${imagePreview})` : undefined,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto',
-                  marginBottom: theme.spacing[3],
-                  cursor: 'pointer',
-                  border: `2px dashed ${theme.colors.border}`,
-                  fontSize: theme.typography.fontSize['4xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textSecondary,
-                }}
-                onClick={() => document.getElementById('profile-image-input')?.click()}
-                >
-                  {!imagePreview && (
-                    <>
-                      {formData.firstName?.[0]}{formData.lastName?.[0]}
-                    </>
-                  )}
-                </div>
-
-                <input
-                  id="profile-image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ display: 'none' }}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('profile-image-input')?.click()}
-                  style={{
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Upload Photo
-                </button>
-              </div>
-
-              {/* Name Fields */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: theme.spacing[4],
-                marginBottom: theme.spacing[6],
-              }}>
+              {/* Basic Info Tab */}
+              {activeTab === 'basic' && (
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      fontSize: theme.typography.fontSize.base,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      color: theme.colors.text,
-                    }}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      fontSize: theme.typography.fontSize.base,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      color: theme.colors.text,
-                    }}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Bio */}
-              <div style={{ marginBottom: theme.spacing[6] }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[2],
-                }}>
-                  Bio / Description
-                </label>
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  rows={4}
-                  maxLength={500}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[3],
-                    fontSize: theme.typography.fontSize.base,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.text,
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                  }}
-                  placeholder="Tell homeowners about your experience, specialties, and what makes you unique..."
-                />
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[2],
-                  textAlign: 'right',
-                }}>
-                  {formData.bio.length}/500 characters
-                </div>
-              </div>
-
-              {/* Location Fields */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
-                gap: theme.spacing[4],
-                marginBottom: theme.spacing[6],
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    City / Address
-                  </label>
-                  <PlacesAutocomplete
-                    value={formData.city}
-                    onChange={(value) => setFormData({ ...formData, city: value })}
-                    onPlaceSelect={(place) => {
-                      setFormData({
-                        ...formData,
-                        city: place.city,
-                        country: place.country,
-                        address: place.address,
-                        latitude: place.latitude,
-                        longitude: place.longitude,
-                      });
-                    }}
-                    placeholder="London or enter your address"
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      fontSize: theme.typography.fontSize.base,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      color: theme.colors.text,
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    Country
-                  </label>
-                  <select
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      fontSize: theme.typography.fontSize.base,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      color: theme.colors.text,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="UK">United Kingdom</option>
-                    <option value="US">United States</option>
-                    <option value="CA">Canada</option>
-                    <option value="AU">Australia</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div style={{ marginBottom: theme.spacing[6] }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[2],
-                }}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[3],
-                    fontSize: theme.typography.fontSize.base,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.text,
-                  }}
-                  placeholder="+44 7700 900000"
-                />
-              </div>
-
-              {/* Company Name */}
-              <div style={{ marginBottom: theme.spacing[6] }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[2],
-                }}>
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.companyName}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[3],
-                    fontSize: theme.typography.fontSize.base,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.text,
-                  }}
-                  placeholder="ABC Plumbing Ltd"
-                />
-                <p style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[1],
-                  margin: 0,
-                }}>
-                  Your company name helps build trust with homeowners
-                </p>
-              </div>
-
-              {/* License Number */}
-              <div style={{ marginBottom: theme.spacing[6] }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[2],
-                }}>
-                  License Registration Number
-                </label>
-                <input
-                  type="text"
-                  value={formData.licenseNumber}
-                  onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value.toUpperCase() })}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[3],
-                    fontSize: theme.typography.fontSize.base,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.text,
-                  }}
-                  placeholder="LIC-12345-UK"
-                />
-                <p style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[1],
-                  margin: 0,
-                }}>
-                  Your license number will be verified by our admin team. Once verified, you'll receive a verification badge.
-                </p>
-              </div>
-
-              {/* Skills & Professions */}
-              <div style={{ marginBottom: theme.spacing[6] }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing[2],
-                }}>
-                  Skills & Professions ({selectedSkills.length}/15)
-                </label>
-                <p style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  margin: `0 0 ${theme.spacing[3]} 0`,
-                }}>
-                  Select skills that match your expertise. Jobs requiring these skills will appear in your "Jobs Near You" feed.
-                </p>
-                
-                {/* Selected Skills Chips */}
-                {selectedSkills.length > 0 && (
-                  <div style={{
+                  {/* Profile Photo Upload */}
+                  <div style={{ 
+                    marginBottom: theme.spacing[8], 
                     display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: theme.spacing[2],
-                    marginBottom: theme.spacing[3],
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: theme.spacing[4],
                   }}>
-                    {selectedSkills.map((skill) => (
-                      <div
-                        key={skill}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.spacing[1],
-                          padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                          backgroundColor: theme.colors.primary,
-                          color: 'white',
-                          borderRadius: theme.borderRadius.full,
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.medium,
-                        }}
-                      >
-                        <Icon name={getSkillIcon(skill)} size={14} color="white" />
-                        <span>{skill}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSkill(skill)}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.2)',
-                            border: 'none',
-                            borderRadius: theme.borderRadius.full,
-                            width: '18px',
-                            height: '18px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            padding: 0,
-                            marginLeft: theme.spacing[1],
-                          }}
-                        >
-                          <Icon name="x" size={12} color="white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Skill Selection Dropdown */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowSkillDropdown(!showSkillDropdown)}
-                    disabled={selectedSkills.length >= 15}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[3],
-                      fontSize: theme.typography.fontSize.base,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
+                    <div style={{
+                      width: '144px',
+                      height: '144px',
+                      borderRadius: '50%',
                       backgroundColor: theme.colors.backgroundSecondary,
-                      color: theme.colors.text,
-                      cursor: selectedSkills.length >= 15 ? 'not-allowed' : 'pointer',
-                      opacity: selectedSkills.length >= 15 ? 0.6 : 1,
+                      backgroundImage: imagePreview ? `url(${imagePreview})` : undefined,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      border: `3px solid ${theme.colors.border}`,
+                      fontSize: theme.typography.fontSize['4xl'],
+                      fontWeight: theme.typography.fontWeight.bold,
+                      color: theme.colors.textSecondary,
+                      position: 'relative',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
                     }}
-                  >
-                    <span>{selectedSkills.length >= 15 ? 'Maximum skills reached' : 'Add Skill'}</span>
-                    <Icon name="chevronDown" size={16} color={theme.colors.textSecondary} />
-                  </button>
-
-                  {showSkillDropdown && (
-                    <>
-                      <div
-                        style={{
+                    onClick={() => document.getElementById('profile-image-input')?.click()}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = theme.shadows.md;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    >
+                      {!imagePreview && (
+                        <>
+                          {formData.firstName?.[0] || 'U'}{formData.lastName?.[0] || ''}
+                        </>
+                      )}
+                      {imagePreview && (
+                        <div style={{
                           position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: theme.spacing[1],
-                          backgroundColor: theme.colors.surface,
+                          inset: 0,
+                          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '0';
+                        }}
+                        >
+                          <Icon name="camera" size={32} color="white" />
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      id="profile-image-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      style={{ display: 'none' }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('profile-image-input')?.click()}
+                      style={{
+                        padding: `${theme.spacing[2]} ${theme.spacing[5]}`,
+                        backgroundColor: theme.colors.primary,
+                        border: 'none',
+                        borderRadius: theme.borderRadius.lg,
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: 'white',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.colors.primary;
+                      }}
+                    >
+                      {imagePreview ? 'Change Photo' : 'Upload Photo'}
+                    </button>
+                  </div>
+
+                  {/* Name Fields */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: theme.spacing[4],
+                    marginBottom: theme.spacing[6],
+                  }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        marginBottom: theme.spacing[2],
+                      }}>
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: theme.spacing[3],
+                          fontSize: theme.typography.fontSize.base,
+                          borderRadius: theme.borderRadius.md,
                           border: `1px solid ${theme.colors.border}`,
-                          borderRadius: theme.borderRadius.lg,
-                          boxShadow: theme.shadows.lg,
-                          maxHeight: '300px',
-                          overflowY: 'auto',
-                          zIndex: 1000,
-                          padding: theme.spacing[2],
+                          backgroundColor: theme.colors.white,
+                          color: theme.colors.textPrimary,
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.primary;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.border;
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        marginBottom: theme.spacing[2],
+                      }}>
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: theme.spacing[3],
+                          fontSize: theme.typography.fontSize.base,
+                          borderRadius: theme.borderRadius.md,
+                          border: `1px solid ${theme.colors.border}`,
+                          backgroundColor: theme.colors.white,
+                          color: theme.colors.textPrimary,
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.primary;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.border;
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div style={{ marginBottom: theme.spacing[6] }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[2],
+                    }}>
+                      Bio / Description
+                    </label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      rows={5}
+                      maxLength={500}
+                      style={{
+                        width: '100%',
+                        padding: theme.spacing[3],
+                        fontSize: theme.typography.fontSize.base,
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: theme.colors.white,
+                        color: theme.colors.textPrimary,
+                        fontFamily: 'inherit',
+                        resize: 'vertical',
+                        transition: 'border-color 0.2s',
+                        lineHeight: '1.6',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.border;
+                      }}
+                      placeholder="Tell homeowners about your experience, specialties, and what makes you unique..."
+                    />
+                    <div style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                      marginTop: theme.spacing[2],
+                      textAlign: 'right',
+                    }}>
+                      {formData.bio.length}/500 characters
+                    </div>
+                  </div>
+
+                  {/* Availability Toggle */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: theme.spacing[5],
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.lg,
+                    border: `1px solid ${theme.colors.border}`,
+                  }}>
+                    <div>
+                      <label style={{
+                        fontSize: theme.typography.fontSize.base,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        display: 'block',
+                        marginBottom: theme.spacing[1],
+                      }}>
+                        Available for New Projects
+                      </label>
+                      <p style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        color: theme.colors.textSecondary,
+                        margin: 0,
+                      }}>
+                        Show your profile to homeowners looking for contractors
+                      </p>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })}
+                      style={{
+                        width: '60px',
+                        height: '32px',
+                        borderRadius: theme.borderRadius.full,
+                        backgroundColor: formData.isAvailable ? theme.colors.success : theme.colors.border,
+                        border: 'none',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.2s',
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: formData.isAvailable ? '32px' : '4px',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.2s',
+                        boxShadow: theme.shadows.sm,
+                      }} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Location & Contact Tab */}
+              {activeTab === 'location' && (
+                <div>
+                  {/* Location Fields */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr',
+                    gap: theme.spacing[4],
+                    marginBottom: theme.spacing[6],
+                  }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        marginBottom: theme.spacing[2],
+                      }}>
+                        City / Address
+                      </label>
+                      <PlacesAutocomplete
+                        value={formData.city}
+                        onChange={(value) => setFormData({ ...formData, city: value })}
+                        onPlaceSelect={(place) => {
+                          setFormData({
+                            ...formData,
+                            city: place.city,
+                            country: place.country,
+                            address: place.address,
+                            latitude: place.latitude,
+                            longitude: place.longitude,
+                          });
+                        }}
+                        placeholder="London or enter your address"
+                        style={{
+                          width: '100%',
+                          padding: theme.spacing[3],
+                          fontSize: theme.typography.fontSize.base,
+                          borderRadius: theme.borderRadius.md,
+                          border: `1px solid ${theme.colors.border}`,
+                          backgroundColor: theme.colors.white,
+                          color: theme.colors.textPrimary,
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        marginBottom: theme.spacing[2],
+                      }}>
+                        Country
+                      </label>
+                      <select
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: theme.spacing[3],
+                          fontSize: theme.typography.fontSize.base,
+                          borderRadius: theme.borderRadius.md,
+                          border: `1px solid ${theme.colors.border}`,
+                          backgroundColor: theme.colors.white,
+                          color: theme.colors.textPrimary,
+                          cursor: 'pointer',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.primary;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.border;
                         }}
                       >
-                        {availableSkills
-                          .filter(skill => !selectedSkills.includes(skill))
-                          .map((skill) => (
+                        <option value="UK">United Kingdom</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="AU">Australia</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div style={{ marginBottom: theme.spacing[6] }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[2],
+                    }}>
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: theme.spacing[3],
+                        fontSize: theme.typography.fontSize.base,
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: theme.colors.white,
+                        color: theme.colors.textPrimary,
+                        transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.border;
+                      }}
+                      placeholder="+44 7700 900000"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Business Info Tab */}
+              {activeTab === 'business' && (
+                <div>
+                  {/* Company Name */}
+                  <div style={{ marginBottom: theme.spacing[6] }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[2],
+                    }}>
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: theme.spacing[3],
+                        fontSize: theme.typography.fontSize.base,
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: theme.colors.white,
+                        color: theme.colors.textPrimary,
+                        transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.border;
+                      }}
+                      placeholder="ABC Plumbing Ltd"
+                    />
+                    <p style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                      marginTop: theme.spacing[2],
+                      margin: 0,
+                    }}>
+                      Your company name helps build trust with homeowners
+                    </p>
+                  </div>
+
+                  {/* License Number */}
+                  <div style={{ marginBottom: theme.spacing[6] }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[2],
+                    }}>
+                      License Registration Number
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.licenseNumber}
+                      onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value.toUpperCase() })}
+                      style={{
+                        width: '100%',
+                        padding: theme.spacing[3],
+                        fontSize: theme.typography.fontSize.base,
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        backgroundColor: theme.colors.white,
+                        color: theme.colors.textPrimary,
+                        transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = theme.colors.border;
+                      }}
+                      placeholder="LIC-12345-UK"
+                    />
+                    <p style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                      marginTop: theme.spacing[2],
+                      margin: 0,
+                    }}>
+                      Your license number will be verified by our admin team. Once verified, you'll receive a verification badge.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Skills Tab */}
+              {activeTab === 'skills' && (
+                <div>
+                  {/* Skills & Professions */}
+                  <div style={{ marginBottom: theme.spacing[6] }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[2],
+                    }}>
+                      Skills & Professions ({selectedSkills.length}/15)
+                    </label>
+                    <p style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                      margin: `0 0 ${theme.spacing[4]} 0`,
+                      lineHeight: '1.6',
+                    }}>
+                      Select skills that match your expertise. Jobs requiring these skills will appear in your "Jobs Near You" feed.
+                    </p>
+                    
+                    {/* Selected Skills Chips */}
+                    {selectedSkills.length > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: theme.spacing[2],
+                        marginBottom: theme.spacing[4],
+                      }}>
+                        {selectedSkills.map((skill) => (
+                          <div
+                            key={skill}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: theme.spacing[1],
+                              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                              backgroundColor: `${theme.colors.primary}15`,
+                              color: theme.colors.primary,
+                              borderRadius: theme.borderRadius.full,
+                              fontSize: theme.typography.fontSize.sm,
+                              fontWeight: theme.typography.fontWeight.semibold,
+                              border: `1px solid ${theme.colors.primary}30`,
+                            }}
+                          >
+                            <Icon name={getSkillIcon(skill)} size={16} color={theme.colors.primary} />
+                            <span>{skill}</span>
                             <button
-                              key={skill}
                               type="button"
-                              onClick={() => {
-                                handleToggleSkill(skill);
-                                setShowSkillDropdown(false);
-                              }}
+                              onClick={() => handleToggleSkill(skill)}
                               style={{
-                                width: '100%',
-                                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                                textAlign: 'left',
-                                backgroundColor: 'transparent',
+                                background: 'transparent',
                                 border: 'none',
-                                borderRadius: theme.borderRadius.md,
-                                fontSize: theme.typography.fontSize.sm,
-                                color: theme.colors.text,
-                                cursor: 'pointer',
+                                borderRadius: theme.borderRadius.full,
+                                width: '20px',
+                                height: '20px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: theme.spacing[2],
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                marginLeft: theme.spacing[1],
                                 transition: 'background-color 0.2s',
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                                e.currentTarget.style.backgroundColor = `${theme.colors.primary}20`;
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor = 'transparent';
                               }}
                             >
-                              <Icon name={getSkillIcon(skill)} size={16} color={theme.colors.textSecondary} />
-                              <span>{skill}</span>
+                              <Icon name="x" size={14} color={theme.colors.primary} />
                             </button>
-                          ))}
-                        {availableSkills.filter(skill => !selectedSkills.includes(skill)).length === 0 && (
-                          <div style={{
-                            padding: theme.spacing[4],
-                            textAlign: 'center',
-                            color: theme.colors.textSecondary,
-                            fontSize: theme.typography.fontSize.sm,
-                          }}>
-                            All available skills selected
                           </div>
-                        )}
+                        ))}
                       </div>
-                      {/* Backdrop to close dropdown */}
-                      <div
-                        style={{
-                          position: 'fixed',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: 999,
-                        }}
-                        onClick={() => setShowSkillDropdown(false)}
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
+                    )}
 
-              {/* Availability Toggle */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: theme.spacing[4],
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderRadius: theme.borderRadius.lg,
-                marginBottom: theme.spacing[6],
-              }}>
-                <div>
-                  <label style={{
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.text,
-                    display: 'block',
-                    marginBottom: theme.spacing[1],
-                  }}>
-                    Available for New Projects
-                  </label>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    margin: 0,
-                  }}>
-                    Show your profile to homeowners looking for contractors
-                  </p>
+                    {/* Skill Selection Dropdown */}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowSkillDropdown(!showSkillDropdown)}
+                        disabled={selectedSkills.length >= 15}
+                        style={{
+                          width: '100%',
+                          padding: theme.spacing[3],
+                          fontSize: theme.typography.fontSize.base,
+                          borderRadius: theme.borderRadius.md,
+                          border: `1px solid ${theme.colors.border}`,
+                          backgroundColor: theme.colors.white,
+                          color: theme.colors.textPrimary,
+                          cursor: selectedSkills.length >= 15 ? 'not-allowed' : 'pointer',
+                          opacity: selectedSkills.length >= 15 ? 0.6 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onFocus={(e) => {
+                          if (selectedSkills.length < 15) {
+                            e.currentTarget.style.borderColor = theme.colors.primary;
+                          }
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = theme.colors.border;
+                        }}
+                      >
+                        <span>{selectedSkills.length >= 15 ? 'Maximum skills reached' : 'Add Skill'}</span>
+                        <Icon name="chevronDown" size={16} color={theme.colors.textSecondary} />
+                      </button>
+
+                      {showSkillDropdown && (
+                        <>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: 0,
+                              right: 0,
+                              marginTop: theme.spacing[1],
+                              backgroundColor: theme.colors.surface,
+                              border: `1px solid ${theme.colors.border}`,
+                              borderRadius: theme.borderRadius.lg,
+                              boxShadow: theme.shadows.lg,
+                              maxHeight: '300px',
+                              overflowY: 'auto',
+                              zIndex: 1000,
+                              padding: theme.spacing[2],
+                            }}
+                          >
+                            {availableSkills
+                              .filter(skill => !selectedSkills.includes(skill))
+                              .map((skill) => (
+                                <button
+                                  key={skill}
+                                  type="button"
+                                  onClick={() => {
+                                    handleToggleSkill(skill);
+                                    setShowSkillDropdown(false);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                                    textAlign: 'left',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    borderRadius: theme.borderRadius.md,
+                                    fontSize: theme.typography.fontSize.sm,
+                                    color: theme.colors.textPrimary,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: theme.spacing[2],
+                                    transition: 'background-color 0.2s',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                >
+                                  <Icon name={getSkillIcon(skill)} size={16} color={theme.colors.textSecondary} />
+                                  <span>{skill}</span>
+                                </button>
+                              ))}
+                            {availableSkills.filter(skill => !selectedSkills.includes(skill)).length === 0 && (
+                              <div style={{
+                                padding: theme.spacing[4],
+                                textAlign: 'center',
+                                color: theme.colors.textSecondary,
+                                fontSize: theme.typography.fontSize.sm,
+                              }}>
+                                All available skills selected
+                              </div>
+                            )}
+                          </div>
+                          {/* Backdrop to close dropdown */}
+                          <div
+                            style={{
+                              position: 'fixed',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 999,
+                            }}
+                            onClick={() => setShowSkillDropdown(false)}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })}
-                  style={{
-                    width: '60px',
-                    height: '32px',
-                    borderRadius: theme.borderRadius.full,
-                    backgroundColor: formData.isAvailable ? theme.colors.success : theme.colors.border,
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'background-color 0.2s',
-                  }}
-                >
-                  <div style={{
-                    position: 'absolute',
-                    top: '4px',
-                    left: formData.isAvailable ? '32px' : '4px',
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    transition: 'left 0.2s',
-                    boxShadow: theme.shadows.sm,
-                  }} />
-                </button>
-              </div>
+              )}
             </div>
 
             {/* Delete Account Section */}
@@ -867,6 +1059,7 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
               display: 'flex',
               gap: theme.spacing[4],
               justifyContent: 'flex-end',
+              backgroundColor: theme.colors.surface,
             }}>
               <button
                 type="button"
@@ -878,10 +1071,19 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
                   border: `1px solid ${theme.colors.border}`,
                   borderRadius: theme.borderRadius.lg,
                   fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.text,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.textPrimary,
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.6 : 1,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = theme.colors.border;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
                 }}
               >
                 Cancel
@@ -896,10 +1098,19 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
                   border: 'none',
                   borderRadius: theme.borderRadius.lg,
                   fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.medium,
+                  fontWeight: theme.typography.fontWeight.semibold,
                   color: 'white',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.8 : 1,
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = loading ? theme.colors.primaryLight : theme.colors.primary;
                 }}
               >
                 {loading ? 'Saving...' : 'Save Changes'}

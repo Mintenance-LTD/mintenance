@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import { AlertTriangle, Info } from 'lucide-react';
 
 interface TrialStatusBannerProps {
   daysRemaining: number;
@@ -59,82 +60,40 @@ export function TrialStatusBanner({ daysRemaining, trialEndsAt }: TrialStatusBan
     return null;
   }
 
-  const getBannerStyle = () => {
+  const getAlertVariant = () => {
     switch (warning.level) {
       case 'urgent':
-        return {
-          backgroundColor: theme.colors.error + '15',
-          borderColor: theme.colors.error,
-          color: theme.colors.error,
-        };
+        return 'destructive';
       case 'warning':
-        return {
-          backgroundColor: theme.colors.warning + '15',
-          borderColor: theme.colors.warning,
-          color: theme.colors.warning,
-        };
+        return 'default';
       default:
-        return {
-          backgroundColor: theme.colors.info + '15',
-          borderColor: theme.colors.info,
-          color: theme.colors.info,
-        };
+        return 'default';
     }
   };
 
-  const bannerStyle = getBannerStyle();
-
   return (
-    <div style={{
-      padding: theme.spacing[4],
-      borderRadius: theme.borderRadius.xl,
-      border: `2px solid ${bannerStyle.borderColor}`,
-      backgroundColor: bannerStyle.backgroundColor,
-      marginBottom: theme.spacing[6],
-      display: 'flex',
-      alignItems: 'center',
-      gap: theme.spacing[3],
-    }}>
-      <Icon
-        name={warning.level === 'urgent' ? 'alertTriangle' : 'info'}
-        size={24}
-        color={bannerStyle.color}
-      />
-      <div style={{ flex: 1 }}>
-        <p style={{
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: bannerStyle.color,
-          marginBottom: theme.spacing[1],
-        }}>
-          {warning.message}
-        </p>
-        {trialEndsAt && (
-          <p style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: bannerStyle.color,
-            opacity: 0.8,
-          }}>
-            Trial ends: {trialEndsAt.toLocaleDateString()}
-          </p>
-        )}
-      </div>
-      <Link
-        href="/contractor/subscription"
-        style={{
-          padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-          backgroundColor: bannerStyle.color,
-          color: theme.colors.white,
-          borderRadius: theme.borderRadius.md,
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.semibold,
-          textDecoration: 'none',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        Subscribe Now
-      </Link>
-    </div>
+    <Alert variant={getAlertVariant()} className="mb-6">
+      {warning.level === 'urgent' ? (
+        <AlertTriangle className="h-5 w-5" />
+      ) : (
+        <Info className="h-5 w-5" />
+      )}
+      <AlertDescription className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <p className="font-semibold mb-1">{warning.message}</p>
+          {trialEndsAt && (
+            <p className="text-sm opacity-80">
+              Trial ends: {trialEndsAt.toLocaleDateString()}
+            </p>
+          )}
+        </div>
+        <Link href="/contractor/subscription">
+          <Button variant="primary" size="sm">
+            Subscribe Now
+          </Button>
+        </Link>
+      </AlertDescription>
+    </Alert>
   );
 }
 

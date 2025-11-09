@@ -52,9 +52,15 @@ export async function GET(_req: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
+    // Build select query - include homeowner/contractor data based on user role
+    const isContractor = user.role === 'contractor';
+    const selectQuery = isContractor
+      ? `${jobSelectFields}, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, email, profile_image_url)`
+      : `${jobSelectFields}, contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, email, profile_image_url)`;
+
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select(jobSelectFields)
+      .select(selectQuery)
       .eq('id', id)
       .single();
 
@@ -75,7 +81,7 @@ export async function GET(_req: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
     }
 
-    const row = data as JobRow;
+    const row = data as any;
     if (row.homeowner_id !== user.id && row.contractor_id !== user.id) {
       logger.warn('Unauthorized job access attempt', {
         service: 'jobs',
@@ -93,7 +99,14 @@ export async function GET(_req: NextRequest, context: Params) {
       jobId: id
     });
 
-    return NextResponse.json({ job: mapRowToJobDetail(row) });
+    // Return job with homeowner/contractor data
+    return NextResponse.json({ 
+      job: {
+        ...mapRowToJobDetail(row),
+        homeowner: row.homeowner || null,
+        contractor: row.contractor || null,
+      }
+    });
   } catch (err) {
     logger.error('Failed to load job', err, {
       service: 'jobs'

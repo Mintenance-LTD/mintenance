@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react';
 import { ProfileHeader } from './ProfileHeader';
-import { ProfileStats } from './ProfileStats';
+import { ProfileStats, PerformanceSnapshot } from './ProfileStats';
 import { ProfileGallery } from './ProfileGallery';
 import { ProfileReviews } from './ProfileReviews';
 import { ProfileQuickActions } from './ProfileQuickActions';
-import { EditProfileModal } from './EditProfileModal';
-import { SkillsManagementModal } from './SkillsManagementModal';
-import { PhotoUploadModal } from './PhotoUploadModal';
+import { EditProfileDialog } from './EditProfileDialog';
+import { SkillsManagementDialog } from './SkillsManagementDialog';
+import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
@@ -218,6 +218,7 @@ export function ContractorProfileClient({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[8] }}>
+          <PerformanceSnapshot metrics={metrics} />
           <ProfileGallery
             completedJobs={completedJobs || []}
             posts={posts || []}
@@ -227,29 +228,26 @@ export function ContractorProfileClient({
         </div>
       </div>
 
-      {showEditModal && (
-        <EditProfileModal
-          contractor={contractor}
-          skills={skills}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleSaveProfile}
-        />
-      )}
+      <EditProfileDialog
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        contractor={contractor}
+        skills={skills}
+        onSave={handleSaveProfile}
+      />
 
-      {showSkillsModal && (
-        <SkillsManagementModal
-          currentSkills={skills || []}
-          onClose={() => setShowSkillsModal(false)}
-          onSave={handleSaveSkills}
-        />
-      )}
+      <SkillsManagementDialog
+        open={showSkillsModal}
+        onOpenChange={setShowSkillsModal}
+        currentSkills={skills || []}
+        onSave={handleSaveSkills}
+      />
 
-      {showPhotoModal && (
-        <PhotoUploadModal
-          onClose={() => setShowPhotoModal(false)}
-          onUpload={handleUploadPhotos}
-        />
-      )}
+      <PhotoUploadDialog
+        open={showPhotoModal}
+        onOpenChange={setShowPhotoModal}
+        onUpload={handleUploadPhotos}
+      />
     </div>
   );
 }

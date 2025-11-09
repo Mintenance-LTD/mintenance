@@ -8,6 +8,19 @@ import { TrialStatusBanner } from './TrialStatusBanner';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { Button } from '@/components/ui/Button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface SubscriptionClientProps {
   subscription: Subscription | null;
@@ -25,10 +38,22 @@ export function SubscriptionClient({
   const [currentSubscription, setCurrentSubscription] = useState(subscription);
   const [isLoading, setIsLoading] = useState(false);
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  const [alertDialog, setAlertDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({ open: false, title: '', message: '' });
+  const [cancelDialog, setCancelDialog] = useState(false);
+  const [successAlert, setSuccessAlert] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
   const handleSubscribe = async (planType: SubscriptionPlanDetails['planType']) => {
     if (!csrfToken) {
-      alert('Security token not available. Please refresh the page.');
+      setAlertDialog({
+        open: true,
+        title: 'Security Error',
+        message: 'Security token not available. Please refresh the page.',
+      });
       return;
     }
 
@@ -68,15 +93,23 @@ export function SubscriptionClient({
         
         // Show success message
         if (data.isUpgrade) {
-          alert(`Successfully ${planType === currentSubscription?.planType ? 'updated' : 'upgraded'} to ${planType} plan!`);
+          setSuccessAlert({ 
+            show: true, 
+            message: `Successfully ${planType === currentSubscription?.planType ? 'updated' : 'upgraded'} to ${planType} plan!` 
+          });
         } else {
-          alert('Subscription created successfully!');
+          setSuccessAlert({ show: true, message: 'Subscription created successfully!' });
         }
+        setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
       }
     } catch (error) {
       console.error('Error subscribing:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create subscription. Please try again.';
-      alert(errorMessage);
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -84,13 +117,19 @@ export function SubscriptionClient({
 
   const handleCancel = async () => {
     if (!currentSubscription) return;
+    setCancelDialog(true);
+  };
 
-    if (!confirm('Are you sure you want to cancel your subscription? You will lose access when the current period ends.')) {
-      return;
-    }
+  const confirmCancel = async () => {
+    if (!currentSubscription) return;
 
     if (!csrfToken) {
-      alert('Security token not available. Please refresh the page.');
+      setCancelDialog(false);
+      setAlertDialog({
+        open: true,
+        title: 'Security Error',
+        message: 'Security token not available. Please refresh the page.',
+      });
       return;
     }
 
@@ -116,9 +155,17 @@ export function SubscriptionClient({
       const statusResponse = await fetch('/api/subscriptions/status');
       const statusData = await statusResponse.json();
       setCurrentSubscription(statusData.subscription);
+      setCancelDialog(false);
+      setSuccessAlert({ show: true, message: 'Subscription cancellation scheduled successfully.' });
+      setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
     } catch (error) {
       console.error('Error canceling subscription:', error);
-      alert('Failed to cancel subscription. Please try again.');
+      setCancelDialog(false);
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Failed to cancel subscription. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +200,17 @@ export function SubscriptionClient({
           daysRemaining={trialStatus.daysRemaining}
           trialEndsAt={trialStatus.trialEndsAt}
         />
+      )}
+
+      {/* Success Alert */}
+      {successAlert.show && (
+        <Alert className="mb-4 border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">Success</AlertTitle>
+          <AlertDescription className="text-green-700">
+            {successAlert.message}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Current Subscription */}
@@ -228,23 +286,13 @@ export function SubscriptionClient({
             </div>
           )}
 
-          <button
+          <Button
+            variant="destructive"
             onClick={handleCancel}
             disabled={isLoading || currentSubscription.cancelAtPeriodEnd}
-            style={{
-              padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-              backgroundColor: 'transparent',
-              border: `1px solid ${theme.colors.error}`,
-              borderRadius: theme.borderRadius.md,
-              color: theme.colors.error,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              cursor: isLoading || currentSubscription.cancelAtPeriodEnd ? 'not-allowed' : 'pointer',
-              opacity: isLoading || currentSubscription.cancelAtPeriodEnd ? 0.5 : 1,
-            }}
           >
             {currentSubscription.cancelAtPeriodEnd ? 'Cancelation Scheduled' : 'Cancel Subscription'}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -255,6 +303,41 @@ export function SubscriptionClient({
         onSubscribe={handleSubscribe}
         isLoading={isLoading || csrfLoading}
       />
+
+      {/* Alert Dialog */}
+      <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => setAlertDialog({ ...alertDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
+              OK
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Subscription Confirmation Dialog */}
+      <AlertDialog open={cancelDialog} onOpenChange={(open: boolean) => setCancelDialog(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel your subscription? You will lose access when the current period ends.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelDialog(false)}>
+              Keep Subscription
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Cancel Subscription
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

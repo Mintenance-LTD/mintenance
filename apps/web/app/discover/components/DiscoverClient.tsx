@@ -24,6 +24,8 @@ import { SwipeActionButtons } from './SwipeActionButtons';
 import { JobCard } from './JobCard';
 import { ContractorCard } from './ContractorCard';
 import { Icon } from '@/components/ui/Icon';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
 
 interface SwipeHistory {
   index: number;
@@ -241,67 +243,29 @@ export function DiscoverClient({
         </div>
       )}
 
-      {/* Match Celebration Modal */}
-      {showMatchModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            backgroundColor: theme.colors.surface,
-            padding: theme.spacing[8],
-            borderRadius: theme.borderRadius.lg,
-            textAlign: 'center',
-            boxShadow: theme.shadows.xl,
-            maxWidth: '400px'
-          }}>
-            <div style={{
-              fontSize: '48px',
-              marginBottom: theme.spacing[4]
-            }}>🎉</div>
-            <h2 style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2]
-            }}>
-              It's a Match!
-            </h2>
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[4]
-            }}>
+      {/* Match Celebration Dialog */}
+      <Dialog open={showMatchModal} onOpenChange={setShowMatchModal}>
+        <DialogContent className="max-w-md text-center">
+          <DialogHeader>
+            <div className="text-5xl mb-4">🎉</div>
+            <DialogTitle className="text-2xl">It's a Match!</DialogTitle>
+            <DialogDescription className="text-base">
               {isContractor 
                 ? 'The homeowner is interested in working with you!'
                 : 'This contractor is interested in your job!'}
-            </p>
-            <button
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <Button
+              variant="primary"
               onClick={() => setShowMatchModal(false)}
-              style={{
-                padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-                backgroundColor: theme.colors.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                cursor: 'pointer'
-              }}
+              className="w-full"
             >
               Great!
-            </button>
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <div style={{

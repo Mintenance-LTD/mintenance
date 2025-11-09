@@ -8,6 +8,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge.unified';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 import { formatMoney } from '@/lib/utils/currency';
@@ -424,13 +426,19 @@ export function JobsNearYouClient({
 
   const center = contractorCoords || { lat: 51.5074, lng: -0.1278 };
 
+  // Memoize navigation handler
+  const handleJobClick = useCallback((jobId: string) => {
+    router.push(`/contractor/bid/${jobId}`);
+  }, [router]);
+
   // Render job card component
-  const renderJobCard = (job: JobWithDistance, isRecommended = false) => (
+  const renderJobCard = (job: JobWithDistance, isRecommended = false) => {
+    return (
     <Card
       key={job.id}
       padding="lg"
       hover={true}
-      onClick={() => router.push(`/contractor/bid/${job.id}`)}
+      onClick={() => handleJobClick(job.id)}
       style={{
         cursor: 'pointer',
         position: 'relative',
@@ -471,16 +479,7 @@ export function JobsNearYouClient({
               </Badge>
             )}
           </div>
-          <h3
-            style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              lineHeight: 1.3,
-              marginBottom: theme.spacing[2],
-            }}
-          >
+          <h3 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
             {job.title}
           </h3>
           {job.description && (
@@ -501,31 +500,15 @@ export function JobsNearYouClient({
             </p>
           )}
         </div>
-        <button
-          onClick={(e) => {
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
             handleSaveJob(job.id, job.isSaved || false);
           }}
           disabled={savingJobId === job.id}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: savingJobId === job.id ? 'wait' : 'pointer',
-            padding: theme.spacing[2],
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: theme.borderRadius.md,
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            if (savingJobId !== job.id) {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
           aria-label={job.isSaved ? 'Unsave job' : 'Save job'}
         >
           {savingJobId === job.id ? (
@@ -544,7 +527,7 @@ export function JobsNearYouClient({
               color={job.isSaved ? theme.colors.primary : theme.colors.textSecondary} 
             />
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Budget and Location Metrics */}
@@ -719,9 +702,9 @@ export function JobsNearYouClient({
         </span>
         <Button
           variant="primary"
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
-            router.push(`/contractor/bid/${job.id}`);
+            handleJobClick(job.id);
           }}
           style={{
             display: 'flex',
@@ -734,95 +717,50 @@ export function JobsNearYouClient({
         </Button>
       </div>
     </Card>
-  );
+    );
+  };
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[6],
-          padding: theme.spacing[6],
-          maxWidth: '100%',
-        }}
-      >
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+        padding: theme.spacing[6],
+        maxWidth: '100%',
+      }}
+    >
       {/* Header */}
-      <div
-        style={{
-          ...getGradientCardStyle('primary'),
-          padding: theme.spacing[8],
-          borderRadius: theme.borderRadius.xl,
-          border: `1px solid ${theme.colors.border}`,
-          boxShadow: theme.shadows.md,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: theme.spacing[4],
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-              <div style={getIconContainerStyle(theme.colors.primary, 48)}>
-                <Icon name="mapPin" size={24} color={theme.colors.primary} />
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 rounded-2xl p-8 border border-primary-700/50 shadow-xl">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+        <div className="relative z-10">
+          <div className="flex justify-between items-start flex-wrap gap-6">
+            <div>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                  <Icon name="mapPin" size={28} color="white" />
+                </div>
+                <h1 className="text-4xl font-bold text-white tracking-tight">
+                  Discover Jobs
+                </h1>
               </div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: theme.typography.fontSize['3xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Discover Jobs
-              </h1>
+              <p className="text-lg text-gray-300 leading-relaxed max-w-2xl">
+                {contractorLocation.city || contractorLocation.country
+                  ? `Find your next project opportunity near ${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}`
+                  : 'Find your next project opportunity'}
+              </p>
             </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
-                marginLeft: '72px', // Align with title after icon
-              }}
-            >
-              {contractorLocation.city || contractorLocation.country
-                ? `Find your next project opportunity near ${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}`
-                : 'Find your next project opportunity'}
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+          <div className="flex items-center gap-4">
             {filteredAndSortedJobs.length > 0 && (
-              <div
-                style={{
-                  ...getGradientCardStyle('success'),
-                  padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: `1px solid ${theme.colors.success}20`,
-                  textAlign: 'center',
-                  minWidth: '100px',
-                }}
-              >
-                <div style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
+              <div className="px-6 py-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 text-center min-w-[120px]">
+                <div className="text-3xl font-bold text-white mb-1">
                   <AnimatedCounter value={filteredAndSortedJobs.length} />
                 </div>
-                <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, marginTop: theme.spacing[1] }}>
-                  remaining
+                <div className="text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Available
                 </div>
               </div>
             )}
@@ -841,130 +779,85 @@ export function JobsNearYouClient({
           </div>
         </div>
       </div>
+      </div>
 
       {/* Filters and Sorting */}
-      <Card 
-        padding="lg" 
-        hover={false}
-        style={{
-          ...getGradientCardStyle('primary'),
-          border: `1px solid ${theme.colors.border}`,
-          boxShadow: theme.shadows.sm,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-          <h3 style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-          }}>
+      {/* Filters and Sorting - Collapsible */}
+      <details className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group relative">
+        {/* Gradient bar - appears on hover, always visible on large screens */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+        <summary className="px-6 py-4 cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <h3 className="text-lg font-[560] text-gray-900 m-0 tracking-normal flex items-center gap-2">
+            <Icon name="filter" size={20} color={theme.colors.primary} />
             Filters & Sorting
           </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[4], alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+          <Icon name="chevronDown" size={20} color={theme.colors.textSecondary} className="transition-transform duration-200 details-open:rotate-180" />
+        </summary>
+        <div className="px-6 pb-4 pt-2 border-t border-gray-100">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
                 Sort:
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortBy)}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.textPrimary,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.boxShadow = theme.shadows.sm;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <option value="skillMatch">Best Match</option>
-                <option value="distance">Closest First</option>
-                <option value="budget">Highest Budget</option>
-                <option value="newest">Newest First</option>
-              </select>
+              </Label>
+              <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as SortBy)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="skillMatch">Best Match</SelectItem>
+                  <SelectItem value="distance">Closest First</SelectItem>
+                  <SelectItem value="budget">Highest Budget</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
                 Max Distance:
-              </label>
-              <select
-                value={filters.maxDistance}
-                onChange={(e) => setFilters({ ...filters, maxDistance: Number(e.target.value) })}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.textPrimary,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.boxShadow = theme.shadows.sm;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+              </Label>
+              <Select 
+                value={filters.maxDistance.toString()} 
+                onValueChange={(value: string) => setFilters({ ...filters, maxDistance: Number(value) })}
               >
-                <option value={5}>5 km</option>
-                <option value={10}>10 km</option>
-                <option value={25}>25 km</option>
-                <option value={50}>50 km</option>
-                <option value={100}>100 km</option>
-                <option value={500}>500+ km</option>
-              </select>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 km</SelectItem>
+                  <SelectItem value="10">10 km</SelectItem>
+                  <SelectItem value="25">25 km</SelectItem>
+                  <SelectItem value="50">50 km</SelectItem>
+                  <SelectItem value="100">100 km</SelectItem>
+                  <SelectItem value="500">500+ km</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <label style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: theme.colors.textPrimary }}>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
                 Min Skill Match:
-              </label>
-              <select
-                value={filters.minSkillMatch}
-                onChange={(e) => setFilters({ ...filters, minSkillMatch: Number(e.target.value) })}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.textPrimary,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.boxShadow = theme.shadows.sm;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+              </Label>
+              <Select 
+                value={filters.minSkillMatch.toString()} 
+                onValueChange={(value: string) => setFilters({ ...filters, minSkillMatch: Number(value) })}
               >
-                <option value={0}>Any</option>
-                <option value={1}>1+ skills</option>
-                <option value={2}>2+ skills</option>
-                <option value={3}>3+ skills</option>
-              </select>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Any</SelectItem>
+                  <SelectItem value="1">1+ skills</SelectItem>
+                  <SelectItem value="2">2+ skills</SelectItem>
+                  <SelectItem value="3">3+ skills</SelectItem>
+                  <SelectItem value="4">4+ skills</SelectItem>
+                  <SelectItem value="5">All skills</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
-      </Card>
+      </details>
 
       {/* Map and Jobs List */}
       <div
@@ -1033,7 +926,7 @@ export function JobsNearYouClient({
             paddingRight: theme.spacing[2],
           }}
         >
-          {loading ? (
+          {loading && (
             <div
               style={{
                 display: 'flex',
@@ -1052,7 +945,8 @@ export function JobsNearYouClient({
                 }}
               />
             </div>
-          ) : filteredAndSortedJobs.length === 0 ? (
+          )}
+          {!loading && filteredAndSortedJobs.length === 0 && (
             <Card 
               padding="lg"
               style={{
@@ -1093,8 +987,9 @@ export function JobsNearYouClient({
                 </p>
               </div>
             </Card>
-          ) : (
-            <>
+          )}
+          {!loading && filteredAndSortedJobs.length > 0 && (
+            <div>
               <div style={{ 
                 fontSize: theme.typography.fontSize.sm, 
                 fontWeight: theme.typography.fontWeight.medium,
@@ -1110,52 +1005,42 @@ export function JobsNearYouClient({
               }}>
                 {filteredAndSortedJobs.map((job) => renderJobCard(job))}
               </div>
-            </>
+            </div>
           )}
         </div>
+      </div>
 
-        {/* Recommendations Section - At bottom of map container */}
-        {recommendations.length > 0 && (
+      {/* Recommendations Section */}
+      {recommendations.length > 0 && (
+        <div
+          style={{
+            marginTop: theme.spacing[6],
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[3],
+            marginBottom: theme.spacing[5],
+          }}>
+            <div style={getIconContainerStyle(theme.colors.primary, 40)}>
+              <Icon name="star" size={20} color={theme.colors.primary} />
+            </div>
+            <h2 className="text-xl font-[560] text-gray-900 m-0 tracking-normal">
+              Recommended for You
+            </h2>
+          </div>
           <div
             style={{
-              gridColumn: viewMode === 'map' ? '1 / -1' : '1 / -1',
-              marginTop: theme.spacing[6],
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+              gap: theme.spacing[5],
             }}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-              marginBottom: theme.spacing[5],
-            }}>
-              <div style={getIconContainerStyle(theme.colors.primary, 40)}>
-                <Icon name="star" size={20} color={theme.colors.primary} />
-              </div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Recommended for You
-              </h2>
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                gap: theme.spacing[5],
-              }}
-            >
-              {recommendations.map(job => renderJobCard(job, true))}
-            </div>
+            {recommendations.map(job => renderJobCard(job, true))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
-    </>
   );
 }

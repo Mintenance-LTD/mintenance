@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
-import { PageLayout, PageHeader, StatsGrid } from '@/components/ui/PageLayout';
+import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
 import { Card } from '@/components/ui/Card.unified';
-import { Badge as StatusChip } from '@/components/ui/Badge.unified';
+import { StatusBadge, MetricCard } from '@/components/ui/figma';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -190,12 +190,10 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                       backgroundColor: theme.colors.backgroundSecondary,
                     }}
                   >
-                    <StatusChip
-                      variant={STATUS_TONE[status] === 'success' ? 'success' : STATUS_TONE[status] === 'error' ? 'error' : 'default'}
-                      withDot
-                    >
-                      {STATUS_LABEL[status]}
-                    </StatusChip>
+                    <StatusBadge
+                      status={status === 'accepted' ? 'completed' : status === 'rejected' ? 'delayed' : status === 'sent' ? 'posted' : 'pending'}
+                      label={STATUS_LABEL[status]}
+                    />
                     <span style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
                       {count} ({Math.round((count / stageTotal) * 100)}%)
                     </span>
@@ -251,22 +249,28 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
         />
       )}
 
-      <StatsGrid>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(268px, 1fr))',
+        gap: theme.spacing[4],
+        marginBottom: theme.spacing[6],
+      }}>
         {summaryCards.map((card) => (
-          <Card.Metric 
-            key={card.label} 
-            label={card.label} 
+          <MetricCard
+            key={card.label}
+            label={card.label}
             value={
               card.isCurrency 
                 ? <AnimatedCounter value={card.value} formatType="currency" currency="GBP" prefix="£" />
                 : <AnimatedCounter value={card.value} />
             }
             icon={card.icon}
+            iconColor={card.variant === 'success' ? theme.colors.success : card.variant === 'warning' ? theme.colors.warning : theme.colors.primary}
             gradient={true}
             gradientVariant={card.variant}
           />
         ))}
-      </StatsGrid>
+      </div>
 
       <Card>
         <Card.Header>
@@ -279,39 +283,15 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
             {STATUS_FILTERS.map((filter) => {
               const isActive = filter.id === selectedFilter;
               return (
-                <button
+                <Button
                   key={filter.id}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => setSelectedFilter(filter.id)}
-                  style={{
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.full,
-                    border: `2px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                    background: isActive 
-                      ? `linear-gradient(135deg, ${theme.colors.primary}15 0%, ${theme.colors.primary}08 100%)`
-                      : theme.colors.surface,
-                    color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: isActive ? theme.shadows.sm : 'none',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = theme.colors.primary;
-                      e.currentTarget.style.color = theme.colors.textPrimary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = theme.colors.border;
-                      e.currentTarget.style.color = theme.colors.textSecondary;
-                    }
-                  }}
+                  className="rounded-full capitalize"
                 >
                   {filter.label}
-                </button>
+                </Button>
               );
             })}
           </nav>
@@ -415,12 +395,10 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                         <strong style={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.primary }}>
                           {formatCurrency(quote.total_amount)}
                         </strong>
-                        <StatusChip
-                          variant={STATUS_TONE[quote.status] === 'success' ? 'success' : STATUS_TONE[quote.status] === 'error' ? 'error' : 'default'}
-                          withDot
-                        >
-                          {STATUS_LABEL[quote.status]}
-                        </StatusChip>
+                        <StatusBadge
+                          status={quote.status === 'accepted' ? 'completed' : quote.status === 'rejected' ? 'delayed' : quote.status === 'sent' ? 'posted' : 'pending'}
+                          label={STATUS_LABEL[quote.status]}
+                        />
                       </div>
                     </header>
 

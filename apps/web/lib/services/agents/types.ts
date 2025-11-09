@@ -10,7 +10,15 @@ export type AgentName =
   | 'dispute-resolution'
   | 'learning-matching'
   | 'pricing'
-  | 'escrow-release';
+  | 'escrow-release'
+  | 'notification'
+  // Phase 2B agents (planned but not yet implemented)
+  | 'review'
+  | 'verification'
+  | 'quality-assurance'
+  // Phase 2C agents (planned but not yet implemented)
+  | 'contract-generation'
+  | 'marketplace-health';
 
 export type DecisionType =
   | 'risk-prediction'
@@ -22,7 +30,15 @@ export type DecisionType =
   | 'pricing_recommendation'
   | 'photo_verification'
   | 'auto_release_approved'
-  | 'learn_from_bid';
+  | 'learn_from_bid'
+  | 'notification_routing'
+  | 'notification_timing'
+  | 'notification_batching'
+  // Phase 2B decision types (planned but not yet implemented)
+  | 'review_request'
+  | 'review_quality_check'
+  | 'trust_score_calculation'
+  | 'quality_score_calculation';
 
 export type ActionTaken =
   | 'preventive-reminder'
@@ -37,7 +53,16 @@ export type ActionTaken =
   | 'photo_verified'
   | 'photo_failed'
   | 'photo_manual_review'
-  | 'approved_auto_release';
+  | 'approved_auto_release'
+  | 'notification_sent_immediately'
+  | 'notification_queued'
+  | 'notification_batched'
+  | 'notification_delayed'
+  // Phase 2B actions (planned but not yet implemented)
+  | 'review_requested'
+  | 'review_flagged'
+  | 'trust_score_updated'
+  | 'quality_score_updated';
 
 export interface AgentDecision {
   id?: string;

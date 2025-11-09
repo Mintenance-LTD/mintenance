@@ -1,26 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import React, { Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = React.useState('');
+  const [submittedEmail, setSubmittedEmail] = React.useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
 
+  const email = watch('email');
+
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     if (!csrfToken) {
-      setStatus('error');
       setErrorMessage('Security token not available. Please refresh the page.');
+      setSubmitStatus('error');
       return;
     }
 
-    setStatus('submitting');
+    setSubmitStatus('idle');
     setErrorMessage('');
 
     try {
@@ -30,40 +56,39 @@ export default function ForgotPasswordPage() {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: data.email }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        // Sanitize error messages
         if (response.status === 429) {
           throw new Error('Too many password reset requests. Please try again later.');
         } else if (response.status === 403) {
           throw new Error('Access denied. Please refresh the page and try again.');
         } else if (response.status === 400) {
-          throw new Error(data.error || 'Invalid email address. Please check and try again.');
+          throw new Error(responseData.error || 'Invalid email address. Please check and try again.');
         } else if (response.status === 500 || response.status === 503) {
-          throw new Error(data.error || 'Service temporarily unavailable. Please try again later.');
+          throw new Error(responseData.error || 'Service temporarily unavailable. Please try again later.');
         } else {
-          throw new Error(data.error || 'Failed to send reset email. Please try again.');
+          throw new Error(responseData.error || 'Failed to send reset email. Please try again.');
         }
       }
 
-      // Check if response indicates success (API always returns 200 for security)
-      if (data.success) {
-        setStatus('success');
+      if (responseData.success) {
+        setSubmittedEmail(data.email);
+        setSubmitStatus('success');
       } else {
-        throw new Error(data.error || 'Failed to send reset email. Please try again.');
+        throw new Error(responseData.error || 'Failed to send reset email. Please try again.');
       }
     } catch (error: any) {
-      setStatus('error');
       setErrorMessage(error.message || 'Failed to send reset email. Please try again.');
+      setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary-light flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -77,75 +102,72 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {status === 'success' ? (
-            // Success Message
+        <div className="bg-white rounded-2xl shadow-xl p-6 group relative overflow-hidden">
+          {/* Gradient bar - appears on hover, always visible on large screens */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+          {submitStatus === 'success' ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <CheckCircle2 className="w-8 h-8 text-secondary" />
               </div>
-              <h2 className="text-2xl font-bold text-primary mb-3">Check Your Email</h2>
-              <p className="text-gray-600 mb-6">
-                We've sent a password reset link to <strong>{email}</strong>. Please check your inbox and follow the instructions.
-              </p>
+              <AlertTitle className="text-2xl font-bold text-primary mb-3">Check Your Email</AlertTitle>
+              <AlertDescription className="text-gray-600 mb-6">
+                We've sent a password reset link to <strong>{submittedEmail}</strong>. Please check your inbox and follow the instructions.
+              </AlertDescription>
               <p className="text-sm text-gray-500 mb-6">
                 Didn't receive the email? Check your spam folder or{' '}
                 <button
-                  onClick={() => setStatus('idle')}
+                  onClick={() => {
+                    setSubmitStatus('idle');
+                    setSubmittedEmail('');
+                  }}
                   className="text-secondary hover:underline font-medium"
                 >
                   try again
                 </button>
                 .
               </p>
-              <Link
-                href="/login"
-                className="inline-block w-full bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary-dark transition-colors"
-              >
-                Back to Login
+              <Link href="/login">
+                <Button variant="primary" fullWidth>
+                  Back to Login
+                </Button>
               </Link>
             </div>
           ) : (
-            // Reset Form
             <>
-              {status === 'error' && (
-                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-start">
-                  <svg className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm">{errorMessage}</p>
-                </div>
+              {submitStatus === 'error' && errorMessage && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-primary mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
                     id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
+                    type="email"
+                    {...register('email')}
+                    error={errors.email?.message}
                     placeholder="you@example.com"
-                    disabled={status === 'submitting'}
+                    disabled={isSubmitting}
                   />
                 </div>
 
-                <button
+                <Button
                   type="submit"
-                  disabled={status === 'submitting' || csrfLoading}
-                  className="w-full bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="primary"
+                  fullWidth
+                  loading={isSubmitting || csrfLoading}
+                  disabled={isSubmitting || csrfLoading || !csrfToken}
                 >
-                  {csrfLoading ? 'Loading...' : status === 'submitting' ? 'Sending...' : 'Send Reset Link'}
-                </button>
+                  {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                </Button>
 
                 <div className="text-center">
-                  <Link href="/login" className="text-sm text-gray-600 hover:text-secondary transition-colors">
+                  <Link href="/login" className="text-sm text-gray-600 hover:text-primary transition-colors">
                     ← Back to Login
                   </Link>
                 </div>
@@ -156,7 +178,7 @@ export default function ForgotPasswordPage() {
 
         {/* Help Text */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-300">
             Don't have an account?{' '}
             <Link href="/register" className="text-secondary hover:underline font-medium">
               Sign up
@@ -165,11 +187,9 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Security Notice */}
-        <div className="mt-8 mb-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
+        <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-secondary mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+            <AlertCircle className="w-5 h-5 text-secondary mr-3 mt-0.5 shrink-0" />
             <div>
               <h3 className="text-sm font-semibold text-white mb-1">Security Note</h3>
               <p className="text-xs text-gray-300">

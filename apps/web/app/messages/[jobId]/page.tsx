@@ -12,8 +12,10 @@ import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
 import { logger } from '@/lib/logger';
 import { Icon } from '@/components/ui/Icon';
 import type { Message, User } from '@mintenance/types';
-import { CreateContractModal } from '@/app/contractor/messages/components/CreateContractModal';
-import { QuoteViewModal } from './components/QuoteViewModal';
+import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
+import { QuoteViewDialog } from './components/QuoteViewDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { FileText, Phone, FileCheck } from 'lucide-react';
 
 interface ChatPageProps {
   params: Promise<{
@@ -33,9 +35,13 @@ function ChatContent({ params }: ChatPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [homeownerProfile, setHomeownerProfile] = useState<{ profile_image_url?: string | null } | null>(null);
+  const [homeownerProfile, setHomeownerProfile] = useState<{ 
+    profile_image_url?: string | null;
+    name?: string;
+  } | null>(null);
   const [showContractModal, setShowContractModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
 
   // Get params from URL
   const otherUserId = searchParams.get('userId');
@@ -76,6 +82,12 @@ function ChatContent({ params }: ChatPageProps) {
     }
   }, [jobId, router]);
 
+  // Determine the correct back route based on user role
+  const getBackRoute = () => {
+    if (!user) return '/messages';
+    return user.role === 'contractor' ? '/contractor/messages' : '/messages';
+  };
+
   useEffect(() => {
     loadUserAndMessages();
   }, [loadUserAndMessages]);
@@ -106,11 +118,21 @@ function ChatContent({ params }: ChatPageProps) {
         if (response.ok) {
           const data = await response.json();
           const job = data.job;
-          if (job?.homeowner?.profile_image_url) {
+          if (job?.homeowner) {
+            const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+            const homeownerName = homeowner?.first_name && homeowner?.last_name
+              ? `${homeowner.first_name} ${homeowner.last_name}`.trim()
+              : homeowner?.email || 'Homeowner';
+            
+            // Update homeowner profile state
             setHomeownerProfile({
-              profile_image_url: job.homeowner.profile_image_url,
+              profile_image_url: homeowner?.profile_image_url || null,
+              name: homeownerName,
             });
           }
+        } else if (response.status === 403) {
+          // Access denied - this shouldn't happen if user is a participant, but handle gracefully
+          console.warn('Access denied when fetching homeowner profile - user may not be a participant');
         }
       } catch (err) {
         console.error('Error fetching homeowner profile:', err);
@@ -120,7 +142,7 @@ function ChatContent({ params }: ChatPageProps) {
     if (jobId) {
       fetchHomeownerProfile();
     }
-  }, [jobId]);
+  }, [jobId, otherUserName]);
 
   useEffect(() => {
     scrollToBottom();
@@ -227,6 +249,29 @@ function ChatContent({ params }: ChatPageProps) {
   };
 
   if (!user) {
+    // Show loading while checking auth, don't show access denied immediately
+    if (loading) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.backgroundSecondary
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: theme.typography.fontSize.lg,
+              color: theme.colors.textSecondary
+            }}>
+              Loading...
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Only show access denied after loading completes and user is still null
     return (
       <div style={{
         minHeight: '100vh',
@@ -285,7 +330,7 @@ function ChatContent({ params }: ChatPageProps) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Button
-            onClick={() => router.push('/messages')}
+            onClick={() => router.push(getBackRoute())}
             variant="ghost"
             size="sm"
             style={{ marginRight: theme.spacing.sm }}
@@ -300,7 +345,7 @@ function ChatContent({ params }: ChatPageProps) {
               margin: 0,
               marginBottom: '2px'
             }}>
-              {otherUserName || 'Unknown User'}
+              {homeownerProfile?.name || otherUserName || 'Unknown User'}
             </h1>
             <p style={{
               fontSize: theme.typography.fontSize.sm,
@@ -323,38 +368,25 @@ function ChatContent({ params }: ChatPageProps) {
           
           {/* Homeowner Profile Dropdown */}
           <div ref={profileMenuRef} style={{ position: 'relative' }}>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label="Homeowner profile menu"
+              aria-expanded={showProfileMenu}
               style={{
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
                 backgroundColor: theme.colors.primary,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.bold,
                 padding: 0,
                 overflow: 'hidden',
-                transition: 'transform 0.2s',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              aria-label="Homeowner profile menu"
-              aria-expanded={showProfileMenu}
             >
               {homeownerProfile?.profile_image_url ? (
                 <img
                   src={homeownerProfile.profile_image_url}
-                  alt={otherUserName || 'Homeowner'}
+                  alt={homeownerProfile?.name || otherUserName || 'Homeowner'}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -362,9 +394,9 @@ function ChatContent({ params }: ChatPageProps) {
                   }}
                 />
               ) : (
-                <span>
-                  {otherUserName
-                    ? otherUserName
+                <span style={{ color: 'white', fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold }}>
+                  {(homeownerProfile?.name || otherUserName || 'H')
+                    ? (homeownerProfile?.name || otherUserName || 'H')
                         .split(' ')
                         .map((n) => n[0])
                         .join('')
@@ -373,7 +405,7 @@ function ChatContent({ params }: ChatPageProps) {
                     : 'H'}
                 </span>
               )}
-            </button>
+            </Button>
             
             {showProfileMenu && (
               <div
@@ -391,94 +423,42 @@ function ChatContent({ params }: ChatPageProps) {
                   overflow: 'hidden',
                 }}
               >
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
-                    // Open contract modal on current page
                     setShowContractModal(true);
                     setShowProfileMenu(false);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    textAlign: 'left',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textPrimary,
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
+                  className="w-full justify-start"
+                  leftIcon={<FileCheck className="h-4 w-4" />}
                 >
-                  <Icon name="document" size={16} color={theme.colors.primary} />
-                  <span>Contract</span>
-                </button>
-                <button
+                  Contract
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setShowQuoteModal(true);
                     setShowProfileMenu(false);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    textAlign: 'left',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textPrimary,
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
+                  className="w-full justify-start"
+                  leftIcon={<FileText className="h-4 w-4" />}
                 >
-                  <Icon name="fileText" size={16} color={theme.colors.primary} />
-                  <span>View Quote</span>
-                </button>
-                <button
+                  View Quote
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
-                    alert('Video call feature coming soon!');
+                    setShowVideoCallDialog(true);
                     setShowProfileMenu(false);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    textAlign: 'left',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textPrimary,
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
+                  className="w-full justify-start"
+                  leftIcon={<Phone className="h-4 w-4" />}
                 >
-                  <Icon name="phone" size={16} color={theme.colors.primary} />
-                  <span>Call</span>
-                </button>
+                  Call
+                </Button>
               </div>
             )}
           </div>
@@ -622,41 +602,50 @@ function ChatContent({ params }: ChatPageProps) {
         />
       </div>
 
-      {/* Create Contract Modal */}
-      {showContractModal && (
-        <CreateContractModal
-          isOpen={showContractModal}
-          onClose={() => setShowContractModal(false)}
-          jobId={jobId}
-          jobTitle={jobTitle || 'Contract'}
-          onContractCreated={async () => {
-            setShowContractModal(false);
-            logger.info('Contract created, refreshing messages', { jobId });
-            // Add a small delay to ensure database transaction has committed
-            // The real-time subscription should also pick it up, but this ensures we have it
-            setTimeout(async () => {
-              await loadUserAndMessages();
-              logger.info('Messages refreshed after contract creation', { jobId });
-            }, 500);
-          }}
-        />
-      )}
+      {/* Create Contract Dialog */}
+      <CreateContractDialog
+        open={showContractModal}
+        onOpenChange={setShowContractModal}
+        jobId={jobId}
+        jobTitle={jobTitle || 'Contract'}
+        onContractCreated={async () => {
+          setShowContractModal(false);
+          logger.info('Contract created, refreshing messages', { jobId });
+          setTimeout(async () => {
+            await loadUserAndMessages();
+            logger.info('Messages refreshed after contract creation', { jobId });
+          }, 500);
+        }}
+      />
 
-      {/* Quote View Modal */}
-      {showQuoteModal && (
-        <QuoteViewModal
-          isOpen={showQuoteModal}
-          onClose={() => setShowQuoteModal(false)}
-          jobId={jobId}
-        />
-      )}
+      {/* Quote View Dialog */}
+      <QuoteViewDialog
+        open={showQuoteModal}
+        onOpenChange={setShowQuoteModal}
+        jobId={jobId}
+      />
+
+      {/* Video Call Alert Dialog */}
+      <AlertDialog open={showVideoCallDialog} onOpenChange={setShowVideoCallDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Video Call</AlertDialogTitle>
+            <AlertDialogDescription>
+              Video call feature coming soon! This functionality will allow you to have face-to-face conversations with contractors directly from the messaging interface.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowVideoCallDialog(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
       <ChatContent params={params} />
     </Suspense>
   );

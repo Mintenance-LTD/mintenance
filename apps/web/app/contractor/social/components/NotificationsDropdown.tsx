@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Bell, Heart, MessageCircle, UserPlus } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -142,21 +143,13 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative' }}>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          position: 'relative',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          padding: theme.spacing[2],
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="relative p-2"
       >
-        <Icon name="bell" size={20} color={theme.colors.textSecondary} />
+        <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <span
             style={{
@@ -178,7 +171,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </button>
+      </Button>
 
       {isOpen && (
         <div
@@ -242,32 +235,19 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
               </div>
             ) : notifications.length === 0 ? (
               <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
-                <Icon name="bell" size={48} color={theme.colors.textQuaternary} />
+                <Bell className="h-12 w-12 mx-auto opacity-50" />
                 <p style={{ marginTop: theme.spacing[2] }}>No notifications yet</p>
               </div>
             ) : (
               notifications.map((notification) => (
-                <button
+                <Button
                   key={notification.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => handleNotificationClick(notification)}
+                  className="w-full justify-start p-4 border-b hover:bg-gray-50"
                   style={{
-                    width: '100%',
-                    padding: theme.spacing[4],
-                    borderBottom: `1px solid ${theme.colors.border}`,
                     background: notification.read ? 'transparent' : theme.colors.primary + '08',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    gap: theme.spacing[3],
-                    alignItems: 'flex-start',
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = notification.read ? 'transparent' : theme.colors.primary + '08';
                   }}
                 >
                   <div
@@ -282,7 +262,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
                       flexShrink: 0,
                     }}
                   >
-                    <Icon name={getNotificationIcon(notification.type)} size={20} color={getNotificationColor(notification.type)} />
+                    {getNotificationIcon(notification.type)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
@@ -331,7 +311,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
                       }}
                     />
                   )}
-                </button>
+                </Button>
               ))
             )}
           </div>
@@ -345,23 +325,16 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
                 textAlign: 'center',
               }}
             >
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   router.push('/contractor/notifications');
                   setIsOpen(false);
                 }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: theme.colors.primary,
-                  cursor: 'pointer',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
               >
                 View All Notifications
-              </button>
+              </Button>
             </div>
           )}
         </div>

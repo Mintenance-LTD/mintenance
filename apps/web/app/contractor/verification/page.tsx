@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
+import { MapPin, Badge } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Icon } from '@/components/ui/Icon';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
 import { Card } from '@/components/ui/Card.unified';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
@@ -217,13 +217,13 @@ export default function ContractorVerificationPage() {
             <Card.Content>
               <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
                 <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
-                  <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
+                  <MapPin className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
                   <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                     Verified contractors stay visible on the homeowner radar, even when logged out.
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'flex-start' }}>
-                  <Icon name="badge" size={16} color={theme.colors.textSecondary} />
+                  <Badge className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
                   <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                     Completed profiles receive a trust badge and higher placement in search.
                   </p>

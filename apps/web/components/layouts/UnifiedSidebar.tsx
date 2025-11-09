@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Icon } from '@/components/ui/Icon';
+import { LogOut } from 'lucide-react';
+import { MenuTab } from '@/components/ui/figma';
 import Logo from '@/app/components/Logo';
 import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
+import { theme } from '@/lib/theme';
 import styles from './UnifiedSidebar.module.css';
 
 interface NavItem {
@@ -24,6 +26,8 @@ interface UnifiedSidebarProps {
     email?: string;
     avatar?: string;
   };
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 // App primary color scheme (blue)
@@ -59,16 +63,56 @@ const contractorNav: readonly NavItem[] = Object.freeze([
   { icon: 'trendingUp', label: 'Reporting', href: '/contractor/reporting' },
 ]);
 
-export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
+export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobileOpen, onMobileClose }: UnifiedSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+  
+  // Use external mobile state if provided, otherwise use internal state
+  const isMobileOpen = externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;
+  
+  const handleMobileClose = () => {
+    if (externalMobileOpen !== undefined && onMobileClose) {
+      onMobileClose();
+    } else {
+      setInternalMobileOpen(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Check initial screen size
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      const mobile = width < 1024;
+      setIsMobile(mobile);
+      // Auto-collapse on mobile, auto-expand on desktop
+      if (mobile) {
+        setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
+        if (externalMobileOpen === undefined) {
+          setInternalMobileOpen(false);
+        } else if (onMobileClose) {
+          onMobileClose();
+        }
+      }
+    };
+    
+    checkScreenSize();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, [externalMobileOpen, onMobileClose]);
 
   // Ensure userRole has a default value to prevent hydration mismatches
   // This ensures consistent array selection during SSR and client
@@ -108,94 +152,127 @@ export function UnifiedSidebar({ userRole, userInfo }: UnifiedSidebarProps) {
     return homeownerNav;
   }, [resolvedUserRole]);
 
-  const isActive = (href: string) => {
-    // Use pathname directly - it's available on both server and client in Next.js 15
-    // Return false if pathname is not available (shouldn't happen, but defensive)
-    if (!pathname) {
-      return false;
-    }
-    if (href === '/dashboard' || href === '/contractor/dashboard-enhanced') {
-      return pathname === href;
-    }
-    return pathname.startsWith(href);
-  };
+  // Memoize isActive calculation to ensure consistency between SSR and client
+  // Always default to false during SSR to prevent hydration mismatches
+  const isActive = React.useMemo(() => {
+    return (href: string) => {
+      // During SSR or if pathname is not available, always return false
+      // This ensures consistent rendering between server and client
+      if (typeof window === 'undefined' || !pathname) {
+        return false;
+      }
+      if (href === '/dashboard' || href === '/contractor/dashboard-enhanced') {
+        return pathname === href;
+      }
+      return pathname.startsWith(href);
+    };
+  }, [pathname]);
 
   // Use CSS classes to avoid hydration mismatches from inline style normalization
-  const sidebarClassName = `${styles.sidebar} ${isCollapsed && mounted ? styles.sidebarCollapsed : ''}`;
+  // Always render expanded state initially to match SSR, then allow collapse after mount
+  // On mobile, sidebar should be hidden by default unless isMobileOpen is true
+  const sidebarClassName = `${styles.sidebar} ${isCollapsed && mounted ? styles.sidebarCollapsed : ''} ${isMobile && mounted && !isMobileOpen ? styles.sidebarMobileHidden : ''}`;
+  const shouldShowExpanded = !isCollapsed || !mounted;
 
   // Always render the same structure to prevent hydration mismatches
   // The nav element must always be present, even during SSR
   return (
     <>
-      {/* Sidebar */}
-      <aside className={sidebarClassName}>
-        {/* Logo Section */}
-        <div className={styles.logoSection}>
-          <div className={styles.logoContainer}>
-            <Logo width={32} height={32} />
-          </div>
-          {!isCollapsed && (
-            <div className={styles.logoText}>
-              Mintenance
-            </div>
-          )}
+      {/* Mobile overlay backdrop */}
+      {isMobile && mounted && isMobileOpen && (
+        <div 
+          className={styles.sidebarOverlay}
+          onClick={handleMobileClose}
+          suppressHydrationWarning
+        />
+      )}
+      <aside className={sidebarClassName} suppressHydrationWarning>
+      {/* Logo Section */}
+      <div className={styles.logoSection}>
+        <div className={styles.logoContainer}>
+          <Logo width={32} height={32} />
         </div>
-
-        {/* Navigation Items */}
-        <nav className={styles.nav} suppressHydrationWarning>
-          {navItems.map((item) => {
-            // Calculate active state - pathname is available on both server and client
-            const active = isActive(item.href);
-            const linkClassName = `${styles.navLink} ${active ? styles.navLinkActive : ''}`;
-            const textClassName = `${styles.navLinkText} ${active ? styles.navLinkTextActive : ''}`;
-            
-            return (
-              <Link
-                key={`${resolvedUserRole}-nav-${item.href}`}
-                href={item.href}
-                className={linkClassName}
-                suppressHydrationWarning
-              >
-                <Icon name={item.icon} size={20} color={SIDEBAR_COLORS.text} />
-                {!isCollapsed && (
-                  <span className={textClassName} suppressHydrationWarning>
-                    {item.label}
-                  </span>
-                )}
-                {active && (
-                  <div className={styles.activeIndicator} />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Bottom Section */}
-        <div className={styles.bottomSection}>
-          <Link
-            href="/help"
-            className={styles.helpLink}
-          >
-            <Icon name="helpCircle" size={20} color={SIDEBAR_COLORS.text} />
-            {!isCollapsed && (
-              <span className={styles.navLinkText}>Help</span>
-            )}
-          </Link>
-
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className={styles.logoutButton}
-          >
-            <Icon name="logOut" size={20} color={SIDEBAR_COLORS.text} />
-            {!isCollapsed && (
-              <span className={styles.navLinkText}>
-                {isLoggingOut ? 'Signing out...' : 'Log Out'}
-              </span>
-            )}
-          </button>
+        <div className={styles.logoText} style={{ opacity: shouldShowExpanded ? 1 : 0, visibility: shouldShowExpanded ? 'visible' : 'hidden' }}>
+          Mintenance
         </div>
-      </aside>
+      </div>
+
+      {/* Navigation Items */}
+      <nav className={styles.nav} suppressHydrationWarning>
+        {navItems.map((item) => {
+          // Only calculate active state after mount to prevent hydration mismatch
+          // During SSR, always render as inactive, then update after hydration
+          const active = mounted ? isActive(item.href) : false;
+          
+          return (
+            <MenuTab
+              key={`${resolvedUserRole}-nav-${item.href}`}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              isActive={active}
+              isExpanded={shouldShowExpanded}
+            />
+          );
+        })}
+      </nav>
+
+      {/* Bottom Section */}
+      <div className={styles.bottomSection}>
+        <MenuTab
+          icon="helpCircle"
+          label="Help"
+          href="/help"
+          isActive={false}
+          isExpanded={shouldShowExpanded}
+        />
+        
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          suppressHydrationWarning
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: shouldShowExpanded ? '16px' : '0',
+            width: shouldShowExpanded ? 'auto' : '48px',
+            height: '48px',
+            borderRadius: '24px',
+            padding: shouldShowExpanded ? '13px 16px 13px 26px' : '13px 16px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: theme.colors.textInverse,
+            cursor: isLoggingOut ? 'not-allowed' : 'pointer',
+            opacity: isLoggingOut ? 0.6 : 1,
+            transition: `all ${theme.animation.duration.normal} ${theme.animation.easing.easeOut}`,
+            textAlign: 'left',
+          }}
+          onMouseEnter={(e) => {
+            if (!isLoggingOut) {
+              e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <LogOut size={22} style={{ color: theme.colors.textInverse }} />
+          <span 
+            suppressHydrationWarning
+            style={{ 
+              fontSize: theme.typography.fontSize.sm, 
+              fontWeight: theme.typography.fontWeight.regular,
+              opacity: shouldShowExpanded ? 1 : 0,
+              visibility: shouldShowExpanded ? 'visible' : 'hidden',
+              width: shouldShowExpanded ? 'auto' : '0',
+              overflow: 'hidden',
+            }}
+          >
+            {isLoggingOut ? 'Signing out...' : 'Log Out'}
+          </span>
+        </button>
+      </div>
+    </aside>
     </>
   );
 }

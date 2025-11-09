@@ -3,8 +3,11 @@
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { useRouter } from 'next/navigation';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { MetricCard, StatusBadge } from '@/components/ui/figma';
 import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 
 interface Client {
@@ -111,254 +114,95 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
         width: '100%',
         boxSizing: 'border-box',
       }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: theme.spacing[4],
-        flexWrap: 'wrap',
-      }}>
+      {/* Header - Modern Design */}
+      <div className="flex justify-between items-start gap-4 flex-wrap">
         <div>
-          <h1 style={{
-            margin: 0,
-            marginBottom: theme.spacing[1],
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
+          <h1 className="text-heading-md font-[640] text-gray-900 mb-3 tracking-tighter">
             Client Relationship Management
           </h1>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-          }}>
-            {filteredClients.length} clients • {clients.filter(c => c.active_jobs > 0).length} active
-          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-base font-[560] text-gray-700 m-0">
+              {filteredClients.length} clients
+            </p>
+            <span className="text-gray-300">•</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <p className="text-base font-[560] text-gray-700 m-0">
+                {clients.filter(c => c.active_jobs > 0).length} active
+              </p>
+            </div>
+          </div>
         </div>
-        <button style={{
-          height: '40px',
-          padding: `0 ${theme.spacing[4]}`,
-          borderRadius: theme.borderRadius.lg,
-          border: 'none',
-          backgroundColor: theme.colors.primary,
-          color: 'white',
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.semibold,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="plus" size={16} color="white" />
+        <Button
+          variant="primary"
+          onClick={() => {/* Add client action */}}
+          className="px-6 py-3 rounded-xl"
+        >
+          <Icon name="plus" size={18} color="white" />
           Add Client
-        </button>
+        </Button>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: theme.spacing[4],
-      }}>
-        <div style={{
-          ...getGradientCardStyle('primary'),
-          padding: theme.spacing[5],
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = theme.shadows.lg;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = theme.shadows.sm;
-        }}
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing[3],
-          }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              Total Clients
-            </span>
-            <div style={getIconContainerStyle('#2563EB', 40)}>
-              <Icon name="users" size={20} color="#2563EB" />
-            </div>
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            <AnimatedCounter value={analytics.total_clients} />
-          </div>
-        </div>
-
-        <div style={{
-          ...getGradientCardStyle('success'),
-          padding: theme.spacing[5],
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = theme.shadows.lg;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = theme.shadows.sm;
-        }}
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing[3],
-          }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              New This Month
-            </span>
-            <div style={getIconContainerStyle('#065F46', 40)}>
-              <Icon name="plus" size={20} color="#065F46" />
-            </div>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: theme.spacing[2],
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              <AnimatedCounter value={analytics.new_clients_this_month} />
-            </div>
-            {analytics.month_over_month_change !== undefined && analytics.month_over_month_change !== 0 && (
-              <div style={{
-                padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                borderRadius: theme.borderRadius.full,
-                backgroundColor: analytics.month_over_month_change >= 0 ? '#D1FAE5' : '#FEE2E2',
-                color: analytics.month_over_month_change >= 0 ? '#065F46' : '#991B1B',
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-              }}>
-                {analytics.month_over_month_change >= 0 ? '+' : ''}{analytics.month_over_month_change}%
+            {/* KPI Cards - Modern Grid */}
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+                <MetricCard
+                  label="Total Clients"
+                  value={<AnimatedCounter value={analytics.total_clients} />}
+                  icon="users"
+                  iconColor={theme.colors.primary}
+                  gradient={false}
+                  gradientVariant="primary"
+                />
               </div>
-            )}
-          </div>
-        </div>
 
-        <div style={{
-          ...getGradientCardStyle('warning'),
-          padding: theme.spacing[5],
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = theme.shadows.lg;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = theme.shadows.sm;
-        }}
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing[3],
-          }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              Repeat Clients
-            </span>
-            <div style={getIconContainerStyle('#92400E', 40)}>
-              <Icon name="briefcase" size={20} color="#92400E" />
-            </div>
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            fontVariantNumeric: 'tabular-nums',
-            marginBottom: '4px',
-          }}>
-            <AnimatedCounter value={analytics.repeat_clients} />
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-          }}>
-            {analytics.total_clients > 0 
-              ? `${Math.round((analytics.repeat_clients / analytics.total_clients) * 100)}% return rate`
-              : '0% return rate'}
-          </div>
-        </div>
+              <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+                <MetricCard
+                  label="New This Month"
+                  value={<AnimatedCounter value={analytics.new_clients_this_month} />}
+                  icon="plus"
+                  iconColor={theme.colors.success}
+                  trend={analytics.month_over_month_change !== undefined ? {
+                    direction: analytics.month_over_month_change >= 0 ? 'up' : 'down',
+                    value: `${Math.abs(analytics.month_over_month_change)}%`,
+                    label: 'vs last month',
+                  } : undefined}
+                  gradient={false}
+                  gradientVariant="success"
+                />
+              </div>
 
-        <div style={{
-          ...getGradientCardStyle('success'),
-          padding: theme.spacing[5],
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = theme.shadows.lg;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = theme.shadows.sm;
-        }}
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: theme.spacing[3],
-          }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}>
-              Avg Lifetime Value
-            </span>
-            <div style={getIconContainerStyle('#3730A3', 40)}>
-              <Icon name="currencyPound" size={20} color="#3730A3" />
+              <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+                <MetricCard
+                  label="Repeat Clients"
+                  value={<AnimatedCounter value={analytics.repeat_clients} />}
+                  subtitle={analytics.total_clients > 0 
+                    ? `${Math.round((analytics.repeat_clients / analytics.total_clients) * 100)}% return rate`
+                    : '0% return rate'}
+                  icon="briefcase"
+                  iconColor={theme.colors.warning}
+                  gradient={false}
+                  gradientVariant="warning"
+                />
+              </div>
+
+              <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+                <MetricCard
+                  label="Avg Lifetime Value"
+                  value={<AnimatedCounter 
+                    value={analytics.client_lifetime_value} 
+                    formatType="currency" 
+                    currency="GBP" 
+                    prefix="£" 
+                    decimals={0}
+                  />}
+                  icon="currencyPound"
+                  iconColor={theme.colors.info}
+                  gradient={false}
+                  gradientVariant="primary"
+                />
+              </div>
             </div>
-          </div>
-          <div style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            <AnimatedCounter 
-              value={analytics.client_lifetime_value} 
-              formatType="currency" 
-              currency="GBP" 
-              prefix="£" 
-              decimals={0}
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Search and Filters */}
       <div 
@@ -398,17 +242,7 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
               placeholder="Search clients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                height: '40px',
-                padding: `0 ${theme.spacing[3]} 0 ${theme.spacing[10]}`,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textPrimary,
-                backgroundColor: theme.colors.white,
-                outline: 'none',
-              }}
+              className="w-full h-10 px-3 pl-10 border border-gray-200 rounded-lg text-sm font-[460] text-gray-900 bg-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-all duration-200"
             />
           </div>
 
@@ -422,40 +256,20 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
               backgroundColor: theme.colors.backgroundSecondary,
               borderRadius: theme.borderRadius.lg,
             }}>
-            <button
-              suppressHydrationWarning
+            <Button
+              variant={viewMode === 'cards' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setViewMode('cards')}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                borderRadius: theme.borderRadius.md,
-                border: 'none',
-                backgroundColor: viewMode === 'cards' ? theme.colors.white : 'transparent',
-                color: viewMode === 'cards' ? theme.colors.textPrimary : theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                boxShadow: viewMode === 'cards' ? theme.shadows.sm : 'none',
-              }}
             >
               Cards
-            </button>
-            <button
-              suppressHydrationWarning
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => setViewMode('table')}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                borderRadius: theme.borderRadius.md,
-                border: 'none',
-                backgroundColor: viewMode === 'table' ? theme.colors.white : 'transparent',
-                color: viewMode === 'table' ? theme.colors.textPrimary : theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                boxShadow: viewMode === 'table' ? theme.shadows.sm : 'none',
-              }}
             >
               Table
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -472,57 +286,31 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
             boxSizing: 'border-box',
           }}>
           {FILTERS.map((filter) => (
-            <button
+            <Button
               key={filter.key}
-              suppressHydrationWarning
+              variant={selectedFilter === filter.key ? 'primary' : 'outline'}
+              size="sm"
               onClick={() => setSelectedFilter(filter.key)}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                borderRadius: theme.borderRadius.full,
-                border: `1px solid ${selectedFilter === filter.key ? theme.colors.primary : theme.colors.border}`,
-                backgroundColor: selectedFilter === filter.key ? theme.colors.primary : theme.colors.white,
-                color: selectedFilter === filter.key ? 'white' : theme.colors.textPrimary,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
-              }}
+              className="rounded-full capitalize"
             >
               {filter.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      {/* Client Cards */}
-      {viewMode === 'cards' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: theme.spacing[4],
-        }}>
-          {filteredClients.map((client) => (
-            <div
-              key={client.id}
-              onClick={() => router.push(`/contractor/crm/${client.id}`)}
-              style={{
-                backgroundColor: theme.colors.white,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.xl,
-                padding: theme.spacing[5],
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = theme.shadows.lg;
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+            {/* Client Cards - Modern Grid */}
+            {viewMode === 'cards' && (
+              <div className="grid grid-cols-12 gap-6">
+                {filteredClients.map((client) => (
+                  <div
+                    key={client.id}
+                    onClick={() => router.push(`/contractor/crm/${client.id}`)}
+                    className="col-span-12 md:col-span-6 xl:col-span-4 group bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden"
+                  >
+              {/* Subtle top accent */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+              
               {/* Header */}
               <div style={{
                 display: 'flex',
@@ -534,118 +322,72 @@ export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhance
                   width: '48px',
                   height: '48px',
                   borderRadius: theme.borderRadius.full,
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: theme.colors.primary + '15',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
+                  border: `2px solid ${theme.colors.primary}30`,
                 }}>
                   <span style={{
                     fontSize: theme.typography.fontSize.lg,
                     fontWeight: theme.typography.fontWeight.semibold,
-                    color: 'white',
+                    color: theme.colors.primary,
                   }}>
                     {client.name.split(' ').map(n => n[0]).join('')}
                   </span>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{
-                    margin: 0,
-                    marginBottom: '2px',
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-[560] text-gray-900 mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                     {client.name}
                   </h3>
-                  <p style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <p className="text-xs font-[460] text-gray-600 m-0 overflow-hidden text-ellipsis whitespace-nowrap">
                     {client.email}
                   </p>
                 </div>
+                {client.status === 'active' && (
+                  <span className="px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-[560]">
+                    Active
+                  </span>
+                )}
               </div>
 
-              {/* Stats Grid */}
+              {/* Stats Grid - Modern Layout */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: theme.spacing[3],
                 marginBottom: theme.spacing[4],
               }}>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '2px',
-                  }}>
+                <div className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="text-xs font-[460] text-gray-600 mb-1 uppercase tracking-wider">
                     Total Jobs
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
+                  <div className="text-lg font-[640] text-gray-900 tabular-nums">
                     {client.total_jobs}
                   </div>
                 </div>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '2px',
-                  }}>
+                <div className="p-3 rounded-xl bg-green-50 hover:bg-green-100 transition-colors">
+                  <div className="text-xs font-[460] text-gray-600 mb-1 uppercase tracking-wider">
                     Active Jobs
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
+                  <div className="text-lg font-[640] text-green-600 tabular-nums">
                     {client.active_jobs}
                   </div>
                 </div>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '2px',
-                  }}>
+                <div className="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
+                  <div className="text-xs font-[460] text-gray-600 mb-1 uppercase tracking-wider">
                     Completed
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
+                  <div className="text-lg font-[640] text-blue-600 tabular-nums">
                     {client.completed_jobs}
                   </div>
                 </div>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '2px',
-                  }}>
+                <div className="p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="text-xs font-[460] text-gray-600 mb-1 uppercase tracking-wider">
                     Total Spent
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
+                  <div className="text-lg font-[640] text-gray-900 tabular-nums">
                     £{client.total_spent.toLocaleString()}
                   </div>
                 </div>

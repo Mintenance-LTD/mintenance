@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { Icon } from '@/components/ui/Icon';
+import { Briefcase, MapPin, Bell, Menu, X } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { ProfileDropdown } from '@/components/profile/ProfileDropdown';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Search } from 'lucide-react';
 
 type ContractorSummary = {
   first_name?: string | null;
@@ -31,15 +34,33 @@ interface ContractorLayoutShellProps {
 export function ContractorLayoutShell({ children, contractor, email, userId, initialPathname }: ContractorLayoutShellProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Use pathname from hook, fallback to initialPathname for consistent SSR/client rendering
-  // This ensures the same page type is detected on both server and client
-  const currentPath = pathname ?? initialPathname ?? '';
-  const isDashboard = currentPath === '/contractor/dashboard-enhanced';
-  const isJobDetail = currentPath.startsWith('/contractor/jobs/');
+  // Calculate these consistently for both server and client initial render
+  // Use initialPathname for SSR consistency, fallback to pathname if available
+  const pathForCalculation = initialPathname ?? pathname ?? '';
+  const isDashboard = pathForCalculation === '/contractor/dashboard-enhanced';
+  const isJobDetail = pathForCalculation.startsWith('/contractor/jobs/');
 
   useEffect(() => {
     setMounted(true);
+    
+    // Check screen size for mobile menu
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 1024);
+      if (width >= 1024) {
+        setIsMobileOpen(false);
+      }
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
   }, []);
 
   const contractorFullName = useMemo(() => {
@@ -75,37 +96,35 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
       <UnifiedSidebar
         userRole="contractor"
         userInfo={userInfo}
+        isMobileOpen={isMobileOpen}
+        onMobileClose={() => setIsMobileOpen(false)}
       />
 
       <div
         suppressHydrationWarning
         style={{
           flex: '1 1 0%',
-          width: 'calc(100% - 280px)',
-          marginLeft: '280px',
+          width: mounted && isMobile ? '100%' : 'calc(100% - 280px)',
+          marginLeft: mounted && isMobile ? '0' : '280px',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           minWidth: 0,
         }}
       >
         <header
           suppressHydrationWarning
+          className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-gray-200"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: `${theme.spacing[6]} ${theme.spacing[8]}`,
-            backgroundColor: theme.colors.surface,
-            borderBottom: `1px solid ${theme.colors.border}`,
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
             flexWrap: 'nowrap',
             gap: theme.spacing[4],
           }}
         >
-          {/* Left Side - Search */}
+          {/* Left Side - Mobile Menu Button & Search */}
           <div
             suppressHydrationWarning
             style={{
@@ -116,6 +135,32 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
               minWidth: 0,
             }}
           >
+            {/* Mobile Menu Toggle Button - Only visible on mobile */}
+            {mounted && isMobile && (
+              <button
+                onClick={() => setIsMobileOpen(!isMobileOpen)}
+                suppressHydrationWarning
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  border: `1px solid ${theme.colors.border}`,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  cursor: 'pointer',
+                  transition: `background-color ${theme.animation.duration.fast} ${theme.animation.easing.easeOut}`,
+                }}
+                aria-label="Toggle menu"
+              >
+                {isMobileOpen ? (
+                  <X className="h-5 w-5" style={{ color: theme.colors.textPrimary }} />
+                ) : (
+                  <Menu className="h-5 w-5" style={{ color: theme.colors.textPrimary }} />
+                )}
+              </button>
+            )}
             {/* Search form - hide on dashboard and job detail pages, show on other pages */}
             {!isDashboard && !isJobDetail && (
               <div suppressHydrationWarning style={{ display: 'flex', flex: '1 1 0%' }}>
@@ -135,65 +180,106 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                     gap: theme.spacing[2],
                   }}
                 >
-                  <Icon name="discover" size={18} color={theme.colors.textQuaternary} />
-                  <input
+                  <Search className="h-4 w-4 text-gray-400" />
+                  <Input
                     name="query"
                     type="search"
                     placeholder="Search contractors or projects"
                     suppressHydrationWarning
+                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                     style={{
-                      flex: '1 1 0%',
-                      border: 'none',
-                      outline: 'none',
-                      backgroundColor: 'transparent',
                       fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.textPrimary,
                     }}
                   />
-                  <button
+                  <Button
                     type="submit"
-                    style={{
-                      background: theme.colors.primary,
-                      color: theme.colors.textInverse,
-                      border: 'none',
-                      borderRadius: theme.borderRadius.md,
-                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      cursor: 'pointer',
-                    }}
+                    variant="primary"
+                    size="sm"
                   >
                     Search
-                  </button>
+                  </Button>
                 </form>
               </div>
             )}
             {/* Dashboard content - show when on dashboard page */}
-            {isDashboard && (
-              <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
-                <h1
-                  suppressHydrationWarning
-                  style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize['3xl'],
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  Dashboard
-                </h1>
-                <p
-                  suppressHydrationWarning
-                  style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  Welcome back, {contractor?.first_name || contractor?.company_name || email || 'Contractor'}
-                </p>
-              </div>
-            )}
+            {/* Always render the same structure to avoid hydration mismatch */}
+            <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+              <h1
+                suppressHydrationWarning
+                style={{
+                  margin: 0,
+                  fontSize: theme.typography.fontSize['3xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                {(() => {
+                  // Use initialPathname for consistent SSR/client rendering
+                  const pathToUse = initialPathname ?? pathname ?? '';
+                  
+                  // Normalize pathname: remove query params, trailing slashes, and ensure consistent format
+                  const normalizedPath = pathToUse.split('?')[0].split('#')[0].replace(/\/$/, '') || '/contractor/dashboard-enhanced';
+                  
+                  // Debug logging (remove in production if needed)
+                  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                    console.log('[ContractorLayoutShell] Pathname resolution:', {
+                      initialPathname,
+                      pathname,
+                      pathToUse,
+                      normalizedPath
+                    });
+                  }
+                  
+                  // Map specific routes to their display titles
+                  const routeTitleMap: Record<string, string> = {
+                    '/contractor/dashboard-enhanced': 'Dashboard',
+                    '/contractor/crm': 'Customers',
+                    '/contractor/bid': 'Jobs & Bids',
+                    '/contractor/messages': 'Messages',
+                    '/contractor/profile': 'Profile',
+                    '/contractor/finance': 'Financials',
+                    '/contractor/jobs-near-you': 'Jobs Near You',
+                    '/contractor/connections': 'Connections',
+                    '/contractor/gallery': 'Gallery',
+                    '/contractor/resources': 'Resources',
+                    '/contractor/quotes': 'Quotes',
+                    '/contractor/invoices': 'Invoices',
+                    '/contractor/payouts': 'Payouts',
+                    '/contractor/reporting': 'Reporting',
+                    '/contractor/service-areas': 'Service Areas',
+                    '/contractor/social': 'Social',
+                    '/contractor/subscription': 'Subscription',
+                    '/contractor/support': 'Support',
+                    '/contractor/verification': 'Verification',
+                    '/contractor/card-editor': 'Card Editor',
+                    '/contractor/company': 'Company',
+                    '/scheduling': 'Scheduling',
+                  };
+                  
+                  // Check for exact match first
+                  if (routeTitleMap[normalizedPath]) {
+                    return routeTitleMap[normalizedPath];
+                  }
+                  
+                  // Check for dynamic routes (e.g., /contractor/bid/[jobId], /contractor/crm/[id])
+                  // For contractor routes, check if path starts with /contractor/ and has a known base route
+                  if (normalizedPath.startsWith('/contractor/')) {
+                    const pathSegments = normalizedPath.split('/').filter(Boolean);
+                    // pathSegments[0] = 'contractor', pathSegments[1] = route name (e.g., 'crm', 'bid')
+                    if (pathSegments.length >= 2) {
+                      const basePath = `/${pathSegments[0]}/${pathSegments[1]}`;
+                      if (routeTitleMap[basePath]) {
+                        return routeTitleMap[basePath];
+                      }
+                    }
+                  }
+                  
+                  // Fallback: extract page name from path
+                  const pageName = normalizedPath.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
+                  return pageName.charAt(0).toUpperCase() + pageName.slice(1);
+                })()}
+              </h1>
+            </div>
           </div>
 
           {/* Right Side - Actions */}
@@ -207,10 +293,11 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
             }}
           >
             {/* Dashboard-specific actions - Only render after mount to prevent hydration mismatch */}
-            {isDashboard ? (
+            {mounted && (pathname === '/contractor/dashboard-enhanced') ? (
               <>
                 <Link
                   href="/contractor/bid"
+                  suppressHydrationWarning
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -225,11 +312,12 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                     border: `1px solid ${theme.colors.primary}`,
                   }}
                 >
-                  <Icon name="briefcase" size={16} color={theme.colors.primary} />
+                  <Briefcase className="h-4 w-4" style={{ color: theme.colors.primary }} />
                   View Jobs
                 </Link>
                 <Link
                   href="/contractor/jobs-near-you"
+                  suppressHydrationWarning
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -245,7 +333,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                     border: `1px solid ${theme.colors.primary}`,
                   }}
                 >
-                  <Icon name="mapPin" size={16} color={theme.colors.textInverse} />
+                  <MapPin className="h-4 w-4" style={{ color: theme.colors.textInverse }} />
                   Jobs Near You
                 </Link>
               </>
@@ -268,7 +356,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                   border: `1px solid ${theme.colors.primary}`,
                 }}
               >
-                <Icon name="mapPin" size={16} color={theme.colors.textInverse} />
+                <MapPin className="h-4 w-4" style={{ color: theme.colors.textInverse }} />
                 Jobs Near You
               </Link>
             )}
@@ -295,7 +383,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                 }}
                 aria-label="Notifications"
               >
-                <Icon name="bell" size={18} color={theme.colors.textSecondary} />
+                <Bell className="h-[18px] w-[18px]" style={{ color: theme.colors.textSecondary }} />
               </button>
             )}
 
@@ -316,9 +404,10 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
                     padding: isJobDetail ? '32px 32px 32px 24px' : '32px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 0,
+                    gap: '32px', // Add proper spacing between sections
                     position: 'relative',
                     zIndex: 1,
+                    backgroundColor: theme.colors.white,
                   }}
                 >
           {children}

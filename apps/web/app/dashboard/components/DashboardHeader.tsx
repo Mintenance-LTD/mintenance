@@ -1,128 +1,128 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { DashboardMetric } from './dashboard-metrics.types';
+import { MetricsDropdown } from './MetricsDropdown';
 
 interface DashboardHeaderProps {
   userName: string;
   userId?: string;
+  secondaryMetrics?: DashboardMetric[];
 }
 
-export function DashboardHeader({ userName, userId }: DashboardHeaderProps) {
+export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: DashboardHeaderProps) {
   const router = useRouter();
+  const [isMetricsOpen, setIsMetricsOpen] = useState(false);
+  const avatarButtonRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const handleAvatarClick = () => {
-    router.push('/profile');
+    if (secondaryMetrics.length === 0) {
+      router.push('/profile');
+      return;
+    }
+
+    setIsMetricsOpen((prev) => !prev);
   };
 
+  useEffect(() => {
+    if (!isMetricsOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        avatarButtonRef.current &&
+        !avatarButtonRef.current.contains(target)
+      ) {
+        setIsMetricsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMetricsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMetricsOpen]);
+
   return (
-    <>
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
-        borderBottom: `1px solid ${theme.colors.border}`,
-        backgroundColor: theme.colors.surface,
-        whiteSpace: 'nowrap'
-      }}>
+    <div style={{ position: 'relative' }}>
+      <header
+        className="sticky top-0 z-10 backdrop-blur-md bg-white/80 flex items-center justify-between px-8 py-4 border-b border-gray-200 shadow-sm"
+        style={{ whiteSpace: 'nowrap' }}
+      >
         {/* Search */}
-        <div style={{ position: 'relative', display: 'none' }} className="lg:block">
-        <Icon 
-          name="search" 
-          size={20} 
-          color={theme.colors.textSecondary}
-          style={{ position: 'absolute', left: theme.spacing[3], top: '50%', transform: 'translateY(-50%)' }}
-        />
-        <input
-          type="text"
-          placeholder="Search for jobs or contractors..."
-          aria-label="Search for jobs or contractors"
-          style={{
-            height: '40px',
-            width: '100%',
-            minWidth: '300px',
-            borderRadius: theme.borderRadius.lg,
-            border: 'none',
-            backgroundColor: theme.colors.backgroundSecondary,
-            padding: `0 ${theme.spacing[3]} 0 ${theme.spacing[10]}`,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textPrimary,
-            outline: 'none'
-          }}
-        />
-      </div>
+        <div className="relative hidden lg:block">
+          <Icon
+            name="search"
+            size={20}
+            color={theme.colors.textSecondary}
+            style={{ position: 'absolute', left: theme.spacing[3], top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}
+          />
+          <Input
+            type="text"
+            placeholder="Search for jobs or contractors..."
+            aria-label="Search for jobs or contractors"
+            className="h-11 w-full min-w-[400px] pl-12 pr-4"
+          />
+        </div>
 
       {/* Right Side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginLeft: 'auto' }}>
+      <div className="flex items-center gap-3 ml-auto">
         {/* Help Button */}
-        <button 
-          className="icon-btn" 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-11 w-11 rounded-xl"
           aria-label="Help and support"
-          style={{
-            display: 'flex',
-            height: '40px',
-            width: '40px',
-            cursor: 'pointer',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: theme.borderRadius.full,
-            backgroundColor: theme.colors.backgroundSecondary,
-            border: 'none',
-            transition: 'all 0.2s'
-          }}
         >
-          <Icon name="helpCircle" size={20} color={theme.colors.textSecondary} aria-hidden="true" />
-        </button>
+          <Icon name="helpCircle" size={22} color={theme.colors.textSecondary} aria-hidden="true" />
+        </Button>
 
         {/* Real Notifications */}
         {userId && <NotificationDropdown userId={userId} />}
 
         {/* User Avatar */}
-        <button
-          onClick={handleAvatarClick}
-          aria-label="View profile"
-          style={{
-            aspectRatio: '1',
-            height: '40px',
-            width: '40px',
-            borderRadius: theme.borderRadius.full,
-            backgroundColor: theme.colors.primary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: theme.typography.fontWeight.bold,
-            fontSize: theme.typography.fontSize.base,
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            padding: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#1E293B';
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = theme.colors.primary;
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
-        </button>
+        <div ref={avatarButtonRef}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAvatarClick}
+            aria-label="View profile"
+            className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary-800 text-white font-bold text-sm hover:scale-110 hover:shadow-lg"
+          >
+            {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </Button>
+        </div>
       </div>
-        <style jsx>{`
-          .icon-btn:hover {
-            background-color: ${theme.colors.backgroundTertiary};
-          }
-          .icon-btn:hover svg {
-            stroke: ${theme.colors.primary};
-          }
-        `}</style>
       </header>
-    </>
+      {isMetricsOpen && secondaryMetrics.length > 0 && (
+        <div ref={dropdownRef}>
+          <MetricsDropdown
+            metrics={secondaryMetrics}
+            onClose={() => setIsMetricsOpen(false)}
+            onViewProfile={() => router.push('/profile')}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,14 +1,29 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
+import React from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Briefcase, MapPin, PoundSterling, Calendar, Mail, Phone, CheckCircle2, MessageCircle, Check, UserCheck, Loader2, XCircle, LucideIcon } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { LocationSharing } from './components/LocationSharing';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
 import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
 import { Card } from '@/components/ui/Card.unified';
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+
+// Helper function to get Lucide icon component from icon name
+function getStatusIconComponent(iconName: string): LucideIcon {
+  const iconMap: Record<string, LucideIcon> = {
+    briefcase: Briefcase,
+    userCheck: UserCheck,
+    loader: Loader2,
+    checkCircle: CheckCircle2,
+    xCircle: XCircle,
+    check: Check,
+  };
+  return iconMap[iconName] || Briefcase; // Default to Briefcase if not found
+}
 
 export default async function ContractorJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -56,12 +71,12 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
       ? 'accepted' 
       : 'pending';
 
-  const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
-    posted: { label: 'Posted', color: theme.colors.info, icon: 'briefcase' },
-    assigned: { label: 'Assigned', color: theme.colors.warning, icon: 'userCheck' },
-    in_progress: { label: 'In Progress', color: theme.colors.primary, icon: 'loader' },
-    completed: { label: 'Completed', color: theme.colors.success, icon: 'checkCircle' },
-    cancelled: { label: 'Cancelled', color: theme.colors.error, icon: 'xCircle' },
+  const statusConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
+    posted: { label: 'Posted', color: theme.colors.info, icon: Briefcase },
+    assigned: { label: 'Assigned', color: theme.colors.warning, icon: UserCheck },
+    in_progress: { label: 'In Progress', color: theme.colors.primary, icon: Loader2 },
+    completed: { label: 'Completed', color: theme.colors.success, icon: CheckCircle2 },
+    cancelled: { label: 'Cancelled', color: theme.colors.error, icon: XCircle },
   };
 
   const currentStatus = statusConfig[job.status || 'posted'] || statusConfig.posted;
@@ -113,7 +128,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                   gap: theme.spacing[2],
                   border: `1px solid ${currentStatus.color}30`,
                 }}>
-                  <Icon name={currentStatus.icon as any} size={16} color={currentStatus.color} />
+                  {React.createElement(currentStatus.icon, { className: "h-4 w-4", style: { color: currentStatus.color } })}
                   {currentStatus.label}
                 </span>
                 {job.location && (
@@ -125,7 +140,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                     alignItems: 'center',
                     gap: theme.spacing[2],
                   }}>
-                    <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
+                    <MapPin className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
                     {job.location}
                   </p>
                 )}
@@ -184,7 +199,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Icon name="currencyPound" size={28} color={theme.colors.success} />
+                  <PoundSterling className="h-7 w-7" style={{ color: theme.colors.success }} />
                 </div>
               </div>
             </Card>
@@ -246,7 +261,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <Icon name="calendar" size={20} color={theme.colors.primary} />
+                      <Calendar className="h-5 w-5" style={{ color: theme.colors.primary }} />
                     </div>
                     <div suppressHydrationWarning>
                       <div suppressHydrationWarning style={{
@@ -333,7 +348,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                       alignItems: 'center',
                       gap: theme.spacing[2],
                     }}>
-                      <Icon name="mail" size={14} color={theme.colors.textSecondary} />
+                      <Mail className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
                       {homeowner.email}
                     </div>
                     {homeowner.phone && (
@@ -344,7 +359,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                         alignItems: 'center',
                         gap: theme.spacing[2],
                       }}>
-                        <Icon name="phone" size={14} color={theme.colors.textSecondary} />
+                        <Phone className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
                         {homeowner.phone}
                       </div>
                     )}
@@ -379,7 +394,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Icon name="checkCircle" size={24} color={theme.colors.primary} />
+                    <CheckCircle2 className="h-6 w-6" style={{ color: theme.colors.primary }} />
                   </div>
                   <div suppressHydrationWarning>
                     <h3 suppressHydrationWarning style={{
@@ -417,63 +432,19 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 }}>
                   <Link
                     href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: theme.spacing[2],
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      backgroundColor: theme.colors.primary,
-                      color: 'white',
-                      borderRadius: theme.borderRadius.md,
-                      textDecoration: 'none',
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      transition: 'all 0.2s',
-                      boxShadow: theme.shadows.sm,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.primary;
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = theme.shadows.md;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.colors.primary;
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = theme.shadows.sm;
-                    }}
+                    className="block"
                   >
-                    <Icon name="messages" size={20} color="white" />
-                    Message Homeowner
+                    <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                      Message Homeowner
+                    </Button>
                   </Link>
                   <Link
                     href={`/contractor/messages`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: theme.spacing[2],
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      backgroundColor: 'transparent',
-                      color: theme.colors.primary,
-                      border: `2px solid ${theme.colors.primary}30`,
-                      borderRadius: theme.borderRadius.md,
-                      textDecoration: 'none',
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = `${theme.colors.primary}10`;
-                      e.currentTarget.style.borderColor = theme.colors.primary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor = `${theme.colors.primary}30`;
-                    }}
+                    className="block"
                   >
-                    <Icon name="messages" size={16} color={theme.colors.primary} />
-                    View All Messages
+                    <Button variant="outline" fullWidth leftIcon={<MessageCircle className="h-4 w-4" />}>
+                      View All Messages
+                    </Button>
                   </Link>
                 </div>
               </Card>
@@ -526,10 +497,10 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
 
               <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
                 {[
-                  { label: 'Job Posted', status: 'posted', completed: true, icon: 'briefcase' },
-                  { label: 'Contractor Assigned', status: 'assigned', completed: job.status !== 'posted', icon: 'userCheck' },
-                  { label: 'Work In Progress', status: 'in_progress', completed: job.status === 'in_progress' || job.status === 'completed', icon: 'loader' },
-                  { label: 'Work Completed', status: 'completed', completed: job.status === 'completed', icon: 'checkCircle' },
+                  { label: 'Job Posted', status: 'posted', completed: true, icon: Briefcase },
+                  { label: 'Contractor Assigned', status: 'assigned', completed: job.status !== 'posted', icon: UserCheck },
+                  { label: 'Work In Progress', status: 'in_progress', completed: job.status === 'in_progress' || job.status === 'completed', icon: Loader2 },
+                  { label: 'Work Completed', status: 'completed', completed: job.status === 'completed', icon: CheckCircle2 },
                 ].map((step, index) => (
                   <div
                     key={step.status}
@@ -563,9 +534,9 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                         boxShadow: step.completed ? theme.shadows.sm : 'none',
                       }}>
                         {step.completed ? (
-                          <Icon name="check" size={20} color="white" />
+                          <Check className="h-5 w-5 text-white" />
                         ) : (
-                          <Icon name={step.icon as any} size={18} color={theme.colors.textTertiary} />
+                          React.createElement(step.icon, { className: "h-[18px] w-[18px]", style: { color: theme.colors.textTertiary } })
                         )}
                       </div>
                       {index < 3 && (

@@ -102,24 +102,10 @@ function MetricCard({ title, value, change, changeType, icon, color }: MetricCar
         )}
       </div>
       <div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[1],
-          }}
-        >
+        <p className="text-sm font-[460] text-gray-600 mb-1 m-0">
           {title}
         </p>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}
-        >
+        <h3 className="text-xl font-[640] text-gray-900 m-0">
           {value}
         </h3>
       </div>
@@ -209,14 +195,7 @@ function BarChart({ data, title }: BarChartProps) {
 
   return (
     <Card>
-      <h3
-        style={{
-          margin: 0,
-          marginBottom: theme.spacing[6],
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
-        }}
-      >
+      <h3 className="text-lg font-[560] text-gray-900 mb-6 m-0 tracking-normal">
         {title}
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
@@ -316,13 +295,7 @@ function LineChart({ data }: LineChartProps) {
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[6] }}>
-        <h3
-          style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.semibold,
-          }}
-        >
+        <h3 className="text-lg font-[560] text-gray-900 mb-6 m-0 tracking-normal">
           Revenue Trend
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
@@ -447,25 +420,16 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
 
   return (
     <div id="export-content" style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }} className="avoid-break">
-      {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4], flexWrap: 'wrap' }}>
+      {/* Header - Modern Design */}
+      <header className="flex justify-between items-start gap-4 flex-wrap">
         <div>
-          <h1
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
-              margin: 0,
-            }}
-            className="text-responsive-xl"
-          >
+          <h1 className="text-4xl font-[640] text-gray-900 mb-2 tracking-tight">
             Business Analytics
           </h1>
-          <p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+          <p className="text-base font-[460] text-gray-600 m-0">
             Track performance, trends, and growth metrics
           </p>
-          <div className="print-only" style={{ marginTop: theme.spacing[2], fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+          <div className="print-only text-xs text-gray-600 mt-2">
             Generated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
           </div>
         </div>
@@ -480,28 +444,19 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
             values={filterValues}
             onChange={setFilterValues}
           />
-          <div style={{ display: 'flex', gap: theme.spacing[2] }}>
+          <div className="flex gap-2 items-center bg-gray-50 rounded-xl p-1 border border-gray-200 hide-mobile">
             {PERIODS.map((period) => {
               const isActive = selectedPeriod === period;
               return (
-                <button
+                <Button
                   key={period}
                   onClick={() => setSelectedPeriod(period)}
-                  className="hide-mobile"
-                  style={{
-                    padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: isActive ? theme.colors.primary : 'transparent',
-                    color: isActive ? 'white' : theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
+                  variant={isActive ? 'primary' : 'ghost'}
+                  size="sm"
+                  className="capitalize"
                 >
                   {period}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -605,14 +560,7 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
 
       {/* Performance Summary */}
       <Card>
-        <h3
-          style={{
-            margin: 0,
-            marginBottom: theme.spacing[6],
-            fontSize: theme.typography.fontSize.lg,
-            fontWeight: theme.typography.fontWeight.semibold,
-          }}
-        >
+        <h3 className="text-lg font-[560] text-gray-900 mb-6 m-0 tracking-normal">
           Performance Summary
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: theme.spacing[6] }}>

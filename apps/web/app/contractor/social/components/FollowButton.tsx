@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { UserCheck, UserPlus, AlertCircle } from 'lucide-react';
 
 interface FollowButtonProps {
   contractorId: string;
@@ -15,6 +17,7 @@ interface FollowButtonProps {
 export function FollowButton({ contractorId, currentUserId, onFollowChange, variant = 'default' }: FollowButtonProps) {
   const [following, setFollowing] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Don't show follow button for own profile
   if (contractorId === currentUserId) {
@@ -67,7 +70,7 @@ export function FollowButton({ contractorId, currentUserId, onFollowChange, vari
       onFollowChange?.(data.following);
     } catch (error) {
       console.error('Error toggling follow:', error);
-      alert(error instanceof Error ? error.message : 'Failed to update follow status');
+      setError(error instanceof Error ? error.message : 'Failed to update follow status');
     } finally {
       setLoading(false);
     }
@@ -88,60 +91,66 @@ export function FollowButton({ contractorId, currentUserId, onFollowChange, vari
 
   if (variant === 'minimal') {
     return (
-      <button
-        type="button"
-        onClick={handleToggleFollow}
-        disabled={loading}
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: following ? theme.colors.primary : theme.colors.textSecondary,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.medium,
-          padding: 0,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: theme.spacing[1],
-        }}
-      >
-        <Icon name={following ? 'userCheck' : 'userPlus'} size={14} color={following ? theme.colors.primary : theme.colors.textSecondary} />
-        {following ? 'Following' : 'Follow'}
-      </button>
+      <>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleToggleFollow}
+          disabled={loading}
+          className="p-0 h-auto"
+          leftIcon={following ? <UserCheck className="h-3.5 w-3.5 text-primary" /> : <UserPlus className="h-3.5 w-3.5" />}
+        >
+          {following ? 'Following' : 'Follow'}
+        </Button>
+        {error && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </>
     );
   }
 
   if (variant === 'small') {
     return (
-      <Button
-        variant={following ? 'secondary' : 'primary'}
-        onClick={handleToggleFollow}
-        disabled={loading}
-        style={{
-          fontSize: theme.typography.fontSize.xs,
-          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-          minWidth: 'auto',
-        }}
-      >
-        {loading ? '...' : following ? 'Following' : 'Follow'}
-      </Button>
+      <>
+        <Button
+          variant={following ? 'secondary' : 'primary'}
+          onClick={handleToggleFollow}
+          disabled={loading}
+          size="sm"
+          leftIcon={following ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+        >
+          {loading ? '...' : following ? 'Following' : 'Follow'}
+        </Button>
+        {error && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </>
     );
   }
 
   return (
-    <Button
-      variant={following ? 'secondary' : 'primary'}
-      onClick={handleToggleFollow}
-      disabled={loading}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-      }}
-    >
-      <Icon name={following ? 'userCheck' : 'userPlus'} size={16} color={following ? theme.colors.primary : theme.colors.white} />
-      {loading ? 'Updating...' : following ? 'Following' : 'Follow'}
-    </Button>
+    <>
+      <Button
+        variant={following ? 'secondary' : 'primary'}
+        onClick={handleToggleFollow}
+        disabled={loading}
+        leftIcon={following ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+      >
+        {loading ? 'Updating...' : following ? 'Following' : 'Follow'}
+      </Button>
+      {error && (
+        <Alert variant="destructive" className="mt-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </>
   );
 }
 

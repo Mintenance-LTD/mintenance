@@ -154,23 +154,15 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
             {FILTERS.map((filter) => {
               const isActive = filter.id === selectedFilter;
               return (
-                <button
+                <Button
                   key={filter.id}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => setSelectedFilter(filter.id)}
-                  style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    borderRadius: 999,
-                    border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                    backgroundColor: isActive ? theme.colors.backgroundSecondary : theme.colors.surface,
-                    color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: 'pointer',
-                    textTransform: 'capitalize',
-                  }}
+                  className="rounded-full capitalize"
                 >
                   {filter.label}
-                </button>
+                </Button>
               );
             })}
           </nav>

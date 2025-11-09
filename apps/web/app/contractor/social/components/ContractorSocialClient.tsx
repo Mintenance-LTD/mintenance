@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Input } from '@/components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
-import { CreatePostModal } from './CreatePostModal';
+import { CreatePostDialog } from './CreatePostDialog';
 import { CommentsSection } from './CommentsSection';
 import { FollowButton } from './FollowButton';
-import { ShareModal } from './ShareModal';
+import { ShareDialog } from './ShareDialog';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { Plus, Heart, MessageCircle, Share2, Megaphone } from 'lucide-react';
 
 interface SocialPost {
   id: string;
@@ -226,106 +228,77 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
             variant='primary'
             style={{ display: 'inline-flex', alignItems: 'center', gap: theme.spacing[2] }}
             onClick={() => setShowCreateModal(true)}
+            leftIcon={<Plus className="h-4 w-4" />}
           >
-            <Icon name='plus' size={16} color={theme.colors.white} />
             Create post
           </Button>
         </div>
 
         {/* Feed Tabs */}
         <div style={{ display: 'flex', gap: theme.spacing[2], borderBottom: `1px solid ${theme.colors.border}` }}>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setFeedTab('all')}
+            className={feedTab === 'all' ? 'border-b-2 border-primary text-primary font-semibold' : ''}
             style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              background: 'transparent',
-              border: 'none',
+              borderRadius: 0,
               borderBottom: feedTab === 'all' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-              color: feedTab === 'all' ? theme.colors.primary : theme.colors.textSecondary,
-              fontWeight: feedTab === 'all' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.normal,
-              cursor: 'pointer',
-              fontSize: theme.typography.fontSize.sm,
             }}
           >
             All Posts
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setFeedTab('following')}
+            className={feedTab === 'following' ? 'border-b-2 border-primary text-primary font-semibold' : ''}
             style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              background: 'transparent',
-              border: 'none',
+              borderRadius: 0,
               borderBottom: feedTab === 'following' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-              color: feedTab === 'following' ? theme.colors.primary : theme.colors.textSecondary,
-              fontWeight: feedTab === 'following' ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.normal,
-              cursor: 'pointer',
-              fontSize: theme.typography.fontSize.sm,
             }}
           >
             Following
-          </button>
+          </Button>
         </div>
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Post Type Filter */}
-          <select
-            value={postTypeFilter}
-            onChange={(e) => setPostTypeFilter(e.target.value)}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-              fontSize: theme.typography.fontSize.sm,
-              borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.border}`,
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-            }}
-          >
-            <option value="all">All Types</option>
-            <option value="work_showcase">Work Showcase</option>
-            <option value="help_request">Help Request</option>
-            <option value="tip_share">Tip Share</option>
-            <option value="equipment_share">Equipment Share</option>
-            <option value="referral_request">Referral Request</option>
-          </select>
+          <Select value={postTypeFilter} onValueChange={(value: string) => setPostTypeFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="work_showcase">Work Showcase</SelectItem>
+              <SelectItem value="help_request">Help Request</SelectItem>
+              <SelectItem value="tip_share">Tip Share</SelectItem>
+              <SelectItem value="equipment_share">Equipment Share</SelectItem>
+              <SelectItem value="referral_request">Referral Request</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Search */}
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search posts..."
-            style={{
-              flex: 1,
-              minWidth: '200px',
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-              fontSize: theme.typography.fontSize.sm,
-              borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.border}`,
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-            }}
+            className="flex-1 min-w-[200px]"
           />
 
           {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular' | 'most_commented')}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-              fontSize: theme.typography.fontSize.sm,
-              borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.border}`,
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-            }}
-          >
-            <option value="newest">Newest</option>
-            <option value="popular">Most Liked</option>
-            <option value="most_commented">Most Commented</option>
-          </select>
+          <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as 'newest' | 'popular' | 'most_commented')}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="popular">Most Liked</SelectItem>
+              <SelectItem value="most_commented">Most Commented</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </header>
 
@@ -341,7 +314,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
           }}
         >
           <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-            <Icon name='megaphone' size={48} color={theme.colors.textQuaternary} />
+            <Megaphone className="h-12 w-12 text-gray-400" />
           </div>
           <h3 style={{ marginBottom: theme.spacing[2], fontSize: theme.typography.fontSize.xl, color: theme.colors.textPrimary }}>
             No posts yet
@@ -474,57 +447,32 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                     borderTop: `1px solid ${theme.colors.border}`,
                   }}
                 >
-                  <button
+                  <Button
                     type='button'
+                    variant="ghost"
                     onClick={() => handleLike(post.id)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                      background: 'transparent',
-                      border: 'none',
-                      color: post.liked ? theme.colors.error : theme.colors.textSecondary,
-                      cursor: 'pointer',
-                      fontSize: theme.typography.fontSize.sm,
-                    }}
+                    className={post.liked ? 'text-red-600' : ''}
                   >
-                    <Icon name='heart' size={16} color={post.liked ? theme.colors.error : theme.colors.textSecondary} />
+                    <Heart className={`h-4 w-4 ${post.liked ? 'fill-red-600 text-red-600' : ''}`} />
                     {post.likes_count ?? 0}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type='button'
+                    variant="ghost"
                     onClick={() => toggleComments(post.id)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                      background: 'transparent',
-                      border: 'none',
-                      color: expandedComments.has(post.id) ? theme.colors.primary : theme.colors.textSecondary,
-                      cursor: 'pointer',
-                      fontSize: theme.typography.fontSize.sm,
-                    }}
+                    className={expandedComments.has(post.id) ? 'text-primary' : ''}
                   >
-                    <Icon name='messages' size={16} color={expandedComments.has(post.id) ? theme.colors.primary : theme.colors.textSecondary} />
+                    <MessageCircle className={`h-4 w-4 ${expandedComments.has(post.id) ? 'text-primary' : ''}`} />
                     {post.comments_count ?? 0}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type='button'
+                    variant="ghost"
                     onClick={() => handleSharePost(post.id)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                      background: 'transparent',
-                      border: 'none',
-                      color: theme.colors.textSecondary,
-                      cursor: 'pointer',
-                      fontSize: theme.typography.fontSize.sm,
-                    }}
                   >
-                    <Icon name='share' size={16} color={theme.colors.textSecondary} />
+                    <Share2 className="h-4 w-4" />
                     {post.shares_count ?? 0}
-                  </button>
+                  </Button>
                 </footer>
 
                 {/* Comments Section */}
@@ -544,20 +492,22 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
       )}
 
       {showCreateModal && (
-        <CreatePostModal
-          onClose={() => setShowCreateModal(false)}
+        <CreatePostDialog
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
           onPostCreated={handlePostCreated}
         />
       )}
 
-      {shareModalPost && (
-        <ShareModal
-          postId={shareModalPost.id}
-          postTitle={shareModalPost.title}
-          shareLink={shareModalPost.shareLink}
-          onClose={() => setShareModalPost(null)}
-        />
-      )}
+      <ShareDialog
+        open={!!shareModalPost}
+        onOpenChange={(open) => {
+          if (!open) setShareModalPost(null);
+        }}
+        postId={shareModalPost?.id || ''}
+        postTitle={shareModalPost?.title || ''}
+        shareLink={shareModalPost?.shareLink || ''}
+      />
     </div>
   );
 }

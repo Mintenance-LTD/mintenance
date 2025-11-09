@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
@@ -251,8 +251,7 @@ export function ConnectionsClient({
             Keep track of trusted contractors and manage collaboration requests.
           </p>
         </div>
-        <Button variant="primary" size="sm">
-          <Icon name="plus" size={16} color="#FFFFFF" />
+        <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4 text-white" />}>
           Invite Contractor
         </Button>
       </header>

@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name),
-        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
+        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url),
+        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url)
       `)
       .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Also get jobs where user has sent or received messages (in case job association isn't perfect)
     const { data: messageJobsData } = await serverSupabase
       .from('messages')
-      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name), contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name))')
+      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url), contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url))')
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .limit(50);
     
@@ -231,6 +231,21 @@ export async function GET(request: NextRequest) {
         : job.updated_at
           ? toTimestamp(job.updated_at)
           : toTimestamp(job.created_at);
+
+      // Log homeowner data for debugging
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Building thread participants', {
+          service: 'messages',
+          jobId: job.id,
+          homeownerId: job.homeowner_id,
+          homeownerData: job.homeowner ? {
+            hasData: true,
+            firstName: job.homeowner.first_name,
+            lastName: job.homeowner.last_name,
+            email: job.homeowner.email,
+          } : { hasData: false },
+        });
+      }
 
       return {
         jobId: job.id,

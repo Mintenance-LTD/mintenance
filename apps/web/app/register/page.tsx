@@ -1,45 +1,80 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';
 
-function RegisterForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'homeowner' | 'contractor'>('homeowner');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const registerFormSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone number').optional().or(z.literal('')),
+  role: z.enum(['homeowner', 'contractor'], {
+    required_error: 'Please select a role',
+  }),
+});
 
+type RegisterFormData = z.infer<typeof registerFormSchema>;
+
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
   const { csrfToken, loading: csrfLoading } = useCSRF();
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      role: (roleParam === 'contractor' || roleParam === 'homeowner' ? roleParam : 'homeowner') as 'homeowner' | 'contractor',
+    },
+  });
+
+  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = React.useState('');
+
+  const selectedRole = watch('role');
+
   useEffect(() => {
     if (roleParam === 'contractor' || roleParam === 'homeowner') {
-      setRole(roleParam);
+      setValue('role', roleParam);
     }
-  }, [roleParam]);
+  }, [roleParam, setValue]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: RegisterFormData) => {
     if (!csrfToken) {
-      setError('Security token not available. Please refresh the page.');
+      setErrorMessage('Security token not available. Please refresh the page.');
+      setSubmitStatus('error');
       return;
     }
 
-    setLoading(true);
-    setError('');
+    setSubmitStatus('idle');
+    setErrorMessage('');
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -49,87 +84,98 @@ function RegisterForm() {
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          phone,
-          role,
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          role: data.role,
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        // Sanitize error messages - don't expose system details
         if (response.status === 429) {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
-          throw new Error(data.error || 'Invalid registration data. Please check your information.');
+          throw new Error(responseData.error || 'Invalid registration data. Please check your information.');
         } else if (response.status === 403) {
-          // CSRF validation failed - suggest refreshing to get new token
-          throw new Error(data.error === 'CSRF validation failed' 
-            ? 'Security token expired. Please refresh the page and try again.'
-            : 'Access denied. Please refresh the page and try again.');
+          throw new Error(
+            responseData.error === 'CSRF validation failed'
+              ? 'Security token expired. Please refresh the page and try again.'
+              : 'Access denied. Please refresh the page and try again.'
+          );
         } else {
           throw new Error('Registration failed. Please try again.');
         }
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      setSubmitStatus('success');
+      setTimeout(() => {
+        router.push('/dashboard');
+        router.refresh();
+      }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+      setErrorMessage(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary text-white p-12 flex-col justify-between">
-        <div>
-          <Link href="/" className="flex items-center space-x-2 mb-12">
-            <Logo />
-            <h1 className="text-3xl font-bold">Mintenance</h1>
+    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Left Side - Enhanced Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-12 flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-700/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center space-x-3 mb-16 group">
+            <div className="transform transition-transform group-hover:scale-110 duration-300">
+              <Logo />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Mintenance</h1>
           </Link>
-          <h2 className="text-4xl font-bold mb-6">Join Mintenance Today</h2>
-          <p className="text-xl text-gray-300 mb-8">
-            {role === 'homeowner'
-              ? 'Find trusted tradespeople for your home projects'
-              : 'Grow your business and find quality projects'}
-          </p>
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <svg className="w-6 h-6 text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <p>Verified tradespeople only</p>
-            </div>
-            <div className="flex items-start space-x-3">
-              <svg className="w-6 h-6 text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <p>Secure payment protection</p>
-            </div>
-            <div className="flex items-start space-x-3">
-              <svg className="w-6 h-6 text-secondary flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <p>AI-powered matching</p>
+          <div>
+            <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Join Mintenance Today</h2>
+            <p className="text-xl text-gray-300 mb-10 leading-relaxed">
+              {selectedRole === 'homeowner'
+                ? 'Find trusted tradespeople for your home projects'
+                : 'Grow your business and find quality projects'}
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 group">
+                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
+                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+                </div>
+                <p className="text-gray-200 leading-relaxed">Verified tradespeople only</p>
+              </div>
+              <div className="flex items-start gap-4 group">
+                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
+                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+                </div>
+                <p className="text-gray-200 leading-relaxed">Secure payment protection</p>
+              </div>
+              <div className="flex items-start gap-4 group">
+                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
+                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+                </div>
+                <p className="text-gray-200 leading-relaxed">AI-powered matching</p>
+              </div>
             </div>
           </div>
         </div>
-        <div className="text-sm text-gray-400">
-          <p>© 2025 MINTENANCE LTD</p>
-          <p>Company No. 16542104</p>
+
+        <div className="text-sm text-gray-400 relative z-10">
+          <p className="font-medium">© 2025 MINTENANCE LTD</p>
+          <p className="text-gray-500">Company No. 16542104</p>
         </div>
       </div>
 
       {/* Right Side - Registration Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-md py-8">
+          {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link href="/" className="flex items-center space-x-2 mb-4">
               <Logo />
@@ -137,157 +183,162 @@ function RegisterForm() {
             </Link>
           </div>
 
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Create your account</h2>
-          <p className="text-gray-600 mb-8">
-            Already have an account?{' '}
-            <Link href="/login" className="font-medium text-primary hover:text-primary-dark">
-              Sign in
-            </Link>
-          </p>
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Get started</h2>
+            <p className="text-base text-gray-600">
+              Already have an account?{' '}
+              <Link href="/login" className="font-semibold text-primary hover:text-primary-700 transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                I am a
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setRole('homeowner')}
-                  className={`px-4 py-3 rounded-lg border-2 font-medium transition ${
-                    role === 'homeowner'
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Homeowner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('contractor')}
-                  className={`px-4 py-3 rounded-lg border-2 font-medium transition ${
-                    role === 'contractor'
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Tradesperson
-                </button>
-              </div>
+          {/* Success Alert */}
+          {submitStatus === 'success' && (
+            <Alert className="mb-6 border-green-500 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">Registration Successful!</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Redirecting to your dashboard...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error Alert */}
+          {submitStatus === 'error' && errorMessage && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Registration Failed</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Role Selection */}
+            <div className="space-y-3">
+              <Label>I am a *</Label>
+              <RadioGroup
+                value={selectedRole}
+                onValueChange={(value) => setValue('role', value as 'homeowner' | 'contractor')}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="homeowner" id="homeowner" />
+                  <Label htmlFor="homeowner" className="font-normal cursor-pointer">
+                    Homeowner
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="contractor" id="contractor" />
+                  <Label htmlFor="contractor" className="font-normal cursor-pointer">
+                    Tradesperson
+                  </Label>
+                </div>
+              </RadioGroup>
+              {errors.role && (
+                <p className="text-sm text-red-600">{errors.role.message}</p>
+              )}
             </div>
 
+            {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First name
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First name *</Label>
+                <Input
                   id="firstName"
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                  {...register('firstName')}
+                  error={errors.firstName?.message}
                   placeholder="John"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
                 />
               </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last name
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last name *</Label>
+                <Input
                   id="lastName"
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                  {...register('lastName')}
+                  error={errors.lastName?.message}
                   placeholder="Smith"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email address
-              </label>
-              <input
+            {/* Email Input */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email address *</Label>
+              <Input
                 id="email"
                 type="email"
-                autoComplete="email"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                {...register('email')}
+                error={errors.email?.message}
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone number
-              </label>
-              <input
+            {/* Phone Input */}
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone number</Label>
+              <Input
                 id="phone"
                 type="tel"
-                autoComplete="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                {...register('phone')}
+                error={errors.phone?.message}
                 placeholder="+44 7700 900000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
+            {/* Password Input */}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input
                 id="password"
                 type="password"
-                autoComplete="new-password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                {...register('password')}
+                error={errors.password?.message}
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
-              <div className="mt-2 space-y-1">
-                <p className="text-xs font-medium text-gray-700">Password must contain:</p>
-                <ul className="text-xs text-gray-600 space-y-0.5 ml-4">
-                  <li>• At least 8 characters</li>
-                  <li>• One uppercase letter (A-Z)</li>
-                  <li>• One lowercase letter (a-z)</li>
-                  <li>• One number (0-9)</li>
-                  <li>• One special character (!@#$%^&*)</li>
-                  <li>• No sequential patterns (123, abc, etc.)</li>
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li className="flex items-center gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>At least 8 characters</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>One uppercase & lowercase letter</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-gray-400">•</span>
+                    <span>One number & special character</span>
+                  </li>
                 </ul>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={isSubmitting || csrfLoading}
+              disabled={isSubmitting || csrfLoading || !csrfToken}
+            >
+              {isSubmitting ? 'Creating account...' : 'Create account'}
+            </Button>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading || (!csrfToken && csrfLoading)}
-                className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? 'Creating account...' : 'Create account'}
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 text-center">
+            {/* Terms */}
+            <p className="text-xs text-gray-500 text-center leading-relaxed">
               By signing up, you agree to our{' '}
-              <Link href="/terms" className="text-primary hover:underline">
+              <Link href="/terms" className="font-semibold text-primary hover:text-primary-700 transition-colors">
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-primary hover:underline">
+              <Link href="/privacy" className="font-semibold text-primary hover:text-primary-700 transition-colors">
                 Privacy Policy
               </Link>
             </p>

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Icon } from '@/components/ui/Icon';
+import { MapPin, AlertCircle, Loader2, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
+import { Button } from '@/components/ui/Button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface LocationSharingProps {
   jobId: string;
@@ -172,7 +174,7 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
             alignItems: 'center',
             gap: theme.spacing[2],
           }}>
-            <Icon name="mapPin" size={24} color={theme.colors.primary} />
+            <MapPin className="h-6 w-6" style={{ color: theme.colors.primary }} />
             Location Sharing
           </h3>
           <p style={{
@@ -208,20 +210,10 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
       </div>
 
       {error && (
-        <div style={{
-          padding: theme.spacing[3],
-          backgroundColor: theme.colors.error + '20',
-          borderRadius: theme.borderRadius.md,
-          color: theme.colors.error,
-          fontSize: theme.typography.fontSize.sm,
-          marginBottom: theme.spacing[4],
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="alertCircle" size={20} color={theme.colors.error} />
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-5 w-5" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <div style={{
@@ -247,49 +239,23 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
         </div>
       </div>
 
-      <button
+      <Button
         onClick={toggleLocationSharing}
         disabled={isLoading}
-        style={{
-          width: '100%',
-          padding: theme.spacing[3],
-          backgroundColor: isSharing ? theme.colors.error : theme.colors.primary,
-          color: 'white',
-          border: 'none',
-          borderRadius: theme.borderRadius.md,
-          fontSize: theme.typography.fontSize.base,
-          fontWeight: theme.typography.fontWeight.semibold,
-          cursor: isLoading ? 'not-allowed' : 'pointer',
-          opacity: isLoading ? 0.6 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: theme.spacing[2],
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          if (!isLoading) {
-            e.currentTarget.style.opacity = '0.9';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isLoading) {
-            e.currentTarget.style.opacity = '1';
-          }
-        }}
+        variant={isSharing ? "destructive" : "primary"}
+        fullWidth
+        leftIcon={
+          isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : isSharing ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <MapPin className="h-5 w-5" />
+          )
+        }
       >
-        {isLoading ? (
-          <>
-            <Icon name="loader" size={20} color="white" />
-            {isSharing ? 'Stopping...' : 'Starting...'}
-          </>
-        ) : (
-          <>
-            <Icon name={isSharing ? "x" : "mapPin"} size={20} color="white" />
-            {isSharing ? 'Stop Sharing Location' : 'Start Sharing Location'}
-          </>
-        )}
-      </button>
+        {isLoading ? (isSharing ? 'Stopping...' : 'Starting...') : (isSharing ? 'Stop Sharing Location' : 'Start Sharing Location')}
+      </Button>
 
       <style jsx>{`
         @keyframes pulse {

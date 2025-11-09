@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Heart, Trash2, AlertCircle } from 'lucide-react';
 
 interface Comment {
   id: string;
@@ -39,6 +42,8 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; commentId: string | null }>({ open: false, commentId: null });
 
   const fetchComments = useCallback(async () => {
     try {
@@ -98,21 +103,24 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
       // Refresh comments
       await fetchComments();
       onCommentAdded?.();
+      setError(null);
     } catch (error) {
       console.error('Error adding comment:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add comment');
+      setError(error instanceof Error ? error.message : 'Failed to add comment');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) {
-      return;
-    }
+    setDeleteDialog({ open: true, commentId });
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!deleteDialog.commentId) return;
 
     try {
-      const response = await fetch(`/api/contractor/posts/${postId}/comments/${commentId}`, {
+      const response = await fetch(`/api/contractor/posts/${postId}/comments/${deleteDialog.commentId}`, {
         method: 'DELETE',
       });
 
@@ -122,9 +130,10 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
 
       await fetchComments();
       onCommentAdded?.();
+      setDeleteDialog({ open: false, commentId: null });
     } catch (error) {
       console.error('Error deleting comment:', error);
-      alert('Failed to delete comment');
+      setDeleteDialog({ open: false, commentId: null });
     }
   };
 
@@ -219,57 +228,40 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[4] }}>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => handleLikeComment(comment.id)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1],
-                  background: 'transparent',
-                  border: 'none',
-                  color: theme.colors.textSecondary,
-                  cursor: 'pointer',
-                  fontSize: theme.typography.fontSize.xs,
-                  padding: 0,
-                }}
+                className="p-0 h-auto"
               >
-                <Icon name="heart" size={14} color={theme.colors.textSecondary} />
+                <Heart className="h-3.5 w-3.5" />
                 {comment.likes_count || 0}
-              </button>
+              </Button>
 
               {depth < 2 && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: theme.colors.textSecondary,
-                    cursor: 'pointer',
-                    fontSize: theme.typography.fontSize.xs,
-                    padding: 0,
-                  }}
+                  className="p-0 h-auto"
                 >
                   Reply
-                </button>
+                </Button>
               )}
 
               {isOwnComment && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleDeleteComment(comment.id)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: theme.colors.error,
-                    cursor: 'pointer',
-                    fontSize: theme.typography.fontSize.xs,
-                    padding: 0,
-                  }}
+                  className="p-0 h-auto text-red-600 hover:text-red-700"
                 >
+                  <Trash2 className="h-3.5 w-3.5" />
                   Delete
-                </button>
+                </Button>
               )}
             </div>
 
@@ -279,45 +271,33 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
                 onSubmit={(e) => handleSubmitComment(e, comment.id)}
                 style={{ marginTop: theme.spacing[3], display: 'flex', gap: theme.spacing[2] }}
               >
-                <input
+                <Input
                   type="text"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write a reply..."
                   maxLength={2000}
-                  style={{
-                    flex: 1,
-                    padding: theme.spacing[2],
-                    fontSize: theme.typography.fontSize.sm,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                  }}
+                  className="flex-1"
                 />
                 <Button
                   type="submit"
                   variant="secondary"
                   disabled={!replyText.trim() || submitting}
-                  style={{ fontSize: theme.typography.fontSize.sm, padding: `${theme.spacing[2]} ${theme.spacing[3]}` }}
+                  size="sm"
                 >
                   {submitting ? 'Posting...' : 'Post'}
                 </Button>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setReplyingTo(null);
                     setReplyText('');
                   }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: theme.colors.textSecondary,
-                    cursor: 'pointer',
-                    padding: theme.spacing[2],
-                  }}
                 >
                   Cancel
-                </button>
+                </Button>
               </form>
             )}
 
@@ -364,20 +344,13 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
 
           {/* Add comment form */}
           <form onSubmit={(e) => handleSubmitComment(e)} style={{ display: 'flex', gap: theme.spacing[2] }}>
-            <input
+            <Input
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
               maxLength={2000}
-              style={{
-                flex: 1,
-                padding: theme.spacing[3],
-                fontSize: theme.typography.fontSize.sm,
-                borderRadius: theme.borderRadius.md,
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.surface,
-              }}
+              className="flex-1"
             />
             <Button
               type="submit"
@@ -389,6 +362,28 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
           </form>
         </>
       )}
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => setDeleteDialog({ open, commentId: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteComment} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

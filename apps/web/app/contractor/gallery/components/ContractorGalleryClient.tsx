@@ -2,10 +2,22 @@
 
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Plus, Grid3x3, Activity, Check, TrendingUp, Briefcase, Heart, LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card.unified';
 import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
+
+// Helper function to map category icon names to Lucide components
+function getCategoryIcon(iconName: string): LucideIcon {
+  const iconMap: Record<string, LucideIcon> = {
+    collection: Grid3x3,
+    activity: Activity,
+    check: Check,
+    progress: TrendingUp,
+    briefcase: Briefcase,
+  };
+  return iconMap[iconName] || Grid3x3; // Default to Grid3x3 if not found
+}
 
 interface GalleryImage {
   id: string;
@@ -68,8 +80,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
             Highlight your craftsmanship with curated project imagery.
           </p>
         </div>
-        <Button variant="primary" size="sm">
-          <Icon name="plus" size={16} color="#FFFFFF" />
+        <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4 text-white" />}>
           Upload Photo
         </Button>
       </header>
@@ -127,7 +138,10 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                 cursor: 'pointer',
               }}
             >
-              <Icon name={category.icon} size={16} color={isActive ? theme.colors.primary : theme.colors.textSecondary} />
+              {React.createElement(getCategoryIcon(category.icon), { 
+                className: "h-4 w-4", 
+                style: { color: isActive ? theme.colors.primary : theme.colors.textSecondary } 
+              })}
               {category.name}
             </button>
           );
@@ -146,7 +160,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
           }}
         >
           <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
-            <Icon name='collection' size={48} color={theme.colors.textQuaternary} />
+            <Grid3x3 className="h-12 w-12" style={{ color: theme.colors.textQuaternary }} />
           </div>
           <h3 style={{ marginBottom: theme.spacing[2], fontSize: theme.typography.fontSize.xl, color: theme.colors.textPrimary }}>
             No photos yet
@@ -211,7 +225,7 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                     fontWeight: theme.typography.fontWeight.semibold,
                   }}
                 >
-                  <Icon name="heart" size={14} color={theme.colors.error} />
+                  <Heart className="h-3.5 w-3.5" style={{ color: theme.colors.error }} />
                   {image.likes}
                 </div>
               </div>
@@ -300,13 +314,16 @@ export function ContractorGalleryClient({ images: initialImages }: { images: Gal
                   size='sm'
                   onClick={() => handleLike(selectedImage.id)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: theme.spacing[2] }}
+                  leftIcon={
+                    <Heart
+                      className="h-4 w-4"
+                      style={{ 
+                        color: selectedImage.liked ? theme.colors.error : theme.colors.textSecondary,
+                        fill: selectedImage.liked ? theme.colors.error : 'none'
+                      }}
+                    />
+                  }
                 >
-                  <Icon
-                    name='heart'
-                    size={16}
-                    color={selectedImage.liked ? theme.colors.error : theme.colors.textSecondary}
-                    style={{ stroke: selectedImage.liked ? theme.colors.error : theme.colors.textSecondary }}
-                  />
                   {selectedImage.likes}
                 </Button>
                 <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>

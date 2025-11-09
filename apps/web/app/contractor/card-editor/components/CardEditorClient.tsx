@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { useRouter } from 'next/navigation';
+import { Briefcase, Info } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
-import { Icon } from '@/components/ui/Icon';
 import { StatusBadge } from '@/components/ui/Badge.unified';
 
 export function CardEditorClient({ profile: initialProfile }: { profile: any }) {
@@ -232,7 +232,7 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
                   {companyName || 'Your Company Name'}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-                  <Icon name="briefcase" size={14} color={theme.colors.textSecondary} />
+                  <Briefcase className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
                   <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                     {yearsExperience || '0'} years experience
                   </span>
@@ -287,7 +287,7 @@ export function CardEditorClient({ profile: initialProfile }: { profile: any }) 
             border: `1px solid ${theme.colors.border}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              <Icon name="info" size={16} color={theme.colors.info} />
+              <Info className="h-4 w-4" style={{ color: theme.colors.info }} />
               <p style={{
                 margin: 0,
                 fontSize: theme.typography.fontSize.xs,

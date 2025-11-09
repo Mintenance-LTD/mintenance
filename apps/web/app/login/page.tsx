@@ -1,43 +1,60 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+
+const loginFormSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().default(false),
+});
+
+type LoginFormData = z.infer<typeof loginFormSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = React.useState('');
 
-  // Password reveal on focus
-  const handlePasswordFocus = () => {
-    setShowPassword(true);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
 
-  const handlePasswordBlur = () => {
-    // Hide password after 2 seconds
-    setTimeout(() => {
-      setShowPassword(false);
-    }, 2000);
-  };
+  const rememberMe = watch('rememberMe');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: LoginFormData) => {
     if (!csrfToken) {
-      setError('Security token not available. Please refresh the page.');
+      setErrorMessage('Security token not available. Please refresh the page.');
+      setSubmitStatus('error');
       return;
     }
 
-    setLoading(true);
-    setError('');
+    setSubmitStatus('idle');
+    setErrorMessage('');
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -46,21 +63,23 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
-        body: JSON.stringify({ email, password, rememberMe }),
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          rememberMe: data.rememberMe,
+        }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        // Provide more specific error messages with actionable suggestions
         if (response.status === 429) {
           throw new Error('Too many login attempts. Please wait a few minutes and try again.');
         } else if (response.status === 401) {
-          // Check if the error provides more detail
-          const errorMessage = data.error || data.message || '';
-          if (errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('not found')) {
+          const errorMsg = responseData.error || responseData.message || '';
+          if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('not found')) {
             throw new Error('No account found with this email address. Please check your email or sign up for a new account.');
-          } else if (errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('invalid')) {
+          } else if (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('invalid')) {
             throw new Error('Incorrect password. Please check your password or use "Forgot password" to reset it.');
           } else {
             throw new Error('Invalid email or password. Please check your credentials and try again.');
@@ -68,40 +87,52 @@ export default function LoginPage() {
         } else if (response.status === 403) {
           throw new Error('Access denied. Please refresh the page and try again.');
         } else if (response.status === 400) {
-          throw new Error(data.error || 'Invalid request. Please check your email and password format.');
+          throw new Error(responseData.error || 'Invalid request. Please check your email and password format.');
         } else {
-          throw new Error(data.error || 'Login failed. Please try again or contact support if the problem persists.');
+          throw new Error(responseData.error || 'Login failed. Please try again or contact support if the problem persists.');
         }
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      setSubmitStatus('success');
+      setTimeout(() => {
+        router.push('/dashboard');
+        router.refresh();
+      }, 500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+      setErrorMessage(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="flex w-1/2 bg-primary text-white p-12 flex-col justify-between">
-        <div>
-          <Link href="/" className="flex items-center space-x-2 mb-12">
-            <Logo />
-            <h1 className="text-3xl font-bold">Mintenance</h1>
+    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Left Side - Enhanced Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-12 flex-col justify-between relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-700/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center space-x-3 mb-16 group">
+            <div className="transform transition-transform group-hover:scale-110 duration-300">
+              <Logo />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Mintenance</h1>
           </Link>
-          <h2 className="text-4xl font-bold mb-6">Welcome Back!</h2>
-          <p className="text-xl text-gray-300">Sign in to manage your home projects and connect with trusted tradespeople.</p>
+          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Welcome Back!</h2>
+          <p className="text-xl text-gray-300 leading-relaxed">
+            Sign in to manage your home projects and connect with trusted tradespeople.
+          </p>
         </div>
-        <div className="text-sm text-gray-400">
-          <p>© 2025 MINTENANCE LTD</p>
-          <p>Company No. 16542104</p>
+        <div className="text-sm text-gray-400 relative z-10">
+          <p className="font-medium">© 2025 MINTENANCE LTD</p>
+          <p className="text-gray-500">Company No. 16542104</p>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      {/* Right Side - Modern Form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
         <div className="w-full max-w-md">
+          {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
             <Link href="/" className="flex items-center space-x-2 mb-4">
               <Logo />
@@ -109,115 +140,133 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign in to your account</h2>
-          <p className="text-gray-600 mb-8">
-            Or <Link href="/register" className="font-medium text-primary hover:text-primary-light">create a new account</Link>
-          </p>
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Sign in</h2>
+            <p className="text-base text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/register" className="font-semibold text-primary hover:text-primary-700 transition-colors">
+                Create one
+              </Link>
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email address</label>
-              <input
+          {/* Success Alert */}
+          {submitStatus === 'success' && (
+            <Alert className="mb-6 border-green-500 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-800">Login Successful!</AlertTitle>
+              <AlertDescription className="text-green-700">
+                Redirecting to your dashboard...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error Alert */}
+          {submitStatus === 'error' && errorMessage && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Login Failed</AlertTitle>
+              <AlertDescription>
+                {errorMessage}
+                {(errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('incorrect')) && (
+                  <div className="mt-2">
+                    <Link href="/forgot-password" className="text-sm underline font-medium">
+                      Reset your password
+                    </Link>
+                  </div>
+                )}
+                {errorMessage.toLowerCase().includes('email') && !errorMessage.toLowerCase().includes('password') && (
+                  <div className="mt-2">
+                    <Link href="/register" className="text-sm underline font-medium">
+                      Create an account
+                    </Link>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email Input */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email address</Label>
+              <Input
                 id="email"
                 type="email"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
+                {...register('email')}
+                error={errors.email?.message}
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={handlePasswordFocus}
-                onBlur={handlePasswordBlur}
-              />
-              {showPassword && (
-                <p className="mt-1 text-xs text-gray-500">Password visible for 2 seconds to verify</p>
-              )}
+            {/* Password Input */}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password')}
+                  error={errors.password?.message}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             {/* Remember Me Checkbox */}
-            <div className="flex items-center">
-              <input
+            <div className="flex items-center space-x-2">
+              <Checkbox
                 id="remember-me"
-                type="checkbox"
+                {...register('rememberMe')}
                 checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+              <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-gray-600">
                 Remember me for 30 days
-              </label>
+              </Label>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="font-medium">{error}</p>
-                    {(error.toLowerCase().includes('password') || error.toLowerCase().includes('incorrect')) && (
-                      <p className="mt-2 text-xs text-red-600">
-                        <Link href="/forgot-password" className="underline font-medium hover:text-red-800">
-                          Reset your password
-                        </Link>
-                        {' '}if you've forgotten it.
-                      </p>
-                    )}
-                    {error.toLowerCase().includes('email') && !error.toLowerCase().includes('password') && (
-                      <p className="mt-2 text-xs text-red-600">
-                        <Link href="/register" className="underline font-medium hover:text-red-800">
-                          Create an account
-                        </Link>
-                        {' '}if you don't have one yet.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
+            {/* Submit Button */}
+            <Button
               type="submit"
-              disabled={loading || (!csrfToken && csrfLoading)}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={isSubmitting || csrfLoading}
+              disabled={isSubmitting || csrfLoading || !csrfToken}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </Button>
 
-            <div className="flex items-center justify-between pt-2">
-              <Link 
-                href="/forgot-password" 
-                className="text-sm font-medium text-primary hover:text-primary-light hover:underline"
+            {/* Forgot Password Link */}
+            <div className="text-center pt-2">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
               >
                 Forgot your password?
               </Link>
-              {error && error.toLowerCase().includes('password') && (
-                <Link 
-                  href="/forgot-password" 
-                  className="text-sm font-semibold text-primary hover:text-primary-light underline"
-                >
-                  Reset Password →
-                </Link>
-              )}
             </div>
           </form>
 
-          <div className="mt-8 pt-8 border-t border-gray-200">
+          {/* Divider */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
-              Don't have an account? <Link href="/register" className="font-medium text-primary hover:text-primary-light">Sign up for free</Link>
+              Don't have an account?{' '}
+              <Link href="/register" className="font-semibold text-primary hover:text-primary-700 transition-colors">
+                Sign up for free
+              </Link>
             </p>
           </div>
         </div>

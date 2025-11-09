@@ -3,6 +3,8 @@
 import React from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { Button } from '@/components/ui/Button';
+import { FileText, CheckCircle, MessageCircle, Eye } from 'lucide-react';
 
 interface ActiveContractCardProps {
   job: {
@@ -87,7 +89,9 @@ export function ActiveContractCard({
   return (
     <div
       onClick={handleCardClick}
-      style={cardStyle}
+      className={`flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg mb-3 transition-all duration-200 ${
+        contract ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : 'cursor-default'
+      }`}
     >
       {/* Left Section - Job Info */}
       <div data-card-content style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], flex: 1 }}>
@@ -114,16 +118,7 @@ export function ActiveContractCard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1], flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], flexWrap: 'wrap' }}>
             <Icon name="document" size={20} color={theme.colors.primary} />
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <div className="text-base font-[560] text-gray-900 overflow-hidden text-ellipsis whitespace-nowrap">
               {job.title}
             </div>
             <div
@@ -154,70 +149,34 @@ export function ActiveContractCard({
       {/* Right Section - Action Buttons */}
       <div style={{ display: 'flex', gap: theme.spacing[2], flexShrink: 0 }} onClick={handleButtonContainerClick}>
         {canCreateContract ? (
-          <button
+          <Button
             onClick={onCreateContract}
-            style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: theme.colors.primary,
-              color: 'white',
-              border: 'none',
-              borderRadius: theme.borderRadius.md,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              transition: 'all 0.2s',
-            }}
+            variant="primary"
+            size="sm"
+            leftIcon={<FileText className="h-4 w-4" />}
           >
-            <Icon name="fileText" size={16} color="white" />
             Create Contract
-          </button>
+          </Button>
         ) : (
           <>
             {needsContractorSignature && (
-              <button
+              <Button
                 onClick={onViewJob}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  backgroundColor: theme.colors.success,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  transition: 'all 0.2s',
-                }}
+                variant="primary"
+                size="sm"
+                leftIcon={<CheckCircle className="h-4 w-4" />}
               >
-                <Icon name="checkCircle" size={16} color="white" />
                 Sign Contract
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               onClick={onViewMessages}
-              style={{
-                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                backgroundColor: 'transparent',
-                color: theme.colors.primary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                transition: 'all 0.2s',
-              }}
+              variant="outline"
+              size="sm"
+              leftIcon={<MessageCircle className="h-4 w-4" />}
             >
-              <Icon name="messages" size={16} color={theme.colors.primary} />
               View Messages
-            </button>
+            </Button>
           </>
         )}
       </div>

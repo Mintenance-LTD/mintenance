@@ -6,6 +6,15 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface RevenueDashboardClientProps {
   revenueMetrics: RevenueMetrics | null;
@@ -28,6 +37,7 @@ export function RevenueDashboardClient({
   const [arpc, setArpc] = useState(initialArpc);
   const [trends, setTrends] = useState(initialTrends);
   const [loading, setLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
   
   // Date range state
   const [dateRange, setDateRange] = useState({
@@ -124,7 +134,7 @@ export function RevenueDashboardClient({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting revenue:', error);
-      alert('Failed to export revenue data');
+      setErrorDialog({ open: true, message: 'Failed to export revenue data' });
     }
   };
   return (
@@ -431,6 +441,21 @@ export function RevenueDashboardClient({
           </div>
         </Card>
       )}
+      
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialog.open} onOpenChange={(open: boolean) => setErrorDialog({ ...errorDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Error</AlertDialogTitle>
+            <AlertDialogDescription>{errorDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setErrorDialog({ open: false, message: '' })}>
+              OK
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,10 +5,12 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import UnauthenticatedCard from '@/components/UnauthenticatedCard';
 import { Icon } from '@/components/ui/Icon';
 import { Badge as StatusBadge } from '@/components/ui/Badge.unified';
+import { Button } from '@/components/ui/Button';
 import { theme } from '@/lib/theme';
 import Logo from '../../components/Logo';
 import LogoutButton from '@/components/LogoutButton';
 import type { Metadata } from 'next';
+import { Bell, Menu, MessageCircle, Plus } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Job Tracking | Mintenance',
@@ -195,19 +197,9 @@ export default async function JobTrackingPage() {
           }} />
         </div>
 
-        <button style={{
-          display: 'none',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: theme.borderRadius.lg,
-          height: '40px',
-          width: '40px',
-          backgroundColor: theme.colors.backgroundSecondary,
-          color: theme.colors.textSecondary,
-          border: 'none'
-        }} className="md:hidden">
-          <Icon name="menu" size={24} color={theme.colors.textSecondary} />
-        </button>
+        <Button variant="ghost" size="sm" className="md:hidden" style={{ display: 'none', width: '40px', height: '40px' }}>
+          <Menu className="h-6 w-6" />
+        </Button>
       </header>
 
       <main style={{ padding: `${theme.spacing[6]} ${theme.spacing[6]} ${theme.spacing[8]}` }}>
@@ -409,45 +401,15 @@ export default async function JobTrackingPage() {
 
                     <div style={{ display: 'flex', gap: theme.spacing[2], width: '100%' }} className="sm:w-auto">
                       <Link href={`/jobs/${selectedJob.id}`} style={{ textDecoration: 'none', flex: 1 }} className="sm:flex-none">
-                        <button style={{
-                          display: 'flex',
-                          minWidth: 0,
-                          cursor: 'pointer',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          borderRadius: theme.borderRadius.lg,
-                          height: '40px',
-                          padding: `0 ${theme.spacing[4]}`,
-                          backgroundColor: theme.colors.primary,
-                          color: 'white',
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.bold,
-                          gap: theme.spacing[2],
-                          border: 'none'
-                        }}>
-                          <Icon name="chat" size={18} color="white" />
+                        <Button variant="primary" size="sm" className="w-full sm:w-auto">
+                          <MessageCircle className="h-4 w-4" />
                           <span style={{ whiteSpace: 'nowrap' }}>Message Contractor</span>
-                        </button>
+                        </Button>
                       </Link>
                       <Link href={`/jobs/${selectedJob.id}`} style={{ textDecoration: 'none', flex: 1 }} className="sm:flex-initial">
-                        <button style={{
-                          display: 'flex',
-                          cursor: 'pointer',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          borderRadius: theme.borderRadius.lg,
-                          height: '40px',
-                          padding: `0 ${theme.spacing[4]}`,
-                          backgroundColor: theme.colors.backgroundSecondary,
-                          color: theme.colors.textPrimary,
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          border: 'none'
-                        }}>
+                        <Button variant="outline" size="sm" className="w-full sm:w-auto">
                           <span style={{ whiteSpace: 'nowrap' }}>View Job Details</span>
-                        </button>
+                        </Button>
                       </Link>
                     </div>
                   </div>
@@ -844,23 +806,9 @@ export default async function JobTrackingPage() {
                   No active jobs. Post your first job to start tracking!
                 </p>
                 <Link href="/jobs/create" style={{ textDecoration: 'none', display: 'inline-block', marginTop: theme.spacing[4] }}>
-                  <button style={{
-                    display: 'flex',
-                    cursor: 'pointer',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                    borderRadius: theme.borderRadius.lg,
-                    height: '40px',
-                    padding: `0 ${theme.spacing[4]}`,
-                    backgroundColor: theme.colors.primary,
-                    color: 'white',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    border: 'none'
-                  }}>
+                  <Button variant="primary" size="sm">
                     Post a Job
-                  </button>
+                  </Button>
                 </Link>
               </div>
             )}

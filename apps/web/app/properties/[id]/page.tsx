@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
 import Link from 'next/link';
 import { Button } from '@/components/ui';
+import { ArrowLeft, Edit, Plus } from 'lucide-react';
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -68,17 +69,9 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         {/* Back Button */}
         <Link
           href="/properties"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            color: theme.colors.textSecondary,
-            fontSize: theme.typography.fontSize.sm,
-            textDecoration: 'none',
-            marginBottom: theme.spacing[4],
-          }}
+          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
-          <Icon name="arrowLeft" size={16} />
+          <ArrowLeft className="h-4 w-4" />
           Back to Properties
         </Link>
 
@@ -128,12 +121,10 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
           </div>
 
           <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-            <Button variant="outline">
-              <Icon name="edit" size={16} />
+            <Button variant="outline" leftIcon={<Edit className="h-4 w-4" />}>
               Edit Property
             </Button>
-            <Button variant="primary">
-              <Icon name="plus" size={16} />
+            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
               New Job
             </Button>
           </div>

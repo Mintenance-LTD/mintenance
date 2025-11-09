@@ -73,8 +73,10 @@ export function PopularArticlesSection() {
           {displayArticles.map((article, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group relative overflow-hidden"
             >
+              {/* Gradient bar - appears on hover, always visible on large screens */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-lg font-semibold text-primary flex-1">{article.title}</h3>
                 <span className="text-sm text-gray-500 ml-4">{article.views} views</span>

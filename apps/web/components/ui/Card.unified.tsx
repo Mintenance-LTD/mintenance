@@ -115,19 +115,19 @@ export function Card({
     },
   };
 
-  // Padding values
+  // Padding values - Standardize to 24px (p-6) per plan
   const paddingValues: Record<CardPadding, string> = {
     none: '0',
-    sm: theme.spacing[4],
-    md: theme.spacing[6],
-    lg: theme.spacing[8],
+    sm: theme.spacing[4], // 16px
+    md: theme.spacing[6], // 24px - standard card padding per plan
+    lg: theme.spacing[8], // 32px
   };
 
-  // Base styles
+  // Base styles - Consistent with plan: rounded-2xl (16px), padding 24px, shadow-sm
   const baseStyles: React.CSSProperties = {
     ...variantStyles[variant],
     padding: paddingValues[padding],
-    borderRadius: '20px',
+    borderRadius: '16px', // rounded-2xl per plan (was 20px)
     cursor: isInteractive ? 'pointer' : 'default',
     transition: 'all 0.2s ease-in-out',
     outline: 'none',

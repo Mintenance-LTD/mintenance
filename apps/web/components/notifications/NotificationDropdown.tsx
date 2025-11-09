@@ -277,6 +277,9 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
   const renderNotificationContent = (notification: Notification) => (
     <div
       onClick={() => !notification.read && markAsRead(notification.id)}
+      className={`group relative transition-all duration-200 ${
+        !notification.read ? 'border-l-4 border-l-primary-600' : ''
+      }`}
       style={{
         padding: theme.spacing[4],
         borderBottom: `1px solid ${theme.colors.border}`,
@@ -284,7 +287,6 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
           ? theme.colors.surface
           : theme.colors.backgroundSecondary,
         cursor: 'pointer',
-        transition: 'background-color 0.2s',
         display: 'flex',
         gap: theme.spacing[3],
       }}
@@ -339,18 +341,30 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
           >
             {notification.title}
           </h4>
-          {!notification.read && (
-            <div
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: theme.borderRadius.full,
-                backgroundColor: theme.colors.primary,
-                flexShrink: 0,
-                marginLeft: theme.spacing[2],
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {!notification.read && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markAsRead(notification.id);
+                }}
+                className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                aria-label="Mark as read"
+              >
+                <Icon name="check" size={14} color={theme.colors.textSecondary} />
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle delete if needed
               }}
-            />
-          )}
+              className="p-1.5 rounded-lg hover:bg-red-100 transition-colors"
+              aria-label="Delete notification"
+            >
+              <Icon name="trash" size={14} color={theme.colors.error} />
+            </button>
+          </div>
         </div>
         <p
           style={{

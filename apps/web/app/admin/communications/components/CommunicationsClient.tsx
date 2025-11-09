@@ -6,6 +6,22 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement, AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
 
 interface CommunicationsClientProps {
@@ -18,6 +34,9 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
+  const [successAlert, setSuccessAlert] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -49,9 +68,15 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       setAnnouncements(prev => [newAnnouncement, ...prev]);
       setShowCreateModal(false);
       resetForm();
+      setSuccessAlert({ show: true, message: 'Announcement created successfully!' });
+      setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
       console.error('Error creating announcement:', error);
-      alert('Failed to create announcement');
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Failed to create announcement',
+      });
     } finally {
       setLoading(false);
     }
@@ -72,20 +97,30 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
 
       const updated = await response.json();
       setAnnouncements(prev => prev.map(a => a.id === id ? updated : a));
+      setSuccessAlert({ show: true, message: 'Announcement published successfully!' });
+      setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
       console.error('Error publishing announcement:', error);
-      alert('Failed to publish announcement');
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Failed to publish announcement',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
+    setDeleteDialog({ open: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/announcements/${id}`, {
+      const response = await fetch(`/api/admin/announcements/${deleteDialog.id}`, {
         method: 'DELETE',
       });
 
@@ -93,10 +128,18 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
         throw new Error('Failed to delete announcement');
       }
 
-      setAnnouncements(prev => prev.filter(a => a.id !== id));
+      setAnnouncements(prev => prev.filter(a => a.id !== deleteDialog.id));
+      setDeleteDialog({ open: false, id: null });
+      setSuccessAlert({ show: true, message: 'Announcement deleted successfully!' });
+      setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Failed to delete announcement');
+      setDeleteDialog({ open: false, id: null });
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Failed to delete announcement',
+      });
     } finally {
       setLoading(false);
     }
@@ -143,6 +186,17 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
           <Icon name="plus" size={16} /> New Announcement
         </Button>
       </div>
+
+      {/* Success Alert */}
+      {successAlert.show && (
+        <Alert className="mb-4 border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">Success</AlertTitle>
+          <AlertDescription className="text-green-700">
+            {successAlert.message}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Announcements List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
@@ -222,145 +276,137 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
         ))}
       </div>
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: theme.spacing[4],
-          }}
-          onClick={() => {
-            setShowCreateModal(false);
-            resetForm();
-          }}
-        >
-          <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-            <Card
-              style={{
-                maxWidth: '600px',
-                width: '100%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                padding: theme.spacing[6],
-              }}
-            >
-            <h2 style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              marginBottom: theme.spacing[4],
-            }}>
-              Create Announcement
-            </h2>
+      {/* Create Dialog */}
+      <Dialog open={showCreateModal} onOpenChange={(open: boolean) => {
+        setShowCreateModal(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Announcement</DialogTitle>
+            <DialogDescription>
+              Create a new announcement to communicate with platform users
+            </DialogDescription>
+          </DialogHeader>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: theme.spacing[1], fontWeight: theme.typography.fontWeight.medium }}>
-                  Title
-                </label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Announcement title"
-                />
-              </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="announcement-title">Title</Label>
+              <Input
+                id="announcement-title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Announcement title"
+              />
+            </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: theme.spacing[1], fontWeight: theme.typography.fontWeight.medium }}>
-                  Content
-                </label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Announcement content..."
-                  rows={6}
-                  style={{
-                    width: '100%',
-                    padding: theme.spacing[2],
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.base,
-                  }}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="announcement-content">Content</Label>
+              <Textarea
+                id="announcement-content"
+                value={formData.content}
+                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Announcement content..."
+                rows={6}
+              />
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing[4] }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: theme.spacing[1], fontWeight: theme.typography.fontWeight.medium }}>
-                    Type
-                  </label>
-                  <select
-                    value={formData.announcement_type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, announcement_type: e.target.value as any }))}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[2],
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: theme.borderRadius.md,
-                    }}
-                  >
-                    <option value="general">General</option>
-                    <option value="feature">Feature</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="security">Security</option>
-                    <option value="feedback_request">Feedback Request</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: theme.spacing[1], fontWeight: theme.typography.fontWeight.medium }}>
-                    Target Audience
-                  </label>
-                  <select
-                    value={formData.target_audience}
-                    onChange={(e) => setFormData(prev => ({ ...prev, target_audience: e.target.value as any }))}
-                    style={{
-                      width: '100%',
-                      padding: theme.spacing[2],
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: theme.borderRadius.md,
-                    }}
-                  >
-                    <option value="all">All Users</option>
-                    <option value="contractors">Contractors</option>
-                    <option value="homeowners">Homeowners</option>
-                    <option value="verified_contractors">Verified Contractors</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: theme.spacing[4] }}>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  disabled={loading}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="announcement-type">Type</Label>
+                <Select
+                  value={formData.announcement_type}
+                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, announcement_type: value as any }))}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleCreate}
-                  disabled={loading || !formData.title || !formData.content}
+                  <SelectTrigger id="announcement-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="feature">Feature</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="security">Security</SelectItem>
+                    <SelectItem value="feedback_request">Feedback Request</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="target-audience">Target Audience</Label>
+                <Select
+                  value={formData.target_audience}
+                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, target_audience: value as any }))}
                 >
-                  {loading ? 'Creating...' : 'Create Announcement'}
-                </Button>
+                  <SelectTrigger id="target-audience">
+                    <SelectValue placeholder="Select audience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="contractors">Contractors</SelectItem>
+                    <SelectItem value="homeowners">Homeowners</SelectItem>
+                    <SelectItem value="verified_contractors">Verified Contractors</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </Card>
           </div>
-        </div>
-      )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateModal(false);
+                resetForm();
+              }}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreate}
+              disabled={loading || !formData.title || !formData.content}
+            >
+              {loading ? 'Creating...' : 'Create Announcement'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog */}
+      <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => setAlertDialog({ ...alertDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
+              OK
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => setDeleteDialog({ ...deleteDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Announcement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this announcement? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialog({ open: false, id: null })}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

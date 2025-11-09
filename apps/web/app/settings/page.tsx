@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
-import { Modal } from '@/components/ui/Modal';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { PrivacyPolicyContent } from '@/components/settings/PrivacyPolicyContent';
@@ -15,8 +15,8 @@ import Link from 'next/link';
 export default function SettingsPage() {
   const router = useRouter();
   const { user, loading: loadingUser } = useCurrentUser();
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyDialog, setShowPrivacyDialog] = React.useState(false);
+  const [showTermsDialog, setShowTermsDialog] = React.useState(false);
 
   if (loadingUser) {
     return (
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                 <span>Payment Methods</span>
               </Link>
               <button
-                onClick={() => setShowPrivacyModal(true)}
+                onClick={() => setShowPrivacyDialog(true)}
                 style={{
                   width: '100%',
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
@@ -313,7 +313,7 @@ export default function SettingsPage() {
                 <span>Privacy Policy</span>
               </button>
               <button
-                onClick={() => setShowTermsModal(true)}
+                onClick={() => setShowTermsDialog(true)}
                 style={{
                   width: '100%',
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
@@ -406,25 +406,35 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Privacy Policy Modal */}
-        <Modal
-          isOpen={showPrivacyModal}
-          onClose={() => setShowPrivacyModal(false)}
-          title="Privacy Policy"
-          maxWidth={900}
-        >
-          <PrivacyPolicyContent />
-        </Modal>
+        {/* Privacy Policy Dialog */}
+        <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Privacy Policy</DialogTitle>
+              <DialogDescription>
+                How we collect, use, and protect your personal information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <PrivacyPolicyContent />
+            </div>
+          </DialogContent>
+        </Dialog>
 
-        {/* Terms of Service Modal */}
-        <Modal
-          isOpen={showTermsModal}
-          onClose={() => setShowTermsModal(false)}
-          title="Terms of Service"
-          maxWidth={900}
-        >
-          <TermsOfServiceContent />
-        </Modal>
+        {/* Terms of Service Dialog */}
+        <Dialog open={showTermsDialog} onOpenChange={setShowTermsDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Terms of Service</DialogTitle>
+              <DialogDescription>
+                Rules and guidelines for using our platform
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <TermsOfServiceContent />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </HomeownerLayoutShell>
   );

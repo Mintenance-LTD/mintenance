@@ -5,6 +5,15 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { BidSwipeCard } from './BidSwipeCard';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface BidListClientProps {
   bids: any[];
@@ -15,6 +24,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
   const router = useRouter();
   const [selectedBidIndex, setSelectedBidIndex] = useState<number | null>(null);
   const [processingBid, setProcessingBid] = useState<string | null>(null);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
   const selectedBid = selectedBidIndex !== null ? bids[selectedBidIndex] : null;
 
@@ -57,7 +67,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
     } catch (error) {
       console.error('Error accepting bid:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to accept bid. Please try again.';
-      alert(errorMessage);
+      setErrorDialog({ open: true, message: errorMessage });
     } finally {
       setProcessingBid(null);
     }
@@ -94,7 +104,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
     } catch (error) {
       console.error('Error rejecting bid:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to reject bid. Please try again.';
-      alert(errorMessage);
+      setErrorDialog({ open: true, message: errorMessage });
     } finally {
       setProcessingBid(null);
     }
@@ -359,6 +369,21 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
           onClose={handleCloseModal}
         />
       )}
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialog.open} onOpenChange={(open: boolean) => setErrorDialog({ ...errorDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Error</AlertDialogTitle>
+            <AlertDialogDescription>{errorDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setErrorDialog({ open: false, message: '' })}>
+              OK
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

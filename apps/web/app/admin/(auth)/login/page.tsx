@@ -1,30 +1,50 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '@/app/components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
+const adminLoginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean(),
+});
+
+type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const router = useRouter();
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<AdminLoginFormData>({
+    resolver: zodResolver(adminLoginSchema),
+    defaultValues: {
+      rememberMe: false,
+    },
+  });
 
-const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: AdminLoginFormData) => {
     if (!csrfToken) {
-      setError('Security token not available. Please refresh the page.');
+      setError('root', {
+        message: 'Security token not available. Please refresh the page.',
+      });
       return;
     }
-
-    setLoading(true);
-    setError('');
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -34,13 +54,13 @@ const handleSubmit = async (e: React.FormEvent) => {
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          email,
-          password,
-          rememberMe,
+          email: data.email,
+          password: data.password,
+          rememberMe: data.rememberMe,
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -57,9 +77,9 @@ const handleSubmit = async (e: React.FormEvent) => {
       router.push('/admin');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+      setError('root', {
+        message: err instanceof Error ? err.message : 'Login failed. Please try again.',
+      });
     }
   };
 
@@ -87,61 +107,56 @@ const handleSubmit = async (e: React.FormEvent) => {
             Or <Link href="/admin/register" className="font-medium text-primary hover:text-primary-light">create an admin account</Link>
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {errors.root && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{errors.root.message}</AlertDescription>
+              </Alert>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email address
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="email">Email address</Label>
+              <Input
                 id="email"
                 type="email"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="admin@mintenance.co.uk"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email')}
+                errorText={errors.email?.message}
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 type="password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
+                errorText={errors.password?.message}
               />
             </div>
 
-            <div className="flex items-center">
-              <input
+            <div className="flex items-center space-x-2">
+              <Checkbox
                 id="rememberMe"
-                type="checkbox"
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                {...register('rememberMe')}
               />
-              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
                 Remember me for 30 days
-              </label>
+              </Label>
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={loading || csrfLoading}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-light focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              variant="primary"
+              fullWidth
+              disabled={isSubmitting || csrfLoading}
+              leftIcon={isSubmitting || csrfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
             >
-              {csrfLoading ? 'Loading...' : loading ? 'Signing in...' : 'Sign in'}
-            </button>
+              {csrfLoading ? 'Loading...' : isSubmitting ? 'Signing in...' : 'Sign in'}
+            </Button>
           </form>
         </div>
       </div>

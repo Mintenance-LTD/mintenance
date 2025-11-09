@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
@@ -179,26 +179,15 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
           {PERIODS.map((period) => {
             const isActive = selectedPeriod === period;
             return (
-              <button
+              <Button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: '12px',
-                  border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
-                  backgroundColor: isActive
-                    ? `${theme.colors.primary}15`
-                    : theme.colors.surface,
-                  color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  transition: 'all 0.2s',
-                }}
+                variant={isActive ? 'primary' : 'ghost'}
+                size="sm"
+                className="capitalize"
               >
                 {period}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -269,19 +258,9 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
         title="Recent Payments"
         emptyMessage="No payments received yet"
         actions={
-          <button
-            type="button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-            }}
-          >
+          <Button variant="ghost" size="sm">
             View All
-          </button>
+          </Button>
         }
       />
 
@@ -292,19 +271,9 @@ export function FinanceDashboardClient({ financialData }: FinanceDashboardClient
         title="Recent Completed Jobs"
         emptyMessage="No completed jobs yet"
         actions={
-          <button
-            type="button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: theme.colors.primary,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              cursor: 'pointer',
-            }}
-          >
+          <Button variant="ghost" size="sm">
             View All Jobs
-          </button>
+          </Button>
         }
       />
     </div>

@@ -30,7 +30,7 @@ interface UseCSRFReturn {
 
 export function useCSRF(): UseCSRFReturn {
   const [csrfToken, setCSRFToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchToken = async () => {
@@ -58,6 +58,7 @@ export function useCSRF(): UseCSRFReturn {
   };
 
   useEffect(() => {
+    // Only fetch on client side to prevent hydration mismatch
     fetchToken();
   }, []);
 

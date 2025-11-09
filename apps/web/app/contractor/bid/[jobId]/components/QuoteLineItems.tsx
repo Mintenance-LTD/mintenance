@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Plus, Trash2 } from 'lucide-react';
 
 export interface QuoteLineItem {
   id: string;
@@ -78,14 +78,8 @@ export function QuoteLineItems({
         <Button
           variant="ghost"
           onClick={addLineItem}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            fontSize: theme.typography.fontSize.sm,
-          }}
+          leftIcon={<Plus className="h-4 w-4" />}
         >
-          <Icon name="plus" size={16} color={theme.colors.primary} />
           Add Item
         </Button>
       </div>
@@ -170,30 +164,16 @@ export function QuoteLineItems({
               }}>
                 £{item.total.toFixed(2)}
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => removeLineItem(item.id)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  padding: theme.spacing[1],
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: theme.borderRadius.sm,
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
                 aria-label="Remove item"
+                className="p-1"
               >
-                <Icon name="trash" size={16} color={theme.colors.error} />
-              </button>
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
             </div>
           ))}
         </div>

@@ -1,49 +1,56 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '@/app/components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/Button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
+const adminRegisterSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Please enter a valid email address').refine(
+    (email) => email.endsWith('@mintenance.co.uk'),
+    'Admin accounts must use @mintenance.co.uk email address'
+  ),
+  phone: z.string().optional(),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+});
+
+type AdminRegisterFormData = z.infer<typeof adminRegisterSchema>;
 
 export default function AdminRegisterPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
-
   const router = useRouter();
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<AdminRegisterFormData>({
+    resolver: zodResolver(adminRegisterSchema),
+  });
 
-  // Validate email domain on change
-  useEffect(() => {
-    if (email && !email.endsWith('@mintenance.co.uk')) {
-      setEmailError('Admin accounts must use @mintenance.co.uk email address');
-    } else {
-      setEmailError('');
-    }
-  }, [email]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: AdminRegisterFormData) => {
     if (!csrfToken) {
-      setError('Security token not available. Please refresh the page.');
+      setError('root', {
+        message: 'Security token not available. Please refresh the page.',
+      });
       return;
     }
-
-    // Validate email domain
-    if (!email.endsWith('@mintenance.co.uk')) {
-      setError('Admin accounts must use @mintenance.co.uk email address');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -53,24 +60,23 @@ export default function AdminRegisterPage() {
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          phone: phone.trim() || undefined, // Convert empty string to undefined for optional field
-          role: 'admin', // Force admin role
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone?.trim() || undefined,
+          role: 'admin',
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
-          // Show detailed validation errors if available
-          const errorMessage = data.error || 'Invalid registration data. Please check your information.';
-          const details = data.details || data.errors;
+          const errorMessage = responseData.error || 'Invalid registration data. Please check your information.';
+          const details = responseData.details || responseData.errors;
           if (details && typeof details === 'object') {
             const detailMessages = Object.entries(details)
               .map(([field, errors]) => {
@@ -91,9 +97,9 @@ export default function AdminRegisterPage() {
       router.push('/admin');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+      setError('root', {
+        message: err instanceof Error ? err.message : 'Registration failed. Please try again.',
+      });
     }
   };
 
@@ -109,11 +115,13 @@ export default function AdminRegisterPage() {
           <p className="text-xl text-gray-300 mb-4">
             Create an admin account to access the administrative dashboard.
           </p>
-          <div className="bg-yellow-50 bg-opacity-10 border border-yellow-200 border-opacity-30 rounded-lg p-4 mt-4">
-            <p className="text-sm text-yellow-100">
-              <strong>Note:</strong> Only @mintenance.co.uk email addresses are allowed for admin accounts.
-            </p>
-          </div>
+          <Alert className="bg-yellow-50 bg-opacity-10 border-yellow-200 border-opacity-30">
+            <AlertCircle className="h-4 w-4 text-yellow-100" />
+            <AlertTitle className="text-yellow-100">Note</AlertTitle>
+            <AlertDescription className="text-yellow-100">
+              Only @mintenance.co.uk email addresses are allowed for admin accounts.
+            </AlertDescription>
+          </Alert>
         </div>
         <div className="text-sm text-gray-400">
           <p>© 2025 MINTENANCE LTD</p>
@@ -131,107 +139,90 @@ export default function AdminRegisterPage() {
             </Link>
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {errors.root && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription className="whitespace-pre-line">
+                  {errors.root.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First name
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First name</Label>
+                <Input
                   id="firstName"
                   type="text"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                   placeholder="John"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  {...register('firstName')}
+                  errorText={errors.firstName?.message}
                 />
               </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last name
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last name</Label>
+                <Input
                   id="lastName"
                   type="text"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                   placeholder="Smith"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  {...register('lastName')}
+                  errorText={errors.lastName?.message}
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="email">
                 Email address <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
                 id="email"
                 type="email"
-                required
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400 ${
-                  emailError ? 'border-red-500' : 'border-gray-300'
-                }`}
                 placeholder="liam@mintenance.co.uk"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email')}
+                errorText={errors.email?.message}
               />
-              {emailError && (
-                <p className="mt-1 text-sm text-red-600">{emailError}</p>
-              )}
             </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone (optional)
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone (optional)</Label>
+              <Input
                 id="phone"
                 type="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="+44 7700 900000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                {...register('phone')}
+                errorText={errors.phone?.message}
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 type="password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
+                errorText={errors.password?.message}
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="text-xs text-gray-500">
                 Must be at least 8 characters with uppercase, lowercase, number, and special character
               </p>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
-            <button
+            <Button
               type="submit"
-              disabled={loading || csrfLoading || !!emailError}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              variant="primary"
+              fullWidth
+              disabled={isSubmitting || csrfLoading}
+              leftIcon={isSubmitting || csrfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
             >
-              {csrfLoading ? 'Loading...' : loading ? 'Creating account...' : 'Create Admin Account'}
-            </button>
+              {csrfLoading ? 'Loading...' : isSubmitting ? 'Creating account...' : 'Create Admin Account'}
+            </Button>
           </form>
         </div>
       </div>
     </div>
   );
 }
-
