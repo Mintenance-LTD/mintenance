@@ -17,6 +17,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { logger } from '@mintenance/shared';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
+import { Icon } from '@/components/ui/Icon';
 
 interface EscrowReview {
   id: string;
@@ -194,23 +197,96 @@ export function EscrowReviewDashboardClient() {
     }).format(amount);
   };
 
-  return (
-    <div style={{ padding: theme.spacing.xl }}>
-      <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.lg }}>
-        Escrow Review Dashboard
-      </h1>
+  const pendingCount = reviews.filter(r => r.adminHoldStatus === 'pending_review').length;
+  const heldCount = reviews.filter(r => r.adminHoldStatus === 'admin_hold').length;
+  const totalAmount = reviews.reduce((sum, r) => sum + r.amount, 0);
 
-      <Card style={{ marginBottom: theme.spacing.lg, padding: theme.spacing.lg }}>
-        <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+  return (
+    <div style={{ 
+      padding: theme.spacing[8],
+      maxWidth: '1440px',
+      margin: '0 auto',
+      width: '100%',
+    }}>
+      <AdminPageHeader
+        title="Escrow Review Dashboard"
+        subtitle="Review and approve escrow releases for completed jobs"
+        quickStats={[
+          {
+            label: 'pending',
+            value: pendingCount,
+            icon: 'clock',
+            color: '#F59E0B',
+          },
+          {
+            label: 'on hold',
+            value: heldCount,
+            icon: 'lock',
+            color: theme.colors.warning,
+          },
+          {
+            label: 'total amount',
+            value: formatCurrency(totalAmount),
+            icon: 'currencyPound',
+            color: theme.colors.success,
+          },
+        ]}
+      />
+
+      {/* Summary Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: theme.spacing[4],
+        marginBottom: theme.spacing[8],
+      }}>
+        <AdminMetricCard
+          label="Pending Reviews"
+          value={pendingCount}
+          icon="clock"
+          iconColor="#F59E0B"
+        />
+        <AdminMetricCard
+          label="On Hold"
+          value={heldCount}
+          icon="lock"
+          iconColor={theme.colors.warning}
+        />
+        <AdminMetricCard
+          label="Total Amount"
+          value={formatCurrency(totalAmount)}
+          icon="currencyPound"
+          iconColor={theme.colors.success}
+        />
+        <AdminMetricCard
+          label="Total Reviews"
+          value={reviews.length}
+          icon="fileText"
+          iconColor={theme.colors.primary}
+        />
+      </div>
+
+      <Card style={{ marginBottom: theme.spacing[6], padding: theme.spacing[6] }}>
+        <h2 style={{ 
+          fontSize: theme.typography.fontSize.xl, 
+          fontWeight: theme.typography.fontWeight.semibold, 
+          marginBottom: theme.spacing[4],
+          color: theme.colors.textPrimary,
+        }}>
           Pending Reviews ({reviews.length})
         </h2>
 
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: theme.spacing.xl }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: theme.spacing[8] }}>
             <Spinner size="lg" />
           </div>
         ) : reviews.length === 0 ? (
-          <p style={{ textAlign: 'center', color: theme.colors.textSecondary, padding: theme.spacing.xl }}>
+          <p style={{ 
+            textAlign: 'center', 
+            color: theme.colors.textSecondary, 
+            padding: theme.spacing[8],
+            fontSize: theme.typography.fontSize.base,
+          }}>
             No escrows pending review.
           </p>
         ) : (

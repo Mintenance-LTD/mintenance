@@ -6,6 +6,16 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import Link from 'next/link';
 import styles from '../admin.module.css';
+import { AdminCharts } from './AdminCharts';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
+
+interface ChartDataPoint {
+  date: string;
+  users?: number;
+  jobs?: number;
+  cumulative?: number;
+}
 
 interface DashboardMetrics {
   totalUsers: number;
@@ -14,6 +24,10 @@ interface DashboardMetrics {
   activeSubscriptions: number;
   mrr: number;
   pendingVerifications: number;
+  charts?: {
+    userGrowth: ChartDataPoint[];
+    jobGrowth: ChartDataPoint[];
+  };
 }
 
 export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardMetrics }) {
@@ -23,7 +37,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
 
   // Real-time polling (every 30 seconds)
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const fetchMetrics = async () => {
       setLoading(true);
       try {
         const response = await fetch('/api/admin/dashboard/metrics');
@@ -37,7 +51,10 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       } finally {
         setLoading(false);
       }
-    }, 30000); // 30 seconds
+    };
+
+    fetchMetrics(); // Initial fetch
+    const interval = setInterval(fetchMetrics, 30000); // 30 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -48,33 +65,36 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       maxWidth: '1440px',
       margin: '0 auto',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[8] }}>
-        <div>
-          <h1 style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}>
-            Admin Dashboard
-          </h1>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}>
-            Manage platform operations, revenue, and user activity
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-          {loading && <Icon name="loader" size={20} className="animate-spin" />}
-          <span style={{
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textTertiary,
-          }}>
-            Last updated: {lastUpdated.toLocaleTimeString('en-GB')}
-          </span>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Admin Dashboard"
+        subtitle="Manage platform operations, revenue, and user activity"
+        variant="gradient"
+        quickStats={[
+          {
+            label: 'users',
+            value: metrics.totalUsers.toLocaleString(),
+            icon: 'users',
+            color: theme.colors.success,
+          },
+          {
+            label: 'pending',
+            value: metrics.pendingVerifications,
+            icon: 'clock',
+            color: '#F59E0B',
+          },
+        ]}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+            {loading && <Icon name="loader" size={20} className="animate-spin" color={theme.colors.white} />}
+            <span style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: 'rgba(255, 255, 255, 0.8)',
+            }}>
+              Updated {lastUpdated.toLocaleTimeString('en-GB')}
+            </span>
+          </div>
+        }
+      />
 
       {/* Quick Stats */}
       <div style={{
@@ -83,125 +103,45 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
         gap: theme.spacing[4],
         marginBottom: theme.spacing[8],
       }}>
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="users" size={24} color={theme.colors.primary} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Total Users
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            {metrics.totalUsers.toLocaleString()}
-          </p>
-        </Card>
-
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="briefcase" size={24} color={theme.colors.primary} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Contractors
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            {metrics.totalContractors.toLocaleString()}
-          </p>
-        </Card>
-
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="fileText" size={24} color={theme.colors.primary} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Total Jobs
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            {metrics.totalJobs.toLocaleString()}
-          </p>
-        </Card>
-
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="creditCard" size={24} color={theme.colors.primary} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Active Subscriptions
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            {metrics.activeSubscriptions.toLocaleString()}
-          </p>
-        </Card>
-
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="currencyPound" size={24} color={theme.colors.success} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Monthly Recurring Revenue
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.success,
-          }}>
-            £{metrics.mrr.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </Card>
-
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="clock" size={24} color="#F59E0B" />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Pending Verifications
-            </h3>
-          </div>
-          <p style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: '#F59E0B',
-          }}>
-            {metrics.pendingVerifications.toLocaleString()}
-          </p>
-        </Card>
+        <AdminMetricCard
+          label="Total Users"
+          value={metrics.totalUsers.toLocaleString()}
+          icon="users"
+          iconColor={theme.colors.primary}
+          onClick={() => window.location.href = '/admin/users'}
+        />
+        <AdminMetricCard
+          label="Contractors"
+          value={metrics.totalContractors.toLocaleString()}
+          icon="briefcase"
+          iconColor={theme.colors.primary}
+        />
+        <AdminMetricCard
+          label="Total Jobs"
+          value={metrics.totalJobs.toLocaleString()}
+          icon="fileText"
+          iconColor={theme.colors.primary}
+        />
+        <AdminMetricCard
+          label="Active Subscriptions"
+          value={metrics.activeSubscriptions.toLocaleString()}
+          icon="creditCard"
+          iconColor={theme.colors.primary}
+        />
+        <AdminMetricCard
+          label="Monthly Recurring Revenue"
+          value={`£${metrics.mrr.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon="currencyPound"
+          iconColor={theme.colors.success}
+          onClick={() => window.location.href = '/admin/revenue'}
+        />
+        <AdminMetricCard
+          label="Pending Verifications"
+          value={metrics.pendingVerifications.toLocaleString()}
+          icon="clock"
+          iconColor="#F59E0B"
+          onClick={() => window.location.href = '/admin/users?verified=pending'}
+        />
       </div>
 
       {/* Admin Actions */}
@@ -209,6 +149,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
         gap: theme.spacing[4],
+        marginBottom: theme.spacing[8],
       }}>
         <Link
           href="/admin/revenue"
@@ -314,6 +255,14 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           </Card>
         </Link>
       </div>
+
+      {/* Charts Section */}
+      {metrics.charts && (
+        <AdminCharts 
+          userGrowth={metrics.charts.userGrowth} 
+          jobGrowth={metrics.charts.jobGrowth} 
+        />
+      )}
     </div>
   );
 }

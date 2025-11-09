@@ -5,6 +5,8 @@
 
 import * as tf from '@tensorflow/tfjs';
 import { logger } from '../../utils/logger';
+import { createNestedOptimizer, type NestedOptimizerConfig } from './optimizers/NestedOptimizer';
+import { createDeepMomentumGD, type DeepMomentumGDConfig } from './optimizers/DeepMomentumGD';
 import {
   TrainingData,
   ModelConfiguration,
@@ -128,6 +130,7 @@ export class ModelTrainingEngine {
 
   /**
    * Create optimizer based on configuration
+   * Enhanced to support nested optimizers (nested-adam, deep-momentum)
    */
   private createOptimizer(config: OptimizerConfig): tf.Optimizer {
     switch (config.type) {
@@ -149,9 +152,34 @@ export class ModelTrainingEngine {
           learningRate: config.learningRate,
         });
 
+      case 'nested-adam':
+        // Nested optimizer with momentum as associative memory
+        return createNestedOptimizer({
+          learningRate: config.learningRate,
+          momentumDecay: config.momentum || 0.9,
+          epsilon: config.epsilon || 1e-8,
+          useNesterov: config.useNesterov || false,
+        });
+
+      case 'deep-momentum':
+        // Deep Momentum GD with MLP-based momentum
+        return createDeepMomentumGD({
+          learningRate: config.learningRate,
+          momentumDecay: config.momentum || 0.9,
+          epsilon: config.epsilon || 1e-8,
+          mlpHiddenSizes: config.mlpHiddenSizes || [64, 32],
+        });
+
       default:
         throw new Error(`Unsupported optimizer type: ${config.type}`);
     }
+  }
+
+  /**
+   * Create nested optimizer (public method for external use)
+   */
+  createNestedOptimizer(config: NestedOptimizerConfig): tf.Optimizer {
+    return createNestedOptimizer(config);
   }
 
   /**

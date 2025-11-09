@@ -4,9 +4,22 @@ import { validateRequest } from '@/lib/validation/validator';
 import { passwordUpdateSchema } from '@/lib/validation/schemas';
 import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check Supabase configuration early
+    if (!isSupabaseConfigured) {
+      logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
+      return NextResponse.json(
+        { 
+          error: 'Service configuration error. Please contact support.',
+          code: 'CONFIG_ERROR'
+        },
+        { status: 500 }
+      );
+    }
+
     // Rate limiting to prevent abuse
     const rateLimitResult = await checkPasswordResetRateLimit(request);
 
@@ -74,16 +87,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
-      return NextResponse.json(
-        { error: 'Service configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 

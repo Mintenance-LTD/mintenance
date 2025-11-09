@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { VerificationBadge } from './VerificationBadge';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 interface User {
   id: string;
@@ -213,109 +214,145 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
   const allSelected = pendingContractors.length > 0 && pendingContractors.every(u => selectedUserIds.has(u.id));
   const someSelected = selectedUserIds.size > 0 && !allSelected;
 
+  const totalUsers = users.length;
+  const totalContractors = users.filter(u => u.role === 'contractor').length;
+  const totalHomeowners = users.filter(u => u.role === 'homeowner').length;
+  const pendingCount = users.filter(u => u.verificationStatus === 'pending').length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-      {/* Header */}
-      <div>
-        <h1 style={{
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[2],
-        }}>
-          User Management
-        </h1>
-        <p style={{
-          fontSize: theme.typography.fontSize.base,
-          color: theme.colors.textSecondary,
-        }}>
-          Manage platform users, view profiles, and verify contractors
-        </p>
-      </div>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: theme.spacing[6],
+      padding: theme.spacing[8],
+      maxWidth: '1440px',
+      margin: '0 auto',
+      width: '100%',
+    }}>
+      <AdminPageHeader
+        title="User Management"
+        subtitle="Manage platform users, view profiles, and verify contractors"
+        quickStats={[
+          {
+            label: 'total',
+            value: totalUsers,
+            icon: 'users',
+            color: theme.colors.primary,
+          },
+          {
+            label: 'contractors',
+            value: totalContractors,
+            icon: 'briefcase',
+            color: theme.colors.info,
+          },
+          {
+            label: 'pending',
+            value: pendingCount,
+            icon: 'clock',
+            color: '#F59E0B',
+          },
+        ]}
+        actions={
+          <div style={{ display: 'flex', gap: theme.spacing[2] }}>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('csv')}
+              style={{ fontSize: theme.typography.fontSize.sm }}
+            >
+              <Icon name="download" size={16} /> Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('pdf')}
+              style={{ fontSize: theme.typography.fontSize.sm }}
+            >
+              <Icon name="download" size={16} /> Export PDF
+            </Button>
+          </div>
+        }
+      />
 
       {/* Filters and Actions */}
-      <Card style={{ padding: theme.spacing[4] }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: theme.spacing[4],
-          marginBottom: theme.spacing[4],
-        }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Search
-            </label>
-            <Input
-              type="text"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      <Card style={{ padding: theme.spacing[6] }}>
+        {/* Search */}
+        <div style={{ marginBottom: theme.spacing[4] }}>
+          <Input
+            type="text"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            leftIcon={<Icon name="search" size={20} color={theme.colors.textSecondary} />}
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[4] }}>
+          {/* Role Filters */}
+          <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
+            {(['all', 'contractor', 'homeowner'] as const).map((role) => (
+              <button
+                key={role}
+                onClick={() => setRoleFilter(role)}
+                style={{
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                  borderRadius: theme.borderRadius.full,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: roleFilter === role ? theme.colors.primary : theme.colors.backgroundSecondary,
+                  color: roleFilter === role ? theme.colors.white : theme.colors.textPrimary,
+                }}
+                onMouseEnter={(e) => {
+                  if (roleFilter !== role) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (roleFilter !== role) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }
+                }}
+              >
+                {role === 'all' ? 'All Roles' : role.charAt(0).toUpperCase() + role.slice(1)}
+              </button>
+            ))}
           </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Role
-            </label>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as any)}
-              style={{
-                width: '100%',
-                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              <option value="all">All Roles</option>
-              <option value="contractor">Contractors</option>
-              <option value="homeowner">Homeowners</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Verification Status
-            </label>
-            <select
-              value={verifiedFilter}
-              onChange={(e) => setVerifiedFilter(e.target.value as any)}
-              style={{
-                width: '100%',
-                padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                fontSize: theme.typography.fontSize.base,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              <option value="all">All</option>
-              <option value="verified">Verified</option>
-              <option value="pending">Pending Review</option>
-              <option value="false">Not Verified</option>
-            </select>
+          {/* Verification Filters */}
+          <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
+            {(['all', 'verified', 'pending', 'false'] as const).map((status) => (
+              <button
+                key={status}
+                onClick={() => setVerifiedFilter(status)}
+                style={{
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                  borderRadius: theme.borderRadius.full,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: verifiedFilter === status 
+                    ? (status === 'pending' ? '#F59E0B' : status === 'verified' ? theme.colors.success : theme.colors.primary)
+                    : theme.colors.backgroundSecondary,
+                  color: verifiedFilter === status ? theme.colors.white : theme.colors.textPrimary,
+                }}
+                onMouseEnter={(e) => {
+                  if (verifiedFilter !== status) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (verifiedFilter !== status) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }
+                }}
+              >
+                {status === 'all' ? 'All Status' : status === 'false' ? 'Not Verified' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -365,29 +402,6 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
           </div>
         )}
 
-        {/* Export Actions */}
-        <div style={{
-          display: 'flex',
-          gap: theme.spacing[2],
-          marginTop: theme.spacing[4],
-          paddingTop: theme.spacing[4],
-          borderTop: `1px solid ${theme.colors.border}`,
-        }}>
-          <Button
-            variant="secondary"
-            onClick={() => handleExport('csv')}
-            style={{ fontSize: theme.typography.fontSize.sm }}
-          >
-            <Icon name="download" size={16} /> Export CSV
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => handleExport('pdf')}
-            style={{ fontSize: theme.typography.fontSize.sm }}
-          >
-            <Icon name="download" size={16} /> Export PDF
-          </Button>
-        </div>
       </Card>
 
       {/* Users Table */}

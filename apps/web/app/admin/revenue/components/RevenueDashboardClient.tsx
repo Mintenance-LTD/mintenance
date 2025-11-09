@@ -15,6 +15,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 
 interface RevenueDashboardClientProps {
   revenueMetrics: RevenueMetrics | null;
@@ -396,9 +410,61 @@ export function RevenueDashboardClient({
         </div>
       </Card>
 
-      {/* MRR by Plan */}
+      {/* Revenue Trends Chart */}
+      {trends && trends.length > 0 && (
+        <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[8] }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Revenue Trends
+          </h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <AreaChart data={trends}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#6B7280"
+                style={{ fontSize: theme.typography.fontSize.xs }}
+              />
+              <YAxis 
+                stroke="#6B7280"
+                style={{ fontSize: theme.typography.fontSize.xs }}
+                tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#FFFFFF',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  fontSize: theme.typography.fontSize.sm,
+                }}
+                formatter={(value: number) => formatCurrency(value)}
+              />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#10B981"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorRevenue)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
+      {/* MRR by Plan Chart */}
       {mrr && Object.keys(mrr.mrrByPlan).length > 0 && (
-        <Card style={{ padding: theme.spacing[6] }}>
+        <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[8] }}>
           <h2 style={{
             fontSize: theme.typography.fontSize.xl,
             fontWeight: theme.typography.fontWeight.bold,
@@ -409,35 +475,80 @@ export function RevenueDashboardClient({
           </h2>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: theme.spacing[4],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: theme.spacing[6],
           }}>
-            {Object.entries(mrr.mrrByPlan).map(([plan, data]) => (
-              <div key={plan}>
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                  textTransform: 'capitalize',
+            <div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={Object.entries(mrr.mrrByPlan).map(([plan, data]) => ({
+                  name: plan.charAt(0).toUpperCase() + plan.slice(1),
+                  mrr: data.mrr,
+                  subscribers: data.count,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#6B7280"
+                    style={{ fontSize: theme.typography.fontSize.xs }}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    style={{ fontSize: theme.typography.fontSize.xs }}
+                    tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#FFFFFF',
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.borderRadius.md,
+                    }}
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
+                  <Bar 
+                    dataKey="mrr" 
+                    fill="#3B82F6"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[4],
+              justifyContent: 'center',
+            }}>
+              {Object.entries(mrr.mrrByPlan).map(([plan, data]) => (
+                <div key={plan} style={{
+                  padding: theme.spacing[4],
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderRadius: theme.borderRadius.md,
                 }}>
-                  {plan}
-                </p>
-                <p style={{
-                  fontSize: theme.typography.fontSize.xl,
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                }}>
-                  {formatCurrency(data.mrr)}
-                </p>
-                <p style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textTertiary,
-                  marginTop: theme.spacing[1],
-                }}>
-                  {data.count} subscribers
-                </p>
-              </div>
-            ))}
+                  <p style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                    textTransform: 'capitalize',
+                  }}>
+                    {plan}
+                  </p>
+                  <p style={{
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.bold,
+                    color: theme.colors.textPrimary,
+                  }}>
+                    {formatCurrency(data.mrr)}
+                  </p>
+                  <p style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textTertiary,
+                    marginTop: theme.spacing[1],
+                  }}>
+                    {data.count} subscribers
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </Card>
       )}

@@ -30,15 +30,18 @@ export function VerifyPhoneClient({ userId, currentPhone, userName, userEmail }:
   const [countdown, setCountdown] = useState(0);
 
   const formatPhoneNumber = (value: string): string => {
+    // Remove spaces, dashes, parentheses, and other formatting characters
+    const cleaned = value.replace(/[\s\-\(\)]/g, '');
+    
     // Remove all non-digit characters except +
-    const cleaned = value.replace(/[^\d+]/g, '');
+    const digitsOnly = cleaned.replace(/[^\d+]/g, '');
     
     // If it doesn't start with +, add country code (default to +44 for UK)
-    if (!cleaned.startsWith('+')) {
-      return cleaned ? `+44${cleaned}` : '';
+    if (!digitsOnly.startsWith('+')) {
+      return digitsOnly ? `+44${digitsOnly}` : '';
     }
     
-    return cleaned;
+    return digitsOnly;
   };
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -55,8 +58,17 @@ export function VerifyPhoneClient({ userId, currentPhone, userName, userEmail }:
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
     
-    if (!formattedPhone || formattedPhone.length < 10) {
-      setError('Please enter a valid phone number');
+    // Validate phone number format (must start with + and have at least 5 digits after +)
+    if (!formattedPhone || !formattedPhone.startsWith('+') || formattedPhone.length < 6) {
+      setError('Please enter a valid phone number with country code (e.g., +44 7984 596545)');
+      setIsLoading(false);
+      return;
+    }
+    
+    // Additional validation: must have at least 5 digits after the +
+    const digitsAfterPlus = formattedPhone.slice(1);
+    if (!/^[1-9]\d{4,14}$/.test(digitsAfterPlus)) {
+      setError('Phone number must be in international format. Include country code (e.g., +44 for UK, +1 for US)');
       setIsLoading(false);
       return;
     }
@@ -78,12 +90,27 @@ export function VerifyPhoneClient({ userId, currentPhone, userName, userEmail }:
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to send verification code');
+        // Extract specific validation error message if available
+        let errorMessage = data.error || 'Failed to send verification code';
+        
+        // If there are validation errors, use the first one's message
+        if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+          const firstError = data.errors[0];
+          errorMessage = firstError.message || errorMessage;
+        }
+        
+        setError(errorMessage);
         setIsLoading(false);
         return;
       }
 
-      setSuccess('Verification code sent successfully!');
+      // Check if this is dev mode and code is provided
+      if (data.devCode) {
+        setSuccess(`Verification code generated (dev mode): ${data.devCode}. Check server console for details.`);
+      } else {
+        setSuccess('Verification code sent successfully!');
+      }
+      
       setCodeSent(true);
       setStep('verify');
       setPhoneNumber(formattedPhone);

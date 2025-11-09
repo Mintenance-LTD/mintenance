@@ -4,6 +4,7 @@
  */
 
 import { logger } from '../../utils/logger';
+import { OnlineLearningService } from './OnlineLearningService';
 import {
   TrainingData,
   TrainingConfiguration,
@@ -31,6 +32,7 @@ export class MLTrainingPipelineService {
   private trainingEngine: ModelTrainingEngine;
   private biasDetectionService: BiasDetectionService;
   private validationService: ModelValidationService;
+  private onlineLearningServices: Map<string, OnlineLearningService> = new Map();
   private eventListeners = new Map<TrainingEventType, ((event: TrainingEvent) => void)[]>();
   private activeJobs = new Map<string, Promise<TrainingJob>>();
 
@@ -96,6 +98,7 @@ export class MLTrainingPipelineService {
 
   /**
    * Start training job for specific model type
+   * Enhanced to support both batch and online learning modes
    */
   async startTraining(
     modelType: ModelType,
@@ -106,9 +109,12 @@ export class MLTrainingPipelineService {
     const jobId = this.generateJobId(modelType);
 
     try {
+      // Check if online learning is enabled
+      const enableOnlineLearning = trainingConfig?.enableOnlineLearning ?? false;
+
       // Get training data
       const trainingData = this.repository.getTrainingData(modelType);
-      if (trainingData.length === 0) {
+      if (trainingData.length === 0 && !enableOnlineLearning) {
         throw new Error(`No training data available for model type: ${modelType}`);
       }
 
@@ -116,8 +122,18 @@ export class MLTrainingPipelineService {
       const finalTrainingConfig = trainingConfig || this.getDefaultTrainingConfiguration(modelType);
       const finalModelConfig = modelConfig || this.trainingEngine.getDefaultModelConfiguration(
         modelType,
-        trainingData[0].features[0].length
+        trainingData[0]?.features[0]?.length || 10
       );
+
+      // Initialize online learning service if enabled
+      if (enableOnlineLearning) {
+        const onlineService = new OnlineLearningService({
+          agentName: modelType,
+          batchSize: finalTrainingConfig.batchSize,
+          enableIncremental: true,
+        });
+        this.onlineLearningServices.set(modelType, onlineService);
+      }
 
       // Create training job
       const job: TrainingJob = {
@@ -130,7 +146,11 @@ export class MLTrainingPipelineService {
       };
 
       this.repository.storeTrainingJob(job);
-      this.emitEvent('training_started', modelType, { jobId, dataSize: trainingData.length });
+      this.emitEvent('training_started', modelType, { 
+        jobId, 
+        dataSize: trainingData.length,
+        onlineLearning: enableOnlineLearning,
+      });
 
       // Start training asynchronously
       const trainingPromise = this.executeTraining(
@@ -139,7 +159,8 @@ export class MLTrainingPipelineService {
         trainingData,
         finalTrainingConfig,
         finalModelConfig,
-        fairnessCriteria
+        fairnessCriteria,
+        enableOnlineLearning
       );
 
       this.activeJobs.set(jobId, trainingPromise);
@@ -148,6 +169,7 @@ export class MLTrainingPipelineService {
         jobId,
         modelType,
         dataSize: trainingData.length,
+        onlineLearning: enableOnlineLearning,
       });
 
       return jobId;
@@ -159,7 +181,38 @@ export class MLTrainingPipelineService {
   }
 
   /**
+   * Add data point for online learning
+   */
+  async addOnlineDataPoint(
+    modelType: ModelType,
+    keys: number[],
+    values: number[],
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const onlineService = this.onlineLearningServices.get(modelType);
+    if (!onlineService) {
+      logger.warn('MLTrainingPipelineService', 'Online learning not enabled for model type', {
+        modelType,
+      });
+      return;
+    }
+
+    await onlineService.addDataPoint(keys, values, metadata);
+  }
+
+  /**
+   * Flush online learning queue for a model type
+   */
+  async flushOnlineLearning(modelType: ModelType): Promise<void> {
+    const onlineService = this.onlineLearningServices.get(modelType);
+    if (onlineService) {
+      await onlineService.flushQueue();
+    }
+  }
+
+  /**
    * Execute training process
+   * Enhanced to support online learning mode
    */
   private async executeTraining(
     jobId: string,
@@ -167,7 +220,8 @@ export class MLTrainingPipelineService {
     trainingData: TrainingData[],
     trainingConfig: TrainingConfiguration,
     modelConfig: ModelConfiguration,
-    fairnessCriteria?: FairnessCriteria
+    fairnessCriteria?: FairnessCriteria,
+    enableOnlineLearning?: boolean
   ): Promise<TrainingJob> {
     try {
       // Update job status

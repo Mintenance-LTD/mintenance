@@ -23,6 +23,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement, AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import styles from '../../admin.module.css';
 
 interface CommunicationsClientProps {
   initialAnnouncements: AdminAnnouncement[];
@@ -156,36 +158,48 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
     });
   };
 
+  const publishedCount = announcements.filter(a => a.is_published).length;
+  const draftCount = announcements.filter(a => !a.is_published).length;
+
   return (
     <div style={{
       padding: theme.spacing[8],
       maxWidth: '1440px',
       margin: '0 auto',
+      width: '100%',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[8] }}>
-        <div>
-          <h1 style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}>
-            Admin Communications
-          </h1>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}>
-            Create announcements and communicate with platform users
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <Icon name="plus" size={16} /> New Announcement
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Admin Communications"
+        subtitle="Create announcements and communicate with platform users"
+        quickStats={[
+          {
+            label: 'total',
+            value: announcements.length,
+            icon: 'megaphone',
+            color: theme.colors.primary,
+          },
+          {
+            label: 'published',
+            value: publishedCount,
+            icon: 'checkCircle',
+            color: theme.colors.success,
+          },
+          {
+            label: 'drafts',
+            value: draftCount,
+            icon: 'fileText',
+            color: theme.colors.warning,
+          },
+        ]}
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <Icon name="plus" size={16} /> New Announcement
+          </Button>
+        }
+      />
 
       {/* Success Alert */}
       {successAlert.show && (
@@ -201,10 +215,27 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       {/* Announcements List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
         {announcements.map((announcement) => (
-          <Card key={announcement.id} style={{ padding: theme.spacing[6] }}>
+          <Card 
+            key={announcement.id} 
+            className={styles.adminCard}
+            style={{ 
+              padding: theme.spacing[6],
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = theme.shadows.md;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = theme.shadows.sm;
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: theme.spacing[4] }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2] }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2], flexWrap: 'wrap' }}>
                   <h3 style={{
                     fontSize: theme.typography.fontSize.xl,
                     fontWeight: theme.typography.fontWeight.bold,
@@ -215,20 +246,36 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   </h3>
                   {announcement.is_published && (
                     <span style={{
-                      padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                      backgroundColor: '#10B981',
+                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                      backgroundColor: theme.colors.success,
                       color: 'white',
-                      borderRadius: theme.borderRadius.md,
+                      borderRadius: theme.borderRadius.full,
                       fontSize: theme.typography.fontSize.xs,
                       fontWeight: theme.typography.fontWeight.semibold,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[1],
                     }}>
+                      <Icon name="checkCircle" size={12} color="white" />
                       Published
                     </span>
                   )}
+                  {!announcement.is_published && (
+                    <span style={{
+                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      color: theme.colors.textSecondary,
+                      borderRadius: theme.borderRadius.full,
+                      fontSize: theme.typography.fontSize.xs,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                    }}>
+                      Draft
+                    </span>
+                  )}
                   <span style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                     backgroundColor: theme.colors.backgroundSecondary,
-                    borderRadius: theme.borderRadius.md,
+                    borderRadius: theme.borderRadius.full,
                     fontSize: theme.typography.fontSize.xs,
                     color: theme.colors.textSecondary,
                     textTransform: 'capitalize',
@@ -237,38 +284,41 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   </span>
                 </div>
                 <p style={{
-                  fontSize: theme.typography.fontSize.base,
+                  fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[2],
+                  marginBottom: theme.spacing[3],
                 }}>
                   Target: {announcement.target_audience.replace('_', ' ')} • Priority: {announcement.priority}
                 </p>
                 <div style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textTertiary,
+                  fontSize: theme.typography.fontSize.base,
+                  color: theme.colors.textPrimary,
                   whiteSpace: 'pre-wrap',
-                  maxHeight: '150px',
+                  maxHeight: '120px',
                   overflow: 'hidden',
+                  lineHeight: 1.6,
                 }}>
                   {announcement.content.substring(0, 200)}...
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: theme.spacing[2], marginLeft: theme.spacing[4] }}>
+              <div style={{ display: 'flex', gap: theme.spacing[2], marginLeft: theme.spacing[4], flexShrink: 0 }}>
                 {!announcement.is_published && (
                   <Button
                     variant="primary"
                     onClick={() => handlePublish(announcement.id)}
                     disabled={loading}
+                    style={{ fontSize: theme.typography.fontSize.sm }}
                   >
-                    Publish
+                    <Icon name="send" size={16} /> Publish
                   </Button>
                 )}
                 <Button
                   variant="destructive"
                   onClick={() => handleDelete(announcement.id)}
                   disabled={loading}
+                  style={{ fontSize: theme.typography.fontSize.sm }}
                 >
-                  Delete
+                  <Icon name="trash" size={16} /> Delete
                 </Button>
               </div>
             </div>
