@@ -31,6 +31,9 @@
     "deploy:verify": "node scripts/verify-deployment.js",
     "test:payment": "tsx scripts/test-payment-flow.ts",
     "verify:database": "tsx scripts/verify-database.ts",
+    "test:gcp-auth": "tsx scripts/test-gcp-auth.ts",
+    "test:scripts": "jest --config scripts/jest.config.js",
+    "create:gcp-buckets": "tsx scripts/create-gcp-buckets.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui"
@@ -50,13 +53,16 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "dotenv": "^17.2.3",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
     "globby": "^14.0.2",
+    "jest": "^30.2.0",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.5",
+    "ts-jest": "^29.4.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
