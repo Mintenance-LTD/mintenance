@@ -12,12 +12,10 @@ import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
+import { env } from '@/lib/env';
 
-// Initialize Stripe with secret key (server-side only)
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+// Initialize Stripe with validated secret key (server-side only)
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 

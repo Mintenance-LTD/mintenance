@@ -1,5 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { unstable_cache } from 'next/cache';
+import { CACHE_TAGS, CACHE_DURATIONS } from '@/lib/cache';
 
 export interface OnboardingStatus {
   completed: boolean;
@@ -11,35 +13,44 @@ export class OnboardingService {
    * Check if user has completed onboarding
    */
   static async checkOnboardingStatus(userId: string): Promise<OnboardingStatus> {
-    try {
-      const { data, error } = await serverSupabase
-        .from('users')
-        .select('onboarding_completed, onboarding_completed_at')
-        .eq('id', userId)
-        .single();
+    return unstable_cache(
+      async () => {
+        try {
+          const { data, error } = await serverSupabase
+            .from('users')
+            .select('onboarding_completed, onboarding_completed_at')
+            .eq('id', userId)
+            .single();
 
-      if (error) {
-        logger.error('Error checking onboarding status', {
-          service: 'onboarding',
-          userId,
-          error: error.message,
-        });
-        // Default to not completed if there's an error
-        return { completed: false, completedAt: null };
+          if (error) {
+            logger.error('Error checking onboarding status', {
+              service: 'onboarding',
+              userId,
+              error: error.message,
+            });
+            // Default to not completed if there's an error
+            return { completed: false, completedAt: null };
+          }
+
+          return {
+            completed: data?.onboarding_completed ?? false,
+            completedAt: data?.onboarding_completed_at ?? null,
+          };
+        } catch (error) {
+          logger.error('Unexpected error checking onboarding status', {
+            service: 'onboarding',
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return { completed: false, completedAt: null };
+        }
+      },
+      [`onboarding-${userId}`],
+      {
+        tags: [CACHE_TAGS.USER_ONBOARDING],
+        revalidate: CACHE_DURATIONS.SHORT, // 60 seconds
       }
-
-      return {
-        completed: data?.onboarding_completed ?? false,
-        completedAt: data?.onboarding_completed_at ?? null,
-      };
-    } catch (error) {
-      logger.error('Unexpected error checking onboarding status', {
-        service: 'onboarding',
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return { completed: false, completedAt: null };
-    }
+    )();
   }
 
   /**

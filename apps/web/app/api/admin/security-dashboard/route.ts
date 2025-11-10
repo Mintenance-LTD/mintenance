@@ -28,6 +28,61 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching security metrics:', error);
+      // If RPC function doesn't exist, return empty metrics instead of error
+      if (error.code === '42883' || error.message?.includes('function') || error.message?.includes('does not exist')) {
+        // Function doesn't exist - return empty metrics
+        const emptyMetrics = {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: []
+        };
+        
+        // Continue with empty metrics instead of failing
+        const { data: recentEvents, error: eventsError } = await serverSupabase
+          .from('security_events')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const { data: topIPs, error: ipsError } = await serverSupabase
+          .from('security_events')
+          .select('ip_address')
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+          .order('created_at', { ascending: false });
+
+        const ipCounts = (topIPs || []).reduce((acc: Record<string, number>, event: { ip_address: string }) => {
+          if (event.ip_address) {
+            acc[event.ip_address] = (acc[event.ip_address] || 0) + 1;
+          }
+          return acc;
+        }, {});
+
+        const topOffendingIPs = Object.entries(ipCounts)
+          .map(([ip, count]) => ({ ip, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({ activeOnly: true, limit: 50 });
+        const blockedIPSet = new Set(blockedIPs.map(bip => bip.ip_address));
+        const topOffendingIPsWithBlockStatus = topOffendingIPs.map(item => ({
+          ...item,
+          is_blocked: blockedIPSet.has(item.ip),
+        }));
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: recentEvents || [],
+          top_offending_ips: topOffendingIPsWithBlockStatus,
+          blocked_ips: blockedIPs,
+          last_updated: new Date().toISOString(),
+          warning: 'Security metrics function not available. Showing basic data only.'
+        });
+      }
+      
       return NextResponse.json({ error: 'Failed to fetch security metrics' }, { status: 500 });
     }
 
@@ -40,6 +95,28 @@ export async function GET(request: NextRequest) {
 
     if (eventsError) {
       console.error('Error fetching recent events:', eventsError);
+      // If table doesn't exist, continue with empty array
+      if (eventsError.code === '42P01' || eventsError.message?.includes('does not exist')) {
+        // Table doesn't exist - return empty array
+        const emptyMetrics = metrics?.[0] || {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: []
+        };
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: [],
+          top_offending_ips: [],
+          blocked_ips: [],
+          last_updated: new Date().toISOString(),
+          warning: 'Security events table not available. Some features may be limited.'
+        });
+      }
       return NextResponse.json({ error: 'Failed to fetch recent events' }, { status: 500 });
     }
 
@@ -52,6 +129,27 @@ export async function GET(request: NextRequest) {
 
     if (ipsError) {
       console.error('Error fetching IP data:', ipsError);
+      // If table doesn't exist, continue with empty array
+      if (ipsError.code === '42P01' || ipsError.message?.includes('does not exist')) {
+        const emptyMetrics = metrics?.[0] || {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: []
+        };
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: [],
+          top_offending_ips: [],
+          blocked_ips: [],
+          last_updated: new Date().toISOString(),
+          warning: 'Security events table not available. Some features may be limited.'
+        });
+      }
       return NextResponse.json({ error: 'Failed to fetch IP data' }, { status: 500 });
     }
 

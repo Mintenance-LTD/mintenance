@@ -1,293 +1,105 @@
+/**
+ * Card Component - Compatibility Wrapper
+ * 
+ * Wraps the shared Card component to maintain backward compatibility
+ * with existing web app code while migrating to shared components.
+ * 
+ * This wrapper will be removed once all files are migrated.
+ */
+
 'use client';
 
-import React, { useState } from 'react';
-import { theme } from '@/lib/theme';
+import React from 'react';
+import { Card as SharedCard, CardHeader as SharedCardHeader, CardFooter as SharedCardFooter, CardTitle, CardDescription, CardContent } from '@mintenance/shared-ui';
+import type { WebCardProps } from '@mintenance/shared-ui';
+import { getGradientCardStyle } from '@/lib/theme-enhancements';
+import { cn } from '@/lib/utils';
 
-export interface CardProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  variant?: 'default' | 'elevated' | 'outlined';
-  padding?: 'sm' | 'md' | 'lg' | 'none';
+// Extend shared Card props for backward compatibility
+export type CardVariant = 'default' | 'elevated' | 'outlined' | 'highlighted' | 'bordered' | 'gradient-primary' | 'gradient-success' | 'gradient-warning';
+export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+
+export interface CardProps extends Omit<WebCardProps, 'variant' | 'padding'> {
+  variant?: CardVariant;
+  padding?: CardPadding;
   hover?: boolean;
-  onClick?: () => void;
-  // Accessibility props
-  role?: string;
-  'aria-label'?: string;
-  'aria-labelledby'?: string;
-  'aria-describedby'?: string;
-  tabIndex?: number;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 /**
- * Enhanced Card Component with Full Accessibility Support
- *
- * Features:
- * - 3 variants (default, elevated, outlined)
- * - 4 padding sizes (none, sm, md, lg)
- * - Interactive states with keyboard navigation
- * - Proper ARIA attributes for interactive cards
- * - Focus visible states
- * - Hover effects
- *
- * @example
- * <Card variant="elevated" padding="lg">Content</Card>
- * <Card onClick={handleClick} aria-label="Select card">Interactive Card</Card>
+ * Compatibility wrapper for Card component
+ * 
+ * Maps old variant names to new shared component variants
  */
 export function Card({
-  children,
-  className = '',
-  style = {},
   variant = 'default',
   padding = 'md',
   hover = false,
   onClick,
-  role,
-  'aria-label': ariaLabel,
-  'aria-labelledby': ariaLabelledby,
-  'aria-describedby': ariaDescribedby,
-  tabIndex,
+  className = '',
+  style,
+  ...props
 }: CardProps) {
-  const [isFocused, setIsFocused] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const isInteractive = !!onClick;
-
-  // Determine effective role
-  const effectiveRole = role || (isInteractive ? 'button' : undefined);
-
-  // Determine effective tabIndex
-  const effectiveTabIndex = tabIndex !== undefined ? tabIndex : (isInteractive ? 0 : undefined);
-
-  // Variant-specific styles
-  const variantStyles: Record<string, React.CSSProperties> = {
-    default: {
-      backgroundColor: theme.colors.surface,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.borderRadius.xl,
-      boxShadow: theme.shadows.sm,
-    },
-    elevated: {
-      backgroundColor: theme.colors.surface,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.borderRadius.xl,
-      boxShadow: theme.shadows.lg,
-    },
-    outlined: {
-      backgroundColor: 'transparent',
-      border: `2px solid ${theme.colors.border}`,
-      borderRadius: theme.borderRadius.xl,
-      boxShadow: 'none',
-    },
-  };
-
-  // Padding values
-  const paddingValues = {
-    none: '0',
-    sm: theme.spacing[3],
-    md: theme.spacing[4],
-    lg: theme.spacing[6],
-  };
-
-  // Base styles
-  const baseStyles: React.CSSProperties = {
-    ...variantStyles[variant],
-    padding: paddingValues[padding],
-    cursor: isInteractive ? 'pointer' : 'default',
-    transition: 'all 0.2s ease-in-out',
-    outline: 'none',
-    position: 'relative',
-  };
-
-  // Hover styles
-  const hoverStyles: React.CSSProperties = (isInteractive && (hover || isHovered))
-    ? {
-        transform: 'translateY(-2px)',
-        boxShadow: theme.shadows.xl,
-        borderColor: theme.colors.borderDark,
-      }
-    : {};
-
-  // Focus styles for accessibility
-  const focusStyles: React.CSSProperties = isFocused && isInteractive
-    ? {
-        outline: `3px solid ${theme.colors.primary}`,
-        outlineOffset: '2px',
-      }
-    : {};
-
-  // Combined styles
-  const cardStyles: React.CSSProperties = {
-    ...baseStyles,
-    ...hoverStyles,
-    ...focusStyles,
-    ...style,
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      onClick?.();
+  // Map old variants to new variants
+  const mapVariant = (oldVariant?: CardVariant): WebCardProps['variant'] => {
+    if (!oldVariant) return 'default';
+    switch (oldVariant) {
+      case 'highlighted':
+      case 'bordered':
+        return 'outlined'; // Map to outlined variant
+      case 'gradient-primary':
+      case 'gradient-success':
+      case 'gradient-warning':
+        return 'default'; // Use default variant, gradient applied via style
+      default:
+        return oldVariant;
     }
   };
 
-  return (
-    <div
-      className={`card ${className}`}
-      style={cardStyles}
-      onClick={isInteractive ? onClick : undefined}
-      onKeyDown={handleKeyDown}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      role={effectiveRole}
-      tabIndex={effectiveTabIndex}
-      aria-label={ariaLabel}
-      aria-labelledby={ariaLabelledby}
-      aria-describedby={ariaDescribedby}
-    >
-      {children}
-    </div>
-  );
-}
+  const mappedVariant = mapVariant(variant);
+  const isGradient = variant === 'gradient-primary' || variant === 'gradient-success' || variant === 'gradient-warning';
+  const isHighlighted = variant === 'highlighted';
 
-interface CardHeaderProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
+  // Apply gradient or highlighted style if needed
+  const customStyle: React.CSSProperties = isGradient
+    ? {
+        ...getGradientCardStyle(
+          variant === 'gradient-primary' ? 'primary' :
+          variant === 'gradient-success' ? 'success' : 'warning'
+        ),
+      }
+    : isHighlighted
+    ? {
+        backgroundColor: '#0F172A', // primary color
+        color: '#FFFFFF',
+        border: '1px solid #0F172A',
+      }
+    : {};
 
-/**
- * Card Header Component
- * Used for card titles and actions
- */
-export function CardHeader({ children, className = '', style = {} }: CardHeaderProps) {
   return (
-    <div
-      className={`card-header ${className}`}
+    <SharedCard
+      {...(props as any)}
+      variant={mappedVariant as any}
+      padding={padding}
+      hover={hover}
+      onClick={onClick}
+      className={cn(className)}
       style={{
-        marginBottom: theme.spacing[4],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        ...customStyle,
         ...style,
       }}
-    >
-      {children}
-    </div>
+    />
   );
 }
 
-interface CardTitleProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-}
+// Re-export sub-components
+export { CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '@mintenance/shared-ui';
 
-/**
- * Card Title Component
- * Semantic heading for card content
- */
-export function CardTitle({ children, className = '', style = {}, as = 'h3' }: CardTitleProps) {
-  const Tag = as;
-
-  return (
-    <Tag
-      className={`card-title ${className}`}
-      style={{
-        fontSize: theme.typography.fontSize.xl,
-        fontWeight: theme.typography.fontWeight.semibold,
-        color: theme.colors.textPrimary,
-        margin: 0,
-        lineHeight: theme.typography.lineHeight.tight,
-        ...style,
-      }}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-interface CardDescriptionProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-/**
- * Card Description Component
- * Subtitle or description text
- */
-export function CardDescription({ children, className = '', style = {} }: CardDescriptionProps) {
-  return (
-    <p
-      className={`card-description ${className}`}
-      style={{
-        fontSize: theme.typography.fontSize.sm,
-        color: theme.colors.textSecondary,
-        margin: 0,
-        marginTop: theme.spacing[1],
-        lineHeight: theme.typography.lineHeight.normal,
-        ...style,
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-interface CardContentProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-/**
- * Card Content Component
- * Main content area of the card
- */
-export function CardContent({ children, className = '', style = {} }: CardContentProps) {
-  return (
-    <div
-      className={`card-content ${className}`}
-      style={{
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-interface CardFooterProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-/**
- * Card Footer Component
- * Footer area for actions or additional info
- */
-export function CardFooter({ children, className = '', style = {} }: CardFooterProps) {
-  return (
-    <div
-      className={`card-footer ${className}`}
-      style={{
-        marginTop: theme.spacing[4],
-        paddingTop: theme.spacing[4],
-        borderTop: `1px solid ${theme.colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+// For backward compatibility with Card.Header, Card.Title, etc.
+(Card as any).Header = SharedCardHeader;
+(Card as any).Footer = SharedCardFooter;
+(Card as any).Title = CardTitle;
+(Card as any).Description = CardDescription;
+(Card as any).Content = CardContent;
 
 export default Card;

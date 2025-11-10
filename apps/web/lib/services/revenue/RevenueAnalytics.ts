@@ -40,9 +40,8 @@ export class RevenueAnalytics {
       });
 
       if (error) {
-        logger.error('Failed to get revenue metrics', {
+        logger.error('Failed to get revenue metrics', error, {
           service: 'RevenueAnalytics',
-          error: error.message,
         });
         return null;
       }
@@ -66,9 +65,8 @@ export class RevenueAnalytics {
         transactionCount: result.transaction_count || 0,
       };
     } catch (err) {
-      logger.error('Error getting revenue metrics', {
+      logger.error('Error getting revenue metrics', err, {
         service: 'RevenueAnalytics',
-        error: err instanceof Error ? err.message : String(err),
       });
       return null;
     }
@@ -82,9 +80,8 @@ export class RevenueAnalytics {
       const { data, error } = await serverSupabase.rpc('calculate_mrr');
 
       if (error) {
-        logger.error('Failed to calculate MRR', {
+        logger.error('Failed to calculate MRR', error, {
           service: 'RevenueAnalytics',
-          error: error.message,
         });
         return null;
       }
@@ -104,9 +101,8 @@ export class RevenueAnalytics {
         mrrByPlan: result.mrr_by_plan || {},
       };
     } catch (err) {
-      logger.error('Error calculating MRR', {
+      logger.error('Error calculating MRR', err, {
         service: 'RevenueAnalytics',
-        error: err instanceof Error ? err.message : String(err),
       });
       return null;
     }
@@ -131,9 +127,8 @@ export class RevenueAnalytics {
         .order('created_at', { ascending: true });
 
       if (error) {
-        logger.error('Failed to get revenue trends', {
+        logger.error('Failed to get revenue trends', error, {
           service: 'RevenueAnalytics',
-          error: error.message,
         });
         return [];
       }
@@ -167,9 +162,8 @@ export class RevenueAnalytics {
 
       return trends.sort((a, b) => a.date.localeCompare(b.date));
     } catch (err) {
-      logger.error('Error getting revenue trends', {
+      logger.error('Error getting revenue trends', err, {
         service: 'RevenueAnalytics',
-        error: err instanceof Error ? err.message : String(err),
       });
       return [];
     }
@@ -192,9 +186,8 @@ export class RevenueAnalytics {
         .not('trial_started_at', 'is', null);
 
       if (trialsError) {
-        logger.error('Failed to get trial data', {
+        logger.error('Failed to get trial data', trialsError, {
           service: 'RevenueAnalytics',
-          error: trialsError.message,
         });
         return { conversionRate: 0, totalTrials: 0, convertedTrials: 0 };
       }
@@ -208,9 +201,8 @@ export class RevenueAnalytics {
         .in('status', ['active', 'trial']);
 
       if (subscriptionsError) {
-        logger.error('Failed to get subscription data', {
+        logger.error('Failed to get subscription data', subscriptionsError, {
           service: 'RevenueAnalytics',
-          error: subscriptionsError.message,
         });
         return { conversionRate: 0, totalTrials, convertedTrials: 0 };
       }
@@ -224,9 +216,8 @@ export class RevenueAnalytics {
         convertedTrials,
       };
     } catch (err) {
-      logger.error('Error calculating trial conversion rate', {
+      logger.error('Error calculating trial conversion rate', err, {
         service: 'RevenueAnalytics',
-        error: err instanceof Error ? err.message : String(err),
       });
       return { conversionRate: 0, totalTrials: 0, convertedTrials: 0 };
     }
@@ -244,9 +235,8 @@ export class RevenueAnalytics {
 
       return mrr.totalMRR / mrr.activeSubscriptions;
     } catch (err) {
-      logger.error('Error calculating ARPC', {
+      logger.error('Error calculating ARPC', err, {
         service: 'RevenueAnalytics',
-        error: err instanceof Error ? err.message : String(err),
       });
       return 0;
     }

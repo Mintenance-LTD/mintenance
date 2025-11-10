@@ -1,14 +1,15 @@
 /**
  * Enhanced Photo Upload Service for Mobile App
  * Handles before/after photos, video walkthroughs, and photo metadata
+ * Uses unified API client for API calls
  */
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 export interface PhotoMetadata {
   url: string;
@@ -31,20 +32,6 @@ export interface PhotoUploadResult {
 }
 
 export class PhotoUploadService {
-  /**
-   * Get auth headers with token
-   */
-  private static async getAuthHeaders(): Promise<Record<string, string>> {
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers: Record<string, string> = {};
-    
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
-    }
-    
-    return headers;
-  }
-
   /**
    * Request camera and location permissions
    */
@@ -69,6 +56,7 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
     for (const photo of photos) {
       try {
@@ -89,7 +77,13 @@ export class PhotoUploadService {
         } as any);
         formData.append('metadata', JSON.stringify(metadata));
 
-        const headers = await this.getAuthHeaders();
+        // Get auth token for FormData upload
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/before`, {
           method: 'POST',
           body: formData,
@@ -97,10 +91,14 @@ export class PhotoUploadService {
         });
 
         if (!response.ok) {
-          const error = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Failed to upload photo' }));
+          const apiError = parseError({
+            message: errorData.error || 'Failed to upload photo',
+            statusCode: response.status,
+          });
           results.push({
             success: false,
-            error: error.error || 'Failed to upload photo',
+            error: getUserFriendlyMessage(apiError),
           });
           continue;
         }
@@ -113,10 +111,11 @@ export class PhotoUploadService {
           metadata,
         });
       } catch (error) {
-        logger.error('Error uploading before photo', error);
+        const apiError = parseError(error);
+        logger.error('Error uploading before photo', { error: apiError });
         results.push({
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getUserFriendlyMessage(apiError),
         });
       }
     }
@@ -132,6 +131,7 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
     for (const photo of photos) {
       try {
@@ -152,7 +152,13 @@ export class PhotoUploadService {
         } as any);
         formData.append('metadata', JSON.stringify(metadata));
 
-        const headers = await this.getAuthHeaders();
+        // Get auth token for FormData upload
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/after`, {
           method: 'POST',
           body: formData,
@@ -160,10 +166,14 @@ export class PhotoUploadService {
         });
 
         if (!response.ok) {
-          const error = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Failed to upload photo' }));
+          const apiError = parseError({
+            message: errorData.error || 'Failed to upload photo',
+            statusCode: response.status,
+          });
           results.push({
             success: false,
-            error: error.error || 'Failed to upload photo',
+            error: getUserFriendlyMessage(apiError),
           });
           continue;
         }
@@ -176,10 +186,11 @@ export class PhotoUploadService {
           metadata,
         });
       } catch (error) {
-        logger.error('Error uploading after photo', error);
+        const apiError = parseError(error);
+        logger.error('Error uploading after photo', { error: apiError });
         results.push({
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: getUserFriendlyMessage(apiError),
         });
       }
     }
@@ -194,6 +205,8 @@ export class PhotoUploadService {
     jobId: string,
     video: ImagePicker.ImagePickerAsset
   ): Promise<PhotoUploadResult> {
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    
     try {
       const location = await this.getCurrentLocation();
       const metadata: PhotoMetadata = {
@@ -211,7 +224,13 @@ export class PhotoUploadService {
       } as any);
       formData.append('metadata', JSON.stringify(metadata));
 
-      const headers = await this.getAuthHeaders();
+      // Get auth token for FormData upload
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/video`, {
         method: 'POST',
         body: formData,
@@ -219,10 +238,14 @@ export class PhotoUploadService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const errorData = await response.json().catch(() => ({ error: 'Failed to upload video' }));
+        const apiError = parseError({
+          message: errorData.error || 'Failed to upload video',
+          statusCode: response.status,
+        });
         return {
           success: false,
-          error: error.error || 'Failed to upload video',
+          error: getUserFriendlyMessage(apiError),
         };
       }
 
@@ -234,10 +257,11 @@ export class PhotoUploadService {
         metadata,
       };
     } catch (error) {
-      logger.error('Error uploading video walkthrough', error);
+      const apiError = parseError(error);
+      logger.error('Error uploading video walkthrough', { error: apiError });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: getUserFriendlyMessage(apiError),
       };
     }
   }
@@ -247,21 +271,11 @@ export class PhotoUploadService {
    */
   static async verifyPhotos(escrowId: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      headers['Content-Type'] = 'application/json';
-      
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/verify-photos-enhanced`, {
-        method: 'POST',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to verify photos');
-      }
+      await mobileApiClient.post(`/api/escrow/${escrowId}/verify-photos-enhanced`);
     } catch (error) {
-      logger.error('Error verifying photos', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error verifying photos', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 

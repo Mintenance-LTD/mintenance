@@ -1,13 +1,91 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 /**
  * Landing page navigation bar with logo and auth links
  * Fully responsive navigation visible on all screen sizes
  */
 export function LandingNavigation() {
+  const [activeSection, setActiveSection] = useState<string>('');
+
+  useEffect(() => {
+    // Smooth scroll behavior for anchor links
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a[href^="#"]');
+      // Only handle if it's not a Next.js Link (which uses router)
+      if (anchor && !anchor.closest('[data-nextjs-link]')) {
+        const href = anchor.getAttribute('href');
+        if (href && href.startsWith('#')) {
+          e.preventDefault();
+          const targetId = href.substring(1);
+          const targetElement = document.getElementById(targetId);
+          if (targetElement) {
+            const headerOffset = 80; // Account for fixed header
+            const elementPosition = targetElement.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }
+      }
+    };
+
+    // Intersection Observer for active section highlighting
+    const observerOptions = {
+      root: null,
+      rootMargin: '-80px 0px -50% 0px', // Account for fixed header
+      threshold: 0.3
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    // Observe all sections - delay to ensure DOM is ready
+    const observeSections = () => {
+      const sections = ['how-it-works', 'services', 'features'];
+      sections.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          observer.observe(element);
+        }
+      });
+    };
+
+    // Try immediately and also after a short delay for dynamic content
+    observeSections();
+    const timeoutId = setTimeout(observeSections, 100);
+
+    // Add click handlers to all anchor links
+    document.addEventListener('click', handleAnchorClick, true);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+      document.removeEventListener('click', handleAnchorClick, true);
+    };
+  }, []);
+
+  const navLinks = [
+    { href: '#how-it-works', label: 'How It Works', id: 'how-it-works' },
+    { href: '#services', label: 'Services', id: 'services' },
+    { href: '#features', label: 'Features', id: 'features' },
+  ];
+
   return (
     <nav 
       id="navigation" 
@@ -33,24 +111,21 @@ export function LandingNavigation() {
 
           {/* Navigation Links */}
           <div className="flex items-center space-x-8">
-            <a 
-              href="#how-it-works" 
-              className="text-gray-700 hover:text-secondary transition-colors"
-            >
-              How It Works
-            </a>
-            <a 
-              href="#services" 
-              className="text-gray-700 hover:text-secondary transition-colors"
-            >
-              Services
-            </a>
-            <a 
-              href="#features" 
-              className="text-gray-700 hover:text-secondary transition-colors"
-            >
-              Features
-            </a>
+            {navLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.href}
+                className={cn(
+                  "transition-colors",
+                  activeSection === link.id
+                    ? "text-secondary font-semibold"
+                    : "text-gray-700 hover:text-secondary"
+                )}
+                aria-current={activeSection === link.id ? 'page' : undefined}
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
 
           {/* Auth Buttons */}

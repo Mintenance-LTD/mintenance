@@ -28,9 +28,13 @@
   ],
   "author": "Mintenance Team",
   "license": "MIT",
+  "dependencies": {
+    "@mintenance/design-tokens": "file:../design-tokens"
+  },
   "peerDependencies": {
     "react": ">=18 <20",
-    "react-dom": ">=18 <20"
+    "react-dom": ">=18 <20",
+    "react-native": ">=0.72.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
@@ -41,8 +45,16 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./web": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
-  }
+  },
+  "sideEffects": false
 }

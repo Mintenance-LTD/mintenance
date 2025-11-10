@@ -7,7 +7,7 @@ let configManager: ConfigManager;
 try {
   configManager = ConfigManager.getInstance();
 } catch (error) {
-  console.error('❌ Middleware Configuration Error:', error);
+  logger.error('Middleware configuration error', error, { service: 'middleware' });
   // configManager will be undefined if this fails
 }
 
@@ -21,17 +21,26 @@ export async function middleware(request: NextRequest) {
 
   // If configuration failed to load, fail closed for security
   if (!configManager) {
-    console.error('❌ Middleware: Configuration unavailable - rejecting request');
+    logger.error('Middleware: Configuration unavailable - rejecting request', undefined, {
+      service: 'middleware',
+      pathname,
+    });
     return new NextResponse('Service Unavailable', { status: 503 });
   }
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms'];
-  // Admin auth routes (login, register) are also public
-  const adminAuthRoutes = ['/admin/login', '/admin/register'];
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help'];
+  // Admin auth routes (login, register, forgot-password) are also public
+  const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
+  // Public contractor profile pages (e.g., /contractor/[id] for viewing contractor profiles)
+  // All other contractor routes require authentication
+  const isPublicContractorProfile = /^\/contractor\/[^\/]+$/.test(pathname);
+  // Public contractor listing and detail pages (homeowner-facing)
+  const isPublicContractorsPage = /^\/contractors(\/|$)/.test(pathname);
   const isPublicRoute = pathname === '/' || 
     publicRoutes.some(route => pathname.startsWith(route)) || 
-    pathname.startsWith('/contractor/') ||
+    isPublicContractorProfile ||
+    isPublicContractorsPage ||
     adminAuthRoutes.includes(pathname);
 
   // Skip middleware for public routes
@@ -88,7 +97,10 @@ export async function middleware(request: NextRequest) {
       const jwtSecret = configManager.getRequired('JWT_SECRET');
       jwtPayload = await verifyJWT(token, jwtSecret);
     } catch (configError) {
-      console.error('❌ Middleware: JWT verification failed due to configuration error:', configError);
+      logger.error('JWT verification failed due to configuration error', configError, {
+        service: 'middleware',
+        pathname,
+      });
       return redirectToLogin(request);
     }
 
@@ -169,7 +181,10 @@ export async function middleware(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    logger.error('JWT verification failed', error, {
+      service: 'middleware',
+      pathname: request.nextUrl.pathname,
+    });
     // Invalid token, redirect to login
     return redirectToLogin(request);
   }
@@ -177,10 +192,14 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Helper function to redirect to login page
+ * Checks if route is admin route and redirects to appropriate login page
  */
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL('/login', request.url);
-  loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith('/admin');
+  const loginPath = isAdminRoute ? '/admin/login' : '/login';
+  const loginUrl = new URL(loginPath, request.url);
+  loginUrl.searchParams.set('redirect', pathname);
   
   return NextResponse.redirect(loginUrl);
 }

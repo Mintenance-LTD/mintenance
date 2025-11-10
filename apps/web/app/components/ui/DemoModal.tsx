@@ -88,6 +88,31 @@ export function DemoModal({
           >
             {ctaText}
           </Link>
+          <Link
+            href="/contractors"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              backgroundColor: 'transparent',
+              color: '#1F2937',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#F9FAFB';
+              e.currentTarget.style.borderColor = '#D1D5DB';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = '#E5E7EB';
+            }}
+          >
+            Browse All Tradespeople →
+          </Link>
           <button
             onClick={onClose}
             style={{

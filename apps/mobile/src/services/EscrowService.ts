@@ -1,12 +1,12 @@
 /**
  * Escrow Service for Mobile App
  * Handles escrow status tracking, homeowner approval, and admin review requests
+ * Uses unified API client for consistent error handling
  */
 
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 export interface EscrowStatus {
   id: string;
@@ -39,42 +39,15 @@ export interface EscrowTimeline {
 
 export class EscrowService {
   /**
-   * Get auth headers with token
-   */
-  private static async getAuthHeaders(): Promise<Record<string, string>> {
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
-    }
-    
-    return headers;
-  }
-
-  /**
    * Get escrow status for a specific escrow transaction
    */
   static async getEscrowStatus(escrowId: string): Promise<EscrowStatus> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/status`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch escrow status');
-      }
-
-      const data = await response.json();
-      return data;
+      return await mobileApiClient.get<EscrowStatus>(`/api/escrow/${escrowId}/status`);
     } catch (error) {
-      logger.error('Error fetching escrow status', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error fetching escrow status', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -83,22 +56,11 @@ export class EscrowService {
    */
   static async getEscrowTimeline(escrowId: string): Promise<EscrowTimeline> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/release-timeline`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch escrow timeline');
-      }
-
-      const data = await response.json();
-      return data;
+      return await mobileApiClient.get<EscrowTimeline>(`/api/escrow/${escrowId}/release-timeline`);
     } catch (error) {
-      logger.error('Error fetching escrow timeline', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error fetching escrow timeline', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -107,20 +69,11 @@ export class EscrowService {
    */
   static async requestAdminReview(escrowId: string, reason?: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/request-admin-review`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to request admin review');
-      }
+      await mobileApiClient.post(`/api/escrow/${escrowId}/request-admin-review`, { reason });
     } catch (error) {
-      logger.error('Error requesting admin review', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error requesting admin review', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -129,22 +82,11 @@ export class EscrowService {
    */
   static async getContractorEscrows(): Promise<EscrowStatus[]> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/contractor/escrows`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch contractor escrows');
-      }
-
-      const data = await response.json();
-      return data;
+      return await mobileApiClient.get<EscrowStatus[]>('/api/contractor/escrows');
     } catch (error) {
-      logger.error('Error fetching contractor escrows', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error fetching contractor escrows', { error: apiError });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -153,20 +95,11 @@ export class EscrowService {
    */
   static async approveCompletion(escrowId: string, inspectionCompleted: boolean): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/homeowner/approve`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ inspectionCompleted }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to approve completion');
-      }
+      await mobileApiClient.post(`/api/escrow/${escrowId}/homeowner/approve`, { inspectionCompleted });
     } catch (error) {
-      logger.error('Error approving completion', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error approving completion', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -175,20 +108,11 @@ export class EscrowService {
    */
   static async rejectCompletion(escrowId: string, reason: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/homeowner/reject`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to reject completion');
-      }
+      await mobileApiClient.post(`/api/escrow/${escrowId}/homeowner/reject`, { reason });
     } catch (error) {
-      logger.error('Error rejecting completion', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error rejecting completion', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -197,19 +121,11 @@ export class EscrowService {
    */
   static async markInspectionCompleted(escrowId: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/homeowner/inspect`, {
-        method: 'POST',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to mark inspection completed');
-      }
+      await mobileApiClient.post(`/api/escrow/${escrowId}/homeowner/inspect`);
     } catch (error) {
-      logger.error('Error marking inspection completed', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error marking inspection completed', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -218,22 +134,11 @@ export class EscrowService {
    */
   static async getHomeownerPendingApproval(escrowId: string): Promise<any> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/escrow/${escrowId}/homeowner/pending-approval`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch pending approval details');
-      }
-
-      const data = await response.json();
-      return data;
+      return await mobileApiClient.get(`/api/escrow/${escrowId}/homeowner/pending-approval`);
     } catch (error) {
-      logger.error('Error fetching pending approval details', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Error fetching pending approval details', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 }

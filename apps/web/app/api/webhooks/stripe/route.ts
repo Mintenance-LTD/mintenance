@@ -3,17 +3,18 @@ import Stripe from 'stripe';
 import { createHash } from 'crypto';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { env } from '@/lib/env';
 
 // Lazy-initialize Stripe to avoid errors when STRIPE_SECRET_KEY is not set
 const getStripeInstance = () => {
-  const apiKey = process.env.STRIPE_SECRET_KEY;
+  const apiKey = env.STRIPE_SECRET_KEY;
   if (!apiKey) {
     throw new Error('STRIPE_SECRET_KEY not configured');
   }
   return new Stripe(apiKey);
 };
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
 
 // Ensure Node.js runtime for Stripe SDK and raw body access
 export const runtime = 'nodejs';

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { PaymentSetupNotificationService } from '@/lib/services/contractor/PaymentSetupNotificationService';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 /**
  * Cron endpoint for sending payment setup reminders
@@ -9,9 +10,9 @@ import { PaymentSetupNotificationService } from '@/lib/services/contractor/Payme
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting payment setup reminder processing', {

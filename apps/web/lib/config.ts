@@ -1,124 +1,36 @@
 /**
- * Configuration validation and setup
- * Fails fast if required environment variables are missing
+ * Application configuration
+ * Provides access to environment and application settings
  */
 
-import { logger } from './logger';
+import { isProduction as checkIsProduction, isDevelopment, isTest } from './env';
 
-interface RequiredEnvVars {
-  JWT_SECRET: string;
-  NODE_ENV: string;
-}
+/**
+ * Configuration object for application settings
+ */
+export const config = {
+  /**
+   * Check if the application is running in production mode
+   */
+  isProduction(): boolean {
+    return checkIsProduction();
+  },
 
-interface ProductionEnvVars {
-  UPSTASH_REDIS_REST_URL: string;
-  UPSTASH_REDIS_REST_TOKEN: string;
-  STRIPE_WEBHOOK_SECRET: string;
-}
+  /**
+   * Check if the application is running in development mode
+   */
+  isDevelopment(): boolean {
+    return isDevelopment();
+  },
 
-interface OptionalEnvVars {
-  DATABASE_URL?: string;
-  NEXT_PUBLIC_APP_URL?: string;
-}
+  /**
+   * Check if the application is running in test mode
+   */
+  isTest(): boolean {
+    return isTest();
+  },
+};
 
-type EnvVars = RequiredEnvVars & OptionalEnvVars;
+// Default export for compatibility
+export default config;
 
-class ConfigManager {
-  private static instance: ConfigManager;
-  private config: EnvVars;
-
-  private constructor() {
-    this.config = this.validateAndLoadConfig();
-  }
-
-  public static getInstance(): ConfigManager {
-    if (!ConfigManager.instance) {
-      ConfigManager.instance = new ConfigManager();
-    }
-    return ConfigManager.instance;
-  }
-
-  private validateAndLoadConfig(): EnvVars {
-    const requiredVars: (keyof RequiredEnvVars)[] = ['JWT_SECRET', 'NODE_ENV'];
-    const missingVars: string[] = [];
-
-    // Check required environment variables
-    for (const varName of requiredVars) {
-      const value = process.env[varName];
-      if (!value || value.trim() === '') {
-        missingVars.push(varName);
-      }
-    }
-
-    if (missingVars.length > 0) {
-      const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
-      logger.error('Config', 'Missing env', { missingVars });
-      throw new Error(errorMessage);
-    }
-
-    // Validate JWT_SECRET strength
-    const jwtSecret = process.env.JWT_SECRET!;
-    if (jwtSecret.length < 32) {
-      const errorMessage = 'JWT_SECRET must be a strong secret (>=32 chars) and not the default value';
-      logger.error('Security', 'Weak JWT_SECRET');
-      throw new Error(errorMessage);
-    }
-
-    // Production-specific validations
-    if (process.env.NODE_ENV === 'production') {
-      const productionRequired: (keyof ProductionEnvVars)[] = [
-        'UPSTASH_REDIS_REST_URL', 
-        'UPSTASH_REDIS_REST_TOKEN', 
-        'STRIPE_WEBHOOK_SECRET'
-      ];
-      
-      const missingProduction = productionRequired.filter(key => !process.env[key]);
-      if (missingProduction.length > 0) {
-        const errorMessage = `Missing required production environment variables: ${missingProduction.join(', ')}`;
-        logger.error('Config', 'Missing production env', { missingProduction });
-        throw new Error(errorMessage);
-      }
-      
-      if (!process.env.NEXT_PUBLIC_APP_URL) {
-        logger.warn('Config', 'NEXT_PUBLIC_APP_URL should be set in production');
-      }
-    }
-
-    logger.info('Config', 'Configuration validated successfully');
-
-    return {
-      JWT_SECRET: jwtSecret,
-      NODE_ENV: process.env.NODE_ENV!,
-      DATABASE_URL: process.env.DATABASE_URL,
-      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    } as EnvVars;
-  }
-
-  public get(key: keyof EnvVars): string | undefined {
-    return this.config[key];
-  }
-
-  public getRequired(key: keyof RequiredEnvVars): string {
-    const value = this.config[key];
-    if (!value) {
-      throw new Error(`Required configuration ${key} is not available`);
-    }
-    return value;
-  }
-
-  public isProduction(): boolean {
-    return this.config.NODE_ENV === 'production';
-  }
-
-  public isDevelopment(): boolean {
-    return this.config.NODE_ENV === 'development';
-  }
-}
-
-// Export singleton instance
-export const config = ConfigManager.getInstance();
-
-// Export specific getters for convenience
-export const getJWTSecret = () => config.getRequired('JWT_SECRET');
-export const isProduction = () => config.isProduction();
-export const isDevelopment = () => config.isDevelopment();

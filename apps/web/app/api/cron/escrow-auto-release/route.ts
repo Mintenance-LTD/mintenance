@@ -5,11 +5,10 @@ import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import Stripe from 'stripe';
+import { env } from '@/lib/env';
+import { requireCronAuth } from '@/lib/cron-auth';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -20,9 +19,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting escrow auto-release processing cycle', {

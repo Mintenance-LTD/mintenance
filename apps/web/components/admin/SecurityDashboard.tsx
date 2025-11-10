@@ -62,6 +62,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
   const [timeframe, setTimeframe] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const fetchSecurityData = async () => {
     try {
@@ -74,11 +75,13 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
       
       const data = await response.json();
       setMetrics(data.metrics);
-      setRecentEvents(data.recent_events);
-      setTopIPs(data.top_offending_ips);
+      setRecentEvents(data.recent_events || []);
+      setTopIPs(data.top_offending_ips || []);
+      setWarning(data.warning || null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+      setWarning(null);
     } finally {
       setLoading(false);
     }
@@ -254,6 +257,26 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
           ))}
         </div>
       </div>
+
+      {/* Warning Banner */}
+      {warning && (
+        <Card className="mb-6" style={{ 
+          padding: theme.spacing[4], 
+          backgroundColor: '#FEF3C7',
+          border: '1px solid #F59E0B',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+            <Icon name="warning" size={20} color="#F59E0B" />
+            <p style={{ 
+              margin: 0, 
+              fontSize: theme.typography.fontSize.sm,
+              color: '#92400E',
+            }}>
+              {warning}
+            </p>
+          </div>
+        </Card>
+      )}
 
       {/* Metrics Cards */}
       {metrics && (

@@ -630,7 +630,41 @@ export default function CreateJobPage() {
   }
 
   if (!user || user.role !== 'homeowner') {
-    return null;
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
+        <div style={{
+          backgroundColor: theme.colors.white,
+          padding: theme.spacing[8],
+          borderRadius: theme.borderRadius.xl,
+          border: `1px solid ${theme.colors.border}`,
+          textAlign: 'center',
+          maxWidth: '500px',
+        }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Access Denied
+          </h2>
+          <p style={{
+            fontSize: theme.typography.fontSize.base,
+            color: theme.colors.textSecondary,
+            marginBottom: theme.spacing[6],
+          }}>
+            {!user 
+              ? 'You must be logged in to create a job.'
+              : 'Only homeowners can create jobs.'}
+          </p>
+          <Link href={!user ? `/login?redirect=/jobs/create` : '/dashboard'} style={{ textDecoration: 'none' }}>
+            <Button variant="primary">
+              {!user ? 'Go to Login' : 'Go to Dashboard'}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   // Show verification requirement if not verified

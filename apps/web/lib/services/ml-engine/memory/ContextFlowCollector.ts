@@ -9,7 +9,7 @@
 
 import { logger } from '@mintenance/shared';
 import { OnlineLearningService } from './OnlineLearningService';
-import type { ContextFlow } from '../../web/lib/services/ml-engine/memory/types';
+import type { ContextFlow } from './types';
 
 /**
  * Context flow collector configuration

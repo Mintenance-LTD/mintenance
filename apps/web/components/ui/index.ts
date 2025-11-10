@@ -10,6 +10,9 @@ export type { CardProps } from './Card';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { Badge, StatusBadge, CountBadge } from './Badge.unified';
+export type { BadgeProps, BadgeVariant, BadgeStatus, BadgeSize } from './Badge.unified';
+
 export { LoadingSpinner } from './LoadingSpinner';
 export type { LoadingSpinnerProps } from './LoadingSpinner';
 
@@ -31,7 +34,8 @@ export { Touchable, TouchableButton, TouchableCard } from './Touchable';
 
 export { TouchButton } from './TouchButton';
 
-export { ResponsiveGrid, AutoFitGrid, MasonryGrid, FlexGrid } from './ResponsiveGrid';
+export { ResponsiveGrid, GridArea } from './ResponsiveGrid';
+export type { ResponsiveGridProps, GridArea as GridAreaType } from './ResponsiveGrid';
 
 export { SwipeableCarousel } from './SwipeableCarousel';
 

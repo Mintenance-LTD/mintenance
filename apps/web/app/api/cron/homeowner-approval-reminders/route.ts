@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 /**
  * Cron endpoint for sending homeowner approval reminders
@@ -10,9 +11,9 @@ import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprova
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting homeowner approval reminder processing', {

@@ -35,6 +35,9 @@ const adminNav: readonly NavItem[] = Object.freeze([
   { icon: 'creditCard', label: 'Payment Setup', href: '/admin/contractors/payment-setup' },
   { icon: 'shield', label: 'Security', href: '/admin/security' },
   { icon: 'messages', label: 'Communications', href: '/admin/communications' },
+  { icon: 'fileCheck', label: 'Escrow Reviews', href: '/admin/escrow/reviews' },
+  { icon: 'dollarSign', label: 'Fee Management', href: '/admin/payments/fees' },
+  { icon: 'building', label: 'Building Assessments', href: '/admin/building-assessments' },
   { icon: 'settings', label: 'Settings', href: '/admin/settings' },
 ]);
 
@@ -138,6 +141,7 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -153,6 +157,7 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
                   fontWeight: active ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {

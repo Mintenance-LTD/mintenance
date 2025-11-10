@@ -4,14 +4,15 @@ import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, Supabase Cron)
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret (optional but recommended)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Verify cron secret
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     // Check for no-shows

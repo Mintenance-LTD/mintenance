@@ -1,0 +1,41 @@
+{
+  "name": "@mintenance/api-client",
+  "version": "1.0.0",
+  "description": "Unified API client for Mintenance web and mobile applications with consistent error handling",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "api-client",
+    "http-client",
+    "supabase",
+    "api"
+  ],
+  "author": "Mintenance Team",
+  "license": "MIT",
+  "dependencies": {
+    "@mintenance/types": "file:../types",
+    "@mintenance/shared": "file:../shared",
+    "@supabase/supabase-js": "^2.76.1"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "rimraf": "^5.0.5"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

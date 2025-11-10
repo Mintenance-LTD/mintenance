@@ -5,6 +5,7 @@ import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 /**
  * Main cron endpoint for agent processing
@@ -13,9 +14,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting agent processing cycle', {

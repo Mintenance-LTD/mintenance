@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 /**
  * Cron endpoint for processing queued notifications and learning from engagement
@@ -10,9 +11,9 @@ import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting notification processing cycle', {

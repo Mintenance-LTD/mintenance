@@ -20,7 +20,7 @@ interface UpcomingListProps {
   date?: string;
 }
 
-export function UpcomingList({
+export const UpcomingList = React.memo(function UpcomingList({
   title,
   items,
   emptyMessage = 'No upcoming items',
@@ -161,5 +161,5 @@ export function UpcomingList({
       )}
     </div>
   );
-}
+});
 

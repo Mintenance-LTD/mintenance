@@ -1,3 +1,12 @@
+/**
+ * Tailwind Config Generator
+ * 
+ * Generates Tailwind config from design tokens.
+ * This ensures Tailwind uses the same values as our design tokens.
+ */
+
+const { webTokens } = require('@mintenance/design-tokens');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -7,9 +16,7 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // ========================================
-      // COLOR SYSTEM
-      // ========================================
+      // Colors from design tokens
       colors: {
         // Primary Brand Colors (Navy Blue)
         primary: {
@@ -22,11 +29,11 @@ module.exports = {
           600: '#475569',
           700: '#334155',
           800: '#1E293B',
-          900: '#0F172A',
+          900: webTokens.colors.primary,
           950: '#020617',
-          DEFAULT: '#0F172A',
-          light: '#1E293B',
-          dark: '#020617',
+          DEFAULT: webTokens.colors.primary,
+          light: webTokens.colors.primaryLight,
+          dark: webTokens.colors.primaryDark,
         },
         // Secondary Brand Colors (Emerald Green)
         secondary: {
@@ -35,14 +42,14 @@ module.exports = {
           200: '#A7F3D0',
           300: '#6EE7B7',
           400: '#34D399',
-          500: '#10B981',
-          600: '#059669',
+          500: webTokens.colors.secondary,
+          600: webTokens.colors.secondaryDark,
           700: '#047857',
           800: '#065F46',
           900: '#064E3B',
-          DEFAULT: '#10B981',
-          light: '#34D399',
-          dark: '#059669',
+          DEFAULT: webTokens.colors.secondary,
+          light: webTokens.colors.secondaryLight,
+          dark: webTokens.colors.secondaryDark,
         },
         // Accent Colors (Amber)
         accent: {
@@ -51,147 +58,155 @@ module.exports = {
           200: '#FDE68A',
           300: '#FCD34D',
           400: '#FBBF24',
-          500: '#F59E0B',
-          600: '#D97706',
+          500: webTokens.colors.accent,
+          600: webTokens.colors.accentDark,
           700: '#B45309',
           800: '#92400E',
           900: '#78350F',
-          DEFAULT: '#F59E0B',
-          light: '#FCD34D',
-          dark: '#D97706',
+          DEFAULT: webTokens.colors.accent,
+          light: webTokens.colors.accentLight,
+          dark: webTokens.colors.accentDark,
         },
-        // Error Colors (Red)
+        // Error Colors
         error: {
-          DEFAULT: '#FF3B30',
-          light: '#FF6B61',
-          dark: '#D70015',
+          DEFAULT: webTokens.colors.error,
+          light: webTokens.colors.errorLight,
+          dark: webTokens.colors.errorDark,
         },
-        // Success Colors (Green)
+        // Success Colors
         success: {
-          DEFAULT: '#34C759',
-          light: '#5DD579',
-          dark: '#248A3D',
+          DEFAULT: webTokens.colors.success,
+          light: webTokens.colors.successLight,
+          dark: webTokens.colors.successDark,
+        },
+        // Additional colors from design tokens
+        warning: webTokens.colors.warning,
+        info: webTokens.colors.info,
+        // Text colors
+        text: {
+          primary: webTokens.colors.textPrimary,
+          secondary: webTokens.colors.textSecondary,
+          tertiary: webTokens.colors.textTertiary,
+        },
+        // Border colors
+        border: {
+          DEFAULT: webTokens.colors.border,
+          light: webTokens.colors.borderLight,
+          dark: webTokens.colors.borderDark,
         },
       },
 
-      // ========================================
-      // TYPOGRAPHY SYSTEM
-      // ========================================
+      // Typography from design tokens
       fontSize: {
-        xs: ['0.75rem', { lineHeight: '1rem' }],
-        sm: ['0.875rem', { lineHeight: '1.25rem' }],
-        base: ['1rem', { lineHeight: '1.5rem' }],
-        lg: ['1.125rem', { lineHeight: '1.75rem' }],
-        xl: ['1.25rem', { lineHeight: '1.75rem' }],
-        '2xl': ['1.5rem', { lineHeight: '2rem' }],
-        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-        '5xl': ['3rem', { lineHeight: '1' }],
-        '6xl': ['3.75rem', { lineHeight: '1' }],
-        '7xl': ['4.5rem', { lineHeight: '1' }],
-        '8xl': ['6rem', { lineHeight: '1' }],
-        '9xl': ['8rem', { lineHeight: '1' }],
-        // Custom typography scale
-        'heading-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.06em' }], // 60px
-        'heading-md': ['2.5rem', { lineHeight: '1', letterSpacing: '-0.06em' }], // 40px
-        'subheading-lg': ['2.25rem', { lineHeight: '1.2', letterSpacing: '0' }], // 36px
-        'subheading-md': ['1.75rem', { lineHeight: '1.2', letterSpacing: '0' }], // 28px
+        xs: [webTokens.typography.fontSize.xs, { lineHeight: webTokens.typography.lineHeight.tight }],
+        sm: [webTokens.typography.fontSize.sm, { lineHeight: webTokens.typography.lineHeight.normal }],
+        base: [webTokens.typography.fontSize.base, { lineHeight: webTokens.typography.lineHeight.normal }],
+        lg: [webTokens.typography.fontSize.lg, { lineHeight: webTokens.typography.lineHeight.relaxed }],
+        xl: [webTokens.typography.fontSize.xl, { lineHeight: webTokens.typography.lineHeight.relaxed }],
+        '2xl': [webTokens.typography.fontSize['2xl'], { lineHeight: webTokens.typography.lineHeight.relaxed }],
+        '3xl': [webTokens.typography.fontSize['3xl'], { lineHeight: webTokens.typography.lineHeight.tight }],
+        '4xl': [webTokens.typography.fontSize['4xl'], { lineHeight: webTokens.typography.lineHeight.tight }],
+        '5xl': [webTokens.typography.fontSize['5xl'], { lineHeight: webTokens.typography.lineHeight.tight }],
+        // Custom typography scale (preserved for compatibility)
+        'heading-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.06em' }],
+        'heading-md': ['2.5rem', { lineHeight: '1', letterSpacing: '-0.06em' }],
+        'subheading-lg': ['2.25rem', { lineHeight: '1.2', letterSpacing: '0' }],
+        'subheading-md': ['1.75rem', { lineHeight: '1.2', letterSpacing: '0' }],
       },
       fontWeight: {
         thin: '100',
         extralight: '200',
         light: '300',
-        normal: '400',
-        medium: '500',
-        semibold: '600',
-        bold: '700',
+        normal: webTokens.typography.fontWeight.normal,
+        medium: webTokens.typography.fontWeight.medium,
+        semibold: webTokens.typography.fontWeight.semibold,
+        bold: webTokens.typography.fontWeight.bold,
         extrabold: '800',
         black: '900',
-        // Custom font weights
+        // Custom font weights (preserved for compatibility)
         '460': '460',
         '560': '560',
         '640': '640',
       },
       letterSpacing: {
-        tighter: '-0.06em',
-        tight: '-0.03em',
-        normal: '0',
-        wide: '0.025em',
-        wider: '0.05em',
-        widest: '0.1em',
+        tighter: webTokens.typography.letterSpacing.tighter,
+        tight: webTokens.typography.letterSpacing.tight,
+        normal: webTokens.typography.letterSpacing.normal,
+        wide: webTokens.typography.letterSpacing.wide,
+        wider: webTokens.typography.letterSpacing.wider,
+        widest: webTokens.typography.letterSpacing.widest,
       },
 
-      // ========================================
-      // SPACING SYSTEM
-      // ========================================
+      // Spacing from design tokens
       spacing: {
         '0.5': '0.125rem',   // 2px
-        '1': '0.25rem',      // 4px
+        '1': webTokens.spacing.xs,      // 4px
         '1.5': '0.375rem',   // 6px
-        '2': '0.5rem',       // 8px
+        '2': webTokens.spacing.sm,      // 8px
         '2.5': '0.625rem',   // 10px
         '3': '0.75rem',      // 12px
         '3.5': '0.875rem',   // 14px
-        '4': '1rem',         // 16px
+        '4': webTokens.spacing.md,      // 16px
         '5': '1.25rem',      // 20px
-        '6': '1.5rem',       // 24px
+        '6': webTokens.spacing.lg,      // 24px
         '7': '1.75rem',      // 28px
-        '8': '2rem',         // 32px
+        '8': webTokens.spacing.xl,      // 32px
         '9': '2.25rem',      // 36px
         '10': '2.5rem',      // 40px
         '11': '2.75rem',     // 44px
-        '12': '3rem',        // 48px
+        '12': webTokens.spacing['2xl'], // 48px
         '14': '3.5rem',      // 56px
         '16': '4rem',        // 64px
         '20': '5rem',        // 80px
         '24': '6rem',        // 96px
-        '28': '7rem',        // 112px
-        '32': '8rem',        // 128px
-        '36': '9rem',        // 144px
-        '40': '10rem',       // 160px
-        '44': '11rem',       // 176px
-        '48': '12rem',       // 192px
-        '52': '13rem',       // 208px
-        '56': '14rem',       // 224px
-        '60': '15rem',       // 240px
-        '64': '16rem',       // 256px
-        '72': '18rem',       // 288px
-        '80': '20rem',       // 320px
-        '96': '24rem',       // 384px
+        // Additional spacing values preserved for compatibility
+        '28': '7rem',
+        '32': '8rem',
+        '36': '9rem',
+        '40': '10rem',
+        '44': '11rem',
+        '48': '12rem',
+        '52': '13rem',
+        '56': '14rem',
+        '60': '15rem',
+        '64': '16rem',
+        '72': '18rem',
+        '80': '20rem',
+        '96': '24rem',
       },
 
-      // ========================================
-      // BORDER RADIUS SYSTEM
-      // ========================================
+      // Border Radius from design tokens
       borderRadius: {
-        none: '0',
-        sm: '0.25rem',      // 4px
-        DEFAULT: '0.375rem', // 6px
-        md: '0.5rem',       // 8px
-        lg: '0.75rem',      // 12px
-        xl: '1rem',         // 16px
-        '2xl': '1.25rem',   // 20px
-        '3xl': '1.5rem',    // 24px
-        full: '9999px',
+        none: webTokens.borderRadius.none,
+        sm: webTokens.borderRadius.sm,
+        DEFAULT: webTokens.borderRadius.base,
+        md: webTokens.borderRadius.md,
+        lg: webTokens.borderRadius.lg,
+        xl: webTokens.borderRadius.xl,
+        '2xl': webTokens.borderRadius['2xl'],
+        '3xl': '1.5rem',   // 24px (same as 2xl)
+        full: webTokens.borderRadius.full,
       },
 
-      // ========================================
-      // SHADOW/ELEVATION SYSTEM
-      // ========================================
+      // Shadows from design tokens
       boxShadow: {
-        sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-        '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-        inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+        sm: webTokens.shadows.sm,
+        DEFAULT: webTokens.shadows.base,
+        md: webTokens.shadows.md,
+        lg: webTokens.shadows.lg,
+        xl: webTokens.shadows.xl,
+        '2xl': webTokens.shadows['2xl'],
+        '3xl': webTokens.shadows['3xl'],
+        inner: webTokens.shadows.inner,
+        hover: webTokens.shadows.hover,
+        'primary-glow': webTokens.shadows.primaryGlow,
+        'success-glow': webTokens.shadows.successGlow,
+        'warning-glow': webTokens.shadows.warningGlow,
+        'error-glow': webTokens.shadows.errorGlow,
         none: 'none',
       },
 
-      // ========================================
-      // ANIMATION SYSTEM
-      // ========================================
+      // Animation System (preserved)
       transitionDuration: {
         150: '150ms',
         200: '200ms',
@@ -202,9 +217,7 @@ module.exports = {
         1000: '1000ms',
       },
 
-      // ========================================
-      // Z-INDEX SYSTEM
-      // ========================================
+      // Z-Index System (preserved)
       zIndex: {
         0: '0',
         10: '10',
@@ -225,4 +238,4 @@ module.exports = {
   plugins: [
     require('@tailwindcss/container-queries'),
   ],
-}
+};

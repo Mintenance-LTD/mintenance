@@ -1,5 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { unstable_cache } from 'next/cache';
+import { CACHE_TAGS, CACHE_DURATIONS } from '@/lib/cache';
 
 export interface MaintenanceRecommendation {
   id: string;
@@ -24,6 +26,17 @@ interface UserJobHistory {
   budget?: number;
 }
 
+interface PropertyData {
+  id: string;
+  property_name?: string | null;
+  address?: string | null;
+  property_type?: string | null;
+  is_primary?: boolean | null;
+  built_year?: number | null;
+  photos?: string[] | null;
+  [key: string]: unknown;
+}
+
 interface UserSubscription {
   id: string;
   name: string;
@@ -40,87 +53,105 @@ export class RecommendationsService {
    * Get personalized recommendations for a homeowner
    */
   static async getRecommendations(userId: string): Promise<MaintenanceRecommendation[]> {
-    try {
-      // Fetch user's job history
-      const { data: jobs } = await serverSupabase
-        .from('jobs')
-        .select('id, title, category, status, created_at, updated_at, budget')
-        .eq('homeowner_id', userId)
-        .order('created_at', { ascending: false });
+    return unstable_cache(
+      async () => {
+        try {
+          // Fetch all data in parallel for better performance
+          const [jobsResult, subscriptionsResult, propertiesResult] = await Promise.all([
+            serverSupabase
+              .from('jobs')
+              .select('id, title, category, status, created_at, updated_at, budget')
+              .eq('homeowner_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(50),
+            serverSupabase
+              .from('subscriptions')
+              .select('id, name, category, next_billing_date, frequency')
+              .eq('user_id', userId)
+              .eq('status', 'active')
+              .limit(20),
+            // Properties query - handle error gracefully since table might not exist
+            (async () => {
+              try {
+                return await serverSupabase
+                  .from('properties')
+                  .select('id, property_type, built_year')
+                  .eq('user_id', userId)
+                  .limit(10);
+              } catch {
+                return { data: null, error: null };
+              }
+            })(),
+          ]);
 
-      // Fetch user's subscriptions
-      const { data: subscriptions } = await serverSupabase
-        .from('subscriptions')
-        .select('id, name, category, next_billing_date, frequency')
-        .eq('user_id', userId)
-        .eq('status', 'active');
+          const jobs = jobsResult.data || [];
+          const subscriptions = subscriptionsResult.data || [];
+          const properties = propertiesResult.data || [];
 
-      // Fetch user's properties if available (table might not exist)
-      let properties: any[] = [];
-      try {
-        const { data: propertiesData } = await serverSupabase
-          .from('properties')
-          .select('id, property_type, built_year')
-          .eq('user_id', userId)
-          .limit(5);
-        properties = propertiesData || [];
-      } catch (error) {
-        // Properties table might not exist, continue without it
-        logger.warn('Properties table not found, skipping property-based recommendations', { service: 'recommendations' });
+          const recommendations: MaintenanceRecommendation[] = [];
+
+          // Generate recommendations based on data
+          recommendations.push(...this.generateMaintenanceScheduleRecommendations(jobs, subscriptions));
+          recommendations.push(...this.generateSeasonalRecommendations(properties, jobs));
+          recommendations.push(...this.generateCostSavingRecommendations(jobs));
+          recommendations.push(...this.generatePreventiveRecommendations(jobs, properties));
+
+          // Pre-compute category matching for scoring optimization
+          const categoryJobCount = new Map<string, number>();
+          jobs.forEach((job: UserJobHistory) => {
+            if (job.category) {
+              categoryJobCount.set(job.category, (categoryJobCount.get(job.category) || 0) + 1);
+            }
+          });
+
+          const subscriptionCategories = new Set(subscriptions.map((sub: UserSubscription) => sub.category).filter(Boolean));
+
+          // Score recommendations using ML prediction (engagement prediction) - optimized
+          const priorityScore = { high: 30, medium: 20, low: 10 };
+          const scoredRecommendations = recommendations.map((rec) => {
+            let engagementScore = 0;
+
+            // Higher score for recommendations matching user's past job categories
+            if (rec.category && categoryJobCount.has(rec.category)) {
+              engagementScore += categoryJobCount.get(rec.category)! * 10;
+            }
+
+            // Higher score for high-priority recommendations
+            engagementScore += priorityScore[rec.priority];
+
+            // Higher score if user has subscription in this category
+            if (rec.category && subscriptionCategories.has(rec.category)) {
+              engagementScore += 20;
+            }
+
+            // Higher score if recommendation has cost savings
+            if (rec.potentialSavings && rec.potentialSavings > 0) {
+              engagementScore += 15;
+            }
+
+            return {
+              ...rec,
+              engagementScore: Math.min(100, engagementScore),
+            };
+          });
+
+          // Sort by ML-predicted engagement score (highest first) and limit to top 5
+          return scoredRecommendations
+            .sort((a, b) => (b as any).engagementScore - (a as any).engagementScore)
+            .slice(0, 5)
+            .map(({ engagementScore, ...rec }) => rec); // Remove engagementScore from final output
+
+        } catch (error) {
+          logger.error('Failed to generate recommendations', error, { service: 'recommendations', userId });
+          return [];
+        }
+      },
+      [`recommendations-${userId}`],
+      {
+        tags: [CACHE_TAGS.USER_RECOMMENDATIONS],
+        revalidate: 300, // 5 minutes
       }
-
-      const recommendations: MaintenanceRecommendation[] = [];
-
-      // Generate recommendations based on data
-      recommendations.push(...this.generateMaintenanceScheduleRecommendations(jobs || [], subscriptions || []));
-      recommendations.push(...this.generateSeasonalRecommendations(properties || [], jobs || [])); // Pass jobs for personalization
-      recommendations.push(...this.generateCostSavingRecommendations(jobs || []));
-      recommendations.push(...this.generatePreventiveRecommendations(jobs || [], properties || []));
-
-      // Score recommendations using ML prediction (engagement prediction)
-      const scoredRecommendations = recommendations.map((rec) => {
-        // Simple ML scoring based on user history and recommendation type
-        let engagementScore = 0;
-
-        // Higher score for recommendations matching user's past job categories
-        if (jobs && jobs.length > 0) {
-          const matchingJobs = jobs.filter((job) => job.category === rec.category);
-          engagementScore += matchingJobs.length * 10;
-        }
-
-        // Higher score for high-priority recommendations
-        const priorityScore = { high: 30, medium: 20, low: 10 };
-        engagementScore += priorityScore[rec.priority];
-
-        // Higher score if user has subscription in this category
-        if (subscriptions && subscriptions.length > 0) {
-          const matchingSub = subscriptions.find((sub) => sub.category === rec.category);
-          if (matchingSub) {
-            engagementScore += 20;
-          }
-        }
-
-        // Higher score if recommendation has cost savings
-        if (rec.potentialSavings && rec.potentialSavings > 0) {
-          engagementScore += 15;
-        }
-
-        return {
-          ...rec,
-          engagementScore: Math.min(100, engagementScore),
-        };
-      });
-
-      // Sort by ML-predicted engagement score (highest first) and limit to top 5
-      return scoredRecommendations
-        .sort((a, b) => (b as any).engagementScore - (a as any).engagementScore)
-        .slice(0, 5)
-        .map(({ engagementScore, ...rec }) => rec); // Remove engagementScore from final output
-
-    } catch (error) {
-      logger.error('Failed to generate recommendations', error, { service: 'recommendations', userId });
-      return [];
-    }
+    )();
   }
 
   /**
@@ -213,7 +244,7 @@ export class RecommendationsService {
   /**
    * Generate seasonal recommendations based on current time, property data, and job history
    */
-  private static generateSeasonalRecommendations(properties: any[], jobs: UserJobHistory[]): MaintenanceRecommendation[] {
+  private static generateSeasonalRecommendations(properties: PropertyData[], jobs: UserJobHistory[]): MaintenanceRecommendation[] {
     const recommendations: MaintenanceRecommendation[] = [];
     const now = new Date();
     const month = now.getMonth(); // 0-11
@@ -488,7 +519,7 @@ export class RecommendationsService {
    */
   private static generatePreventiveRecommendations(
     jobs: UserJobHistory[],
-    properties: any[]
+    properties: PropertyData[]
   ): MaintenanceRecommendation[] {
     const recommendations: MaintenanceRecommendation[] = [];
     const now = new Date();

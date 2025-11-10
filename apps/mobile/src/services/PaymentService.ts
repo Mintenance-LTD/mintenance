@@ -2,11 +2,13 @@
  * PaymentService
  * 
  * Handles Stripe payment processing, escrow, and payment management.
- * Integrates with Stripe API for secure payment processing.
+ * Uses unified API client for API calls, Supabase for direct database operations.
  */
 
 import { logger } from '../utils/logger';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 export interface PaymentIntent {
   id: string;
@@ -78,28 +80,17 @@ export class PaymentService {
     metadata: PaymentIntent['metadata']
   ): Promise<PaymentIntent> {
     try {
-      const response = await fetch('/api/payments/create-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100), // Convert to cents
-          currency,
-          metadata,
-        }),
+      const data = await mobileApiClient.post<PaymentIntent>('/api/payments/create-intent', {
+        amount: Math.round(amount * 100), // Convert to cents
+        currency,
+        metadata,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment intent');
-      }
-
-      const data = await response.json();
       logger.info('Payment intent created', { intentId: data.id });
-    return data;
+      return data;
     } catch (error) {
-      logger.error('Failed to create payment intent', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to create payment intent', { error: apiError });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -111,27 +102,16 @@ export class PaymentService {
     paymentMethodId?: string
   ): Promise<PaymentIntent> {
     try {
-      const response = await fetch('/api/payments/confirm-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentIntentId,
-          paymentMethodId,
-        }),
+      const data = await mobileApiClient.post<PaymentIntent>('/api/payments/confirm-intent', {
+        paymentIntentId,
+        paymentMethodId,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to confirm payment intent');
-      }
-
-      const data = await response.json();
       logger.info('Payment intent confirmed', { intentId: paymentIntentId });
-    return data;
+      return data;
     } catch (error) {
-      logger.error('Failed to confirm payment intent', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to confirm payment intent', { error: apiError });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -203,47 +183,38 @@ export class PaymentService {
     reason: string = 'Job completed successfully'
   ): Promise<void> {
     try {
-      // Get escrow payment
+      // Get escrow payment (Supabase direct call - appropriate)
       const { data: escrowData, error: fetchError } = await supabase
         .from('escrow_payments')
         .select('*')
         .eq('id', escrowId)
-      .single();
+        .single();
 
-    if (fetchError) throw fetchError;
+      if (fetchError) throw fetchError;
 
-      // Release payment via Stripe
-      const response = await fetch('/api/payments/release-escrow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          escrowId,
-          reason,
-        }),
+      // Release payment via Stripe API (use unified client)
+      await mobileApiClient.post('/api/payments/release-escrow', {
+        escrowId,
+        reason,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to release escrow payment');
-      }
-
-      // Update escrow status
-    const { error: updateError } = await supabase
+      // Update escrow status (Supabase direct call - appropriate)
+      const { error: updateError } = await supabase
         .from('escrow_payments')
-      .update({
-        status: 'released',
-        released_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+        .update({
+          status: 'released',
+          released_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', escrowId);
 
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
 
       logger.info('Escrow payment released', { escrowId });
     } catch (error) {
-      logger.error('Failed to release escrow payment', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to release escrow payment', { error: apiError, escrowId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -282,26 +253,16 @@ export class PaymentService {
     reason?: string
   ): Promise<void> {
     try {
-      const response = await fetch('/api/payments/refund', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentIntentId,
-          amount: amount ? Math.round(amount * 100) : undefined,
-          reason,
-        }),
+      await mobileApiClient.post('/api/payments/refund', {
+        paymentIntentId,
+        amount: amount ? Math.round(amount * 100) : undefined,
+        reason,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to process refund');
-      }
-
       logger.info('Payment refunded', { paymentIntentId, amount, reason });
     } catch (error) {
-      logger.error('Failed to refund payment', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to refund payment', { error: apiError, paymentIntentId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -310,17 +271,12 @@ export class PaymentService {
    */
   static async getPaymentMethods(userId: string): Promise<PaymentMethod[]> {
     try {
-      const response = await fetch(`/api/payments/methods?userId=${userId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch payment methods');
-      }
-
-      const data = await response.json();
+      const data = await mobileApiClient.get<{ paymentMethods: PaymentMethod[] }>(`/api/payments/methods?userId=${userId}`);
       return data.paymentMethods;
     } catch (error) {
-      logger.error('Failed to get payment methods', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to get payment methods', { error: apiError, userId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -333,28 +289,17 @@ export class PaymentService {
     isDefault: boolean = false
   ): Promise<PaymentMethod> {
     try {
-      const response = await fetch('/api/payments/add-method', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          paymentMethodId,
-          isDefault,
-        }),
+      const data = await mobileApiClient.post<{ paymentMethod: PaymentMethod }>('/api/payments/add-method', {
+        userId,
+        paymentMethodId,
+        isDefault,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add payment method');
-      }
-
-      const data = await response.json();
       logger.info('Payment method added', { userId, paymentMethodId });
       return data.paymentMethod;
     } catch (error) {
-      logger.error('Failed to add payment method', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to add payment method', { error: apiError, userId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -363,22 +308,14 @@ export class PaymentService {
    */
   static async removePaymentMethod(paymentMethodId: string): Promise<void> {
     try {
-      const response = await fetch('/api/payments/remove-method', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentMethodId }),
+      await mobileApiClient.post('/api/payments/remove-method', {
+        paymentMethodId,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to remove payment method');
-      }
-
       logger.info('Payment method removed', { paymentMethodId });
     } catch (error) {
-      logger.error('Failed to remove payment method', error);
-      throw error;
+      const apiError = parseError(error);
+      logger.error('Failed to remove payment method', { error: apiError, paymentMethodId });
+      throw new Error(getUserFriendlyMessage(apiError));
     }
   }
 
@@ -400,7 +337,7 @@ export class PaymentService {
 
     if (error) throw error;
 
-      return data.map(item => ({
+      return data.map((item: any) => ({
         id: item.id,
         amount: item.amount,
         currency: item.currency,
@@ -432,7 +369,7 @@ export class PaymentService {
 
       if (error) throw error;
 
-      return data.map(item => ({
+      return data.map((item: any) => ({
         id: item.id,
         jobId: item.job_id,
         contractorId: item.contractor_id,

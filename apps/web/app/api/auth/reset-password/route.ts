@@ -5,6 +5,7 @@ import { passwordUpdateSchema } from '@/lib/validation/schemas';
 import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,9 +87,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    // Initialize Supabase client using validated environment variables
+    const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseKey) {
+      logger.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY', undefined, { service: 'auth' });
+      return NextResponse.json(
+        { error: 'Service configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 

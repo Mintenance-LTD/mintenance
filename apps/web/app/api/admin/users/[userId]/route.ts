@@ -32,23 +32,70 @@ export async function GET(
     // If contractor, fetch verification details and run automated checks
     let verificationData = null;
     if (userData.role === 'contractor') {
-      const automatedCheck = await VerificationService.automatedVerificationCheck(userId);
-      const verificationHistory = await VerificationService.getVerificationHistory(userId);
+      try {
+        // Add timeout protection for verification checks
+        const verificationPromise = Promise.all([
+          VerificationService.automatedVerificationCheck(userId).catch(err => {
+            logger.error('Error in automated verification check', { userId, error: err });
+            // Return default verification data if check fails
+            return {
+              passed: false,
+              checks: [],
+              requiresManualReview: true,
+              verificationScore: 0,
+            };
+          }),
+          VerificationService.getVerificationHistory(userId).catch(err => {
+            logger.error('Error fetching verification history', { userId, error: err });
+            return [];
+          }),
+        ]);
 
-      verificationData = {
-        ...automatedCheck,
-        history: verificationHistory,
-        companyName: userData.company_name,
-        licenseNumber: userData.license_number,
-        businessAddress: userData.business_address,
-        latitude: userData.latitude,
-        longitude: userData.longitude,
-        insuranceProvider: userData.insurance_provider,
-        insurancePolicyNumber: userData.insurance_policy_number,
-        insuranceExpiryDate: userData.insurance_expiry_date,
-        yearsExperience: userData.years_experience,
-        adminVerified: userData.admin_verified,
-      };
+        // Set a 10 second timeout for verification checks
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Verification check timeout')), 10000)
+        );
+
+        const [automatedCheck, verificationHistory] = await Promise.race([
+          verificationPromise,
+          timeoutPromise,
+        ]) as [any, any[]];
+
+        verificationData = {
+          ...automatedCheck,
+          history: verificationHistory || [],
+          companyName: userData.company_name,
+          licenseNumber: userData.license_number,
+          businessAddress: userData.business_address,
+          latitude: userData.latitude,
+          longitude: userData.longitude,
+          insuranceProvider: userData.insurance_provider,
+          insurancePolicyNumber: userData.insurance_policy_number,
+          insuranceExpiryDate: userData.insurance_expiry_date,
+          yearsExperience: userData.years_experience,
+          adminVerified: userData.admin_verified,
+        };
+      } catch (verificationError) {
+        logger.error('Error fetching verification data', { userId, error: verificationError });
+        // Return basic verification data even if checks fail
+        verificationData = {
+          passed: false,
+          checks: [],
+          requiresManualReview: true,
+          verificationScore: 0,
+          history: [],
+          companyName: userData.company_name,
+          licenseNumber: userData.license_number,
+          businessAddress: userData.business_address,
+          latitude: userData.latitude,
+          longitude: userData.longitude,
+          insuranceProvider: userData.insurance_provider,
+          insurancePolicyNumber: userData.insurance_policy_number,
+          insuranceExpiryDate: userData.insurance_expiry_date,
+          yearsExperience: userData.years_experience,
+          adminVerified: userData.admin_verified,
+        };
+      }
     }
 
     return NextResponse.json({

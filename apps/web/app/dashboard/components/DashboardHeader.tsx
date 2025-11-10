@@ -75,7 +75,6 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
             placeholder="Search for jobs or contractors..."
             aria-label="Search for jobs or contractors"
             className="h-11 w-full min-w-[400px]"
-            leftIcon={<Icon name="search" size={20} color={theme.colors.textSecondary} />}
           />
         </div>
 

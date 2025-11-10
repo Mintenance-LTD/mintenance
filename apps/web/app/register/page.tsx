@@ -24,9 +24,7 @@ const registerFormSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone number').optional().or(z.literal('')),
-  role: z.enum(['homeowner', 'contractor'], {
-    required_error: 'Please select a role',
-  }),
+  role: z.enum(['homeowner', 'contractor']),
 });
 
 type RegisterFormData = z.infer<typeof registerFormSchema>;
@@ -57,14 +55,22 @@ function RegisterForm() {
 
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [passwordFocused, setPasswordFocused] = React.useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] = React.useState(false);
 
   const selectedRole = watch('role');
+  const password = watch('password');
 
   useEffect(() => {
     if (roleParam === 'contractor' || roleParam === 'homeowner') {
       setValue('role', roleParam);
     }
   }, [roleParam, setValue]);
+
+  // Show password requirements when focused or has content
+  useEffect(() => {
+    setShowPasswordRequirements(passwordFocused || Boolean(password && password.length > 0));
+  }, [passwordFocused, password]);
 
   const onSubmit = async (data: RegisterFormData) => {
     if (!csrfToken) {
@@ -299,24 +305,28 @@ function RegisterForm() {
                 error={errors.password?.message}
                 placeholder="••••••••"
                 autoComplete="new-password"
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
               />
-              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
-                <ul className="text-xs text-gray-600 space-y-1">
-                  <li className="flex items-center gap-2">
-                    <span className="text-gray-400">•</span>
-                    <span>At least 8 characters</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-gray-400">•</span>
-                    <span>One uppercase & lowercase letter</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-gray-400">•</span>
-                    <span>One number & special character</span>
-                  </li>
-                </ul>
-              </div>
+              {showPasswordRequirements && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-200 animate-in fade-in slide-in-from-top-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li className={`flex items-center gap-2 transition-colors ${password && password.length >= 8 ? 'text-green-600' : ''}`}>
+                      <span>{password && password.length >= 8 ? '✓' : '•'}</span>
+                      <span>At least 8 characters</span>
+                    </li>
+                    <li className={`flex items-center gap-2 transition-colors ${password && /[A-Z]/.test(password) && /[a-z]/.test(password) ? 'text-green-600' : ''}`}>
+                      <span>{password && /[A-Z]/.test(password) && /[a-z]/.test(password) ? '✓' : '•'}</span>
+                      <span>One uppercase & lowercase letter</span>
+                    </li>
+                    <li className={`flex items-center gap-2 transition-colors ${password && /\d/.test(password) && /[^a-zA-Z0-9]/.test(password) ? 'text-green-600' : ''}`}>
+                      <span>{password && /\d/.test(password) && /[^a-zA-Z0-9]/.test(password) ? '✓' : '•'}</span>
+                      <span>One number & special character</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

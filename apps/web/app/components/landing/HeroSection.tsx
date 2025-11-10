@@ -71,7 +71,12 @@ export function HeroSection() {
                       { name: 'Sarah Clarke', role: 'Electrician', rating: '4.8', color: '#F59E0B', initials: 'SC' },
                       { name: 'David Wilson', role: 'Carpenter', rating: '4.9', color: '#8B5CF6', initials: 'DW' }
                     ].map((contractor) => (
-                      <div key={contractor.name} className="bg-gray-50 rounded-lg p-3">
+                      <div key={contractor.name} className="bg-gray-50 rounded-lg p-3 relative">
+                        <div className="absolute top-2 right-2">
+                          <span className="bg-secondary/10 text-secondary text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            Demo
+                          </span>
+                        </div>
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: contractor.color }}>
                             <span className="text-white font-bold text-sm">{contractor.initials}</span>
@@ -83,6 +88,7 @@ export function HeroSection() {
                           <button 
                             onClick={() => setShowDemoModal(true)}
                             className="bg-secondary text-white px-3 py-1 rounded text-xs hover:bg-secondary-dark transition-colors"
+                            aria-label={`Contact ${contractor.name} (demo)`}
                           >
                             Contact
                           </button>
@@ -95,7 +101,12 @@ export function HeroSection() {
             </div>
 
             {/* Floating UI Elements */}
-            <div className="absolute -top-4 -left-8 bg-white rounded-lg p-3 shadow-lg border max-w-xs float-animation float-delay-1">
+            <div className="absolute -top-4 -left-8 bg-white rounded-lg p-3 shadow-lg border max-w-xs float-animation float-delay-1 relative">
+              <div className="absolute -top-1 -right-1">
+                <span className="bg-secondary/10 text-secondary text-[9px] font-semibold px-1 py-0.5 rounded uppercase tracking-wide">
+                  Demo
+                </span>
+              </div>
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
@@ -107,7 +118,12 @@ export function HeroSection() {
               </div>
             </div>
 
-            <div className="absolute -bottom-8 -right-8 bg-white rounded-lg p-4 shadow-lg border max-w-xs float-animation float-delay-2">
+            <div className="absolute -bottom-8 -right-8 bg-white rounded-lg p-4 shadow-lg border max-w-xs float-animation float-delay-2 relative">
+              <div className="absolute -top-1 -right-1">
+                <span className="bg-secondary/10 text-secondary text-[9px] font-semibold px-1 py-0.5 rounded uppercase tracking-wide">
+                  Demo
+                </span>
+              </div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold">Quote Received</h4>
                 <span className="text-xs text-secondary">£150</span>
@@ -119,7 +135,12 @@ export function HeroSection() {
               </div>
             </div>
 
-            <div className="absolute top-1/2 -right-12 bg-white rounded-lg p-3 shadow-lg border float-animation float-delay-3">
+            <div className="absolute top-1/2 -right-12 bg-white rounded-lg p-3 shadow-lg border float-animation float-delay-3 relative">
+              <div className="absolute -top-1 -right-1">
+                <span className="bg-secondary/10 text-secondary text-[9px] font-semibold px-1 py-0.5 rounded uppercase tracking-wide">
+                  Demo
+                </span>
+              </div>
               <div className="text-center">
                 <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white text-xs">⚡</span>
@@ -136,8 +157,8 @@ export function HeroSection() {
       <DemoModal
         isOpen={showDemoModal}
         onClose={() => setShowDemoModal(false)}
-        title="This is a Demo"
-        message="These contractor cards are for demonstration purposes. Sign up to contact real verified tradespeople and get your projects done!"
+        title="See How It Works"
+        message="These contractor cards show how Mintenance connects you with verified tradespeople. Sign up to browse real profiles, read reviews, and get quotes from skilled professionals in your area."
         ctaText="Sign Up to Get Started"
         ctaLink="/register?role=homeowner"
       />

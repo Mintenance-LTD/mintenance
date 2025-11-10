@@ -89,21 +89,25 @@ export default async function EnhancedDashboardPage() {
     serverSupabase
       .from('bids')
       .select('id, status, bid_amount, created_at')
-      .eq('contractor_id', user.id),
+      .eq('contractor_id', user.id)
+      .limit(50),
     serverSupabase
       .from('contractor_quotes')
       .select('id, status, total_amount, created_at, updated_at')
-      .eq('contractor_id', user.id),
+      .eq('contractor_id', user.id)
+      .limit(50),
     serverSupabase
       .from('payments')
       .select('amount, status, created_at')
-      .eq('payee_id', user.id),
+      .eq('payee_id', user.id)
+      .limit(100),
     TrialService.getTrialStatus(user.id),
     serverSupabase
       .from('escrow_transactions')
       .select('id, amount, status')
       .eq('payee_id', user.id)
-      .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review', 'pending']),
+      .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review', 'pending'])
+      .limit(20),
   ]);
 
   const contractor = contractorProfileResponse.data;

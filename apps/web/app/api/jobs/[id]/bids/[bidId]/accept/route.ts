@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
+import { logger } from '@mintenance/shared';
 
 export async function POST(
   request: NextRequest,
@@ -34,10 +35,9 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      console.error('Failed to fetch job', {
+      logger.error('Failed to fetch job', jobError, {
         service: 'jobs',
         jobId,
-        error: jobError?.message,
       });
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -55,10 +55,9 @@ export async function POST(
       .single();
 
     if (bidError || !bid) {
-      console.error('Failed to fetch bid', {
+      logger.error('Failed to fetch bid', bidError, {
         service: 'jobs',
         bidId,
-        error: bidError?.message,
       });
       return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
     }
@@ -94,12 +93,10 @@ export async function POST(
       .single();
 
     if (acceptError) {
-      console.error('Failed to accept bid atomically', {
+      logger.error('Failed to accept bid atomically', acceptError, {
         service: 'jobs',
         bidId,
         jobId,
-        error: acceptError.message,
-        errorCode: acceptError.code,
       });
 
       // Handle unique constraint violation (race condition detected)
@@ -116,7 +113,7 @@ export async function POST(
     if (!acceptResult || !acceptResult.success) {
       const errorMessage = acceptResult?.error_message || 'Failed to accept bid';
       
-      console.error('Bid acceptance failed', {
+      logger.error('Bid acceptance failed', undefined, {
         service: 'jobs',
         bidId,
         jobId,
@@ -151,7 +148,7 @@ export async function POST(
 
     // Create notification for contractor
     try {
-      console.log('[Bid Accept] Creating notification for contractor', {
+      logger.info('Creating notification for contractor', {
         service: 'jobs',
         contractorId: bid.contractor_id,
         bidId,
@@ -170,8 +167,6 @@ export async function POST(
         created_at: new Date().toISOString(),
       };
 
-      console.log('[Bid Accept] Notification data:', notificationData);
-
       const { data: insertedNotification, error: notificationError } = await serverSupabase
         .from('notifications')
         .insert(notificationData)
@@ -179,35 +174,28 @@ export async function POST(
         .single();
 
       if (notificationError) {
-        console.error('[Bid Accept] Failed to create bid acceptance notification', {
+        logger.error('Failed to create bid acceptance notification', notificationError, {
           service: 'jobs',
           contractorId: bid.contractor_id,
           bidId,
           jobId,
-          error: notificationError.message,
-          errorDetails: notificationError,
-          notificationData,
         });
         // Don't fail the request if notification fails, but log it
       } else {
-        console.log('[Bid Accept] Bid acceptance notification created successfully', {
+        logger.info('Bid acceptance notification created successfully', {
           service: 'jobs',
           contractorId: bid.contractor_id,
           bidId,
           jobId,
           notificationId: insertedNotification?.id,
-          notificationType: insertedNotification?.type,
-          actionUrl: insertedNotification?.action_url,
         });
       }
     } catch (notificationError) {
-      console.error('[Bid Accept] Unexpected error creating notification', {
+      logger.error('Unexpected error creating notification', notificationError, {
         service: 'jobs',
         contractorId: bid.contractor_id,
         bidId,
         jobId,
-        error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
-        errorStack: notificationError instanceof Error ? notificationError.stack : undefined,
       });
       // Don't fail the request if notification fails
     }
@@ -240,25 +228,23 @@ export async function POST(
         });
 
       if (messageError) {
-        console.error('Failed to create welcome message', {
+        logger.error('Failed to create welcome message', messageError, {
           service: 'jobs',
           jobId,
           contractorId: bid.contractor_id,
-          error: messageError.message,
         });
         // Don't fail the request if message creation fails
       } else {
-        console.log('Welcome message created', {
+        logger.info('Welcome message created', {
           service: 'jobs',
           jobId,
           contractorId: bid.contractor_id,
         });
       }
     } catch (messageError) {
-      console.error('Unexpected error creating welcome message', {
+      logger.error('Unexpected error creating welcome message', messageError, {
         service: 'jobs',
         jobId,
-        error: messageError instanceof Error ? messageError.message : 'Unknown error',
       });
       // Don't fail the request if message creation fails
     }
@@ -287,25 +273,23 @@ export async function POST(
         });
 
       if (contractError) {
-        console.error('Failed to create draft contract', {
+        logger.error('Failed to create draft contract', contractError, {
           service: 'jobs',
           jobId,
           contractorId: bid.contractor_id,
-          error: contractError.message,
         });
         // Don't fail the request if contract creation fails
       } else {
-        console.log('Draft contract created', {
+        logger.info('Draft contract created', {
           service: 'jobs',
           jobId,
           contractorId: bid.contractor_id,
         });
       }
     } catch (contractError) {
-      console.error('Unexpected error creating draft contract', {
+      logger.error('Unexpected error creating draft contract', contractError, {
         service: 'jobs',
         jobId,
-        error: contractError instanceof Error ? contractError.message : 'Unknown error',
       });
       // Don't fail the request if contract creation fails
     }
@@ -334,16 +318,15 @@ export async function POST(
           .insert(rejectedNotifications);
 
         if (rejectedNotificationError) {
-          console.error('Failed to create rejected bid notifications', {
+          logger.error('Failed to create rejected bid notifications', rejectedNotificationError, {
             service: 'jobs',
-            error: rejectedNotificationError.message,
           });
         }
 
         // Learn from rejected bids for pricing agent
         rejectedBids.forEach((rejectedBid) => {
           PricingAgent.learnFromBidOutcome(rejectedBid.id, false).catch((error) => {
-            console.error('Error learning from rejected bid for pricing', error, {
+            logger.error('Error learning from rejected bid for pricing', error, {
               service: 'jobs',
               bidId: rejectedBid.id,
             });
@@ -351,9 +334,8 @@ export async function POST(
         });
       }
     } catch (rejectedNotificationError) {
-      console.error('Unexpected error creating rejected bid notifications', {
+      logger.error('Unexpected error creating rejected bid notifications', rejectedNotificationError, {
         service: 'jobs',
-        error: rejectedNotificationError instanceof Error ? rejectedNotificationError.message : 'Unknown error',
       });
     }
 
@@ -364,7 +346,7 @@ export async function POST(
       bid.contractor_id,
       Number((bid as any).amount || (bid as any).bid_amount || 0)
     ).catch((error) => {
-      console.error('Error learning from acceptance', error, {
+      logger.error('Error learning from acceptance', error, {
         service: 'jobs',
         jobId,
       });
@@ -372,13 +354,13 @@ export async function POST(
 
     // Learn from bid acceptance for pricing agent
     PricingAgent.learnFromBidOutcome(bidId, true).catch((error) => {
-      console.error('Error learning from bid acceptance for pricing', error, {
+      logger.error('Error learning from bid acceptance for pricing', error, {
         service: 'jobs',
         bidId,
       });
     });
 
-    console.log('Bid accepted successfully', {
+    logger.info('Bid accepted successfully', {
       service: 'jobs',
       bidId,
       jobId,
@@ -390,16 +372,13 @@ export async function POST(
       message: 'Bid accepted successfully',
     });
   } catch (error) {
-    console.error('Unexpected error in accept bid', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+    logger.error('Unexpected error in accept bid', error, {
       jobId,
       bidId,
     });
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ 
       error: errorMessage,
-      details: error instanceof Error ? error.stack : undefined,
     }, { status: 500 });
   }
 }

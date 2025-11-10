@@ -11,7 +11,7 @@ export default async function EscrowReviewPage() {
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   return <EscrowReviewDashboardClient />;

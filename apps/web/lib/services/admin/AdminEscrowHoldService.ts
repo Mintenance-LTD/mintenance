@@ -1,6 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { EscrowStatusService } from './EscrowStatusService';
+import { EscrowStatusService } from '../escrow/EscrowStatusService';
 
 export interface EscrowReview {
   id: string;
