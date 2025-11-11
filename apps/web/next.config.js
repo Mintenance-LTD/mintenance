@@ -3,6 +3,7 @@ const path = require('path');
 // Validate environment variables at build time
 // Note: Full validation runs in instrumentation.ts for runtime checks
 // This is a simplified check since next.config.js runs before TypeScript compilation
+// Fixed: Removed require('./lib/env') to prevent build errors on Vercel
 if (process.env.NODE_ENV !== 'test') {
   try {
     // Try to load dotenv if .env.local exists
