@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * POST /api/contractor/payout/setup
@@ -9,7 +10,10 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

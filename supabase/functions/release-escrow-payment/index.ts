@@ -25,16 +25,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     );
 
-    // Get escrow transaction details
+    // Get escrow transaction details with job info
     const { data: transaction, error: transactionError } = await supabase
       .from('escrow_transactions')
-      .select('payment_intent_id, amount')
+      .select('payment_intent_id, amount, payment_type, job_id, payee_id')
       .eq('id', transactionId)
       .single();
 
     if (transactionError) {
       throw new Error('Transaction not found');
     }
+
+    // Get job details for fee transfer tracking
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('id, contractor_id')
+      .eq('id', transaction.job_id)
+      .single();
 
     // Get contractor's Stripe account
     const { data: payoutAccount, error: accountError } = await supabase
@@ -56,9 +63,28 @@ serve(async (req) => {
       throw new Error('Failed to capture payment');
     }
 
-    // Calculate platform fee (5% of transaction)
-    const platformFee = Math.round(transaction.amount * 100 * 0.05); // 5% fee in cents
-    const contractorAmount = Math.round(transaction.amount * 100) - platformFee;
+    // Calculate fees using same logic as FeeCalculationService
+    // Platform fee: 5% with min $0.50, max $50
+    const paymentType = transaction.payment_type || 'final';
+    const platformFeeRate = 0.05; // 5% for all payment types
+    
+    let platformFeeDollars = transaction.amount * platformFeeRate;
+    platformFeeDollars = Math.max(platformFeeDollars, 0.50); // Minimum $0.50
+    platformFeeDollars = Math.min(platformFeeDollars, 50.00); // Maximum $50
+    platformFeeDollars = Math.round(platformFeeDollars * 100) / 100; // Round to 2 decimals
+    
+    // Stripe processing fee: 2.9% + $0.30
+    const stripeFeeDollars = Math.round((transaction.amount * 0.029 + 0.30) * 100) / 100;
+    
+    // Contractor payout (amount after platform fee)
+    const contractorAmountDollars = Math.round((transaction.amount - platformFeeDollars) * 100) / 100;
+    
+    // Convert to cents for Stripe API
+    const platformFee = Math.round(platformFeeDollars * 100);
+    const contractorAmount = Math.round(contractorAmountDollars * 100);
+    
+    // Net platform revenue (platform fee minus Stripe costs)
+    const netRevenueDollars = Math.round((platformFeeDollars - stripeFeeDollars) * 100) / 100;
 
     // Transfer to contractor's account
     const transfer = await stripe.transfers.create({
@@ -71,48 +97,57 @@ serve(async (req) => {
       },
     });
 
-    // Get escrow payment details for tracking
-    const { data: escrowPayment } = await supabase
-      .from('escrow_payments')
-      .select('id, job_id, amount')
-      .eq('payment_intent_id', transaction.payment_intent_id)
+    // Get charge ID for fee tracking
+    const chargeId = typeof paymentIntent.latest_charge === 'string' 
+      ? paymentIntent.latest_charge 
+      : paymentIntent.latest_charge?.id;
+
+    // Create platform fee transfer record
+    const { data: feeTransfer, error: feeTransferError } = await supabase
+      .from('platform_fee_transfers')
+      .insert({
+        escrow_transaction_id: transactionId,
+        job_id: transaction.job_id,
+        contractor_id: contractorId,
+        amount: platformFeeDollars,
+        currency: 'usd',
+        stripe_processing_fee: stripeFeeDollars,
+        net_revenue: netRevenueDollars,
+        stripe_payment_intent_id: transaction.payment_intent_id,
+        stripe_charge_id: chargeId,
+        status: 'transferred', // In Stripe Connect, fees are automatically deducted
+      })
+      .select()
       .single();
 
-    // Track transaction fee revenue in payment_tracking
-    if (escrowPayment) {
-      const transactionAmount = transaction.amount;
-      const platformFeeAmount = platformFee / 100; // Convert from cents
-      const stripeFeeAmount = transactionAmount * 0.029 + 0.30; // 2.9% + £0.30
-      const netRevenue = platformFeeAmount - stripeFeeAmount;
-
-      await supabase
-        .from('payment_tracking')
-        .insert({
-          payment_type: 'transaction_fee',
-          contractor_id: contractorId,
-          job_id: escrowPayment.job_id,
-          escrow_payment_id: escrowPayment.id,
-          amount: platformFeeAmount,
-          currency: 'gbp',
-          platform_fee: platformFeeAmount,
-          stripe_fee: stripeFeeAmount,
-          net_revenue: netRevenue > 0 ? netRevenue : 0,
-          status: 'completed',
-          stripe_payment_intent_id: transaction.payment_intent_id,
-          stripe_charge_id: paymentIntent.latest_charge as string,
-          completed_at: new Date().toISOString(),
-        })
-        .catch((err) => {
-          console.error('Failed to track transaction fee:', err);
-          // Don't fail the release if tracking fails
-        });
+    if (feeTransferError) {
+      console.error('Failed to create fee transfer record:', feeTransferError);
+      // Don't fail the release if fee tracking fails
     }
+
+    // Update escrow transaction with fee details
+    await supabase
+      .from('escrow_transactions')
+      .update({
+        platform_fee: platformFeeDollars,
+        contractor_payout: contractorAmountDollars,
+        stripe_processing_fee: stripeFeeDollars,
+        fee_transfer_status: 'transferred',
+        fee_transfer_id: feeTransfer?.id || null,
+        fee_transferred_at: new Date().toISOString(),
+        payment_type: paymentType,
+      })
+      .eq('id', transactionId)
+      .catch((err) => {
+        console.error('Failed to update escrow transaction:', err);
+        // Don't fail the release if update fails
+      });
 
     // Create notification for contractor
     await supabase.from('notifications').insert([{
       user_id: contractorId,
       title: 'Payment Released',
-      message: `Payment of $${(contractorAmount / 100).toFixed(2)} has been released to your account.`,
+      message: `Payment of $${contractorAmountDollars.toFixed(2)} has been released to your account (after ${platformFeeDollars.toFixed(2)} platform fee).`,
       type: 'payment',
       created_at: new Date().toISOString(),
     }]);
@@ -121,8 +156,12 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         transferId: transfer.id,
-        contractorAmount: contractorAmount / 100,
-        platformFee: platformFee / 100,
+        originalAmount: transaction.amount,
+        contractorAmount: contractorAmountDollars,
+        platformFee: platformFeeDollars,
+        stripeFee: stripeFeeDollars,
+        netRevenue: netRevenueDollars,
+        feeTransferId: feeTransfer?.id,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

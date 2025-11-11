@@ -40,6 +40,16 @@
         "-y",
         "@21st-dev/magic@latest"
       ]
+    },
+    "TestSprite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@testsprite/testsprite-mcp@latest"
+      ],
+      "env": {
+        "API_KEY": "sk-user-YMm4P5eI9mN8MstYf44sAxVNtUGSibY1IYuryOjHvWmXIxT_dzzwBZWSiiv4wN8lna_V2GjyGdKaCj7x9OuFMAWQtZjJfAyodLJnjnvJfunWfCR_Eq7yT8C1xyL6NDAnOKw"
+      }
     }
   }
 }

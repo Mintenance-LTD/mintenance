@@ -63,8 +63,9 @@ export function MetricCard({
       style={{
         width: '100%',
         maxWidth: '268px',
-        height: '196px',
+        minHeight: '196px',
         padding: '18px',
+        paddingBottom: '20px', // Extra bottom padding to prevent text cutoff
         borderRadius: theme.borderRadius.lg,
         backgroundColor: gradient ? '#FFFFFF' : theme.colors.surface,
         border: `1px solid ${theme.colors.border}`,
@@ -73,7 +74,7 @@ export function MetricCard({
         flexDirection: 'column',
         gap: '16px',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'hidden', // Keep hidden for clean borders, but ensure proper padding
         ...(gradient ? gradientStyles[gradientVariant] : {}),
       }}
     >
@@ -87,13 +88,14 @@ export function MetricCard({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexShrink: 0, // Prevent icon from shrinking
         }}
       >
         <Icon name={icon} size={22} color={iconBgColor} />
       </div>
 
       {/* Content */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '26px', flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, minHeight: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <span
             style={{
@@ -109,7 +111,7 @@ export function MetricCard({
               fontSize: theme.typography.fontSize['4xl'],
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.textPrimary,
-              lineHeight: 'normal',
+              lineHeight: '1.2', // Better line height for large text
             }}
           >
             {value}
@@ -119,6 +121,7 @@ export function MetricCard({
               style={{
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.textSecondary,
+                lineHeight: '1.4', // Ensure proper line height for subtitle
               }}
             >
               {subtitle}
@@ -135,6 +138,8 @@ export function MetricCard({
               gap: '4px',
               fontSize: theme.typography.fontSize.xs,
               color: theme.colors.textSecondary,
+              lineHeight: '1.5', // Ensure proper line height for trend text
+              marginTop: 'auto', // Push trend to bottom if there's extra space
             }}
           >
             <Icon

@@ -71,8 +71,8 @@ interface PaymentMethod {
 interface Subscription {
   id: string;
   contractorId: string;
-  plan: 'basic' | 'professional' | 'enterprise';
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid';
+  plan: 'free' | 'basic' | 'professional' | 'enterprise';
+  status: 'free' | 'active' | 'canceled' | 'past_due' | 'unpaid';
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   amount: number;
@@ -319,6 +319,7 @@ export class PaymentGateway {
 
   /**
    * Release escrowed funds to contractor
+   * Now includes fee calculation and transfers contractor amount after platform fee
    */
   async releaseEscrowFunds(escrowId: string, reason: string): Promise<void> {
     try {
@@ -330,15 +331,28 @@ export class PaymentGateway {
         );
       }
 
-      // Transfer funds to contractor
+      // Calculate fees (5% platform fee with min $0.50, max $50)
+      const platformFeeRate = 0.05;
+      let platformFee = escrow.amount * platformFeeRate;
+      platformFee = Math.max(platformFee, 0.50); // Minimum $0.50
+      platformFee = Math.min(platformFee, 50.00); // Maximum $50
+      platformFee = Math.round(platformFee * 100) / 100; // Round to 2 decimals
+
+      // Calculate contractor payout (amount after platform fee)
+      const contractorAmount = Math.round((escrow.amount - platformFee) * 100) / 100;
+
+      // Transfer funds to contractor (amount after platform fee)
       await this.stripe.transfers.create({
-        amount: Math.round(escrow.amount * 100), // Convert to cents
+        amount: Math.round(contractorAmount * 100), // Convert to cents
         currency: 'gbp',
         destination: await this.getContractorStripeAccount(escrow.contractorId),
         metadata: {
           escrowId: escrow.id,
           jobId: escrow.jobId,
           releaseReason: reason,
+          platformFee: platformFee.toString(),
+          contractorAmount: contractorAmount.toString(),
+          originalAmount: escrow.amount.toString(),
         },
       });
 
@@ -347,7 +361,9 @@ export class PaymentGateway {
 
       logger.info('Escrow funds released successfully', {
         escrowId,
-        amount: escrow.amount,
+        originalAmount: escrow.amount,
+        platformFee,
+        contractorAmount,
         contractorId: escrow.contractorId,
         reason,
       });
@@ -400,8 +416,37 @@ export class PaymentGateway {
    */
   async createContractorSubscription(
     contractorId: string,
-    plan: 'basic' | 'professional' | 'enterprise'
+    plan: 'free' | 'basic' | 'professional' | 'enterprise'
   ): Promise<Subscription> {
+    // Handle free tier - no Stripe needed
+    if (plan === 'free') {
+      const result: Subscription = {
+        id: 'free-tier',
+        contractorId,
+        plan: 'free',
+        status: 'free',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        amount: 0,
+        currency: 'gbp',
+        features: {
+          maxJobs: 3,
+          prioritySupport: false,
+          advancedAnalytics: false,
+          customBranding: false,
+          apiAccess: false,
+        },
+      };
+
+      logger.info('Free tier subscription created', {
+        subscriptionId: result.id,
+        contractorId,
+        plan,
+      });
+
+      return result;
+    }
+
     try {
       const customer = await this.getOrCreateStripeCustomer(contractorId);
 

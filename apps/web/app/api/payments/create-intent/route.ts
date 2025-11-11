@@ -5,7 +5,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { paymentIntentSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf-validator';
+import { requireCSRF } from '@/lib/csrf';
+import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -17,14 +18,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate CSRF token for state-changing requests
-    if (!await requireCSRF(request)) {
-      logger.warn('Payment intent creation blocked by CSRF validation', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
-    }
+    // CSRF protection - requireCSRF throws on failure, catch block handles it
+    await requireCSRF(request);
 
     // Authenticate user
     const user = await getCurrentUserFromCookies();
@@ -48,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Verify job exists and user is the homeowner
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, title, contractor_id')
+      .select('id, homeowner_id, title, contractor_id, budget, status')
       .eq('id', jobId)
       .single();
 
@@ -80,9 +75,82 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job has no assigned contractor' }, { status: 400 });
     }
 
-    // Generate idempotency key to prevent duplicate payments
+    // Validate payment amount against job budget or accepted bid
+    // First check if there's an accepted bid
+    const { data: acceptedBid } = await serverSupabase
+      .from('bids')
+      .select('amount, status')
+      .eq('job_id', jobId)
+      .eq('contractor_id', contractorId)
+      .eq('status', 'accepted')
+      .single();
+
+    let maxAllowedAmount: number | null = null;
+    
+    if (acceptedBid) {
+      // Use accepted bid amount as the maximum
+      maxAllowedAmount = acceptedBid.amount;
+    } else if (job.budget) {
+      // Fall back to job budget if no accepted bid
+      maxAllowedAmount = job.budget;
+    }
+
+    // Validate amount doesn't exceed maximum allowed
+    if (maxAllowedAmount !== null) {
+      const amountCents = Math.round(amount * 100);
+      const maxAllowedCents = Math.round(maxAllowedAmount * 100);
+      
+      if (amountCents > maxAllowedCents) {
+        logger.warn('Payment intent amount exceeds allowed maximum', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          requestedAmount: amount,
+          maxAllowedAmount,
+          hasAcceptedBid: !!acceptedBid,
+        });
+        return NextResponse.json({
+          error: `Payment amount ($${amount.toFixed(2)}) cannot exceed ${acceptedBid ? 'accepted bid' : 'job budget'} ($${maxAllowedAmount.toFixed(2)})`,
+          maxAllowedAmount,
+        }, { status: 400 });
+      }
+    }
+
+    // Validate amount is positive and reasonable
+    if (amount <= 0) {
+      return NextResponse.json({
+        error: 'Payment amount must be greater than zero',
+      }, { status: 400 });
+    }
+
+    if (amount > 100000) {
+      return NextResponse.json({
+        error: 'Payment amount exceeds maximum allowed ($100,000)',
+      }, { status: 400 });
+    }
+
+    // Idempotency check - prevent duplicate payment intent creation
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'create_payment_intent',
+      user.id,
+      jobId
+    );
+
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'create_payment_intent');
+    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+      logger.info('Duplicate payment intent creation detected, returning cached result', {
+        service: 'payments',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idempotencyCheck.cachedResult);
+    }
+
+    // Generate idempotency key for Stripe (separate from our internal idempotency)
     // Using UUID for better collision resistance than timestamp
-    const idempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
+    const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
 
     // Create Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -99,7 +167,7 @@ export async function POST(request: NextRequest) {
         enabled: true,
       },
     }, {
-      idempotencyKey,
+      idempotencyKey: stripeIdempotencyKey,
     });
 
     // Create escrow transaction record
@@ -145,13 +213,24 @@ export async function POST(request: NextRequest) {
       escrowTransactionId: escrowTransaction.id
     });
 
-    return NextResponse.json({
+    const responseData = {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
       escrowTransactionId: escrowTransaction.id,
       amount,
       currency,
-    });
+    };
+
+    // Store idempotency result
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'create_payment_intent',
+      responseData,
+      user.id,
+      { jobId, paymentIntentId: paymentIntent.id, escrowTransactionId: escrowTransaction.id }
+    );
+
+    return NextResponse.json(responseData);
   } catch (error) {
     logger.error('Error creating payment intent', error, { service: 'payments' });
 

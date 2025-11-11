@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
+import { requireCSRF } from '@/lib/csrf';
 
 const assessRequestSchema = z.object({
   imageUrls: z.array(z.string().url()).min(1).max(4),
@@ -37,7 +38,10 @@ function generateCacheKey(imageUrls: string[]): string {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// 1. Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

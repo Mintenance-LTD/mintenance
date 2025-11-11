@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +22,9 @@ const MAX_FILES = 10; // Maximum 10 photos per property
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Validate environment variables
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
@@ -59,6 +63,7 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const photoFiles = formData.getAll('photos') as File[];
+    const categories = formData.getAll('categories') as string[];
 
     if (!photoFiles || photoFiles.length === 0) {
       return NextResponse.json(
@@ -75,10 +80,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and upload each file
-    const uploadedUrls: string[] = [];
+    const uploadedPhotos: Array<{ url: string; category: string }> = [];
     const uploadErrors: string[] = [];
 
-    for (const file of photoFiles) {
+    for (let i = 0; i < photoFiles.length; i++) {
+      const file = photoFiles[i];
+      const category = categories[i] || 'other';
       // Validate file type
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
         uploadErrors.push(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`);
@@ -98,8 +105,17 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Generate unique filename
-      const fileName = `property-photos/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // SECURITY: Sanitize filename to prevent path traversal attacks
+      // Remove any path separators, special characters, and ensure safe filename
+      const sanitizedBaseName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+        .replace(/\.\./g, '') // Remove path traversal attempts
+        .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
+        .substring(0, 100); // Limit filename length
+      
+      // Generate safe filename with user ID and timestamp to prevent collisions
+      const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `property-photos/${safeFileName}`;
 
       // Upload to Supabase Storage (using Job-storage bucket that exists)
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -121,13 +137,13 @@ export async function POST(request: NextRequest) {
         .getPublicUrl(fileName);
 
       if (urlData?.publicUrl) {
-        uploadedUrls.push(urlData.publicUrl);
+        uploadedPhotos.push({ url: urlData.publicUrl, category });
       } else {
         uploadErrors.push(`${file.name}: Failed to get public URL`);
       }
     }
 
-    if (uploadedUrls.length === 0) {
+    if (uploadedPhotos.length === 0) {
       // All uploads failed - provide more context
       console.error('All property photo uploads failed. Attempted to upload:', photoFiles.length, 'files');
       return NextResponse.json(
@@ -141,16 +157,17 @@ export async function POST(request: NextRequest) {
     }
     
     // If some files failed but at least one succeeded, log a warning
-    if (uploadedUrls.length < photoFiles.length) {
+    if (uploadedPhotos.length < photoFiles.length) {
       console.warn(
-        `Only ${uploadedUrls.length} of ${photoFiles.length} property photos uploaded successfully.`,
+        `Only ${uploadedPhotos.length} of ${photoFiles.length} property photos uploaded successfully.`,
         { errors: uploadErrors }
       );
     }
 
     return NextResponse.json({ 
-      urls: uploadedUrls,
-      uploaded: uploadedUrls.length,
+      urls: uploadedPhotos.map(p => p.url), // Keep for backward compatibility
+      photos: uploadedPhotos, // New format with categories
+      uploaded: uploadedPhotos.length,
       total: photoFiles.length,
       ...(uploadErrors.length > 0 && { warnings: uploadErrors })
     });

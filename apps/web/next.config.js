@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+const path = require('path');
 
 // Validate environment variables at build time
 // Note: Full validation runs in instrumentation.ts for runtime checks
@@ -7,7 +7,6 @@ if (process.env.NODE_ENV !== 'test') {
   try {
     // Try to load dotenv if .env.local exists
     const fs = require('fs');
-    const path = require('path');
     const envPath = path.join(__dirname, '.env.local');
     if (fs.existsSync(envPath)) {
       require('dotenv').config({ path: envPath });
@@ -27,14 +26,10 @@ if (process.env.NODE_ENV !== 'test') {
 
 const nextConfig = {
   poweredByHeader: false,
-  // ESLint enabled during builds for code quality enforcement
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
-  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types'],
+  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui'],
   
   // Image optimization
   images: {
@@ -74,7 +69,47 @@ const nextConfig = {
 
   // Bundle optimization
   experimental: {
-    optimizePackageImports: ['@mintenance/shared', '@mintenance/types'],
+    optimizePackageImports: ['@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui'],
+  },
+
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {
+    resolveAlias: {
+      // Redirect react-native to empty module
+      // Use relative path instead of absolute path for Turbopack compatibility (Windows paths not supported)
+      'react-native': './lib/empty-module.js',
+      'react-native$': './lib/empty-module.js',
+      // Redirect jsdom to empty module for client bundles (server-only)
+      'jsdom': './lib/empty-module.js',
+      'jsdom$': './lib/empty-module.js',
+      // Redirect native component stubs to empty module (only native files, not unified components)
+      '@mintenance/shared-ui/dist/components/Card/Card.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Button/Button.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Input/Input.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Badge/Badge.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Card/Card.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Button/Button.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Input/Input.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Badge/Badge.native': './lib/empty-module.js',
+    },
+    resolveExtensions: ['.web.js', '.web.jsx', '.web.ts', '.web.tsx', '.js', '.jsx', '.ts', '.tsx'],
+    // Ignore React Native files completely - don't even try to parse them
+    rules: {
+      '*.native.{js,jsx,ts,tsx}': {
+        loaders: [],
+        as: '*.empty.js',
+      },
+      // Prevent parsing react-native package entirely
+      '**/node_modules/react-native/**': {
+        loaders: [],
+        as: '*.empty.js',
+      },
+      // Prevent parsing jsdom package in client bundles (server-only)
+      '**/node_modules/jsdom/**': {
+        loaders: [],
+        as: '*.empty.js',
+      },
+    },
   },
 
   // Bundle analyzer (enable with ANALYZE=true)
@@ -95,14 +130,112 @@ const nextConfig = {
 
   // PWA & Service Worker
   webpack: (config, { isServer }) => {
+    // Ignore React Native imports in web builds - completely prevent resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Completely ignore react-native - don't try to resolve it
+      'react-native': false,
+      'react-native$': false,
+      // Prevent importing native files from shared-ui (both dist and src)
+      '@mintenance/shared-ui/dist/components/Card/Card.native': false,
+      '@mintenance/shared-ui/dist/components/Button/Button.native': false,
+      '@mintenance/shared-ui/dist/components/Input/Input.native': false,
+      '@mintenance/shared-ui/dist/components/Badge/Badge.native': false,
+      '@mintenance/shared-ui/src/components/Card/Card.native': false,
+      '@mintenance/shared-ui/src/components/Button/Button.native': false,
+      '@mintenance/shared-ui/src/components/Input/Input.native': false,
+      '@mintenance/shared-ui/src/components/Badge/Badge.native': false,
+      // Redirect unified components to web versions (prevent any Card.tsx imports)
+      '@mintenance/shared-ui/dist/components/Card/Card': '@mintenance/shared-ui/dist/components/Card/Card.web',
+      '@mintenance/shared-ui/dist/components/Button/Button': '@mintenance/shared-ui/dist/components/Button/Button.web',
+      '@mintenance/shared-ui/dist/components/Input/Input': '@mintenance/shared-ui/dist/components/Input/Input.web',
+      '@mintenance/shared-ui/dist/components/Badge/Badge': '@mintenance/shared-ui/dist/components/Badge/Badge.web',
+      '@mintenance/shared-ui/src/components/Card/Card': '@mintenance/shared-ui/src/components/Card/Card.web',
+      '@mintenance/shared-ui/src/components/Button/Button': '@mintenance/shared-ui/src/components/Button/Button.web',
+      '@mintenance/shared-ui/src/components/Input/Input': '@mintenance/shared-ui/src/components/Input/Input.web',
+      '@mintenance/shared-ui/src/components/Badge/Badge': '@mintenance/shared-ui/src/components/Badge/Badge.web',
+    };
+
+    // Exclude React Native from being parsed - prioritize web extensions
+    config.resolve.extensions = [
+      '.web.js',
+      '.web.jsx',
+      '.web.ts',
+      '.web.tsx',
+      ...config.resolve.extensions.filter(ext => !ext.includes('native')),
+    ];
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
         net: false,
         tls: false,
+        child_process: false, // Exclude child_process (used by jsdom)
       };
     }
+
+    // Ignore react-native module completely - prevent any resolution attempts
+    config.externals = config.externals || [];
+    // Always ignore react-native, both server and client
+    config.externals.push('react-native');
+    config.externals.push({
+      'react-native': false,
+    });
+
+    // Exclude jsdom from client bundles (server-only module)
+    if (!isServer) {
+      config.externals.push('jsdom');
+      config.externals.push({
+        'jsdom': false,
+      });
+    }
+
+    // Ignore native files and react-native package completely
+    // Use IgnorePlugin to prevent webpack from even trying to parse these files
+    const webpack = require('webpack');
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      // Ignore react-native package completely (multiple patterns to catch all cases)
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^react-native$/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^react-native\/.*$/,
+      }),
+      // Ignore all native files (both in shared-ui and node_modules)
+      new webpack.IgnorePlugin({
+        resourceRegExp: /\.native\.(js|jsx|ts|tsx|d\.ts)$/,
+      }),
+      // Ignore native component files specifically
+      new webpack.IgnorePlugin({
+        resourceRegExp: /Card\.native|Button\.native|Input\.native|Badge\.native/,
+      }),
+      // Ignore react-native from node_modules (prevent parsing Flow syntax)
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^react-native$/,
+        contextRegExp: /node_modules/,
+      }),
+      // Ignore jsdom in client bundles (server-only module)
+      ...(!isServer ? [
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^jsdom$/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^jsdom\/.*$/,
+        }),
+      ] : []),
+      // Ignore usePlatform utility that might import react-native
+      new webpack.IgnorePlugin({
+        resourceRegExp: /usePlatform/,
+        contextRegExp: /shared-ui/,
+      }),
+      // Ignore react-native index.js file specifically (prevents Flow syntax parsing)
+      new webpack.IgnorePlugin({
+        resourceRegExp: /react-native\/index\.js$/,
+      })
+    );
+
     return config;
   },
 

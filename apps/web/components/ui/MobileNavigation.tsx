@@ -183,29 +183,51 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
       </div>
 
       <div style={menuStyles}>
-        {items.map((item, index) => (
-          <Link
-            key={index}
-            href={item.href}
-            style={menuItemStyles}
-            onClick={closeMenu}
-            className="hover:text-primary"
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {item.icon && (
-                <span style={{ marginRight: theme.spacing[2] }}>
-                  {item.icon}
-                </span>
-              )}
-              {item.label}
-              {item.badge && item.badge > 0 && (
-                <span style={badgeStyles}>
-                  {item.badge > 99 ? '99+' : item.badge}
-                </span>
-              )}
-            </div>
-          </Link>
-        ))}
+        {items.map((item, index) => {
+          const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            if (item.href.startsWith('#')) {
+              e.preventDefault();
+              const targetId = item.href.substring(1);
+              const targetElement = document.getElementById(targetId);
+              if (targetElement) {
+                const headerOffset = 80;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+                });
+              }
+              closeMenu();
+            } else {
+              closeMenu();
+            }
+          };
+
+          return (
+            <Link
+              key={index}
+              href={item.href}
+              style={menuItemStyles}
+              onClick={handleClick}
+              className="hover:text-primary"
+            >
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {item.icon && (
+                  <span style={{ marginRight: theme.spacing[2] }}>
+                    {item.icon}
+                  </span>
+                )}
+                {item.label}
+                {item.badge && item.badge > 0 && (
+                  <span style={badgeStyles}>
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
         
         <div style={{ marginTop: theme.spacing[8] }}>
           <Link href="/login" style={{ textDecoration: 'none' }}>

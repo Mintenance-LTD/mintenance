@@ -1,8 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
+import { theme } from '@/lib/theme';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import styles from '../../app/admin/admin.module.css';
 
 interface SecurityMetrics {
   total_events: number;
@@ -44,6 +62,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
   const [timeframe, setTimeframe] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const fetchSecurityData = async () => {
     try {
@@ -56,11 +75,13 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
       
       const data = await response.json();
       setMetrics(data.metrics);
-      setRecentEvents(data.recent_events);
-      setTopIPs(data.top_offending_ips);
+      setRecentEvents(data.recent_events || []);
+      setTopIPs(data.top_offending_ips || []);
+      setWarning(data.warning || null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+      setWarning(null);
     } finally {
       setLoading(false);
     }
@@ -172,18 +193,64 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
     );
   }
 
+  // Prepare chart data
+  const eventTypeChartData = metrics
+    ? Object.entries(metrics.top_event_types)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([type, count]) => ({
+          name: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          value: count,
+        }))
+    : [];
+
+  const severityColors = {
+    critical: '#EF4444',
+    high: '#F59E0B',
+    medium: '#FCD34D',
+    low: '#10B981',
+  };
+
+  const severityChartData = metrics
+    ? [
+        { name: 'Critical', value: metrics.critical_events, color: severityColors.critical },
+        { name: 'High', value: metrics.high_severity_events, color: severityColors.high },
+        { name: 'Medium', value: metrics.total_events - metrics.critical_events - metrics.high_severity_events, color: severityColors.medium },
+      ].filter(item => item.value > 0)
+    : [];
+
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div style={{ padding: theme.spacing[8], maxWidth: '1440px', margin: '0 auto' }} className={className}>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Security Dashboard</h1>
-        <div className="flex space-x-2">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing[8],
+      }}>
+        <div>
+          <h1 style={{
+            fontSize: theme.typography.fontSize['3xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[2],
+          }}>
+            Security Dashboard
+          </h1>
+          <p style={{
+            fontSize: theme.typography.fontSize.base,
+            color: theme.colors.textSecondary,
+          }}>
+            Monitor security events, threats, and system health
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: theme.spacing[2] }}>
           {(['1h', '24h', '7d', '30d'] as const).map((tf) => (
             <Button
               key={tf}
-              variant={timeframe === tf ? 'primary' : 'outline'}
-              size="sm"
+              variant={timeframe === tf ? 'primary' : 'secondary'}
               onClick={() => setTimeframe(tf)}
+              style={{ fontSize: theme.typography.fontSize.sm }}
             >
               {tf}
             </Button>
@@ -191,49 +258,300 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
         </div>
       </div>
 
+      {/* Warning Banner */}
+      {warning && (
+        <Card className="mb-6" style={{ 
+          padding: theme.spacing[4], 
+          backgroundColor: '#FEF3C7',
+          border: '1px solid #F59E0B',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+            <Icon name="warning" size={20} color="#F59E0B" />
+            <p style={{ 
+              margin: 0, 
+              fontSize: theme.typography.fontSize.sm,
+              color: '#92400E',
+            }}>
+              {warning}
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Metrics Cards */}
       {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{metrics.total_events}</div>
-            <div className="text-sm text-gray-600">Total Events</div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: theme.spacing[4],
+          marginBottom: theme.spacing[8],
+        }}>
+          <Card className={styles.metricCard} style={{ padding: theme.spacing[6] }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon name="activity" size={24} color={theme.colors.primary} />
+              </div>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                Total Events
+              </h3>
+            </div>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.primary,
+            }}>
+              {metrics.total_events.toLocaleString()}
+            </p>
           </Card>
           
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-red-600">{metrics.critical_events}</div>
-            <div className="text-sm text-gray-600">Critical Events</div>
+          <Card className={styles.metricCard} style={{ padding: theme.spacing[6] }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon name="alert" size={24} color="#EF4444" />
+              </div>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                Critical Events
+              </h3>
+            </div>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: '#EF4444',
+            }}>
+              {metrics.critical_events.toLocaleString()}
+            </p>
           </Card>
           
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-orange-600">{metrics.high_severity_events}</div>
-            <div className="text-sm text-gray-600">High Severity</div>
+          <Card className={styles.metricCard} style={{ padding: theme.spacing[6] }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon name="warning" size={24} color="#F59E0B" />
+              </div>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                High Severity
+              </h3>
+            </div>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: '#F59E0B',
+            }}>
+              {metrics.high_severity_events.toLocaleString()}
+            </p>
           </Card>
           
-          <Card className="p-4">
-            <div className="text-2xl font-bold text-purple-600">{metrics.unique_ips}</div>
-            <div className="text-sm text-gray-600">Unique IPs</div>
+          <Card className={styles.metricCard} style={{ padding: theme.spacing[6] }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon name="shield" size={24} color="#8B5CF6" />
+              </div>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                Unique IPs
+              </h3>
+            </div>
+            <p style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: '#8B5CF6',
+            }}>
+              {metrics.unique_ips.toLocaleString()}
+            </p>
           </Card>
+        </div>
+      )}
+
+      {/* Charts Section */}
+      {metrics && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: theme.spacing[6],
+          marginBottom: theme.spacing[8],
+        }}>
+          {/* Event Types Chart */}
+          {eventTypeChartData.length > 0 && (
+            <Card style={{ padding: theme.spacing[6] }}>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[4],
+              }}>
+                Top Event Types
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={eventTypeChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#6B7280"
+                    style={{ fontSize: theme.typography.fontSize.xs }}
+                  />
+                  <YAxis 
+                    stroke="#6B7280"
+                    style={{ fontSize: theme.typography.fontSize.xs }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#FFFFFF',
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.borderRadius.md,
+                    }}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#3B82F6"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
+
+          {/* Severity Distribution */}
+          {severityChartData.length > 0 && (
+            <Card style={{ padding: theme.spacing[6] }}>
+              <h3 style={{
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[4],
+              }}>
+                Severity Distribution
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={severityChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry: any) => `${entry.name} ${(entry.percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {severityChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Top Offending IPs */}
       {topIPs.length > 0 && (
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Top Offending IPs</h2>
-          <div className="space-y-2">
+        <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[6] }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Top Offending IPs
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
             {topIPs.slice(0, 10).map((item, index) => (
-              <div key={item.ip} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-mono">{item.ip}</span>
-                  <span className="text-xs text-gray-500">#{index + 1}</span>
+              <div
+                key={item.ip}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderRadius: theme.borderRadius.md,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+                  <span style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: 'monospace',
+                    color: theme.colors.textPrimary,
+                  }}>
+                    {item.ip}
+                  </span>
+                  <span style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textTertiary,
+                  }}>
+                    #{index + 1}
+                  </span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-semibold">{item.count} events</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+                  <span style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}>
+                    {item.count} events
+                  </span>
                   <Button
-                    size="sm"
                     variant="outline"
                     onClick={() => blockIP(item.ip)}
-                    className="text-red-600 hover:text-red-700"
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: '#EF4444',
+                    }}
                   >
                     Block
                   </Button>
@@ -245,73 +563,124 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
       )}
 
       {/* Recent Events */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Recent Security Events</h2>
-        <div className="space-y-3">
-          {recentEvents.slice(0, 20).map((event) => (
-            <div
-              key={event.id}
-              className={`p-3 rounded-lg border-l-4 ${
-                event.resolved ? 'bg-gray-50 opacity-60' : 'bg-white'
-              }`}
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-lg">{getEventTypeIcon(event.event_type)}</span>
-                    <span className="font-medium">{event.event_type.replace('_', ' ')}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityColor(event.severity)}`}>
-                      {event.severity}
-                    </span>
-                    {event.resolved && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-600">
-                        Resolved
+      <Card style={{ padding: theme.spacing[6] }}>
+        <h2 style={{
+          fontSize: theme.typography.fontSize.xl,
+          fontWeight: theme.typography.fontWeight.bold,
+          color: theme.colors.textPrimary,
+          marginBottom: theme.spacing[4],
+        }}>
+          Recent Security Events
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+          {recentEvents.slice(0, 20).map((event) => {
+            const severityBorderColor = {
+              critical: '#EF4444',
+              high: '#F59E0B',
+              medium: '#FCD34D',
+              low: '#10B981',
+            }[event.severity] || theme.colors.border;
+
+            return (
+              <div
+                key={event.id}
+                style={{
+                  padding: theme.spacing[4],
+                  borderRadius: theme.borderRadius.md,
+                  borderLeft: `4px solid ${severityBorderColor}`,
+                  backgroundColor: event.resolved ? theme.colors.backgroundSecondary : '#FFFFFF',
+                  opacity: event.resolved ? 0.6 : 1,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!event.resolved) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!event.resolved) {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                      marginBottom: theme.spacing[1],
+                      flexWrap: 'wrap',
+                    }}>
+                      <Icon name="shield" size={20} color={severityBorderColor} />
+                      <span style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                      }}>
+                        {event.event_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
-                    )}
+                      <span style={{
+                        padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                        borderRadius: theme.borderRadius.full,
+                        fontSize: theme.typography.fontSize.xs,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        backgroundColor: `${severityBorderColor}20`,
+                        color: severityBorderColor,
+                      }}>
+                        {event.severity}
+                      </span>
+                      {event.resolved && (
+                        <span style={{
+                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                          borderRadius: theme.borderRadius.full,
+                          fontSize: theme.typography.fontSize.xs,
+                          fontWeight: theme.typography.fontWeight.medium,
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          color: theme.colors.success,
+                        }}>
+                          Resolved
+                        </span>
+                      )}
+                    </div>
+                    <p style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                      marginBottom: theme.spacing[1],
+                    }}>
+                      {event.details}
+                    </p>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textTertiary,
+                    }}>
+                      <span style={{ fontFamily: 'monospace' }}>{event.ip_address}</span>
+                      <span style={{ margin: `0 ${theme.spacing[2]}` }}>•</span>
+                      <span>{event.method}</span>
+                      <span style={{ margin: `0 ${theme.spacing[2]}` }}>•</span>
+                      <span>{event.endpoint}</span>
+                      <span style={{ margin: `0 ${theme.spacing[2]}` }}>•</span>
+                      <span>{new Date(event.created_at).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">{event.details}</p>
-                  <div className="text-xs text-gray-500">
-                    <span className="font-mono">{event.ip_address}</span>
-                    <span className="mx-2">•</span>
-                    <span>{event.method}</span>
-                    <span className="mx-2">•</span>
-                    <span>{event.endpoint}</span>
-                    <span className="mx-2">•</span>
-                    <span>{new Date(event.created_at).toLocaleString()}</span>
-                  </div>
+                  {!event.resolved && (
+                    <Button
+                      variant="outline"
+                      onClick={() => resolveEvent(event.id)}
+                      style={{
+                        marginLeft: theme.spacing[4],
+                        fontSize: theme.typography.fontSize.sm,
+                      }}
+                    >
+                      Resolve
+                    </Button>
+                  )}
                 </div>
-                {!event.resolved && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => resolveEvent(event.id)}
-                    className="ml-4"
-                  >
-                    Resolve
-                  </Button>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
-
-      {/* Event Types Breakdown */}
-      {metrics && Object.keys(metrics.top_event_types).length > 0 && (
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Event Types Breakdown</h2>
-          <div className="space-y-2">
-            {Object.entries(metrics.top_event_types)
-              .sort(([,a], [,b]) => b - a)
-              .map(([type, count]) => (
-                <div key={type} className="flex justify-between items-center">
-                  <span className="text-sm">{type.replace('_', ' ')}</span>
-                  <span className="text-sm font-semibold">{count}</span>
-                </div>
-              ))}
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

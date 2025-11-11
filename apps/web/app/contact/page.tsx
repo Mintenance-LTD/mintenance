@@ -33,6 +33,8 @@ export default function ContactPage() {
   const [showLiveChatDialog, setShowLiveChatDialog] = React.useState(false);
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [mapError, setMapError] = React.useState(false);
+  const [mapLoading, setMapLoading] = React.useState(true);
 
   const {
     register,
@@ -377,24 +379,73 @@ export default function ContactPage() {
 
             {/* Interactive Google Maps */}
             <div className="rounded-xl h-96 overflow-hidden shadow-lg relative">
-              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-                <iframe
-                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&zoom=15`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="w-full h-full"
-                  title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
-                />
+              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && !mapError ? (
+                <>
+                  {mapLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-20">
+                      <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-secondary mb-2"></div>
+                        <p className="text-sm text-gray-600">Loading map...</p>
+                      </div>
+                    </div>
+                  )}
+                  <iframe
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&zoom=15`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="w-full h-full"
+                    title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
+                    onLoad={() => setMapLoading(false)}
+                    onError={() => {
+                      setMapError(true);
+                      setMapLoading(false);
+                    }}
+                  />
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <div className="text-center p-8">
-                    <p className="text-gray-600 mb-2">Map unavailable</p>
-                    <p className="text-sm text-gray-500">Suite 2 J2 Business Park</p>
-                    <p className="text-sm text-gray-500">Bridge Hall Lane, Bury, BL9 7NY</p>
+                  <div className="text-center p-8 max-w-md">
+                    <svg
+                      className="w-16 h-16 mx-auto mb-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <p className="text-lg font-semibold text-gray-900 mb-2">Map Unavailable</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Suite 2 J2 Business Park<br />
+                      Bridge Hall Lane, Bury, BL9 7NY<br />
+                      United Kingdom
+                    </p>
+                    <a
+                      href="https://www.google.com/maps/search/?api=1&query=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-secondary hover:text-secondary-dark font-medium text-sm transition-colors"
+                    >
+                      View on Google Maps
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
                   </div>
                 </div>
               )}

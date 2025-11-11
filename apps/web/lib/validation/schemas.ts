@@ -265,6 +265,43 @@ export const gdprDeleteSchema = z.object({
 });
 
 // ============================================================================
+// Admin Schemas
+// ============================================================================
+
+export const adminSettingUpdateSchema = z.object({
+  key: z.string()
+    .min(1, 'Setting key is required')
+    .max(255, 'Setting key too long')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
+  value: z.union([
+    z.string().max(10000, 'String value too long'),
+    z.number().finite('Number must be finite'),
+    z.boolean(),
+    z.record(z.any()), // JSON object
+    z.array(z.any()), // JSON array
+  ]),
+  oldValue: z.any().optional(),
+});
+
+export const adminSettingCreateSchema = z.object({
+  key: z.string()
+    .min(1, 'Setting key is required')
+    .max(255, 'Setting key too long')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
+  value: z.union([
+    z.string().max(10000, 'String value too long'),
+    z.number().finite('Number must be finite'),
+    z.boolean(),
+    z.record(z.any()), // JSON object
+    z.array(z.any()), // JSON array
+  ]),
+  type: z.enum(['string', 'number', 'boolean', 'json', 'array']),
+  category: z.enum(['general', 'email', 'security', 'features', 'payment', 'notifications']),
+  description: z.string().max(1000, 'Description too long').optional(),
+  isPublic: z.boolean().default(false),
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -276,4 +313,6 @@ export type CreateJobInput = z.infer<typeof createJobSchema>;
 export type UpdateJobInput = z.infer<typeof updateJobSchema>;
 export type JobQueryInput = z.infer<typeof jobQuerySchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type AdminSettingUpdateInput = z.infer<typeof adminSettingUpdateSchema>;
+export type AdminSettingCreateInput = z.infer<typeof adminSettingCreateSchema>;
 

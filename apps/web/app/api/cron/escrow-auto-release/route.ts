@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
+import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import Stripe from 'stripe';
+import { env } from '@/lib/env';
+import { requireCronAuth } from '@/lib/cron-auth';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -18,9 +19,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting escrow auto-release processing cycle', {
@@ -46,9 +47,14 @@ export async function GET(request: NextRequest) {
         payee_id,
         amount,
         status,
+        payment_type,
+        payment_intent_id,
+        metadata,
         auto_release_enabled,
         auto_release_date,
-        payment_intent_id,
+        admin_hold_status,
+        homeowner_approval,
+        cooling_off_ends_at,
         jobs (
           id,
           status,
@@ -60,6 +66,7 @@ export async function GET(request: NextRequest) {
       )
       .eq('status', 'held')
       .eq('auto_release_enabled', true)
+      .in('admin_hold_status', ['none', 'admin_approved']) // Skip admin holds
       .lte('auto_release_date', now.toISOString())
       .limit(50); // Process up to 50 at a time
 
@@ -88,7 +95,20 @@ export async function GET(request: NextRequest) {
           continue; // Skip if job not completed
         }
 
-        // Evaluate auto-release
+        // Skip if on admin hold
+        if (escrow.admin_hold_status === 'admin_hold' || escrow.admin_hold_status === 'pending_review') {
+          continue; // Skip admin-held escrows
+        }
+
+        // Skip if cooling-off period not passed
+        if (escrow.cooling_off_ends_at) {
+          const coolingOffEnds = new Date(escrow.cooling_off_ends_at);
+          if (coolingOffEnds > now) {
+            continue; // Still in cooling-off period
+          }
+        }
+
+        // Evaluate auto-release (this checks all conditions including homeowner approval, photo verification, etc.)
         const evaluation = await EscrowReleaseAgent.evaluateAutoRelease(escrow.id);
 
         if (!evaluation || !evaluation.success) {
@@ -107,6 +127,17 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (contractorError || !contractor?.stripe_connect_account_id) {
+          // Send notification to contractor
+          const { PaymentSetupNotificationService } = await import('@/lib/services/contractor/PaymentSetupNotificationService');
+          await PaymentSetupNotificationService.notifyPaymentSetupRequired(
+            job.contractor_id,
+            escrow.id,
+            job.title,
+            escrow.amount || 0
+          ).catch((error) => {
+            logger.error('Failed to send payment setup notification', error);
+          });
+
           logger.error('Contractor missing Stripe Connect account', {
             service: 'escrow-auto-release',
             contractorId: job.contractor_id,
@@ -116,9 +147,20 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Create transfer to contractor
+        // Determine payment type
+        const paymentType = (escrow.payment_type as PaymentType) || 'final';
+
+        // Calculate fees using FeeCalculationService
+        const feeBreakdown = FeeCalculationService.calculateFees(escrow.amount || 0, {
+          paymentType,
+        });
+
+        // Calculate contractor payout amount (after platform fee deduction)
+        const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
+
+        // Create transfer to contractor (amount after platform fee)
         const transfer = await stripe.transfers.create({
-          amount: Math.round((escrow.amount || 0) * 100), // Convert to cents
+          amount: contractorAmountCents,
           currency: 'usd',
           destination: contractor.stripe_connect_account_id,
           description: `Auto-release: ${job.title}`,
@@ -128,8 +170,48 @@ export async function GET(request: NextRequest) {
             homeownerId: job.homeowner_id,
             contractorId: job.contractor_id,
             releaseReason: 'auto_release',
+            platformFee: feeBreakdown.platformFee.toString(),
+            contractorAmount: feeBreakdown.contractorAmount.toString(),
           },
         });
+
+        // Get payment intent and charge ID for fee tracking
+        let chargeId: string | undefined;
+        if (escrow.payment_intent_id) {
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+              escrow.payment_intent_id
+            );
+            chargeId = typeof paymentIntent.latest_charge === 'string' 
+              ? paymentIntent.latest_charge 
+              : paymentIntent.latest_charge?.id;
+          } catch (error) {
+            logger.warn('Failed to retrieve payment intent for fee tracking', {
+              service: 'escrow-auto-release',
+              paymentIntentId: escrow.payment_intent_id,
+            });
+          }
+        }
+
+        // Create platform fee transfer record
+        let feeTransferResult;
+        try {
+          feeTransferResult = await FeeTransferService.transferPlatformFee({
+            escrowTransactionId: escrow.id,
+            jobId: job.id,
+            contractorId: job.contractor_id,
+            amount: escrow.amount || 0,
+            paymentIntentId: escrow.payment_intent_id || '',
+            chargeId,
+            paymentType,
+          });
+        } catch (error) {
+          logger.error('Failed to create fee transfer record in auto-release', error, {
+            service: 'escrow-auto-release',
+            escrowId: escrow.id,
+          });
+          // Don't fail the release if fee tracking fails
+        }
 
         // Update escrow transaction
         const updateData: Record<string, any> = {
@@ -138,6 +220,11 @@ export async function GET(request: NextRequest) {
           release_reason: 'auto_release',
           updated_at: new Date().toISOString(),
           transfer_id: transfer.id,
+          platform_fee: feeBreakdown.platformFee,
+          contractor_payout: feeBreakdown.contractorAmount,
+          stripe_processing_fee: feeBreakdown.stripeFee,
+          fee_transfer_status: feeTransferResult?.status || 'pending',
+          fee_transfer_id: feeTransferResult?.feeTransferId || null,
         };
 
         // Store auto-release metadata
@@ -184,7 +271,10 @@ export async function GET(request: NextRequest) {
           service: 'escrow-auto-release',
           escrowId: escrow.id,
           transferId: transfer.id,
-          amount: escrow.amount,
+          originalAmount: escrow.amount,
+          platformFee: feeBreakdown.platformFee,
+          contractorAmount: feeBreakdown.contractorAmount,
+          feeTransferId: feeTransferResult?.feeTransferId,
         });
       } catch (error) {
         logger.error('Error processing escrow auto-release', error, {

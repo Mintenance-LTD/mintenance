@@ -19,6 +19,7 @@ import { OnboardingService } from '@/lib/services/OnboardingService';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { getGradientCardStyle } from '@/lib/theme-enhancements';
+import { PaymentSetupBanner } from './components/PaymentSetupBanner';
 import { WelcomeHeader } from './components/WelcomeHeader';
 import { ProgressTrendChart } from './components/ProgressTrendChart';
 
@@ -56,10 +57,11 @@ export default async function EnhancedDashboardPage() {
     quotesResponse,
     paymentsResponse,
     trialStatus,
+    escrowsResponse,
   ] = await Promise.all([
     serverSupabase
       .from('users')
-      .select('first_name, last_name, company_name, profile_image_url, city, country, email')
+      .select('first_name, last_name, company_name, profile_image_url, city, country, email, stripe_connect_account_id')
       .eq('id', user.id)
       .single(),
     serverSupabase
@@ -87,16 +89,25 @@ export default async function EnhancedDashboardPage() {
     serverSupabase
       .from('bids')
       .select('id, status, bid_amount, created_at')
-      .eq('contractor_id', user.id),
+      .eq('contractor_id', user.id)
+      .limit(50),
     serverSupabase
       .from('contractor_quotes')
       .select('id, status, total_amount, created_at, updated_at')
-      .eq('contractor_id', user.id),
+      .eq('contractor_id', user.id)
+      .limit(50),
     serverSupabase
       .from('payments')
       .select('amount, status, created_at')
-      .eq('payee_id', user.id),
+      .eq('payee_id', user.id)
+      .limit(100),
     TrialService.getTrialStatus(user.id),
+    serverSupabase
+      .from('escrow_transactions')
+      .select('id, amount, status')
+      .eq('payee_id', user.id)
+      .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review', 'pending'])
+      .limit(20),
   ]);
 
   const contractor = contractorProfileResponse.data;
@@ -104,6 +115,12 @@ export default async function EnhancedDashboardPage() {
   const bids = bidsResponse.data || [];
   const quotes = quotesResponse.data || [];
   const payments = paymentsResponse.data || [];
+  const escrows = escrowsResponse.data || [];
+
+  // Calculate pending escrow amount
+  const pendingEscrowAmount = escrows.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const pendingEscrowCount = escrows.length;
+  const hasPaymentSetup = !!contractor?.stripe_connect_account_id;
 
   // Calculate metrics
   const totalRevenue = payments
@@ -425,6 +442,15 @@ export default async function EnhancedDashboardPage() {
           <SubscriptionExpiredReminder
             daysRemaining={trialStatus.daysRemaining}
             trialEndsAt={trialStatus.trialEndsAt}
+          />
+        )}
+
+        {/* Payment Setup Banner - Show if contractor hasn't set up payments */}
+        {!hasPaymentSetup && (
+          <PaymentSetupBanner
+            contractorId={user.id}
+            pendingAmount={pendingEscrowAmount}
+            pendingEscrows={pendingEscrowCount}
           />
         )}
 

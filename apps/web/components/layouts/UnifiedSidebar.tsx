@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { LogOut } from 'lucide-react';
 import { MenuTab } from '@/components/ui/figma';
 import Logo from '@/app/components/Logo';
+import { Icon } from '@/components/ui/Icon';
 import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
 import { theme } from '@/lib/theme';
@@ -226,6 +227,9 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
           isActive={false}
           isExpanded={shouldShowExpanded}
         />
+        
+        {/* Issues Badge - Removed hardcoded badge as there's no actual issue checking logic */}
+        {/* TODO: Re-implement when issue checking system is available */}
         
         <button
           onClick={handleLogout}

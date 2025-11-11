@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
@@ -58,6 +58,7 @@ const availableSkills = [
 
 export default function CreateJobPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
   const [formData, setFormData] = useState({
     title: '',
@@ -67,7 +68,10 @@ export default function CreateJobPage() {
     urgency: 'medium' as 'low' | 'medium' | 'high',
     budget: '',
     requiredSkills: [] as string[],
+    property_id: searchParams?.get('property_id') || '',
   });
+  const [properties, setProperties] = useState<Array<{ id: string; property_name: string | null; address: string | null }>>([]);
+  const [loadingProperties, setLoadingProperties] = useState(false);
   const [showSkillsDropdown, setShowSkillsDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -112,6 +116,34 @@ export default function CreateJobPage() {
     canPostJobs: boolean;
     missingRequirements: string[];
   } | null>(null);
+
+  // Fetch properties when user is loaded
+  React.useEffect(() => {
+    if (user && user.role === 'homeowner') {
+      setLoadingProperties(true);
+      fetch('/api/properties')
+        .then(res => res.json())
+        .then(data => {
+          if (data.properties) {
+            setProperties(data.properties);
+            // If property_id is in URL and we have properties, auto-select it and fill location
+            const urlPropertyId = searchParams?.get('property_id');
+            if (urlPropertyId && data.properties.length > 0) {
+              const selectedProperty = data.properties.find((p: { id: string }) => p.id === urlPropertyId);
+              if (selectedProperty) {
+                setFormData(prev => ({
+                  ...prev,
+                  property_id: urlPropertyId,
+                  location: selectedProperty.address || prev.location,
+                }));
+              }
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingProperties(false));
+    }
+  }, [user, searchParams]);
 
   // Check verification status
   React.useEffect(() => {
@@ -547,7 +579,7 @@ export default function CreateJobPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
+          body: JSON.stringify({
           title: formData.title.trim(),
           description: formData.description.trim(),
           location: formData.location.trim(),
@@ -556,6 +588,7 @@ export default function CreateJobPage() {
           status: 'posted',
           photoUrls: photoUrls, // Include photo URLs
           requiredSkills: formData.requiredSkills.length > 0 ? formData.requiredSkills : undefined,
+          property_id: formData.property_id || undefined,
         }),
       });
       
@@ -597,7 +630,41 @@ export default function CreateJobPage() {
   }
 
   if (!user || user.role !== 'homeowner') {
-    return null;
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
+        <div style={{
+          backgroundColor: theme.colors.white,
+          padding: theme.spacing[8],
+          borderRadius: theme.borderRadius.xl,
+          border: `1px solid ${theme.colors.border}`,
+          textAlign: 'center',
+          maxWidth: '500px',
+        }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Access Denied
+          </h2>
+          <p style={{
+            fontSize: theme.typography.fontSize.base,
+            color: theme.colors.textSecondary,
+            marginBottom: theme.spacing[6],
+          }}>
+            {!user 
+              ? 'You must be logged in to create a job.'
+              : 'Only homeowners can create jobs.'}
+          </p>
+          <Link href={!user ? `/login?redirect=/jobs/create` : '/dashboard'} style={{ textDecoration: 'none' }}>
+            <Button variant="primary">
+              {!user ? 'Go to Login' : 'Go to Dashboard'}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   // Show verification requirement if not verified
@@ -989,6 +1056,76 @@ export default function CreateJobPage() {
                 </div>
               )}
             </div>
+
+            {/* Property Selection (Optional) */}
+            {properties.length > 0 && (
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.textPrimary,
+                  marginBottom: theme.spacing[2]
+                }}>
+                  Property (Optional)
+                </label>
+                <p style={{
+                  margin: 0,
+                  marginBottom: theme.spacing[2],
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}>
+                  Link this job to a property for better organization
+                </p>
+                <select
+                  value={formData.property_id}
+                  onChange={(e) => {
+                    const selectedProperty = properties.find(p => p.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      property_id: e.target.value,
+                      location: selectedProperty?.address || formData.location,
+                    });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                    borderRadius: theme.borderRadius.lg,
+                    border: `1px solid ${theme.colors.border}`,
+                    fontSize: theme.typography.fontSize.base,
+                    color: theme.colors.textPrimary,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">No property selected</option>
+                  {properties.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.property_name || 'Unnamed Property'} {property.address ? `- ${property.address}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {formData.property_id && (
+                  <Link
+                    href={`/properties/${formData.property_id}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[1],
+                      marginTop: theme.spacing[2],
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.primary,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Icon name="externalLink" size={14} color={theme.colors.primary} />
+                    View property details
+                  </Link>
+                )}
+              </div>
+            )}
 
             {/* Location */}
             <div>

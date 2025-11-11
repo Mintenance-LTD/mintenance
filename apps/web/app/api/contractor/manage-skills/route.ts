@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +18,10 @@ const supabase = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get current user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Get current user
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {

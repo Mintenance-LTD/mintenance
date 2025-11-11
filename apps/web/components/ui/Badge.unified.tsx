@@ -1,36 +1,22 @@
+/**
+ * Badge Component - Compatibility Wrapper
+ * 
+ * Wraps the shared Badge component to maintain backward compatibility
+ * with existing web app code while migrating to shared components.
+ * 
+ * This wrapper will be removed once all files are migrated.
+ */
+
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { Badge as SharedBadge } from '@mintenance/shared-ui';
+import type { WebBadgeProps } from '@mintenance/shared-ui';
+import { cn } from '@/lib/utils';
 import { Icon } from './Icon';
 
-/**
- * Unified Badge Component
- * Consolidates Badge, StatusBadge, and StatusChip into one flexible component
- * 
- * @example
- * // Simple badge
- * <Badge>New</Badge>
- * 
- * // Status badge
- * <Badge variant="success">Completed</Badge>
- * 
- * // With icon
- * <Badge variant="warning" icon="alert">Pending</Badge>
- * 
- * // With dot
- * <Badge variant="info" withDot>In Progress</Badge>
- */
-
-export type BadgeVariant = 
-  | 'default' 
-  | 'primary' 
-  | 'success' 
-  | 'warning' 
-  | 'error' 
-  | 'info'
-  | 'neutral';
-
+// Extend shared Badge props for backward compatibility
+export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
 export type BadgeStatus =
   | 'completed'
   | 'in_progress'
@@ -51,71 +37,22 @@ export type BadgeStatus =
   | 'active'
   | 'inactive'
   | 'failed';
-
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
-export interface BadgeProps {
-  children: React.ReactNode;
+export interface BadgeProps extends Omit<WebBadgeProps, 'variant' | 'size'> {
   variant?: BadgeVariant;
   status?: BadgeStatus; // Auto-maps to variant with predefined colors
   size?: BadgeSize;
   icon?: string;
   withDot?: boolean;
   uppercase?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
 }
-
-/**
- * Get variant configuration for colors
- */
-const getVariantConfig = (variant: BadgeVariant) => {
-  const configs: Record<BadgeVariant, { bg: string; text: string; border: string }> = {
-    default: {
-      bg: theme.colors.backgroundSecondary,
-      text: theme.colors.textSecondary,
-      border: theme.colors.border,
-    },
-    neutral: {
-      bg: '#F3F4F6',
-      text: '#6B7280',
-      border: '#D1D5DB',
-    },
-    primary: {
-      bg: `${theme.colors.primary}15`,
-      text: theme.colors.primary,
-      border: `${theme.colors.primary}40`,
-    },
-    success: {
-      bg: '#ECFDF5',
-      text: '#047857',
-      border: '#A7F3D0',
-    },
-    warning: {
-      bg: '#FEF3C7',
-      text: '#EA580C',
-      border: '#FDE68A',
-    },
-    error: {
-      bg: '#FEE2E2',
-      text: '#DC2626',
-      border: '#FCA5A5',
-    },
-    info: {
-      bg: '#EFF6FF',
-      text: '#2563EB',
-      border: '#BFDBFE',
-    },
-  };
-
-  return configs[variant];
-};
 
 /**
  * Map status to variant
  */
-const statusToVariant = (status: BadgeStatus): BadgeVariant => {
-  const mapping: Record<BadgeStatus, BadgeVariant> = {
+const statusToVariant = (status: BadgeStatus): WebBadgeProps['variant'] => {
+  const mapping: Record<BadgeStatus, WebBadgeProps['variant']> = {
     completed: 'success',
     approved: 'success',
     accepted: 'success',
@@ -123,7 +60,7 @@ const statusToVariant = (status: BadgeStatus): BadgeVariant => {
     in_progress: 'warning',
     on_going: 'warning',
     assigned: 'warning',
-    pending: 'neutral',
+    pending: 'default',
     posted: 'info',
     open: 'info',
     sent: 'info',
@@ -134,102 +71,89 @@ const statusToVariant = (status: BadgeStatus): BadgeVariant => {
     inactive: 'error',
     failed: 'error',
     in_review: 'warning',
-    draft: 'neutral',
+    draft: 'default',
   };
-
   return mapping[status] || 'default';
 };
 
 /**
- * Get size configuration
+ * Map old variant to new variant
  */
-const getSizeConfig = (size: BadgeSize) => {
-  const configs = {
-    xs: {
-      padding: '2px 6px',
-      fontSize: '10px',
-      borderRadius: '6px',
-      iconSize: 10,
-    },
-    sm: {
-      padding: '4px 8px',
-      fontSize: theme.typography.fontSize.xs,
-      borderRadius: '8px',
-      iconSize: 12,
-    },
-    md: {
-      padding: '6px 12px',
-      fontSize: theme.typography.fontSize.sm,
-      borderRadius: '12px',
-      iconSize: 14,
-    },
-    lg: {
-      padding: '8px 16px',
-      fontSize: theme.typography.fontSize.md,
-      borderRadius: '14px',
-      iconSize: 16,
-    },
-  };
-
-  return configs[size];
+const mapVariant = (oldVariant?: BadgeVariant): WebBadgeProps['variant'] => {
+  if (!oldVariant) return 'default';
+  switch (oldVariant) {
+    case 'neutral':
+      return 'default';
+    case 'primary':
+      return 'info'; // Map primary to info
+    default:
+      return oldVariant;
+  }
 };
 
+/**
+ * Map old size to new size
+ */
+const mapSize = (oldSize?: BadgeSize): WebBadgeProps['size'] => {
+  if (!oldSize) return 'md';
+  switch (oldSize) {
+    case 'xs':
+      return 'sm'; // Map xs to sm
+    default:
+      return oldSize;
+  }
+};
+
+/**
+ * Compatibility wrapper for Badge component
+ */
 export function Badge({
-  children,
   variant = 'default',
   status,
   size = 'md',
   icon,
   withDot = false,
   uppercase = false,
+  children,
   className = '',
-  style = {},
+  style,
+  ...props
 }: BadgeProps) {
-  // If status is provided, use it to determine variant
-  const effectiveVariant = status ? statusToVariant(status) : variant;
-  const config = getVariantConfig(effectiveVariant);
-  const sizeConfig = getSizeConfig(size);
+  // Determine effective variant
+  const effectiveVariant = status ? statusToVariant(status) : mapVariant(variant);
+  const mappedSize = mapSize(size);
 
-  // Determine icon to show
-  const resolvedIcon = icon || (withDot ? 'dot' : undefined);
+  // Render icon if provided
+  const iconElement = (icon || withDot) ? (
+    <Icon
+      name={withDot ? 'dot' : icon!}
+      size={withDot ? 8 : (size === 'xs' ? 10 : size === 'sm' ? 12 : size === 'md' ? 14 : 16)}
+      color="currentColor"
+    />
+  ) : undefined;
 
   return (
-    <span
-      className={`badge ${className}`}
+    <SharedBadge
+      {...(props as any)}
+      variant={effectiveVariant as any}
+      size={mappedSize}
+      icon={iconElement}
+      showIcon={!!iconElement}
+      className={cn(uppercase && 'uppercase', className)}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: theme.spacing[1],
-        padding: sizeConfig.padding,
-        borderRadius: sizeConfig.borderRadius,
-        backgroundColor: config.bg,
-        color: config.text,
-        border: `1px solid ${config.border}`,
-        fontSize: sizeConfig.fontSize,
-        fontWeight: theme.typography.fontWeight.medium,
-        textTransform: uppercase ? 'uppercase' : 'none',
-        whiteSpace: 'nowrap',
-        letterSpacing: uppercase ? '0.02em' : '0',
-        transition: 'all 0.2s ease',
+        textTransform: uppercase ? 'uppercase' : undefined,
+        letterSpacing: uppercase ? '0.02em' : undefined,
         ...style,
       }}
     >
-      {resolvedIcon && (
-        <Icon
-          name={resolvedIcon}
-          size={resolvedIcon === 'dot' ? 8 : sizeConfig.iconSize}
-          color={config.text}
-        />
-      )}
-      <span>{children}</span>
-    </span>
+      {children}
+    </SharedBadge>
   );
 }
 
 /**
  * Badge Subcomponents for common use cases
  */
-
 export function StatusBadge({ status, size = 'md' }: { status: BadgeStatus; size?: BadgeSize }) {
   const label = status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   return (
@@ -249,4 +173,3 @@ export function CountBadge({ count, variant = 'primary', size = 'sm' }: { count:
 }
 
 export default Badge;
-

@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
+import { isValidUUID } from '@/lib/validation/uuid';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const { id: contractId } = await params;
     const user = await getCurrentUserFromCookies();
 
@@ -14,15 +20,22 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch contract
+    // SECURITY: Validate UUID format before database query
+    if (!isValidUUID(contractId)) {
+      return NextResponse.json({ error: 'Invalid contract ID format' }, { status: 400 });
+    }
+
+    // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: contract, error: contractError } = await serverSupabase
       .from('contracts')
       .select('*')
       .eq('id', contractId)
+      .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
 
     if (contractError || !contract) {
-      return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
+      // Don't reveal if contract exists or not - return generic error
+      return NextResponse.json({ error: 'Contract not found or access denied' }, { status: 404 });
     }
 
     // Verify user is authorized to sign
@@ -72,7 +85,11 @@ export async function POST(
       .single();
 
     if (updateError) {
-      console.error('Error updating contract signature:', updateError);
+      logger.error('Failed to update contract signature', updateError, {
+        service: 'contracts',
+        contractId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to sign contract' }, { status: 500 });
     }
 
@@ -107,14 +124,18 @@ export async function POST(
             created_at: new Date().toISOString(),
           });
         
-        console.log('Contract signature notification sent', {
+        logger.info('Contract signature notification sent', {
+          service: 'contracts',
           contractId,
           signerRole: user.role,
           notifiedUserId: otherPartyId,
           contractStatus: updatedContract.status,
         });
       } catch (notificationError) {
-        console.error('Failed to create signature notification:', notificationError);
+        logger.error('Failed to create signature notification', notificationError, {
+          service: 'contracts',
+          contractId,
+        });
         // Don't fail the request if notification fails
       }
     }
@@ -146,7 +167,10 @@ export async function POST(
       try {
         await serverSupabase.from('notifications').insert(notifications);
       } catch (notificationError) {
-        console.error('Failed to create acceptance notifications:', notificationError);
+        logger.error('Failed to create acceptance notifications', notificationError, {
+          service: 'contracts',
+          contractId,
+        });
         // Don't fail the request
       }
 
@@ -178,11 +202,17 @@ export async function POST(
           .eq('id', contract.job_id);
 
         if (jobUpdateError) {
-          console.error('Failed to update job with contract dates:', jobUpdateError);
+          logger.error('Failed to update job with contract dates', jobUpdateError, {
+            service: 'contracts',
+            jobId: contract.job_id,
+            contractId,
+          });
           // Don't fail the request, but log the error
         } else {
-          console.log('Job scheduled with contract dates', {
+          logger.info('Job scheduled with contract dates', {
+            service: 'contracts',
             jobId: contract.job_id,
+            contractId,
             startDate: updatedContract.start_date,
             endDate: updatedContract.end_date,
             scheduledDate: updatedContract.start_date,
@@ -199,7 +229,8 @@ export async function POST(
         : 'Contract signed. Waiting for other party to sign.',
     });
   } catch (error) {
-    console.error('Unexpected error in accept contract', error);
+    logger.error('Unexpected error in accept contract', error, { service: 'contracts' });
+    // SECURITY: Don't expose error details to client
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

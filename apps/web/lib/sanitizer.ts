@@ -1,12 +1,46 @@
 import DOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
 
-// Create a DOM environment for server-side DOMPurify
-const window = new JSDOM('').window;
-const purify = DOMPurify(window as any);
+// Environment-aware DOMPurify initialization
+// Client-side: Use browser's native window
+// Server-side: Should use serverSanitizer.ts instead, but this provides fallback
+let purify: typeof DOMPurify | null = null;
+
+function getPurify(): typeof DOMPurify {
+  if (purify) {
+    return purify;
+  }
+
+  // Client-side: Use browser's native window (most common case)
+  // This path is taken when code runs in browser (e.g., exportUtils.ts)
+  if (typeof window !== 'undefined') {
+    purify = DOMPurify;
+    return purify;
+  }
+
+  // Server-side: Only executed in Node.js environment
+  // This code path should never be reached in client bundles
+  // Using string-based require to prevent static analysis by bundlers
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  const requireFunc = typeof require !== 'undefined' ? require : null;
+  if (!requireFunc) {
+    throw new Error('require is not available - this should only run server-side');
+  }
+  
+  // Use indirect require to prevent static analysis
+  const jsdomModule = requireFunc('jsdom');
+  const { JSDOM } = jsdomModule;
+  const domWindow = new JSDOM('').window;
+  purify = DOMPurify(domWindow as any);
+  
+  return purify;
+}
 
 /**
  * Sanitize HTML content to prevent XSS attacks
+ * Works in both server and client environments
+ * 
+ * Note: For server-side usage in API routes, prefer using sanitizeHtmlServer
+ * from @/lib/serverSanitizer for better compatibility with bundlers
  */
 export function sanitizeHtml(input: string, options?: {
   allowedTags?: string[];
@@ -31,7 +65,7 @@ export function sanitizeHtml(input: string, options?: {
     KEEP_CONTENT: true,
   };
 
-  return purify.sanitize(truncated, config);
+  return getPurify().sanitize(truncated, config);
 }
 
 /**
@@ -170,4 +204,60 @@ export function sanitizeUrl(input: string): string {
   } catch {
     throw new Error('Invalid URL format');
   }
+}
+
+/**
+ * Escapes SQL wildcards and special characters for use in ILIKE queries.
+ * 
+ * Protects against SQL injection attacks like:
+ * - Input: "%' OR '1'='1" → Escaped: "\%' OR '1'='1"
+ * - Input: "test_%" → Escaped: "test\_\%"
+ * 
+ * @param input - User-provided search term
+ * @returns Safely escaped string suitable for SQL ILIKE patterns
+ */
+export function escapeSQLWildcards(input: string): string {
+  if (!input) return '';
+
+  return input
+    // Escape backslashes first (must be first to avoid double-escaping)
+    .replace(/\\/g, '\\\\')
+    // Escape SQL wildcards
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    // Escape single quotes for SQL string safety
+    .replace(/'/g, "''");
+}
+
+/**
+ * Sanitizes and escapes user input for safe use in SQL ILIKE queries.
+ * 
+ * This is a two-step process:
+ * 1. Remove XSS/HTML injection attempts (via sanitizeText)
+ * 2. Escape SQL wildcards and special characters
+ * 
+ * @param input - User-provided search term
+ * @returns Sanitized and SQL-safe search term
+ * 
+ * @example
+ * ```typescript
+ * const userInput = "%' OR '1'='1 <script>alert('xss')</script>";
+ * const safe = sanitizeForSQL(userInput);
+ * // Result: "\%' OR '1'='1 "
+ * 
+ * // Use in Supabase query:
+ * .ilike('column_name', `%${safe}%`)
+ * ```
+ */
+export function sanitizeForSQL(input: string | undefined | null): string {
+  if (!input) return '';
+
+  // Step 1: Remove HTML/XSS attempts
+  const xssSafe = sanitizeText(input);
+
+  // Step 2: Escape SQL wildcards
+  const sqlSafe = escapeSQLWildcards(xssSafe);
+
+  // Trim whitespace
+  return sqlSafe.trim();
 }

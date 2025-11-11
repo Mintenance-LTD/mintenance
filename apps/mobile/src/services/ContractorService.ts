@@ -7,6 +7,7 @@ import {
   LocationData,
 } from '../types';
 import { logger } from '../utils/logger';
+import { sanitizeForSQL } from '../utils/sqlSanitization';
 
 export class ContractorService {
   // Added to satisfy tests: fetch contractor profile by user id
@@ -424,12 +425,15 @@ export class ContractorService {
           return [];
         }
 
-        // Supabase handles SQL escaping internally - no need for manual sanitization
+        // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+        const sanitizedSearchTerm = sanitizeForSQL(searchTerm);
+
+        // Supabase handles SQL escaping internally - but we still sanitize for safety
         // Use .textSearch for full-text search or .or() for multiple columns
         const { data, error } = await supabase
           .from('contractor_profiles')
           .select('*')
-          .or(`skills.ilike.%${searchTerm}%,bio.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%`)
+          .or(`skills.ilike.%${sanitizedSearchTerm}%,bio.ilike.%${sanitizedSearchTerm}%,company_name.ilike.%${sanitizedSearchTerm}%`)
           .order('created_at', { ascending: false })
           .limit(20);
 
@@ -462,8 +466,10 @@ export class ContractorService {
         // Validate search input
         const searchTerm = adv.query.trim();
         if (searchTerm && searchTerm.length >= 2 && searchTerm.length <= 100) {
+          // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+          const sanitizedSearchTerm = sanitizeForSQL(searchTerm);
           // Supabase handles SQL escaping - search across multiple fields
-          query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,bio.ilike.%${searchTerm}%`);
+          query = query.or(`first_name.ilike.%${sanitizedSearchTerm}%,last_name.ilike.%${sanitizedSearchTerm}%,bio.ilike.%${sanitizedSearchTerm}%`);
         }
       }
 

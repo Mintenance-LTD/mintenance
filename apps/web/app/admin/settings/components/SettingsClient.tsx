@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlatformSetting } from '@/lib/services/admin/PlatformSettingsService';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 interface SettingsClientProps {
   initialSettings: {
@@ -267,28 +268,27 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
     );
   };
 
+  const totalSettings = Object.values(settings).reduce((sum, cat) => sum + cat.length, 0);
+
   return (
     <div style={{
       padding: theme.spacing[8],
       maxWidth: '1440px',
       margin: '0 auto',
+      width: '100%',
     }}>
-      <div style={{ marginBottom: theme.spacing[8] }}>
-        <h1 style={{
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[2],
-        }}>
-          Platform Settings
-        </h1>
-        <p style={{
-          fontSize: theme.typography.fontSize.base,
-          color: theme.colors.textSecondary,
-        }}>
-          Configure platform-wide settings and preferences
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Platform Settings"
+        subtitle="Configure platform-wide settings and preferences"
+        quickStats={[
+          {
+            label: 'total settings',
+            value: totalSettings,
+            icon: 'settings',
+            color: theme.colors.primary,
+          },
+        ]}
+      />
 
       {renderCategory('General Settings', settings.general, 'settings')}
       {renderCategory('Email Settings', settings.email, 'mail')}

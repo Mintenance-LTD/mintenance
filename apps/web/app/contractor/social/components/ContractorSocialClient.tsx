@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +13,8 @@ import { CommentsSection } from './CommentsSection';
 import { FollowButton } from './FollowButton';
 import { ShareDialog } from './ShareDialog';
 import { useCSRF } from '@/lib/hooks/useCSRF';
-import { Plus, Heart, MessageCircle, Share2, Megaphone } from 'lucide-react';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { Plus, Heart, MessageCircle, Share2, Megaphone, Search, Loader2 } from 'lucide-react';
 
 interface SocialPost {
   id: string;
@@ -45,9 +47,12 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [postTypeFilter, setPostTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500); // Debounce search input
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'most_commented'>('newest');
   const [feedTab, setFeedTab] = useState<'all' | 'following'>('all');
   const [shareModalPost, setShareModalPost] = useState<{ id: string; title: string; shareLink: string } | null>(null);
+  const [likingPostId, setLikingPostId] = useState<string | null>(null);
+  const [sharingPostId, setSharingPostId] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -56,8 +61,8 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
       if (postTypeFilter !== 'all') {
         params.append('post_type', postTypeFilter);
       }
-      if (searchQuery) {
-        params.append('search', searchQuery);
+      if (debouncedSearchQuery) {
+        params.append('search', debouncedSearchQuery);
       }
       params.append('sort', sortBy);
       if (feedTab === 'following') {
@@ -79,12 +84,20 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
   useEffect(() => {
     fetchPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postTypeFilter, searchQuery, sortBy, feedTab]);
+  }, [postTypeFilter, debouncedSearchQuery, sortBy, feedTab]);
 
   const handleLike = async (postId: string) => {
+    // Prevent double-clicking
+    if (likingPostId === postId) return;
+    
+    setLikingPostId(postId);
+    
     // Optimistic update
     const post = posts.find(p => p.id === postId);
-    if (!post) return;
+    if (!post) {
+      setLikingPostId(null);
+      return;
+    }
 
     const wasLiked = post.liked;
     setPosts((prev) =>
@@ -145,6 +158,8 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
     } catch (error) {
       console.error('Error liking post:', error);
       setNotification({ tone: 'warning', message: 'Failed to update like. Please try again.' });
+    } finally {
+      setLikingPostId(null);
     }
   };
 
@@ -155,6 +170,11 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
   };
 
   const handleSharePost = async (postId: string) => {
+    // Prevent double-clicking
+    if (sharingPostId === postId) return;
+    
+    setSharingPostId(postId);
+    
     try {
       const response = await fetch(`/api/contractor/posts/${postId}/share`, {
         method: 'POST',
@@ -183,6 +203,8 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
     } catch (error) {
       console.error('Error sharing post:', error);
       setNotification({ tone: 'warning', message: 'Failed to share post' });
+    } finally {
+      setSharingPostId(null);
     }
   };
 
@@ -280,13 +302,27 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
           </Select>
 
           {/* Search */}
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search posts..."
-            className="flex-1 min-w-[200px]"
-          />
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search posts..."
+              className="flex-1 min-w-[200px]"
+              leftIcon={<Search className="h-4 w-4" />}
+            />
+            {searchQuery !== debouncedSearchQuery && (
+              <div style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+              }}>
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              </div>
+            )}
+          </div>
 
           {/* Sort */}
           <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as 'newest' | 'popular' | 'most_commented')}>
@@ -302,7 +338,25 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
         </div>
       </header>
 
-      {posts.length === 0 ? (
+      {loading && posts.length === 0 ? (
+        <div
+          style={{
+            textAlign: 'center',
+            backgroundColor: theme.colors.surface,
+            borderRadius: '20px',
+            border: `1px solid ${theme.colors.border}`,
+            padding: `${theme.spacing[12]} ${theme.spacing[6]}`,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          <div style={{ marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
+            <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
+          </div>
+          <h3 style={{ marginBottom: theme.spacing[2], fontSize: theme.typography.fontSize.xl, color: theme.colors.textPrimary }}>
+            Loading posts...
+          </h3>
+        </div>
+      ) : posts.length === 0 ? (
         <div
           style={{
             textAlign: 'center',
@@ -317,9 +371,27 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
             <Megaphone className="h-12 w-12 text-gray-400" />
           </div>
           <h3 style={{ marginBottom: theme.spacing[2], fontSize: theme.typography.fontSize.xl, color: theme.colors.textPrimary }}>
-            No posts yet
+            {debouncedSearchQuery || postTypeFilter !== 'all' || feedTab === 'following' 
+              ? 'No posts found' 
+              : 'No posts yet'}
           </h3>
-          <p>Share updates, advice, or progress shots to engage homeowners and your peers.</p>
+          <p style={{ marginBottom: theme.spacing[4] }}>
+            {debouncedSearchQuery || postTypeFilter !== 'all' || feedTab === 'following'
+              ? 'Try adjusting your filters or search terms to find more posts.'
+              : 'Share updates, advice, or progress shots to engage homeowners and your peers.'}
+          </p>
+          {(debouncedSearchQuery || postTypeFilter !== 'all' || feedTab === 'following') && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearchQuery('');
+                setPostTypeFilter('all');
+                setFeedTab('all');
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
@@ -398,45 +470,80 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                 </header>
 
                 <div>
-                  <h2
+                  <Link
+                    href={`/contractor/social/post/${post.id}`}
                     style={{
-                      fontSize: theme.typography.fontSize.xl,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      marginBottom: theme.spacing[2],
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      display: 'block',
                     }}
                   >
-                    {post.title}
-                  </h2>
+                    <h2
+                      style={{
+                        fontSize: theme.typography.fontSize.xl,
+                        fontWeight: theme.typography.fontWeight.bold,
+                        marginBottom: theme.spacing[2],
+                        cursor: 'pointer',
+                        transition: 'color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = theme.colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = theme.colors.textPrimary;
+                      }}
+                    >
+                      {post.title}
+                    </h2>
+                  </Link>
                   <p style={{ color: theme.colors.textSecondary, lineHeight: 1.6 }}>{post.content}</p>
                 </div>
 
                 {post.images && post.images.length > 0 && (
-                  <div
+                  <Link
+                    href={`/contractor/social/post/${post.id}`}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: theme.spacing[3],
+                      textDecoration: 'none',
+                      display: 'block',
                     }}
                   >
-                    {post.images.map((image, index) => (
-                      <div
-                        key={`${post.id}-image-${index}`}
-                        style={{
-                          position: 'relative',
-                          paddingBottom: '100%',
-                          borderRadius: '16px',
-                          overflow: 'hidden',
-                          backgroundColor: theme.colors.backgroundSecondary,
-                        }}
-                      >
-                        <img
-                          src={image || 'https://via.placeholder.com/300'}
-                          alt={post.title}
-                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: theme.spacing[3],
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {post.images.map((image, index) => (
+                        <div
+                          key={`${post.id}-image-${index}`}
+                          style={{
+                            position: 'relative',
+                            paddingBottom: '100%',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            backgroundColor: theme.colors.backgroundSecondary,
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.02)';
+                            e.currentTarget.style.boxShadow = theme.shadows.md;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <img
+                            src={image || 'https://via.placeholder.com/300'}
+                            alt={post.title}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </Link>
                 )}
 
                 <footer
@@ -451,9 +558,14 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                     type='button'
                     variant="ghost"
                     onClick={() => handleLike(post.id)}
+                    disabled={likingPostId === post.id}
                     className={post.liked ? 'text-red-600' : ''}
                   >
-                    <Heart className={`h-4 w-4 ${post.liked ? 'fill-red-600 text-red-600' : ''}`} />
+                    {likingPostId === post.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Heart className={`h-4 w-4 ${post.liked ? 'fill-red-600 text-red-600' : ''}`} />
+                    )}
                     {post.likes_count ?? 0}
                   </Button>
                   <Button
@@ -469,8 +581,13 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                     type='button'
                     variant="ghost"
                     onClick={() => handleSharePost(post.id)}
+                    disabled={sharingPostId === post.id}
                   >
-                    <Share2 className="h-4 w-4" />
+                    {sharingPostId === post.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Share2 className="h-4 w-4" />
+                    )}
                     {post.shares_count ?? 0}
                   </Button>
                 </footer>
@@ -480,6 +597,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
                   <CommentsSection
                     postId={post.id}
                     currentUserId={currentUserId}
+                    autoLoad={true}
                     onCommentAdded={() => {
                       fetchPosts();
                     }}

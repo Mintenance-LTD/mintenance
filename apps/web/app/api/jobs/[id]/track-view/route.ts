@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Track when a contractor views a job
@@ -8,7 +9,10 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;

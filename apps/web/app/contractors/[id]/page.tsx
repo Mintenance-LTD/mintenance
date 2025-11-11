@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
-import Logo from '../../components/Logo';
 import { ArrowLeft, Badge, CheckCircle2, XCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { notFound } from 'next/navigation';
-import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { PublicLayout } from '../../components/layouts/PublicLayout';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -20,7 +18,6 @@ export default async function ContractorDetailPage(props: {
 }) {
   const params = await props.params;
   const supabase = await createClient();
-  const user = await getCurrentUserFromCookies();
 
   // Fetch contractor data
   const { data: contractor, error } = await supabase
@@ -82,11 +79,7 @@ export default async function ContractorDetailPage(props: {
     : contractor.rating || 0;
 
   return (
-    <HomeownerLayoutShell
-      currentPath="/contractors"
-      userName={user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-      userEmail={user?.email}
-    >
+    <PublicLayout>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: theme.spacing[8] }}>
         {/* Back Button */}
         <Link 
@@ -478,7 +471,7 @@ export default async function ContractorDetailPage(props: {
           </div>
         )}
       </div>
-    </HomeownerLayoutShell>
+    </PublicLayout>
   );
 }
 

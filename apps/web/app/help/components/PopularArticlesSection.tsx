@@ -1,20 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { generateSlug } from '../lib/utils';
 
 interface Article {
+  title: string;
+  content: string;
+  fullContent?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  articles: Article[];
+}
+
+interface PopularArticle {
   title: string;
   category: string;
   views: string;
   viewCount: number;
 }
 
+interface PopularArticlesSectionProps {
+  categories: Category[];
+}
+
 /**
  * Popular Articles Section
  * Displays help articles sorted by real view counts from the database
  */
-export function PopularArticlesSection() {
-  const [articles, setArticles] = useState<Article[]>([]);
+export function PopularArticlesSection({ categories }: PopularArticlesSectionProps) {
+  const [articles, setArticles] = useState<PopularArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,26 +85,54 @@ export function PopularArticlesSection() {
     { title: 'Our verification process', category: 'Safety & Trust', views: '0', viewCount: 0 },
   ];
 
-  return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-4xl font-bold text-primary mb-12 text-center">Most Popular Articles</h2>
+  // Find full article data from categories
+  const findArticleData = (title: string, categoryName: string): { article: Article; category: Category } | null => {
+    const category = categories.find(cat => cat.name === categoryName);
+    if (!category) return null;
+    
+    const article = category.articles.find(art => art.title === title);
+    if (!article) return null;
+    
+    return { article, category };
+  };
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {displayArticles.map((article, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group relative overflow-hidden"
-            >
-              {/* Gradient bar - appears on hover, always visible on large screens */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-lg font-semibold text-primary flex-1">{article.title}</h3>
-                <span className="text-sm text-gray-500 ml-4">{article.views} views</span>
-              </div>
-              <p className="text-sm text-secondary font-medium">{article.category}</p>
-            </div>
-          ))}
+  return (
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50" aria-labelledby="popular-articles-heading">
+      <div className="max-w-7xl mx-auto">
+        <h2 id="popular-articles-heading" className="text-4xl font-bold text-primary mb-12 text-center">Most Popular Articles</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
+          {displayArticles.map((article, index) => {
+            const articleData = findArticleData(article.title, article.category);
+
+            return (
+              <Link
+                key={index}
+                href={articleData ? `/help/${articleData.category.id}/${generateSlug(article.title)}` : '#'}
+                role="listitem"
+                className={cn(
+                  "bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-all",
+                  "group relative overflow-hidden text-left w-full block",
+                  "focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2",
+                  articleData ? "cursor-pointer" : "cursor-default opacity-60 pointer-events-none"
+                )}
+                aria-label={`Read article: ${article.title}`}
+                aria-disabled={!articleData}
+              >
+                {/* Gradient bar - appears on hover, always visible on large screens */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10" aria-hidden="true"></div>
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-primary flex-1 group-hover:text-secondary transition-colors">
+                    {article.title}
+                  </h3>
+                  <span className="text-sm text-gray-500 ml-4" aria-label={`${article.views} views`}>
+                    {article.views} views
+                  </span>
+                </div>
+                <p className="text-sm text-secondary font-medium">{article.category}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

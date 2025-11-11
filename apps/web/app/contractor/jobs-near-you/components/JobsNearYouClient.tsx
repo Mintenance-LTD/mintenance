@@ -449,6 +449,7 @@ export function JobsNearYouClient({
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
+      {/* Recommended Badge - Top Right */}
       {isRecommended && (
         <Badge
           variant="primary"
@@ -457,9 +458,16 @@ export function JobsNearYouClient({
             top: theme.spacing[3],
             right: theme.spacing[3],
             zIndex: 10,
-            boxShadow: theme.shadows.sm,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+            fontSize: theme.typography.fontSize.xs,
+            fontWeight: theme.typography.fontWeight.semibold,
+            padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[1],
           }}
         >
+          <Icon name="star" size={12} color={theme.colors.white} />
           Recommended
         </Badge>
       )}
@@ -467,14 +475,44 @@ export function JobsNearYouClient({
       {/* Header with title and bookmark */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2] }}>
+          {/* Category and NEW Badges */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: theme.spacing[2], 
+            marginBottom: theme.spacing[2],
+            flexWrap: 'wrap',
+          }}>
             {job.category && (
-              <Badge variant="info" style={{ fontSize: theme.typography.fontSize.xs }}>
+              <Badge 
+                variant="info" 
+                style={{ 
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  color: theme.colors.textPrimary,
+                  border: `1px solid ${theme.colors.border}`,
+                  textTransform: 'lowercase',
+                }}
+              >
                 {job.category}
               </Badge>
             )}
             {job.created_at && new Date(job.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 && (
-              <Badge variant="success" style={{ fontSize: theme.typography.fontSize.xs }}>
+              <Badge 
+                variant="success" 
+                style={{ 
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.bold,
+                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  backgroundColor: theme.colors.success,
+                  color: theme.colors.white,
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 NEW
               </Badge>
             )}
@@ -592,8 +630,21 @@ export function JobsNearYouClient({
       {/* Job Metadata */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[3] }}>
         {job.distance !== undefined && (
-          <Badge variant="primary" style={{ fontSize: theme.typography.fontSize.xs }}>
-            <Icon name="mapPin" size={12} color={theme.colors.primary} style={{ marginRight: theme.spacing[1] }} />
+          <Badge 
+            variant="info" 
+            style={{ 
+              fontSize: theme.typography.fontSize.xs,
+              fontWeight: theme.typography.fontWeight.medium,
+              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+              backgroundColor: theme.colors.backgroundSecondary,
+              color: theme.colors.textPrimary,
+              border: `1px solid ${theme.colors.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[1],
+            }}
+          >
+            <Icon name="mapPin" size={12} color={theme.colors.textSecondary} />
             {job.distance.toFixed(1)} km
           </Badge>
         )}
@@ -692,14 +743,26 @@ export function JobsNearYouClient({
           gap: theme.spacing[3],
         }}
       >
-        <span
-          style={{
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {new Date(job.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-        </span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[1],
+        }}>
+          <Icon name="calendar" size={14} color={theme.colors.textTertiary} />
+          <span
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
+            {new Date(job.created_at).toLocaleDateString('en-GB', { 
+              day: 'numeric', 
+              month: 'short', 
+              year: 'numeric' 
+            })}
+          </span>
+        </div>
         <Button
           variant="primary"
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -709,7 +772,21 @@ export function JobsNearYouClient({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: theme.spacing[1],
+            gap: theme.spacing[2],
+            padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+            fontWeight: theme.typography.fontWeight.semibold,
+            fontSize: theme.typography.fontSize.sm,
+            borderRadius: theme.borderRadius.lg,
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
           }}
         >
           Quick Bid

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
+import { requireCSRF } from '@/lib/csrf';
 import {
   mapMessageRow,
   MESSAGE_TYPES,
@@ -27,7 +28,10 @@ interface Params {
 
 export async function POST(request: NextRequest, context: Params) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

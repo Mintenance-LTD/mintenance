@@ -9,6 +9,7 @@ import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
 import { theme } from '@/lib/theme';
 import styles from './UnifiedSidebar.module.css';
+import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
 
 interface AdminLayoutShellProps {
   children: React.ReactNode;
@@ -31,8 +32,12 @@ const adminNav: readonly NavItem[] = Object.freeze([
   { icon: 'dashboard', label: 'Dashboard', href: '/admin' },
   { icon: 'trendingUp', label: 'Revenue', href: '/admin/revenue' },
   { icon: 'users', label: 'Users', href: '/admin/users' },
+  { icon: 'creditCard', label: 'Payment Setup', href: '/admin/contractors/payment-setup' },
   { icon: 'shield', label: 'Security', href: '/admin/security' },
-  { icon: 'messageSquare', label: 'Communications', href: '/admin/communications' },
+  { icon: 'messages', label: 'Communications', href: '/admin/communications' },
+  { icon: 'fileCheck', label: 'Escrow Reviews', href: '/admin/escrow/reviews' },
+  { icon: 'dollarSign', label: 'Fee Management', href: '/admin/payments/fees' },
+  { icon: 'building', label: 'Building Assessments', href: '/admin/building-assessments' },
   { icon: 'settings', label: 'Settings', href: '/admin/settings' },
 ]);
 
@@ -104,18 +109,23 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           display: 'flex',
           alignItems: 'center',
-          gap: theme.spacing[3],
+          justifyContent: 'space-between',
           minHeight: '64px',
         }}>
-          <Logo />
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+            <Logo />
+            {!isCollapsed && (
+              <span className={styles.logoText} style={{
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: '#3B82F6',
+              }}>
+                Mintenance
+              </span>
+            )}
+          </div>
           {!isCollapsed && (
-            <span className={styles.logoText} style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: '#3B82F6',
-            }}>
-              Mintenance
-            </span>
+            <AdminNotificationBell userId={user.id} />
           )}
         </div>
 
@@ -131,6 +141,7 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -144,20 +155,32 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
                   textDecoration: 'none',
                   fontSize: theme.typography.fontSize.sm,
                   fontWeight: active ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  transition: 'all 0.2s',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.transform = 'translateX(4px)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!active) {
                     e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
                   }
                 }}
               >
-                <Icon name={item.icon} size={20} color="#FFFFFF" />
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Icon name={item.icon} size={20} color="#FFFFFF" />
+                </div>
                 {!isCollapsed && <span>{item.label}</span>}
               </Link>
             );

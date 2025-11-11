@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Delete a saved job
@@ -8,7 +9,10 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ jobId: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();

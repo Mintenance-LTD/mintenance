@@ -2,6 +2,51 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
+
+/**
+ * Get all properties for the current user
+ * GET /api/properties
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { data: properties, error } = await serverSupabase
+      .from('properties')
+      .select('id, property_name, address, property_type, is_primary')
+      .eq('owner_id', user.id)
+      .order('is_primary', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to fetch properties', error, {
+        userId: user.id,
+        service: 'properties',
+      });
+      return NextResponse.json(
+        { error: 'Failed to fetch properties' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      properties: properties || [],
+    });
+  } catch (error) {
+    logger.error('Error fetching properties', error, { service: 'properties' });
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * Create a new property
@@ -9,6 +54,9 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json(
@@ -75,6 +123,9 @@ export async function POST(request: NextRequest) {
       logger.error('Failed to create property', createError, {
         userId: user.id,
         service: 'properties',
+        errorCode: createError.code,
+        errorMessage: createError.message,
+        errorDetails: createError.details,
       });
 
       // Handle duplicate or constraint errors
@@ -85,8 +136,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Return more detailed error information
       return NextResponse.json(
-        { error: 'Failed to create property. Please try again.' },
+        { 
+          error: 'Failed to create property. Please try again.',
+          details: createError.message || 'Database error occurred',
+          code: createError.code,
+        },
         { status: 500 }
       );
     }

@@ -546,54 +546,101 @@ export default async function SchedulingPage() {
 
         {/* Legend */}
         <div style={{
-          marginTop: theme.spacing[6],
-          display: 'flex',
-          gap: theme.spacing[6],
-          flexWrap: 'wrap',
+          marginTop: theme.spacing[8],
+          padding: theme.spacing[6],
+          backgroundColor: theme.colors.white,
+          borderRadius: theme.borderRadius.xl,
+          border: `1px solid ${theme.colors.border}`,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: '#3B82F6',
-              borderRadius: theme.borderRadius.sm,
-            }} />
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
+          <h3 style={{
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+            marginTop: 0,
+          }}>
+            Event Types
+          </h3>
+          <div style={{
+            display: 'flex',
+            gap: theme.spacing[6],
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: theme.spacing[3],
+              padding: theme.spacing[2],
+              borderRadius: theme.borderRadius.md,
+              backgroundColor: theme.colors.backgroundSecondary,
             }}>
-              Jobs
-            </span>
-          </div>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#3B82F6',
+                borderRadius: theme.borderRadius.sm,
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              }} />
+              <span style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}>
+                Jobs
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: '#10B981',
-              borderRadius: theme.borderRadius.sm,
-            }} />
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: theme.spacing[3],
+              padding: theme.spacing[2],
+              borderRadius: theme.borderRadius.md,
+              backgroundColor: theme.colors.backgroundSecondary,
             }}>
-              Maintenance
-            </span>
-          </div>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#10B981',
+                borderRadius: theme.borderRadius.sm,
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              }} />
+              <span style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}>
+                Maintenance
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: '#F59E0B',
-              borderRadius: theme.borderRadius.sm,
-            }} />
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: theme.spacing[3],
+              padding: theme.spacing[2],
+              borderRadius: theme.borderRadius.md,
+              backgroundColor: theme.colors.backgroundSecondary,
             }}>
-              Appointments & Inspections
-            </span>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#F59E0B',
+                borderRadius: theme.borderRadius.sm,
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              }} />
+              <span style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textPrimary,
+              }}>
+                Appointments & Inspections
+              </span>
+            </div>
           </div>
         </div>
       </div>

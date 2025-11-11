@@ -206,21 +206,26 @@ export function Calendar({ events }: CalendarProps) {
           <button
             onClick={goToToday}
             style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+              padding: `${theme.spacing[2.5]} ${theme.spacing[4]}`,
               backgroundColor: theme.colors.backgroundSecondary,
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
+              borderRadius: theme.borderRadius.lg,
               fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
+              fontWeight: theme.typography.fontWeight.semibold,
               color: theme.colors.textPrimary,
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             Today
@@ -229,23 +234,30 @@ export function Calendar({ events }: CalendarProps) {
           <div style={{ display: 'flex', gap: theme.spacing[1] }}>
             <button
               onClick={goToPreviousMonth}
+              type="button"
+              aria-label="Previous month"
               style={{
-                width: '36px',
-                height: '36px',
+                width: '40px',
+                height: '40px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
+                borderRadius: theme.borderRadius.lg,
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Icon name="chevronLeft" size={20} color={theme.colors.textPrimary} />
@@ -253,23 +265,30 @@ export function Calendar({ events }: CalendarProps) {
 
             <button
               onClick={goToNextMonth}
+              type="button"
+              aria-label="Next month"
               style={{
-                width: '36px',
-                height: '36px',
+                width: '40px',
+                height: '40px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.md,
+                borderRadius: theme.borderRadius.lg,
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Icon name="chevronRight" size={20} color={theme.colors.textPrimary} />
@@ -316,35 +335,48 @@ export function Calendar({ events }: CalendarProps) {
             <div
               key={index}
               style={{
-                minHeight: '100px',
-                padding: theme.spacing[2],
-                borderRight: `1px solid ${theme.colors.border}`,
+                minHeight: '120px',
+                padding: theme.spacing[3],
+                borderRight: index % 7 !== 6 ? `1px solid ${theme.colors.border}` : 'none',
                 borderBottom: `1px solid ${theme.colors.border}`,
-                backgroundColor: day ? theme.colors.surface : theme.colors.backgroundSecondary,
+                backgroundColor: day ? theme.colors.white : theme.colors.backgroundSecondary,
                 position: 'relative',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (day) {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (day) {
+                  e.currentTarget.style.backgroundColor = theme.colors.white;
+                }
               }}
             >
               {day && (
                 <>
                   <div
                     style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       borderRadius: theme.borderRadius.full,
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: today ? theme.typography.fontWeight.bold : theme.typography.fontWeight.medium,
-                      color: today ? theme.colors.surface : theme.colors.textPrimary,
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: today ? theme.typography.fontWeight.bold : theme.typography.fontWeight.semibold,
+                      color: today ? theme.colors.white : theme.colors.textPrimary,
                       backgroundColor: today ? theme.colors.primary : 'transparent',
-                      marginBottom: theme.spacing[2],
+                      marginBottom: theme.spacing[3],
+                      transition: 'all 0.2s ease',
+                      boxShadow: today ? '0 2px 4px rgba(59, 130, 246, 0.3)' : 'none',
                     }}
                   >
                     {day}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1.5] }}>
                     {dayEvents.map((event) => {
                       // Extract job ID from event ID (handle prefixed IDs like "job-posted-{id}", "appointment-{id}", etc.)
                       const jobId = event.id.replace(/^(job-posted-|appointment-|appointment-end-|meeting-|job-scheduled-|maintenance-)/, '');
@@ -354,48 +386,62 @@ export function Calendar({ events }: CalendarProps) {
                                         event.id.startsWith('appointment-') ||
                                         (!event.id.includes('-') && !event.id.startsWith('maintenance-'));
                       
+                      const eventColor = getEventColor(event.type);
+                      
                       return (
-                      <div
+                      <button
                         key={event.id}
+                        type="button"
                         onClick={() => {
                           // Only navigate to job page if it's a job event, not maintenance or subscription
                           if (isJobEvent && jobId) {
                             router.push(`/jobs/${jobId}`);
                           }
                         }}
-                        role={isJobEvent ? "button" : undefined}
-                        tabIndex={isJobEvent ? 0 : undefined}
+                        disabled={!isJobEvent || !jobId}
                         onKeyDown={(e) => {
                           if (isJobEvent && jobId && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
                             router.push(`/jobs/${jobId}`);
                           }
                         }}
                         style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                          backgroundColor: `${getEventColor(event.type)}15`,
-                          borderLeft: `3px solid ${getEventColor(event.type)}`,
-                          borderRadius: theme.borderRadius.sm,
-                          fontSize: '10px',
+                          padding: `${theme.spacing[1.5]} ${theme.spacing[2]}`,
+                          backgroundColor: `${eventColor}15`,
+                          border: `1px solid ${eventColor}30`,
+                          borderLeft: `3px solid ${eventColor}`,
+                          borderRadius: theme.borderRadius.md,
+                          fontSize: theme.typography.fontSize.xs,
                           fontWeight: theme.typography.fontWeight.medium,
                           color: theme.colors.textPrimary,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
+                          cursor: isJobEvent && jobId ? 'pointer' : 'default',
+                          transition: 'all 0.2s ease',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
+                          textAlign: 'left',
+                          width: '100%',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateX(2px)';
-                          e.currentTarget.style.opacity = '0.8';
+                          if (isJobEvent && jobId) {
+                            e.currentTarget.style.transform = 'translateX(2px)';
+                            e.currentTarget.style.opacity = '0.9';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                            e.currentTarget.style.backgroundColor = `${eventColor}20`;
+                          }
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.transform = 'translateX(0)';
                           e.currentTarget.style.opacity = '1';
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                          e.currentTarget.style.backgroundColor = `${eventColor}15`;
                         }}
                         title={event.title}
+                        aria-label={isJobEvent && jobId ? `View job: ${event.title}` : event.title}
                       >
                         {event.title}
-                      </div>
+                      </button>
                       );
                     })}
                   </div>

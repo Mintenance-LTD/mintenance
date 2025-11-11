@@ -70,17 +70,11 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
       >
         {/* Search */}
         <div className="relative hidden lg:block">
-          <Icon
-            name="search"
-            size={20}
-            color={theme.colors.textSecondary}
-            style={{ position: 'absolute', left: theme.spacing[3], top: '50%', transform: 'translateY(-50%)', zIndex: 10 }}
-          />
           <Input
             type="text"
             placeholder="Search for jobs or contractors..."
             aria-label="Search for jobs or contractors"
-            className="h-11 w-full min-w-[400px] pl-12 pr-4"
+            className="h-11 w-full min-w-[400px]"
           />
         </div>
 

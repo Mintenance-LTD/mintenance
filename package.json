@@ -12,7 +12,7 @@
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "npm run build -w packages/shared && npm run build -w packages/types && npm run build -w packages/auth",
+    "build:packages": "npm run build -w packages/shared && npm run build -w packages/types && npm run build -w packages/auth && npm run build -w @mintenance/design-tokens && npm run build -w @mintenance/api-client",
     "build:apps": "npm run build -w @mintenance/web && npm run build -w @mintenance/mobile",
     "build:web": "npm run build -w @mintenance/web",
     "build:mobile": "npm run build -w @mintenance/mobile",

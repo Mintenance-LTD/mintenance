@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Track a view for a help article
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const body = await request.json();
     const { articleTitle, category } = body;
 
     if (!articleTitle || !category) {

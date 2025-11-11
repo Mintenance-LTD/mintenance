@@ -12,7 +12,7 @@ export default async function AdminCommunicationsPage() {
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   // Fetch all announcements

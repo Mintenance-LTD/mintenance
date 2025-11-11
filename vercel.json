@@ -85,5 +85,35 @@
       "source": "/api/:path*",
       "destination": "/api/:path*"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/escrow-auto-release",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/notification-processor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/agent-processor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/no-show-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/homeowner-approval-reminders",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/admin-escrow-alerts",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/payment-setup-reminders",
+      "schedule": "0 11 * * *"
+    }
   ]
 }

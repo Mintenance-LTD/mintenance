@@ -49,6 +49,16 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       ...containerStyle,
     };
 
+    // Normalize style prop to avoid mixing shorthand and non-shorthand border properties
+    // Remove all border-related properties from incoming style since we use separate border properties
+    const borderProperties = ['border', 'borderWidth', 'borderStyle', 'borderColor', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
+    const normalizedStyle: React.CSSProperties = { ...style };
+    borderProperties.forEach(prop => {
+      if (prop in normalizedStyle) {
+        delete (normalizedStyle as any)[prop];
+      }
+    });
+
     const textareaStyles: React.CSSProperties = {
       width: '100%',
       minHeight: size === 'sm' ? '80px' : '120px',
@@ -61,14 +71,17 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
       backgroundColor: variantStyles.backgroundColor,
       color: variantStyles.color || theme.colors.textPrimary,
-      border: `1px solid ${variantStyles.borderColor}`,
+      // Use separate border properties instead of shorthand to avoid conflicts
+      borderWidth: '1px',
+      borderStyle: 'solid',
+      borderColor: variantStyles.borderColor,
       borderRadius: theme.borderRadius.lg,
 
       outline: 'none',
       transition: 'all 0.15s ease-in-out',
       resize: 'vertical',
 
-      ...style,
+      ...normalizedStyle,
     };
 
     const focusStyles: React.CSSProperties = variant === 'focused' ? {

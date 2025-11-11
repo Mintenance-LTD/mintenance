@@ -37,7 +37,7 @@ export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickAct
       description: 'Track revenue, response time, and win rate',
     },
     {
-      href: '/discover',
+      href: '/contractor/discover',
       icon: <Search className="h-5 w-5" />,
       label: 'Discover Leads',
       description: 'See what homeowners are searching for today',

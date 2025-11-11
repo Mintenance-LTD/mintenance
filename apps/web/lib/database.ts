@@ -6,13 +6,12 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { PasswordValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
-import { getEnvConfig } from './env-validation';
+import { env } from './env';
 
 
 // Initialize Supabase client for server-side operations with validated env
-const envConfig = getEnvConfig();
-const supabaseUrl = envConfig.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = envConfig.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
 logger.info('Supabase client initialized', {
   service: 'database',

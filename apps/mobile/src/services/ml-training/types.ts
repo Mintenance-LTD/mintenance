@@ -79,11 +79,14 @@ export interface LayerConfig {
 }
 
 export interface OptimizerConfig {
-  type: 'adam' | 'sgd' | 'rmsprop';
+  type: 'adam' | 'sgd' | 'rmsprop' | 'nested-adam' | 'deep-momentum';
   learningRate: number;
   beta1?: number;
   beta2?: number;
   momentum?: number;
+  epsilon?: number;
+  useNesterov?: boolean;
+  mlpHiddenSizes?: number[];
 }
 
 export interface TrainingConfiguration {
@@ -96,6 +99,7 @@ export interface TrainingConfiguration {
   performanceThreshold: number;
   earlyStoppingPatience?: number;
   saveCheckpoints?: boolean;
+  enableOnlineLearning?: boolean; // Enable online/incremental learning mode
 }
 
 export interface ModelInfo {

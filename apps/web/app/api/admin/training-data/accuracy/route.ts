@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { logger } from '@mintenance/shared';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * POST /api/admin/training-data/track-accuracy
@@ -12,7 +13,10 @@ import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

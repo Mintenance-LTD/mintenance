@@ -6,7 +6,10 @@ import { logger } from '@mintenance/shared';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireCSRF(request);

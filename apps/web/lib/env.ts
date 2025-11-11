@@ -5,9 +5,11 @@
  * to prevent runtime failures due to missing or invalid configuration.
  *
  * Uses Zod for runtime type checking and validation.
+ * This is the SINGLE SOURCE OF TRUTH for environment variable validation.
  */
 
 import { z } from 'zod';
+import { logger } from '@mintenance/shared';
 
 // Define the schema for environment variables
 const envSchema = z.object({
@@ -88,12 +90,16 @@ function validateEnv(): Env {
     if (parsed.NODE_ENV === 'production') {
       // In production, ensure we're using live keys
       if (parsed.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
-        console.warn('⚠️ WARNING: Using Stripe test key in production!');
+        logger.warn('Using Stripe test key in production', {
+          service: 'env-validation',
+        });
       }
 
       // Ensure Redis is configured in production
       if (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN) {
-        console.warn('⚠️ WARNING: Redis not configured - rate limiting will be degraded');
+        logger.warn('Redis not configured - rate limiting will be degraded', {
+          service: 'env-validation',
+        });
       }
     }
 
@@ -165,5 +171,7 @@ export function isTest(): boolean {
 
 // Log successful validation in development
 if (isDevelopment()) {
-  console.log('✅ Environment variables validated successfully');
+  logger.info('Environment variables validated successfully', {
+    service: 'env-validation',
+  });
 }

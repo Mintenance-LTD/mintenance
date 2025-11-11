@@ -196,6 +196,27 @@ export class AuthManager {
       }
       logger.info('Password validation passed', { service: 'auth' });
 
+      // Check if user already exists in public.users before attempting registration
+      logger.info('Checking if user already exists', { email: userData.email, service: 'auth' });
+      const { data: existingUser } = await serverSupabase
+        .from('users')
+        .select('id, email, role')
+        .eq('email', userData.email)
+        .maybeSingle();
+
+      if (existingUser) {
+        logger.warn('Registration attempted with existing email', { 
+          email: userData.email, 
+          existingRole: existingUser.role,
+          requestedRole: userData.role,
+          service: 'auth' 
+        });
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please sign in instead.'
+        };
+      }
+
       // Use Supabase Auth to create user (unified with mobile app)
       logger.info('Creating user with Supabase Auth', { email: userData.email, service: 'auth' });
       const { data: authData, error: authError } = await serverSupabase.auth.signUp({
@@ -314,10 +335,41 @@ export class AuthManager {
           if (manualProfile && !manualError) {
             logger.info('Manually created user profile after trigger failure', { userId: authData.user.id, service: 'auth' });
             publicUserProfile = manualProfile;
+          } else if (manualError) {
+            // Check if error is due to duplicate key (user already exists)
+            if (manualError.code === '23505' || manualError.message?.includes('duplicate key') || manualError.message?.includes('already exists')) {
+              logger.warn('User profile already exists, fetching existing profile', { userId: authData.user.id, service: 'auth' });
+              // Try to fetch the existing profile
+              const { data: existingProfile } = await serverSupabase
+                .from('users')
+                .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+                .eq('id', authData.user.id)
+                .single();
+              
+              if (existingProfile) {
+                publicUserProfile = existingProfile;
+              }
+            } else {
+              logger.error('Failed to manually create user profile', manualError, { userId: authData.user.id, service: 'auth' });
+            }
           }
         } catch (manualError) {
           logger.error('Failed to manually create user profile', manualError, { userId: authData.user.id, service: 'auth' });
-          // Continue with fallback user data
+          // Try to fetch existing profile as fallback
+          try {
+            const { data: existingProfile } = await serverSupabase
+              .from('users')
+              .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+              .eq('id', authData.user.id)
+              .single();
+            
+            if (existingProfile) {
+              logger.info('Found existing user profile as fallback', { userId: authData.user.id, service: 'auth' });
+              publicUserProfile = existingProfile;
+            }
+          } catch (fetchError) {
+            logger.error('Failed to fetch existing user profile', fetchError, { userId: authData.user.id, service: 'auth' });
+          }
         }
       }
 
@@ -354,21 +406,42 @@ export class AuthManager {
       };
 
     } catch (error) {
-      logger.error('Registration error', error, { service: 'auth' });
+      logger.error('Registration error', error, { 
+        service: 'auth',
+        email: userData.email,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
 
       // Handle specific error types
       if (error instanceof Error) {
-        if (error.message.includes('already exists')) {
+        // Check for duplicate/conflict errors
+        if (error.message.includes('already exists') || 
+            error.message.includes('duplicate key') ||
+            error.message.includes('unique constraint')) {
           return {
             success: false,
-            error: 'An account with this email already exists'
+            error: 'An account with this email already exists. Please sign in instead.'
+          };
+        }
+        
+        // Check for refresh token storage errors
+        if (error.message.includes('Failed to store refresh token')) {
+          logger.error('Refresh token storage failed, but user was created', error, { 
+            email: userData.email,
+            service: 'auth' 
+          });
+          // User was created but token storage failed - this is recoverable
+          return {
+            success: false,
+            error: 'Account created but session initialization failed. Please try signing in.'
           };
         }
       }
 
       return {
         success: false,
-        error: 'An unexpected error occurred during registration'
+        error: error instanceof Error ? error.message : 'An unexpected error occurred during registration'
       };
     }
   }

@@ -8,7 +8,7 @@ import { requireCSRF } from '@/lib/csrf-validator';
 import { z } from 'zod';
 
 const createSubscriptionSchema = z.object({
-  planType: z.enum(['basic', 'professional', 'enterprise']),
+  planType: z.enum(['free', 'basic', 'professional', 'enterprise']),
 });
 
 export async function POST(request: NextRequest) {
@@ -37,6 +37,69 @@ export async function POST(request: NextRequest) {
 
     // Check if user already has a subscription
     const existingSubscription = await SubscriptionService.getContractorSubscription(user.id);
+    
+    // Handle free tier separately - no Stripe needed
+    if (planType === 'free') {
+      // If already on free tier, return success
+      if (existingSubscription?.planType === 'free' && existingSubscription.status === 'free') {
+        return NextResponse.json({
+          success: true,
+          message: 'You are already on the free tier',
+          subscriptionId: existingSubscription.id,
+        });
+      }
+
+      // Cancel any existing paid subscriptions
+      if (existingSubscription && existingSubscription.stripeSubscriptionId) {
+        try {
+          const Stripe = (await import('stripe')).default;
+          if (process.env.STRIPE_SECRET_KEY) {
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+              apiVersion: '2025-09-30.clover',
+            });
+            try {
+              await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+            } catch (cancelError) {
+              logger.warn('Could not cancel Stripe subscription', {
+                service: 'subscriptions',
+                subscriptionId: existingSubscription.stripeSubscriptionId,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn('Error canceling Stripe subscription', {
+            service: 'subscriptions',
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+
+        // Mark existing subscription as canceled
+        await serverSupabase
+          .from('contractor_subscriptions')
+          .update({
+            status: 'canceled',
+            canceled_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingSubscription.id);
+      }
+
+      // Create free tier subscription
+      const subscriptionDbId = await SubscriptionService.createFreeTierSubscription(user.id);
+
+      logger.info('Free tier subscription created', {
+        service: 'subscriptions',
+        contractorId: user.id,
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscriptionId: subscriptionDbId,
+        stripeSubscriptionId: null,
+        clientSecret: null,
+        requiresPayment: false,
+      });
+    }
     
     if (existingSubscription && existingSubscription.stripeSubscriptionId) {
       // Check the actual Stripe subscription status (more reliable than database status)
@@ -195,7 +258,7 @@ export async function POST(request: NextRequest) {
       // If subscription exists but status is 'canceled' or other, fall through to create new
     }
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer (only for paid plans)
     const { data: userData } = await serverSupabase
       .from('users')
       .select('stripe_customer_id, email, trial_ends_at')
@@ -242,18 +305,20 @@ export async function POST(request: NextRequest) {
       stripeCustomerId
     );
 
-    // Get Stripe price ID (we'll need to store this)
-    // For now, we'll get it from the subscription
-    const Stripe = (await import('stripe')).default;
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY not configured');
-    }
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-09-30.clover',
-    });
+    // Get Stripe price ID (only for paid plans)
+    let priceId = 'free-tier';
+    if (planType !== 'free') {
+      const Stripe = (await import('stripe')).default;
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY not configured');
+      }
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-09-30.clover',
+      });
 
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-    const priceId = stripeSubscription.items.data[0]?.price.id || '';
+      const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+      priceId = stripeSubscription.items.data[0]?.price.id || '';
+    }
 
     // Save subscription to database
     const subscriptionDbId = await SubscriptionService.saveSubscription(

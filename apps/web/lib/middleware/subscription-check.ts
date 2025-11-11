@@ -55,10 +55,11 @@ export async function checkSubscriptionAccess(
     // Subscription required - check if they have one
     const subscription = await SubscriptionService.getContractorSubscription(contractorId);
 
-    if (subscription && subscription.status === 'active') {
+    // Free tier is always allowed
+    if (subscription && (subscription.status === 'free' || subscription.status === 'active')) {
       return {
         allowed: true,
-        requiresSubscription: true,
+        requiresSubscription: subscription.status !== 'free',
         subscription: {
           status: subscription.status,
           planType: subscription.planType,
@@ -133,6 +134,11 @@ export async function checkSubscriptionLimits(
   try {
     const features = await SubscriptionService.getSubscriptionFeatures(contractorId);
     const subscription = await SubscriptionService.getContractorSubscription(contractorId);
+
+    // Free tier always allowed
+    if (subscription && subscription.status === 'free') {
+      return { allowed: true };
+    }
 
     if (!features || !subscription) {
       return {

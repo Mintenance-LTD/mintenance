@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function GET(request: NextRequest) {
   try {
@@ -241,7 +242,10 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const body = await request.json();
     const { notificationId, userId, action } = body; // action: 'opened', 'clicked', 'dismissed'
 
     if (!notificationId || !userId || !action) {

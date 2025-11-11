@@ -129,8 +129,17 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `portfolio/${fileName}`;
+      // SECURITY: Sanitize filename to prevent path traversal attacks
+      // Remove any path separators, special characters, and ensure safe filename
+      const sanitizedBaseName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+        .replace(/\.\./g, '') // Remove path traversal attempts
+        .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
+        .substring(0, 100); // Limit filename length
+      
+      // Generate safe filename with user ID and timestamp to prevent collisions
+      const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `portfolio/${safeFileName}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage

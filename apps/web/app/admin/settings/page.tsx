@@ -12,7 +12,7 @@ export default async function AdminSettingsPage() {
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'admin') {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   // Fetch all settings grouped by category

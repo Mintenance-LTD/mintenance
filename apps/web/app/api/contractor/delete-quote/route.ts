@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 // Validation schema
 const deleteQuoteSchema = z.object({
@@ -11,6 +12,9 @@ const deleteQuoteSchema = z.object({
 
 export async function DELETE(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
 

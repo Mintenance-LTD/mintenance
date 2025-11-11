@@ -1,283 +1,107 @@
+/**
+ * Button Component - Compatibility Wrapper
+ * 
+ * Wraps the shared Button component to maintain backward compatibility
+ * with existing web app code while migrating to shared components.
+ * 
+ * This wrapper will be removed once all files are migrated.
+ */
+
 'use client';
 
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { theme } from '@/lib/theme';
+import React from 'react';
+import { Button as SharedButton } from '@mintenance/shared-ui';
+import type { WebButtonProps } from '@mintenance/shared-ui';
 import { getGradient } from '@/lib/theme-enhancements';
+import { cn } from '@/lib/utils';
 
+// Extend shared Button props for backward compatibility
 export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
   | 'ghost'
   | 'danger'
-  | 'destructive'
+  | 'destructive' // Maps to 'danger'
   | 'success'
-  | 'gradient-primary'
-  | 'gradient-success';
+  | 'gradient-primary' // Maps to 'primary' with gradient style
+  | 'gradient-success'; // Maps to 'success' with gradient style
 
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  children: React.ReactNode;
+export interface ButtonProps extends Omit<WebButtonProps, 'variant'> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
   fullWidth?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  // Accessibility props
-  'aria-label'?: string;
-  'aria-busy'?: boolean;
-  'aria-disabled'?: boolean;
 }
 
 /**
- * Enhanced Button Component with Full Accessibility Support
- *
- * Features:
- * - 7 variants (primary, secondary, outline, ghost, danger, destructive, success)
- * - 4 sizes (sm, md, lg, xl)
- * - Loading states with proper ARIA announcements
- * - Left/right icon support
- * - Full keyboard navigation
- * - WCAG AA compliant (44px min touch target)
- * - Focus visible states
- * - Proper disabled handling
- *
- * @example
- * <Button variant="primary" size="md" loading>Submit</Button>
- * <Button variant="outline" leftIcon={<Icon />}>Cancel</Button>
+ * Compatibility wrapper for Button component
+ * 
+ * Maps old variant names to new shared component variants
  */
 export function Button({
-  children,
   variant = 'primary',
   size = 'md',
   loading = false,
   fullWidth = false,
   leftIcon,
   rightIcon,
-  disabled,
   className = '',
-  'aria-label': ariaLabel,
-  'aria-busy': ariaBusy,
-  'aria-disabled': ariaDisabled,
-  type = 'button',
+  style,
   ...props
 }: ButtonProps) {
-  const [isFocused, setIsFocused] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
-
-  const isDisabled = disabled || loading;
-
-  // Base classes
-  const baseClasses = cn(
-    'inline-flex items-center justify-center',
-    'relative outline-none transition-all duration-200',
-    'font-[560]', // Consistent font weight from typography scale
-    'rounded-xl', // 12px border radius
-    'border-none',
-    fullWidth && 'w-full',
-    isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
-  );
-
-  // Size classes - Button text should be text-sm with font-[560] per plan
-  const sizeClasses = {
-    sm: 'px-3 py-2 text-sm min-h-[32px]',
-    md: 'px-4 py-3 text-sm min-h-[40px]', // Changed to text-sm for consistency
-    lg: 'px-6 py-3 text-sm min-h-[48px]', // Changed to text-sm for consistency
-    xl: 'px-8 py-4 text-base min-h-[56px]', // Keep base for xl size
-  };
-
-  // Variant classes
-  const variantClasses = {
-    primary: cn(
-      isDisabled ? 'bg-gray-400' : 'bg-primary text-white shadow',
-      !isDisabled && 'hover:bg-primary-800 hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-    secondary: cn(
-      isDisabled ? 'bg-gray-200 text-gray-500' : 'bg-secondary text-white shadow-sm',
-      !isDisabled && 'hover:bg-secondary-600 hover:-translate-y-0.5 hover:shadow-md',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]',
-      // Green (secondary) for action buttons as specified
-    ),
-    outline: cn(
-      'bg-transparent border-2',
-      isDisabled ? 'border-gray-300 text-gray-500' : 'border-primary text-primary',
-      !isDisabled && 'hover:bg-gray-50 hover:border-primary-800 hover:shadow-md',
-      !isDisabled && 'active:scale-[0.98]'
-    ),
-    ghost: cn(
-      'bg-transparent',
-      isDisabled ? 'text-gray-500' : 'text-gray-900',
-      !isDisabled && 'hover:bg-gray-100 hover:shadow-sm',
-      !isDisabled && 'active:scale-[0.98]'
-    ),
-    danger: cn(
-      isDisabled ? 'bg-gray-400' : 'bg-error text-white shadow',
-      !isDisabled && 'hover:bg-[#D70015] hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-    destructive: cn(
-      isDisabled ? 'bg-gray-400' : 'bg-error text-white shadow',
-      !isDisabled && 'hover:bg-[#D70015] hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-    success: cn(
-      isDisabled ? 'bg-gray-400' : 'bg-success text-white shadow',
-      !isDisabled && 'hover:bg-[#248A3D] hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-    'gradient-primary': cn(
-      isDisabled ? 'bg-gray-400' : 'text-white shadow-md',
-      !isDisabled && 'hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-    'gradient-success': cn(
-      isDisabled ? 'bg-gray-400' : 'text-white shadow-md',
-      !isDisabled && 'hover:-translate-y-0.5 hover:shadow-lg',
-      !isDisabled && 'active:translate-y-0 active:scale-[0.98]'
-    ),
-  };
-  
-  // Get gradient background style for gradient variants
-  const getGradientStyle = (): React.CSSProperties => {
-    if (isDisabled) return {};
-    
-    if (variant === 'gradient-primary') {
-      return {
-        background: getGradient('primary'),
-      };
+  // Map old variants to new variants (only return variants supported by shared Button)
+  const mapVariant = (oldVariant?: ButtonVariant): 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' => {
+    if (!oldVariant) return 'primary';
+    switch (oldVariant) {
+      case 'destructive':
+        return 'danger';
+      case 'gradient-primary':
+        return 'primary'; // Use primary variant, gradient applied via style
+      case 'gradient-success':
+        return 'success'; // Use success variant, gradient applied via style
+      case 'primary':
+      case 'secondary':
+      case 'outline':
+      case 'ghost':
+      case 'danger':
+      case 'success':
+        return oldVariant;
+      default:
+        return 'primary'; // Fallback
     }
-    if (variant === 'gradient-success') {
-      return {
-        background: getGradient('success'),
-      };
-    }
-    return {};
   };
 
-  // Focus classes (always applied for accessibility)
-  const focusClasses = 'focus-visible:outline-[3px] focus-visible:outline-primary focus-visible:outline-offset-2';
+  const mappedVariant = mapVariant(variant);
+  const isGradient = variant === 'gradient-primary' || variant === 'gradient-success';
 
-  // Active/pressed classes
-  const activeClasses = isPressed && !isDisabled ? 'scale-[0.98]' : '';
-
-  // Determine effective ARIA attributes
-  const effectiveAriaLabel = ariaLabel || (typeof children === 'string' ? children : undefined);
-  const effectiveAriaBusy = ariaBusy !== undefined ? ariaBusy : loading;
-  const effectiveAriaDisabled = ariaDisabled !== undefined ? ariaDisabled : isDisabled;
-
-  const gradientStyle = getGradientStyle();
+  // Apply gradient style if needed
+  const gradientStyle: React.CSSProperties = isGradient
+    ? {
+        background: getGradient(variant === 'gradient-primary' ? 'primary' : 'success'),
+        backgroundColor: 'transparent', // Override solid background
+      }
+    : {};
 
   return (
-    <button
-      {...props}
-      type={type}
-      className={cn(
-        baseClasses,
-        sizeClasses[size],
-        variantClasses[variant],
-        focusClasses,
-        activeClasses,
-        className
-      )}
+    <SharedButton
+      {...(props as any)}
+      variant={mappedVariant as any}
+      size={size}
+      loading={loading}
+      fullWidth={fullWidth}
+      leftIcon={leftIcon}
+      rightIcon={rightIcon}
+      className={cn(className)}
       style={{
         ...gradientStyle,
-        ...props.style,
+        ...style,
       }}
-      disabled={isDisabled}
-      aria-label={effectiveAriaLabel}
-      aria-busy={effectiveAriaBusy}
-      aria-disabled={effectiveAriaDisabled}
-      aria-live={loading ? 'polite' : undefined}
-      onFocus={(e) => {
-        setIsFocused(true);
-        props.onFocus?.(e);
-      }}
-      onBlur={(e) => {
-        setIsFocused(false);
-        props.onBlur?.(e);
-      }}
-      onMouseDown={(e) => {
-        setIsPressed(true);
-        props.onMouseDown?.(e);
-      }}
-      onMouseUp={(e) => {
-        setIsPressed(false);
-        props.onMouseUp?.(e);
-      }}
-      onMouseLeave={(e) => {
-        setIsPressed(false);
-        props.onMouseLeave?.(e);
-      }}
-      onMouseEnter={(e) => {
-        if (!isDisabled && props.onMouseEnter) {
-          props.onMouseEnter(e);
-        }
-      }}
-      onKeyDown={(e) => {
-        // Enhanced keyboard support
-        if (e.key === 'Enter' || e.key === ' ') {
-          setIsPressed(true);
-        }
-        props.onKeyDown?.(e);
-      }}
-      onKeyUp={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          setIsPressed(false);
-        }
-        props.onKeyUp?.(e);
-      }}
-    >
-      {/* Left Icon */}
-      {leftIcon && !loading && (
-        <span className="inline-flex items-center mr-2" aria-hidden="true">
-          {leftIcon}
-        </span>
-      )}
-
-      {/* Loading Spinner */}
-      {loading && (
-        <span
-          className="inline-flex items-center mr-2"
-          role="status"
-          aria-label="Loading"
-        >
-          <svg
-            className="w-4 h-4 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        </span>
-      )}
-
-      {/* Button Text */}
-      <span>{children}</span>
-
-      {/* Right Icon */}
-      {rightIcon && !loading && (
-        <span className="inline-flex items-center ml-2" aria-hidden="true">
-          {rightIcon}
-        </span>
-      )}
-    </button>
+    />
   );
 }
 

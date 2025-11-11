@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
+import { requireCSRF } from '@/lib/csrf';
 
 const scheduleSchema = z.object({
   scheduled_start_date: z.string().datetime(),
@@ -12,7 +13,10 @@ const scheduleSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: jobId } = await params;

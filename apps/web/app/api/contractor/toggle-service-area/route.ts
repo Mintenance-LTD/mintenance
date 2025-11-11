@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 // Validation schema
 const toggleServiceAreaSchema = z.object({
@@ -12,7 +13,10 @@ const toggleServiceAreaSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {

@@ -164,9 +164,34 @@ class Logger {
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const errorObj = error instanceof Error ? error : undefined;
-    const errorContext = error && !(error instanceof Error) 
-      ? { ...context, errorDetails: String(error) }
-      : context;
+    
+    // Handle non-Error objects (like Supabase errors) by extracting useful info
+    let errorContext = context;
+    if (error && !(error instanceof Error)) {
+      // Try to extract meaningful information from error objects
+      const errorDetails: Record<string, unknown> = {};
+      
+      if (typeof error === 'object' && error !== null) {
+        const err = error as Record<string, unknown>;
+        if (err.message) errorDetails.message = err.message;
+        if (err.code) errorDetails.code = err.code;
+        if (err.details) errorDetails.details = err.details;
+        if (err.hint) errorDetails.hint = err.hint;
+        if (err.status) errorDetails.status = err.status;
+        // If we couldn't extract anything meaningful, try JSON.stringify
+        if (Object.keys(errorDetails).length === 0) {
+          try {
+            errorDetails.raw = JSON.stringify(error);
+          } catch {
+            errorDetails.raw = String(error);
+          }
+        }
+      } else {
+        errorDetails.raw = String(error);
+      }
+      
+      errorContext = { ...context, errorDetails };
+    }
     
     this.log('error', message, errorContext, errorObj);
   }

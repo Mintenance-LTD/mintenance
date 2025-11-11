@@ -8,12 +8,16 @@ import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
 import { requireCSRF } from '@/lib/csrf';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
+import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
+import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
+import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
+import { env } from '@/lib/env';
+import { requireAdminFromDatabase } from '@/lib/admin-verification';
 
-// Initialize Stripe with secret key (server-side only)
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+// Initialize Stripe with validated secret key (server-side only)
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-09-30.clover',
 });
 
@@ -46,7 +50,26 @@ export async function POST(request: NextRequest) {
 
     const { escrowTransactionId, releaseReason } = validation.data;
 
-    // Get escrow transaction with job details
+    // Idempotency check - prevent duplicate escrow releases
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'release_escrow',
+      user.id,
+      escrowTransactionId
+    );
+
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'release_escrow');
+    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+      logger.info('Duplicate escrow release detected, returning cached result', {
+        service: 'payments',
+        idempotencyKey,
+        userId: user.id,
+        escrowTransactionId,
+      });
+      return NextResponse.json(idempotencyCheck.cachedResult);
+    }
+
+    // Get escrow transaction with job details and all new fields
     const { data: escrowTransaction, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
       .select(`
@@ -74,8 +97,24 @@ export async function POST(request: NextRequest) {
     const job = escrowTransaction.jobs;
 
     // Verify user has permission to release escrow
+    // SECURITY: For admin operations, verify role from database (not just JWT)
+    let isAdminVerified = false;
+    if (user.role === 'admin') {
+      try {
+        await requireAdminFromDatabase(user.id);
+        isAdminVerified = true;
+      } catch (error) {
+        logger.warn('Admin role verification failed for escrow release', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+        });
+        return NextResponse.json({ error: 'Unauthorized to release this escrow' }, { status: 403 });
+      }
+    }
+    
     const canRelease = 
-      user.role === 'admin' || // Admin can release any escrow
+      isAdminVerified || // Admin can release any escrow (verified from database)
       (user.role === 'homeowner' && job.homeowner_id === user.id) || // Homeowner can release their escrow
       (user.role === 'contractor' && job.contractor_id === user.id && releaseReason === 'job_completed'); // Contractor can request release when job completed
 
@@ -107,6 +146,97 @@ export async function POST(request: NextRequest) {
         error: stateValidation.error
       });
       return NextResponse.json({ error: stateValidation.error }, { status: 400 });
+    }
+
+    // Check all new release conditions (unless admin is forcing release)
+    // Admins can bypass all checks for dispute resolution or other administrative actions
+    if (user.role !== 'admin') {
+      // 1. Check admin approval
+      if (escrowTransaction.admin_hold_status === 'admin_hold' || escrowTransaction.admin_hold_status === 'pending_review') {
+        const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
+        return NextResponse.json({
+          error: 'Escrow is on admin hold',
+          blockingReasons,
+        }, { status: 403 });
+      }
+
+      // 2. Check homeowner approval or auto-approval eligibility
+      if (!escrowTransaction.homeowner_approval) {
+        const autoApprovalEligible = await HomeownerApprovalService.checkAutoApprovalEligibility(escrowTransactionId);
+        if (!autoApprovalEligible) {
+          const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
+          return NextResponse.json({
+            error: 'Waiting for homeowner approval',
+            blockingReasons,
+          }, { status: 403 });
+        }
+        // Process auto-approval
+        await HomeownerApprovalService.processAutoApproval(escrowTransactionId);
+        // Re-fetch escrow to get updated fields
+        const { data: updatedEscrow } = await serverSupabase
+          .from('escrow_transactions')
+          .select('homeowner_approval, cooling_off_ends_at')
+          .eq('id', escrowTransactionId)
+          .single();
+        if (!updatedEscrow?.homeowner_approval) {
+          return NextResponse.json({
+            error: 'Auto-approval failed',
+          }, { status: 403 });
+        }
+        escrowTransaction.homeowner_approval = updatedEscrow.homeowner_approval;
+        escrowTransaction.cooling_off_ends_at = updatedEscrow.cooling_off_ends_at;
+      }
+
+      // 3. Check photo verification
+      if (escrowTransaction.photo_verification_status !== 'verified') {
+        const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
+        return NextResponse.json({
+          error: 'Photo verification not completed',
+          blockingReasons,
+        }, { status: 403 });
+      }
+
+      if (!escrowTransaction.photo_quality_passed) {
+        return NextResponse.json({
+          error: 'Photo quality check failed',
+        }, { status: 403 });
+      }
+
+      if (!escrowTransaction.geolocation_verified) {
+        return NextResponse.json({
+          error: 'Geolocation verification pending',
+        }, { status: 403 });
+      }
+
+      if (!escrowTransaction.timestamp_verified) {
+        return NextResponse.json({
+          error: 'Timestamp verification pending',
+        }, { status: 403 });
+      }
+
+      // 4. Check cooling-off period
+      if (escrowTransaction.cooling_off_ends_at) {
+        const coolingOffEnds = new Date(escrowTransaction.cooling_off_ends_at);
+        if (coolingOffEnds > new Date()) {
+          return NextResponse.json({
+            error: `Cooling-off period active until ${coolingOffEnds.toISOString()}`,
+            coolingOffEndsAt: coolingOffEnds.toISOString(),
+          }, { status: 403 });
+        }
+      }
+
+      // 5. Check for active disputes
+      const { count: disputeCount } = await serverSupabase
+        .from('disputes')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', job.id)
+        .in('status', ['open', 'pending']);
+
+      if ((disputeCount || 0) > 0) {
+        return NextResponse.json({
+          error: 'Active dispute exists - cannot release escrow',
+        }, { status: 403 });
+      }
     }
 
     // If auto-release is enabled and job is completed, evaluate auto-release conditions
@@ -146,18 +276,46 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (contractorError || !contractor?.stripe_connect_account_id) {
+      // Send notification to contractor
+      const { PaymentSetupNotificationService } = await import('@/lib/services/contractor/PaymentSetupNotificationService');
+      await PaymentSetupNotificationService.notifyPaymentSetupRequired(
+        job.contractor_id,
+        escrowTransactionId,
+        job.title,
+        escrowTransaction.amount
+      ).catch((error) => {
+        logger.error('Failed to send payment setup notification', error);
+      });
+
       logger.error('Contractor missing Stripe Connect account', {
         service: 'payments',
         userId: user.id,
         contractorId: job.contractor_id,
         escrowTransactionId
       });
-      return NextResponse.json({ error: 'Contractor not set up for payments' }, { status: 400 });
+      
+      return NextResponse.json({ 
+        error: 'Contractor not set up for payments',
+        message: 'The contractor has been notified to complete payment setup.',
+        requiresPaymentSetup: true
+      }, { status: 400 });
     }
 
-    // Create transfer to contractor using Stripe Connect
+    // Determine payment type from escrow transaction or default to 'final'
+    const paymentType = (escrowTransaction.payment_type as PaymentType) || 'final';
+
+    // Calculate fees using FeeCalculationService
+    const feeBreakdown = FeeCalculationService.calculateFees(escrowTransaction.amount, {
+      paymentType,
+    });
+
+    // Calculate contractor payout amount (after platform fee deduction)
+    // Note: Stripe processing fee is charged separately, not deducted from contractor payout
+    const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
+
+    // Create transfer to contractor using Stripe Connect (amount after platform fee)
     const transfer = await stripe.transfers.create({
-      amount: Math.round(escrowTransaction.amount * 100), // Convert to cents
+      amount: contractorAmountCents,
       currency: 'usd',
       destination: contractor.stripe_connect_account_id,
       description: `Payment for job: ${job.title}`,
@@ -167,12 +325,74 @@ export async function POST(request: NextRequest) {
         homeownerId: job.homeowner_id,
         contractorId: job.contractor_id,
         releaseReason,
+        platformFee: feeBreakdown.platformFee.toString(),
+        contractorAmount: feeBreakdown.contractorAmount.toString(),
       },
     });
+
+    // Get payment intent and charge ID for fee tracking
+    let chargeId: string | undefined;
+    if (escrowTransaction.payment_intent_id) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          escrowTransaction.payment_intent_id
+        );
+        chargeId = typeof paymentIntent.latest_charge === 'string' 
+          ? paymentIntent.latest_charge 
+          : paymentIntent.latest_charge?.id;
+      } catch (error) {
+        logger.warn('Failed to retrieve payment intent for fee tracking', {
+          service: 'payments',
+          paymentIntentId: escrowTransaction.payment_intent_id,
+        });
+      }
+    }
+
+    // Create platform fee transfer record
+    let feeTransferResult;
+    try {
+      feeTransferResult = await FeeTransferService.transferPlatformFee({
+        escrowTransactionId,
+        jobId: job.id,
+        contractorId: job.contractor_id,
+        amount: escrowTransaction.amount,
+        paymentIntentId: escrowTransaction.payment_intent_id || '',
+        chargeId,
+        paymentType,
+      });
+    } catch (error) {
+      logger.error('Failed to create fee transfer record', error, {
+        service: 'payments',
+        escrowTransactionId,
+      });
+      // Don't fail the release if fee tracking fails, but log it
+    }
 
     // Update escrow transaction status with optimistic locking
     // Use updated_at timestamp to prevent race conditions
     const originalUpdatedAt = escrowTransaction.updated_at;
+    
+    // Create a reconciliation record before attempting transfer
+    // This helps track transfers that succeed but DB updates fail
+    const reconciliationId = crypto.randomUUID();
+    const { error: reconciliationError } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        reconciliation_id: reconciliationId,
+        transfer_attempted_at: new Date().toISOString(),
+      })
+      .eq('id', escrowTransactionId)
+      .eq('updated_at', originalUpdatedAt);
+    
+    if (reconciliationError) {
+      logger.warn('Failed to set reconciliation ID - possible race condition', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+      });
+      // Continue anyway - reconciliation ID is for tracking, not blocking
+    }
+    
     const { data: updatedEscrow, error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
@@ -180,7 +400,13 @@ export async function POST(request: NextRequest) {
         transfer_id: transfer.id,
         released_at: new Date().toISOString(),
         release_reason: releaseReason,
+        platform_fee: feeBreakdown.platformFee,
+        contractor_payout: feeBreakdown.contractorAmount,
+        stripe_processing_fee: feeBreakdown.stripeFee,
+        fee_transfer_status: feeTransferResult?.status || 'pending',
+        fee_transfer_id: feeTransferResult?.feeTransferId || null,
         updated_at: new Date().toISOString(),
+        reconciliation_id: reconciliationId,
       })
       .eq('id', escrowTransactionId)
       .eq('updated_at', originalUpdatedAt) // Optimistic lock: only update if not modified
@@ -191,19 +417,60 @@ export async function POST(request: NextRequest) {
         service: 'payments',
         userId: user.id,
         escrowTransactionId,
-        transferId: transfer.id
+        transferId: transfer.id,
+        reconciliationId,
       });
 
       // Try to reverse the transfer if DB update fails
-      await stripe.transfers.createReversal(transfer.id).catch(err =>
-        logger.error('Failed to reverse transfer after DB error', err, {
+      try {
+        const reversal = await stripe.transfers.createReversal(transfer.id, {
+          amount: contractorAmountCents, // Reverse the exact amount transferred
+          metadata: {
+            reason: 'database_update_failed',
+            escrowTransactionId,
+            reconciliationId,
+            originalTransferId: transfer.id,
+          },
+        });
+        
+        logger.info('Transfer reversed successfully after DB error', {
           service: 'payments',
-          transferId: transfer.id
-        })
-      );
+          transferId: transfer.id,
+          reversalId: reversal.id,
+          reconciliationId,
+        });
+      } catch (reversalError) {
+        // If reversal fails, create a reconciliation record for manual review
+        logger.error('CRITICAL: Failed to reverse transfer after DB error - manual reconciliation required', reversalError, {
+          service: 'payments',
+          transferId: transfer.id,
+          escrowTransactionId,
+          reconciliationId,
+          contractorId: job.contractor_id,
+          amount: contractorAmountCents,
+        });
+        
+        // Create reconciliation record for manual review
+        try {
+          await serverSupabase
+            .from('escrow_reconciliation')
+            .insert({
+              escrow_transaction_id: escrowTransactionId,
+              transfer_id: transfer.id,
+              reconciliation_id: reconciliationId,
+              status: 'pending_review',
+              issue_type: 'transfer_succeeded_db_update_failed',
+              amount: contractorAmountCents,
+              contractor_id: job.contractor_id,
+              created_at: new Date().toISOString(),
+            });
+        } catch (reconciliationErr: unknown) {
+          logger.error('Failed to create reconciliation record', reconciliationErr as Error);
+        }
+      }
 
       return NextResponse.json(
-        { error: 'Failed to update escrow transaction' },
+        { error: 'Failed to update escrow transaction. Transfer has been reversed.' },
         { status: 500 }
       );
     }
@@ -214,19 +481,57 @@ export async function POST(request: NextRequest) {
         service: 'payments',
         userId: user.id,
         escrowTransactionId,
-        transferId: transfer.id
+        transferId: transfer.id,
+        reconciliationId,
       });
 
       // Try to reverse the transfer due to race condition
-      await stripe.transfers.createReversal(transfer.id).catch(err =>
-        logger.error('Failed to reverse transfer after race condition', err, {
+      try {
+        const reversal = await stripe.transfers.createReversal(transfer.id, {
+          amount: contractorAmountCents,
+          metadata: {
+            reason: 'race_condition',
+            escrowTransactionId,
+            reconciliationId,
+          },
+        });
+        
+        logger.info('Transfer reversed successfully after race condition', {
           service: 'payments',
-          transferId: transfer.id
-        })
-      );
+          transferId: transfer.id,
+          reversalId: reversal.id,
+          reconciliationId,
+        });
+      } catch (reversalError) {
+        // If reversal fails, create reconciliation record
+        logger.error('CRITICAL: Failed to reverse transfer after race condition - manual reconciliation required', reversalError, {
+          service: 'payments',
+          transferId: transfer.id,
+          escrowTransactionId,
+          reconciliationId,
+        });
+        
+        // If reversal fails, create reconciliation record
+        try {
+          await serverSupabase
+            .from('escrow_reconciliation')
+            .insert({
+              escrow_transaction_id: escrowTransactionId,
+              transfer_id: transfer.id,
+              reconciliation_id: reconciliationId,
+              status: 'pending_review',
+              issue_type: 'race_condition_reversal_failed',
+              amount: contractorAmountCents,
+              contractor_id: job.contractor_id,
+              created_at: new Date().toISOString(),
+            });
+        } catch (reconciliationErr: unknown) {
+          logger.error('Failed to create reconciliation record', reconciliationErr as Error);
+        }
+      }
 
       return NextResponse.json(
-        { error: 'This escrow transaction was modified by another request. Please try again.' },
+        { error: 'This escrow transaction was modified by another request. Transfer has been reversed. Please try again.' },
         { status: 409 }
       );
     }
@@ -244,18 +549,35 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       escrowTransactionId,
       transferId: transfer.id,
-      amount: escrowTransaction.amount,
+      originalAmount: escrowTransaction.amount,
+      platformFee: feeBreakdown.platformFee,
+      contractorAmount: feeBreakdown.contractorAmount,
       contractorId: job.contractor_id,
-      releaseReason
+      releaseReason,
+      feeTransferId: feeTransferResult?.feeTransferId,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       transferId: transfer.id,
-      amount: escrowTransaction.amount,
+      originalAmount: escrowTransaction.amount,
+      platformFee: feeBreakdown.platformFee,
+      contractorAmount: feeBreakdown.contractorAmount,
       contractorId: job.contractor_id,
       releasedAt: new Date().toISOString(),
-    });
+      feeTransferId: feeTransferResult?.feeTransferId,
+    };
+
+    // Store idempotency result
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'release_escrow',
+      responseData,
+      user.id,
+      { escrowTransactionId, transferId: transfer.id, releaseReason }
+    );
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     // Handle CSRF validation errors specifically

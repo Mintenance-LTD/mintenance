@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { BuildingSurveyorService } from './BuildingSurveyorService';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 /**
@@ -222,6 +223,7 @@ export class DataCollectionService {
 
   /**
    * Mark assessment as validated by admin
+   * Triggers learning from validation outcome
    */
   static async validateAssessment(
     assessmentId: string,
@@ -229,6 +231,17 @@ export class DataCollectionService {
     notes?: string
   ): Promise<void> {
     try {
+      // Get assessment data before updating
+      const { data: assessmentRecord, error: fetchError } = await serverSupabase
+        .from('building_assessments')
+        .select('assessment_data')
+        .eq('id', assessmentId)
+        .single();
+
+      if (fetchError || !assessmentRecord) {
+        throw new Error('Assessment not found');
+      }
+
       const { error } = await serverSupabase
         .from('building_assessments')
         .update({
@@ -249,6 +262,21 @@ export class DataCollectionService {
         assessmentId,
         validatedBy,
       });
+
+      // Trigger learning from validation
+      // Note: For now, we use the original assessment as validated assessment
+      // Future enhancement: Admin could provide corrected assessment data
+      try {
+        const validatedAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+        await BuildingSurveyorService.learnFromValidation(assessmentId, validatedAssessment);
+      } catch (learningError) {
+        logger.warn('Failed to trigger learning from validation', {
+          service: 'DataCollectionService',
+          assessmentId,
+          error: learningError,
+        });
+        // Don't fail validation if learning fails
+      }
     } catch (error) {
       logger.error('Error validating assessment', error, {
         service: 'DataCollectionService',
@@ -521,6 +549,20 @@ export class DataCollectionService {
         severityMatch,
         confidenceDelta,
       });
+
+      // Trigger learning if accuracy is below threshold
+      if (finalAccuracy < 70) {
+        try {
+          await BuildingSurveyorService.learnFromValidation(assessmentId, humanValidatedAssessment);
+        } catch (learningError) {
+          logger.warn('Failed to trigger learning from accuracy tracking', {
+            service: 'DataCollectionService',
+            assessmentId,
+            error: learningError,
+          });
+          // Don't fail accuracy tracking if learning fails
+        }
+      }
 
       return {
         accuracy: finalAccuracy,

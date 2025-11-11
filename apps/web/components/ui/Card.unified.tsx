@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
+import { Card as SharedCard } from '@mintenance/shared-ui';
+import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@mintenance/shared-ui';
 
 /**
  * Unified Card Component
@@ -118,9 +120,9 @@ export function Card({
   // Padding values - Standardize to 24px (p-6) per plan
   const paddingValues: Record<CardPadding, string> = {
     none: '0',
-    sm: theme.spacing[4], // 16px
-    md: theme.spacing[6], // 24px - standard card padding per plan
-    lg: theme.spacing[8], // 32px
+    sm: `${theme.spacing[4]}px`, // 16px
+    md: `${theme.spacing[6]}px`, // 24px - standard card padding per plan
+    lg: `${theme.spacing[8]}px`, // 32px
   };
 
   // Base styles - Consistent with plan: rounded-2xl (16px), padding 24px, shadow-sm
@@ -188,125 +190,11 @@ export function Card({
 }
 
 // ============================================================================
-// CARD SUB-COMPONENTS
+// CARD SUB-COMPONENTS (using shared components)
 // ============================================================================
 
-interface CardHeaderProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export function CardHeader({ children, className = '', style = {} }: CardHeaderProps) {
-  return (
-    <div
-      className={`card-header ${className}`}
-      style={{
-        marginBottom: theme.spacing[4],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-Card.Header = CardHeader;
-
-interface CardTitleProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-}
-
-export function CardTitle({ children, className = '', style = {}, as = 'h3' }: CardTitleProps) {
-  const Tag = as;
-  return (
-    <Tag
-      className={`card-title ${className}`}
-      style={{
-        fontSize: theme.typography.fontSize.xl,
-        fontWeight: theme.typography.fontWeight.semibold,
-        color: theme.colors.textPrimary,
-        margin: 0,
-        lineHeight: theme.typography.lineHeight.tight,
-        ...style,
-      }}
-    >
-      {children}
-    </Tag>
-  );
-}
-Card.Title = CardTitle;
-
-interface CardDescriptionProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export function CardDescription({ children, className = '', style = {} }: CardDescriptionProps) {
-  return (
-    <p
-      className={`card-description ${className}`}
-      style={{
-        fontSize: theme.typography.fontSize.sm,
-        color: theme.colors.textSecondary,
-        margin: 0,
-        marginTop: theme.spacing[1],
-        lineHeight: theme.typography.lineHeight.normal,
-        ...style,
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-Card.Description = CardDescription;
-
-interface CardContentProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export function CardContent({ children, className = '', style = {} }: CardContentProps) {
-  return (
-    <div className={`card-content ${className}`} style={{ ...style }}>
-      {children}
-    </div>
-  );
-}
-Card.Content = CardContent;
-
-interface CardFooterProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export function CardFooter({ children, className = '', style = {} }: CardFooterProps) {
-  return (
-    <div
-      className={`card-footer ${className}`}
-      style={{
-        marginTop: theme.spacing[4],
-        paddingTop: theme.spacing[4],
-        borderTop: `1px solid ${theme.colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-Card.Footer = CardFooter;
+// Re-export shared sub-components
+export { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@mintenance/shared-ui';
 
 // ============================================================================
 // SPECIALIZED CARD VARIANTS

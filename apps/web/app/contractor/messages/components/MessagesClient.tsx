@@ -276,23 +276,161 @@ export function MessagesClient() {
     return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
   };
 
-  // Show loading state while checking authentication
+  // Show loading state with skeleton loader while checking authentication
   if (loading && !user) {
     return (
       <div style={{
-        minHeight: '50vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        maxWidth: '1440px',
+        padding: `${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing.lg} ${theme.spacing[6]}`
       }}>
-        <div style={{ textAlign: 'center' }}>
+        {/* Breadcrumbs Skeleton */}
+        <div style={{
+          marginBottom: theme.spacing[4],
+          display: 'flex',
+          gap: theme.spacing[2],
+          alignItems: 'center'
+        }}>
           <div style={{
-            fontSize: theme.typography.fontSize.lg,
-            color: theme.colors.textSecondary
-          }}>
-            Loading...
-          </div>
+            width: '60px',
+            height: '20px',
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderRadius: theme.borderRadius.md,
+            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }} />
+          <div style={{
+            width: '80px',
+            height: '20px',
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderRadius: theme.borderRadius.md,
+            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }} />
         </div>
+
+        {/* Header Skeleton */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: theme.borderRadius.xl,
+          padding: theme.spacing[6],
+          marginBottom: theme.spacing[6],
+          border: `1px solid ${theme.colors.border}`
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[3],
+            marginBottom: theme.spacing[2]
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderRadius: theme.borderRadius.lg,
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+            <div style={{
+              width: '200px',
+              height: '32px',
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderRadius: theme.borderRadius.md,
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+          </div>
+          <div style={{
+            width: '300px',
+            height: '20px',
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderRadius: theme.borderRadius.md,
+            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }} />
+        </div>
+
+        {/* Content Skeleton */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: theme.spacing[6]
+        }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: theme.borderRadius.xl,
+              border: `1px solid ${theme.colors.border}`,
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderBottom: `1px solid ${theme.colors.border}`
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{
+                    width: '150px',
+                    height: '24px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.md,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }} />
+                  <div style={{
+                    width: '40px',
+                    height: '32px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.md,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }} />
+                </div>
+              </div>
+              <div style={{ padding: theme.spacing[4] }}>
+                {[1, 2, 3].map((j) => (
+                  <div key={j} style={{
+                    marginBottom: theme.spacing[3],
+                    display: 'flex',
+                    gap: theme.spacing[3],
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        width: '120px',
+                        height: '16px',
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: theme.borderRadius.md,
+                        marginBottom: theme.spacing[1],
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                      }} />
+                      <div style={{
+                        width: '180px',
+                        height: '14px',
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: theme.borderRadius.md,
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                      }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -539,11 +677,81 @@ export function MessagesClient() {
       )}
 
       {/* Loading and Error States */}
-      {loading && (
-        <div className="bg-white rounded-xl shadow-md p-8 text-center">
-          <div className="text-lg text-gray-600">
-            Loading conversations...
-          </div>
+      {loading && user && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: theme.spacing[6]
+        }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: theme.borderRadius.xl,
+              border: `1px solid ${theme.colors.border}`,
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: theme.spacing[4],
+                borderBottom: `1px solid ${theme.colors.border}`
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{
+                    width: '150px',
+                    height: '24px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.md,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }} />
+                  <div style={{
+                    width: '40px',
+                    height: '32px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.md,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                  }} />
+                </div>
+              </div>
+              <div style={{ padding: theme.spacing[4] }}>
+                {[1, 2, 3].map((j) => (
+                  <div key={j} style={{
+                    marginBottom: theme.spacing[3],
+                    display: 'flex',
+                    gap: theme.spacing[3],
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        width: '120px',
+                        height: '16px',
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: theme.borderRadius.md,
+                        marginBottom: theme.spacing[1],
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                      }} />
+                      <div style={{
+                        width: '180px',
+                        height: '14px',
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: theme.borderRadius.md,
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                      }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

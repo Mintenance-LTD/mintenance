@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireCSRF } from '@/lib/csrf';
 
 // Direct Supabase configuration for testing
 const supabaseUrl = 'http://127.0.0.1:54321';
@@ -14,7 +15,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const body = await request.json();
     const { email, password, firstName, lastName, role, phone } = body;
 
     console.log('Test registration attempt:', { email, firstName, lastName, role });

@@ -5,6 +5,7 @@ import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { requireCSRF } from '@/lib/csrf';
 
 const verifyPhotosSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
@@ -18,7 +19,10 @@ const verifyPhotosSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

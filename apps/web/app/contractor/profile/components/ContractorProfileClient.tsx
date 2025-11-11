@@ -9,6 +9,7 @@ import { ProfileQuickActions } from './ProfileQuickActions';
 import { EditProfileDialog } from './EditProfileDialog';
 import { SkillsManagementDialog } from './SkillsManagementDialog';
 import { PhotoUploadDialog } from './PhotoUploadDialog';
+import { ContractorDataPrivacy } from './ContractorDataPrivacy';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
@@ -215,6 +216,7 @@ export function ContractorProfileClient({
             skills={skills || []}
             onManageSkills={() => setShowSkillsModal(true)}
           />
+          <ContractorDataPrivacy contractorId={contractor.id} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[8] }}>

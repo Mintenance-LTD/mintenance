@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireCSRF } from '@/lib/csrf';
 
 // This is a debug endpoint to check if an email exists in either table
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const { email } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });

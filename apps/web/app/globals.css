@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
 /* Prevent horizontal scroll and keep content centered */
 html, body {
   width: 100%;

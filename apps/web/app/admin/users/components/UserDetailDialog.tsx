@@ -70,15 +70,29 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/users/${userId}`);
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch user details');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch user details' }));
+        throw new Error(errorData.error || 'Failed to fetch user details');
       }
       const data = await response.json();
       setUser(data.user);
       setVerification(data.verification);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load user details');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load user details');
+      }
     } finally {
       setLoading(false);
     }

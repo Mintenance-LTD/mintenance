@@ -120,9 +120,27 @@ function ChatContent({ params }: ChatPageProps) {
           const job = data.job;
           if (job?.homeowner) {
             const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-            const homeownerName = homeowner?.first_name && homeowner?.last_name
-              ? `${homeowner.first_name} ${homeowner.last_name}`.trim()
-              : homeowner?.email || 'Homeowner';
+            
+            // Format homeowner name with improved fallback logic
+            let homeownerName: string;
+            const first = homeowner?.first_name?.trim() ?? '';
+            const last = homeowner?.last_name?.trim() ?? '';
+            const full = `${first} ${last}`.trim();
+            
+            if (full) {
+              homeownerName = full;
+            } else if (homeowner?.email) {
+              // Extract and format email username (e.g., "john.doe@example.com" -> "John Doe")
+              const emailName = homeowner.email.split('@')[0];
+              homeownerName = emailName
+                .split('.')
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                .join(' ');
+            } else if (homeowner?.company_name) {
+              homeownerName = homeowner.company_name;
+            } else {
+              homeownerName = 'Homeowner';
+            }
             
             // Update homeowner profile state
             setHomeownerProfile({

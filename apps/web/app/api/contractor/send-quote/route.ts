@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EmailService } from '@/lib/email-service';
+import { requireCSRF } from '@/lib/csrf';
 
 // Validation schema
 const sendQuoteSchema = z.object({
@@ -12,7 +13,10 @@ const sendQuoteSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {

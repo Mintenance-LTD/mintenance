@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
-import { validateCSRF } from '@/lib/csrf-validator';
+import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
+import { isValidUUID } from '@/lib/validation/uuid';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,11 +15,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    // Validate CSRF token
-    const csrfValidation = await validateCSRF(request);
-    if (!csrfValidation.valid) {
-      return NextResponse.json({ error: csrfValidation.error || 'CSRF validation failed' }, { status: 403 });
-    }
+    // CSRF protection
+    await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();
     
@@ -28,6 +27,23 @@ export async function POST(
     // Handle async params in Next.js 15
     const resolvedParams = await Promise.resolve(params);
     const postId = resolvedParams.id;
+
+    // SECURITY: Validate UUID format before database query
+    if (!isValidUUID(postId)) {
+      return NextResponse.json({ error: 'Invalid post ID format' }, { status: 400 });
+    }
+
+    // SECURITY: Fix IDOR - verify post exists and user can access it
+    const { data: post, error: postError } = await supabase
+      .from('contractor_posts')
+      .select('id, contractor_id')
+      .eq('id', postId)
+      .single();
+
+    if (postError || !post) {
+      // Don't reveal if post exists or not - return generic error
+      return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 });
+    }
 
     // Check if like already exists
     const { data: existingLike } = await supabase
@@ -46,12 +62,16 @@ export async function POST(
         .eq('contractor_id', user.id);
 
       if (deleteError) {
-        console.error('Error unliking post:', deleteError);
+        logger.error('Failed to unlike post', deleteError, {
+          service: 'contractor-posts',
+          postId,
+          userId: user.id,
+        });
         return NextResponse.json({ error: 'Failed to unlike post' }, { status: 500 });
       }
 
       // Get updated likes count
-      const { data: post } = await supabase
+      const { data: postData } = await supabase
         .from('contractor_posts')
         .select('likes_count')
         .eq('id', postId)
@@ -59,7 +79,7 @@ export async function POST(
 
       return NextResponse.json({ 
         liked: false,
-        likes_count: post?.likes_count || 0
+        likes_count: postData?.likes_count || 0
       });
     } else {
       // Like: create the like
@@ -71,12 +91,16 @@ export async function POST(
         });
 
       if (insertError) {
-        console.error('Error liking post:', insertError);
+        logger.error('Failed to like post', insertError, {
+          service: 'contractor-posts',
+          postId,
+          userId: user.id,
+        });
         return NextResponse.json({ error: 'Failed to like post' }, { status: 500 });
       }
 
       // Get updated likes count
-      const { data: post } = await supabase
+      const { data: postData } = await supabase
         .from('contractor_posts')
         .select('likes_count')
         .eq('id', postId)
@@ -84,11 +108,12 @@ export async function POST(
 
       return NextResponse.json({ 
         liked: true,
-        likes_count: post?.likes_count || 0
+        likes_count: postData?.likes_count || 0
       });
     }
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts/[id]/like:', error);
+    logger.error('Unexpected error in like post', error, { service: 'contractor-posts' });
+    // SECURITY: Don't expose error details to client
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

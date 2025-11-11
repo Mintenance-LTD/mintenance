@@ -3,17 +3,18 @@ import Stripe from 'stripe';
 import { createHash } from 'crypto';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { env } from '@/lib/env';
 
 // Lazy-initialize Stripe to avoid errors when STRIPE_SECRET_KEY is not set
 const getStripeInstance = () => {
-  const apiKey = process.env.STRIPE_SECRET_KEY;
+  const apiKey = env.STRIPE_SECRET_KEY;
   if (!apiKey) {
     throw new Error('STRIPE_SECRET_KEY not configured');
   }
   return new Stripe(apiKey);
 };
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
 
 // Ensure Node.js runtime for Stripe SDK and raw body access
 export const runtime = 'nodejs';
@@ -204,6 +205,10 @@ export async function POST(request: NextRequest) {
 
         case 'invoice.payment_failed':
           await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+
+        case 'account.updated':
+          await handleAccountUpdated(event.data.object as Stripe.Account);
           break;
 
         default:
@@ -429,6 +434,77 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     });
   } catch (error) {
     logger.error('Error in handleChargeRefunded', error, { service: 'stripe-webhook' });
+    throw error;
+  }
+}
+
+/**
+ * Handle Stripe Connect account updated
+ * Syncs account status when contractor completes onboarding
+ */
+async function handleAccountUpdated(account: Stripe.Account) {
+  logger.info('Stripe Connect account updated webhook received', { 
+    service: 'stripe-webhook',
+    accountId: account.id 
+  });
+
+  try {
+    // Get contractor ID from account metadata
+    const contractorId = account.metadata?.contractor_id;
+    
+    if (!contractorId) {
+      logger.warn('Account updated webhook missing contractor_id metadata', { 
+        service: 'stripe-webhook',
+        accountId: account.id 
+      });
+      return;
+    }
+
+    // Check if account is fully onboarded
+    const isOnboarded = account.details_submitted && account.charges_enabled && account.payouts_enabled;
+
+    // Update users table with stripe_connect_account_id
+    const { error: userUpdateError } = await serverSupabase
+      .from('users')
+      .update({
+        stripe_connect_account_id: account.id,
+      })
+      .eq('id', contractorId);
+
+    if (userUpdateError) {
+      logger.error('Failed to update users.stripe_connect_account_id', userUpdateError, { 
+        service: 'stripe-webhook',
+        accountId: account.id,
+        contractorId 
+      });
+    }
+
+    // Update contractor_payout_accounts table
+    const { error: payoutUpdateError } = await serverSupabase
+      .from('contractor_payout_accounts')
+      .update({
+        stripe_account_id: account.id,
+        account_complete: isOnboarded,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('contractor_id', contractorId);
+
+    if (payoutUpdateError) {
+      logger.error('Failed to update contractor_payout_accounts', payoutUpdateError, { 
+        service: 'stripe-webhook',
+        accountId: account.id,
+        contractorId 
+      });
+    }
+
+    logger.info('Stripe Connect account synced successfully', { 
+      service: 'stripe-webhook',
+      accountId: account.id,
+      contractorId,
+      isOnboarded 
+    });
+  } catch (error) {
+    logger.error('Error in handleAccountUpdated', error, { service: 'stripe-webhook' });
     throw error;
   }
 }

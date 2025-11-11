@@ -10,6 +10,7 @@ import { theme } from '@/lib/theme';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { PrivacyPolicyContent } from '@/components/settings/PrivacyPolicyContent';
 import { TermsOfServiceContent } from '@/components/settings/TermsOfServiceContent';
+import { GDPRSettings } from '@/components/settings/GDPRSettings';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -27,8 +28,40 @@ export default function SettingsPage() {
   }
 
   if (!user) {
-    router.push('/login');
-    return null;
+    router.push('/login?redirect=/settings');
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
+        <div style={{
+          backgroundColor: theme.colors.white,
+          padding: theme.spacing[8],
+          borderRadius: theme.borderRadius.xl,
+          border: `1px solid ${theme.colors.border}`,
+          textAlign: 'center',
+          maxWidth: '500px',
+        }}>
+          <h2 style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[4],
+          }}>
+            Access Denied
+          </h2>
+          <p style={{
+            fontSize: theme.typography.fontSize.base,
+            color: theme.colors.textSecondary,
+            marginBottom: theme.spacing[6],
+          }}>
+            You must be logged in to access settings.
+          </p>
+          <Link href="/login?redirect=/settings" style={{ textDecoration: 'none' }}>
+            <Button variant="primary">
+              Go to Login
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -404,6 +437,9 @@ export default function SettingsPage() {
               </Button>
             </Link>
           </div>
+
+          {/* GDPR Settings Card */}
+          <GDPRSettings />
         </div>
 
         {/* Privacy Policy Dialog */}

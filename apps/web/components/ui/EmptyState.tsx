@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { Icon } from './Icon';
+import { Icon } from '@/components/ui/Icon';
 import { Button } from './Button';
 import { getFadeInStyle } from '@/lib/theme-enhancements';
 

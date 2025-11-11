@@ -1,7 +1,9 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
+import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import type { AgentResult, AgentContext } from './types';
+import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
 
 interface PricingRecommendation {
   id?: string;
@@ -34,12 +36,87 @@ interface MarketAnalysis {
 
 /**
  * Agent for intelligent pricing recommendations
- * - Market-based pricing analysis
- * - Dynamic quote suggestions
- * - Price competitiveness scoring
- * - Contractor pricing pattern learning
+ * Enhanced with Nested Learning multi-frequency memory system
+ * 
+ * Implements:
+ * - Multi-frequency pricing memory (market/category/long-term patterns)
+ * - Dynamic pricing updates with continuum memory
+ * - Pricing pattern compression M: K → V
  */
 export class PricingAgent {
+  private static memorySystemInitialized = false;
+  private static readonly AGENT_NAME = 'pricing';
+
+  /**
+   * Initialize continuum memory system for pricing
+   */
+  private static async initializeMemorySystem(): Promise<void> {
+    if (this.memorySystemInitialized) return;
+
+    try {
+      // Configure 3-level memory system for pricing
+      // Level 0 (High-frequency): Market changes, updates every bid analysis
+      // Level 1 (Mid-frequency): Category trends, updates daily
+      // Level 2 (Low-frequency): Long-term market patterns, updates weekly
+      
+      const config: ContinuumMemoryConfig = {
+        agentName: this.AGENT_NAME,
+        defaultChunkSize: 10,
+        defaultLearningRate: 0.001,
+        levels: [
+          {
+            level: 0,
+            frequency: 1, // Updates every bid analysis
+            chunkSize: 10, // Last 10 analyses
+            learningRate: 0.01,
+            mlpConfig: {
+              inputSize: 20, // Market features + category + location + job features
+              hiddenSizes: [64, 32],
+              outputSize: 1, // Price recommendation
+              activation: 'relu',
+            },
+          },
+          {
+            level: 1,
+            frequency: 16, // Updates daily (every 16 analyses)
+            chunkSize: 100, // Last 100 analyses
+            learningRate: 0.005,
+            mlpConfig: {
+              inputSize: 20,
+              hiddenSizes: [128, 64],
+              outputSize: 1,
+              activation: 'relu',
+            },
+          },
+          {
+            level: 2,
+            frequency: 1000000, // Updates weekly (low frequency)
+            chunkSize: 1000, // Last 1000 analyses
+            learningRate: 0.001,
+            mlpConfig: {
+              inputSize: 20,
+              hiddenSizes: [256, 128, 64],
+              outputSize: 1,
+              activation: 'relu',
+            },
+          },
+        ],
+      };
+
+      await memoryManager.getOrCreateMemorySystem(config);
+      this.memorySystemInitialized = true;
+
+      logger.info('PricingAgent memory system initialized', {
+        agentName: this.AGENT_NAME,
+        levels: config.levels.length,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize memory system', error, {
+        service: 'PricingAgent',
+      });
+      // Continue with fallback behavior
+    }
+  }
   /**
    * Generate pricing recommendation for a job
    */
@@ -269,13 +346,57 @@ export class PricingAgent {
 
       return this.calculateMarketStatistics(amounts);
     } catch (error) {
-      logger.error('Error analyzing market', error, {
+      logger.error('Error querying market from database', error, {
         service: 'PricingAgent',
         category,
         location,
       });
       return null;
     }
+  }
+
+  /**
+   * Extract pricing keys for memory queries
+   * Keys: Market features, category, location, job features
+   */
+  private static async extractPricingKeys(
+    category: string,
+    location: string,
+    jobBudget: number | null
+  ): Promise<number[]> {
+    const keys: number[] = [];
+
+    // Category encoding (one-hot style)
+    const categories = ['plumbing', 'electrical', 'hvac', 'painting', 'carpentry', 'other'];
+    const categoryIndex = categories.indexOf(category.toLowerCase());
+    for (let i = 0; i < categories.length; i++) {
+      keys.push(i === categoryIndex ? 1 : 0);
+    }
+
+    // Location features (simplified)
+    const region = this.extractRegion(location);
+    keys.push(region ? 1 : 0); // Has region
+    keys.push(location.length > 0 ? Math.min(location.length / 50, 1) : 0); // Location complexity
+
+    // Budget features
+    if (jobBudget !== null) {
+      keys.push(Math.min(jobBudget / 5000, 1)); // Normalized budget
+      keys.push(jobBudget > 1000 ? 1 : 0); // High-value flag
+    } else {
+      keys.push(0.5); // Unknown budget
+      keys.push(0);
+    }
+
+    // Market demand features (would be enhanced with real data)
+    keys.push(0.5); // Placeholder for demand
+    keys.push(0.5); // Placeholder for competition
+
+    // Pad to expected input size (20 features)
+    while (keys.length < 20) {
+      keys.push(0);
+    }
+
+    return keys.slice(0, 20);
   }
 
   /**
@@ -583,12 +704,16 @@ export class PricingAgent {
 
   /**
    * Learn from bid acceptance/rejection
+   * Enhanced with multi-frequency memory updates
+   * Implements pricing pattern compression: M: K → V
    */
   static async learnFromBidOutcome(
     bidId: string,
     wasAccepted: boolean
   ): Promise<AgentResult> {
     try {
+      await this.initializeMemorySystem();
+
       // Get bid details
       const { data: bid, error: bidError } = await serverSupabase
         .from('bids')
@@ -601,6 +726,36 @@ export class PricingAgent {
       }
 
       const job = (bid as any).jobs;
+
+      // Extract keys for memory
+      const keys = await this.extractPricingKeys(
+        job.category || '',
+        job.location || '',
+        job.budget || null
+      );
+
+      // Values: accepted price normalized (0-1 range)
+      // This represents the "surprise signal" - actual accepted price
+      const normalizedPrice = Math.min((bid.amount || 0) / 5000, 1);
+      const values = [normalizedPrice];
+
+      // Add context flow to all memory levels
+      // Each level will update at its own frequency
+      for (let level = 0; level < 3; level++) {
+        try {
+          await memoryManager.addContextFlow(
+            this.AGENT_NAME,
+            keys,
+            values,
+            level
+          );
+        } catch (error) {
+          logger.warn('Failed to add context flow to memory level', {
+            service: 'PricingAgent',
+            level,
+          });
+        }
+      }
 
       // Update pricing recommendation with outcome
       if (bid.pricing_recommendation_id) {
@@ -631,6 +786,14 @@ export class PricingAgent {
         jobId: bid.job_id,
         userId: bid.contractor_id,
         metadata: { bidId, wasAccepted, bidAmount: bid.amount },
+      });
+
+      logger.info('Learned from bid outcome', {
+        service: 'PricingAgent',
+        bidId,
+        wasAccepted,
+        bidAmount: bid.amount,
+        memoryLevelsUpdated: 3,
       });
 
       return { success: true, message: 'Learning data updated' };

@@ -17,7 +17,7 @@ interface ActivityFeedProps {
   activities: ActivityItem[];
 }
 
-export function ActivityFeed({ activities }: ActivityFeedProps) {
+export const ActivityFeed = React.memo(function ActivityFeed({ activities }: ActivityFeedProps) {
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'job':
@@ -148,5 +148,5 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       )}
     </div>
   );
-}
+});
 

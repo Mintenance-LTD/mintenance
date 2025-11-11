@@ -89,69 +89,7 @@ export async function POST(request: NextRequest) {
       role: result.user!.role
     });
 
-    // Initialize trial period for contractors
-    if (result.user!.role === 'contractor') {
-      try {
-        const { TrialService } = await import('@/lib/services/subscription/TrialService');
-        const { TrialNotifications } = await import('@/lib/services/notifications/TrialNotifications');
-        
-        const trialInitialized = await TrialService.initializeTrial(result.user!.id);
-        if (trialInitialized) {
-          // Send welcome email (non-blocking)
-          TrialNotifications.sendTrialWelcomeEmail(result.user!.id).catch((err) => {
-            logger.error('Failed to send trial welcome email', {
-              service: 'auth',
-              userId: result.user!.id,
-              error: err instanceof Error ? err.message : String(err),
-            });
-          });
-        }
-      } catch (trialError) {
-        // Log but don't fail registration
-        logger.error('Failed to initialize trial period', {
-          service: 'auth',
-          userId: result.user!.id,
-          error: trialError instanceof Error ? trialError.message : String(trialError),
-        });
-      }
-    }
-
-    // Send welcome email and phone verification for homeowners
-    if (result.user!.role === 'homeowner') {
-      try {
-        const { HomeownerNotifications } = await import('@/lib/services/notifications/HomeownerNotifications');
-        
-        // Send welcome email (non-blocking)
-        HomeownerNotifications.sendWelcomeEmail(result.user!.id).catch((err) => {
-          logger.error('Failed to send homeowner welcome email', {
-            service: 'auth',
-            userId: result.user!.id,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        });
-
-        // Send phone verification code if phone provided
-        if (phone) {
-          const { PhoneVerificationService } = await import('@/lib/services/verification/PhoneVerificationService');
-          PhoneVerificationService.sendVerificationCode(result.user!.id, phone).catch((err) => {
-            logger.error('Failed to send phone verification code', {
-              service: 'auth',
-              userId: result.user!.id,
-              error: err instanceof Error ? err.message : String(err),
-            });
-          });
-        }
-      } catch (emailError) {
-        // Log but don't fail registration
-        logger.error('Failed to send homeowner welcome email', {
-          service: 'auth',
-          userId: result.user!.id,
-          error: emailError instanceof Error ? emailError.message : String(emailError),
-        });
-      }
-    }
-
-    // Create response
+    // Create response immediately (don't wait for background tasks)
     const response = NextResponse.json(
       {
         message: 'Registration successful',
@@ -179,6 +117,103 @@ export async function POST(request: NextRequest) {
     Object.entries(headers).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
+
+    // Run background tasks (non-blocking) - don't await
+    if (result.user!.role === 'contractor') {
+      Promise.all([
+        (async () => {
+          try {
+            const { TrialService } = await import('@/lib/services/subscription/TrialService');
+            const { SubscriptionService } = await import('@/lib/services/subscription/SubscriptionService');
+            const { TrialNotifications } = await import('@/lib/services/notifications/TrialNotifications');
+            
+            // Initialize free tier subscription
+            try {
+              await SubscriptionService.createFreeTierSubscription(result.user!.id);
+              logger.info('Free tier subscription created for new contractor', {
+                service: 'auth',
+                userId: result.user!.id,
+              });
+            } catch (freeTierError) {
+              logger.error('Failed to create free tier subscription', {
+                service: 'auth',
+                userId: result.user!.id,
+                error: freeTierError instanceof Error ? freeTierError.message : String(freeTierError),
+              });
+            }
+            
+            // Initialize trial period (for paid plan upgrades)
+            const trialInitialized = await TrialService.initializeTrial(result.user!.id);
+            if (trialInitialized) {
+              // Send welcome email (non-blocking)
+              TrialNotifications.sendTrialWelcomeEmail(result.user!.id).catch((err) => {
+                logger.error('Failed to send trial welcome email', {
+                  service: 'auth',
+                  userId: result.user!.id,
+                  error: err instanceof Error ? err.message : String(err),
+                });
+              });
+            }
+          } catch (trialError) {
+            logger.error('Failed to initialize trial period', {
+              service: 'auth',
+              userId: result.user!.id,
+              error: trialError instanceof Error ? trialError.message : String(trialError),
+            });
+          }
+        })(),
+      ]).catch((err) => {
+        logger.error('Background registration task failed', {
+          service: 'auth',
+          userId: result.user!.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+
+    // Send welcome email and phone verification for homeowners (background)
+    if (result.user!.role === 'homeowner') {
+      Promise.all([
+        (async () => {
+          try {
+            const { HomeownerNotifications } = await import('@/lib/services/notifications/HomeownerNotifications');
+            
+            // Send welcome email (non-blocking)
+            HomeownerNotifications.sendWelcomeEmail(result.user!.id).catch((err) => {
+              logger.error('Failed to send homeowner welcome email', {
+                service: 'auth',
+                userId: result.user!.id,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            });
+
+            // Send phone verification code if phone provided
+            if (phone) {
+              const { PhoneVerificationService } = await import('@/lib/services/verification/PhoneVerificationService');
+              PhoneVerificationService.sendVerificationCode(result.user!.id, phone).catch((err) => {
+                logger.error('Failed to send phone verification code', {
+                  service: 'auth',
+                  userId: result.user!.id,
+                  error: err instanceof Error ? err.message : String(err),
+                });
+              });
+            }
+          } catch (emailError) {
+            logger.error('Failed to send homeowner welcome email', {
+              service: 'auth',
+              userId: result.user!.id,
+              error: emailError instanceof Error ? emailError.message : String(emailError),
+            });
+          }
+        })(),
+      ]).catch((err) => {
+        logger.error('Background homeowner registration task failed', {
+          service: 'auth',
+          userId: result.user!.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
 
     return response;
 

@@ -20,6 +20,8 @@ import {
 import { BuildingAssessmentDisplay } from '@/components/building-surveyor';
 import { X } from 'lucide-react';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 
 interface Assessment {
   id: string;
@@ -134,130 +136,105 @@ export function BuildingAssessmentsClient({
       style={{
         maxWidth: '1440px',
         margin: '0 auto',
-        padding: theme.spacing[6],
+        padding: theme.spacing[8],
         display: 'flex',
         flexDirection: 'column',
         gap: theme.spacing[6],
+        width: '100%',
       }}
     >
-      {/* Header */}
-      <div>
-        <h1
-          style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          Building Assessments
-        </h1>
-        <p
-          style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Review and validate AI building damage assessments for training data collection.
-          {statistics.canAutoValidate && (
-            <span style={{ color: '#10B981', fontWeight: 600 }}>
-              {' '}Auto-validation is active for high-confidence assessments.
-            </span>
-          )}
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Building Assessments"
+        subtitle={`Review and validate AI building damage assessments for training data collection.${statistics.canAutoValidate ? ' Auto-validation is active for high-confidence assessments.' : ''}`}
+        quickStats={[
+          {
+            label: 'total',
+            value: statistics.total,
+            icon: 'fileText',
+            color: theme.colors.primary,
+          },
+          {
+            label: 'pending',
+            value: statistics.pending,
+            icon: 'clock',
+            color: '#F59E0B',
+          },
+          {
+            label: 'validated',
+            value: statistics.validated,
+            icon: 'checkCircle',
+            color: theme.colors.success,
+          },
+        ]}
+      />
 
-      {/* Statistics */}
+      {/* Statistics Dashboard */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
           gap: theme.spacing[4],
         }}
       >
-        <Card variant="default" padding="md">
-          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-            Total Assessments
-          </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginTop: theme.spacing[1],
-            }}
-          >
-            {statistics.total}
-          </div>
-        </Card>
-        <Card variant="default" padding="md">
-          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-            Pending Review
-          </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: '#F59E0B',
-              marginTop: theme.spacing[1],
-            }}
-          >
-            {statistics.pending}
-          </div>
-        </Card>
-        <Card variant="default" padding="md">
-          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-            Validated
-          </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: '#10B981',
-              marginTop: theme.spacing[1],
-            }}
-          >
-            {statistics.validated}
-          </div>
-        </Card>
-        <Card variant="default" padding="md">
-          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-            Rejected
-          </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: '#EF4444',
-              marginTop: theme.spacing[1],
-            }}
-          >
-            {statistics.rejected}
-          </div>
-        </Card>
-        {statistics.canAutoValidate !== undefined && (
-          <Card variant="default" padding="md" className={statistics.canAutoValidate ? 'border-l-4 border-l-green-500' : ''}>
-            <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-              Auto-Validation
-            </div>
-            <div
-              style={{
+        <AdminMetricCard
+          label="Total Assessments"
+          value={statistics.total}
+          icon="fileText"
+          iconColor={theme.colors.primary}
+        />
+        <AdminMetricCard
+          label="Pending Review"
+          value={statistics.pending}
+          icon="clock"
+          iconColor="#F59E0B"
+        />
+        <AdminMetricCard
+          label="Validated"
+          value={statistics.validated}
+          icon="checkCircle"
+          iconColor={theme.colors.success}
+        />
+        <AdminMetricCard
+          label="Rejected"
+          value={statistics.rejected}
+          icon="xCircle"
+          iconColor={theme.colors.error}
+        />
+      </div>
+
+      {/* Auto-Validation Status */}
+      {statistics.canAutoValidate !== undefined && (
+        <Card style={{ 
+          padding: theme.spacing[4],
+          borderLeft: statistics.canAutoValidate ? `4px solid ${theme.colors.success}` : `4px solid ${theme.colors.border}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+            <Icon 
+              name={statistics.canAutoValidate ? 'checkCircle' : 'clock'} 
+              size={20} 
+              color={statistics.canAutoValidate ? theme.colors.success : theme.colors.textSecondary} 
+            />
+            <div>
+              <div style={{ 
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.semibold,
-                color: statistics.canAutoValidate ? '#10B981' : '#6B7280',
-                marginTop: theme.spacing[1],
-              }}
-            >
-              {statistics.canAutoValidate ? 'Active' : 'Inactive'}
-            </div>
-            {!statistics.canAutoValidate && statistics.minValidatedForAutoValidation && (
-              <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, marginTop: theme.spacing[1] }}>
-                Need {statistics.minValidatedForAutoValidation - statistics.validated} more validated
+                color: theme.colors.textPrimary,
+              }}>
+                Auto-Validation: {statistics.canAutoValidate ? 'Active' : 'Inactive'}
               </div>
-            )}
-          </Card>
-        )}
-      </div>
+              {!statistics.canAutoValidate && statistics.minValidatedForAutoValidation && (
+                <div style={{ 
+                  fontSize: theme.typography.fontSize.sm, 
+                  color: theme.colors.textSecondary, 
+                  marginTop: theme.spacing[1] 
+                }}>
+                  Need {statistics.minValidatedForAutoValidation - statistics.validated} more validated assessments
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Filters */}
       <div
@@ -270,15 +247,35 @@ export function BuildingAssessmentsClient({
         {(['all', 'pending', 'validated', 'rejected'] as const).map((status) => {
           const isActive = filterStatus === status;
           return (
-            <Button
+            <button
               key={status}
-              variant={isActive ? 'primary' : 'outline'}
-              size="sm"
               onClick={() => setFilterStatus(status)}
-              className="capitalize"
+              style={{
+                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                borderRadius: theme.borderRadius.full,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                backgroundColor: isActive 
+                  ? (status === 'pending' ? '#F59E0B' : status === 'validated' ? theme.colors.success : status === 'rejected' ? theme.colors.error : theme.colors.primary)
+                  : theme.colors.backgroundSecondary,
+                color: isActive ? theme.colors.white : theme.colors.textPrimary,
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }
+              }}
             >
-              {status}
-            </Button>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
           );
         })}
       </div>

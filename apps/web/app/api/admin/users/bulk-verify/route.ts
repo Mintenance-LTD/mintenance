@@ -6,6 +6,7 @@ import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { AdminNotificationService } from '@/lib/services/admin/AdminNotificationService';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
+import { requireCSRF } from '@/lib/csrf';
 
 const bulkVerifySchema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(100),
@@ -15,7 +16,10 @@ const bulkVerifySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const admin = await getCurrentUserFromCookies();
 
     if (!admin || admin.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });

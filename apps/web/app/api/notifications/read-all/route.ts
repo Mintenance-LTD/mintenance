@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const body = await request.json();
     const { userId } = body;
 
     if (!userId) {

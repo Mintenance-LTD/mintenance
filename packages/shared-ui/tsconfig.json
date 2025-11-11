@@ -1,19 +1,32 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": false,
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
-    "jsx": "react-jsx",
-    "skipLibCheck": true,
+    "strict": true,
     "esModuleInterop": true,
-    "lib": ["ES2020", "DOM"],
-    "module": "ESNext",
-    "target": "ES2020",
-    "moduleResolution": "bundler",
-    "noEmit": false
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "emitDeclarationOnly": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "**/*.native.tsx", 
+    "**/*.native.ts",
+    "**/components/**/Card.tsx",
+    "**/components/**/Button.tsx",
+    "**/components/**/Input.tsx",
+    "**/components/**/Badge.tsx",
+    "**/utils/usePlatform.ts"
+  ]
 }

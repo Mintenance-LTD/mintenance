@@ -22,6 +22,7 @@ export function AddPropertyButton() {
         size="lg"
         onClick={() => setIsDialogOpen(true)}
         className="bg-secondary text-white hover:bg-secondary-600 shadow-md hover:shadow-lg"
+        data-add-property-button
       >
         <Icon name="plus" size={18} color="white" />
         Add Property

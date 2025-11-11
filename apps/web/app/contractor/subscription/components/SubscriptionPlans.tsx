@@ -93,7 +93,7 @@ export function SubscriptionPlans({
                     fontSize: theme.typography.fontSize.base,
                     color: theme.colors.textSecondary,
                   }}>
-                    /month
+                    {plan.price === 0 ? '' : '/month'}
                   </span>
                 </div>
               </div>
@@ -197,6 +197,9 @@ export function SubscriptionPlans({
 }
 
 function formatCurrency(amount: number): string {
+  if (amount === 0) {
+    return 'Free';
+  }
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',

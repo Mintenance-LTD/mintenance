@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
+import { Button, Card } from '../components/ui';
 import { theme } from '@/lib/theme';
 
 interface ErrorPageProps {

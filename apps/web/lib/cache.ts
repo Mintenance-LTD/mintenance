@@ -1,5 +1,76 @@
 import { unstable_cache } from 'next/cache';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
+
+// Types for cache data
+interface HomeownerData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  city?: string;
+  profile_image_url?: string;
+}
+
+interface JobWithPhotos {
+  id: string;
+  photos?: string[] | unknown;
+  homeowner_id?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  timeline?: unknown;
+  photoUrls?: string[];
+  homeowner?: HomeownerData | null;
+  [key: string]: unknown;
+}
+
+interface PhotoData {
+  job_id: string;
+  photo_url: string;
+  display_order?: number;
+}
+
+interface SubscriptionData {
+  id: string;
+  status: string;
+  current_period_end?: string;
+  next_billing_date?: string;
+  [key: string]: unknown;
+}
+
+interface MessageData {
+  id: string;
+  content?: string;
+  message_text?: string;
+  sender_id: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface PaymentData {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  payment_date?: string;
+  due_date?: string;
+}
+
+/**
+ * Helper function to extract Supabase error information
+ * Supabase errors have non-enumerable properties, so we use JSON.parse(JSON.stringify())
+ */
+function extractSupabaseError(error: unknown): Record<string, unknown> {
+  if (!error) {
+    return { message: 'Unknown error' };
+  }
+  
+  try {
+    // JSON.stringify/parse works for Supabase errors even when properties aren't enumerable
+    return JSON.parse(JSON.stringify(error));
+  } catch {
+    return { message: String(error) };
+  }
+}
 
 /**
  * Cache configuration for different data types
@@ -10,6 +81,14 @@ export const CACHE_TAGS = {
   SERVICES: 'services',
   CATEGORIES: 'categories',
   USER_PROFILES: 'user-profiles',
+  USER_JOBS: 'user-jobs',
+  USER_BIDS: 'user-bids',
+  USER_PAYMENTS: 'user-payments',
+  USER_PROPERTIES: 'user-properties',
+  USER_SUBSCRIPTIONS: 'user-subscriptions',
+  USER_MESSAGES: 'user-messages',
+  USER_RECOMMENDATIONS: 'user-recommendations',
+  USER_ONBOARDING: 'user-onboarding',
 } as const;
 
 export const CACHE_DURATIONS = {
@@ -50,7 +129,9 @@ export const getCachedContractors = unstable_cache(
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching contractors:', error);
+      logger.error('Error fetching contractors', error, {
+        service: 'cache',
+      });
       return [];
     }
 
@@ -91,14 +172,15 @@ export const getCachedJobs = unstable_cache(
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('Error fetching jobs:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
+        logger.error('Error fetching jobs', error, {
+          service: 'cache',
+        });
         return [];
       }
 
       // Fetch homeowner data separately to avoid relation issues
-      const homeownerIds = [...new Set((jobs || []).map(job => job.homeowner_id).filter(Boolean))];
-      const homeownersMap: Record<string, any> = {};
+      const homeownerIds = [...new Set((jobs || []).map((job: JobWithPhotos) => job.homeowner_id).filter(Boolean))];
+      const homeownersMap: Record<string, HomeownerData> = {};
       
       if (homeownerIds.length > 0) {
         try {
@@ -108,28 +190,31 @@ export const getCachedJobs = unstable_cache(
             .in('id', homeownerIds);
           
           if (homeowners) {
-            homeowners.forEach((homeowner: any) => {
+            homeowners.forEach((homeowner: HomeownerData) => {
               homeownersMap[homeowner.id] = homeowner;
             });
           }
         } catch (homeownerError) {
-          console.warn('Could not fetch homeowner data:', homeownerError);
+          logger.warn('Could not fetch homeowner data', {
+            service: 'cache',
+            error: homeownerError,
+          });
         }
       }
 
       // Process jobs to normalize photos array
-      const processedJobs = (jobs || []).map(job => {
+      const processedJobs = (jobs || []).map((job: JobWithPhotos) => {
         let photoUrls: string[] = [];
         
         // Try to get photos from photos JSONB field
         if (job.photos) {
           if (Array.isArray(job.photos)) {
-            photoUrls = job.photos.filter((url: any) => url && typeof url === 'string');
+            photoUrls = job.photos.filter((url: unknown): url is string => typeof url === 'string' && url.length > 0);
           } else if (typeof job.photos === 'string') {
             try {
               const parsed = JSON.parse(job.photos);
               if (Array.isArray(parsed)) {
-                photoUrls = parsed.filter((url: any) => url && typeof url === 'string');
+                photoUrls = parsed.filter((url: unknown): url is string => typeof url === 'string' && url.length > 0);
               }
             } catch {
               photoUrls = [];
@@ -143,9 +228,9 @@ export const getCachedJobs = unstable_cache(
           // Add homeowner data from separate query
           homeowner: job.homeowner_id ? (homeownersMap[job.homeowner_id] || null) : null,
           // Add optional fields that might not exist
-          latitude: (job as any).latitude || null,
-          longitude: (job as any).longitude || null,
-          timeline: (job as any).timeline || null,
+          latitude: job.latitude || null,
+          longitude: job.longitude || null,
+          timeline: job.timeline || null,
         };
       });
 
@@ -164,7 +249,7 @@ export const getCachedJobs = unstable_cache(
           if (photosData && photosData.length > 0) {
             // Group photos by job_id
             const photosByJob: Record<string, string[]> = {};
-            photosData.forEach((photo: any) => {
+            photosData.forEach((photo: PhotoData) => {
               if (!photosByJob[photo.job_id]) {
                 photosByJob[photo.job_id] = [];
               }
@@ -172,21 +257,26 @@ export const getCachedJobs = unstable_cache(
             });
 
             // Update jobs with photos from jobs_photos table
-            processedJobs.forEach(job => {
+            processedJobs.forEach((job: JobWithPhotos) => {
               if (photosByJob[job.id]) {
                 job.photoUrls = photosByJob[job.id];
               }
             });
           }
         }
-      } catch (photosError) {
-        // Silently fail - photos from jobs_photos table are optional
-        console.warn('Could not fetch photos from jobs_photos table:', photosError);
-      }
+        } catch (photosError) {
+          // Silently fail - photos from jobs_photos table are optional
+          logger.warn('Could not fetch photos from jobs_photos table', {
+            service: 'cache',
+            error: photosError,
+          });
+        }
 
       return processedJobs;
     } catch (err) {
-      console.error('Unexpected error in getCachedJobs:', err);
+      logger.error('Unexpected error in getCachedJobs', err, {
+        service: 'cache',
+      });
       return [];
     }
   },
@@ -318,3 +408,323 @@ export async function revalidateUserProfile(userId: string) {
     console.error('Error revalidating user profile:', error);
   }
 }
+
+/**
+ * Cached function to get user jobs
+ */
+export const getCachedUserJobs = unstable_cache(
+  async (userId: string, limit: number = 50) => {
+    const { data, error } = await serverSupabase
+      .from('jobs')
+      .select('id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id')
+      .eq('homeowner_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      // Supabase errors have non-enumerable properties, so we need to extract them via JSON
+      let errorInfo: Record<string, unknown> = {};
+      try {
+        errorInfo = JSON.parse(JSON.stringify(error));
+      } catch {
+        errorInfo = { message: String(error) };
+      }
+      
+      console.error('Error fetching user jobs:', {
+        code: errorInfo.code,
+        message: errorInfo.message,
+        details: errorInfo.details,
+        hint: errorInfo.hint,
+      });
+      
+      return [];
+    }
+
+    return data || [];
+  },
+  ['user-jobs'],
+  {
+    tags: [CACHE_TAGS.USER_JOBS],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get user bids
+ */
+export const getCachedUserBids = unstable_cache(
+  async (userId: string, jobIds: string[], limit: number = 10) => {
+    if (jobIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await serverSupabase
+      .from('bids')
+      .select(`
+        id,
+        job_id,
+        contractor_id,
+        amount,
+        status,
+        created_at,
+        updated_at,
+        jobs (
+          id,
+          title,
+          category,
+          location
+        ),
+        contractor:users!bids_contractor_id_fkey (
+          id,
+          first_name,
+          last_name,
+          profile_image_url
+        )
+      `)
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      logger.error('Error fetching user bids', error, {
+        service: 'cache',
+        userId,
+      });
+      return [];
+    }
+
+    return data || [];
+  },
+  ['user-bids'],
+  {
+    tags: [CACHE_TAGS.USER_BIDS],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get user payments
+ * Note: Uses payment_tracking table if payments table doesn't exist
+ */
+export const getCachedUserPayments = unstable_cache(
+  async (userId: string, limit: number = 50): Promise<PaymentData[]> => {
+    // Try payments table first, fallback to payment_tracking
+    let data: PaymentData[] | null = null;
+    let error: unknown = null;
+
+    // First try the payments table
+    const paymentsResult = await serverSupabase
+      .from('payments')
+      .select('id, amount, status, created_at, payment_date')
+      .eq('payer_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (paymentsResult.error) {
+      // If payments table doesn't exist, try payment_tracking
+      if (paymentsResult.error.code === 'PGRST205') {
+        const trackingResult = await serverSupabase
+          .from('payment_tracking')
+          .select('id, amount, status, created_at')
+          .eq('contractor_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        
+        data = trackingResult.data;
+        error = trackingResult.error;
+      } else {
+        error = paymentsResult.error;
+      }
+    } else {
+      // Map payment_date to due_date for compatibility
+      data = (paymentsResult.data || []).map((payment: PaymentData) => ({
+        ...payment,
+        due_date: payment.payment_date,
+      }));
+    }
+
+    if (error) {
+      logger.error('Error fetching user payments', error, {
+        service: 'cache',
+        userId,
+      });
+      return [];
+    }
+
+    return data || [];
+  },
+  ['user-payments'],
+  {
+    tags: [CACHE_TAGS.USER_PAYMENTS],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get user properties
+ */
+export const getCachedUserProperties = unstable_cache(
+  async (userId: string, limit: number = 20) => {
+    const { data, error } = await serverSupabase
+      .from('properties')
+      .select('id, property_name, address, property_type, is_primary, created_at')
+      .eq('owner_id', userId)
+      .limit(limit);
+
+    if (error) {
+      const errorInfo = extractSupabaseError(error);
+      logger.error('Error fetching user properties', error, {
+        service: 'cache',
+        userId,
+        code: errorInfo.code || null,
+        message: errorInfo.message || null,
+        details: errorInfo.details || null,
+        hint: errorInfo.hint || null,
+      });
+      return [];
+    }
+
+    return data || [];
+  },
+  ['user-properties'],
+  {
+    tags: [CACHE_TAGS.USER_PROPERTIES],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get user subscriptions
+ * Note: Subscriptions are for contractors, homeowners don't have subscriptions
+ * This returns empty array for homeowners
+ */
+export const getCachedUserSubscriptions = unstable_cache(
+  async (userId: string, limit: number = 20) => {
+    // Check if user is a contractor first
+    const { data: userData } = await serverSupabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    // Only fetch subscriptions for contractors
+    if (!userData || userData.role !== 'contractor') {
+      return [];
+    }
+
+    const { data, error } = await serverSupabase
+      .from('contractor_subscriptions')
+      .select('id, status, current_period_end, amount, created_at')
+      .eq('contractor_id', userId)
+      .limit(limit);
+
+    if (error) {
+      const errorInfo = extractSupabaseError(error);
+      logger.error('Error fetching user subscriptions', error, {
+        service: 'cache',
+        userId,
+        code: errorInfo.code || null,
+        message: errorInfo.message || null,
+      });
+      return [];
+    }
+
+    // Map current_period_end to next_billing_date for compatibility
+    return (data || []).map((sub: SubscriptionData) => ({
+      ...sub,
+      next_billing_date: sub.current_period_end,
+    }));
+  },
+  ['user-subscriptions'],
+  {
+    tags: [CACHE_TAGS.USER_SUBSCRIPTIONS],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get user messages (recent activity)
+ */
+export const getCachedUserMessages = unstable_cache(
+  async (userId: string, limit: number = 10) => {
+    const { data, error } = await serverSupabase
+      .from('messages')
+      .select('id, content, message_text, sender_id, created_at')
+      .or(`receiver_id.eq.${userId},sender_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      const errorInfo = extractSupabaseError(error);
+      logger.error('Error fetching user messages', error, {
+        service: 'cache',
+        userId,
+        code: errorInfo.code || null,
+        message: errorInfo.message || null,
+      });
+      return [];
+    }
+
+    // Normalize content field (some schemas use content, others use message_text)
+    return (data || []).map((msg: MessageData) => ({
+      ...msg,
+      content: msg.content || msg.message_text || '',
+    }));
+  },
+  ['user-messages'],
+  {
+    tags: [CACHE_TAGS.USER_MESSAGES],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);
+
+/**
+ * Cached function to get contractor quotes for user jobs
+ */
+export const getCachedUserQuotes = unstable_cache(
+  async (userId: string, jobIds: string[], limit: number = 10) => {
+    if (jobIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await serverSupabase
+      .from('contractor_quotes')
+      .select(`
+        id,
+        job_id,
+        contractor_id,
+        total_amount,
+        status,
+        created_at,
+        job:jobs!contractor_quotes_job_id_fkey (
+          id,
+          title,
+          category
+        ),
+        contractor:users!contractor_quotes_contractor_id_fkey (
+          id,
+          first_name,
+          last_name,
+          profile_image_url
+        )
+      `)
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      logger.error('Error fetching user quotes', error, {
+        service: 'cache',
+        userId,
+      });
+      return [];
+    }
+
+    return data || [];
+  },
+  ['user-quotes'],
+  {
+    tags: [CACHE_TAGS.USER_BIDS],
+    revalidate: CACHE_DURATIONS.SHORT,
+  }
+);

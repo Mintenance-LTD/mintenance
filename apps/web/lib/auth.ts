@@ -164,8 +164,22 @@ export async function revokeAllTokens(userId: string): Promise<void> {
 
 /**
  * Verify a JWT token
+ * Also checks token blacklist for invalidated tokens
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
+  // SECURITY: Check if token is blacklisted first
+  try {
+    const { tokenBlacklist } = await import('./auth/token-blacklist');
+    const isBlacklisted = await tokenBlacklist.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      logger.warn('Token verification failed: token is blacklisted', { service: 'auth' });
+      return null;
+    }
+  } catch (error) {
+    // If blacklist check fails, continue with verification (fail open for availability)
+    logger.warn('Token blacklist check failed, continuing verification', error, { service: 'auth' });
+  }
+
   const secret = config.getRequired('JWT_SECRET');
   return verifyJWT(token, secret);
 }

@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { validateURLs } from '@/lib/security/url-validation';
 import { z } from 'zod';
 import type { JobDetail, JobSummary } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
+import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
+import { requireCSRF } from '@/lib/csrf';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -21,6 +23,7 @@ const createJobSchema = z.object({
   location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
   photoUrls: z.array(z.string().url()).optional(),
   requiredSkills: z.array(z.string().max(100)).max(10).optional(),
+  property_id: z.string().uuid().optional(),
 });
 
 // Enriched query with JOINs for complete data
@@ -225,9 +228,40 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting: 10 jobs per hour per user
+    const rateLimitResult = await checkJobCreationRateLimit(user.id);
+    
+    if (!rateLimitResult.allowed) {
+      logger.warn('Job creation rate limit exceeded', {
+        service: 'jobs',
+        userId: user.id,
+        remaining: rateLimitResult.remaining,
+        retryAfter: rateLimitResult.retryAfter,
+      });
+      
+      return NextResponse.json(
+        {
+          error: 'Too many job creation requests. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': Math.ceil(rateLimitResult.resetTime / 1000).toString(),
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
+          },
+        }
+      );
     }
 
     // Check phone verification for homeowners
@@ -267,6 +301,25 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = parsed.data;
+
+    // SECURITY: Validate photo URLs to prevent SSRF attacks
+    if (payload.photoUrls && payload.photoUrls.length > 0) {
+      const urlValidation = await validateURLs(payload.photoUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        logger.warn('Invalid photo URLs rejected in job creation', {
+          service: 'jobs',
+          userId: user.id,
+          invalidUrls: urlValidation.invalid,
+        });
+        return NextResponse.json(
+          { error: `Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
+          { status: 400 }
+        );
+      }
+      // Replace with validated URLs
+      payload.photoUrls = urlValidation.valid;
+    }
+
     const insertPayload: {
       title: string;
       homeowner_id: string;
@@ -276,6 +329,7 @@ export async function POST(request: NextRequest) {
       budget?: number;
       location?: string | null;
       required_skills?: string[] | null;
+      property_id?: string | null;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
@@ -295,6 +349,10 @@ export async function POST(request: NextRequest) {
     // Only include required_skills if provided - column may not exist in all environments
     if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
       insertPayload.required_skills = payload.requiredSkills;
+    }
+    // Include property_id if provided
+    if (payload.property_id !== undefined) {
+      insertPayload.property_id = payload.property_id;
     }
 
     let data: any;

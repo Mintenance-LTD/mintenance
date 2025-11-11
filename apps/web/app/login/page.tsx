@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const loginFormSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -29,6 +30,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     register,
@@ -37,6 +43,8 @@ export default function LoginPage() {
     watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
+    mode: 'onSubmit', // Only validate on submit, not on mount or change
+    reValidateMode: 'onSubmit', // Only revalidate on submit after first validation
     defaultValues: {
       email: '',
       password: '',
@@ -238,16 +246,37 @@ export default function LoginPage() {
             </div>
 
             {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={isSubmitting || csrfLoading}
-              disabled={isSubmitting || csrfLoading || !csrfToken}
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
-            </Button>
+            <div className="relative group">
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={isSubmitting || csrfLoading}
+                disabled={isSubmitting || csrfLoading || !csrfToken}
+                className={cn(
+                  "transition-all",
+                  (!csrfToken && !isSubmitting && !csrfLoading) && "opacity-60 cursor-not-allowed"
+                )}
+                aria-label={!csrfToken ? "Please wait while we load security settings..." : "Sign in"}
+              >
+                {isSubmitting ? 'Signing in...' : 'Sign in'}
+              </Button>
+              {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
+                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  Please wait while we load security settings...
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
+                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
+              <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
+                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                Loading security settings...
+              </p>
+            )}
 
             {/* Forgot Password Link */}
             <div className="text-center pt-2">

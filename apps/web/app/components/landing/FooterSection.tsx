@@ -104,12 +104,12 @@ export function FooterSection() {
                 </Link>
               </li>
               <li>
-                <a 
-                  href="#" 
+                <Link 
+                  href="/about#success-stories" 
                   className="text-gray-400 hover:text-secondary transition-colors"
                 >
                   Success Stories
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
