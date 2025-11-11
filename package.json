@@ -56,7 +56,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "dotenv": "^17.2.3",
-    "eslint": "^8",
+    "eslint": "^9",
     "eslint-config-prettier": "^10.1.8",
     "globby": "^14.0.2",
     "jest": "^30.2.0",
