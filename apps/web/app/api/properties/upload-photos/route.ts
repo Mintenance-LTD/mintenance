@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +22,9 @@ const MAX_FILES = 10; // Maximum 10 photos per property
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Validate environment variables
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
@@ -101,8 +105,17 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Generate unique filename
-      const fileName = `property-photos/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // SECURITY: Sanitize filename to prevent path traversal attacks
+      // Remove any path separators, special characters, and ensure safe filename
+      const sanitizedBaseName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+        .replace(/\.\./g, '') // Remove path traversal attempts
+        .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
+        .substring(0, 100); // Limit filename length
+      
+      // Generate safe filename with user ID and timestamp to prevent collisions
+      const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `property-photos/${safeFileName}`;
 
       // Upload to Supabase Storage (using Job-storage bucket that exists)
       const { data: uploadData, error: uploadError } = await supabase.storage

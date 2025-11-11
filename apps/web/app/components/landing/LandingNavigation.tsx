@@ -122,6 +122,7 @@ export function LandingNavigation() {
                     : "text-gray-700 hover:text-secondary"
                 )}
                 aria-current={activeSection === link.id ? 'page' : undefined}
+                suppressHydrationWarning
               >
                 {link.label}
               </a>

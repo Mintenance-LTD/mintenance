@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
 import { MemoryAnalytics } from '@/lib/services/ml-engine/analytics/MemoryAnalytics';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * GET /api/ml/memory/[agentName]
@@ -48,7 +49,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { agentName: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { agentName: string } }
 ) {
   try {
     const { agentName } = params;

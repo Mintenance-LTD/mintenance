@@ -10,7 +10,14 @@
 'use client';
 
 import React from 'react';
-import { Card as SharedCard, CardHeader as SharedCardHeader, CardFooter as SharedCardFooter, CardTitle, CardDescription, CardContent } from '@mintenance/shared-ui';
+import { 
+  Card as SharedCard, 
+  CardHeader as SharedCardHeader, 
+  CardFooter as SharedCardFooter, 
+  CardTitle, 
+  CardDescription, 
+  CardContent 
+} from '@mintenance/shared-ui';
 import type { WebCardProps } from '@mintenance/shared-ui';
 import { getGradientCardStyle } from '@/lib/theme-enhancements';
 import { cn } from '@/lib/utils';
@@ -31,7 +38,7 @@ export interface CardProps extends Omit<WebCardProps, 'variant' | 'padding'> {
  * 
  * Maps old variant names to new shared component variants
  */
-export function Card({
+function CardComponent({
   variant = 'default',
   padding = 'md',
   hover = false,
@@ -92,14 +99,18 @@ export function Card({
   );
 }
 
+// Named export
+export const Card = CardComponent;
+
 // Re-export sub-components
 export { CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '@mintenance/shared-ui';
 
 // For backward compatibility with Card.Header, Card.Title, etc.
-(Card as any).Header = SharedCardHeader;
-(Card as any).Footer = SharedCardFooter;
-(Card as any).Title = CardTitle;
-(Card as any).Description = CardDescription;
-(Card as any).Content = CardContent;
+Card.Header = SharedCardHeader;
+Card.Footer = SharedCardFooter;
+Card.Title = CardTitle;
+Card.Description = CardDescription;
+Card.Content = CardContent;
 
+// Default export
 export default Card;

@@ -6,6 +6,7 @@ import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { AdminNotificationService } from '@/lib/services/admin/AdminNotificationService';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
+import { requireCSRF } from '@/lib/csrf';
 
 const verifySchema = z.object({
   action: z.enum(['approve', 'reject']),
@@ -14,7 +15,10 @@ const verifySchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const admin = await getCurrentUserFromCookies();

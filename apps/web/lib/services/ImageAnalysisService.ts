@@ -1,6 +1,7 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { logger } from '@mintenance/shared';
 import { getGoogleVisionConfig, validateGoogleVisionConfig } from '@/lib/config/google-vision.config';
+import { validateURLs } from '@/lib/security/url-validation';
 
 export interface ImageAnalysisResult {
   labels: Array<{ description: string; score: number }>;
@@ -153,6 +154,19 @@ export class ImageAnalysisService {
     // Limit number of images to analyze (cost optimization)
     const imagesToAnalyze = imageUrls.slice(0, limit);
 
+    // SECURITY: Validate all image URLs before sending to Google Cloud Vision
+    const urlValidation = await validateURLs(imagesToAnalyze, true);
+    if (urlValidation.invalid.length > 0) {
+      logger.warn('Invalid image URLs rejected for Google Vision analysis', {
+        service: 'ImageAnalysisService',
+        invalidUrls: urlValidation.invalid,
+      });
+      throw new Error(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
+    }
+
+    // Use only validated URLs
+    const validatedImageUrls = urlValidation.valid;
+
     try {
       const allLabels: Map<string, number> = new Map();
       const allObjects: Map<string, number> = new Map();
@@ -160,7 +174,7 @@ export class ImageAnalysisService {
       const detectedFeatures: string[] = [];
 
       // Analyze each image
-      for (const imageUrl of imagesToAnalyze) {
+      for (const imageUrl of validatedImageUrls) {
         try {
           const [labelResult] = await client.labelDetection({ image: { source: { imageUri: imageUrl } } });
           const objectLocalizationResult = client.objectLocalization

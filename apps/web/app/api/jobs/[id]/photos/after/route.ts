@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

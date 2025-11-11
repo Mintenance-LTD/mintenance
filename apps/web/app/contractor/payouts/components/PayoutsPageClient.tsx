@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ContractorLayoutShell } from '../../components/ContractorLayoutShell';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -52,6 +51,58 @@ export function PayoutsPageClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Inject spin animation keyframes
+  useEffect(() => {
+    const styleId = 'payout-spin-animation';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Fix duplicate sidebar issue - remove nested ContractorLayoutShell if present
+    // This happens when a layout is accidentally nested inside the main content
+    const fixDuplicateSidebar = () => {
+      const sidebars = document.querySelectorAll('aside[role="complementary"], aside.complementary');
+      if (sidebars.length > 1) {
+        // Find the nested sidebar (one that's inside a main element)
+        const mains = document.querySelectorAll('main');
+        if (mains.length > 0) {
+          const firstMain = mains[0];
+          const nestedSidebar = firstMain.querySelector('aside');
+          
+          if (nestedSidebar) {
+            // Find the parent div that contains this nested sidebar (the duplicate ContractorLayoutShell)
+            const nestedLayoutDiv = nestedSidebar.closest('div[style*="min-height: 100vh"]');
+            
+            if (nestedLayoutDiv && nestedLayoutDiv.parentElement === firstMain) {
+              // Extract the actual content from the nested layout
+              const contentDiv = nestedLayoutDiv.querySelector('div:has(header)');
+              if (contentDiv) {
+                const actualMain = contentDiv.querySelector('main');
+                if (actualMain) {
+                  // Replace the nested layout div with just the actual content
+                  const actualContent = Array.from(actualMain.children);
+                  nestedLayoutDiv.replaceWith(...actualContent);
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // Run immediately and also after a short delay to catch any delayed rendering
+    fixDuplicateSidebar();
+    setTimeout(fixDuplicateSidebar, 100);
+    setTimeout(fixDuplicateSidebar, 500);
+  }, []);
 
   const handleSetupStripeConnect = async () => {
     try {
@@ -137,20 +188,14 @@ export function PayoutsPageClient({
   };
 
   return (
-    <ContractorLayoutShell
-      contractor={contractor}
-      email={userEmail}
-      userId={userId}
-      initialPathname="/contractor/payouts"
-    >
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[6]
-      }}>
+    <div style={{
+      maxWidth: '1440px',
+      margin: '0 auto',
+      padding: theme.spacing[6],
+      display: 'flex',
+      flexDirection: 'column',
+      gap: theme.spacing[6]
+    }}>
         {/* Subtitle - Layout header already shows "Payouts" */}
         <div>
           <p style={{
@@ -413,13 +458,6 @@ export function PayoutsPageClient({
           </div>
         </Alert>
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </ContractorLayoutShell>
   );
 }
 

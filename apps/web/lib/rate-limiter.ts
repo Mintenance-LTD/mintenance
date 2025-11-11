@@ -160,6 +160,15 @@ export async function checkWebhookRateLimit(identifier: string): Promise<RateLim
   });
 }
 
+// Helper function for job creation rate limiting (10 jobs per hour)
+export async function checkJobCreationRateLimit(userId: string): Promise<RateLimitResult> {
+  return rateLimiter.checkRateLimit({
+    windowMs: 3600000, // 1 hour
+    maxRequests: 10, // Max 10 jobs per hour per user
+    identifier: `job-creation:${userId}`,
+  });
+}
+
 // Helper function for API rate limiting
 export async function checkApiRateLimit(identifier: string): Promise<RateLimitResult> {
   return rateLimiter.checkRateLimit({

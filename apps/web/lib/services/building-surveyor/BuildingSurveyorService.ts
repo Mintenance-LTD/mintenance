@@ -2,6 +2,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from '../agents/AdaptiveUpdateEngine';
+import { validateURLs } from '@/lib/security/url-validation';
 import type {
   Phase1BuildingAssessment,
   AssessmentContext,
@@ -322,6 +323,19 @@ export class BuildingSurveyorService {
       // Extract features before GPT-4 call (without assessment data)
       const features = await this.extractDetectionFeatures(imageUrls, context);
 
+      // SECURITY: Validate all image URLs before sending to OpenAI
+      const urlValidation = await validateURLs(imageUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        logger.warn('Invalid image URLs rejected for building assessment', {
+          service: 'BuildingSurveyorService',
+          invalidUrls: urlValidation.invalid,
+        });
+        throw new Error(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
+      }
+
+      // Use only validated URLs
+      const validatedImageUrls = urlValidation.valid;
+
       // Query memory for learned adjustments
       let memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
       try {
@@ -358,7 +372,7 @@ export class BuildingSurveyorService {
       }
 
       // Limit to 4 images (GPT-4 Vision limit)
-      const imagesToAnalyze = imageUrls.slice(0, 4);
+      const imagesToAnalyze = validatedImageUrls.slice(0, 4);
 
       // Prepare GPT-4 Vision request
       const systemPrompt = this.buildSystemPrompt();

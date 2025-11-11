@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const bodySchema = z.object({
   amount: z.number().int().positive(),
@@ -12,6 +14,9 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,20 +31,28 @@ export async function POST(request: NextRequest) {
     }
 
     const { amount, jobId, contractorId, currency } = parsed.data;
+    
+    // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
       .select('id, title, budget, homeowner_id, contractor_id')
       .eq('id', jobId)
+      .eq('homeowner_id', user.id) // Only fetch if user is homeowner
       .single();
 
     if (jobError || !jobData) {
-      console.error('[API] checkout-session job lookup error', jobError);
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      // Don't reveal if job exists or not - return generic error
+      logger.warn('Job access denied or not found', {
+        service: 'payments',
+        jobId,
+        userId: user.id,
+        error: jobError?.message,
+      });
+      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
     }
 
-    const isHomeowner = jobData.homeowner_id === user.id;
     const isAdmin = user.role === 'admin';
-    if (!isHomeowner && !isAdmin) {
+    if (!isAdmin && jobData.homeowner_id !== user.id) {
       return NextResponse.json({ error: 'Only the homeowner can initiate payment checkout' }, { status: 403 });
     }
 
@@ -75,7 +88,11 @@ export async function POST(request: NextRequest) {
       });
 
     if (functionError) {
-      console.error('[API] checkout-session function error', functionError);
+      logger.error('Failed to create payment intent', functionError, {
+        service: 'payments',
+        jobId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to create payment intent' }, { status: 502 });
     }
 
@@ -91,7 +108,8 @@ export async function POST(request: NextRequest) {
       status: paymentIntent.status,
     });
   } catch (err) {
-    console.error('[API] checkout-session POST error', err);
+    logger.error('Failed to create checkout session', err, { service: 'payments' });
+    // SECURITY: Don't expose error details to client
     return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
   }
 }

@@ -5,10 +5,14 @@ import { sanitizeEmail } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { gdprAnonymizeSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

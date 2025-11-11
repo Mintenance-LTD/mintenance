@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Handle swipe actions on the Discover page
@@ -11,7 +12,10 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
 
     if (!user) {
       return NextResponse.json(

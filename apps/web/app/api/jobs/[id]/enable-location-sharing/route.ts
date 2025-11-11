@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: jobId } = await params;

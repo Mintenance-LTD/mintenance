@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 // This is a debug endpoint to delete a user from public.users table
 export async function DELETE(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const { email } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });

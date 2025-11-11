@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -23,6 +24,9 @@ const addMethodSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {

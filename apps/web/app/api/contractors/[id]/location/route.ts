@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
+import { requireCSRF } from '@/lib/csrf';
 
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -15,7 +16,10 @@ const updateLocationSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: contractorId } = await params;

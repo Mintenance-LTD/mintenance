@@ -43,6 +43,8 @@ export default function LoginPage() {
     watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
+    mode: 'onSubmit', // Only validate on submit, not on mount or change
+    reValidateMode: 'onSubmit', // Only revalidate on submit after first validation
     defaultValues: {
       email: '',
       password: '',

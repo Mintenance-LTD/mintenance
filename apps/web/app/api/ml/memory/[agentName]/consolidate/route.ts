@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * POST /api/ml/memory/[agentName]/consolidate
@@ -8,7 +9,10 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { agentName: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { agentName: string } }
 ) {
   try {
     const { agentName } = params;

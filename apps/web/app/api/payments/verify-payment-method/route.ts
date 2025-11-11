@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -21,7 +22,10 @@ const verifyPaymentMethodSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
       logger.warn('Unauthorized payment method verification attempt', {

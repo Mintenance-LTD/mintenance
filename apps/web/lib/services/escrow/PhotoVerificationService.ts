@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { validateURL } from '@/lib/security/url-validation';
 
 export interface PhotoQualityResult {
   passed: boolean;
@@ -381,13 +382,46 @@ export class PhotoVerificationService {
     resolution: { width: number; height: number };
     fileSize?: number;
   }> {
+    // SECURITY: Validate URL to prevent SSRF attacks
+    const urlValidation = await validateURL(photoUrl, true);
+    if (!urlValidation.isValid) {
+      logger.warn('Invalid photo URL rejected', {
+        service: 'PhotoVerificationService',
+        photoUrl,
+        error: urlValidation.error,
+      });
+      throw new Error(`Invalid photo URL: ${urlValidation.error}`);
+    }
+
+    const validatedUrl = urlValidation.normalizedUrl || photoUrl;
+
     // In a real implementation, this would use image processing libraries
     // For now, return default values (would be replaced with actual image analysis)
     try {
       // Try to fetch image and analyze
-      const response = await fetch(photoUrl, { method: 'HEAD' });
+      // SECURITY: Use validated URL and set timeout to prevent slowloris attacks
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await fetch(validatedUrl, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
       const contentType = response.headers.get('content-type') || '';
       const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+
+      // Verify content type is an image
+      if (!contentType.startsWith('image/')) {
+        logger.warn('URL does not point to an image', {
+          service: 'PhotoVerificationService',
+          photoUrl: validatedUrl,
+          contentType,
+        });
+        throw new Error('URL does not point to a valid image');
+      }
 
       // Default values (would be replaced with actual image analysis)
       return {
@@ -397,9 +431,17 @@ export class PhotoVerificationService {
         fileSize: contentLength,
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.warn('Image fetch timeout', {
+          service: 'PhotoVerificationService',
+          photoUrl: validatedUrl,
+        });
+        throw new Error('Image fetch timeout');
+      }
       logger.warn('Could not fetch image info, using defaults', {
         service: 'PhotoVerificationService',
-        photoUrl,
+        photoUrl: validatedUrl,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return {
         brightness: 0.7,
@@ -423,6 +465,26 @@ export class PhotoVerificationService {
     }
 
     try {
+      // SECURITY: Validate all URLs before sending to OpenAI
+      const { validateURLs } = await import('@/lib/security/url-validation');
+      const allUrls = [...beforeUrls, ...afterUrls];
+      const validation = await validateURLs(allUrls, true);
+
+      if (validation.invalid.length > 0) {
+        logger.warn('Invalid URLs rejected for AI comparison', {
+          service: 'PhotoVerificationService',
+          invalidUrls: validation.invalid,
+        });
+        return {
+          score: 0,
+          differences: [`Invalid URLs detected: ${validation.invalid.map(i => i.error).join(', ')}`],
+        };
+      }
+
+      // Use only validated URLs
+      const validatedBeforeUrls = validation.valid.slice(0, beforeUrls.length);
+      const validatedAfterUrls = validation.valid.slice(beforeUrls.length);
+
       const systemPrompt = `You are an expert at comparing before and after photos to detect if they are from the same location.
       Analyze the photos and determine:
       1. If they show the same location/property
@@ -445,11 +507,11 @@ export class PhotoVerificationService {
           role: 'user',
           content: [
             { type: 'text', text: userPrompt },
-            ...beforeUrls.slice(0, 3).map(url => ({
+            ...validatedBeforeUrls.slice(0, 3).map(url => ({
               type: 'image_url',
               image_url: { url, detail: 'low' },
             })),
-            ...afterUrls.slice(0, 3).map(url => ({
+            ...validatedAfterUrls.slice(0, 3).map(url => ({
               type: 'image_url',
               image_url: { url, detail: 'low' },
             })),

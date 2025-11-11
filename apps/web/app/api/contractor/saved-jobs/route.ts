@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Get saved jobs for contractor or save a job
@@ -43,7 +44,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

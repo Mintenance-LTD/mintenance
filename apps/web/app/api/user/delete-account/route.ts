@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
+import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
+import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 
 /**
  * POST /api/user/delete-account
@@ -9,6 +12,15 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
+    // Rate limiting - max 1 deletion per day
+    const rateLimitResponse = await checkDeleteAccountRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json(
@@ -50,6 +62,15 @@ export async function POST(request: NextRequest) {
       await serverSupabase.from('jobs').delete().or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
       await serverSupabase.from('properties').delete().eq('owner_id', user.id);
       await serverSupabase.from('users').delete().eq('id', user.id);
+    }
+
+    // SECURITY: Blacklist all tokens for this user
+    try {
+      await tokenBlacklist.blacklistUserTokens(user.id);
+      logger.info('User tokens blacklisted after account deletion', { userId: user.id });
+    } catch (error) {
+      logger.error('Failed to blacklist user tokens after deletion', error, { userId: user.id });
+      // Continue even if blacklisting fails
     }
 
     logger.info('User account deleted', { userId: user.id });

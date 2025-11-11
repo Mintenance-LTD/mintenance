@@ -5,6 +5,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
+import { requireCSRF } from '@/lib/csrf';
+import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 
 // SECURITY: No fallback for production credentials
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -24,6 +26,9 @@ const refundSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const rateLimitResult = await checkApiRateLimit(`refund:${ip}`);
@@ -53,6 +58,25 @@ export async function POST(request: NextRequest) {
     }
 
     const { jobId, escrowTransactionId, amount, reason } = parsed.data;
+
+    // Idempotency check - prevent duplicate refunds
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'refund_payment',
+      user.id,
+      escrowTransactionId
+    );
+
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'refund_payment');
+    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+      logger.info('Duplicate refund request detected, returning cached result', {
+        service: 'payments',
+        idempotencyKey,
+        userId: user.id,
+        escrowTransactionId,
+      });
+      return NextResponse.json(idempotencyCheck.cachedResult);
+    }
 
     // Verify job ownership
     const { data: job, error: jobError } = await serverSupabase
@@ -182,13 +206,24 @@ export async function POST(request: NextRequest) {
       amount: refundAmount / 100
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       refundId: refund.id,
       amount: refundAmount / 100,
       status: refund.status,
       escrowTransactionId: updatedEscrow?.id || escrowTransactionId,
-    });
+    };
+
+    // Store idempotency result
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'refund_payment',
+      responseData,
+      user.id,
+      { jobId, escrowTransactionId, refundId: refund.id }
+    );
+
+    return NextResponse.json(responseData);
   } catch (error) {
     logger.error('Error processing refund', error, { service: 'payments' });
 

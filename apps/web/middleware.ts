@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help'];
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout'];
   // Admin auth routes (login, register, forgot-password) are also public
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // Public contractor profile pages (e.g., /contractor/[id] for viewing contractor profiles)

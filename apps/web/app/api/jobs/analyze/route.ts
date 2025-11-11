@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
+import { validateURLs } from '@/lib/security/url-validation';
+import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Analyze job description and return suggestions
@@ -8,7 +11,10 @@ import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -26,11 +32,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Validate image URLs to prevent SSRF attacks
+    let validatedImageUrls: string[] = [];
+    if (imageUrls && imageUrls.length > 0) {
+      const urlValidation = await validateURLs(imageUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        logger.warn('Invalid image URLs rejected in job analysis', {
+          service: 'jobs-analyze',
+          userId: user.id,
+          invalidUrls: urlValidation.invalid,
+        });
+        return NextResponse.json(
+          { error: `Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
+          { status: 400 }
+        );
+      }
+      validatedImageUrls = urlValidation.valid;
+    }
+
     // Analyze the job with text and images
     const analysis = await JobAnalysisService.analyzeJobWithImages(
       title || '',
       description || '',
-      imageUrls || [],
+      validatedImageUrls,
       location
     );
 

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import type { MessageThread } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
+import { isValidUUID } from '@/lib/validation/uuid';
 import {
   buildThreadParticipants,
   mapMessageRow,
@@ -31,6 +33,11 @@ export async function GET(request: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Thread id is required' }, { status: 400 });
     }
 
+    // SECURITY: Validate UUID format before database query
+    if (!isValidUUID(threadId)) {
+      return NextResponse.json({ error: 'Invalid thread ID format' }, { status: 400 });
+    }
+
     const url = new URL(request.url);
     const parsed = querySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
@@ -55,6 +62,7 @@ export async function GET(request: NextRequest, context: Params) {
       cursorIso = new Date(ts).toISOString();
     }
 
+    // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
       .select(`
@@ -68,18 +76,21 @@ export async function GET(request: NextRequest, context: Params) {
         contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
       `)
       .eq('id', threadId)
+      .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
       .single();
 
-    if (jobError) {
-      console.error('[API] thread GET job error', jobError);
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
+    if (jobError || !jobData) {
+      // Don't reveal if thread exists or not - return generic error
+      logger.warn('Thread access denied or not found', {
+        service: 'messages',
+        threadId,
+        userId: user.id,
+        error: jobError?.message,
+      });
+      return NextResponse.json({ error: 'Thread not found or access denied' }, { status: 404 });
     }
 
     const job = jobData as SupabaseJobRow;
-    const isParticipant = job.homeowner_id === user.id || job.contractor_id === user.id;
-    if (!isParticipant) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     // Fetch messages - try message_text first, then fallback to content if needed
     // Note: We select only what we need to avoid query errors if columns don't exist
@@ -109,7 +120,11 @@ export async function GET(request: NextRequest, context: Params) {
     
     // If message_text column doesn't exist, try with content
     if (messagesError && (messagesError.message?.includes('message_text') || (messagesError.message?.includes('column') && messagesError.message?.includes('message_text')))) {
-      console.warn('[API] thread GET message_text column not found, trying with content', messagesError);
+      logger.warn('Message text column not found, trying with content', {
+        service: 'messages',
+        threadId,
+        error: messagesError.message,
+      });
       let fallbackQuery = serverSupabase
         .from('messages')
         .select(`
@@ -142,36 +157,23 @@ export async function GET(request: NextRequest, context: Params) {
     }
     
     if (messagesError) {
-      console.error('[API] thread GET messages error', {
-        error: messagesError,
+      logger.error('Failed to load messages', messagesError, {
+        service: 'messages',
         threadId,
         userId: user.id,
-        jobHomeownerId: job.homeowner_id,
-        jobContractorId: job.contractor_id,
-        errorMessage: messagesError.message,
-        errorCode: messagesError.code,
-        errorDetails: messagesError.details,
       });
+      // SECURITY: Don't expose database error details to client
       return NextResponse.json({ 
-        error: 'Failed to load messages',
-        details: messagesError.message || 'Database query failed'
+        error: 'Failed to load messages'
       }, { status: 500 });
     }
     
-    // Log message retrieval for debugging - includes sender/receiver info
-    console.log('[API] thread GET messages retrieved', {
+    // Log message retrieval for debugging (without sensitive details)
+    logger.info('Messages retrieved', {
+      service: 'messages',
       threadId,
       userId: user.id,
       messageCount: messageData?.length || 0,
-      jobHomeownerId: job.homeowner_id,
-      jobContractorId: job.contractor_id,
-      messageDetails: messageData?.map((m: any) => ({ 
-        id: m.id, 
-        senderId: m.sender_id, 
-        receiverId: m.receiver_id,
-        hasText: !!(m.message_text || m.content),
-        textLength: (m.message_text || m.content || '').length,
-      })) || [],
     });
 
     const rows = (messageData ?? []) as SupabaseMessageRow[];
@@ -193,7 +195,11 @@ export async function GET(request: NextRequest, context: Params) {
       .eq('read', false);
 
     if (unreadError) {
-      console.error('[API] thread GET unread count error', unreadError);
+      logger.error('Failed to get unread count', unreadError, {
+        service: 'messages',
+        threadId,
+        userId: user.id,
+      });
     }
 
     const thread: MessageThread = {
@@ -211,7 +217,8 @@ export async function GET(request: NextRequest, context: Params) {
       limit,
     });
   } catch (err) {
-    console.error('[API] thread GET error', err);
+    logger.error('Failed to load thread', err, { service: 'messages' });
+    // SECURITY: Don't expose error details to client
     return NextResponse.json({ error: 'Failed to load thread' }, { status: 500 });
   }
 }

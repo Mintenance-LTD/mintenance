@@ -5,6 +5,8 @@ import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
+import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +16,9 @@ export async function POST(
   let bidId: string | undefined;
 
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const paramsResolved = await params;
     jobId = paramsResolved.id;
     bidId = paramsResolved.bidId;
@@ -21,6 +26,26 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Idempotency check - prevent duplicate bid acceptances
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'accept_bid',
+      user.id,
+      `${jobId}_${bidId}`
+    );
+
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'accept_bid');
+    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+      logger.info('Duplicate bid acceptance detected, returning cached result', {
+        service: 'jobs',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+        bidId,
+      });
+      return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
     if (user.role !== 'homeowner') {
@@ -110,15 +135,16 @@ export async function POST(
     }
 
     // Check function return value
-    if (!acceptResult || !acceptResult.success) {
-      const errorMessage = acceptResult?.error_message || 'Failed to accept bid';
+    const result = acceptResult as { success?: boolean; error_message?: string; accepted_bid_id?: string } | null;
+    if (!result || !result.success) {
+      const errorMessage = result?.error_message || 'Failed to accept bid';
       
       logger.error('Bid acceptance failed', undefined, {
         service: 'jobs',
         bidId,
         jobId,
         errorMessage,
-        acceptedBidId: acceptResult?.accepted_bid_id,
+        acceptedBidId: result?.accepted_bid_id,
       });
 
       // Handle specific error cases
@@ -367,10 +393,21 @@ export async function POST(
       contractorId: bid.contractor_id,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message: 'Bid accepted successfully',
-    });
+    };
+
+    // Store idempotency result
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'accept_bid',
+      responseData,
+      user.id,
+      { jobId, bidId, contractorId: bid.contractor_id }
+    );
+
+    return NextResponse.json(responseData);
   } catch (error) {
     logger.error('Unexpected error in accept bid', error, {
       jobId,

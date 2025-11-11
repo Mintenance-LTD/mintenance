@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { rotateTokens, setAuthCookie } from '@/lib/auth';
 import { verifyToken } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Token Refresh API
@@ -10,6 +11,9 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const cookieStore = await cookies();
     const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
     const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;

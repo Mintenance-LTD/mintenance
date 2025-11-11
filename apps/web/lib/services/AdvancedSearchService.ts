@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { sanitizeForSQL } from '@/lib/sanitizer';
 import type {
   AdvancedSearchFilters,
   SearchResult,
@@ -31,8 +32,10 @@ export class AdvancedSearchService {
 
       // Text search
       if (query.trim()) {
+        // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+        const sanitizedQuery = sanitizeForSQL(query);
         supabaseQuery = supabaseQuery.or(
-          `title.ilike.%${query}%,description.ilike.%${query}%`
+          `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`
         );
       }
 
@@ -121,8 +124,10 @@ export class AdvancedSearchService {
 
       // Text search across multiple fields
       if (query.trim()) {
+        // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+        const sanitizedQuery = sanitizeForSQL(query);
         supabaseQuery = supabaseQuery.or(
-          `bio.ilike.%${query}%,skills.cs.{${query}}`
+          `bio.ilike.%${sanitizedQuery}%,skills.cs.{${sanitizedQuery}}`
         );
       }
 

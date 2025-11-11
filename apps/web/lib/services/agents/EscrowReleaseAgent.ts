@@ -2,6 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { PredictiveAgent } from './PredictiveAgent';
+import { validateURLs } from '@/lib/security/url-validation';
 import type { AgentResult, AgentContext } from './types';
 
 interface PhotoVerificationResult {
@@ -567,6 +568,19 @@ export class EscrowReleaseAgent {
         return this.generateFallbackAnalysis(job);
       }
 
+      // SECURITY: Validate all photo URLs before sending to OpenAI
+      const urlValidation = await validateURLs(photoUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        logger.warn('Invalid photo URLs rejected for AI analysis', {
+          service: 'EscrowReleaseAgent',
+          invalidUrls: urlValidation.invalid,
+        });
+        return this.generateFallbackAnalysis(job);
+      }
+
+      // Use only validated URLs
+      const validatedPhotoUrls = urlValidation.valid;
+
       const systemPrompt = `You are an expert maintenance professional analyzing completion photos for a job.
       Determine if the photos show completed work that matches the job description.
       Look for:
@@ -598,7 +612,7 @@ export class EscrowReleaseAgent {
           role: 'user',
           content: [
             { type: 'text', text: userPrompt },
-            ...photoUrls.slice(0, 4).map((photo) => ({
+            ...validatedPhotoUrls.slice(0, 4).map((photo) => ({
               type: 'image_url',
               image_url: { url: photo, detail: 'low' },
             })),

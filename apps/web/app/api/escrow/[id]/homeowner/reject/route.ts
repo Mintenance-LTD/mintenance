@@ -4,6 +4,7 @@ import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprova
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { requireCSRF } from '@/lib/csrf';
 
 const rejectCompletionSchema = z.object({
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
@@ -18,6 +19,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

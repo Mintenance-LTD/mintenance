@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,10 @@ const supabase = createClient(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; commentId: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string; commentId: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
@@ -118,7 +122,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; commentId: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string; commentId: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();

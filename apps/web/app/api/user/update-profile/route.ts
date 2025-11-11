@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +24,9 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Get current user
     const user = await getCurrentUserFromCookies();
 

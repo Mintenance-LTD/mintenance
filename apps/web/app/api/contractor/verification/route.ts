@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -103,7 +104,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized - contractor access required' }, { status: 401 });

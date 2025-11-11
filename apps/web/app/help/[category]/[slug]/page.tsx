@@ -1,12 +1,13 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { PublicLayout } from '../../components/layouts/PublicLayout';
+import { ArrowLeft } from 'lucide-react';
+import { PublicLayout } from '@/app/components/layouts/PublicLayout';
 import { theme } from '@/lib/theme';
-import { helpCategories, type Article, type Category } from '../lib/categories';
-import { findArticleBySlug, generateSlug, getAllArticlesWithSlugs } from '../lib/utils';
+import { helpCategories, type Article, type Category } from '../../lib/categories';
+import { findArticleBySlug, generateSlug, getAllArticlesWithSlugs } from '../../lib/utils';
 import { Button } from '@/components/ui/Button';
-import { MarkdownContent } from '../components/MarkdownContent';
+import { MarkdownContent } from '../../components/MarkdownContent';
+import { ArticleNavigation } from './components/ArticleNavigation';
 
 interface HelpArticlePageProps {
   params: Promise<{ category: string; slug: string }>;
@@ -129,88 +130,11 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
         </article>
 
         {/* Navigation */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: theme.spacing[8],
-          paddingTop: theme.spacing[6],
-          borderTop: `1px solid ${theme.colors.border}`,
-        }}>
-          {prevArticle ? (
-            <Link
-              href={`/help/${params.category}/${generateSlug(prevArticle.title)}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                borderRadius: theme.borderRadius.lg,
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.white,
-                textDecoration: 'none',
-                color: theme.colors.textPrimary,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.primary;
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.border;
-                e.currentTarget.style.backgroundColor = theme.colors.white;
-              }}
-            >
-              <ChevronLeft className="h-5 w-5" style={{ color: theme.colors.textSecondary }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                  Previous
-                </span>
-                <span>{prevArticle.title}</span>
-              </div>
-            </Link>
-          ) : (
-            <div></div>
-          )}
-
-          {nextArticle && (
-            <Link
-              href={`/help/${params.category}/${generateSlug(nextArticle.title)}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                borderRadius: theme.borderRadius.lg,
-                border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.white,
-                textDecoration: 'none',
-                color: theme.colors.textPrimary,
-                fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.primary;
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = theme.colors.border;
-                e.currentTarget.style.backgroundColor = theme.colors.white;
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
-                <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                  Next
-                </span>
-                <span>{nextArticle.title}</span>
-              </div>
-              <ChevronRight className="h-5 w-5" style={{ color: theme.colors.textSecondary }} />
-            </Link>
-          )}
-        </div>
+        <ArticleNavigation
+          prevArticle={prevArticle ? { title: prevArticle.title, slug: generateSlug(prevArticle.title) } : null}
+          nextArticle={nextArticle ? { title: nextArticle.title, slug: generateSlug(nextArticle.title) } : null}
+          category={params.category}
+        />
 
         {/* Help CTA */}
         <div style={{

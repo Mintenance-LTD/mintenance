@@ -76,17 +76,21 @@ const nextConfig = {
   turbopack: {
     resolveAlias: {
       // Redirect react-native to empty module
-      'react-native': path.resolve(__dirname, 'lib/empty-module.js'),
-      'react-native$': path.resolve(__dirname, 'lib/empty-module.js'),
+      // Use relative path instead of absolute path for Turbopack compatibility (Windows paths not supported)
+      'react-native': './lib/empty-module.js',
+      'react-native$': './lib/empty-module.js',
+      // Redirect jsdom to empty module for client bundles (server-only)
+      'jsdom': './lib/empty-module.js',
+      'jsdom$': './lib/empty-module.js',
       // Redirect native component stubs to empty module (only native files, not unified components)
-      '@mintenance/shared-ui/dist/components/Card/Card.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/dist/components/Button/Button.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/dist/components/Input/Input.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/dist/components/Badge/Badge.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/src/components/Card/Card.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/src/components/Button/Button.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/src/components/Input/Input.native': path.resolve(__dirname, 'lib/empty-module.js'),
-      '@mintenance/shared-ui/src/components/Badge/Badge.native': path.resolve(__dirname, 'lib/empty-module.js'),
+      '@mintenance/shared-ui/dist/components/Card/Card.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Button/Button.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Input/Input.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/dist/components/Badge/Badge.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Card/Card.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Button/Button.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Input/Input.native': './lib/empty-module.js',
+      '@mintenance/shared-ui/src/components/Badge/Badge.native': './lib/empty-module.js',
     },
     resolveExtensions: ['.web.js', '.web.jsx', '.web.ts', '.web.tsx', '.js', '.jsx', '.ts', '.tsx'],
     // Ignore React Native files completely - don't even try to parse them
@@ -97,6 +101,11 @@ const nextConfig = {
       },
       // Prevent parsing react-native package entirely
       '**/node_modules/react-native/**': {
+        loaders: [],
+        as: '*.empty.js',
+      },
+      // Prevent parsing jsdom package in client bundles (server-only)
+      '**/node_modules/jsdom/**': {
         loaders: [],
         as: '*.empty.js',
       },
@@ -162,6 +171,7 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        child_process: false, // Exclude child_process (used by jsdom)
       };
     }
 
@@ -172,6 +182,14 @@ const nextConfig = {
     config.externals.push({
       'react-native': false,
     });
+
+    // Exclude jsdom from client bundles (server-only module)
+    if (!isServer) {
+      config.externals.push('jsdom');
+      config.externals.push({
+        'jsdom': false,
+      });
+    }
 
     // Ignore native files and react-native package completely
     // Use IgnorePlugin to prevent webpack from even trying to parse these files
@@ -198,6 +216,15 @@ const nextConfig = {
         resourceRegExp: /^react-native$/,
         contextRegExp: /node_modules/,
       }),
+      // Ignore jsdom in client bundles (server-only module)
+      ...(!isServer ? [
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^jsdom$/,
+        }),
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^jsdom\/.*$/,
+        }),
+      ] : []),
       // Ignore usePlatform utility that might import react-native
       new webpack.IgnorePlugin({
         resourceRegExp: /usePlatform/,

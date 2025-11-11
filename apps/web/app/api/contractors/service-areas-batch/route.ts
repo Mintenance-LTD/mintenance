@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Batch fetch service areas for multiple contractors
@@ -12,7 +13,10 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const body = await request.json();
     const { contractorIds } = body;
 
     if (!Array.isArray(contractorIds) || contractorIds.length === 0) {

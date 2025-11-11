@@ -7,6 +7,7 @@ import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
 import { measurePerformance } from '../utils/performanceBudgets';
+import { sanitizeForSQL } from '../utils/sqlSanitization';
 import {
   SearchFilters,
   SearchQuery,
@@ -82,8 +83,10 @@ export class AdvancedSearchService {
 
         // Apply text search
         if (query.text.trim()) {
+          // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+          const sanitizedText = sanitizeForSQL(query.text);
           queryBuilder = queryBuilder.or(
-            `bio.ilike.%${query.text}%,skills.cs.{${query.text}},users.first_name.ilike.%${query.text}%,users.last_name.ilike.%${query.text}%`
+            `bio.ilike.%${sanitizedText}%,skills.cs.{${sanitizedText}},users.first_name.ilike.%${sanitizedText}%,users.last_name.ilike.%${sanitizedText}%`
           );
         }
 
@@ -196,8 +199,10 @@ export class AdvancedSearchService {
 
         // Apply text search
         if (query.text.trim()) {
+          // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+          const sanitizedText = sanitizeForSQL(query.text);
           queryBuilder = queryBuilder.or(
-            `title.ilike.%${query.text}%,description.ilike.%${query.text}%,skills_required.cs.{${query.text}}`
+            `title.ilike.%${sanitizedText}%,description.ilike.%${sanitizedText}%,skills_required.cs.{${sanitizedText}}`
           );
         }
 
@@ -543,8 +548,10 @@ export class AdvancedSearchService {
       .select('id', { count: 'exact', head: true });
 
     if (query.text.trim()) {
+      // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+      const sanitizedText = sanitizeForSQL(query.text);
       queryBuilder = queryBuilder.or(
-        `bio.ilike.%${query.text}%,skills.cs.{${query.text}}`
+        `bio.ilike.%${sanitizedText}%,skills.cs.{${sanitizedText}}`
       );
     }
 
@@ -561,8 +568,10 @@ export class AdvancedSearchService {
       .eq('status', 'posted');
 
     if (query.text.trim()) {
+      // SECURITY: Sanitize user input before interpolation to prevent SQL injection
+      const sanitizedText = sanitizeForSQL(query.text);
       queryBuilder = queryBuilder.or(
-        `title.ilike.%${query.text}%,description.ilike.%${query.text}%`
+        `title.ilike.%${sanitizedText}%,description.ilike.%${sanitizedText}%`
       );
     }
 

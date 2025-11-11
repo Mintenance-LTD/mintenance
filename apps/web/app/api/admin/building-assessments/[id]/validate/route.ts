@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * POST /api/admin/building-assessments/[id]/validate
@@ -8,7 +9,10 @@ import { DataCollectionService } from '@/lib/services/building-surveyor/DataColl
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();

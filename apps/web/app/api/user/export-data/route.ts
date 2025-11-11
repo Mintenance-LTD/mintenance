@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
+import { checkGDPRRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 
 /**
  * POST /api/user/export-data
@@ -9,6 +11,15 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
+    // Rate limiting for GDPR endpoints
+    const rateLimitResponse = await checkGDPRRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json(

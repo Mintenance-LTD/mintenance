@@ -6,10 +6,14 @@ import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-
 import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check Supabase configuration early
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Check Supabase configuration early
     if (!isSupabaseConfigured) {
       logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
       return NextResponse.json(

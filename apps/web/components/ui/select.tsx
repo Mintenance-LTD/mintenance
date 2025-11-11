@@ -4,6 +4,8 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// Radix UI Select.Root handles ID generation internally using useId()
+// which ensures stable IDs between server and client
 const Select = SelectPrimitive.Root
 
 const SelectGroup = SelectPrimitive.Group

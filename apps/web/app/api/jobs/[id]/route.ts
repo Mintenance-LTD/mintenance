@@ -4,9 +4,11 @@ import type { JobDetail } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
 import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
+import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -35,12 +37,12 @@ const mapRowToJobDetail = (row: JobRow): JobDetail => ({
 });
 
 const updateJobSchema = z.object({
-  title: z.string().min(1, 'Title cannot be empty').optional(),
-  description: z.string().max(5000).optional(),
+  title: z.string().min(1, 'Title cannot be empty').optional().transform(val => val ? sanitizeText(val, 200) : val),
+  description: z.string().max(5000).optional().transform(val => val ? sanitizeJobDescription(val) : val),
   status: z.string().optional(),
-  category: z.string().max(128).optional(),
+  category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
   budget: z.coerce.number().positive().optional(),
-}).refine((data) => Object.keys(data).length > 0, {
+}).refine((data: Record<string, unknown>) => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
 
@@ -117,6 +119,9 @@ export async function GET(_req: NextRequest, context: Params) {
 
 export async function PATCH(request: NextRequest, context: Params) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -204,7 +209,56 @@ export async function PATCH(request: NextRequest, context: Params) {
       const trimmedCategory = payload.category.trim();
       updatePayload.category = trimmedCategory.length > 0 ? trimmedCategory : null;
     }
-    if (payload.budget !== undefined) updatePayload.budget = payload.budget;
+    
+    // SECURITY: Prevent budget reduction if bids exist
+    if (payload.budget !== undefined) {
+      const newBudget = payload.budget;
+      const currentBudget = existing.budget;
+      
+      // Check if budget is being reduced
+      if (currentBudget !== null && newBudget < currentBudget) {
+        // Check if there are any active bids
+        const { count: bidCount } = await serverSupabase
+          .from('bids')
+          .select('id', { count: 'exact', head: true })
+          .eq('job_id', id)
+          .neq('status', 'withdrawn');
+        
+        if (bidCount && bidCount > 0) {
+          // Check if any bids would exceed the new budget
+          const { data: existingBids } = await serverSupabase
+            .from('bids')
+            .select('amount, contractor_id, status')
+            .eq('job_id', id)
+            .neq('status', 'withdrawn');
+          
+          const bidsExceedNewBudget = existingBids?.some((bid: { amount: number; contractor_id: string; status: string }) => {
+            const bidAmountCents = Math.round(bid.amount * 100);
+            const newBudgetCents = Math.round(newBudget * 100);
+            return bidAmountCents > newBudgetCents;
+          });
+          
+          if (bidsExceedNewBudget) {
+            logger.warn('Budget reduction blocked - existing bids exceed new budget', {
+              service: 'jobs',
+              userId: user.id,
+              jobId: id,
+              currentBudget,
+              newBudget,
+              bidCount,
+            });
+            return NextResponse.json({
+              error: 'Cannot reduce budget below existing bid amounts. Please reject or withdraw bids first.',
+              currentBudget,
+              newBudget,
+              bidCount,
+            }, { status: 400 });
+          }
+        }
+      }
+      
+      updatePayload.budget = payload.budget;
+    }
 
         const { data, error } = await serverSupabase
       .from('jobs')
@@ -257,7 +311,10 @@ export async function PATCH(request: NextRequest, context: Params) {
 
 export async function DELETE(request: NextRequest, context: Params) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

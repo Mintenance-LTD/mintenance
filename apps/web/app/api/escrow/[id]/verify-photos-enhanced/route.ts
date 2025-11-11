@@ -6,6 +6,8 @@ import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprova
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { validateURLs } from '@/lib/security/url-validation';
+import { requireCSRF } from '@/lib/csrf';
 
 const verifyPhotosEnhancedSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
@@ -19,7 +21,10 @@ const verifyPhotosEnhancedSchema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
@@ -35,6 +40,24 @@ export async function POST(
     }
 
     const { jobId, afterPhotoUrls } = validation.data;
+
+    // SECURITY: Validate photo URLs to prevent SSRF attacks
+    const urlValidation = await validateURLs(afterPhotoUrls, true);
+    if (urlValidation.invalid.length > 0) {
+      logger.warn('Invalid photo URLs rejected in photo verification', {
+        service: 'escrow-verify-photos-enhanced',
+        userId: user.id,
+        escrowId,
+        invalidUrls: urlValidation.invalid,
+      });
+      return NextResponse.json(
+        { error: `Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Use only validated URLs
+    const validatedAfterPhotoUrls = urlValidation.valid;
 
     // Get job location
     const { data: job, error: jobError } = await serverSupabase
@@ -64,7 +87,7 @@ export async function POST(
 
     // Validate photo quality for all after photos
     const qualityResults = await Promise.all(
-      afterPhotoUrls.map(url => PhotoVerificationService.validatePhotoQuality(url))
+      validatedAfterPhotoUrls.map(url => PhotoVerificationService.validatePhotoQuality(url))
     );
 
     const allQualityPassed = qualityResults.every(r => r.passed);
@@ -75,21 +98,21 @@ export async function POST(
     if (beforeUrls.length > 0) {
       comparisonResult = await PhotoVerificationService.compareBeforeAfter(
         beforeUrls,
-        afterPhotoUrls,
+        validatedAfterPhotoUrls,
         location
       );
     }
 
     // Verify geolocation for after photos
     const geolocationResults = await Promise.all(
-      afterPhotoUrls.map(url => PhotoVerificationService.verifyGeolocation(url, location))
+      validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyGeolocation(url, location))
     );
 
     const allGeolocationVerified = geolocationResults.every(r => r.verified);
 
     // Verify timestamps
     const timestampResults = await Promise.all(
-      afterPhotoUrls.map(url => PhotoVerificationService.verifyTimestamp(url))
+      validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyTimestamp(url))
     );
 
     const allTimestampVerified = timestampResults.every(r => r.verified);
@@ -111,7 +134,7 @@ export async function POST(
 
     // Request homeowner approval if verification passed
     if (allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true)) {
-      await HomeownerApprovalService.requestHomeownerApproval(escrowId, afterPhotoUrls);
+      await HomeownerApprovalService.requestHomeownerApproval(escrowId, validatedAfterPhotoUrls);
     }
 
     return NextResponse.json({

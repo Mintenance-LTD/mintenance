@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * POST /api/escrow/:id/request-admin-review
@@ -10,7 +11,10 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();

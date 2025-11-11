@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { securityMonitor } from '@/lib/security-monitor';
 import { IPBlockingService } from '@/lib/services/admin/IPBlockingService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function GET(request: NextRequest) {
   try {
@@ -201,6 +202,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {

@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 /**
  * Apply the combined platform enhancements migration
@@ -10,7 +11,10 @@ import { logger } from '@mintenance/shared';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

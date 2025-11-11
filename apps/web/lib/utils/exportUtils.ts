@@ -2,6 +2,8 @@
  * Export Utilities for generating PDF and CSV reports
  */
 
+import { sanitizeHtml } from '@/lib/sanitizer';
+
 export interface ExportData {
   headers: string[];
   rows: (string | number)[][];
@@ -54,6 +56,7 @@ export function exportToJSON(data: any, filename: string = 'report.json'): void 
 
 /**
  * Generate PDF from HTML content using browser's print functionality
+ * SECURITY: Sanitizes HTML content to prevent XSS attacks
  */
 export function exportToPDF(elementId: string, filename: string = 'report.pdf'): void {
   const element = document.getElementById(elementId);
@@ -62,12 +65,20 @@ export function exportToPDF(elementId: string, filename: string = 'report.pdf'):
     return;
   }
   
+  // SECURITY: Sanitize HTML content before manipulating innerHTML to prevent XSS
   // Store original body content
   const originalContents = document.body.innerHTML;
   const printContents = element.innerHTML;
   
-  // Replace body with print content
-  document.body.innerHTML = printContents;
+  // Sanitize the HTML content to remove any malicious scripts or event handlers
+  const sanitizedContents = sanitizeHtml(printContents, {
+    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'img'],
+    allowedAttributes: ['src', 'alt', 'class', 'style'],
+    maxLength: 100000, // Limit content size to prevent DoS
+  });
+  
+  // Replace body with sanitized print content
+  document.body.innerHTML = sanitizedContents;
   
   // Add print styles
   addPrintStyles();

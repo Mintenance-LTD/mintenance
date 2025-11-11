@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
 
 // Line item schema
 const lineItemSchema = z.object({
@@ -57,6 +58,9 @@ const createQuoteSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     // Authenticate user
     const user = await getCurrentUserFromCookies();
 

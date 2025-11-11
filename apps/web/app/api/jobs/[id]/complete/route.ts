@@ -3,17 +3,15 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PaymentEnforcement } from '@/lib/services/payment/PaymentEnforcement';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf-validator';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Validate CSRF
-    if (!(await requireCSRF(request))) {
-      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
-    }
+    // CSRF protection
+    await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();
     if (!user) {

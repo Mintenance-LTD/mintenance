@@ -56,6 +56,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     fullWidth,
     className = '',
     id,
+    style,
     ...props
   }, ref) => {
     // Generate a stable ID using useId() to prevent hydration mismatches
@@ -70,10 +71,59 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const effectiveError = typeof error === 'boolean' ? error : !!effectiveErrorText;
     const effectiveSuccess = success;
 
+    // Normalize style prop to remove any border shorthand properties
+    // The shared Input component uses separate border properties (borderWidth, borderStyle, borderColor)
+    // so we must remove any shorthand 'border' properties to prevent React warnings
+    const propsStyle = (props as any).style;
+    const allStyles = [style, propsStyle].filter(Boolean);
+    const mergedStyle = allStyles.length > 0 
+      ? Object.assign({}, ...allStyles) 
+      : {};
+    
+    // Remove all border-related properties from merged style
+    const normalizedStyle: React.CSSProperties = {};
+    const borderShorthandProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
+    
+    Object.keys(mergedStyle).forEach(key => {
+      if (!borderShorthandProps.includes(key)) {
+        normalizedStyle[key as keyof React.CSSProperties] = mergedStyle[key];
+      }
+    });
+
+    // Remove style and border properties from props to prevent them from being spread
+    const { style: _, ...propsWithoutStyle } = props as any;
+
+    // Clean ALL border-related properties from props (including any that might come from React Hook Form)
+    // This ensures no border shorthand properties slip through to the SharedInput component
+    const cleanedProps: any = {};
+    const borderProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
+    Object.keys(propsWithoutStyle).forEach(key => {
+      // Also check if the value itself is an object with border properties (nested styles)
+      const value = propsWithoutStyle[key];
+      if (borderProps.includes(key)) {
+        // Skip border properties
+        return;
+      }
+      // If value is an object with a style property, clean it too
+      if (value && typeof value === 'object' && 'style' in value && typeof value.style === 'object') {
+        const cleanedValue = { ...value };
+        const cleanedNestedStyle: any = {};
+        Object.keys(value.style).forEach(styleKey => {
+          if (!borderProps.includes(styleKey)) {
+            cleanedNestedStyle[styleKey] = value.style[styleKey];
+          }
+        });
+        cleanedValue.style = cleanedNestedStyle;
+        cleanedProps[key] = cleanedValue;
+      } else {
+        cleanedProps[key] = value;
+      }
+    });
+
     return (
       <div className={cn(containerClassName)} style={containerStyle}>
         <SharedInput
-          {...(props as any)}
+          {...cleanedProps}
           ref={ref}
           id={stableId}
           type={type}
@@ -86,6 +136,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           leftIcon={leftIcon}
           rightIcon={rightIcon}
           className={cn(className)}
+          style={normalizedStyle}
         />
       </div>
     );

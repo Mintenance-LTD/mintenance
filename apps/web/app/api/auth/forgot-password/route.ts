@@ -4,10 +4,14 @@ import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-
 import { validateRequest } from '@/lib/validation/validator';
 import { passwordResetSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting - 3 requests per hour
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Rate limiting - 3 requests per hour
     const rateLimitResult = await checkPasswordResetRateLimit(request);
 
     if (!rateLimitResult.allowed) {

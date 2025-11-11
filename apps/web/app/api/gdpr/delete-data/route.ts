@@ -6,10 +6,14 @@ import { validateRequest } from '@/lib/validation/validator';
 import { gdprDeleteSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
+    
+    // CSRF protection
+    await requireCSRF(request);
+// Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const rateLimitResult = await checkApiRateLimit(`gdpr-delete:${ip}`);
 

@@ -86,7 +86,14 @@ export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { e
   
   // If person exists but has no name, try person's own email/company
   if (person.email) {
-    return person.email.split('@')[0];
+    // Extract name from email (e.g., "john.doe@example.com" -> "john.doe")
+    const emailName = person.email.split('@')[0];
+    // Try to format it nicely (e.g., "john.doe" -> "John Doe")
+    const formattedEmailName = emailName
+      .split('.')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+    return formattedEmailName;
   }
   if (person.company_name) {
     return person.company_name;
@@ -135,9 +142,10 @@ export const buildThreadParticipants = (job: SupabaseJobRow): MessageThread['par
       company_name: job.homeowner?.company_name ?? undefined,
     });
     
-    // If we still get "Unknown User" but have homeowner_id, try to use a more descriptive name
+    // Only use ID fallback if we truly have no other information
+    // formatDisplayName should now handle email fallback, so this should rarely trigger
     const finalHomeownerName = homeownerName === 'Unknown User' && job.homeowner_id
-      ? `Homeowner ${job.homeowner_id.slice(0, 8)}` // Use first 8 chars of ID as fallback
+      ? `Homeowner ${job.homeowner_id.slice(0, 8)}` // Use first 8 chars of ID as last resort
       : homeownerName;
     
     participants.push({

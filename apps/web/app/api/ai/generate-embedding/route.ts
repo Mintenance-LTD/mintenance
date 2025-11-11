@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, model = 'text-embedding-3-small' } = await request.json();
+    
+    // CSRF protection
+    await requireCSRF(request);
+const { text, model = 'text-embedding-3-small' } = await request.json();
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(

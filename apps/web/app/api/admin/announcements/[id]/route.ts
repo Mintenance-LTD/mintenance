@@ -4,10 +4,14 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
+import { requireCSRF } from '@/lib/csrf';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
@@ -45,7 +49,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();

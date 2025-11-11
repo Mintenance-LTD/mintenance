@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
+import { requireCSRF } from '@/lib/csrf';
 
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,7 +20,10 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { 
+  // CSRF protection
+  await requireCSRF(request);
+params }: { params: { id: string } }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
@@ -62,8 +66,19 @@ export async function POST(
 
     const fileExt = videoFile.name.split('.').pop()?.toLowerCase() || 'mp4';
 
+    // SECURITY: Sanitize filename to prevent path traversal attacks
+    // Remove any path separators, special characters, and ensure safe filename
+    const sanitizedBaseName = videoFile.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+      .replace(/\.\./g, '') // Remove path traversal attempts
+      .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
+      .substring(0, 100); // Limit filename length
+    
+    // Generate safe filename with user ID and timestamp to prevent collisions
+    const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
     // Upload to storage
-    const fileName = `job-photos/${jobId}/video/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const fileName = `job-photos/${jobId}/video/${safeFileName}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('Job-storage')
       .upload(fileName, videoFile, { cacheControl: '3600', upsert: false });
