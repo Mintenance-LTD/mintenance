@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { BuildingSurveyorService } from '@/lib/services/building-surveyor/BuildingSurveyorService';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
-import { logger } from '@mintenance/shared';
+import { ABTestIntegration } from '@/lib/services/building-surveyor/ab_test_harness';
+import { logger, hashString } from '@mintenance/shared';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
+
+// Environment configuration for A/B testing
+const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';
+const AB_TEST_SHADOW_MODE = process.env.AB_TEST_SHADOW_MODE === 'true';
+const AB_TEST_ROLLOUT_PERCENT = parseFloat(process.env.AB_TEST_ROLLOUT_PERCENT || '0');
+const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 
 const assessRequestSchema = z.object({
   imageUrls: z.array(z.string().url()).min(1).max(4),
@@ -30,6 +37,7 @@ function generateCacheKey(imageUrls: string[]): string {
     .digest('hex');
   return `building_assessment:${hash}`;
 }
+
 
 /**
  * POST /api/building-surveyor/assess
@@ -55,7 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Invalid request',
-          details: validationResult.error.errors,
+          details: validationResult.error.issues,
         },
         { status: 400 }
       );
@@ -92,10 +100,100 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(cachedAssessment.assessment_data);
     }
 
-    // 5. Call Building Surveyor Service
+    // 5. A/B Testing Integration (if enabled)
+    if (AB_TEST_ENABLED && AB_TEST_EXPERIMENT_ID) {
+      // Rollout gating (gradual ramp)
+      const enrollmentHash = hashString(`${user.id}_${AB_TEST_EXPERIMENT_ID}`);
+      const enrollmentBucket = enrollmentHash % 100;
+
+      if (enrollmentBucket < AB_TEST_ROLLOUT_PERCENT) {
+        // User is enrolled in A/B test
+        logger.info('A/B test enrollment', {
+          service: 'building-surveyor-api',
+          userId: user.id,
+          experimentId: AB_TEST_EXPERIMENT_ID,
+          bucket: enrollmentBucket,
+        });
+
+        try {
+          const abTest = new ABTestIntegration(AB_TEST_EXPERIMENT_ID);
+          
+          // Generate assessment ID
+          const assessmentId = crypto.randomUUID();
+
+          const abResult = await abTest.assessDamageWithABTest({
+            assessmentId,
+            userId: user.id,
+            imageUrls,
+            propertyType: context?.propertyType || 'residential',
+            propertyAge: context?.ageOfProperty || 50,
+            region: context?.location || 'unknown',
+          });
+
+          // Shadow mode: log but force human review
+          if (AB_TEST_SHADOW_MODE) {
+            logger.info('A/B shadow mode - forcing human review', {
+              service: 'building-surveyor-api',
+              assessmentId,
+              decision: abResult.decision,
+              arm: abResult.arm,
+            });
+
+            // Continue with standard flow but log A/B decision
+            // The assessment will be saved normally below
+          } else {
+            // Live mode: honor A/B decision
+            if (!abResult.requiresHumanReview && abResult.aiResult) {
+              // Automated - return AI result directly
+              logger.info('A/B automated assessment', {
+                service: 'building-surveyor-api',
+                assessmentId,
+                arm: abResult.arm,
+              });
+
+              // Still save to database for tracking
+              const cacheKey = generateCacheKey(imageUrls);
+              await serverSupabase.from('building_assessments').insert({
+                user_id: user.id,
+                cache_key: cacheKey,
+                damage_type: abResult.aiResult.predictedDamageType,
+                severity: abResult.aiResult.predictedSeverity,
+                confidence: Math.round(abResult.aiResult.fusionMean * 100),
+                safety_score: abResult.aiResult.predictedSafetyCritical ? 50 : 80,
+                compliance_score: 80,
+                insurance_risk_score: 50,
+                urgency: 'monitor',
+                assessment_data: abResult.aiResult as any,
+                validation_status: 'validated', // Auto-validated by Safe-LUCB
+                created_at: new Date().toISOString(),
+              });
+
+              return NextResponse.json({
+                ...abResult.aiResult,
+                abTestMetadata: {
+                  arm: abResult.arm,
+                  decision: abResult.decision,
+                  automated: true,
+                  decisionTimeSeconds: abResult.decisionTimeSeconds,
+                },
+              });
+            }
+            // If requires human review, fall through to standard flow
+          }
+        } catch (abError) {
+          logger.error('A/B test error - falling back to standard flow', abError, {
+            service: 'building-surveyor-api',
+            userId: user.id,
+          });
+          // Fall through to standard flow on error
+        }
+      }
+    }
+
+    // 6. Standard flow (no A/B test or not enrolled)
     const assessment = await BuildingSurveyorService.assessDamage(imageUrls, context);
 
-    // 6. Save assessment to database (for training data collection)
+    // 7. Save assessment to database (for training data collection)
     try {
       const { error: saveError } = await serverSupabase.from('building_assessments').insert({
         user_id: user.id,
@@ -175,7 +273,7 @@ export async function POST(request: NextRequest) {
       severity: assessment.damageAssessment.severity,
     });
 
-    // 7. Return assessment
+    // 8. Return assessment
     return NextResponse.json(assessment);
   } catch (error: any) {
     logger.error('Error in building surveyor assessment', error, {

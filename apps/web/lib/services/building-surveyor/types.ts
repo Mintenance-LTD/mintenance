@@ -96,6 +96,31 @@ export interface ContractorAdvice {
   complexity: 'low' | 'medium' | 'high';
 }
 
+export interface RoboflowDetection {
+  id: string;
+  className: string;
+  confidence: number;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  imageUrl: string;
+}
+
+export interface VisionAnalysisSummary {
+  provider: 'google-vision';
+  confidence: number;
+  labels: Array<{ description: string; score: number }>;
+  objects: Array<{ name: string; score: number }>;
+  detectedFeatures: string[];
+  suggestedCategories: Array<{ category: string; confidence: number; reason: string }>;
+  propertyType?: string;
+  condition?: 'excellent' | 'good' | 'fair' | 'poor';
+  complexity?: 'simple' | 'moderate' | 'complex';
+}
+
 export interface Phase1BuildingAssessment {
   damageAssessment: DamageAssessment;
   safetyHazards: SafetyHazards;
@@ -104,6 +129,10 @@ export interface Phase1BuildingAssessment {
   urgency: Urgency;
   homeownerExplanation: HomeownerExplanation;
   contractorAdvice: ContractorAdvice;
+  evidence?: {
+    roboflowDetections?: RoboflowDetection[];
+    visionAnalysis?: VisionAnalysisSummary | null;
+  };
 }
 
 export interface AssessmentContext {

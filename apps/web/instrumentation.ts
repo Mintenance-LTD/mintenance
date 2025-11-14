@@ -11,6 +11,10 @@ export async function register() {
 
     console.log('✅ Environment variables validated successfully');
 
+    // Log Roboflow configuration (if configured)
+    const { logRoboflowConfig } = await import('./lib/config/roboflow.config');
+    logRoboflowConfig();
+
     if (isProduction()) {
       console.log('🚀 Running in production mode');
 

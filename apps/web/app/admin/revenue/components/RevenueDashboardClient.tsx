@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RevenueMetrics, MRRMetrics, RevenueTrend } from '@/lib/services/revenue/RevenueAnalytics';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Card } from '@/components/ui/Card.unified';
+import { AdminCard } from '@/components/admin/AdminCard';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
 import {
   AlertDialog,
@@ -22,6 +23,9 @@ import {
   Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -152,11 +156,7 @@ export function RevenueDashboardClient({
     }
   };
   return (
-    <div style={{
-      padding: theme.spacing[8],
-      maxWidth: '1400px',
-      margin: '0 auto',
-    }}>
+    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[8] }}>
         <h1 style={{
           fontSize: theme.typography.fontSize['3xl'],
@@ -185,7 +185,7 @@ export function RevenueDashboardClient({
       </div>
 
       {/* Date Range Picker */}
-      <Card style={{ padding: theme.spacing[4], marginBottom: theme.spacing[6] }}>
+      <AdminCard padding="sm" className="mb-6">
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[4], flexWrap: 'wrap' }}>
           <label style={{
             fontSize: theme.typography.fontSize.sm,
@@ -242,315 +242,470 @@ export function RevenueDashboardClient({
             <Icon name="loader" size={20} className="animate-spin" />
           )}
         </div>
-      </Card>
+      </AdminCard>
 
-      {/* Key Metrics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="currencyPound" size={24} color={theme.colors.primary} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textSecondary,
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <AdminCard padding="lg" hover>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              backgroundColor: '#EFF6FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              Total Revenue
-            </h3>
+              <Icon name="currencyPound" size={24} color="#4A67FF" />
+            </div>
+            <div>
+              <h3 style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#64748B',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: 0,
+              }}>
+                Total Revenue
+              </h3>
+            </div>
           </div>
           <p style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
+            fontSize: '28px',
+            fontWeight: 700,
+            color: '#0F172A',
+            margin: 0,
+            lineHeight: '1.2',
           }}>
             {formatCurrency(revenueMetrics?.totalRevenue || 0)}
           </p>
-        </Card>
+        </AdminCard>
 
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="currencyPound" size={24} color={theme.colors.success} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textSecondary,
+        <AdminCard padding="lg" hover>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              backgroundColor: '#D1FAE5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              Monthly Recurring Revenue
-            </h3>
+              <Icon name="currencyPound" size={24} color="#4CC38A" />
+            </div>
+            <div>
+              <h3 style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#64748B',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: 0,
+              }}>
+                MRR
+              </h3>
+            </div>
           </div>
           <p style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
+            fontSize: '28px',
+            fontWeight: 700,
+            color: '#0F172A',
+            margin: 0,
+            lineHeight: '1.2',
+            marginBottom: theme.spacing[1],
           }}>
             {formatCurrency(mrr?.totalMRR || 0)}
           </p>
           <p style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginTop: theme.spacing[1],
+            fontSize: '13px',
+            color: '#64748B',
+            margin: 0,
           }}>
             {mrr?.activeSubscriptions || 0} active subscriptions
           </p>
-        </Card>
+        </AdminCard>
 
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="trendingUp" size={24} color={theme.colors.info} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textSecondary,
+        <AdminCard padding="lg" hover>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              backgroundColor: '#FEF3C7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              Trial Conversion Rate
-            </h3>
+              <Icon name="trendingUp" size={24} color="#F59E0B" />
+            </div>
+            <div>
+              <h3 style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#64748B',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: 0,
+              }}>
+                Conversion Rate
+              </h3>
+            </div>
           </div>
           <p style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
+            fontSize: '28px',
+            fontWeight: 700,
+            color: '#0F172A',
+            margin: 0,
+            lineHeight: '1.2',
+            marginBottom: theme.spacing[1],
           }}>
             {conversionRate.conversionRate.toFixed(1)}%
           </p>
           <p style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginTop: theme.spacing[1],
+            fontSize: '13px',
+            color: '#64748B',
+            margin: 0,
           }}>
-            {conversionRate.convertedTrials} of {conversionRate.totalTrials} trials converted
+            {conversionRate.convertedTrials} of {conversionRate.totalTrials} trials
           </p>
-        </Card>
+        </AdminCard>
 
-        <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-            <Icon name="users" size={24} color={theme.colors.accent} />
-            <h3 style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textSecondary,
+        <AdminCard padding="lg" hover>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              backgroundColor: '#DBEAFE',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              Avg Revenue per Contractor
-            </h3>
+              <Icon name="users" size={24} color="#3B82F6" />
+            </div>
+            <div>
+              <h3 style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#64748B',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                margin: 0,
+              }}>
+                ARPC
+              </h3>
+            </div>
           </div>
           <p style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
+            fontSize: '28px',
+            fontWeight: 700,
+            color: '#0F172A',
+            margin: 0,
+            lineHeight: '1.2',
           }}>
             {formatCurrency(arpc)}
           </p>
-        </Card>
+        </AdminCard>
       </div>
 
-      {/* Revenue Breakdown */}
-      <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[8] }}>
-        <h2 style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[4],
-        }}>
-          Revenue Breakdown
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: theme.spacing[4],
-        }}>
-          <div>
-            <p style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
+      {/* Revenue Breakdown Pie Chart */}
+      {revenueMetrics && (
+        <AdminCard padding="lg" className="mb-8">
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#0F172A',
+            marginBottom: theme.spacing[6],
+          }}>
+            Revenue Breakdown
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: theme.spacing[6],
+            alignItems: 'center',
+          }}>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Subscriptions', value: revenueMetrics.subscriptionRevenue || 0, color: '#4A67FF' },
+                    { name: 'Transaction Fees', value: revenueMetrics.transactionFeeRevenue || 0, color: '#4CC38A' },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(props: any) => `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {[
+                    { name: 'Subscriptions', value: revenueMetrics.subscriptionRevenue || 0, color: '#4A67FF' },
+                    { name: 'Transaction Fees', value: revenueMetrics.transactionFeeRevenue || 0, color: '#4CC38A' },
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[4],
             }}>
-              Subscription Revenue
-            </p>
-            <p style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              {formatCurrency(revenueMetrics?.subscriptionRevenue || 0)}
-            </p>
-            <p style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textTertiary,
-              marginTop: theme.spacing[1],
-            }}>
-              {revenueMetrics?.subscriptionCount || 0} payments
-            </p>
+              <div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  marginBottom: theme.spacing[2],
+                }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '2px',
+                    backgroundColor: '#4A67FF',
+                  }} />
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#475569',
+                    margin: 0,
+                  }}>
+                    Subscription Revenue
+                  </p>
+                </div>
+                <p style={{
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  margin: 0,
+                  marginBottom: '4px',
+                }}>
+                  {formatCurrency(revenueMetrics.subscriptionRevenue || 0)}
+                </p>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#64748B',
+                  margin: 0,
+                }}>
+                  {revenueMetrics.subscriptionCount || 0} payments
+                </p>
+              </div>
+              <div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[2],
+                  marginBottom: theme.spacing[2],
+                }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '2px',
+                    backgroundColor: '#4CC38A',
+                  }} />
+                  <p style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#475569',
+                    margin: 0,
+                  }}>
+                    Transaction Fees
+                  </p>
+                </div>
+                <p style={{
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  margin: 0,
+                  marginBottom: '4px',
+                }}>
+                  {formatCurrency(revenueMetrics.transactionFeeRevenue || 0)}
+                </p>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#64748B',
+                  margin: 0,
+                }}>
+                  {revenueMetrics.transactionCount || 0} transactions
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Transaction Fees
-            </p>
-            <p style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              {formatCurrency(revenueMetrics?.transactionFeeRevenue || 0)}
-            </p>
-            <p style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textTertiary,
-              marginTop: theme.spacing[1],
-            }}>
-              {revenueMetrics?.transactionCount || 0} transactions
-            </p>
-          </div>
-        </div>
-      </Card>
+        </AdminCard>
+      )}
 
       {/* Revenue Trends Chart */}
       {trends && trends.length > 0 && (
-        <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[8] }}>
+        <AdminCard padding="lg" className="mb-8">
           <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[4],
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#0F172A',
+            marginBottom: theme.spacing[6],
           }}>
             Revenue Trends
           </h2>
           <ResponsiveContainer width="100%" height={400}>
-            <AreaChart data={trends}>
+            <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#4CC38A" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#4CC38A" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="2 2" stroke="#F1F5F9" vertical={false} />
               <XAxis 
                 dataKey="date" 
-                stroke="#6B7280"
-                style={{ fontSize: theme.typography.fontSize.xs }}
+                tick={{ fontSize: 11, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={10}
               />
               <YAxis 
-                stroke="#6B7280"
-                style={{ fontSize: theme.typography.fontSize.xs }}
+                tick={{ fontSize: 11, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={10}
                 tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: '#FFFFFF',
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 }}
                 formatter={(value: number) => formatCurrency(value)}
+                labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}
               />
               <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="#10B981"
+                stroke="#4CC38A"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorRevenue)"
               />
             </AreaChart>
           </ResponsiveContainer>
-        </Card>
+        </AdminCard>
       )}
 
       {/* MRR by Plan Chart */}
       {mrr && Object.keys(mrr.mrrByPlan).length > 0 && (
-        <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[8] }}>
+        <AdminCard padding="lg" className="mb-8">
           <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[4],
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#0F172A',
+            marginBottom: theme.spacing[6],
           }}>
             MRR by Plan
           </h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart 
+              data={Object.entries(mrr.mrrByPlan).map(([plan, data]) => ({
+                name: plan.charAt(0).toUpperCase() + plan.slice(1),
+                mrr: data.mrr,
+                subscribers: data.count,
+              }))}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="2 2" stroke="#F1F5F9" vertical={false} />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fontSize: 12, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={10}
+              />
+              <YAxis 
+                tick={{ fontSize: 12, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={10}
+                tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                }}
+                formatter={(value: number) => formatCurrency(value)}
+                labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}
+              />
+              <Bar 
+                dataKey="mrr" 
+                fill="#4A67FF"
+                radius={[8, 8, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: theme.spacing[6],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: theme.spacing[4],
+            marginTop: theme.spacing[6],
+            paddingTop: theme.spacing[6],
+            borderTop: '1px solid #E2E8F0',
           }}>
-            <div>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.entries(mrr.mrrByPlan).map(([plan, data]) => ({
-                  name: plan.charAt(0).toUpperCase() + plan.slice(1),
-                  mrr: data.mrr,
-                  subscribers: data.count,
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#6B7280"
-                    style={{ fontSize: theme.typography.fontSize.xs }}
-                  />
-                  <YAxis 
-                    stroke="#6B7280"
-                    style={{ fontSize: theme.typography.fontSize.xs }}
-                    tickFormatter={(value) => `£${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: theme.borderRadius.md,
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Bar 
-                    dataKey="mrr" 
-                    fill="#3B82F6"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[4],
-              justifyContent: 'center',
-            }}>
-              {Object.entries(mrr.mrrByPlan).map(([plan, data]) => (
-                <div key={plan} style={{
-                  padding: theme.spacing[4],
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: theme.borderRadius.md,
+            {Object.entries(mrr.mrrByPlan).map(([plan, data]) => (
+              <div key={plan} style={{
+                padding: theme.spacing[4],
+                backgroundColor: '#F8FAFC',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+              }}>
+                <p style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  margin: 0,
+                  marginBottom: '8px',
                 }}>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                    textTransform: 'capitalize',
-                  }}>
-                    {plan}
-                  </p>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.xl,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: theme.colors.textPrimary,
-                  }}>
-                    {formatCurrency(data.mrr)}
-                  </p>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textTertiary,
-                    marginTop: theme.spacing[1],
-                  }}>
-                    {data.count} subscribers
-                  </p>
-                </div>
-              ))}
-            </div>
+                  {plan}
+                </p>
+                <p style={{
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color: '#0F172A',
+                  margin: 0,
+                  marginBottom: '4px',
+                }}>
+                  {formatCurrency(data.mrr)}
+                </p>
+                <p style={{
+                  fontSize: '13px',
+                  color: '#64748B',
+                  margin: 0,
+                }}>
+                  {data.count} subscribers
+                </p>
+              </div>
+            ))}
           </div>
-        </Card>
+        </AdminCard>
       )}
       
       {/* Error Dialog */}

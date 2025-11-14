@@ -230,6 +230,7 @@ export class AuthManager {
             phone: userData.phone || null,
             full_name: `${userData.first_name} ${userData.last_name}`,
           },
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
         },
       });
 

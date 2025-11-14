@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Heart, Trash2, AlertCircle } from 'lucide-react';
+import { fetchWithCSRF, useCSRF } from '@/lib/hooks/useCSRF';
 
 interface Comment {
   id: string;
@@ -44,6 +45,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; commentId: string | null }>({ open: false, commentId: null });
+  const { csrfToken, loading: csrfLoading, error: csrfError } = useCSRF();
 
   const fetchComments = useCallback(async () => {
     try {
@@ -74,9 +76,14 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
       return;
     }
 
+    if (!csrfToken || csrfLoading || csrfError) {
+      setError('Unable to verify request. Please try again.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/contractor/posts/${postId}/comments`, {
+      const response = await fetchWithCSRF(`/api/contractor/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +127,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
     if (!deleteDialog.commentId) return;
 
     try {
-      const response = await fetch(`/api/contractor/posts/${postId}/comments/${deleteDialog.commentId}`, {
+      const response = await fetchWithCSRF(`/api/contractor/posts/${postId}/comments/${deleteDialog.commentId}`, {
         method: 'DELETE',
       });
 
@@ -139,7 +146,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
 
   const handleLikeComment = async (commentId: string) => {
     try {
-      const response = await fetch(`/api/contractor/posts/${postId}/comments/${commentId}/like`, {
+      const response = await fetchWithCSRF(`/api/contractor/posts/${postId}/comments/${commentId}/like`, {
         method: 'POST',
       });
 

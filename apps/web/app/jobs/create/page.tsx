@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { BuildingAssessmentDisplay } from '@/components/building-surveyor';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 const jobCategories = [
   { label: 'Handyman', value: 'handyman' },
@@ -116,6 +117,9 @@ export default function CreateJobPage() {
     canPostJobs: boolean;
     missingRequirements: string[];
   } | null>(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [emailResendMessage, setEmailResendMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { csrfToken } = useCSRF();
 
   // Fetch properties when user is loaded
   React.useEffect(() => {
@@ -698,19 +702,85 @@ export default function CreateJobPage() {
                 <li key={i} style={{ marginBottom: theme.spacing[2] }}>{req}</li>
               ))}
             </ul>
-            {!verificationStatus.phoneVerified && (
-              <Link href="/verify-phone" style={{
-                display: 'inline-block',
-                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                backgroundColor: '#3B82F6',
-                color: 'white',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}>
-                Verify Phone Number
-              </Link>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+              {!verificationStatus.emailVerified && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+                  <Button
+                    variant="primary"
+                    onClick={async () => {
+                      if (!csrfToken) {
+                        setEmailResendMessage({ type: 'error', message: 'Security token not available. Please refresh the page.' });
+                        return;
+                      }
+                      
+                      setResendingEmail(true);
+                      setEmailResendMessage(null);
+                      
+                      try {
+                        const response = await fetch('/api/auth/resend-verification', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-csrf-token': csrfToken,
+                          },
+                          credentials: 'include',
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                          setEmailResendMessage({ 
+                            type: 'error', 
+                            message: data.error || 'Failed to send verification email. Please try again.' 
+                          });
+                        } else {
+                          setEmailResendMessage({ 
+                            type: 'success', 
+                            message: data.message || 'Verification email sent! Please check your inbox.' 
+                          });
+                        }
+                      } catch (error) {
+                        setEmailResendMessage({ 
+                          type: 'error', 
+                          message: 'An unexpected error occurred. Please try again.' 
+                        });
+                      } finally {
+                        setResendingEmail(false);
+                      }
+                    }}
+                    disabled={resendingEmail}
+                    style={{ width: 'fit-content' }}
+                  >
+                    {resendingEmail ? 'Sending...' : 'Resend Email Verification'}
+                  </Button>
+                  {emailResendMessage && (
+                    <div style={{
+                      padding: theme.spacing[2],
+                      borderRadius: '8px',
+                      backgroundColor: emailResendMessage.type === 'success' ? '#D1FAE5' : '#FEE2E2',
+                      color: emailResendMessage.type === 'success' ? '#065F46' : '#991B1B',
+                      fontSize: '14px',
+                    }}>
+                      {emailResendMessage.message}
+                    </div>
+                  )}
+                </div>
+              )}
+              {!verificationStatus.phoneVerified && (
+                <Link href="/verify-phone" style={{
+                  display: 'inline-block',
+                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+                  backgroundColor: '#3B82F6',
+                  color: 'white',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  width: 'fit-content',
+                }}>
+                  Verify Phone Number
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </HomeownerLayoutShell>

@@ -2,6 +2,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BuildingSurveyorService } from './BuildingSurveyorService';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
+import { ABTestFeedbackService } from './ABTestFeedbackService';
 
 /**
  * Configuration for auto-validation thresholds
@@ -46,6 +48,13 @@ const AUTO_VALIDATION_CONFIG = {
  * - Phase 3: Active learning (future enhancement)
  */
 export class DataCollectionService {
+  private static recordMetric(metric: string, payload: Record<string, unknown>): void {
+    MonitoringService.record(metric, {
+      service: 'DataCollectionService',
+      ...payload,
+    });
+  }
+
   /**
    * Check if assessment meets criteria for auto-validation
    * Returns true if assessment can be auto-validated, false if human review needed
@@ -155,8 +164,20 @@ export class DataCollectionService {
       const { canAutoValidate, reason } = await this.canAutoValidate(assessment, assessmentId);
 
       if (!canAutoValidate) {
+        if (reason) {
+          this.recordMetric('auto_validation.skipped', {
+            assessmentId,
+            reason,
+            confidence: assessment.damageAssessment.confidence,
+            safetyScore: assessment.safetyHazards.overallSafetyScore,
+            insuranceRisk: assessment.insuranceRisk.riskScore,
+          });
+        }
         return { autoValidated: false, reason };
       }
+
+      const confidence = Math.round(assessment.damageAssessment.confidence);
+      const reasonMessage = `Auto-validated: high confidence (${confidence}%), low risk profile. Meets auto-validation criteria.`;
 
       // Auto-validate the assessment
       // Use NULL for validated_by to indicate system auto-validation
@@ -166,7 +187,12 @@ export class DataCollectionService {
           validation_status: 'validated',
           validated_by: null, // NULL indicates system auto-validation
           validated_at: new Date().toISOString(),
-          validation_notes: `Auto-validated: High confidence (${assessment.damageAssessment.confidence}%), low risk assessment. Meets all auto-validation criteria.`,
+          validation_notes: reasonMessage,
+          auto_validated: true,
+          auto_validated_at: new Date().toISOString(),
+          auto_validation_reason: reasonMessage,
+          auto_validation_confidence: confidence,
+          auto_validation_review_status: 'pending_review',
           updated_at: new Date().toISOString(),
         })
         .eq('id', assessmentId);
@@ -184,11 +210,24 @@ export class DataCollectionService {
         reason: 'High confidence, low risk',
       });
 
+      this.recordMetric('auto_validation.outcome', {
+        assessmentId,
+        autoValidated: true,
+        confidence,
+        damageType: assessment.damageAssessment.damageType,
+        severity: assessment.damageAssessment.severity,
+      });
+
       return { autoValidated: true };
     } catch (error) {
       logger.error('Error auto-validating assessment', error, {
         service: 'DataCollectionService',
         assessmentId,
+      });
+      this.recordMetric('auto_validation.outcome', {
+        assessmentId,
+        autoValidated: false,
+        error: error instanceof Error ? error.message : 'unknown_error',
       });
       return { autoValidated: false, reason: 'Error during auto-validation' };
     }
@@ -234,7 +273,7 @@ export class DataCollectionService {
       // Get assessment data before updating
       const { data: assessmentRecord, error: fetchError } = await serverSupabase
         .from('building_assessments')
-        .select('assessment_data')
+        .select('assessment_data, auto_validated, auto_validation_review_status')
         .eq('id', assessmentId)
         .single();
 
@@ -249,6 +288,9 @@ export class DataCollectionService {
           validated_by: validatedBy,
           validated_at: new Date().toISOString(),
           validation_notes: notes,
+          auto_validation_review_status: assessmentRecord.auto_validated
+            ? 'confirmed'
+            : 'not_applicable',
           updated_at: new Date().toISOString(),
         })
         .eq('id', assessmentId);
@@ -277,6 +319,23 @@ export class DataCollectionService {
         });
         // Don't fail validation if learning fails
       }
+
+      // Collect feedback for A/B test critic models
+      try {
+        await ABTestFeedbackService.collectFeedback(
+          assessmentId,
+          validatedBy,
+          true, // isCorrect = true for validated assessments
+          false // hasSafetyViolation = false (validated means no SFN)
+        );
+      } catch (feedbackError) {
+        logger.warn('Failed to collect A/B test feedback', {
+          service: 'DataCollectionService',
+          assessmentId,
+          error: feedbackError,
+        });
+        // Don't fail validation if feedback collection fails
+      }
     } catch (error) {
       logger.error('Error validating assessment', error, {
         service: 'DataCollectionService',
@@ -295,6 +354,16 @@ export class DataCollectionService {
     reason: string
   ): Promise<void> {
     try {
+      const { data: assessmentRecord, error: fetchError } = await serverSupabase
+        .from('building_assessments')
+        .select('auto_validated')
+        .eq('id', assessmentId)
+        .single();
+
+      if (fetchError || !assessmentRecord) {
+        throw new Error('Assessment not found');
+      }
+
       const { error } = await serverSupabase
         .from('building_assessments')
         .update({
@@ -302,6 +371,9 @@ export class DataCollectionService {
           validated_by: rejectedBy,
           validated_at: new Date().toISOString(),
           validation_notes: reason,
+          auto_validation_review_status: assessmentRecord.auto_validated
+            ? 'overturned'
+            : 'not_applicable',
           updated_at: new Date().toISOString(),
         })
         .eq('id', assessmentId);
@@ -316,6 +388,43 @@ export class DataCollectionService {
         rejectedBy,
         reason,
       });
+
+      // Collect feedback for A/B test critic models
+      try {
+        // Get assessment data to check for safety violations
+        const { data: assessmentData } = await serverSupabase
+          .from('building_assessments')
+          .select('assessment_data')
+          .eq('id', assessmentId)
+          .single();
+
+        const assessment = assessmentData?.assessment_data as Phase1BuildingAssessment | undefined;
+        const damageType = assessment?.damageAssessment?.damageType || '';
+        const criticalTypes = [
+          'structural_failure',
+          'electrical_hazard',
+          'fire_hazard',
+          'asbestos',
+          'mold_toxicity',
+        ];
+        const hasSafetyViolation = criticalTypes.some(type => 
+          damageType.toLowerCase().includes(type)
+        );
+
+        await ABTestFeedbackService.collectFeedback(
+          assessmentId,
+          rejectedBy,
+          false, // isCorrect = false for rejected assessments
+          hasSafetyViolation
+        );
+      } catch (feedbackError) {
+        logger.warn('Failed to collect A/B test feedback', {
+          service: 'DataCollectionService',
+          assessmentId,
+          error: feedbackError,
+        });
+        // Don't fail rejection if feedback collection fails
+      }
     } catch (error) {
       logger.error('Error rejecting assessment', error, {
         service: 'DataCollectionService',
@@ -630,7 +739,7 @@ export class DataCollectionService {
     try {
       const { data: stats, error } = await serverSupabase
         .from('building_assessments')
-        .select('validation_status, severity, damage_type')
+        .select('validation_status, severity, damage_type, auto_validated, auto_validation_review_status')
         .limit(10000); // Get all for stats
 
       if (error) {
@@ -653,6 +762,46 @@ export class DataCollectionService {
         byDamageType[s.damage_type] = (byDamageType[s.damage_type] || 0) + 1;
       });
 
+      const autoValidated = stats?.filter((s) => s.auto_validated).length || 0;
+      const autoPendingReview =
+        stats?.filter(
+          (s) =>
+            s.auto_validated &&
+            s.auto_validation_review_status === 'pending_review'
+        ).length || 0;
+      const autoConfirmed =
+        stats?.filter(
+          (s) =>
+            s.auto_validated &&
+            s.auto_validation_review_status === 'confirmed'
+        ).length || 0;
+      const autoOverturned =
+        stats?.filter(
+          (s) =>
+            s.auto_validated &&
+            s.auto_validation_review_status === 'overturned'
+        ).length || 0;
+
+      const autoReviewed = autoConfirmed + autoOverturned;
+      const autoValidationPrecision =
+        autoReviewed > 0 ? autoConfirmed / autoReviewed : null;
+      const autoValidationRecall =
+        autoValidated > 0 ? autoConfirmed / autoValidated : null;
+      const autoValidationCoverage =
+        validated > 0 ? autoValidated / validated : null;
+      const autoValidationPendingRate =
+        autoValidated > 0 ? autoPendingReview / autoValidated : null;
+
+      this.recordMetric('auto_validation.metrics', {
+        total,
+        validated,
+        autoValidatedTotal: autoValidated,
+        autoValidationPrecision,
+        autoValidationRecall,
+        autoValidationCoverage,
+        autoValidationPendingRate,
+      });
+
       return {
         total,
         pending,
@@ -662,7 +811,19 @@ export class DataCollectionService {
         byDamageType,
         autoValidationEnabled: AUTO_VALIDATION_CONFIG.ENABLED,
         minValidatedForAutoValidation: AUTO_VALIDATION_CONFIG.MIN_VALIDATED_COUNT,
-        canAutoValidate: AUTO_VALIDATION_CONFIG.ENABLED && validated >= AUTO_VALIDATION_CONFIG.MIN_VALIDATED_COUNT,
+        canAutoValidate:
+          AUTO_VALIDATION_CONFIG.ENABLED &&
+          validated >= AUTO_VALIDATION_CONFIG.MIN_VALIDATED_COUNT,
+        autoValidation: {
+          total: autoValidated,
+          pendingReview: autoPendingReview,
+          confirmed: autoConfirmed,
+          overturned: autoOverturned,
+          precision: autoValidationPrecision,
+          recall: autoValidationRecall,
+          coverage: autoValidationCoverage,
+          pendingRate: autoValidationPendingRate,
+        },
       };
     } catch (error) {
       logger.error('Error fetching statistics', error, {
