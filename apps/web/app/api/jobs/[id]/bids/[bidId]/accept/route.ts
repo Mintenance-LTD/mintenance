@@ -247,7 +247,7 @@ export async function POST(
           job_id: jobId,
           sender_id: user.id,
           receiver_id: bid.contractor_id,
-          message_text: welcomeMessage,
+          content: welcomeMessage, // Use 'content' column (schema uses 'content', not 'message_text')
           message_type: 'text',
           read: false,
           created_at: new Date().toISOString(),

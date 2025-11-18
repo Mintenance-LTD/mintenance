@@ -144,9 +144,27 @@ export class ImageQualityService {
   static async computeQualityFromImageData(
     imageData: Buffer | ImageData
   ): Promise<ImageQualityMetrics> {
-    // TODO: Implement actual image processing
-    // For now, return placeholder
-    logger.warn('computeQualityFromImageData not yet implemented', {
+    // TODO: Implement actual image processing using sharp or similar library
+    // This requires additional dependencies and image processing logic
+    // Priority: Medium - Current placeholder values are acceptable for MVP
+    // 
+    // Implementation steps:
+    // 1. Install image processing library: npm install sharp
+    // 2. Parse image buffer using sharp
+    // 3. Extract pixel data and compute statistics
+    // 4. Calculate brightness (average pixel value)
+    // 5. Calculate contrast (standard deviation of pixel values)
+    // 6. Apply edge detection algorithm (Sobel, Canny, etc.)
+    // 7. Compute blur score using Laplacian variance
+    // 8. Return computed metrics
+    //
+    // Example using sharp:
+    // const sharp = require('sharp');
+    // const { data, info } = await sharp(imageData).raw().toBuffer({ resolveWithObject: true });
+    // const pixels = new Uint8Array(data);
+    // ... compute metrics from pixels array
+    
+    logger.warn('computeQualityFromImageData using placeholder values - full implementation pending', {
       service: 'ImageQualityService',
     });
     

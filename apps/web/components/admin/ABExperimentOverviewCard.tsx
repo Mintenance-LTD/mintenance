@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/lib/utils';
 
 interface ExperimentHealth {
   experimentId: string;
@@ -44,20 +43,16 @@ interface ABExperimentOverviewCardProps {
 export function ABExperimentOverviewCard({ health, loading }: ABExperimentOverviewCardProps) {
   if (loading) {
     return (
-      <div className="rounded-[16px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-6">
-        <div className="p-4 text-center text-slate-500">
-          Loading...
-        </div>
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+        <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   if (!health) {
     return (
-      <div className="rounded-[16px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-6">
-        <div className="p-4 text-center text-slate-500">
-          No experiment data available
-        </div>
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+        <div className="p-4 text-center text-slate-500 text-sm">No experiment data available</div>
       </div>
     );
   }
@@ -82,77 +77,42 @@ export function ABExperimentOverviewCard({ health, loading }: ABExperimentOvervi
         : '#4CC38A';
 
   return (
-    <div className="rounded-[16px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-6 relative transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]">
-      {/* Status Badge - Top Right */}
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4 relative">
       <div className="absolute top-4 right-4">
-        <div className="px-3 py-1 rounded-full text-xs bg-green-50 text-green-700 font-bold border border-green-200">
+        <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-semibold">
           Experiment live
-        </div>
+        </span>
       </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6 pr-24">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-          <Icon name="activity" size={22} color="#4A67FF" />
+      <div className="flex items-center gap-3 mb-5 pr-16">
+        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+          <Icon name="activity" size={20} color="#0F172A" className="text-slate-600" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-slate-900 mb-1">
-            A/B Experiment Overview
-          </h3>
-          <p className="text-xs text-slate-500 font-mono">
-            {health.experimentId.slice(0, 8)}...
+          <h3 className="text-sm font-semibold text-slate-900">A/B Experiment Overview</h3>
+          <p className="text-xs text-slate-500 font-mono">{health.experimentId.slice(0, 8)}...</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Automation Rate</p>
+          <p className="text-xl font-semibold text-slate-900 mt-1">{formatPercent(health.automationRate)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Escalation Rate</p>
+          <p className="text-xl font-semibold text-slate-900 mt-1">{formatPercent(health.escalationRate)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">SFN Rate</p>
+          <p className="text-xl font-semibold mt-1" style={{ color: sfnRateColor }}>
+            {formatPercent(health.sfnRate)}
           </p>
         </div>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-5 mb-5">
-        {/* Automation Rate */}
         <div>
-          <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider mb-2">
-            Automation Rate
-          </div>
-          <div className="text-2xl font-bold text-slate-900">
-            {formatPercent(health.automationRate)}
-          </div>
-        </div>
-
-        {/* Escalation Rate */}
-        <div>
-          <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider mb-2">
-            Escalation Rate
-          </div>
-          <div className="text-2xl font-bold text-slate-900">
-            {formatPercent(health.escalationRate)}
-          </div>
-        </div>
-
-        {/* SFN Rate */}
-        <div>
-          <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider mb-2">
-            SFN Rate
-          </div>
-          <div
-            className="text-2xl font-bold"
-            style={{ color: sfnRateColor }}
-          >
-            {formatPercent(health.sfnRate)}
-          </div>
-        </div>
-
-        {/* Avg Decision Time */}
-        <div>
-          <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider mb-2">
-            Avg Decision Time
-          </div>
-          <div className="text-2xl font-bold text-slate-900">
-            {formatTime(health.averageDecisionTimeMs)}
-          </div>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Avg Decision Time</p>
+          <p className="text-xl font-semibold text-slate-900 mt-1">{formatTime(health.averageDecisionTimeMs)}</p>
         </div>
       </div>
-
-      {/* Additional Stats */}
-      <div className="flex justify-between pt-4 border-t border-slate-100 text-xs text-slate-500 font-medium">
+      <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
         <span>Calibration: {health.calibrationCount.toLocaleString()}</span>
         <span>Validations: {health.validationCount.toLocaleString()}</span>
       </div>

@@ -91,32 +91,37 @@ export function SafetyExperimentHealthSection() {
   }
 
   return (
-    <section className="mt-12">
-      {/* Section Header */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-slate-900 mb-3">
-          Safety & Experiment Health
-        </h2>
-        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+    <section className="mt-8 rounded-2xl bg-slate-50 border border-slate-100 px-6 py-5 shadow-sm">
+      <div className="mb-6 space-y-2">
+        <h2 className="text-lg font-semibold text-slate-900">Safety & Experiment Health</h2>
+        <p className="text-sm text-slate-500">
           Monitor A/B test metrics, critic training, conformal prediction coverage, and safety alerts.
         </p>
+        <div className="flex flex-wrap gap-2 pt-2">
+          <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-semibold">
+            Experiment live
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 font-semibold">
+            Training
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700 font-semibold">
+            Target 90%
+          </span>
+        </div>
       </div>
 
-      {/* Error State */}
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 font-medium">
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold">
           Failed to load experiment health: {error}
         </div>
       )}
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <ABExperimentOverviewCard health={health} loading={loading} />
         <CriticTrainingStatusCard health={health} loading={loading} />
         <ConformalPredictionCoverageCard health={health} loading={loading} />
       </div>
 
-      {/* Alerts List (Full Width) */}
       <div className="w-full">
         <SafetyAlertsList alerts={health?.recentAlerts || []} loading={loading} />
       </div>

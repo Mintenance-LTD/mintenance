@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { DemoModal } from '../ui/DemoModal';
@@ -13,6 +13,7 @@ import { DemoModal } from '../ui/DemoModal';
 export function HeroSection() {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Screenshots to rotate through - showing real app screens
   const screenshots = [
@@ -46,43 +47,82 @@ export function HeroSection() {
     },
   ];
 
-  // Auto-rotate screenshots every 5 seconds
+  const goToSlide = useCallback(
+    (index: number) => {
+      const total = screenshots.length;
+      const next = ((index % total) + total) % total;
+      setCurrentSlide(next);
+    },
+    [screenshots.length],
+  );
+
+  const goToNext = useCallback(() => {
+    goToSlide(currentSlide + 1);
+  }, [currentSlide, goToSlide]);
+
+  const goToPrevious = useCallback(() => {
+    goToSlide(currentSlide - 1);
+  }, [currentSlide, goToSlide]);
+
+  // Auto-rotate screenshots every 5 seconds (pausable)
   useEffect(() => {
+    if (isPaused) return;
+
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % screenshots.length);
+      goToNext();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [screenshots.length]);
+  }, [goToNext, isPaused]);
 
   return (
     <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light relative overflow-hidden" role="banner">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Text Content */}
-          <div className="text-center lg:text-left">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Find Trusted Tradespeople
+          <div className="text-center lg:text-left space-y-6">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-sm font-medium text-gray-100">
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+              For homeowners and local tradespeople
+            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+              Book trusted home pros
               <br />
-              <span className="text-secondary">For Your Home</span>
+              <span className="text-secondary">in just a few taps</span>
             </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0">
-              Connect with verified, skilled tradespeople in your area. Post your job, receive competitive quotes, and get the work done right.
+            <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto lg:mx-0">
+              Homeowners post a job once and get competitive quotes. Tradespeople win more of the right work with less admin.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 href="/register?role=homeowner"
-                className="bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors"
+                className="bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors shadow-lg shadow-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-secondary focus-visible:ring-offset-primary"
               >
-                I Need a Tradesperson
+                I&apos;m a homeowner
               </Link>
               <Link
                 href="/register?role=contractor"
-                className="bg-white text-primary px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors"
+                className="bg-white/90 text-primary px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white transition-colors border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-primary"
               >
-                I'm a Tradesperson
+                I&apos;m a tradesperson
               </Link>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.querySelector('#how-it-works');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="inline-flex items-center gap-2 text-sm text-gray-200/80 hover:text-white transition-colors mx-auto lg:mx-0"
+              aria-label="Scroll to see how Mintenance works"
+            >
+              See how it works
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-400/60">
+                <span className="i-lucide-chevron-down text-xs" aria-hidden="true" />
+              </span>
+            </button>
           </div>
 
           {/* Right Column - Desktop Mockup with Real Screenshots */}
@@ -99,22 +139,30 @@ export function HeroSection() {
                     <div className="bg-gray-100 border-b flex items-center justify-between px-4 py-2 z-10 relative">
                       {/* Browser Controls */}
                       <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
                       </div>
                       {/* Address Bar */}
-                      <div className="flex-1 mx-4 bg-white rounded px-3 py-1 text-xs text-gray-600 border">
+                      <div className="flex-1 mx-4 bg-white rounded-full h-7 flex items-center px-3 text-xs text-gray-600 border border-gray-200/70">
+                        <span className="inline-block w-3 h-3 rounded-full bg-emerald-400 mr-2" aria-hidden="true" />
+                        <span className="truncate">mintenance.app • Secure home maintenance</span>
                       </div>
                       {/* Browser Icons */}
                       <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 bg-gray-300 rounded"></div>
-                        <div className="w-4 h-4 bg-gray-300 rounded"></div>
+                        <div className="w-4 h-4 bg-gray-300 rounded" />
+                        <div className="w-4 h-4 bg-gray-300 rounded" />
                       </div>
                     </div>
                     
                     {/* Screenshot Carousel */}
-                    <div className="relative w-full h-[calc(100%-48px)] overflow-hidden bg-gray-50">
+                    <div
+                      className="relative w-full h-[calc(100%-48px)] overflow-hidden bg-gray-50"
+                      onMouseEnter={() => setIsPaused(true)}
+                      onMouseLeave={() => setIsPaused(false)}
+                      aria-roledescription="carousel"
+                      aria-label="Mintenance app screenshots"
+                    >
                       {screenshots.map((screenshot, index) => (
                         <div
                           key={index}
@@ -154,12 +202,33 @@ export function HeroSection() {
                       </div>
                     </div>
 
-                    {/* Slide Indicators */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
+                    {/* Carousel controls */}
+                    <div className="absolute inset-x-4 bottom-4 flex items-center justify-between z-20 pointer-events-none">
+                      <div className="flex gap-2 pointer-events-auto">
+                        <button
+                          type="button"
+                          onClick={goToPrevious}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-gray-700 shadow hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label="Previous screenshot"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          onClick={goToNext}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-gray-700 shadow hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label="Next screenshot"
+                        >
+                          ›
+                        </button>
+                      </div>
+                      {/* Slide Indicators */}
+                      <div className="flex space-x-2 pointer-events-auto">
                       {screenshots.map((_, index) => (
                         <button
                           key={index}
-                          onClick={() => setCurrentSlide(index)}
+                          type="button"
+                          onClick={() => goToSlide(index)}
                           className={`h-2 rounded-full transition-all ${
                             index === currentSlide
                               ? 'w-8 bg-secondary'
@@ -168,6 +237,7 @@ export function HeroSection() {
                           aria-label={`Go to slide ${index + 1}`}
                         />
                       ))}
+                      </div>
                     </div>
                   </div>
                 </div>

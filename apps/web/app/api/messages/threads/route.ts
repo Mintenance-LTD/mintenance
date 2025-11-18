@@ -126,15 +126,15 @@ export async function GET(request: NextRequest) {
     if (jobIds.length > 0) {
       const messageLimit = Math.min(Math.max(jobIds.length * 5, limit), 500);
       
-      // Try to fetch messages with message_text first
-      let messageQuery = serverSupabase
+      // Fetch messages using 'content' column (schema uses 'content', not 'message_text')
+      const { data: messageData, error: messageError } = await serverSupabase
         .from('messages')
         .select(`
           id,
           job_id,
           sender_id,
           receiver_id,
-          message_text,
+          content,
           message_type,
           attachment_url,
           read,
@@ -145,42 +145,6 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(messageLimit);
 
-      let { data: messageData, error: messageError } = await messageQuery;
-
-      // If message_text column doesn't exist, try with content
-      if (messageError && (messageError.message?.includes('message_text') || (messageError.message?.includes('column') && messageError.message?.includes('message_text')))) {
-        logger.warn('message_text column not found in threads route, trying with content', {
-          service: 'messages',
-          userId: user.id,
-        });
-        
-        const fallbackQuery = serverSupabase
-          .from('messages')
-          .select(`
-            id,
-            job_id,
-            sender_id,
-            receiver_id,
-            content,
-            message_type,
-            attachment_url,
-            read,
-            created_at,
-            sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
-          `)
-          .in('job_id', jobIds)
-          .order('created_at', { ascending: false })
-          .limit(messageLimit);
-        
-        const result = await fallbackQuery;
-        // Map content to message_text for consistency
-        messageData = result.data?.map((m: any) => ({
-          ...m,
-          message_text: m.content || null,
-        })) || null;
-        messageError = result.error;
-      }
-
       if (messageError) {
         logger.error('Failed to load message threads - messages query failed', messageError, {
           service: 'messages',
@@ -189,7 +153,7 @@ export async function GET(request: NextRequest) {
           errorMessage: messageError.message,
         });
         // Don't fail the entire request - just continue without messages
-        messageData = null;
+        // messageData will be null/undefined if there's an error
       }
 
       if (messageData) {

@@ -12,7 +12,7 @@ import { BiometricService } from '../services/BiometricService';
 import { AuthService } from '../services/AuthService';
 import { User } from '../types';
 import { logger } from '../utils/logger';
-import { trackUserAction, addBreadcrumb } from './sentryUtils';
+import { trackUserAction, addBreadcrumb } from '../utils/sentryUtils';
 
 export interface BiometricAuthHook {
   biometricAvailable: boolean;

@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 80
+names: ['Bare electrical wire', 'Broken Window', 'Broken timber Floor', 'Building', 'Crack', 'Cracked Skirting', 'Damage', 'Damaged Brick', 'Damaged Tower', 'Damaged plaster board', 'Damaged roof', 'Damaged wall', 'Damaged_Roof', 'Damp', 'Damp damage', 'Dangerous Electrical socket', 'Defective paving', 'Expansion Crack', 'Fissure', 'Leaking damage on wood', 'Leaking radiator', 'Loose Coping', 'Loose pipes', 'Minor Crack', 'Mold', 'Mould on wall', 'Normal wall', 'Other', 'Plaster board', 'Plaster coverring to stop leaking', 'Radiator', 'Radiator conner', 'Roof', 'Rotten', 'Rotten timber', 'Rust on radiator', 'Spalling', 'Stepped cracking on brick', 'Sunken Block', 'Trou', 'Uncracked wall', 'Unstable', 'Wall leaking', 'Wall-leaking', 'Whole cause by damp', 'Window', 'bad_coupler', 'bad_line', 'bath', 'brack_crack', 'broken window', 'building', 'burst', 'closed valve', 'crack', 'crack-mold-damp-spalling-cor', 'damage', 'damaged roof', 'designradiator', 'douche', 'good_bolt', 'good_coupler', 'good_line', 'good_valve', 'hole', 'leak', 'opened valve', 'pipe', 'roof', 'rusty_bolt', 'rusty_valve', 'toilet', 'wall flange', 'wall_corrosion', 'wall_crack', 'wall_deterioration', 'wall_mold', 'wall_stain', 'wastafel', 'window']
+
+roboflow:
+  workspace: mintenance
+  project: building-defect-detection-7-ks0im-1nmmt
+  version: 2
+  license: CC BY 4.0
+  url: https://app.roboflow.com/mintenance/building-defect-detection-7-ks0im-1nmmt/2

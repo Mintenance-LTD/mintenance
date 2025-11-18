@@ -11,6 +11,8 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { ModelVersionHealthCard } from '@/components/admin/ModelVersionHealthCard';
 import { SafetyExperimentHealthSection } from '@/components/admin/SafetyExperimentHealthSection';
+import { YOLOLearningStatusCard } from '@/components/admin/YOLOLearningStatusCard';
+import { AdminCard } from '@/components/admin/AdminCard';
 
 interface ChartDataPoint {
   date: string;
@@ -30,6 +32,32 @@ interface DashboardMetrics {
     userGrowth: ChartDataPoint[];
     jobGrowth: ChartDataPoint[];
   };
+}
+
+interface QuickActionCardProps {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+  badgeContent?: React.ReactNode;
+  iconColor?: string;
+}
+
+function QuickActionCard({ href, icon, title, description, badgeContent, iconColor = '#0F172A' }: QuickActionCardProps) {
+  return (
+    <Link href={href} className={cn(styles.adminCardLink, 'group h-full')}>
+      <AdminCard className="h-full relative" hover padding="lg">
+        {badgeContent && <div className="absolute top-4 right-4">{badgeContent}</div>}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+            <Icon name={icon} size={20} color={iconColor} className="text-slate-600" />
+          </div>
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        </div>
+        <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
+      </AdminCard>
+    </Link>
+  );
 }
 
 export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardMetrics }) {
@@ -69,7 +97,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
   }, []);
 
   return (
-    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen">
+    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen space-y-8">
       <AdminPageHeader
         title="Admin Dashboard"
         subtitle="Manage platform operations, revenue, and user activity"
@@ -101,7 +129,8 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       />
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mt-10">
+      <section className="mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <AdminMetricCard
           label="Total Users"
           value={metrics.totalUsers.toLocaleString()}
@@ -141,102 +170,65 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           iconColor="#F59E0B"
           onClick={() => window.location.href = '/admin/users?verified=pending'}
         />
-      </div>
+        </div>
+      </section>
 
       {/* Action Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
-        <Link
-          href="/admin/revenue"
-          className={cn(styles.adminCardLink, 'group')}
-        >
-          <div className={cn(
-            'rounded-[16px] border border-slate-200 bg-white p-5 cursor-pointer transition-all duration-300',
-            'shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]',
-            'hover:-translate-y-1 active:translate-y-0',
-            styles.adminCard
-          )}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <Icon name="trendingUp" size={22} color="#4A67FF" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">
-                Revenue Analytics
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              View subscription revenue, MRR, conversion rates, and payment tracking
-            </p>
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionCard
+            href="/admin/revenue"
+            icon="trendingUp"
+            title="Revenue Analytics"
+            description="View subscription revenue, MRR, conversion rates, and payment tracking."
+            iconColor="#2563EB"
+          />
+          <QuickActionCard
+            href="/admin/users"
+            icon="users"
+            title="User Management"
+            description={`Manage users and verify contractors${metrics.pendingVerifications > 0 ? ` (${metrics.pendingVerifications} pending)` : ''}.`}
+            iconColor="#2563EB"
+            badgeContent={
+              metrics.pendingVerifications > 0 ? (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-semibold">
+                  {metrics.pendingVerifications > 9 ? '9+' : metrics.pendingVerifications} pending
+                </span>
+              ) : null
+            }
+          />
+          <QuickActionCard
+            href="/admin/security"
+            icon="shield"
+            title="Security Dashboard"
+            description="Monitor security events, threats, and system health."
+            iconColor="#0F172A"
+          />
+          <div className="h-full">
+            <ModelVersionHealthCard />
           </div>
-        </Link>
+        </div>
+      </section>
 
-        <Link
-          href="/admin/users"
-          className={cn(styles.adminCardLink, 'group')}
-        >
-          <div className={cn(
-            'rounded-[16px] border border-slate-200 bg-white p-5 cursor-pointer transition-all duration-300 relative',
-            'shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]',
-            'hover:-translate-y-1 active:translate-y-0',
-            styles.adminCard
-          )}>
-            {metrics.pendingVerifications > 0 && (
-              <div className="absolute top-3 right-3 bg-amber-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold shadow-lg">
-                {metrics.pendingVerifications > 9 ? '9+' : metrics.pendingVerifications}
-              </div>
-            )}
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <Icon name="users" size={22} color="#4A67FF" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">
-                User Management
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Manage users, verify contractors{metrics.pendingVerifications > 0 ? ` (${metrics.pendingVerifications} pending)` : ''}
-            </p>
-          </div>
-        </Link>
-
-        <Link
-          href="/admin/security"
-          className={cn(styles.adminCardLink, 'group')}
-        >
-          <div className={cn(
-            'rounded-[16px] border border-slate-200 bg-white p-5 cursor-pointer transition-all duration-300',
-            'shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]',
-            'hover:-translate-y-1 active:translate-y-0',
-            styles.adminCard
-          )}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                <Icon name="shield" size={22} color="#64748B" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900">
-                Security Dashboard
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Monitor security events, threats, and system health
-            </p>
-          </div>
-        </Link>
-
-        {/* Model Version Health Card */}
-        <ModelVersionHealthCard />
-      </div>
+      {/* YOLO Learning Status */}
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <YOLOLearningStatusCard />
+        </div>
+      </section>
 
       {/* Safety & Experiment Health Section */}
       <SafetyExperimentHealthSection />
 
       {/* Charts Section */}
       {metrics.charts && (
-        <AdminCharts 
-          userGrowth={metrics.charts.userGrowth} 
-          jobGrowth={metrics.charts.jobGrowth} 
+        <AdminCharts
+          userGrowth={metrics.charts.userGrowth}
+          jobGrowth={metrics.charts.jobGrowth}
         />
       )}
     </div>
   );
 }
+
 

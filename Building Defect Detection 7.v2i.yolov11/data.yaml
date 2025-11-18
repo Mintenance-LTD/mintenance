@@ -1,0 +1,82 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+nc: 71
+names:
+- bare_electrical_wire
+- broken_window
+- broken_timber_floor
+- building
+- crack
+- cracked_skirting
+- damage
+- damaged_brick
+- damaged_tower
+- damaged_plaster_board
+- damaged_roof
+- damaged_wall
+- damp
+- damp_damage
+- dangerous_electrical_socket
+- defective_paving
+- expansion_crack
+- fissure
+- leaking_damage_on_wood
+- leaking_radiator
+- loose_coping
+- loose_pipes
+- minor_crack
+- mold
+- mould_on_wall
+- normal_wall
+- other
+- plaster_board
+- plaster_coverring_to_stop_leaking
+- radiator
+- radiator_conner
+- roof
+- rotten
+- rotten_timber
+- rust_on_radiator
+- spalling
+- stepped_cracking_on_brick
+- sunken_block
+- trou
+- uncracked_wall
+- unstable
+- wall_leaking
+- whole_cause_by_damp
+- window
+- bad_coupler
+- bad_line
+- bath
+- brack_crack
+- burst
+- closed_valve
+- crack_mold_damp_spalling_cor
+- designradiator
+- douche
+- good_bolt
+- good_coupler
+- good_line
+- good_valve
+- hole
+- leak
+- opened_valve
+- pipe
+- rusty_bolt
+- rusty_valve
+- toilet
+- wall_flange
+- wall_corrosion
+- wall_crack
+- wall_deterioration
+- wall_mold
+- wall_stain
+- wastafel
+roboflow:
+  workspace: mintenance
+  project: building-defect-detection-7-ks0im-1nmmt
+  version: 2
+  license: CC BY 4.0
+  url: https://app.roboflow.com/mintenance/building-defect-detection-7-ks0im-1nmmt/2

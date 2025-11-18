@@ -23,6 +23,7 @@ import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
 import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ComplianceService } from './ComplianceService';
 import { InsuranceRiskService } from './InsuranceRiskService';
+import { LearnedFeatureExtractor } from './LearnedFeatureExtractor';
 
 const optionalNumber = () =>
   z
@@ -146,6 +147,9 @@ export class BuildingSurveyorService {
   private static memorySystemInitialized = false;
   private static readonly AGENT_NAME = 'building-surveyor';
   private static adaptiveEngine: AdaptiveUpdateEngine | null = null;
+  private static learnedFeatureExtractor: LearnedFeatureExtractor | null = null;
+  private static useLearnedFeatures: boolean = 
+    process.env.USE_LEARNED_FEATURES === 'true' || false;
 
   private static recordMetric(metric: string, payload: Record<string, unknown>): void {
     MonitoringService.record(metric, {
@@ -182,12 +186,46 @@ export class BuildingSurveyorService {
   }
 
   /**
+   * Initialize learned feature extractor
+   */
+  private static async initializeLearnedFeatureExtractor(): Promise<void> {
+    if (this.learnedFeatureExtractor || !this.useLearnedFeatures) return;
+
+    try {
+      this.learnedFeatureExtractor = new LearnedFeatureExtractor(
+        this.AGENT_NAME,
+        {
+          inputDim: 50,  // Raw input dimension (will be padded/truncated)
+          outputDim: 40, // Fixed output dimension (matches handcrafted features)
+          hiddenDims: [64, 48],
+          learningRate: 0.001,
+          regularization: 0.0001,
+        }
+      );
+
+      await this.learnedFeatureExtractor.loadState();
+
+      logger.info('Learned feature extractor initialized', {
+        service: 'BuildingSurveyorService',
+        agentName: this.AGENT_NAME,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize learned feature extractor', error, {
+        service: 'BuildingSurveyorService',
+      });
+      // Fallback to handcrafted features
+      this.useLearnedFeatures = false;
+    }
+  }
+
+  /**
    * Initialize continuum memory system for building surveyor
    */
   private static async initializeMemorySystem(): Promise<void> {
     if (this.memorySystemInitialized) return;
 
     await this.initializeAdaptiveEngine();
+    await this.initializeLearnedFeatureExtractor();
 
     try {
       const config: ContinuumMemoryConfig = {
@@ -234,12 +272,24 @@ export class BuildingSurveyorService {
         ],
       };
 
-      await memoryManager.getOrCreateMemorySystem(config);
+      const memorySystem = await memoryManager.getOrCreateMemorySystem(config);
+      
+      // Enable Titans for self-modification
+      const useTitans = process.env.USE_TITANS === 'true' || false;
+      if (useTitans) {
+        memorySystem.enableTitans(true);
+        logger.info('Titans enabled for building surveyor', {
+          agentName: this.AGENT_NAME,
+        });
+      }
+      
       this.memorySystemInitialized = true;
 
       logger.info('BuildingSurveyorService memory system initialized', {
         agentName: this.AGENT_NAME,
         levels: config.levels.length,
+        useLearnedFeatures: this.useLearnedFeatures,
+        useTitans,
       });
     } catch (error) {
       logger.error('Failed to initialize memory system', error, {
@@ -252,8 +302,49 @@ export class BuildingSurveyorService {
   /**
    * Extract detection features from images and context
    * Returns 40-dimension feature vector normalized to 0-1 range
+   * 
+   * Uses learned feature extractor if enabled, otherwise falls back to handcrafted features
    */
   private static async extractDetectionFeatures(
+    imageUrls: string[],
+    context?: AssessmentContext,
+    assessment?: Phase1BuildingAssessment,
+    roboflowDetections?: RoboflowDetection[],
+    visionSummary?: VisionAnalysisSummary | null
+  ): Promise<number[]> {
+    // Use learned feature extractor if available and enabled
+    if (this.useLearnedFeatures && this.learnedFeatureExtractor) {
+      try {
+        return await this.learnedFeatureExtractor.extractFeatures(
+          imageUrls,
+          context,
+          roboflowDetections,
+          visionSummary
+        );
+      } catch (error) {
+        logger.warn('Learned feature extraction failed, falling back to handcrafted', {
+          service: 'BuildingSurveyorService',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        // Fall through to handcrafted features
+      }
+    }
+
+    // Fallback to handcrafted features
+    return this.extractDetectionFeaturesHandcrafted(
+      imageUrls,
+      context,
+      assessment,
+      roboflowDetections,
+      visionSummary
+    );
+  }
+
+  /**
+   * Handcrafted feature extraction (original implementation)
+   * Kept as fallback and for comparison
+   */
+  private static async extractDetectionFeaturesHandcrafted(
     imageUrls: string[],
     context?: AssessmentContext,
     assessment?: Phase1BuildingAssessment,
@@ -636,11 +727,21 @@ export class BuildingSurveyorService {
       );
 
       // Query memory for learned adjustments
+      // Use Titans-enhanced query if enabled
       let memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
       try {
+        const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
+        const useTitans = process.env.USE_TITANS === 'true' || false;
+
+        let processedFeatures = features;
+        if (useTitans && memorySystem) {
+          // Use Titans-enhanced processing
+          processedFeatures = await memorySystem.processWithTitans(features);
+        }
+
         const memoryResults: MemoryQueryResult[] = [];
         for (let level = 0; level < 3; level++) {
-          const result = await memoryManager.query(this.AGENT_NAME, features, level);
+          const result = await memoryManager.query(this.AGENT_NAME, processedFeatures, level);
           if (result.values && result.values.length === 5) {
             memoryResults.push(result);
           }
@@ -1307,8 +1408,8 @@ Guidelines:
       const imageUrls = images?.map(img => img.image_url) || [];
       const context: AssessmentContext = {}; // Could be enhanced to fetch from user profile
 
-      // Extract features (same as query)
-      const features = await this.extractDetectionFeatures(
+      // Extract features for original assessment
+      const originalFeatures = await this.extractDetectionFeatures(
         imageUrls,
         context,
         originalAssessment,
@@ -1316,7 +1417,47 @@ Guidelines:
         originalAssessment.evidence?.visionAnalysis ?? null,
       );
 
-      // Calculate surprise signals
+      // Extract features for validated assessment (target features)
+      const validatedFeatures = await this.extractDetectionFeatures(
+        imageUrls,
+        context,
+        humanValidatedAssessment,
+        originalAssessment.evidence?.roboflowDetections,
+        originalAssessment.evidence?.visionAnalysis ?? null,
+      );
+
+      // Learn from surprise signal in feature extractor
+      if (this.useLearnedFeatures && this.learnedFeatureExtractor) {
+        try {
+          // Build raw input for learning
+          const rawInput = this.learnedFeatureExtractor['buildRawInput'](
+            imageUrls,
+            context,
+            originalAssessment.evidence?.roboflowDetections,
+            originalAssessment.evidence?.visionAnalysis ?? null
+          );
+
+          // Learn from surprise: validated features are the target
+          await this.learnedFeatureExtractor.learnFromSurprise(
+            rawInput,
+            validatedFeatures
+          );
+
+          logger.debug('Feature extractor learned from validation', {
+            service: 'BuildingSurveyorService',
+            assessmentId,
+            avgError: this.learnedFeatureExtractor.getAverageError(),
+          });
+        } catch (featureError) {
+          logger.warn('Failed to learn in feature extractor', {
+            service: 'BuildingSurveyorService',
+            assessmentId,
+            error: featureError,
+          });
+        }
+      }
+
+      // Calculate surprise signals for memory system
       const damageTypeAccuracy = originalAssessment.damageAssessment.damageType ===
         humanValidatedAssessment.damageAssessment.damageType ? 1.0 : 0.0;
 
@@ -1349,21 +1490,44 @@ Guidelines:
         confidenceError,
       ];
 
-      // Add context flow to all memory levels
-      for (let level = 0; level < 3; level++) {
-        try {
-          await memoryManager.addContextFlow(
-            this.AGENT_NAME,
-            features,
-            values,
-            level
-          );
-        } catch (levelError) {
-          logger.warn('Failed to add context flow to memory level', {
-            service: 'BuildingSurveyorService',
-            level,
-            error: levelError,
-          });
+      // Add context flow to all memory levels (with Titans if enabled)
+      const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
+      const useTitans = process.env.USE_TITANS === 'true' || false;
+
+      if (useTitans && memorySystem) {
+        // Use Titans-enhanced learning
+        for (let level = 0; level < 3; level++) {
+          try {
+            await memorySystem.learnFromSurpriseWithTitans(
+              originalFeatures,
+              values,
+              level
+            );
+          } catch (levelError) {
+            logger.warn('Failed to learn with Titans at memory level', {
+              service: 'BuildingSurveyorService',
+              level,
+              error: levelError,
+            });
+          }
+        }
+      } else {
+        // Standard memory learning
+        for (let level = 0; level < 3; level++) {
+          try {
+            await memoryManager.addContextFlow(
+              this.AGENT_NAME,
+              originalFeatures,
+              values,
+              level
+            );
+          } catch (levelError) {
+            logger.warn('Failed to add context flow to memory level', {
+              service: 'BuildingSurveyorService',
+              level,
+              error: levelError,
+            });
+          }
         }
       }
 

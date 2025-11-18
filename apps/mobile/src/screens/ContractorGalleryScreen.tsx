@@ -15,12 +15,11 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { logger } from '../services/logger';
+import { logger } from '../utils/logger';
 import { theme } from '../theme';
 import { useHaptics } from '../utils/haptics';
 // import { useAuth } from '../contexts/AuthContext';
 import { ContractorSocialService } from '../services/ContractorSocialService';
-import { logger } from '../utils/logger';
 
 const { width } = Dimensions.get('window');
 

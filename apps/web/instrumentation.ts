@@ -15,6 +15,31 @@ export async function register() {
     const { logRoboflowConfig } = await import('./lib/config/roboflow.config');
     logRoboflowConfig();
 
+    // Initialize local YOLO model if configured
+    const { RoboflowDetectionService } = await import('./lib/services/building-surveyor/RoboflowDetectionService');
+    await RoboflowDetectionService.initialize();
+
+    // Start scheduled retraining checks (if enabled)
+    if (process.env.YOLO_CONTINUOUS_LEARNING_ENABLED === 'true') {
+      const { YOLORetrainingService } = await import('./lib/services/building-surveyor/YOLORetrainingService');
+      
+      // Check for retraining every 24 hours
+      setInterval(async () => {
+        try {
+          await YOLORetrainingService.checkAndRetrain();
+        } catch (error) {
+          console.error('Scheduled retraining check failed:', error);
+        }
+      }, 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Also check immediately on startup (if conditions met)
+      YOLORetrainingService.checkAndRetrain().catch((error) => {
+        console.error('Initial retraining check failed:', error);
+      });
+      
+      console.log('✅ YOLO continuous learning enabled - scheduled checks active');
+    }
+
     if (isProduction()) {
       console.log('🚀 Running in production mode');
 

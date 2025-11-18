@@ -246,8 +246,26 @@ export class ABTestAlertingService {
           actualValue: alert.actualValue,
         });
 
-        // TODO: Insert into ab_alerts table when schema is created
-        // await serverSupabase.from('ab_alerts').insert(alert);
+        // Insert into ab_alerts table
+        const { error: insertError } = await serverSupabase
+          .from('ab_alerts')
+          .insert({
+            experiment_id: alert.experimentId,
+            severity: alert.severity,
+            type: alert.type,
+            message: alert.message,
+            threshold: alert.threshold,
+            actual_value: alert.actualValue,
+            metadata: alert.metadata || {},
+            is_resolved: false,
+          });
+
+        if (insertError) {
+          logger.error('Failed to insert AB alert', insertError, {
+            service: 'ABTestAlertingService',
+            experimentId: alert.experimentId,
+          });
+        }
       }
     }
   }
@@ -260,9 +278,51 @@ export class ABTestAlertingService {
     type?: string,
     limit: number = 10
   ): Promise<Alert[]> {
-    // TODO: Query from ab_alerts table when schema is created
-    // For now, return empty array
-    return [];
+    try {
+      let query = serverSupabase
+        .from('ab_alerts')
+        .select('*')
+        .eq('experiment_id', experimentId)
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (type) {
+        query = query.eq('type', type);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Failed to fetch AB alerts', error, {
+          service: 'ABTestAlertingService',
+          experimentId,
+        });
+        return [];
+      }
+
+      // Map database records to Alert interface
+      return (data || []).map((record) => ({
+        id: record.id,
+        experimentId: record.experiment_id,
+        severity: record.severity as AlertSeverity,
+        type: record.type,
+        message: record.message,
+        threshold: record.threshold,
+        actualValue: record.actual_value,
+        metadata: record.metadata || {},
+        acknowledged: record.is_resolved,
+        acknowledgedBy: record.resolved_by,
+        acknowledgedAt: record.resolved_at,
+        createdAt: record.created_at,
+      }));
+    } catch (error) {
+      logger.error('Error fetching AB alerts', error, {
+        service: 'ABTestAlertingService',
+        experimentId,
+      });
+      return [];
+    }
   }
 
   /**

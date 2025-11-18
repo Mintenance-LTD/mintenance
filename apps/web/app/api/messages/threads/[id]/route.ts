@@ -92,8 +92,7 @@ export async function GET(request: NextRequest, context: Params) {
 
     const job = jobData as SupabaseJobRow;
 
-    // Fetch messages - try message_text first, then fallback to content if needed
-    // Note: We select only what we need to avoid query errors if columns don't exist
+    // Fetch messages using 'content' column (schema uses 'content', not 'message_text')
     let messageQuery = serverSupabase
       .from('messages')
       .select(`
@@ -101,7 +100,7 @@ export async function GET(request: NextRequest, context: Params) {
         job_id,
         sender_id,
         receiver_id,
-        message_text,
+        content,
         message_type,
         attachment_url,
         read,
@@ -116,45 +115,7 @@ export async function GET(request: NextRequest, context: Params) {
       messageQuery = messageQuery.lt('created_at', cursorIso);
     }
 
-    let { data: messageData, error: messagesError } = await messageQuery;
-    
-    // If message_text column doesn't exist, try with content
-    if (messagesError && (messagesError.message?.includes('message_text') || (messagesError.message?.includes('column') && messagesError.message?.includes('message_text')))) {
-      logger.warn('Message text column not found, trying with content', {
-        service: 'messages',
-        threadId,
-        error: messagesError.message,
-      });
-      let fallbackQuery = serverSupabase
-        .from('messages')
-        .select(`
-          id,
-          job_id,
-          sender_id,
-          receiver_id,
-          content,
-          message_type,
-          attachment_url,
-          read,
-          created_at,
-          sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
-        `)
-        .eq('job_id', threadId)
-        .order('created_at', { ascending: false })
-        .limit(limit + 1);
-      
-      if (cursorIso) {
-        fallbackQuery = fallbackQuery.lt('created_at', cursorIso);
-      }
-      
-      const result = await fallbackQuery;
-      // Map content to message_text for consistency
-      messageData = result.data?.map((m: any) => ({
-        ...m,
-        message_text: m.content || null,
-      })) || null;
-      messagesError = result.error;
-    }
+    const { data: messageData, error: messagesError } = await messageQuery;
     
     if (messagesError) {
       logger.error('Failed to load messages', messagesError, {

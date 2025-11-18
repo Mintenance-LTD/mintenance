@@ -109,8 +109,8 @@ export const toTimestamp = (value?: string | null): number => {
 };
 
 export const mapMessageRow = (row: SupabaseMessageRow): Message => {
-  // Handle both message_text and content column names
-  const messageText = row.message_text ?? row.content ?? '';
+  // Handle both content and message_text column names (prefer content as it's the current schema)
+  const messageText = row.content ?? row.message_text ?? '';
   
   return {
     id: row.id,

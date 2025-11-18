@@ -91,36 +91,26 @@ export function SafetyAlertsList({ alerts, loading }: SafetyAlertsListProps) {
 
   if (loading) {
     return (
-      <div className="rounded-[16px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-6">
-        <div className="p-4 text-center text-slate-500">
-          Loading...
-        </div>
+      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+        <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-[16px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] p-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
-          <Icon name="bell" size={22} color="#E74C3C" />
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+          <Icon name="bell" size={20} color="#E11D48" className="text-slate-600" />
         </div>
-        <div className="flex-1">
-          <h3 className="text-base font-bold text-slate-900 mb-1">
-            Recent Safety Alerts
-          </h3>
-          <p className="text-xs text-slate-500 font-medium">
-            {alerts.length} alert{alerts.length !== 1 ? 's' : ''}
-          </p>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Recent Safety Alerts</h3>
+          <p className="text-xs text-slate-500">{alerts.length} active alert{alerts.length !== 1 ? 's' : ''}</p>
         </div>
       </div>
 
-      {/* Alerts List */}
       {alerts.length === 0 ? (
-        <div className="p-4 text-center text-slate-500 text-sm">
-          No alerts
-        </div>
+        <div className="p-4 text-center text-slate-500 text-sm">No alerts</div>
       ) : (
         <div className="flex flex-col gap-2">
           {alerts.map((alert) => {
@@ -129,37 +119,28 @@ export function SafetyAlertsList({ alerts, loading }: SafetyAlertsListProps) {
               <div
                 key={alert.id}
                 className={cn(
-                  'p-4 rounded-xl border transition-all duration-200 hover:shadow-md',
+                  'p-4 rounded-2xl border transition-all duration-200',
                   getSeverityBgColor(alert.severity)
                 )}
               >
-                <div className="flex items-start gap-2 mb-1">
-                  <Icon
-                    name={getSeverityIcon(alert.severity)}
-                    size={16}
-                    color={severityColor}
-                    className="mt-0.5"
-                  />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <Icon
+                      name={getSeverityIcon(alert.severity)}
+                      size={16}
+                      color={severityColor}
+                      className="text-slate-600"
+                    />
+                  </div>
                   <div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
-                      <span
-                        className={cn(
-                          'text-xs font-semibold uppercase',
-                          getSeverityTextColor(alert.severity)
-                        )}
-                      >
+                    <div className="flex justify-between items-start">
+                      <span className={cn('text-xs font-semibold uppercase', getSeverityTextColor(alert.severity))}>
                         {alert.severity}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        {formatTimeAgo(alert.createdAt)}
-                      </span>
+                      <span className="text-xs text-slate-400">{formatTimeAgo(alert.createdAt)}</span>
                     </div>
-                    <div className="text-sm text-slate-900 leading-relaxed">
-                      {alert.message}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 font-mono">
-                      {alert.type}
-                    </div>
+                    <p className="text-sm text-slate-900 mt-1">{alert.message}</p>
+                    <p className="text-xs text-slate-500 font-mono mt-1">{alert.type}</p>
                   </div>
                 </div>
               </div>

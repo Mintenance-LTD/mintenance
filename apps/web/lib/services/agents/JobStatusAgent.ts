@@ -49,31 +49,13 @@ export class JobStatusAgent {
       }
 
       // Get recent messages to detect completion signals
-      // Try message_text first, then fallback to content
-      let messagesQuery = serverSupabase
+      // Query messages using 'content' column (schema uses 'content', not 'message_text')
+      const { data: messages, error: messagesError } = await serverSupabase
         .from('messages')
-        .select('id, message_text, sender_id, created_at')
+        .select('id, content, sender_id, created_at')
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(10);
-
-      let { data: messages, error: messagesError } = await messagesQuery;
-
-      // Fallback to content field if message_text doesn't exist
-      if (messagesError && messagesError.message?.includes('message_text')) {
-        const fallbackQuery = serverSupabase
-          .from('messages')
-          .select('id, content, sender_id, created_at')
-          .eq('job_id', jobId)
-          .order('created_at', { ascending: false })
-          .limit(10);
-        const result = await fallbackQuery;
-        messages = result.data?.map((m: any) => ({
-          ...m,
-          message_text: m.content || null,
-        })) || null;
-        messagesError = result.error;
-      }
 
       if (messagesError || !messages || messages.length === 0) {
         return null;
@@ -95,7 +77,7 @@ export class JobStatusAgent {
       );
 
       const hasCompletionSignal = contractorMessages.some((message: any) => {
-        const content = (message.message_text || message.content || '').toLowerCase();
+        const content = (message.content || '').toLowerCase();
         return completionKeywords.some((keyword) => content.includes(keyword));
       });
 
@@ -105,7 +87,7 @@ export class JobStatusAgent {
       );
       const confirmationKeywords = ['thanks', 'thank you', 'looks good', 'perfect', 'great'];
       const hasConfirmation = homeownerMessages.some((message: any) => {
-        const content = (message.message_text || message.content || '').toLowerCase();
+        const content = (message.content || '').toLowerCase();
         return confirmationKeywords.some((keyword) => content.includes(keyword));
       });
 

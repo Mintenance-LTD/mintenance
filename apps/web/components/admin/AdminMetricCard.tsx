@@ -35,55 +35,42 @@ export function AdminMetricCard({
   return (
     <div
       className={cn(
-        'rounded-[12px] border border-slate-200 bg-white p-4 h-32 transition-all duration-300',
-        'shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]',
-        onClick && 'cursor-pointer hover:-translate-y-1 active:translate-y-0',
+        'rounded-2xl border border-slate-100 bg-white p-4 h-28 transition-all duration-300 shadow-sm',
+        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0',
         styles.metricCard,
         className
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-4 h-full">
-        {/* Icon Container */}
-        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 transition-colors duration-200 group-hover:bg-slate-100">
-          <Icon name={icon} size={22} color={iconColor || '#64748B'} />
+      <div className="flex items-center gap-4 h-full">
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+          <Icon name={icon} size={18} color={iconColor || '#64748B'} className="text-slate-600" />
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-          <div>
-            <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider mb-2">
-              {label}
-            </div>
-            <div className="text-2xl font-bold text-slate-900 leading-tight mb-1">
-              {value}
-            </div>
-            {subtitle && (
-              <div className="text-xs text-slate-400 mt-1 font-medium">
-                {subtitle}
-              </div>
-            )}
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {label}
           </div>
+          <div className="text-xl font-semibold text-slate-900 mt-1 truncate">
+            {value}
+          </div>
+          {subtitle && <div className="text-xs text-slate-400 mt-1">{subtitle}</div>}
           {trend && (
-            <div className="flex items-center gap-1.5 mt-auto pt-2">
+            <div className="flex items-center gap-1.5 mt-1">
               <Icon
                 name={trend.direction === 'up' ? 'trendingUp' : 'trendingDown'}
                 size={14}
-                color={trend.direction === 'up' ? '#4CC38A' : '#E74C3C'}
+                color={trend.direction === 'up' ? '#10B981' : '#EF4444'}
               />
               <span
                 className={cn(
-                  'text-xs font-bold',
-                  trend.direction === 'up' ? 'text-[#4CC38A]' : 'text-[#E74C3C]'
+                  'text-xs font-semibold',
+                  trend.direction === 'up' ? 'text-emerald-600' : 'text-rose-600'
                 )}
               >
                 {trend.value}
               </span>
-              {trend.label && (
-                <span className="text-xs text-slate-400 font-medium">
-                  {trend.label}
-                </span>
-              )}
+              {trend.label && <span className="text-xs text-slate-400">{trend.label}</span>}
             </div>
           )}
         </div>

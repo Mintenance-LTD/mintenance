@@ -128,6 +128,8 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   lock: 'Lock',
   user: 'User',
   leaf: 'Leaf',
+  brain: 'Brain',
+  save: 'Save',
 } as const;
 
 /**

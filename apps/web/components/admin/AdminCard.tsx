@@ -21,13 +21,13 @@ interface AdminCardProps {
  * - shadow-[0_8px_24px_rgba(0,0,0,0.06)]
  * - hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)]
  */
-export function AdminCard({ 
-  children, 
-  className = '', 
+export function AdminCard({
+  children,
+  className = '',
   padding = 'md',
   hover = false,
   onClick,
-  style
+  style,
 }: AdminCardProps) {
   const paddingClasses = {
     none: 'p-0',
@@ -39,14 +39,14 @@ export function AdminCard({
   return (
     <div
       className={cn(
-        'rounded-[16px] border border-slate-200 bg-white transition-all duration-300',
+        'rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300',
         paddingClasses[padding],
-        hover || onClick ? 'hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] hover:-translate-y-1 active:translate-y-0' : '',
+        hover || onClick ? 'hover:shadow-md hover:-translate-y-0.5 active:translate-y-0' : '',
         onClick ? 'cursor-pointer' : '',
         className
       )}
       style={{
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)',
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
         ...style,
       }}
       onClick={onClick}

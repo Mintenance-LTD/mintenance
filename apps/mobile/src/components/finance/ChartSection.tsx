@@ -131,3 +131,4 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
     </>
   );
 };
+

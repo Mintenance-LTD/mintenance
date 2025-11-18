@@ -649,7 +649,7 @@ export const getCachedUserMessages = unstable_cache(
   async (userId: string, limit: number = 10) => {
     const { data, error } = await serverSupabase
       .from('messages')
-      .select('id, content, message_text, sender_id, created_at')
+      .select('id, content, sender_id, created_at')
       .or(`receiver_id.eq.${userId},sender_id.eq.${userId}`)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -665,10 +665,10 @@ export const getCachedUserMessages = unstable_cache(
       return [];
     }
 
-    // Normalize content field (some schemas use content, others use message_text)
+    // Return messages with content field (schema uses 'content' column)
     return (data || []).map((msg: MessageData) => ({
       ...msg,
-      content: msg.content || msg.message_text || '',
+      content: msg.content || '',
     }));
   },
   ['user-messages'],

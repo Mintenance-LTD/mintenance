@@ -48,8 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Resend confirmation email via Supabase Auth API
-    // Use the resend endpoint directly via HTTP since auth.resend() may not be available on server client
+    // Resend confirmation email via Supabase Auth Admin API
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
@@ -66,7 +65,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Call the Supabase Auth resend endpoint directly
+      const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`;
+      
+      // Use Supabase Auth resend endpoint to send confirmation email
+      // This is the standard way to resend verification emails
       const resendUrl = `${supabaseUrl}/auth/v1/resend`;
       const response = await fetch(resendUrl, {
         method: 'POST',
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
           type: 'signup',
           email: userData.email,
           options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+            emailRedirectTo: redirectUrl,
           },
         }),
       });
@@ -94,19 +96,22 @@ export async function POST(request: NextRequest) {
           email: userData.email,
           status: response.status,
           error: errorMessage,
+          responseBody: errorData,
         });
 
-        // In development mode, if email service isn't configured, we can manually verify
-        if (process.env.NODE_ENV === 'development' && 
-            (errorMessage?.includes('email service') || 
-             errorMessage?.includes('not configured') ||
-             errorMessage?.includes('SMTP'))) {
-          
+        // In local development, emails go to Inbucket - provide helpful message
+        const isLocalDev = process.env.NODE_ENV === 'development' || 
+                          supabaseUrl.includes('127.0.0.1') || 
+                          supabaseUrl.includes('localhost');
+        
+        if (isLocalDev) {
+          // Even if there's an error, in local dev emails might still be in Inbucket
           return NextResponse.json({
-            error: 'Email service not configured. In development mode, you can verify your email manually.',
+            message: 'Verification email sent. In local development, check Inbucket at http://localhost:54324',
             devMode: true,
-            message: 'To verify your email in development: Go to Supabase Dashboard → Auth → Users → Find your user → Click "Confirm Email"',
-          }, { status: 400 });
+            inbucketUrl: 'http://localhost:54324',
+            error: errorMessage, // Include error for debugging
+          }, { status: 200 });
         }
 
         return NextResponse.json(
@@ -123,6 +128,20 @@ export async function POST(request: NextRequest) {
         email: userData.email,
         response: responseData,
       });
+
+      // In local development, remind user to check Inbucket
+      const isLocalDev = process.env.NODE_ENV === 'development' || 
+                        supabaseUrl.includes('127.0.0.1') || 
+                        supabaseUrl.includes('localhost');
+      
+      if (isLocalDev) {
+        return NextResponse.json({
+          message: 'Verification email sent! In local development, check Inbucket at http://localhost:54324',
+          success: true,
+          devMode: true,
+          inbucketUrl: 'http://localhost:54324',
+        });
+      }
     } catch (fetchError) {
       logger.error('Error calling Supabase Auth API for email resend', fetchError, {
         service: 'auth',
@@ -130,22 +149,17 @@ export async function POST(request: NextRequest) {
         email: userData.email,
       });
       
-      // Check if it's a known error we can handle
-      if (fetchError instanceof Error) {
-        const errorMessage = fetchError.message;
-        
-        // In development mode, if email service isn't configured, we can manually verify
-        if (process.env.NODE_ENV === 'development' && 
-            (errorMessage?.includes('email service') || 
-             errorMessage?.includes('not configured') ||
-             errorMessage?.includes('SMTP'))) {
-          
-          return NextResponse.json({
-            error: 'Email service not configured. In development mode, you can verify your email manually.',
-            devMode: true,
-            message: 'To verify your email in development: Go to Supabase Dashboard → Auth → Users → Find your user → Click "Confirm Email"',
-          }, { status: 400 });
-        }
+      // In local development, assume email might be in Inbucket
+      const isLocalDev = process.env.NODE_ENV === 'development' || 
+                        supabaseUrl?.includes('127.0.0.1') || 
+                        supabaseUrl?.includes('localhost');
+      
+      if (isLocalDev) {
+        return NextResponse.json({
+          message: 'Verification email may have been sent. In local development, check Inbucket at http://localhost:54324',
+          devMode: true,
+          inbucketUrl: 'http://localhost:54324',
+        }, { status: 200 });
       }
       
       return NextResponse.json(

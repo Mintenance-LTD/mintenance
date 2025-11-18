@@ -13,7 +13,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 interface ChartDataPoint {
@@ -31,14 +30,11 @@ interface AdminChartsProps {
 // Legend Dots Component
 function LegendDots({ items }: { items: Array<{ label: string; color: string }> }) {
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-4 text-xs text-slate-500">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-2.5">
-          <div
-            className="w-3 h-3 rounded-full shadow-sm"
-            style={{ backgroundColor: item.color }}
-          />
-          <span className="text-xs font-semibold text-slate-600">{item.label}</span>
+        <div key={item.label} className="flex items-center gap-2">
+          <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+          <span>{item.label}</span>
         </div>
       ))}
     </div>
@@ -75,208 +71,105 @@ export function AdminCharts({ userGrowth, jobGrowth }: AdminChartsProps) {
     }));
   }, [userGrowth, jobGrowth]);
 
+  const axisStyle = {
+    stroke: '#E2E8F0',
+    tick: { fontSize: 11, fill: '#64748B' },
+    axisLine: false,
+    tickLine: false,
+    tickMargin: 8,
+  };
+
+  const tooltipStyle = {
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '12px',
+    fontSize: '12px',
+    padding: '10px 14px',
+    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.15)',
+  } as const;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
-      {/* User Growth Chart */}
-      <div className="rounded-[16px] border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
-        <div className="flex justify-between items-center mb-5">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              User Growth (30 Days)
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              Cumulative user growth over the past month
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-bold text-[#4A67FF]">
-              +{userStats.total}
-            </div>
-            <div className="text-xs text-slate-500 font-medium">
-              new users
-            </div>
-          </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-1 mb-4">
+          <h3 className="text-sm font-semibold text-slate-900">User Growth (30 days)</h3>
+          <p className="text-xs text-slate-400">
+            Cumulative new users • +{userStats.total} • {userStats.change}% vs last month
+          </p>
         </div>
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={userGrowth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4A67FF" stopOpacity={0.25}/>
-                <stop offset="95%" stopColor="#4A67FF" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="2 2" stroke="#DCE3F0" vertical={false} strokeWidth={1} />
-            <XAxis 
-              dataKey="date" 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="date" {...axisStyle} />
+            <YAxis {...axisStyle} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: '#0ea5e9', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            <YAxis 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E5E7EB',
-                borderRadius: '12px',
-                fontSize: '12px',
-                padding: '10px 14px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              }}
-              cursor={{ stroke: '#4A67FF', strokeWidth: 1, strokeDasharray: '3 3' }}
-            />
-            <Area
-              type="monotone"
-              dataKey="cumulative"
-              stroke="#4A67FF"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#colorUsers)"
-            />
+            <Area type="monotone" dataKey="cumulative" stroke="#0ea5e9" strokeWidth={2} fill="url(#colorUsers)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Job Growth Chart */}
-      <div className="rounded-[16px] border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
-        <div className="flex justify-between items-center mb-5">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              Job Creation (30 Days)
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              New jobs created daily
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-lg font-bold text-[#4CC38A]">
-              +{jobStats.total}
-            </div>
-            <div className="text-xs text-slate-500 font-medium">
-              new jobs
-            </div>
-          </div>
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-1 mb-4">
+          <h3 className="text-sm font-semibold text-slate-900">Job Creation (30 days)</h3>
+          <p className="text-xs text-slate-400">
+            Daily jobs created • +{jobStats.total} • {jobStats.change}% vs last month
+          </p>
         </div>
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={jobGrowth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorJobs" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4CC38A" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#4CC38A" stopOpacity={0.3}/>
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="2 2" stroke="#DCE3F0" vertical={false} strokeWidth={1} />
-            <XAxis 
-              dataKey="date" 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-            />
-            <YAxis 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E5E7EB',
-                borderRadius: '12px',
-                fontSize: '12px',
-                padding: '10px 14px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              }}
-              cursor={{ fill: 'rgba(76, 195, 138, 0.1)' }}
-            />
-            <Bar 
-              dataKey="jobs" 
-              fill="url(#colorJobs)"
-              radius={[8, 8, 0, 0]}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="date" {...axisStyle} />
+            <YAxis {...axisStyle} />
+            <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(16, 185, 129, 0.08)' }} />
+            <Bar dataKey="jobs" fill="url(#colorJobs)" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Daily Activity Comparison */}
-      <div className="rounded-[16px] border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,0,0,0.06)] lg:col-span-2">
-        <div className="flex justify-between items-center mb-5">
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm lg:col-span-2">
+        <div className="flex flex-col gap-1 mb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="text-base font-bold text-slate-900 mb-1">
-              Daily Activity Comparison
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              Users vs Jobs created daily
-            </p>
+            <h3 className="text-sm font-semibold text-slate-900">Daily Activity Comparison</h3>
+            <p className="text-xs text-slate-400">New users vs jobs created</p>
           </div>
           <LegendDots
             items={[
-              { label: 'New Users', color: '#4A67FF' },
-              { label: 'New Jobs', color: '#4CC38A' },
+              { label: 'New users', color: '#0ea5e9' },
+              { label: 'New jobs', color: '#10b981' },
             ]}
           />
         </div>
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={300}>
           <LineChart data={combinedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="2 2" stroke="#DCE3F0" vertical={false} strokeWidth={1} />
-            <XAxis 
-              dataKey="date" 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="date" {...axisStyle} />
+            <YAxis {...axisStyle} />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: '#CBD5F5', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            <YAxis 
-              stroke="#94A3B8"
-              tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E5E7EB',
-                borderRadius: '12px',
-                fontSize: '12px',
-                padding: '10px 14px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              }}
-              cursor={{ stroke: '#94A3B8', strokeWidth: 1, strokeDasharray: '3 3' }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="users" 
-              stroke="#4A67FF" 
-              strokeWidth={3}
-              dot={false}
-              name="New Users"
-              activeDot={{ r: 6, fill: '#4A67FF', stroke: '#FFFFFF', strokeWidth: 2 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="jobs" 
-              stroke="#4CC38A" 
-              strokeWidth={3}
-              dot={false}
-              name="New Jobs"
-              activeDot={{ r: 6, fill: '#4CC38A', stroke: '#FFFFFF', strokeWidth: 2 }}
-            />
+            <Line type="monotone" dataKey="users" stroke="#0ea5e9" strokeWidth={2} dot={false} name="New users" />
+            <Line type="monotone" dataKey="jobs" stroke="#10b981" strokeWidth={2} dot={false} name="New jobs" />
           </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
+
 

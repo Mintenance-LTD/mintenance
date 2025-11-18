@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "node": "20.19.4",
       "android": {
         "gradleCommand": ":app:assembleDebug",
         "buildType": "apk",
@@ -27,6 +28,7 @@
     },
     "stable": {
       "distribution": "internal",
+      "node": "20.19.4",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -50,6 +52,7 @@
     },
     "staging": {
       "distribution": "internal",
+      "node": "20.19.4",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -70,6 +73,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "node": "20.19.4",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -91,6 +95,7 @@
       "channel": "preview"
     },
     "production": {
+      "node": "20.19.4",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
@@ -109,6 +114,7 @@
     },
     "production-store": {
       "distribution": "store",
+      "node": "20.19.4",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
