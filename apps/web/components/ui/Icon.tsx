@@ -63,6 +63,9 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   currencyPound: 'PoundSterling',
   creditCard: 'CreditCard',
   chart: 'BarChart3',
+  pieChart: 'PieChart',
+  target: 'Target',
+  radar: 'Radar',
   calendar: 'Calendar',
   camera: 'Camera',
   image: 'Image',
@@ -125,6 +128,8 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   lock: 'Lock',
   user: 'User',
   leaf: 'Leaf',
+  brain: 'Brain',
+  save: 'Save',
 } as const;
 
 /**

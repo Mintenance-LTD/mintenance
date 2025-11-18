@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Card } from '@/components/ui/Card.unified';
-import { getIconContainerStyle } from '@/lib/theme-enhancements';
+import { cn } from '@/lib/utils';
 import styles from '../../app/admin/admin.module.css';
 
 interface Trend {
@@ -28,112 +26,56 @@ export function AdminMetricCard({
   label,
   value,
   icon,
-  iconColor = theme.colors.primary,
+  iconColor = '#0F172A',
   trend,
   subtitle,
   onClick,
   className,
 }: AdminMetricCardProps) {
-  const cardContent = (
-    <Card
-      className={`${styles.metricCard} ${className || ''}`}
-      style={{
-        padding: theme.spacing[6],
-        cursor: onClick ? 'pointer' : 'default',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border border-slate-100 bg-white p-4 h-28 transition-all duration-300 shadow-sm',
+        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0',
+        styles.metricCard,
+        className
+      )}
       onClick={onClick}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: theme.spacing[4],
-        }}
-      >
-        {/* Icon Container */}
-        <div style={getIconContainerStyle(iconColor, 48)}>
-          <Icon name={icon} size={24} color={iconColor} />
+      <div className="flex items-center gap-4 h-full">
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+          <Icon name={icon} size={18} color={iconColor || '#64748B'} className="text-slate-600" />
         </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: theme.spacing[2],
-            }}
-          >
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {label}
           </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              lineHeight: 1.2,
-              marginBottom: subtitle ? theme.spacing[1] : 0,
-            }}
-          >
+          <div className="text-xl font-semibold text-slate-900 mt-1 truncate">
             {value}
           </div>
-          {subtitle && (
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                marginTop: theme.spacing[1],
-              }}
-            >
-              {subtitle}
-            </div>
-          )}
+          {subtitle && <div className="text-xs text-slate-400 mt-1">{subtitle}</div>}
           {trend && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-                marginTop: theme.spacing[2],
-              }}
-            >
+            <div className="flex items-center gap-1.5 mt-1">
               <Icon
                 name={trend.direction === 'up' ? 'trendingUp' : 'trendingDown'}
                 size={14}
-                color={trend.direction === 'up' ? theme.colors.success : theme.colors.error}
+                color={trend.direction === 'up' ? '#10B981' : '#EF4444'}
               />
               <span
-                style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: trend.direction === 'up' ? theme.colors.success : theme.colors.error,
-                }}
+                className={cn(
+                  'text-xs font-semibold',
+                  trend.direction === 'up' ? 'text-emerald-600' : 'text-rose-600'
+                )}
               >
                 {trend.value}
               </span>
-              {trend.label && (
-                <span
-                  style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  {trend.label}
-                </span>
-              )}
+              {trend.label && <span className="text-xs text-slate-400">{trend.label}</span>}
             </div>
           )}
         </div>
       </div>
-    </Card>
+    </div>
   );
-
-  return cardContent;
 }
 

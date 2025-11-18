@@ -207,31 +207,28 @@ export async function POST(request: NextRequest) {
         messageLength: contractMessageText.length,
       });
       
-      // Determine message_text vs content column
+      // Create contract submission message using 'content' column (schema uses 'content', not 'message_text')
       const messagePayload: any = {
         job_id: job_id,
         sender_id: user.id,
         receiver_id: job.homeowner_id,
+        content: contractMessageText, // Use 'content' column (schema uses 'content', not 'message_text')
         message_type: 'contract_submitted',
         read: false,
       };
       
-      // Try to insert with message_text first, fallback to content
       let messageInserted = false;
       let insertedMessageId: string | null = null;
       
       try {
         const { data: insertedMessage, error: msgError } = await serverSupabase
           .from('messages')
-          .insert({
-            ...messagePayload,
-            message_text: contractMessageText,
-          })
+          .insert(messagePayload)
           .select('id, message_type, created_at')
           .single();
         
         if (msgError) {
-          console.error('[API] First attempt to create contract message failed', {
+          console.error('[API] Failed to create contract message', {
             error: msgError,
             message: msgError.message,
             code: msgError.code,
@@ -241,48 +238,16 @@ export async function POST(request: NextRequest) {
         
         messageInserted = true;
         insertedMessageId = insertedMessage?.id || null;
-        console.log('[API] Contract message created successfully with message_text', {
+        console.log('[API] Contract message created successfully', {
           messageId: insertedMessageId,
           messageType: insertedMessage?.message_type,
           createdAt: insertedMessage?.created_at,
         });
       } catch (msgError: any) {
-        if (msgError.message?.includes('message_text') || msgError.message?.includes('column') || msgError.code === 'PGRST116') {
-          console.warn('[API] message_text column not found, trying with content');
-          // Try with content column instead
-          const { data: insertedMessage, error: contentError } = await serverSupabase
-            .from('messages')
-            .insert({
-              ...messagePayload,
-              content: contractMessageText,
-            })
-            .select('id, message_type, created_at')
-            .single();
-          
-          if (contentError) {
-            console.error('[API] Second attempt to create contract message failed', {
-              error: contentError,
-              message: contentError.message,
-              code: contentError.code,
-            });
-            throw contentError;
-          }
-          
-          messageInserted = true;
-          insertedMessageId = insertedMessage?.id || null;
-          console.log('[API] Contract message created successfully with content', {
-            messageId: insertedMessageId,
-            messageType: insertedMessage?.message_type,
-            createdAt: insertedMessage?.created_at,
-          });
-        } else {
-          console.error('[API] Unexpected error creating contract message', {
-            error: msgError,
-            message: msgError.message,
-            code: msgError.code,
-          });
-          throw msgError;
-        }
+        console.error('[API] Failed to create contract message', {
+          error: msgError,
+        });
+        // Don't throw - message creation is not critical for contract creation
       }
       
       // Update job's updated_at so it appears at the top of messages list

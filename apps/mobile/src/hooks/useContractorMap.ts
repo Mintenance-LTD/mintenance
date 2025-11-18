@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Alert, Platform, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { logger } from '../services/logger';
+import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
 import { Region } from '../components/map/MapViewWrapper';

@@ -1,7 +1,7 @@
 // Shared utilities and helpers
 export { logger } from './logger';
 export { formatDate, formatCurrency, formatPhone } from './formatters';
-export { debounce, throttle } from './utils';
+export { debounce, throttle, hashString } from './utils';
 export { generateId, sanitizeString } from './helpers';
 
 // Constants

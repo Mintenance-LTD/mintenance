@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PlatformSetting } from '@/lib/services/admin/PlatformSettingsService';
@@ -117,80 +118,113 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
     switch (setting.setting_type) {
       case 'boolean':
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id={key}
-                checked={localValue === true || localValue === 'true'}
-                onCheckedChange={(checked: boolean) => {
-                  handleChange(checked);
-                  handleSave(setting, checked);
-                }}
-              />
-              <Label htmlFor={key} className="text-sm text-gray-600 cursor-pointer">
-                {localValue === true || localValue === 'true' ? 'Enabled' : 'Disabled'}
-              </Label>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], justifyContent: 'space-between' }}>
+            <Label htmlFor={key} className="text-sm font-medium text-slate-700 cursor-pointer">
+              {localValue === true || localValue === 'true' ? 'Enabled' : 'Disabled'}
+            </Label>
+            <Switch
+              id={key}
+              checked={localValue === true || localValue === 'true'}
+              onCheckedChange={(checked: boolean) => {
+                handleChange(checked);
+                handleSave(setting, checked);
+              }}
+              className="data-[state=checked]:bg-[#4A67FF]"
+            />
           </div>
         );
 
       case 'number':
         return (
-          <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center', maxWidth: '400px' }}>
             <Input
               type="number"
               value={localValue}
               onChange={(e) => handleChange(e.target.value)}
-              style={{ maxWidth: '200px' }}
+              style={{ flex: 1 }}
+              className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />
             <Button
               variant="primary"
               onClick={handleSaveClick}
               disabled={saving[key]}
-              style={{ minWidth: '80px' }}
+              style={{ minWidth: '100px' }}
+              className="rounded-lg bg-[#4A67FF] hover:bg-[#3B5BDB]"
             >
-              {saving[key] ? 'Saving...' : 'Save'}
+              {saving[key] ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icon name="loader" size={16} className="animate-spin" /> Saving...
+                </span>
+              ) : 'Save'}
             </Button>
+            {saving[key] && (
+              <span style={{ fontSize: '12px', color: '#64748B' }}>
+                Saving...
+              </span>
+            )}
           </div>
         );
 
       case 'json':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3], maxWidth: '600px' }}>
             <Textarea
               value={typeof localValue === 'string' ? localValue : JSON.stringify(localValue, null, 2)}
               onChange={(e) => handleChange(e.target.value)}
-              rows={4}
-              className="font-mono text-sm"
+              rows={6}
+              className="font-mono text-sm rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />
-            <Button
-              variant="primary"
-              onClick={handleSaveClick}
-              disabled={saving[key]}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {saving[key] ? 'Saving...' : 'Save'}
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+              <Button
+                variant="primary"
+                onClick={handleSaveClick}
+                disabled={saving[key]}
+                style={{ minWidth: '100px' }}
+                className="rounded-lg bg-[#4A67FF] hover:bg-[#3B5BDB]"
+              >
+                {saving[key] ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon name="loader" size={16} className="animate-spin" /> Saving...
+                  </span>
+                ) : 'Save'}
+              </Button>
+              {saving[key] && (
+                <span style={{ fontSize: '12px', color: '#64748B' }}>
+                  Saving...
+                </span>
+              )}
+            </div>
           </div>
         );
 
       default: // string
         return (
-          <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center', maxWidth: '600px' }}>
             <Input
               type="text"
               value={localValue}
               onChange={(e) => handleChange(e.target.value)}
-              style={{ flex: 1, maxWidth: '400px' }}
+              style={{ flex: 1 }}
+              className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />
             <Button
               variant="primary"
               onClick={handleSaveClick}
               disabled={saving[key]}
-              style={{ minWidth: '80px' }}
+              style={{ minWidth: '100px' }}
+              className="rounded-lg bg-[#4A67FF] hover:bg-[#3B5BDB]"
             >
-              {saving[key] ? 'Saving...' : 'Save'}
+              {saving[key] ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icon name="loader" size={16} className="animate-spin" /> Saving...
+                </span>
+              ) : 'Save'}
             </Button>
+            {saving[key] && (
+              <span style={{ fontSize: '12px', color: '#64748B' }}>
+                Saving...
+              </span>
+            )}
           </div>
         );
     }
@@ -199,45 +233,97 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
   const renderCategory = (title: string, categorySettings: PlatformSetting[], icon: string) => {
     if (categorySettings.length === 0) return null;
 
+    const getIconColor = (iconName: string) => {
+      const iconColors: Record<string, string> = {
+        settings: '#4A67FF',
+        mail: '#4CC38A',
+        shield: '#F59E0B',
+        zap: '#E74C3C',
+        bell: '#3B82F6',
+      };
+      return iconColors[iconName] || '#4A67FF';
+    };
+
     return (
-      <Card style={{ padding: theme.spacing[6], marginBottom: theme.spacing[6] }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
-          <Icon name={icon} size={24} color={theme.colors.primary} />
-          <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            margin: 0,
+      <Card style={{ 
+        padding: theme.spacing[6], 
+        marginBottom: theme.spacing[6],
+        borderRadius: '16px',
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: theme.spacing[3], 
+          marginBottom: theme.spacing[6],
+          paddingBottom: theme.spacing[4],
+          borderBottom: '1px solid #E2E8F0',
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: `${getIconColor(icon)}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}>
-            {title}
-          </h2>
+            <Icon name={icon} size={24} color={getIconColor(icon)} />
+          </div>
+          <div>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: 700,
+              color: '#0F172A',
+              margin: 0,
+              marginBottom: '4px',
+            }}>
+              {title}
+            </h2>
+            <p style={{
+              fontSize: '13px',
+              color: '#64748B',
+              margin: 0,
+            }}>
+              {categorySettings.length} setting{categorySettings.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: categorySettings.length > 3 ? 'repeat(2, 1fr)' : '1fr',
+          gap: theme.spacing[5],
+        }}>
           {categorySettings.map((setting) => (
             <div
               key={setting.setting_key}
               style={{
-                padding: theme.spacing[4],
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderRadius: theme.borderRadius.md,
+                padding: theme.spacing[5],
+                backgroundColor: '#F8FAFC',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                transition: 'all 0.2s',
               }}
+              className="hover:shadow-sm"
             >
-              <div style={{ marginBottom: theme.spacing[2] }}>
+              <div style={{ marginBottom: theme.spacing[4] }}>
                 <label style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: '#0F172A',
                   display: 'block',
-                  marginBottom: theme.spacing[1],
+                  marginBottom: theme.spacing[2],
                 }}>
                   {setting.setting_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </label>
                 {setting.description && (
                   <p style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
+                    fontSize: '13px',
+                    color: '#64748B',
                     margin: 0,
+                    lineHeight: '1.5',
                   }}>
                     {setting.description}
                   </p>
@@ -247,19 +333,30 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
               {renderSettingInput(setting)}
 
               {errors[setting.setting_key] && (
-                <Alert variant="destructive" className="mt-2">
-                  <AlertDescription>
+                <Alert variant="destructive" className="mt-3 rounded-lg">
+                  <AlertDescription className="text-sm">
                     {errors[setting.setting_key]}
                   </AlertDescription>
                 </Alert>
               )}
 
               {success[setting.setting_key] && (
-                <Alert className="mt-2 border-green-200 bg-green-50">
-                  <AlertDescription className="text-green-800">
+                <div style={{
+                  marginTop: theme.spacing[3],
+                  padding: theme.spacing[2],
+                  backgroundColor: '#D1FAE5',
+                  borderRadius: '8px',
+                  border: '1px solid #86EFAC',
+                }}>
+                  <p style={{
+                    fontSize: '13px',
+                    color: '#065F46',
+                    margin: 0,
+                    fontWeight: 500,
+                  }}>
                     ✓ Setting saved successfully
-                  </AlertDescription>
-                </Alert>
+                  </p>
+                </div>
               )}
             </div>
           ))}

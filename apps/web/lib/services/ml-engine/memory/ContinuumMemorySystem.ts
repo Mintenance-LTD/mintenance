@@ -12,6 +12,7 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { SelfModifyingTitans } from './SelfModifyingTitans';
 import type {
   ContinuumMemoryConfig,
   MemoryLevel,
@@ -36,10 +37,24 @@ export class ContinuumMemorySystem {
   private config: ContinuumMemoryConfig;
   private currentStep: number = 0;
   private contextFlowBuffer: Map<string, ContextFlow[]> = new Map();
+  private titansModules: Map<string, SelfModifyingTitans> = new Map();
+  private useTitans: boolean = false;
 
   constructor(config: ContinuumMemoryConfig) {
     this.config = config;
     this.initializeMemoryLevels();
+  }
+
+  /**
+   * Enable Titans integration for self-modification
+   */
+  enableTitans(enable: boolean = true): void {
+    this.useTitans = enable;
+    if (enable) {
+      logger.info('Titans enabled for continuum memory', {
+        agentName: this.config.agentName,
+      });
+    }
   }
 
   /**
@@ -135,6 +150,84 @@ export class ContinuumMemorySystem {
     }
 
     return currentInput;
+  }
+
+  /**
+   * Enhanced process with Titans self-modification
+   * Combines continuum memory with self-modifying projections
+   * 
+   * Process: Continuum Memory → Titans → Output
+   */
+  async processWithTitans(input: number[]): Promise<number[]> {
+    // First, process through continuum memory (existing)
+    let processed = await this.process(input);
+    
+    if (!this.useTitans) {
+      return processed;
+    }
+
+    // Then, apply Titans for self-modification at highest frequency level
+    const highestLevel = this.getHighestFrequencyLevel();
+    if (!highestLevel) {
+      return processed;
+    }
+
+    const levelKey = highestLevel.level.toString();
+    
+    if (!this.titansModules.has(levelKey)) {
+      const titans = new SelfModifyingTitans(
+        `${this.config.agentName}_level_${levelKey}`,
+        {
+          inputDim: processed.length,
+          hiddenDim: Math.max(32, Math.floor(processed.length * 1.5)),
+          outputDim: processed.length,
+          learningRate: 0.001,
+          memorySize: 100,
+        }
+      );
+      await titans.loadState();
+      this.titansModules.set(levelKey, titans);
+    }
+    
+    const titans = this.titansModules.get(levelKey)!;
+    return await titans.forward(processed);
+  }
+
+  /**
+   * Learn from surprise signal with Titans
+   * Updates both continuum memory and Titans projections
+   */
+  async learnFromSurpriseWithTitans(
+    input: number[],
+    surpriseSignal: number[],
+    level?: number
+  ): Promise<void> {
+    // Update continuum memory (existing)
+    await this.addContextFlow(input, surpriseSignal, level);
+
+    // Update Titans if enabled
+    if (this.useTitans) {
+      const targetLevel = level !== undefined 
+        ? this.getLevelByIndex(level)
+        : this.getHighestFrequencyLevel();
+      
+      if (targetLevel) {
+        const levelKey = targetLevel.level.toString();
+        const titans = this.titansModules.get(levelKey);
+        
+        if (titans) {
+          // Process input through continuum memory first
+          const processed = await this.process(input);
+          
+          // Compute target for Titans (surprise signal adjusted for processed dimension)
+          const titansTarget = processed.length === surpriseSignal.length
+            ? surpriseSignal
+            : surpriseSignal.slice(0, processed.length);
+          
+          await titans.learnFromSurprise(processed, titansTarget);
+        }
+      }
+    }
   }
 
   /**

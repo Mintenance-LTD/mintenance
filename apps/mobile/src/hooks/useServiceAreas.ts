@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { logger } from '../services/logger';
+import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { ServiceAreasService, type ServiceArea } from '../services/ServiceAreasService';
 

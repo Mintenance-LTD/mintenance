@@ -1,35 +1,42 @@
+// Load shared environment variables from web app or root .env files
+// This allows sharing Supabase credentials between web and mobile apps
+try {
+  require('./load-env.js');
+} catch (error) {
+  // Silently fail if load-env.js doesn't exist or has errors
+  // This allows the app to work with mobile-specific .env files
+}
+
 // Validate required environment variables at build time
 const validateEnvironment = () => {
-  const isDev = process.env.NODE_ENV === 'development';
+  // Check if we're in a production build context (EAS build, not dev server)
+  const isProductionBuild = process.env.EAS_BUILD === 'true' || process.env.EXPO_PUBLIC_ENVIRONMENT === 'production';
+  const isDev = process.env.NODE_ENV === 'development' || !isProductionBuild;
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!isDev) {
-    // In production builds, both credentials are required
-    if (!supabaseUrl || !supabaseKey) {
-      const missing = [];
-      if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
-      if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  // Only throw errors during actual production builds, not during dev server startup
+  if (isProductionBuild && (!supabaseUrl || !supabaseKey)) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
+    if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-      console.error('❌ Missing required environment variables:', missing.join(', '));
-      console.error('📋 Set these variables before building for production:');
-      console.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-      console.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
+    console.error('❌ Missing required environment variables:', missing.join(', '));
+    console.error('📋 Set these variables before building for production:');
+    console.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+    console.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
 
-      throw new Error(`Production build requires Supabase credentials: ${missing.join(', ')}`);
-    }
-  } else {
+    throw new Error(`Production build requires Supabase credentials: ${missing.join(', ')}`);
+  } else if (isDev && (!supabaseUrl || !supabaseKey)) {
     // In development, warn if missing but allow to continue
-    if (!supabaseUrl || !supabaseKey) {
-      const missing = [];
-      if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
-      if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+    const missing = [];
+    if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
+    if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-      console.warn('⚠️  Missing Supabase environment variables:', missing.join(', '));
-      console.warn('📋 App will use mock client. Set these for real data:');
-      console.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-      console.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
-    }
+    console.warn('⚠️  Missing Supabase environment variables:', missing.join(', '));
+    console.warn('📋 App will use mock client. Set these for real data:');
+    console.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+    console.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
   }
 };
 
@@ -128,9 +135,9 @@ export default {
           universalApk: false,
           enableHermes: true,
           minSdkVersion: 24,
-          compileSdkVersion: 35,
-          targetSdkVersion: 34,
-          buildToolsVersion: "34.0.0",
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+          buildToolsVersion: "36.0.0",
           packagingOptions: {
             pickFirst: ["**/libc++_shared.so", "**/libjsc.so"]
           },
@@ -157,7 +164,9 @@ export default {
       }],
       ["expo-local-authentication", {
         faceIDPermission: "This app uses Face ID for secure authentication and faster login."
-      }]
+      }],
+      "expo-web-browser",
+      "sentry-expo"
     ],
     extra: {
       eas: {

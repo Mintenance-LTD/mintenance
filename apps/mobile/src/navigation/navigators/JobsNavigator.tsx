@@ -4,7 +4,7 @@ import type { JobsStackParamList } from '../types';
 
 // Import existing screens
 import JobsScreen from '../../screens/JobsScreen';
-import JobDetailsScreen from '../../screens/JobDetailsScreen';
+import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
 

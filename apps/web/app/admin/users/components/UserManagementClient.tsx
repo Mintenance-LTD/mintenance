@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Card } from '@/components/ui/Card.unified';
+import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { VerificationBadge } from './VerificationBadge';
 import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface User {
   id: string;
@@ -23,6 +24,7 @@ interface User {
   updated_at: string;
   verificationStatus: 'verified' | 'pending' | 'rejected' | 'not_submitted' | 'not_applicable';
   hasVerificationData?: boolean;
+  isTestUser?: boolean;
 }
 
 interface Pagination {
@@ -44,6 +46,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'contractor' | 'homeowner'>('all');
   const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'pending' | 'false'>('all');
+  const [excludeTestUsers, setExcludeTestUsers] = useState(true); // Default to excluding test users
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
@@ -71,6 +74,10 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
         params.append('search', search.trim());
       }
 
+      if (excludeTestUsers) {
+        params.append('excludeTestUsers', 'true');
+      }
+
       const response = await fetch(`/api/admin/users?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch users');
@@ -84,7 +91,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
     } finally {
       setLoading(false);
     }
-  }, [search, roleFilter, verifiedFilter]);
+  }, [search, roleFilter, verifiedFilter, excludeTestUsers]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,7 +99,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
     }, 300); // Debounce search
 
     return () => clearTimeout(timer);
-  }, [search, roleFilter, verifiedFilter, fetchUsers]);
+  }, [search, roleFilter, verifiedFilter, excludeTestUsers, fetchUsers]);
 
   const handleViewDetails = (userId: string) => {
     setSelectedUserId(userId);
@@ -119,6 +126,16 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
       return user.company_name;
     }
     return user.email.split('@')[0];
+  };
+
+  const getUserInitials = (user: User) => {
+    if (user.first_name || user.last_name) {
+      return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
+    }
+    if (user.company_name) {
+      return user.company_name.substring(0, 2).toUpperCase();
+    }
+    return user.email.substring(0, 2).toUpperCase();
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -220,15 +237,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
   const pendingCount = users.filter(u => u.verificationStatus === 'pending').length;
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: theme.spacing[6],
-      padding: theme.spacing[8],
-      maxWidth: '1440px',
-      margin: '0 auto',
-      width: '100%',
-    }}>
+    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen flex flex-col gap-6">
       <AdminPageHeader
         title="User Management"
         subtitle="Manage platform users, view profiles, and verify contractors"
@@ -273,7 +282,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
       />
 
       {/* Filters and Actions */}
-      <Card style={{ padding: theme.spacing[6] }}>
+      <AdminCard padding="lg">
         {/* Search */}
         <div style={{ marginBottom: theme.spacing[4] }}>
           <Input
@@ -354,6 +363,44 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
               </button>
             ))}
           </div>
+
+          {/* Test Users Filter */}
+          <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap', marginLeft: 'auto' }}>
+            <button
+              onClick={() => setExcludeTestUsers(!excludeTestUsers)}
+              style={{
+                padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                borderRadius: theme.borderRadius.full,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                backgroundColor: excludeTestUsers ? '#10B981' : theme.colors.backgroundSecondary,
+                color: excludeTestUsers ? theme.colors.white : theme.colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}
+              onMouseEnter={(e) => {
+                if (!excludeTestUsers) {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!excludeTestUsers) {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                }
+              }}
+            >
+              <Icon 
+                name={excludeTestUsers ? 'checkCircle' : 'filter'} 
+                size={16} 
+                color={excludeTestUsers ? theme.colors.white : theme.colors.textPrimary} 
+              />
+              {excludeTestUsers ? 'Hide Test Users' : 'Show Test Users'}
+            </button>
+          </div>
         </div>
 
         {/* Bulk Actions Toolbar */}
@@ -402,10 +449,10 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
           </div>
         )}
 
-      </Card>
+      </AdminCard>
 
       {/* Users Table */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      <AdminCard padding="none" className="overflow-hidden">
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: theme.spacing[8] }}>
             <Icon name="loader" size={32} className="animate-spin" />
@@ -416,21 +463,21 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
           </div>
         ) : (
           <>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderBottom: `1px solid ${theme.colors.border}`,
-                  }}>
+            <div style={{ overflowX: 'auto', maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#F8FAFC' }}>
+                  <tr>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'left',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
-                      width: '40px',
+                      letterSpacing: '0.05em',
+                      width: '48px',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       <input
                         type="checkbox"
@@ -439,143 +486,217 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
                           if (input) input.indeterminate = someSelected;
                         }}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        style={{ cursor: 'pointer' }}
+                        style={{
+                          cursor: 'pointer',
+                          width: '16px',
+                          height: '16px',
+                          borderRadius: '4px',
+                          border: '2px solid #CBD5E1',
+                          accentColor: '#4A67FF',
+                        }}
+                        className="rounded-md"
                       />
                     </th>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'left',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       User
                     </th>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'left',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       Role
                     </th>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'left',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       Verification
                     </th>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'left',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       Registered
                     </th>
                     <th style={{
-                      padding: theme.spacing[3],
+                      padding: `${theme.spacing[4]} ${theme.spacing[4]}`,
                       textAlign: 'right',
-                      fontSize: theme.typography.fontSize.xs,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textSecondary,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: '#64748B',
                       textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      borderBottom: '2px solid #E2E8F0',
+                      backgroundColor: '#F8FAFC',
                     }}>
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => {
+                  {users.map((user, index) => {
                     const isContractorPending = user.role === 'contractor' && user.verificationStatus === 'pending';
                     const isSelected = selectedUserIds.has(user.id);
+                    const isEvenRow = index % 2 === 0;
+                    const initials = getUserInitials(user);
                     
                     return (
                       <tr
                         key={user.id}
                         style={{
-                          borderBottom: `1px solid ${theme.colors.border}`,
-                          transition: 'background-color 0.2s',
-                          backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                          height: '72px',
+                          transition: 'all 0.2s ease',
+                          backgroundColor: isSelected 
+                            ? '#EFF6FF' 
+                            : isEvenRow 
+                              ? '#FFFFFF' 
+                              : '#F8FAFC',
+                          borderBottom: index < users.length - 1 ? '1px solid #E2E8F0' : 'none',
                         }}
                         onMouseEnter={(e) => {
                           if (!isSelected) {
-                            e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                            e.currentTarget.style.backgroundColor = '#F1F5F9';
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!isSelected) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.backgroundColor = isEvenRow ? '#FFFFFF' : '#F8FAFC';
                           }
                         }}
                       >
-                        <td style={{ padding: theme.spacing[3] }}>
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, verticalAlign: 'middle' }}>
                           {isContractorPending && (
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={isSelected}
-                              onChange={(e) => handleSelectUser(user.id, e.target.checked)}
-                              style={{ cursor: 'pointer' }}
+                              onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                              className="rounded-md border-slate-300 data-[state=checked]:bg-[#4A67FF] data-[state=checked]:border-[#4A67FF]"
                             />
                           )}
                         </td>
-                        <td style={{ padding: theme.spacing[3] }}>
-                        <div>
-                          <div style={{
-                            fontSize: theme.typography.fontSize.base,
-                            fontWeight: theme.typography.fontWeight.medium,
-                            color: theme.colors.textPrimary,
-                          }}>
-                            {getUserDisplayName(user)}
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+                            {/* User Avatar */}
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              backgroundColor: '#4A67FF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: 'white',
+                              flexShrink: 0,
+                              overflow: 'hidden',
+                            }}>
+                              {initials}
+                            </div>
+                            <div>
+                              <div style={{
+                                fontSize: '15px',
+                                fontWeight: 600,
+                                color: '#0F172A',
+                                marginBottom: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: theme.spacing[2],
+                              }}>
+                                {getUserDisplayName(user)}
+                                {user.isTestUser && (
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    backgroundColor: '#FEF3C7',
+                                    borderRadius: theme.borderRadius.full,
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    color: '#92400E',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}>
+                                    <Icon name="info" size={12} color="#92400E" />
+                                    Test
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{
+                                fontSize: '13px',
+                                color: '#64748B',
+                              }}>
+                                {user.email}
+                              </div>
+                            </div>
                           </div>
-                          <div style={{
-                            fontSize: theme.typography.fontSize.sm,
-                            color: theme.colors.textSecondary,
-                            marginTop: theme.spacing[1],
+                        </td>
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, verticalAlign: 'middle' }}>
+                          <span style={{
+                            padding: '4px 12px',
+                            backgroundColor: '#F1F5F9',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            color: '#475569',
+                            textTransform: 'capitalize',
                           }}>
-                            {user.email}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: theme.spacing[3] }}>
-                        <span style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                          backgroundColor: theme.colors.backgroundSecondary,
-                          borderRadius: theme.borderRadius.md,
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          color: theme.colors.textPrimary,
-                          textTransform: 'capitalize',
-                        }}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td style={{ padding: theme.spacing[3] }}>
-                        <VerificationBadge status={user.verificationStatus} size="sm" />
-                      </td>
-                      <td style={{ padding: theme.spacing[3], fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-                        {formatDate(user.created_at)}
-                      </td>
-                      <td style={{ padding: theme.spacing[3], textAlign: 'right' }}>
-                        <Button
-                          variant="ghost"
-                          onClick={() => handleViewDetails(user.id)}
-                          style={{ padding: `${theme.spacing[1]} ${theme.spacing[2]}` }}
-                        >
-                          <Icon name="eye" size={16} /> View
-                        </Button>
-                      </td>
-                    </tr>
-                  );
+                            {user.role}
+                          </span>
+                        </td>
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, verticalAlign: 'middle' }}>
+                          <VerificationBadge status={user.verificationStatus} size="sm" />
+                        </td>
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, verticalAlign: 'middle', fontSize: '13px', color: '#64748B' }}>
+                          {formatDate(user.created_at)}
+                        </td>
+                        <td style={{ padding: `0 ${theme.spacing[4]}`, textAlign: 'right', verticalAlign: 'middle' }}>
+                          <Button
+                            variant="ghost"
+                            onClick={() => handleViewDetails(user.id)}
+                            style={{ 
+                              padding: '6px 12px',
+                              fontSize: '13px',
+                              fontWeight: 500,
+                            }}
+                            className="hover:bg-slate-100"
+                          >
+                            <Icon name="eye" size={16} /> View
+                          </Button>
+                        </td>
+                      </tr>
+                    );
                   })}
                 </tbody>
               </table>
@@ -613,7 +734,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
             )}
           </>
         )}
-      </Card>
+      </AdminCard>
 
       {/* User Detail Dialog */}
       {selectedUserId && (

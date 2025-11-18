@@ -92,15 +92,16 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
       <aside
         style={{
           width: isCollapsed ? '80px' : '280px',
-          backgroundColor: '#0F172A',
+          backgroundColor: '#0C1A33',
           color: '#FFFFFF',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width 0.3s ease',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'fixed',
           height: '100vh',
           zIndex: 1000,
           overflowY: 'auto',
+          boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)',
         }}
       >
         {/* Logo Section */}
@@ -147,28 +148,28 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
                   alignItems: 'center',
                   gap: theme.spacing[3],
                   padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  marginBottom: theme.spacing[1],
-                  borderRadius: theme.borderRadius.md,
-                  backgroundColor: active ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                  borderLeft: active ? `3px solid #3B82F6` : '3px solid transparent',
-                  color: '#FFFFFF',
+                  marginBottom: theme.spacing[1.5],
+                  borderRadius: '12px',
+                  backgroundColor: active ? 'rgba(74, 103, 255, 0.15)' : 'transparent',
+                  borderLeft: active ? `4px solid #4A67FF` : '4px solid transparent',
+                  color: active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.8)',
                   textDecoration: 'none',
                   fontSize: theme.typography.fontSize.sm,
-                  fontWeight: active ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  fontWeight: active ? 600 : 500,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.transform = 'translateX(4px)';
+                    e.currentTarget.style.color = '#FFFFFF';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!active) {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
                   }
                 }}
               >
@@ -179,9 +180,20 @@ export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Icon name={item.icon} size={20} color="#FFFFFF" />
+                  <Icon name={item.icon} size={20} color={active ? '#4A67FF' : 'rgba(255, 255, 255, 0.8)'} />
                 </div>
                 {!isCollapsed && <span>{item.label}</span>}
+                {active && !isCollapsed && (
+                  <div style={{
+                    position: 'absolute',
+                    right: theme.spacing[4],
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#4A67FF',
+                    boxShadow: '0 0 8px rgba(74, 103, 255, 0.6)',
+                  }} />
+                )}
               </Link>
             );
           })}

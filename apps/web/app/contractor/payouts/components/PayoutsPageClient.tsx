@@ -6,8 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { theme } from '@/lib/theme';
-import { PayoutService } from '@/lib/services/payment/PayoutService';
-import Link from 'next/link';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface PayoutAccount {
   id: string;
@@ -48,9 +47,14 @@ export function PayoutsPageClient({
   userEmail,
 }: PayoutsPageClientProps) {
   const [payoutAccounts, setPayoutAccounts] = useState<PayoutAccount[]>(initialPayoutAccounts);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const {
+    csrfToken,
+    loading: csrfLoading,
+    error: csrfError,
+  } = useCSRF();
 
   // Inject spin animation keyframes
   useEffect(() => {
@@ -105,8 +109,13 @@ export function PayoutsPageClient({
   }, []);
 
   const handleSetupStripeConnect = async () => {
+    if (!csrfToken) {
+      setError('Security token not loaded. Please refresh the page and try again.');
+      return;
+    }
+
     try {
-      setLoading(true);
+      setIsSubmitting(true);
       setError('');
       setSuccess('');
 
@@ -114,7 +123,9 @@ export function PayoutsPageClient({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -131,7 +142,8 @@ export function PayoutsPageClient({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set up payout account');
-      setLoading(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -215,6 +227,16 @@ export function PayoutsPageClient({
           </Alert>
         )}
 
+        {/* CSRF Token Load Error */}
+        {csrfError && !error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Security protection could not be initialized. Please refresh the page to retry.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Success Message */}
         {success && (
           <Alert className="border-green-200 bg-green-50">
@@ -253,7 +275,7 @@ export function PayoutsPageClient({
             <Button
               variant="primary"
               onClick={handleSetupStripeConnect}
-              disabled={loading}
+              disabled={isSubmitting || csrfLoading}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -261,7 +283,7 @@ export function PayoutsPageClient({
                 margin: '0 auto',
               }}
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <div style={{
                     width: '16px',
@@ -302,7 +324,7 @@ export function PayoutsPageClient({
               <Button
                 variant="secondary"
                 onClick={handleSetupStripeConnect}
-                disabled={loading}
+                disabled={isSubmitting || csrfLoading}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

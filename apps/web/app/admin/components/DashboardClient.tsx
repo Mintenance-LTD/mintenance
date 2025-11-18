@@ -3,12 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Card } from '@/components/ui/Card.unified';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 import styles from '../admin.module.css';
 import { AdminCharts } from './AdminCharts';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
+import { ModelVersionHealthCard } from '@/components/admin/ModelVersionHealthCard';
+import { SafetyExperimentHealthSection } from '@/components/admin/SafetyExperimentHealthSection';
+import { YOLOLearningStatusCard } from '@/components/admin/YOLOLearningStatusCard';
+import { AdminCard } from '@/components/admin/AdminCard';
 
 interface ChartDataPoint {
   date: string;
@@ -30,10 +34,43 @@ interface DashboardMetrics {
   };
 }
 
+interface QuickActionCardProps {
+  href: string;
+  icon: string;
+  title: string;
+  description: string;
+  badgeContent?: React.ReactNode;
+  iconColor?: string;
+}
+
+function QuickActionCard({ href, icon, title, description, badgeContent, iconColor = '#0F172A' }: QuickActionCardProps) {
+  return (
+    <Link href={href} className={cn(styles.adminCardLink, 'group h-full')}>
+      <AdminCard className="h-full relative" hover padding="lg">
+        {badgeContent && <div className="absolute top-4 right-4">{badgeContent}</div>}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+            <Icon name={icon} size={20} color={iconColor} className="text-slate-600" />
+          </div>
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        </div>
+        <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
+      </AdminCard>
+    </Link>
+  );
+}
+
 export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardMetrics }) {
   const [metrics, setMetrics] = useState(initialMetrics);
   const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state after client-side hydration
+  useEffect(() => {
+    setMounted(true);
+    setLastUpdated(new Date());
+  }, []);
 
   // Real-time polling (every 30 seconds)
   useEffect(() => {
@@ -60,11 +97,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
   }, []);
 
   return (
-    <div style={{
-      padding: theme.spacing[8],
-      maxWidth: '1440px',
-      margin: '0 auto',
-    }}>
+    <div className="p-8 md:p-10 max-w-[1440px] mx-auto bg-slate-50 min-h-screen space-y-8">
       <AdminPageHeader
         title="Admin Dashboard"
         subtitle="Manage platform operations, revenue, and user activity"
@@ -74,7 +107,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
             label: 'users',
             value: metrics.totalUsers.toLocaleString(),
             icon: 'users',
-            color: theme.colors.success,
+            color: '#4CC38A',
           },
           {
             label: 'pending',
@@ -84,55 +117,50 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           },
         ]}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+          <div className="flex items-center gap-3">
             {loading && <Icon name="loader" size={20} className="animate-spin" color={theme.colors.white} />}
-            <span style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: 'rgba(255, 255, 255, 0.8)',
-            }}>
-              Updated {lastUpdated.toLocaleTimeString('en-GB')}
-            </span>
+            {mounted && lastUpdated && (
+              <span className="text-xs text-white/70 font-medium">
+                Updated {lastUpdated.toLocaleTimeString('en-GB')}
+              </span>
+            )}
           </div>
         }
       />
 
-      {/* Quick Stats */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
+      {/* Metrics Row */}
+      <section className="mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <AdminMetricCard
           label="Total Users"
           value={metrics.totalUsers.toLocaleString()}
           icon="users"
-          iconColor={theme.colors.primary}
+          iconColor="#4A67FF"
           onClick={() => window.location.href = '/admin/users'}
         />
         <AdminMetricCard
           label="Contractors"
           value={metrics.totalContractors.toLocaleString()}
           icon="briefcase"
-          iconColor={theme.colors.primary}
+          iconColor="#4A67FF"
         />
         <AdminMetricCard
           label="Total Jobs"
           value={metrics.totalJobs.toLocaleString()}
           icon="fileText"
-          iconColor={theme.colors.primary}
+          iconColor="#4CC38A"
         />
         <AdminMetricCard
           label="Active Subscriptions"
           value={metrics.activeSubscriptions.toLocaleString()}
           icon="creditCard"
-          iconColor={theme.colors.primary}
+          iconColor="#4A67FF"
         />
         <AdminMetricCard
           label="Monthly Recurring Revenue"
           value={`£${metrics.mrr.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon="currencyPound"
-          iconColor={theme.colors.success}
+          iconColor="#4CC38A"
           onClick={() => window.location.href = '/admin/revenue'}
         />
         <AdminMetricCard
@@ -142,128 +170,65 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           iconColor="#F59E0B"
           onClick={() => window.location.href = '/admin/users?verified=pending'}
         />
-      </div>
+        </div>
+      </section>
 
-      {/* Admin Actions */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: theme.spacing[4],
-        marginBottom: theme.spacing[8],
-      }}>
-        <Link
-          href="/admin/revenue"
-          className={styles.adminCardLink}
-        >
-          <Card className={styles.adminCard} style={{
-            padding: theme.spacing[6],
-            cursor: 'pointer',
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-              <Icon name="trendingUp" size={32} color={theme.colors.primary} />
-              <h3 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}>
-                Revenue Analytics
-              </h3>
-            </div>
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-            }}>
-              View subscription revenue, MRR, conversion rates, and payment tracking
-            </p>
-          </Card>
-        </Link>
+      {/* Action Cards Row */}
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionCard
+            href="/admin/revenue"
+            icon="trendingUp"
+            title="Revenue Analytics"
+            description="View subscription revenue, MRR, conversion rates, and payment tracking."
+            iconColor="#2563EB"
+          />
+          <QuickActionCard
+            href="/admin/users"
+            icon="users"
+            title="User Management"
+            description={`Manage users and verify contractors${metrics.pendingVerifications > 0 ? ` (${metrics.pendingVerifications} pending)` : ''}.`}
+            iconColor="#2563EB"
+            badgeContent={
+              metrics.pendingVerifications > 0 ? (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700 font-semibold">
+                  {metrics.pendingVerifications > 9 ? '9+' : metrics.pendingVerifications} pending
+                </span>
+              ) : null
+            }
+          />
+          <QuickActionCard
+            href="/admin/security"
+            icon="shield"
+            title="Security Dashboard"
+            description="Monitor security events, threats, and system health."
+            iconColor="#0F172A"
+          />
+          <div className="h-full">
+            <ModelVersionHealthCard />
+          </div>
+        </div>
+      </section>
 
-        <Link
-          href="/admin/users"
-          className={styles.adminCardLink}
-        >
-          <Card className={styles.adminCard} style={{
-            padding: theme.spacing[6],
-            cursor: 'pointer',
-            border: `1px solid ${theme.colors.border}`,
-            position: 'relative',
-          }}>
-            {metrics.pendingVerifications > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: theme.spacing[2],
-                right: theme.spacing[2],
-                backgroundColor: '#F59E0B',
-                color: 'white',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.bold,
-              }}>
-                {metrics.pendingVerifications > 9 ? '9+' : metrics.pendingVerifications}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-              <Icon name="users" size={32} color={theme.colors.primary} />
-              <h3 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}>
-                User Management
-              </h3>
-            </div>
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-            }}>
-              Manage users, verify contractors{metrics.pendingVerifications > 0 ? ` (${metrics.pendingVerifications} pending)` : ''}
-            </p>
-          </Card>
-        </Link>
+      {/* YOLO Learning Status */}
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <YOLOLearningStatusCard />
+        </div>
+      </section>
 
-        <Link
-          href="/admin/security"
-          className={styles.adminCardLink}
-        >
-          <Card className={styles.adminCard} style={{
-            padding: theme.spacing[6],
-            cursor: 'pointer',
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-              <Icon name="shield" size={32} color={theme.colors.primary} />
-              <h3 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}>
-                Security Dashboard
-              </h3>
-            </div>
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-            }}>
-              Monitor security events, threats, and system health
-            </p>
-          </Card>
-        </Link>
-      </div>
+      {/* Safety & Experiment Health Section */}
+      <SafetyExperimentHealthSection />
 
       {/* Charts Section */}
       {metrics.charts && (
-        <AdminCharts 
-          userGrowth={metrics.charts.userGrowth} 
-          jobGrowth={metrics.charts.jobGrowth} 
+        <AdminCharts
+          userGrowth={metrics.charts.userGrowth}
+          jobGrowth={metrics.charts.jobGrowth}
         />
       )}
     </div>
   );
 }
+
 

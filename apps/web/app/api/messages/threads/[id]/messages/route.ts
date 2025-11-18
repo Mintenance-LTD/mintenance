@@ -100,84 +100,40 @@ const user = await getCurrentUserFromCookies();
     const messageType = normalizeMessageType(data.messageType);
     const attachmentUrl = data.attachments?.[0];
 
-    // Build insert payload - only include fields that exist in the schema
-    // Note: Different migrations use different column names (content vs message_text)
-    // We'll try both to handle schema differences
-    const basePayload: Record<string, unknown> = {
+    // Build insert payload - use 'content' column (schema uses 'content', not 'message_text')
+    const insertPayload: Record<string, unknown> = {
       job_id: threadId,
       sender_id: user.id,
       receiver_id: receiverId,
+      content: messageText, // Use 'content' column (schema uses 'content', not 'message_text')
       message_type: messageType,
       read: false,
     };
 
     if (attachmentUrl) {
-      basePayload.attachment_url = attachmentUrl;
+      insertPayload.attachment_url = attachmentUrl;
     }
     // Note: call_id and call_duration columns don't exist in all schemas, so we exclude them
     // if (data.callId) {
-    //   basePayload.call_id = data.callId;
+    //   insertPayload.call_id = data.callId;
     // }
 
-    // Try insert with message_text first (preferred schema)
-    let inserted: SupabaseMessageRow | null = null;
-    let insertError: any = null;
-    
-    const insertPayloadWithMessageText = {
-      ...basePayload,
-      message_text: messageText,
-    };
-    
-    ({ data: inserted, error: insertError } = await serverSupabase
+    const { data: inserted, error: insertError } = await serverSupabase
       .from('messages')
-      .insert(insertPayloadWithMessageText)
+      .insert(insertPayload)
       .select(`
         id,
         job_id,
         sender_id,
         receiver_id,
-        message_text,
+        content,
         message_type,
         attachment_url,
         read,
         created_at,
-        sender:users!messages_sender_id_fkey(first_name, last_name, role)
+        sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
       `)
-      .single());
-
-    // If message_text column doesn't exist, try with 'content' as fallback
-    if (insertError && (insertError.message?.includes('message_text') || insertError.message?.includes('column') && insertError.message?.includes('message_text'))) {
-      console.warn('[API] message_text column not found, trying with content column', insertError);
-      const insertPayloadWithContent = {
-        ...basePayload,
-        content: messageText,
-      };
-      
-      ({ data: inserted, error: insertError } = await serverSupabase
-        .from('messages')
-        .insert(insertPayloadWithContent)
-        .select(`
-          id,
-          job_id,
-          sender_id,
-          receiver_id,
-          content,
-          message_type,
-          attachment_url,
-          read,
-          created_at,
-          sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
-        `)
-        .single());
-      
-      // If using content column, we need to map it to message_text for the response
-      if (inserted && !insertError) {
-        inserted = {
-          ...inserted,
-          message_text: (inserted as any).content || messageText,
-        } as SupabaseMessageRow;
-      }
-    }
+      .single();
 
     if (insertError) {
       console.error('[API] message POST insert error', {
@@ -186,15 +142,15 @@ const user = await getCurrentUserFromCookies();
         senderId: user.id,
         receiverId,
         messageText: messageText.substring(0, 50),
-        attemptedPayload: insertError.message?.includes('content') ? 'content' : 'message_text',
       });
       return NextResponse.json({ 
         error: 'Failed to send message',
-        details: insertError.message || 'Database insert failed. The messages table schema may need to be checked.'
+        details: insertError.message || 'Database insert failed'
       }, { status: 500 });
     }
 
-        const message = mapMessageRow(inserted as SupabaseMessageRow);
+    // Map inserted data to response format (mapMessageRow handles content -> messageText conversion)
+    const message = mapMessageRow(inserted as SupabaseMessageRow);
         
         // Update job's updated_at timestamp so it appears at the top of the messages list
         try {

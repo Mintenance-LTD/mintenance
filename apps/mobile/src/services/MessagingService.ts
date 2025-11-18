@@ -77,7 +77,7 @@ export class MessagingService {
             job_id: jobId,
             sender_id: senderId,
             receiver_id: receiverId,
-            message_text: safeMessageText,
+            content: safeMessageText, // Use 'content' column (schema uses 'content', not 'message_text')
             message_type: messageType,
             attachment_url: attachmentUrl,
             call_id: callId,
@@ -429,7 +429,7 @@ export class MessagingService {
       const { error } = await supabase
         .from('messages')
         .update({
-          message_text: '[Message deleted]',
+          content: '[Message deleted]', // Use 'content' column (schema uses 'content', not 'message_text')
           message_type: 'text',
           attachment_url: null,
         })
@@ -473,7 +473,7 @@ export class MessagingService {
         `
         )
         .eq('job_id', jobId)
-        .ilike('message_text', `%${sanitizedSearchTerm}%`)
+        .ilike('content', `%${sanitizedSearchTerm}%`) // Use 'content' column (schema uses 'content', not 'message_text')
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -519,7 +519,7 @@ export class MessagingService {
       jobId: d.job_id || '',
       senderId: d.sender_id || '',
       receiverId: d.receiver_id || '',
-      messageText: d.message_text || '',
+      messageText: d.content || d.message_text || '', // Use 'content' first (schema uses 'content'), fallback to 'message_text' for backward compatibility
       messageType: d.message_type || 'text',
       attachmentUrl: d.attachment_url,
       callId: d.call_id,

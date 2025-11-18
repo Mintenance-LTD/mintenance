@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { validateURLs } from '@/lib/security/url-validation';
 import { z } from 'zod';
 import type { JobDetail, JobSummary } from '@mintenance/types/src/contracts';

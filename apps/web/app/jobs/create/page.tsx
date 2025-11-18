@@ -13,6 +13,12 @@ import Link from 'next/link';
 import { BuildingAssessmentDisplay } from '@/components/building-surveyor';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useLocationSearch } from './hooks/useLocationSearch';
+import { useImageUpload } from './hooks/useImageUpload';
+import { validateJobForm, isFormValid, type JobFormData } from './utils/validation';
+import { submitJob } from './utils/submitJob';
+import { VerificationBanner } from './components/VerificationBanner';
 
 const jobCategories = [
   { label: 'Handyman', value: 'handyman' },
@@ -60,14 +66,14 @@ export default function CreateJobPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<JobFormData>({
     title: '',
     description: '',
     location: '',
     category: '',
-    urgency: 'medium' as 'low' | 'medium' | 'high',
+    urgency: 'medium',
     budget: '',
-    requiredSkills: [] as string[],
+    requiredSkills: [],
     property_id: searchParams?.get('property_id') || '',
   });
   const [properties, setProperties] = useState<Array<{ id: string; property_name: string | null; address: string | null }>>([]);
@@ -90,13 +96,17 @@ export default function CreateJobPage() {
     }
     setShowSkillsDropdown(false);
   };
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string; place_id: string }>>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<Array<{ file: File; preview: string }>>([]);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  // Use extracted hooks
+  const locationSearch = useLocationSearch({
+    location: formData.location,
+    onLocationSelect: (address) => setFormData(prev => ({ ...prev, location: address })),
+  });
+
+  const imageUpload = useImageUpload({
+    maxImages: 10,
+    onError: (error) => setAlertDialog({ open: true, title: 'Upload Error', message: error }),
+  });
   
   // Alert Dialog state
   const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string; onConfirm?: () => void; onCancel?: () => void }>({
@@ -116,6 +126,7 @@ export default function CreateJobPage() {
     canPostJobs: boolean;
     missingRequirements: string[];
   } | null>(null);
+  const { csrfToken } = useCSRF();
 
   // Fetch properties when user is loaded
   React.useEffect(() => {
@@ -162,137 +173,11 @@ export default function CreateJobPage() {
     }
   }, [user, loadingUser, router]);
 
-  // Cleanup image previews on unmount
-  React.useEffect(() => {
-    return () => {
-      imagePreviews.forEach(({ preview }) => {
-        URL.revokeObjectURL(preview);
-      });
-    };
-  }, []);
-
-  // Debounced address search for autocomplete
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (formData.location.trim().length >= 3) {
-        searchAddresses(formData.location);
-      } else {
-        setLocationSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [formData.location]);
-
-  const searchAddresses = async (query: string) => {
-    if (query.length < 3) return;
-
-    setIsLoadingSuggestions(true);
-    try {
-      // Use our API route to proxy Nominatim requests (avoids CORS issues)
-      const response = await fetch(
-        `/api/geocoding/search?q=${encodeURIComponent(query)}`
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to search addresses');
-      }
-
-      const data = await response.json();
-      setLocationSuggestions(data);
-      setShowSuggestions(data.length > 0);
-    } catch (error) {
-      console.error('Error searching addresses:', error);
-      setLocationSuggestions([]);
-      setShowSuggestions(false);
-      // Don't show error to user - just silently fail (autocomplete is optional)
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  const handleLocationSelect = (address: string) => {
-    setFormData(prev => ({ ...prev, location: address }));
-    setShowSuggestions(false);
-    setLocationSuggestions([]);
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Validate file count
-    if (imagePreviews.length + files.length > 10) {
-      setAlertDialog({
-        open: true,
-        title: 'Maximum Photos Reached',
-        message: 'Maximum 10 photos allowed',
-      });
-      return;
-    }
-
-    // Create previews
-    const newPreviews = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-  };
-
-  const removeImage = (index: number) => {
-    setImagePreviews(prev => {
-      const removed = prev[index];
-      URL.revokeObjectURL(removed.preview);
-      return prev.filter((_, i) => i !== index);
-    });
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async (): Promise<string[]> => {
-    if (imagePreviews.length === 0) return [];
-
-    setIsUploadingImages(true);
-    try {
-      const formData = new FormData();
-      imagePreviews.forEach(({ file }) => {
-        formData.append('photos', file);
-      });
-
-      const response = await fetch('/api/jobs/upload-photos', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || 'Failed to upload images';
-        const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : '';
-        throw new Error(`${errorMessage}${errorDetails}`);
-      }
-
-      const data = await response.json();
-      setUploadedImages(data.urls || []);
-      return data.urls || [];
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
-      setAlertDialog({
-        open: true,
-        title: 'Upload Error',
-        message: errorMessage,
-      });
-      return [];
-    } finally {
-      setIsUploadingImages(false);
-    }
-  };
+  // Location and image upload logic now handled by hooks
 
   // AI Building Surveyor Assessment
   const handleAIAssessment = async () => {
-    if (imagePreviews.length === 0) {
+    if (imageUpload.imagePreviews.length === 0) {
       setAssessmentError('Please upload photos first');
       return;
     }
@@ -302,9 +187,9 @@ export default function CreateJobPage() {
 
     try {
       // Upload images first if not already uploaded
-      let imageUrls = uploadedImages;
+      let imageUrls = imageUpload.uploadedImages;
       if (imageUrls.length === 0) {
-        imageUrls = await uploadImages();
+        imageUrls = await imageUpload.uploadImages();
         if (imageUrls.length === 0) {
           throw new Error('Failed to upload images for assessment');
         }
@@ -386,146 +271,13 @@ export default function CreateJobPage() {
     });
   };
 
-  const detectLocation = async () => {
-    if (!navigator.geolocation) {
-      setAlertDialog({
-        open: true,
-        title: 'Geolocation Not Supported',
-        message: 'Geolocation is not supported by your browser',
-      });
-      return;
-    }
-
-    setIsDetectingLocation(true);
-    setValidationErrors(prev => ({ ...prev, location: '' }));
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          // Use our API route to proxy reverse geocoding (avoids CORS issues)
-          const response = await fetch(
-            `/api/geocoding/reverse?lat=${latitude}&lon=${longitude}`
-          );
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to get address');
-          }
-          
-          const data = await response.json();
-          
-          // Build a formatted address
-          const address = data.address;
-          let formattedLocation = '';
-          
-          if (address.road) formattedLocation += address.road;
-          if (address.house_number) formattedLocation = address.house_number + ' ' + formattedLocation;
-          if (address.suburb) formattedLocation += ', ' + address.suburb;
-          if (address.city || address.town || address.village) {
-            formattedLocation += ', ' + (address.city || address.town || address.village);
-          }
-          if (address.postcode) formattedLocation += ', ' + address.postcode;
-          
-          // Fallback to display_name if we couldn't build a good address
-          const finalLocation = formattedLocation.trim() || data.display_name;
-          
-          setFormData(prev => ({ ...prev, location: finalLocation }));
-          setShowSuggestions(false);
-          setLocationSuggestions([]);
-        } catch (error) {
-          console.error('Error getting address:', error);
-          setAlertDialog({
-            open: true,
-            title: 'Location Error',
-            message: 'Could not determine your address. Please enter it manually.',
-          });
-        } finally {
-          setIsDetectingLocation(false);
-        }
-      },
-      (error) => {
-        setIsDetectingLocation(false);
-        let message = 'Unable to retrieve your location. ';
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message += 'Please enable location permissions in your browser.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            message += 'Location information is unavailable.';
-            break;
-          case error.TIMEOUT:
-            message += 'Location request timed out.';
-            break;
-          default:
-            message += 'An unknown error occurred.';
-        }
-        
-        setAlertDialog({
-          open: true,
-          title: 'Location Error',
-          message: message,
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  };
+  // Location detection now handled by useLocationSearch hook
 
   const validate = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!formData.title.trim()) {
-      errors.title = 'Job title is required';
-    } else if (formData.title.trim().length < 10) {
-      errors.title = 'Title must be at least 10 characters';
-    } else if (formData.title.trim().length > 100) {
-      errors.title = 'Title cannot exceed 100 characters';
-    }
-    
-    if (!formData.description.trim()) {
-      errors.description = 'Description is required';
-    } else if (formData.description.trim().length < 50) {
-      errors.description = 'Description must be at least 50 characters';
-    } else if (formData.description.trim().length > 5000) {
-      errors.description = 'Description cannot exceed 5000 characters';
-    }
-    
-    if (!formData.location.trim()) {
-      errors.location = 'Location is required';
-    } else if (formData.location.trim().length < 5) {
-      errors.location = 'Please provide a more specific location';
-    }
-    
-    if (!formData.category) {
-      errors.category = 'Please select a category';
-    }
-    
-    // Skills are optional but validate if provided
-    if (formData.requiredSkills.length > 10) {
-      errors.requiredSkills = 'Maximum 10 skills allowed';
-    }
-    
-    if (!formData.budget) {
-      errors.budget = 'Budget is required';
-    } else {
-      const budgetNum = parseFloat(formData.budget);
-      if (isNaN(budgetNum) || budgetNum <= 0) {
-        errors.budget = 'Please enter a valid budget amount';
-      } else if (budgetNum > 50000) {
-        errors.budget = 'Budget cannot exceed £50,000';
-      } else if (budgetNum > 500 && uploadedImages.length === 0) {
-        errors.photoUrls = 'At least one photo is required for jobs over £500';
-      }
-    }
-    
+    // Use validation utility
+    const errors = validateJobForm(formData, imageUpload.uploadedImages);
     setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    return isFormValid(errors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -541,9 +293,9 @@ export default function CreateJobPage() {
     try {
       // Upload images first if any
       let photoUrls: string[] = [];
-      if (imagePreviews.length > 0) {
-        photoUrls = await uploadImages();
-        if (photoUrls.length === 0 && imagePreviews.length > 0) {
+      if (imageUpload.imagePreviews.length > 0) {
+        photoUrls = await imageUpload.uploadImages();
+        if (photoUrls.length === 0 && imageUpload.imagePreviews.length > 0) {
           // If upload failed but user selected images, ask them
           setAlertDialog({
             open: true,
@@ -551,7 +303,7 @@ export default function CreateJobPage() {
             message: 'Failed to upload some images. Continue without images?',
             onConfirm: async () => {
               setAlertDialog({ open: false, title: '', message: '' });
-              await submitJob([]);
+              await handleJobSubmission([]);
             },
             onCancel: () => {
               setAlertDialog({ open: false, title: '', message: '' });
@@ -563,7 +315,7 @@ export default function CreateJobPage() {
         }
       }
       
-      await submitJob(photoUrls);
+      await handleJobSubmission(photoUrls);
     } catch (err) {
       console.error('Error creating job:', err);
       setError(err instanceof Error ? err.message : 'Failed to create job');
@@ -571,49 +323,28 @@ export default function CreateJobPage() {
     }
   };
 
-  const submitJob = async (photoUrls: string[]) => {
+  const handleJobSubmission = async (photoUrls: string[]) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-          body: JSON.stringify({
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          location: formData.location.trim(),
-          category: formData.category,
-          budget: parseFloat(formData.budget),
-          status: 'posted',
-          photoUrls: photoUrls, // Include photo URLs
-          requiredSkills: formData.requiredSkills.length > 0 ? formData.requiredSkills : undefined,
-          property_id: formData.property_id || undefined,
-        }),
+      if (!csrfToken) {
+        throw new Error('Security token not available. Please refresh the page.');
+      }
+
+      const result = await submitJob({
+        formData,
+        photoUrls,
+        csrfToken,
       });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        // Handle both string errors and object errors
-        const errorMessage = typeof data.error === 'string' 
-          ? data.error 
-          : data.error 
-            ? JSON.stringify(data.error)
-            : 'Failed to create job';
-        console.error('Job creation failed:', {
-          status: response.status,
-          error: errorMessage,
-          details: data.details,
-        });
-        throw new Error(errorMessage);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create job');
       }
-      
-      const { job } = data;
-      if (!job) {
-        throw new Error('Job creation succeeded but no job data returned');
+
+      if (result.jobId) {
+        router.push(`/jobs/${result.jobId}`);
+      } else {
+        throw new Error('Job creation succeeded but no job ID returned');
       }
-      router.push(`/jobs/${job.id}`);
     } catch (err) {
       console.error('Error creating job:', err);
       setError(err instanceof Error ? err.message : 'Failed to create job');
@@ -680,38 +411,7 @@ export default function CreateJobPage() {
           margin: '0 auto',
           padding: theme.spacing[6],
         }}>
-          <div style={{
-            backgroundColor: '#FEF3C7',
-            border: '1px solid #F59E0B',
-            borderRadius: '12px',
-            padding: theme.spacing[6],
-            marginBottom: theme.spacing[6],
-          }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: theme.spacing[4] }}>
-              Verification Required
-            </h2>
-            <p style={{ marginBottom: theme.spacing[4] }}>
-              Please verify your account before posting jobs:
-            </p>
-            <ul style={{ marginBottom: theme.spacing[4], paddingLeft: theme.spacing[6] }}>
-              {verificationStatus.missingRequirements.map((req, i) => (
-                <li key={i} style={{ marginBottom: theme.spacing[2] }}>{req}</li>
-              ))}
-            </ul>
-            {!verificationStatus.phoneVerified && (
-              <Link href="/verify-phone" style={{
-                display: 'inline-block',
-                padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                backgroundColor: '#3B82F6',
-                color: 'white',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}>
-                Verify Phone Number
-              </Link>
-            )}
-          </div>
+          <VerificationBanner verificationStatus={verificationStatus} />
         </div>
       </HomeownerLayoutShell>
     );
@@ -854,7 +554,7 @@ export default function CreateJobPage() {
                 title={formData.title}
                 description={formData.description}
                 location={formData.location}
-                imageUrls={uploadedImages}
+                imageUrls={imageUpload.uploadedImages}
                 onCategorySelect={(category) => {
                   setFormData({ ...formData, category });
                 }}
@@ -893,7 +593,7 @@ export default function CreateJobPage() {
                 id="job-photos"
                 accept="image/jpeg,image/png,image/webp,image/gif"
                 multiple
-                onChange={handleImageSelect}
+                onChange={imageUpload.handleImageSelect}
                 style={{ display: 'none' }}
               />
               <label
@@ -922,18 +622,18 @@ export default function CreateJobPage() {
                 }}
               >
                 <Icon name="camera" size={20} color={theme.colors.primary} />
-                {imagePreviews.length === 0 ? 'Add Photos' : `Add More Photos (${imagePreviews.length}/10)`}
+                {imageUpload.imagePreviews.length === 0 ? 'Add Photos' : `Add More Photos (${imageUpload.imagePreviews.length}/10)`}
               </label>
 
               {/* Image Previews */}
-              {imagePreviews.length > 0 && (
+              {imageUpload.imagePreviews.length > 0 && (
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
                   gap: theme.spacing[3],
                   marginTop: theme.spacing[4],
                 }}>
-                  {imagePreviews.map((preview, index) => (
+                  {imageUpload.imagePreviews.map((preview, index) => (
                     <div
                       key={index}
                       style={{
@@ -956,7 +656,7 @@ export default function CreateJobPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => removeImage(index)}
+                        onClick={() => imageUpload.removeImage(index)}
                         style={{
                           position: 'absolute',
                           top: theme.spacing[1],
@@ -983,7 +683,7 @@ export default function CreateJobPage() {
                       >
                         ×
                       </button>
-                      {isUploadingImages && (
+                      {imageUpload.isUploading && (
                         <div style={{
                           position: 'absolute',
                           bottom: 0,
@@ -1004,12 +704,12 @@ export default function CreateJobPage() {
               )}
 
               {/* AI Assessment Button */}
-              {imagePreviews.length > 0 && !assessment && (
+              {imageUpload.imagePreviews.length > 0 && !assessment && (
                 <div style={{ marginTop: theme.spacing[4] }}>
                   <button
                     type="button"
                     onClick={handleAIAssessment}
-                    disabled={isAnalyzing || isUploadingImages}
+                    disabled={isAnalyzing || imageUpload.isUploading}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1145,13 +845,13 @@ export default function CreateJobPage() {
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     onFocus={() => {
-                      if (locationSuggestions.length > 0) {
-                        setShowSuggestions(true);
+                      if (locationSearch.suggestions.length > 0) {
+                        // Suggestions are managed by hook
                       }
                     }}
                     onBlur={() => {
                       // Delay to allow clicking on suggestions
-                      setTimeout(() => setShowSuggestions(false), 200);
+                      setTimeout(() => locationSearch.clearSuggestions(), 200);
                     }}
                     placeholder="e.g., London, SW1A 1AA"
                     style={{
@@ -1168,7 +868,7 @@ export default function CreateJobPage() {
                   />
                   
                   {/* Autocomplete Dropdown */}
-                  {showSuggestions && locationSuggestions.length > 0 && (
+                  {locationSearch.showSuggestions && locationSearch.suggestions.length > 0 && (
                     <div style={{
                       position: 'absolute',
                       top: '100%',
@@ -1183,7 +883,7 @@ export default function CreateJobPage() {
                       maxHeight: '300px',
                       overflowY: 'auto',
                     }}>
-                      {isLoadingSuggestions && (
+                      {locationSearch.isLoading && (
                         <div style={{
                           padding: theme.spacing[4],
                           textAlign: 'center',
@@ -1193,10 +893,10 @@ export default function CreateJobPage() {
                           Searching...
                         </div>
                       )}
-                      {!isLoadingSuggestions && locationSuggestions.map((suggestion) => (
+                      {!locationSearch.isLoading && locationSearch.suggestions.map((suggestion) => (
                         <div
                           key={suggestion.place_id}
-                          onClick={() => handleLocationSelect(suggestion.display_name)}
+                          onClick={() => locationSearch.handleLocationSelect(suggestion.display_name)}
                           onMouseDown={(e) => e.preventDefault()} // Prevent input blur
                           style={{
                             padding: theme.spacing[3],
@@ -1228,8 +928,18 @@ export default function CreateJobPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={detectLocation}
-                  disabled={isDetectingLocation}
+                  onClick={() => {
+                    try {
+                      locationSearch.detectCurrentLocation();
+                    } catch (error) {
+                      setAlertDialog({
+                        open: true,
+                        title: 'Location Error',
+                        message: error instanceof Error ? error.message : 'Unable to retrieve your location. Please enter it manually.',
+                      });
+                    }
+                  }}
+                  disabled={locationSearch.isDetectingLocation}
                   style={{
                     padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
                     borderRadius: theme.borderRadius.lg,
@@ -1238,16 +948,16 @@ export default function CreateJobPage() {
                     color: 'white',
                     fontSize: theme.typography.fontSize.sm,
                     fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: isDetectingLocation ? 'not-allowed' : 'pointer',
+                    cursor: locationSearch.isDetectingLocation ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: theme.spacing[2],
                     whiteSpace: 'nowrap',
-                    opacity: isDetectingLocation ? 0.6 : 1,
+                    opacity: locationSearch.isDetectingLocation ? 0.6 : 1,
                     transition: 'all 0.2s',
                   }}
                   onMouseEnter={(e) => {
-                    if (!isDetectingLocation) {
+                    if (!locationSearch.isDetectingLocation) {
                       e.currentTarget.style.backgroundColor = '#1E293B';
                     }
                   }}
@@ -1256,7 +966,7 @@ export default function CreateJobPage() {
                   }}
                 >
                   <Icon name="mapPin" size={16} color="white" />
-                  {isDetectingLocation ? 'Detecting...' : 'Use My Location'}
+                  {locationSearch.isDetectingLocation ? 'Detecting...' : 'Use My Location'}
                 </button>
               </div>
               {validationErrors.location && (

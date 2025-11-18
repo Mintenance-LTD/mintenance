@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useCSRF, fetchWithCSRF } from '@/lib/hooks/useCSRF';
 import { X, AlertCircle } from 'lucide-react';
 
 interface CreatePostDialogProps {
@@ -24,6 +25,7 @@ export function CreatePostDialog({ open, onOpenChange, onPostCreated }: CreatePo
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { csrfToken, loading: csrfLoading, error: csrfError } = useCSRF();
   
   // Additional fields based on post type
   const [skillsUsed, setSkillsUsed] = useState<string[]>([]);
@@ -111,6 +113,11 @@ export function CreatePostDialog({ open, onOpenChange, onPostCreated }: CreatePo
       return;
     }
 
+    if (!csrfToken || csrfLoading || csrfError) {
+      setError('Security token not ready yet. Please wait a moment and try again.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -137,7 +144,7 @@ export function CreatePostDialog({ open, onOpenChange, onPostCreated }: CreatePo
         if (rentalPrice) payload.rental_price = parseFloat(rentalPrice);
       }
 
-      const response = await fetch('/api/contractor/posts', {
+      const response = await fetchWithCSRF('/api/contractor/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

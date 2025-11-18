@@ -40,15 +40,9 @@ export function AdminPageHeader({
   if (variant === 'gradient') {
     return (
       <div
+        className="relative overflow-hidden rounded-[16px] p-8 md:p-10 border border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.25)] mb-10"
         style={{
-          position: 'relative',
-          overflow: 'hidden',
-          background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
-          borderRadius: theme.borderRadius['2xl'],
-          padding: theme.spacing[8],
-          border: `1px solid rgba(255, 255, 255, 0.1)`,
-          boxShadow: theme.shadows.xl,
-          marginBottom: theme.spacing[8],
+          background: 'linear-gradient(135deg, #020617 0%, #0F172A 50%, #1E293B 100%)',
         }}
       >
         {/* Decorative Elements */}
@@ -57,12 +51,12 @@ export function AdminPageHeader({
             position: 'absolute',
             top: 0,
             right: 0,
-            width: '256px',
-            height: '256px',
-            background: 'rgba(16, 185, 129, 0.1)',
+            width: '320px',
+            height: '320px',
+            background: 'rgba(30, 41, 59, 0.2)',
             borderRadius: '50%',
-            filter: 'blur(64px)',
-            transform: 'translate(33%, -50%)',
+            filter: 'blur(80px)',
+            transform: 'translate(25%, -30%)',
           }}
         />
         <div
@@ -70,59 +64,27 @@ export function AdminPageHeader({
             position: 'absolute',
             bottom: 0,
             left: 0,
-            width: '256px',
-            height: '256px',
-            background: 'rgba(245, 158, 11, 0.05)',
+            width: '280px',
+            height: '280px',
+            background: 'rgba(15, 23, 42, 0.15)',
             borderRadius: '50%',
-            filter: 'blur(64px)',
-            transform: 'translate(-33%, 50%)',
+            filter: 'blur(70px)',
+            transform: 'translate(-25%, 30%)',
           }}
         />
 
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: theme.spacing[6],
-            }}
-          >
+        <div className="relative z-10">
+          <div className="flex items-start justify-between flex-wrap gap-6">
             {/* Greeting Section */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2
-                className="text-heading-md font-[640] text-white mb-3 tracking-tighter"
-                style={{
-                  fontSize: '40px',
-                  fontWeight: 640,
-                  color: theme.colors.white,
-                  marginBottom: theme.spacing[3],
-                  letterSpacing: '-0.02em',
-                }}
-              >
+            <div className="flex-1 min-w-0">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight leading-tight">
                 {greeting}, Admin
               </h2>
-              <h1
-                style={{
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.white,
-                  marginBottom: subtitle ? theme.spacing[2] : 0,
-                }}
-              >
+              <h1 className="text-xl md:text-2xl font-bold text-white/95 mb-3">
                 {title}
               </h1>
               {subtitle && (
-                <p
-                  style={{
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: 460,
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    lineHeight: 1.5,
-                    margin: 0,
-                  }}
-                >
+                <p className="text-sm md:text-base text-white/70 leading-relaxed max-w-2xl">
                   {subtitle}
                 </p>
               )}
@@ -130,52 +92,26 @@ export function AdminPageHeader({
 
             {/* Quick Stats - Modern Pills */}
             {quickStats && quickStats.length > 0 && (
-              <div style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap' }}>
+              <div className="flex gap-3 flex-wrap">
                 {quickStats.map((stat, index) => (
                   <div
                     key={index}
-                    style={{
-                      padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      backdropFilter: 'blur(8px)',
-                      borderRadius: theme.borderRadius.xl,
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    }}
+                    className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 flex items-center gap-2 transition-all duration-200 hover:bg-white/20"
                   >
                     {stat.color && (
                       <div
-                        style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: stat.color,
-                        }}
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: stat.color }}
                       />
                     )}
                     {stat.icon && (
                       <Icon
                         name={stat.icon}
                         size={16}
-                        color={theme.colors.white}
+                        color="#FFFFFF"
                       />
                     )}
-                    <span
-                      style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: 560,
-                        color: theme.colors.white,
-                      }}
-                    >
+                    <span className="text-sm font-semibold text-white">
                       {stat.value} {stat.label}
                     </span>
                   </div>
@@ -185,7 +121,7 @@ export function AdminPageHeader({
 
             {/* Actions */}
             {actions && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+              <div className="flex items-center gap-3">
                 {actions}
               </div>
             )}

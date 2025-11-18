@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
-import { logger } from '../services/logger';
+import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
   QuoteBuilderService,

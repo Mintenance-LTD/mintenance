@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { isTestUser } from '@/lib/utils/userUtils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role'); // 'contractor', 'homeowner', or null for all
     const verified = searchParams.get('verified'); // 'true', 'false', 'pending', or null
     const search = searchParams.get('search'); // Search query for name/email
+    const excludeTestUsers = searchParams.get('excludeTestUsers') === 'true'; // Filter out test users
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = (page - 1) * limit;
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // For contractors, fetch verification data
-    const usersWithVerification = await Promise.all(
+    let usersWithVerification = await Promise.all(
       (users || []).map(async (user) => {
         if (user.role === 'contractor') {
           const { data: contractorData } = await serverSupabase
@@ -78,22 +80,32 @@ export async function GET(request: NextRequest) {
               : contractorData?.company_name && contractorData?.license_number
                 ? 'pending'
                 : 'not_submitted',
+            isTestUser: isTestUser(user),
           };
         }
         return {
           ...user,
           verificationStatus: 'not_applicable' as const,
+          isTestUser: isTestUser(user),
         };
       })
     );
 
+    // Filter out test users if requested
+    if (excludeTestUsers) {
+      usersWithVerification = usersWithVerification.filter(user => !isTestUser(user));
+    }
+
+    // Update total count if test users were filtered out
+    const filteredCount = excludeTestUsers ? usersWithVerification.length : (count || 0);
+    
     return NextResponse.json({
       users: usersWithVerification,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total: filteredCount,
+        totalPages: Math.ceil(filteredCount / limit),
       },
     });
   } catch (error) {

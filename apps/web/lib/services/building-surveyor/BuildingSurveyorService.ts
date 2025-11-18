@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from '../agents/AdaptiveUpdateEngine';
@@ -11,12 +12,112 @@ import type {
   SafetyHazardSeverity,
   ComplianceSeverity,
   PremiumImpact,
+  RoboflowDetection,
+  VisionAnalysisSummary,
 } from './types';
+import { RoboflowDetectionService } from './RoboflowDetectionService';
+import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
+import type { ImageAnalysisResult } from '@/lib/services/ImageAnalysisService';
 import type { ContinuumMemoryConfig, MemoryQueryResult } from '../ml-engine/memory/types';
+import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
+import { SafetyAnalysisService } from './SafetyAnalysisService';
+import { ComplianceService } from './ComplianceService';
+import { InsuranceRiskService } from './InsuranceRiskService';
+import { LearnedFeatureExtractor } from './LearnedFeatureExtractor';
+
+const optionalNumber = () =>
+  z
+    .preprocess((value) => {
+      if (value === null || value === undefined || value === '') {
+        return undefined;
+      }
+      if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : undefined;
+      }
+      if (typeof value === 'string') {
+        const parsed = Number(value.trim());
+        return Number.isFinite(parsed) ? parsed : undefined;
+      }
+      return value;
+    }, z.number())
+    .optional();
+
+const hazardSchema = z.object({
+  type: z.string().optional(),
+  severity: z.string().optional(),
+  location: z.string().optional(),
+  description: z.string().optional(),
+  immediateAction: z.string().optional(),
+  urgency: z.string().optional(),
+});
+
+const complianceIssueSchema = z.object({
+  issue: z.string().optional(),
+  regulation: z.string().optional(),
+  severity: z.string().optional(),
+  description: z.string().optional(),
+  recommendation: z.string().optional(),
+});
+
+const riskFactorSchema = z.object({
+  factor: z.string().optional(),
+  severity: z.string().optional(),
+  impact: z.string().optional(),
+});
+
+const materialSchema = z.object({
+  name: z.string().optional(),
+  quantity: z.string().optional(),
+  estimatedCost: optionalNumber(),
+});
+
+const homeownerExplanationSchema = z.object({
+  whatIsIt: z.string().optional(),
+  whyItHappened: z.string().optional(),
+  whatToDo: z.string().optional(),
+});
+
+const contractorAdviceSchema = z.object({
+  repairNeeded: z.array(z.string()).optional().default([]),
+  materials: z.array(materialSchema).optional().default([]),
+  tools: z.array(z.string()).optional().default([]),
+  estimatedTime: z.string().optional(),
+  estimatedCost: z
+    .object({
+      min: optionalNumber(),
+      max: optionalNumber(),
+      recommended: optionalNumber(),
+    })
+    .optional(),
+  complexity: z.string().optional(),
+});
+
+const AI_ASSESSMENT_SCHEMA = z.object({
+  damageType: z.string().optional(),
+  severity: z.string().optional(),
+  confidence: optionalNumber(),
+  location: z.string().optional(),
+  description: z.string().optional(),
+  detectedItems: z.array(z.string()).optional().default([]),
+  safetyHazards: z.array(hazardSchema).optional().default([]),
+  complianceIssues: z.array(complianceIssueSchema).optional().default([]),
+  riskFactors: z.array(riskFactorSchema).optional().default([]),
+  riskScore: optionalNumber(),
+  premiumImpact: z.string().optional(),
+  mitigationSuggestions: z.array(z.string()).optional().default([]),
+  urgency: z.string().optional(),
+  recommendedActionTimeline: z.string().optional(),
+  estimatedTimeToWorsen: z.string().optional(),
+  urgencyReasoning: z.string().optional(),
+  homeownerExplanation: homeownerExplanationSchema.optional(),
+  contractorAdvice: contractorAdviceSchema.optional(),
+});
+
+type AiAssessmentPayload = z.infer<typeof AI_ASSESSMENT_SCHEMA>;
 
 /**
  * Building Surveyor Service
- * 
+ *
  * Uses GPT-4 Vision to analyze building damage photos and provide
  * comprehensive assessments including:
  * - Damage detection (early/midway/full)
@@ -28,9 +129,34 @@ import type { ContinuumMemoryConfig, MemoryQueryResult } from '../ml-engine/memo
  * - Contractor technical advice
  */
 export class BuildingSurveyorService {
+  private static readonly DETECTOR_TIMEOUT_MS = Number.parseInt(
+    process.env.BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS || '',
+    10,
+  ) || 7000;
+
+  private static readonly VISION_TIMEOUT_MS = Number.parseInt(
+    process.env.BUILDING_SURVEYOR_VISION_TIMEOUT_MS || '',
+    10,
+  ) || 9000;
+
+  private static readonly DEFAULT_IMAGE_AREA = Number.parseInt(
+    process.env.BUILDING_SURVEYOR_IMAGE_BASE_AREA || '',
+    10,
+  ) || 1024 * 768;
+
   private static memorySystemInitialized = false;
   private static readonly AGENT_NAME = 'building-surveyor';
   private static adaptiveEngine: AdaptiveUpdateEngine | null = null;
+  private static learnedFeatureExtractor: LearnedFeatureExtractor | null = null;
+  private static useLearnedFeatures: boolean = 
+    process.env.USE_LEARNED_FEATURES === 'true' || false;
+
+  private static recordMetric(metric: string, payload: Record<string, unknown>): void {
+    MonitoringService.record(metric, {
+      agentName: this.AGENT_NAME,
+      ...payload,
+    });
+  }
 
   /**
    * Initialize adaptive update engine
@@ -60,12 +186,46 @@ export class BuildingSurveyorService {
   }
 
   /**
+   * Initialize learned feature extractor
+   */
+  private static async initializeLearnedFeatureExtractor(): Promise<void> {
+    if (this.learnedFeatureExtractor || !this.useLearnedFeatures) return;
+
+    try {
+      this.learnedFeatureExtractor = new LearnedFeatureExtractor(
+        this.AGENT_NAME,
+        {
+          inputDim: 50,  // Raw input dimension (will be padded/truncated)
+          outputDim: 40, // Fixed output dimension (matches handcrafted features)
+          hiddenDims: [64, 48],
+          learningRate: 0.001,
+          regularization: 0.0001,
+        }
+      );
+
+      await this.learnedFeatureExtractor.loadState();
+
+      logger.info('Learned feature extractor initialized', {
+        service: 'BuildingSurveyorService',
+        agentName: this.AGENT_NAME,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize learned feature extractor', error, {
+        service: 'BuildingSurveyorService',
+      });
+      // Fallback to handcrafted features
+      this.useLearnedFeatures = false;
+    }
+  }
+
+  /**
    * Initialize continuum memory system for building surveyor
    */
   private static async initializeMemorySystem(): Promise<void> {
     if (this.memorySystemInitialized) return;
 
     await this.initializeAdaptiveEngine();
+    await this.initializeLearnedFeatureExtractor();
 
     try {
       const config: ContinuumMemoryConfig = {
@@ -112,12 +272,24 @@ export class BuildingSurveyorService {
         ],
       };
 
-      await memoryManager.getOrCreateMemorySystem(config);
+      const memorySystem = await memoryManager.getOrCreateMemorySystem(config);
+      
+      // Enable Titans for self-modification
+      const useTitans = process.env.USE_TITANS === 'true' || false;
+      if (useTitans) {
+        memorySystem.enableTitans(true);
+        logger.info('Titans enabled for building surveyor', {
+          agentName: this.AGENT_NAME,
+        });
+      }
+      
       this.memorySystemInitialized = true;
 
       logger.info('BuildingSurveyorService memory system initialized', {
         agentName: this.AGENT_NAME,
         levels: config.levels.length,
+        useLearnedFeatures: this.useLearnedFeatures,
+        useTitans,
       });
     } catch (error) {
       logger.error('Failed to initialize memory system', error, {
@@ -130,11 +302,54 @@ export class BuildingSurveyorService {
   /**
    * Extract detection features from images and context
    * Returns 40-dimension feature vector normalized to 0-1 range
+   * 
+   * Uses learned feature extractor if enabled, otherwise falls back to handcrafted features
    */
   private static async extractDetectionFeatures(
     imageUrls: string[],
     context?: AssessmentContext,
-    assessment?: Phase1BuildingAssessment
+    assessment?: Phase1BuildingAssessment,
+    roboflowDetections?: RoboflowDetection[],
+    visionSummary?: VisionAnalysisSummary | null
+  ): Promise<number[]> {
+    // Use learned feature extractor if available and enabled
+    if (this.useLearnedFeatures && this.learnedFeatureExtractor) {
+      try {
+        return await this.learnedFeatureExtractor.extractFeatures(
+          imageUrls,
+          context,
+          roboflowDetections,
+          visionSummary
+        );
+      } catch (error) {
+        logger.warn('Learned feature extraction failed, falling back to handcrafted', {
+          service: 'BuildingSurveyorService',
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+        // Fall through to handcrafted features
+      }
+    }
+
+    // Fallback to handcrafted features
+    return this.extractDetectionFeaturesHandcrafted(
+      imageUrls,
+      context,
+      assessment,
+      roboflowDetections,
+      visionSummary
+    );
+  }
+
+  /**
+   * Handcrafted feature extraction (original implementation)
+   * Kept as fallback and for comparison
+   */
+  private static async extractDetectionFeaturesHandcrafted(
+    imageUrls: string[],
+    context?: AssessmentContext,
+    assessment?: Phase1BuildingAssessment,
+    roboflowDetections?: RoboflowDetection[],
+    visionSummary?: VisionAnalysisSummary | null
   ): Promise<number[]> {
     const features: number[] = [];
 
@@ -146,14 +361,87 @@ export class BuildingSurveyorService {
     features.push(this.encodeBuildingStyle(context?.propertyDetails || '')); // Encoded style
     features.push(0.5); // Property value tier (placeholder, can be enhanced)
 
-    // 2. Image features (5 features)
-    features.push(Math.min(1.0, imageUrls.length / 4)); // Image count normalized
-    features.push(0.7); // Image quality (placeholder)
-    features.push(0.6); // Lighting conditions (placeholder)
-    features.push(0.5); // Photo angle diversity (placeholder)
-    features.push(0.8); // Damage visibility (placeholder)
+    // 2. Detection evidence metrics
+    const detectionCount = roboflowDetections?.length ?? 0;
+    const avgDetectionConfidence =
+      detectionCount > 0
+        ? (roboflowDetections || []).reduce((sum, det) => sum + det.confidence, 0) / detectionCount
+        : 0;
+    const moldDetections =
+      roboflowDetections?.filter((det) => det.className.toLowerCase().includes('mold')).length || 0;
+    const crackDetections =
+      roboflowDetections?.filter((det) => det.className.toLowerCase().includes('crack')).length || 0;
+    const moistureDetections =
+      roboflowDetections?.filter((det) => det.className.toLowerCase().includes('moist')).length || 0;
+    const visionConfidenceNormalized = Math.min(1.0, (visionSummary?.confidence ?? 50) / 100);
+    const visionHasWater = Boolean(
+      visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('water')),
+    );
+    const visionHasStructural = Boolean(
+      visionSummary?.detectedFeatures?.some((feature) =>
+        feature.toLowerCase().includes('structural'),
+      ),
+    );
+    const visionHasElectrical = Boolean(
+      visionSummary?.detectedFeatures?.some((feature) =>
+        feature.toLowerCase().includes('electrical'),
+      ),
+    );
+    const visionHasMold =
+      Boolean(
+        visionSummary?.detectedFeatures?.some((feature) => feature.toLowerCase().includes('mold')),
+      ) ||
+      Boolean(
+        visionSummary?.labels?.some((label) => label.description.toLowerCase().includes('mold')),
+      );
+    const uniqueDetectionClasses =
+      detectionCount > 0 ? new Set((roboflowDetections || []).map((det) => det.className)).size : 0;
+    const detectionConfidenceNormalized =
+      detectionCount > 0 ? Math.min(1.0, avgDetectionConfidence / 100) : visionConfidenceNormalized;
+    const classDiversity =
+      detectionCount > 0 ? Math.min(1.0, uniqueDetectionClasses / detectionCount) : 0;
+    const hazardSignal =
+      detectionCount > 0
+        ? Math.min(
+            1.0,
+            (moldDetections + crackDetections + moistureDetections) / Math.max(1, detectionCount),
+          )
+        : visionHasStructural || visionHasMold
+        ? 0.7
+        : 0.3;
 
-    // 3. Damage characteristics (10 features)
+    // 3. Image features (5 features)
+    features.push(Math.min(1.0, imageUrls.length / 4)); // Image count normalized
+    features.push(visionConfidenceNormalized); // Image quality proxy
+    features.push(detectionConfidenceNormalized); // Lighting/clarity proxy
+    features.push(classDiversity); // Angle/diversity proxy
+    features.push(hazardSignal); // Damage visibility proxy
+
+    const detectionAreas = (roboflowDetections || []).map(
+      (det) => (det.boundingBox.width || 0) * (det.boundingBox.height || 0),
+    );
+    const totalDetectionArea = detectionAreas.reduce((sum, area) => sum + area, 0);
+    const largestDetectionArea = detectionAreas.reduce((max, area) => Math.max(max, area), 0);
+    const normalizedTotalArea =
+      detectionCount > 0
+        ? Math.min(1.0, totalDetectionArea / this.DEFAULT_IMAGE_AREA)
+        : 0;
+    const averageDetectionAreaNormalized =
+      detectionCount > 0
+        ? Math.min(1.0, (totalDetectionArea / detectionCount) / this.DEFAULT_IMAGE_AREA)
+        : 0;
+    const maxDetectionAreaNormalized =
+      detectionCount > 0 ? Math.min(1.0, largestDetectionArea / this.DEFAULT_IMAGE_AREA) : 0;
+    const moldRatio = detectionCount > 0 ? moldDetections / detectionCount : 0;
+    const structuralRatio = detectionCount > 0 ? crackDetections / detectionCount : 0;
+
+    features.push(Math.min(1.0, detectionCount / 25)); // detection density
+    features.push(normalizedTotalArea);
+    features.push(averageDetectionAreaNormalized);
+    features.push(moldRatio);
+    features.push(structuralRatio);
+
+    // 4. Damage characteristics (10 features)
     if (assessment) {
       features.push(this.encodeDamageType(assessment.damageAssessment.damageType));
       const severityValue = assessment.damageAssessment.severity === 'early' ? 0.33 : 
@@ -168,15 +456,29 @@ export class BuildingSurveyorService {
       features.push(Math.min(1.0, assessment.compliance.complianceIssues.length / 10));
       features.push(assessment.insuranceRisk.riskScore / 100);
     } else {
-      // Default values when assessment not yet available
-      features.push(0.1); // Damage type (unknown)
-      features.push(0.5); // Severity (midway)
-      features.push(0.5); // Confidence
-      features.push(0.5); // Location
-      features.push(0.5, 0.5, 0.5, 0.0, 0.0, 0.5); // Placeholders
+      // Default values when assessment not yet available, informed by detections
+      const inferredDamageType = visionHasMold
+        ? 0.8
+        : visionHasWater
+        ? 0.4
+        : visionHasStructural
+        ? 0.6
+        : 0.1;
+      features.push(inferredDamageType); // Damage type (inferred)
+      features.push(visionHasStructural ? 0.66 : 0.5); // Severity (structural risk indicator)
+      features.push(visionConfidenceNormalized); // Confidence proxy
+      features.push(visionHasWater ? 0.2 : 0.5); // Location proxy
+      features.push(
+        Math.min(1.0, detectionCount / 20),
+        visionHasMold ? 0.7 : 0.5,
+        visionHasStructural ? 0.6 : 0.5,
+        0.0,
+        0.0,
+        visionConfidenceNormalized,
+      ); // Placeholders influenced by evidence
     }
 
-    // 4. Assessment scores (5 features)
+    // 5. Assessment scores (5 features)
     if (assessment) {
       features.push(assessment.safetyHazards.overallSafetyScore / 100);
       features.push(assessment.compliance.complianceScore / 100);
@@ -184,10 +486,16 @@ export class BuildingSurveyorService {
       features.push(this.encodeUrgency(assessment.urgency.urgency));
       features.push(assessment.urgency.priorityScore / 100);
     } else {
-      features.push(0.8, 0.8, 0.5, 0.5, 0.5); // Default scores
+      features.push(
+        visionHasStructural ? 0.4 : 0.7,
+        visionHasElectrical ? 0.5 : 0.8,
+        detectionCount > 0 ? detectionConfidenceNormalized : 0.5,
+        visionHasStructural ? 0.6 : 0.4,
+        visionConfidenceNormalized,
+      );
     }
 
-    // 5. Cost features (5 features)
+    // 6. Cost features (5 features)
     if (assessment?.contractorAdvice?.estimatedCost) {
       const cost = assessment.contractorAdvice.estimatedCost;
       features.push(Math.min(1.0, cost.min / 10000));
@@ -198,23 +506,23 @@ export class BuildingSurveyorService {
                             assessment.contractorAdvice.complexity === 'medium' ? 0.66 : 1.0;
       features.push(complexityValue);
     } else {
-      features.push(0.3, 0.5, 0.4, 0.2, 0.5); // Default cost features
+      const structuralRisk = visionHasStructural || crackDetections > 0;
+      features.push(
+        Math.min(1.0, detectionCount / 20),
+        Math.min(1.0, (moldDetections + moistureDetections) / 10),
+        detectionConfidenceNormalized,
+        hazardSignal,
+        structuralRisk ? 0.7 : visionHasMold ? 0.6 : 0.4,
+      );
     }
 
-    // 6. Temporal features (5 features)
+    // 7. Temporal features (5 features)
     const now = new Date();
     features.push((now.getMonth() / 11) * 0.25 + (now.getDate() / 30) * 0.25); // Time of year
     features.push(0.5); // Weather context (placeholder)
     features.push(0.0); // Assessment frequency (placeholder)
     features.push(0.0); // Days since first detection (placeholder)
     features.push(0.0); // Follow-up indicator (0 = initial)
-
-    // 7. Historical patterns (5 features)
-    features.push(0.0); // User's past assessment count (placeholder)
-    features.push(0.0); // User's past damage types (placeholder)
-    features.push(0.0); // Regional damage patterns (placeholder)
-    features.push(0.0); // Property-specific patterns (placeholder)
-    features.push(0.0); // Contractor feedback patterns (placeholder)
 
     // Ensure exactly 40 features
     while (features.length < 40) {
@@ -305,6 +613,7 @@ export class BuildingSurveyorService {
     imageUrls: string[],
     context?: AssessmentContext
   ): Promise<Phase1BuildingAssessment> {
+    const startedAt = Date.now();
     try {
       // Initialize memory system
       await this.initializeMemorySystem();
@@ -320,9 +629,6 @@ export class BuildingSurveyorService {
         throw new Error('At least one image is required for assessment');
       }
 
-      // Extract features before GPT-4 call (without assessment data)
-      const features = await this.extractDetectionFeatures(imageUrls, context);
-
       // SECURITY: Validate all image URLs before sending to OpenAI
       const urlValidation = await validateURLs(imageUrls, true);
       if (urlValidation.invalid.length > 0) {
@@ -336,12 +642,106 @@ export class BuildingSurveyorService {
       // Use only validated URLs
       const validatedImageUrls = urlValidation.valid;
 
+      // Run external detectors in parallel with timeouts
+      const [roboflowResult, visionResult] = await Promise.all([
+        this.runWithTimeout(
+          () => RoboflowDetectionService.detect(validatedImageUrls),
+          this.DETECTOR_TIMEOUT_MS,
+          'roboflow-detect',
+        ),
+        this.runWithTimeout(
+          () => ImageAnalysisService.analyzePropertyImages(validatedImageUrls),
+          this.VISION_TIMEOUT_MS,
+          'vision-analyze',
+        ),
+      ]);
+
+      const roboflowDetections =
+        roboflowResult.success && Array.isArray(roboflowResult.data)
+          ? roboflowResult.data
+          : [];
+      const visionAnalysis = visionResult.success
+        ? this.toVisionSummary(visionResult.data ?? null)
+        : null;
+
+      if (!roboflowResult.success) {
+        logger.warn('Roboflow detection unavailable', {
+          service: 'BuildingSurveyorService',
+          timedOut: roboflowResult.timedOut,
+          error:
+            roboflowResult.error instanceof Error
+              ? roboflowResult.error.message
+              : roboflowResult.error,
+        });
+      }
+
+      if (!visionResult.success) {
+        logger.warn('Google Vision analysis unavailable', {
+          service: 'BuildingSurveyorService',
+          timedOut: visionResult.timedOut,
+          error:
+            visionResult.error instanceof Error
+              ? visionResult.error.message
+              : visionResult.error,
+        });
+      }
+
+      this.recordMetric('detector.roboflow', {
+        success: roboflowResult.success,
+        durationMs: roboflowResult.durationMs,
+        timedOut: roboflowResult.timedOut,
+        detectionCount: roboflowDetections.length,
+      });
+
+      this.recordMetric('detector.vision', {
+        success: visionResult.success,
+        durationMs: visionResult.durationMs,
+        timedOut: visionResult.timedOut,
+        detectedLabels: visionAnalysis?.labels.length ?? 0,
+      });
+
+      const hasMachineEvidence =
+        (roboflowResult.success && roboflowDetections.length > 0) ||
+        (visionResult.success && !!visionAnalysis);
+
+      if (!hasMachineEvidence) {
+        logger.warn('Proceeding with GPT-only assessment (no machine evidence)', {
+          service: 'BuildingSurveyorService',
+          roboflowSuccess: roboflowResult.success,
+          visionSuccess: visionResult.success,
+        });
+        this.recordMetric('detector.fallback', {
+          reason: 'no_machine_evidence',
+          roboflowSuccess: roboflowResult.success,
+          visionSuccess: visionResult.success,
+        });
+      }
+
+      // Extract features with detection evidence
+      const features = await this.extractDetectionFeatures(
+        validatedImageUrls,
+        context,
+        undefined,
+        roboflowDetections,
+        visionAnalysis,
+      );
+
       // Query memory for learned adjustments
+      // Use Titans-enhanced query if enabled
       let memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
       try {
+        const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
+        const useTitans = process.env.USE_TITANS === 'true' || false;
+
+        let processedFeatures = features;
+        if (useTitans && memorySystem) {
+          // Use Titans-enhanced processing
+          processedFeatures = await memorySystem.processWithTitans(features);
+        }
+
         const memoryResults: MemoryQueryResult[] = [];
         for (let level = 0; level < 3; level++) {
-          const result = await memoryManager.query(this.AGENT_NAME, features, level);
+          const result = await memoryManager.query(this.AGENT_NAME, processedFeatures, level);
           if (result.values && result.values.length === 5) {
             memoryResults.push(result);
           }
@@ -376,7 +776,9 @@ export class BuildingSurveyorService {
 
       // Prepare GPT-4 Vision request
       const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(context);
+      const evidenceSummary = this.buildEvidenceSummary(roboflowDetections, visionAnalysis);
+      const hasDetectionEvidence = roboflowDetections.length > 0 || !!visionAnalysis;
+      const userPrompt = this.buildUserPrompt(context, evidenceSummary, hasDetectionEvidence);
 
       const messages: any[] = [
         { role: 'system', content: systemPrompt },
@@ -393,6 +795,7 @@ export class BuildingSurveyorService {
       ];
 
       // Call GPT-4 Vision API
+      const gptStart = Date.now();
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -419,12 +822,18 @@ export class BuildingSurveyorService {
       }
 
       const data = await response.json();
+      const gptDuration = Date.now() - gptStart;
+      this.recordMetric('gpt.assessment', {
+        durationMs: gptDuration,
+        imageCount: imagesToAnalyze.length,
+        hasMachineEvidence,
+      });
       const content = data.choices[0]?.message?.content || '{}';
 
       // Parse JSON response
-      let aiResponse: any;
+      let aiResponseRaw: unknown;
       try {
-        aiResponse = JSON.parse(content);
+        aiResponseRaw = JSON.parse(content);
       } catch (parseError) {
         logger.error('Failed to parse OpenAI response', {
           service: 'BuildingSurveyorService',
@@ -433,8 +842,21 @@ export class BuildingSurveyorService {
         throw new Error('Failed to parse AI assessment response');
       }
 
+      let aiResponse: AiAssessmentPayload;
+      try {
+        aiResponse = AI_ASSESSMENT_SCHEMA.parse(aiResponseRaw);
+      } catch (validationError) {
+        logger.error('AI assessment response failed validation', validationError, {
+          service: 'BuildingSurveyorService',
+        });
+        throw new Error('AI assessment response failed validation');
+      }
+
       // Structure into Phase1BuildingAssessment
-      let assessment = this.structureAssessment(aiResponse);
+      let assessment = this.structureAssessment(aiResponse, {
+        roboflowDetections,
+        visionAnalysis: visionAnalysis || undefined,
+      });
 
       // Apply memory adjustments
       assessment = this.applyMemoryAdjustments(assessment, memoryAdjustments);
@@ -448,10 +870,21 @@ export class BuildingSurveyorService {
         adjustmentsApplied: memoryAdjustments.some(a => Math.abs(a) > 0.01),
       });
 
+      this.recordMetric('assessment.success', {
+        durationMs: Date.now() - startedAt,
+        imageCount: imagesToAnalyze.length,
+        hasMachineEvidence,
+        adjustmentsApplied: memoryAdjustments.some((a) => Math.abs(a) > 0.01),
+      });
+
       return assessment;
     } catch (error) {
       logger.error('Error assessing building damage', error, {
         service: 'BuildingSurveyorService',
+      });
+      this.recordMetric('assessment.failure', {
+        error: error instanceof Error ? error.message : 'unknown_error',
+        durationMs: Date.now() - startedAt,
       });
       throw error;
     }
@@ -547,7 +980,11 @@ Guidelines:
   /**
    * Build user prompt with context
    */
-  private static buildUserPrompt(context?: AssessmentContext): string {
+  private static buildUserPrompt(
+    context?: AssessmentContext,
+    evidenceSummary?: string,
+    hasMachineEvidence = true,
+  ): string {
     let prompt = `Analyze these building damage photos and provide a comprehensive assessment.\n\n`;
 
     if (context?.location) {
@@ -566,28 +1003,125 @@ Guidelines:
       prompt += `Additional Context: ${context.propertyDetails}\n`;
     }
 
+    if (!hasMachineEvidence) {
+      prompt += `\nMachine detectors could not identify clear defects. Conduct a thorough manual review and only report issues you can confidently verify from the photos.`;
+    }
+
+    if (evidenceSummary) {
+      prompt += `\nMachine detections summary:\n${evidenceSummary}\n`;
+      prompt += `\nCross-check these detections. Verify accuracy and expand with professional insights.`;
+    }
+
     prompt += `\nPlease analyze all photos carefully and provide a complete assessment following the JSON structure specified.`;
 
     return prompt;
   }
 
   /**
+   * Map detailed Google Vision result into compact summary structure
+   */
+  private static toVisionSummary(
+    result: ImageAnalysisResult | null,
+  ): VisionAnalysisSummary | null {
+    if (!result) {
+      return null;
+    }
+
+    return {
+      provider: 'google-vision',
+      confidence: result.confidence,
+      labels: result.labels,
+      objects: result.objects,
+      detectedFeatures: result.detectedFeatures,
+      suggestedCategories: result.suggestedCategories,
+      propertyType: result.propertyType,
+      condition: result.condition,
+      complexity: result.complexity,
+    };
+  }
+
+  /**
+   * Build textual summary from multimodal evidence sources
+   */
+  private static buildEvidenceSummary(
+    roboflowDetections: RoboflowDetection[],
+    visionAnalysis: VisionAnalysisSummary | null,
+  ): string | undefined {
+    const summaryParts: string[] = [];
+
+    if (roboflowDetections.length > 0) {
+      const topClasses = roboflowDetections
+        .reduce<Record<string, { count: number; maxConfidence: number }>>((acc, detection) => {
+          const key = detection.className.toLowerCase();
+          const existing = acc[key] || { count: 0, maxConfidence: 0 };
+          acc[key] = {
+            count: existing.count + 1,
+            maxConfidence: Math.max(existing.maxConfidence, detection.confidence),
+          };
+          return acc;
+        }, {});
+
+      const classSummary = Object.entries(topClasses)
+        .map(
+          ([name, stats]) =>
+            `${stats.count} × ${name} (max confidence ${Math.round(stats.maxConfidence)}%)`,
+        )
+        .slice(0, 5);
+
+      summaryParts.push(`Roboflow detected: ${classSummary.join('; ')}`);
+    }
+
+    if (visionAnalysis) {
+      const topLabels = visionAnalysis.labels.slice(0, 5).map(
+        (label) => `${label.description} (${Math.round(label.score * 100)}%)`,
+      );
+      const topObjects = visionAnalysis.objects.slice(0, 5).map(
+        (obj) => `${obj.name} (${Math.round(obj.score * 100)}%)`,
+      );
+      const features = visionAnalysis.detectedFeatures.slice(0, 6).join(', ');
+
+      summaryParts.push(`Google Vision confidence ${Math.round(visionAnalysis.confidence)}%`);
+      if (topLabels.length > 0) {
+        summaryParts.push(`Top labels: ${topLabels.join(', ')}`);
+      }
+      if (topObjects.length > 0) {
+        summaryParts.push(`Objects: ${topObjects.join(', ')}`);
+      }
+      if (features) {
+        summaryParts.push(`Features: ${features}`);
+      }
+    }
+
+    if (summaryParts.length === 0) {
+      return undefined;
+    }
+
+    return summaryParts.join('\n');
+  }
+
+  /**
    * Structure AI response into Phase1BuildingAssessment
    */
-  private static structureAssessment(aiResponse: any): Phase1BuildingAssessment {
+  private static structureAssessment(
+    aiResponse: AiAssessmentPayload,
+    evidence?: {
+      roboflowDetections?: RoboflowDetection[];
+      visionAnalysis?: VisionAnalysisSummary | null;
+    },
+  ): Phase1BuildingAssessment {
     // Validate and normalize severity
     const severity = this.normalizeSeverity(aiResponse.severity);
     const urgency = this.normalizeUrgency(aiResponse.urgency);
 
-    // Calculate safety score
-    const safetyHazards = this.processSafetyHazards(aiResponse.safetyHazards || []);
-    const overallSafetyScore = this.calculateSafetyScore(safetyHazards.hazards);
+    // Calculate safety score using SafetyAnalysisService
+    const safetyHazards = SafetyAnalysisService.processSafetyHazards(aiResponse.safetyHazards || []);
+    const overallSafetyScore = safetyHazards.overallSafetyScore;
 
-    // Process compliance
-    const compliance = this.processCompliance(aiResponse.complianceIssues || []);
+    // Process compliance using ComplianceService
+    const compliance = ComplianceService.processCompliance(aiResponse.complianceIssues || []);
 
-    // Process insurance risk
-    const insuranceRisk = this.processInsuranceRisk(
+    // Process insurance risk using InsuranceRiskService
+    const insuranceRisk = InsuranceRiskService.processInsuranceRisk(
       aiResponse.riskFactors || [],
       aiResponse.riskScore,
       aiResponse.premiumImpact
@@ -597,23 +1131,53 @@ Guidelines:
     const urgencyData = this.processUrgency(aiResponse, urgency);
 
     // Ensure homeowner explanation exists
-    const homeownerExplanation = aiResponse.homeownerExplanation || {
-      whatIsIt: aiResponse.description || 'Damage detected in building',
-      whyItHappened: 'Requires professional inspection to determine cause',
-      whatToDo: 'Contact a qualified contractor for assessment and repair',
+    const homeownerExplanation = {
+      whatIsIt:
+        aiResponse.homeownerExplanation?.whatIsIt ||
+        aiResponse.description ||
+        'Damage detected in building',
+      whyItHappened:
+        aiResponse.homeownerExplanation?.whyItHappened ||
+        'Requires professional inspection to determine cause',
+      whatToDo:
+        aiResponse.homeownerExplanation?.whatToDo ||
+        'Contact a qualified contractor for assessment and repair',
     };
 
     // Ensure contractor advice exists
-    const contractorAdvice = aiResponse.contractorAdvice || {
-      repairNeeded: ['Professional inspection required', 'Determine root cause', 'Plan repair approach'],
-      materials: [],
-      tools: [],
-      estimatedTime: 'TBD',
-      estimatedCost: { min: 0, max: 0, recommended: 0 },
-      complexity: 'medium' as const,
+    const normalizedMaterials = (aiResponse.contractorAdvice?.materials || []).map((material) => ({
+      name: material.name || 'unspecified material',
+      quantity: material.quantity || 'quantity not provided',
+      estimatedCost: material.estimatedCost ?? 0,
+    }));
+
+    const contractorAdvice = {
+      repairNeeded:
+        aiResponse.contractorAdvice?.repairNeeded &&
+        aiResponse.contractorAdvice.repairNeeded.length > 0
+          ? aiResponse.contractorAdvice.repairNeeded
+          : ['Professional inspection required', 'Determine root cause', 'Plan repair approach'],
+      materials: normalizedMaterials,
+      tools: aiResponse.contractorAdvice?.tools || [],
+      estimatedTime: aiResponse.contractorAdvice?.estimatedTime || 'TBD',
+      estimatedCost: {
+        min: aiResponse.contractorAdvice?.estimatedCost?.min ?? 0,
+        max: aiResponse.contractorAdvice?.estimatedCost?.max ?? 0,
+        recommended: aiResponse.contractorAdvice?.estimatedCost?.recommended ?? 0,
+      },
+      complexity:
+        (aiResponse.contractorAdvice?.complexity as 'low' | 'medium' | 'high' | undefined) || 'medium',
     };
 
-    return {
+    const evidencePayload =
+      evidence && (evidence.roboflowDetections?.length || evidence.visionAnalysis)
+        ? {
+            roboflowDetections: evidence.roboflowDetections,
+            visionAnalysis: evidence.visionAnalysis ?? undefined,
+          }
+        : undefined;
+
+    const assessment: Phase1BuildingAssessment = {
       damageAssessment: {
         damageType: aiResponse.damageType || 'unknown_damage',
         severity,
@@ -627,7 +1191,7 @@ Guidelines:
       safetyHazards: {
         hazards: safetyHazards.hazards,
         hasCriticalHazards: safetyHazards.hasCriticalHazards,
-        overallSafetyScore,
+        overallSafetyScore: safetyHazards.overallSafetyScore,
       },
       compliance,
       insuranceRisk,
@@ -635,6 +1199,12 @@ Guidelines:
       homeownerExplanation,
       contractorAdvice,
     };
+
+    if (evidencePayload) {
+      assessment.evidence = evidencePayload;
+    }
+
+    return assessment;
   }
 
   /**
@@ -838,14 +1408,56 @@ Guidelines:
       const imageUrls = images?.map(img => img.image_url) || [];
       const context: AssessmentContext = {}; // Could be enhanced to fetch from user profile
 
-      // Extract features (same as query)
-      const features = await this.extractDetectionFeatures(
+      // Extract features for original assessment
+      const originalFeatures = await this.extractDetectionFeatures(
         imageUrls,
         context,
-        originalAssessment
+        originalAssessment,
+        originalAssessment.evidence?.roboflowDetections,
+        originalAssessment.evidence?.visionAnalysis ?? null,
       );
 
-      // Calculate surprise signals
+      // Extract features for validated assessment (target features)
+      const validatedFeatures = await this.extractDetectionFeatures(
+        imageUrls,
+        context,
+        humanValidatedAssessment,
+        originalAssessment.evidence?.roboflowDetections,
+        originalAssessment.evidence?.visionAnalysis ?? null,
+      );
+
+      // Learn from surprise signal in feature extractor
+      if (this.useLearnedFeatures && this.learnedFeatureExtractor) {
+        try {
+          // Build raw input for learning
+          const rawInput = this.learnedFeatureExtractor['buildRawInput'](
+            imageUrls,
+            context,
+            originalAssessment.evidence?.roboflowDetections,
+            originalAssessment.evidence?.visionAnalysis ?? null
+          );
+
+          // Learn from surprise: validated features are the target
+          await this.learnedFeatureExtractor.learnFromSurprise(
+            rawInput,
+            validatedFeatures
+          );
+
+          logger.debug('Feature extractor learned from validation', {
+            service: 'BuildingSurveyorService',
+            assessmentId,
+            avgError: this.learnedFeatureExtractor.getAverageError(),
+          });
+        } catch (featureError) {
+          logger.warn('Failed to learn in feature extractor', {
+            service: 'BuildingSurveyorService',
+            assessmentId,
+            error: featureError,
+          });
+        }
+      }
+
+      // Calculate surprise signals for memory system
       const damageTypeAccuracy = originalAssessment.damageAssessment.damageType ===
         humanValidatedAssessment.damageAssessment.damageType ? 1.0 : 0.0;
 
@@ -878,21 +1490,44 @@ Guidelines:
         confidenceError,
       ];
 
-      // Add context flow to all memory levels
-      for (let level = 0; level < 3; level++) {
-        try {
-          await memoryManager.addContextFlow(
-            this.AGENT_NAME,
-            features,
-            values,
-            level
-          );
-        } catch (levelError) {
-          logger.warn('Failed to add context flow to memory level', {
-            service: 'BuildingSurveyorService',
-            level,
-            error: levelError,
-          });
+      // Add context flow to all memory levels (with Titans if enabled)
+      const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
+      const useTitans = process.env.USE_TITANS === 'true' || false;
+
+      if (useTitans && memorySystem) {
+        // Use Titans-enhanced learning
+        for (let level = 0; level < 3; level++) {
+          try {
+            await memorySystem.learnFromSurpriseWithTitans(
+              originalFeatures,
+              values,
+              level
+            );
+          } catch (levelError) {
+            logger.warn('Failed to learn with Titans at memory level', {
+              service: 'BuildingSurveyorService',
+              level,
+              error: levelError,
+            });
+          }
+        }
+      } else {
+        // Standard memory learning
+        for (let level = 0; level < 3; level++) {
+          try {
+            await memoryManager.addContextFlow(
+              this.AGENT_NAME,
+              originalFeatures,
+              values,
+              level
+            );
+          } catch (levelError) {
+            logger.warn('Failed to add context flow to memory level', {
+              service: 'BuildingSurveyorService',
+              level,
+              error: levelError,
+            });
+          }
         }
       }
 
@@ -966,7 +1601,9 @@ Guidelines:
       const features = await this.extractDetectionFeatures(
         imageUrls,
         {},
-        originalAssessment
+        originalAssessment,
+        originalAssessment.evidence?.roboflowDetections,
+        originalAssessment.evidence?.visionAnalysis ?? null,
       );
 
       // Calculate surprise signals
@@ -1085,7 +1722,9 @@ Guidelines:
       const features = await this.extractDetectionFeatures(
         imageUrls,
         {},
-        originalAssessment
+        originalAssessment,
+        originalAssessment.evidence?.roboflowDetections,
+        originalAssessment.evidence?.visionAnalysis ?? null,
       );
 
       // Values: [damage_type_accuracy (0), severity_progression, cost_accuracy (0), urgency_accuracy (0), progression_rate]
@@ -1181,228 +1820,51 @@ Guidelines:
     return 'monitor'; // Default
   }
 
-  /**
-   * Process safety hazards
-   */
-  private static processSafetyHazards(hazards: any[]): {
-    hazards: any[];
-    hasCriticalHazards: boolean;
-  } {
-    const processedHazards = hazards.map((h) => ({
-      type: h.type || 'unknown_hazard',
-      severity: this.normalizeSafetySeverity(h.severity),
-      location: h.location || 'location_not_specified',
-      description: h.description || 'Safety hazard detected',
-      immediateAction: h.immediateAction,
-      urgency: this.normalizeUrgency(h.urgency || 'urgent'),
-    }));
+  private static async runWithTimeout<T>(
+    task: () => Promise<T>,
+    timeoutMs: number,
+    label: string,
+  ): Promise<{
+    success: boolean;
+    data?: T;
+    error?: unknown;
+    durationMs: number;
+    timedOut: boolean;
+  }> {
+    const start = Date.now();
+    const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
+    let timeoutHandle: NodeJS.Timeout | undefined;
 
-    const hasCriticalHazards = processedHazards.some(
-      (h) => h.severity === 'critical' || h.severity === 'high'
-    );
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(timeoutError), timeoutMs);
+    });
 
-    return {
-      hazards: processedHazards,
-      hasCriticalHazards,
-    };
-  }
-
-  /**
-   * Normalize safety hazard severity
-   */
-  private static normalizeSafetySeverity(severity: any): SafetyHazardSeverity {
-    const valid: SafetyHazardSeverity[] = ['low', 'medium', 'high', 'critical'];
-    if (valid.includes(severity)) {
-      return severity;
-    }
-    const s = String(severity).toLowerCase();
-    if (s.includes('critical') || s.includes('severe')) {
-      return 'critical';
-    }
-    if (s.includes('high')) {
-      return 'high';
-    }
-    if (s.includes('medium') || s.includes('moderate')) {
-      return 'medium';
-    }
-    return 'low';
-  }
-
-  /**
-   * Calculate overall safety score (0-100)
-   */
-  private static calculateSafetyScore(hazards: any[]): number {
-    if (hazards.length === 0) {
-      return 100; // No hazards = perfect safety
-    }
-
-    let score = 100;
-    for (const hazard of hazards) {
-      switch (hazard.severity) {
-        case 'critical':
-          score -= 40;
-          break;
-        case 'high':
-          score -= 25;
-          break;
-        case 'medium':
-          score -= 15;
-          break;
-        case 'low':
-          score -= 5;
-          break;
+    try {
+      const data = await Promise.race([task(), timeoutPromise]);
+      return {
+        success: true,
+        data: data as T,
+        durationMs: Date.now() - start,
+        timedOut: false,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error,
+        durationMs: Date.now() - start,
+        timedOut: error === timeoutError,
+      };
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
       }
     }
-
-    return Math.max(0, Math.min(100, score));
   }
 
-  /**
-   * Process compliance issues
-   */
-  private static processCompliance(issues: any[]): any {
-    const processedIssues = issues.map((issue) => ({
-      issue: issue.issue || 'unknown_issue',
-      regulation: issue.regulation,
-      severity: this.normalizeComplianceSeverity(issue.severity),
-      description: issue.description || 'Compliance issue detected',
-      recommendation: issue.recommendation || 'Professional inspection recommended',
-    }));
-
-    const complianceScore = this.calculateComplianceScore(processedIssues);
-
-    return {
-      complianceIssues: processedIssues,
-      requiresProfessionalInspection: processedIssues.length > 0,
-      complianceScore,
-    };
-  }
-
-  /**
-   * Normalize compliance severity
-   */
-  private static normalizeComplianceSeverity(severity: any): ComplianceSeverity {
-    const valid: ComplianceSeverity[] = ['info', 'warning', 'violation'];
-    if (valid.includes(severity)) {
-      return severity;
-    }
-    const s = String(severity).toLowerCase();
-    if (s.includes('violation') || s.includes('non-compliant')) {
-      return 'violation';
-    }
-    if (s.includes('warning') || s.includes('potential')) {
-      return 'warning';
-    }
-    return 'info';
-  }
-
-  /**
-   * Calculate compliance score (0-100)
-   */
-  private static calculateComplianceScore(issues: any[]): number {
-    if (issues.length === 0) {
-      return 100; // No issues = perfect compliance
-    }
-
-    let score = 100;
-    for (const issue of issues) {
-      switch (issue.severity) {
-        case 'violation':
-          score -= 30;
-          break;
-        case 'warning':
-          score -= 15;
-          break;
-        case 'info':
-          score -= 5;
-          break;
-      }
-    }
-
-    return Math.max(0, Math.min(100, score));
-  }
-
-  /**
-   * Process insurance risk
-   */
-  private static processInsuranceRisk(
-    riskFactors: any[],
-    riskScore?: number,
-    premiumImpact?: any
-  ): any {
-    const processedFactors = riskFactors.map((factor) => ({
-      factor: factor.factor || 'unknown_risk',
-      severity: factor.severity || 'medium',
-      impact: factor.impact || 'May affect insurance coverage',
-    }));
-
-    const normalizedRiskScore = riskScore
-      ? Math.max(0, Math.min(100, riskScore))
-      : this.calculateRiskScore(processedFactors);
-
-    const normalizedPremiumImpact = this.normalizePremiumImpact(premiumImpact);
-
-    return {
-      riskFactors: processedFactors,
-      riskScore: normalizedRiskScore,
-      premiumImpact: normalizedPremiumImpact,
-      mitigationSuggestions:
-        processedFactors.length > 0
-          ? [
-              'Address damage promptly',
-              'Document all repairs',
-              'Consider professional inspection',
-            ]
-          : [],
-    };
-  }
-
-  /**
-   * Calculate risk score from factors
-   */
-  private static calculateRiskScore(factors: any[]): number {
-    if (factors.length === 0) {
-      return 0; // No factors = no risk
-    }
-
-    let score = 0;
-    for (const factor of factors) {
-      switch (factor.severity) {
-        case 'high':
-          score += 30;
-          break;
-        case 'medium':
-          score += 15;
-          break;
-        case 'low':
-          score += 5;
-          break;
-      }
-    }
-
-    return Math.min(100, score);
-  }
-
-  /**
-   * Normalize premium impact
-   */
-  private static normalizePremiumImpact(impact: any): PremiumImpact {
-    const valid: PremiumImpact[] = ['none', 'low', 'medium', 'high'];
-    if (valid.includes(impact)) {
-      return impact;
-    }
-    const i = String(impact).toLowerCase();
-    if (i.includes('high') || i.includes('significant')) {
-      return 'high';
-    }
-    if (i.includes('medium') || i.includes('moderate')) {
-      return 'medium';
-    }
-    if (i.includes('low') || i.includes('minor')) {
-      return 'low';
-    }
-    return 'none';
-  }
+  // Safety, compliance, and insurance risk processing moved to dedicated services:
+  // - SafetyAnalysisService.processSafetyHazards()
+  // - ComplianceService.processCompliance()
+  // - InsuranceRiskService.processInsuranceRisk()
 
   /**
    * Process urgency data

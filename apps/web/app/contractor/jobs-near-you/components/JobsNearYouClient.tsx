@@ -447,6 +447,10 @@ export function JobsNearYouClient({
         boxShadow: isRecommended ? theme.shadows.lg : theme.shadows.md,
         borderRadius: theme.borderRadius.xl,
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        paddingTop: theme.spacing[5],
+        paddingBottom: theme.spacing[5],
+        paddingLeft: theme.spacing[5],
+        paddingRight: theme.spacing[5],
       }}
     >
       {/* Recommended Badge - Top Right */}
@@ -455,8 +459,8 @@ export function JobsNearYouClient({
           variant="primary"
           style={{
             position: 'absolute',
-            top: theme.spacing[3],
-            right: theme.spacing[3],
+            top: theme.spacing[4],
+            right: theme.spacing[4],
             zIndex: 10,
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
             fontSize: theme.typography.fontSize.xs,
