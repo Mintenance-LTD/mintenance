@@ -8,11 +8,10 @@ import { requireCSRF } from '@/lib/csrf';
 
 export async function PUT(
   request: NextRequest,
-  { 
+  { params }: { params: Promise<{ id: string }> }
+) {
   // CSRF protection
   await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
-) {
   try {
     const user = await getCurrentUserFromCookies();
 
@@ -49,11 +48,10 @@ params }: { params: Promise<{ id: string }> }
 
 export async function DELETE(
   request: NextRequest,
-  { 
+  { params }: { params: Promise<{ id: string }> }
+) {
   // CSRF protection
   await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
-) {
   try {
     const user = await getCurrentUserFromCookies();
 

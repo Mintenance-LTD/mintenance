@@ -16,6 +16,7 @@
 
 import { logger } from '@mintenance/shared';
 import type { RoboflowDetection } from './types';
+import { DriftMonitorService } from './DriftMonitorService';
 
 export interface DetectorOutput {
   confidence: number;
@@ -37,7 +38,15 @@ export interface DetectorFusionResult {
 
 export class DetectorFusionService {
   // Learned detector weights (from offline Bayesian training)
-  private static readonly DETECTOR_WEIGHTS = {
+  // These are adjusted dynamically by DriftMonitorService based on distribution drift
+  private static detectorWeights = {
+    yolo: 0.35,
+    maskrcnn: 0.50,
+    sam: 0.15,
+  };
+
+  // Base detector weights (for resetting after drift)
+  private static readonly BASE_DETECTOR_WEIGHTS = {
     yolo: 0.35,
     maskrcnn: 0.50,
     sam: 0.15,
@@ -56,11 +65,52 @@ export class DetectorFusionService {
 
   /**
    * Fuse detector outputs with correlation-aware Bayesian fusion
+   * 
+   * @param roboflowDetections - Roboflow/YOLO detections
+   * @param assessmentConfidence - GPT-4 Vision assessment confidence
+   * @param context - Optional context for drift detection (property type, region, season)
    */
-  static fuseDetectors(
+  static async fuseDetectors(
     roboflowDetections: RoboflowDetection[],
-    assessmentConfidence: number
-  ): DetectorFusionResult {
+    assessmentConfidence: number,
+    context?: {
+      propertyType?: string;
+      region?: string;
+      season?: string;
+      materialTypes?: string[];
+    }
+  ): Promise<DetectorFusionResult> {
+    // 1. Check for distribution drift and adjust weights if needed
+    // This implements the paper's Drift Monitor → Adjust Weights → Bayesian Fusion
+    if (context) {
+      try {
+        const driftResult = await DriftMonitorService.detectDrift({
+          propertyType: context.propertyType,
+          region: context.region,
+          season: context.season,
+          materialTypes: context.materialTypes,
+        });
+
+        if (driftResult.hasDrift) {
+          // Apply weight adjustments based on drift detection
+          this.detectorWeights = DriftMonitorService.applyWeightAdjustments(
+            driftResult.recommendedWeightAdjustments
+          );
+
+          logger.debug('Applied drift-based weight adjustments', {
+            service: 'DetectorFusionService',
+            driftType: driftResult.driftType,
+            driftScore: driftResult.driftScore,
+            adjustedWeights: this.detectorWeights,
+          });
+        }
+      } catch (error) {
+        logger.warn('Drift detection failed, using default weights', {
+          service: 'DetectorFusionService',
+          error,
+        });
+      }
+    }
     // Extract YOLO confidence from Roboflow detections
     const avgRoboflowConfidence = roboflowDetections.length > 0
       ? roboflowDetections.reduce((sum, d) => sum + d.confidence, 0) / roboflowDetections.length / 100
@@ -91,9 +141,9 @@ export class DetectorFusionService {
     ];
 
     const w = [
-      this.DETECTOR_WEIGHTS.yolo,
-      this.DETECTOR_WEIGHTS.maskrcnn,
-      this.DETECTOR_WEIGHTS.sam,
+      this.detectorWeights.yolo,
+      this.detectorWeights.maskrcnn,
+      this.detectorWeights.sam,
     ];
 
     // Weighted fusion mean: μ = w^T p
@@ -145,8 +195,15 @@ export class DetectorFusionService {
   /**
    * Get detector weights (for external use)
    */
-  static getDetectorWeights(): typeof DetectorFusionService.DETECTOR_WEIGHTS {
-    return { ...this.DETECTOR_WEIGHTS };
+  static getDetectorWeights(): typeof DetectorFusionService.detectorWeights {
+    return { ...this.detectorWeights };
+  }
+
+  /**
+   * Reset detector weights to base values
+   */
+  static resetWeights(): void {
+    this.detectorWeights = { ...this.BASE_DETECTOR_WEIGHTS };
   }
 
   /**

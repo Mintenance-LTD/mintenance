@@ -76,7 +76,7 @@ export default function JobsPage() {
     queryKey: ['jobs', user?.id, user?.role],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const jobsRaw = user.role === 'homeowner'
         ? await JobService.getJobsByHomeowner(user.id)
         : await JobService.getAvailableJobs();
@@ -173,13 +173,13 @@ export default function JobsPage() {
   }
 
   // Use HomeownerLayoutShell for homeowners, old layout for contractors
-  const userDisplayName = user.first_name && user.last_name 
-    ? `${user.first_name} ${user.last_name}`.trim() 
+  const userDisplayName = user.first_name && user.last_name
+    ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
 
   if (user.role === 'homeowner') {
     return (
-      <HomeownerLayoutShell 
+      <HomeownerLayoutShell
         currentPath="/jobs"
         userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
         userEmail={user.email}
@@ -267,7 +267,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
 
   // Ensure job.id exists before rendering
   if (!job.id) {
-    console.error('JobCard: job.id is missing', job);
+    logger.error('JobCard: job.id is missing', { job });
     return null;
   }
 
@@ -283,11 +283,11 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
   const handleCardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Only navigate if clicking on the card itself, not on interactive elements
     const target = e.target as HTMLElement;
-    
+
     // Check if click is on a button or other interactive element inside the card
     const clickedButton = target.closest('button');
     const clickedLink = target.closest('a[href]:not(.job-card-interactive)');
-    
+
     if (clickedButton || clickedLink) {
       // Don't navigate if clicking on Pay Now button or nested links
       e.preventDefault();
@@ -296,29 +296,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
     }
 
     // Debug logging
-    console.log('JobCard clicked:', { jobId: job.id, url: jobDetailUrl });
-
-    // Prevent default Link behavior and use router.push explicitly
-    // This ensures navigation works even if Next.js Link has issues
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Navigate using router.push with error handling
-    try {
-      console.log('Attempting navigation to:', jobDetailUrl);
-      router.push(jobDetailUrl);
-      // Also trigger a hard navigation as fallback
-      setTimeout(() => {
-        if (window.location.pathname !== jobDetailUrl) {
-          console.log('Router.push failed, using window.location fallback');
-          window.location.href = jobDetailUrl;
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to window.location if router.push fails
-      window.location.href = jobDetailUrl;
-    }
+    logger.debug('JobCard clicked', { jobId: job.id, url: jobDetailUrl });
   };
 
   return (
@@ -330,11 +308,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
       data-href={jobDetailUrl}
     >
       {/* Gradient bar - appears on hover, always visible on large screens */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+      < div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10" ></div >
       {/* Card Layout: Photo on left, content on right */}
-      <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }}>
+      < div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }
+      }>
         {/* Photo Section - Left Side */}
-        <div style={{ flexShrink: 0 }}>
+        < div style={{ flexShrink: 0 }
+        }>
           {hasPhotos && job.photos && job.photos.length > 0 ? (
             <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 relative group-hover:shadow-lg transition-shadow duration-300">
               <Image
@@ -378,12 +358,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               <Icon name="image" size={32} color={theme.colors.textSecondary} />
             </div>
           )}
-        </div>
+        </div >
 
         {/* Content Section - Right Side */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+        < div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
           {/* Header Row: Title, Priority, Budget */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3] }}>
+          < div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3] }}>
             <div style={{ flex: 1 }}>
               <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight group-hover:text-primary transition-colors">
                 {job.title}
@@ -397,8 +377,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
                     color: theme.colors.textSecondary,
                   }}>
                     {daysAgo === 0 ? 'Today' :
-                     daysAgo === 1 ? '1 day ago' :
-                     `${daysAgo} days ago`}
+                      daysAgo === 1 ? '1 day ago' :
+                        `${daysAgo} days ago`}
                   </span>
                 </div>
                 {/* Location */}
@@ -430,23 +410,25 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
                 Budget
               </span>
             </div>
-          </div>
+          </div >
 
           {/* Description */}
-          {job.description && (
-            <p style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-              lineHeight: 1.6,
-              margin: 0,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
-            }}>
-              {job.description}
-            </p>
-          )}
+          {
+            job.description && (
+              <p style={{
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textSecondary,
+                lineHeight: 1.6,
+                margin: 0,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}>
+                {job.description}
+              </p>
+            )
+          }
 
           {/* Footer: Priority Badge and Status */}
           <div style={{
@@ -462,7 +444,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               backgroundColor: theme.colors.backgroundSecondary,
               border: `1px solid ${theme.colors.border}`,
             }}
-            className="group-hover:bg-gray-100 transition-colors duration-200"
+              className="group-hover:bg-gray-100 transition-colors duration-200"
             >
               <span style={{
                 fontSize: theme.typography.fontSize.xs,
@@ -494,8 +476,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
       <style jsx>{`
         .job-card-interactive:hover {
           transform: translateY(-4px);
@@ -506,6 +488,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
           transform: translateY(-2px) scale(0.99);
         }
       `}</style>
-    </Link>
+    </Link >
   );
 };

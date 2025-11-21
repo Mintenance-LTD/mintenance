@@ -17,7 +17,10 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const loginFormSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().default(false),
 });
@@ -41,10 +44,12 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
+    clearErrors,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
     mode: 'onSubmit', // Only validate on submit, not on mount or change
-    reValidateMode: 'onSubmit', // Only revalidate on submit after first validation
+    reValidateMode: 'onChange', // Revalidate on change after first validation
+    shouldUnregister: false, // Keep form values when fields are unmounted
     defaultValues: {
       email: '',
       password: '',
@@ -77,6 +82,14 @@ export default function LoginPage() {
           rememberMe: data.rememberMe,
         }),
       });
+
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response from login API:', text.substring(0, 500));
+        throw new Error('Server error: Invalid response format. Please try again.');
+      }
 
       const responseData = await response.json();
 
@@ -203,7 +216,8 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 {...register('email')}
-                error={errors.email?.message}
+                error={errors.email?.message || undefined}
+                errorText={errors.email?.message || undefined}
                 placeholder="you@example.com"
                 autoComplete="email"
               />
@@ -217,7 +231,8 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
-                  error={errors.password?.message}
+                  error={errors.password?.message || undefined}
+                  errorText={errors.password?.message || undefined}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   className="pr-10"

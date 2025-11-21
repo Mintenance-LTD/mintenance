@@ -13,7 +13,7 @@ interface PageLayoutProps {
   children: React.ReactNode;
   maxWidth?: string;
   sidebarWidth?: string;
-  gap?: string;
+  gap?: string | number;
 }
 
 export function PageLayout({
@@ -89,9 +89,10 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  backUrl?: string;
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, backUrl }: PageHeaderProps) {
   return (
     <div
       style={{
@@ -102,6 +103,21 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
       }}
     >
       <div>
+        {backUrl && (
+          <a
+            href={backUrl}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              color: theme.colors.textSecondary,
+              textDecoration: 'none',
+              marginBottom: theme.spacing[2],
+              fontSize: theme.typography.fontSize.sm,
+            }}
+          >
+            ← Back
+          </a>
+        )}
         <h1
           style={{
             fontSize: theme.typography.fontSize['4xl'],

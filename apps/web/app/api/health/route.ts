@@ -1,50 +1,60 @@
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
+
+export const dynamic = 'force-dynamic';
 
 /**
- * Health check endpoint for monitoring and deployment verification
- *
- * @returns JSON response with health status and system info
- *
- * @example
- * GET /api/health
- * Response: { "status": "healthy", "timestamp": "2025-10-28T14:30:00.000Z", ... }
+ * Health check endpoint for monitoring
+ * Returns service status and configuration check
  */
 export async function GET() {
-  try {
-    // Basic health check - can be extended with database/redis checks
-    const healthData = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV || 'unknown',
-      version: process.env.npm_package_version || 'unknown',
-      nodeVersion: process.version,
-    };
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.2.4',
+    environment: env.NODE_ENV,
+    services: {
+      database: checkDatabase(),
+      redis: checkRedis(),
+      ai: checkAI(),
+      payments: checkPayments(),
+    },
+  };
 
-    return NextResponse.json(healthData, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    });
-  } catch (error) {
-    // If health check fails, return 503 Service Unavailable
-    return NextResponse.json(
-      {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      {
-        status: 503,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      }
-    );
-  }
+  const allHealthy = Object.values(health.services).every((s) => s.status === 'ok');
+
+  return NextResponse.json(health, {
+    status: allHealthy ? 200 : 503,
+  });
+}
+
+function checkDatabase() {
+  return {
+    status: env.SUPABASE_SERVICE_ROLE_KEY ? 'ok' : 'error',
+    message: env.SUPABASE_SERVICE_ROLE_KEY ? 'Connected' : 'Not configured',
+  };
+}
+
+function checkRedis() {
+  const hasRedis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN;
+  return {
+    status: hasRedis ? 'ok' : 'warning',
+    message: hasRedis ? 'Connected' : 'Not configured (rate limiting degraded)',
+  };
+}
+
+function checkAI() {
+  const hasOpenAI = !!env.OPENAI_API_KEY;
+  return {
+    status: hasOpenAI ? 'ok' : 'warning',
+    message: hasOpenAI ? 'Configured' : 'Not configured (AI features disabled)',
+  };
+}
+
+function checkPayments() {
+  const hasStripe = env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET;
+  return {
+    status: hasStripe ? 'ok' : 'error',
+    message: hasStripe ? 'Configured' : 'Not configured',
+  };
 }

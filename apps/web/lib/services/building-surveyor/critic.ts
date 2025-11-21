@@ -299,10 +299,15 @@ export class CriticModule {
   }
 
   /**
-   * Update models from feedback
+   * Update models from feedback using Recursive Least Squares (RLS)
    * 
    * Called after outcome is observed to update θ and φ
-   * using online ridge regression
+   * using Recursive Least Squares (RLS) algorithm
+   * 
+   * RLS Update:
+   * - A_t = A_{t-1} + x_t x_t^T  (covariance update)
+   * - b_t = b_{t-1} + x_t y_t    (target update)
+   * - θ_t = A_t^{-1} b_t          (weight update via Sherman-Morrison)
    */
   static async updateFromFeedback(params: {
     context: number[];
@@ -314,8 +319,8 @@ export class CriticModule {
       const models = await this.loadModels();
       const normalizedContext = this.normalizeContext(params.context);
 
-      // Update reward model (θ) using ridge regression
-      models.theta = this.updateRidgeRegression(
+      // Update reward model (θ) using RLS
+      models.theta = this.updateRLS(
         models.theta,
         models.A,
         normalizedContext,
@@ -323,9 +328,9 @@ export class CriticModule {
         this.LAMBDA
       );
 
-      // Update safety model (φ) using ridge regression
+      // Update safety model (φ) using RLS
       const safetyLabel = params.safetyViolation ? 1.0 : 0.0;
-      models.phi = this.updateRidgeRegression(
+      models.phi = this.updateRLS(
         models.phi,
         models.B,
         normalizedContext,
@@ -333,9 +338,9 @@ export class CriticModule {
         this.LAMBDA
       );
 
-      // Update covariance matrices (Sherman-Morrison formula)
-      models.A = this.updateCovariance(models.A, normalizedContext, this.LAMBDA);
-      models.B = this.updateCovariance(models.B, normalizedContext, this.LAMBDA);
+      // Update covariance matrices (Sherman-Morrison formula for RLS)
+      models.A = this.updateCovarianceRLS(models.A, normalizedContext, this.LAMBDA);
+      models.B = this.updateCovarianceRLS(models.B, normalizedContext, this.LAMBDA);
 
       // Increment observation count
       models.n += 1;
@@ -360,50 +365,68 @@ export class CriticModule {
   }
 
   /**
-   * Update ridge regression weights
+   * Update weights using Recursive Least Squares (RLS)
+   * 
+   * RLS algorithm:
+   * 1. Update covariance: A_t = A_{t-1} + x_t x_t^T + λI (regularization)
+   * 2. Update target vector: b_t = b_{t-1} + x_t y_t
+   * 3. Solve for weights: θ_t = A_t^{-1} b_t
+   * 
+   * Using Sherman-Morrison formula for efficient A^{-1} update:
+   * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
    */
-  private static updateRidgeRegression(
+  private static updateRLS(
     weights: number[],
     covariance: number[][],
     context: number[],
     label: number,
     lambda: number
   ): number[] {
-    // Online ridge regression update
-    // θ_new = θ_old + A^{-1} x (y - θ^T x) / (1 + x^T A^{-1} x)
+    // RLS update using Sherman-Morrison formula
+    // θ_t = θ_{t-1} + (A_t^{-1} x_t) * (y_t - θ_{t-1}^T x_t)
     
     const prediction = this.dotProduct(weights, context);
     const error = label - prediction;
     
-    // Compute A^{-1} x
+    // Compute A^{-1} x (using current covariance)
     const invAx = this.matrixVectorProduct(this.inverseMatrix(covariance), context);
     
     // Compute x^T A^{-1} x
     const xInvAx = this.dotProduct(context, invAx);
     
-    // Update weights
+    // RLS weight update: θ_t = θ_{t-1} + (A^{-1} x) * error / (1 + x^T A^{-1} x)
     const stepSize = error / (1 + xInvAx);
     return weights.map((w, i) => w + invAx[i] * stepSize);
   }
 
   /**
-   * Update covariance matrix using Sherman-Morrison formula
+   * Update covariance matrix using Sherman-Morrison formula for RLS
+   * 
+   * RLS covariance update:
+   * A_t = A_{t-1} + x_t x_t^T + λI (regularization)
+   * 
+   * For efficient A^{-1} update using Sherman-Morrison:
+   * If A_t = A_{t-1} + x x^T, then:
+   * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
+   * 
+   * But we update A directly (not A^{-1}), so:
+   * A_t = A_{t-1} + x x^T + λI (where λ is small regularization)
    */
-  private static updateCovariance(
+  private static updateCovarianceRLS(
     A: number[][],
     x: number[],
     lambda: number
   ): number[][] {
-    // A_new = A_old - (A_old x x^T A_old) / (1 + x^T A_old x)
-    const Ax = this.matrixVectorProduct(A, x);
-    const xAx = this.dotProduct(x, Ax);
-    const denominator = 1 + xAx;
-
+    // RLS covariance update: A_t = A_{t-1} + x x^T + λI
+    // Note: This is the direct update (for covariance matrix)
+    // The inverse is updated separately using Sherman-Morrison when needed
+    
     const newA: number[][] = [];
     for (let i = 0; i < A.length; i++) {
       newA[i] = [];
       for (let j = 0; j < A[i].length; j++) {
-        newA[i][j] = A[i][j] - (Ax[i] * Ax[j]) / denominator;
+        // A_t = A_{t-1} + x x^T + λI
+        newA[i][j] = A[i][j] + x[i] * x[j] + (i === j ? lambda : 0);
       }
     }
 

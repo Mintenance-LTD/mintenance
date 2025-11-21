@@ -49,7 +49,55 @@ const envSchema = z.object({
     .regex(/^pk_(test|live)_/, 'Must start with pk_test_ or pk_live_')
     .describe('Stripe publishable key - client-side'),
 
-  // Redis Configuration (OPTIONAL - has fallback)
+  // AI Service Configuration (REQUIRED for AI features)
+  OPENAI_API_KEY: z
+    .string()
+    .min(1, 'OPENAI_API_KEY is required for AI assessment features')
+    .refine(
+      (val) => val.startsWith('sk-') || val.startsWith('sk-proj-'),
+      'OPENAI_API_KEY must start with sk- or sk-proj-'
+    )
+    .optional()
+    .describe('OpenAI API key for GPT-4 Vision and embeddings (server-side only)'),
+
+  // Roboflow Configuration (OPTIONAL but recommended)
+  ROBOFLOW_API_KEY: z
+    .string()
+    .optional()
+    .describe('Roboflow API key for building damage detection'),
+
+  ROBOFLOW_MODEL_ID: z
+    .string()
+    .default('building-defect-detection-7-ks0im')
+    .describe('Roboflow model ID'),
+
+  ROBOFLOW_MODEL_VERSION: z
+    .string()
+    .default('1')
+    .describe('Roboflow model version'),
+
+  ROBOFLOW_TIMEOUT_MS: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive())
+    .default('10000')
+    .describe('Roboflow API timeout in milliseconds'),
+
+  // Google Maps (REQUIRED for location features)
+  GOOGLE_MAPS_API_KEY: z
+    .string()
+    .optional()
+    .describe('Google Maps API key for geocoding and map display'),
+
+  // AWS Configuration (OPTIONAL)
+  AWS_ACCESS_KEY_ID: z.string().optional().describe('AWS access key for Rekognition'),
+  AWS_SECRET_ACCESS_KEY: z.string().optional().describe('AWS secret key'),
+  AWS_REGION: z.string().default('us-east-1').optional().describe('AWS region'),
+
+  // Google Cloud (OPTIONAL)
+  GOOGLE_CLOUD_API_KEY: z.string().optional().describe('Google Cloud API key for Vision API'),
+
+  // Redis Configuration (REQUIRED IN PRODUCTION)
   UPSTASH_REDIS_REST_URL: z
     .string()
     .url()
@@ -97,7 +145,21 @@ function validateEnv(): Env {
 
       // Ensure Redis is configured in production
       if (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN) {
-        logger.warn('Redis not configured - rate limiting will be degraded', {
+        logger.error('Redis is REQUIRED in production for rate limiting', {
+          service: 'env-validation',
+        });
+        throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production');
+      }
+
+      // Warn if AI features are disabled in production
+      if (!parsed.OPENAI_API_KEY) {
+        logger.warn('AI assessment features will be disabled - OPENAI_API_KEY not configured', {
+          service: 'env-validation',
+        });
+      }
+
+      if (!parsed.GOOGLE_MAPS_API_KEY) {
+        logger.warn('Google Maps features may be limited - GOOGLE_MAPS_API_KEY not configured', {
           service: 'env-validation',
         });
       }
@@ -129,6 +191,15 @@ function validateEnv(): Env {
         '  - STRIPE_SECRET_KEY (must start with sk_test_ or sk_live_)',
         '  - STRIPE_WEBHOOK_SECRET (must start with whsec_)',
         '  - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (must start with pk_test_ or pk_live_)',
+        '',
+        'Production-only required variables:',
+        '  - UPSTASH_REDIS_REST_URL',
+        '  - UPSTASH_REDIS_REST_TOKEN',
+        '',
+        'Recommended variables:',
+        '  - OPENAI_API_KEY (for AI features)',
+        '  - ROBOFLOW_API_KEY (for damage detection)',
+        '  - GOOGLE_MAPS_API_KEY (for location services)',
         ''
       ].join('\n');
 

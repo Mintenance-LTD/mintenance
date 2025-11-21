@@ -30,7 +30,9 @@ interface UseCSRFReturn {
 
 export function useCSRF(): UseCSRFReturn {
   const [csrfToken, setCSRFToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Initialize loading as true to prevent hydration mismatch
+  // The token will be fetched on mount, so we start in loading state
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchToken = async () => {

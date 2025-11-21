@@ -72,7 +72,7 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   fileText: 'FileText',
   fileCheck: 'FileCheck',
   collection: 'Grid3x3',
-  idCard: 'IdCard',
+  idCard: 'Contact',
   video: 'Video',
   megaphone: 'Megaphone',
   activity: 'Activity',
@@ -154,12 +154,12 @@ const CUSTOM_ICONS: Readonly<Record<string, JSX.Element>> = {
 function getLucideIcon(iconName: string): LucideIcon | null {
   // Try exact match first (for camelCase like "starFilled")
   let mappedName = ICON_NAME_MAP[iconName];
-  
+
   // If not found, try lowercase variant
   if (!mappedName) {
     mappedName = ICON_NAME_MAP[iconName.toLowerCase()];
   }
-  
+
   if (!mappedName) {
     // Log missing icon in development to help debug
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -172,11 +172,13 @@ function getLucideIcon(iconName: string): LucideIcon | null {
   if (!IconComponent) {
     // Log missing Lucide icon in development
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-      console.warn(`Lucide icon "${mappedName}" not found in lucide-react`);
+      console.warn(`Lucide icon "${mappedName}" not found in lucide-react`, {
+        availableIcons: Object.keys(LucideIcons).slice(0, 10)
+      });
     }
     return null;
   }
-  
+
   return typeof IconComponent === 'function' ? (IconComponent as LucideIcon) : null;
 }
 
@@ -225,9 +227,9 @@ export function Icon({
   // Handle custom icons
   if (iconData.type === 'custom') {
     return (
-      <span 
+      <span
         key={iconData.key}
-        suppressHydrationWarning 
+        suppressHydrationWarning
         style={{ display: 'contents' }}
       >
         <svg
@@ -255,20 +257,20 @@ export function Icon({
 
   // Handle Lucide icons (including fallback)
   const IconComponent = iconData.icon as LucideIcon;
-  const isFilled = 
-    normalizedName === 'starfilled' || 
+  const isFilled =
+    normalizedName === 'starfilled' ||
     normalizedName === 'star-filled' ||
     trimmedName === 'starFilled';
-  const isBookmarkOutline = 
-    normalizedName === 'bookmarkoutline' || 
+  const isBookmarkOutline =
+    normalizedName === 'bookmarkoutline' ||
     normalizedName === 'bookmark-outline' ||
     trimmedName === 'bookmarkOutline';
 
   // Always wrap Lucide icons in a span with suppressHydrationWarning for consistent rendering
   return (
-    <span 
+    <span
       key={iconData.key}
-      suppressHydrationWarning 
+      suppressHydrationWarning
       style={{ display: 'contents' }}
     >
       <IconComponent

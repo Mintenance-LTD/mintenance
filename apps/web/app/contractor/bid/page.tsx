@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { MetricCard } from '@/components/ui/figma';
 import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
+import { logger } from '@/lib/logger';
 
 interface Job {
   id: string;
@@ -83,7 +84,7 @@ export default function ContractorBidsPage() {
           setAllBids([]);
         }
       } catch (error) {
-        console.error('Error loading bids:', error);
+        logger.error('Error loading bids', error);
         setAllBids([]);
       }
     };
@@ -95,15 +96,15 @@ export default function ContractorBidsPage() {
         if (response.ok) {
           const data = await response.json();
           const viewedIds = Array.isArray(data.jobIds) ? data.jobIds : [];
-          console.log('[ContractorBidsPage] Loaded viewed job IDs:', viewedIds);
+          logger.debug('[ContractorBidsPage] Loaded viewed job IDs', { viewedIds });
           setViewedJobIds(new Set(viewedIds));
         } else {
           const errorText = await response.text();
-          console.error('Error loading viewed jobs:', response.status, errorText);
+          logger.error('Error loading viewed jobs', { status: response.status, errorText });
           setViewedJobIds(new Set());
         }
       } catch (error) {
-        console.error('Error loading viewed jobs:', error);
+        logger.error('Error loading viewed jobs', error);
         setViewedJobIds(new Set());
       }
     };
@@ -131,7 +132,7 @@ export default function ContractorBidsPage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        
+
         if (filter === 'saved') {
           // Fetch contractor's bids with job details
           const response = await fetch('/api/contractor/bids');
@@ -149,22 +150,22 @@ export default function ContractorBidsPage() {
           // Fetch available jobs
           const response = await fetch(`/api/jobs?limit=20&status=posted`);
           let jobsData: Job[] = [];
-          
+
           if (response.ok) {
             const data = await response.json();
             // Ensure we always set an array, and filter out any invalid job objects
-            jobsData = Array.isArray(data.jobs) 
+            jobsData = Array.isArray(data.jobs)
               ? data.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
               : [];
           }
-          
+
           // Also fetch viewed jobs that might not be in "posted" status
           // This ensures viewed jobs appear even if their status changed
           const viewedJobsResponse = await fetch('/api/jobs/viewed');
           if (viewedJobsResponse.ok) {
             const viewedData = await viewedJobsResponse.json();
             const viewedJobIds = Array.isArray(viewedData.jobIds) ? viewedData.jobIds : [];
-            
+
             if (viewedJobIds.length > 0) {
               // Fetch each viewed job by ID (they might have different statuses)
               // Note: This will only fetch jobs the contractor is authorized to view
@@ -188,14 +189,14 @@ export default function ContractorBidsPage() {
                   }
                   return null;
                 } catch (error) {
-                  console.warn(`Failed to fetch viewed job ${jobId}:`, error);
+                  logger.warn(`Failed to fetch viewed job ${jobId}`, error);
                   return null;
                 }
               });
-              
+
               const viewedJobs = (await Promise.all(viewedJobsPromises))
                 .filter((job): job is Job => job !== null && typeof job === 'object' && !!job.id);
-              
+
               // Merge viewed jobs with posted jobs, avoiding duplicates
               const existingJobIds = new Set(jobsData.map(j => j.id));
               viewedJobs.forEach(viewedJob => {
@@ -203,23 +204,23 @@ export default function ContractorBidsPage() {
                   jobsData.push(viewedJob);
                 }
               });
-              
-              console.log(`[ContractorBidsPage] Merged ${viewedJobs.length} viewed jobs into jobs list`);
+
+              logger.info(`[ContractorBidsPage] Merged ${viewedJobs.length} viewed jobs into jobs list`);
             }
           }
-          
+
           setJobs(jobsData);
-          
+
           // Fetch assigned jobs with accepted contracts for "Recommended" tab
           const assignedResponse = await fetch(`/api/jobs?status[]=assigned&limit=50`);
           let startingJobsData: Job[] = [];
-          
+
           if (assignedResponse.ok) {
             const assignedData = await assignedResponse.json();
-            const assignedJobs = Array.isArray(assignedData.jobs) 
+            const assignedJobs = Array.isArray(assignedData.jobs)
               ? assignedData.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
               : [];
-            
+
             // Filter to only include jobs with accepted contracts
             const jobsWithContracts = await Promise.all(
               assignedJobs.map(async (job: any) => {
@@ -242,15 +243,15 @@ export default function ContractorBidsPage() {
                 }
               })
             );
-            
+
             startingJobsData = jobsWithContracts.filter((job): job is Job => job !== null);
           }
-          
+
           setStartingJobs(startingJobsData);
           setBids([]); // Clear bids when showing jobs
         }
       } catch (error) {
-        console.error('Error loading data:', error);
+        logger.error('Error loading data', error);
         setJobs([]); // Ensure we always have an array, even on error
         setBids([]);
         setStartingJobs([]);
@@ -268,23 +269,23 @@ export default function ContractorBidsPage() {
       const safeJobs = Array.isArray(jobs) ? jobs : [];
       const safeBids = Array.isArray(bids) ? bids : [];
       const safeAllBids = Array.isArray(allBids) ? allBids : [];
-      
+
       // Double-check all are arrays (defensive programming)
       if (!Array.isArray(safeJobs) || !Array.isArray(safeBids) || !Array.isArray(safeAllBids)) {
-        console.warn('Invalid input arrays in filteredJobs useMemo', { 
-          jobs: typeof jobs, 
-          bids: typeof bids, 
-          allBids: typeof allBids 
+        logger.warn('Invalid input arrays in filteredJobs useMemo', {
+          jobs: typeof jobs,
+          bids: typeof bids,
+          allBids: typeof allBids
         });
         return [];
       }
-      
+
       if (filter === 'saved') {
         // Transform bids into jobs for display
         if (safeBids.length === 0) {
           return [];
         }
-        
+
         const result = safeBids
           .filter((bid) => {
             if (!bid || typeof bid !== 'object') return false;
@@ -314,15 +315,15 @@ export default function ContractorBidsPage() {
             const bDate = b.bidUpdatedAt || b.bidCreatedAt || '';
             return new Date(bDate).getTime() - new Date(aDate).getTime();
           });
-        
+
         return Array.isArray(result) ? result : [];
       }
-      
+
       // Ensure jobs is always an array - defensive check
       if (safeJobs.length === 0) {
         return [];
       }
-      
+
       // Create a set of job IDs that have been bid on
       const bidJobIds = new Set(
         safeAllBids
@@ -334,46 +335,46 @@ export default function ContractorBidsPage() {
           .map((bid) => bid.jobs!.id)
           .filter((id): id is string => typeof id === 'string' && id.length > 0)
       );
-      
+
       // For "available" tab: show jobs that haven't been bid on OR jobs that have been viewed
       // This ensures viewed jobs appear even if they have bids
       const safeViewedJobIds = viewedJobIds instanceof Set ? viewedJobIds : new Set<string>();
       const availableJobs = safeJobs.filter((job) => {
         if (!job || typeof job !== 'object') return false;
         if (!job.id || typeof job.id !== 'string') return false;
-        
+
         const hasBid = bidJobIds.has(job.id);
         const isViewed = safeViewedJobIds.has(job.id);
         const shouldInclude = !hasBid || isViewed;
-        
+
         // Debug logging
         if (process.env.NODE_ENV === 'development' && isViewed) {
-          console.log(`[Filter] Job ${job.id} (${job.title}): hasBid=${hasBid}, isViewed=${isViewed}, include=${shouldInclude}`);
+          logger.debug(`[Filter] Job ${job.id} (${job.title})`, { hasBid, isViewed, include: shouldInclude });
         }
-        
+
         // Include if: no bid OR contractor has viewed it
         return shouldInclude;
       });
-      
+
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Filter] Available jobs: ${availableJobs.length} out of ${safeJobs.length} total jobs`, {
+        logger.debug(`[Filter] Available jobs: ${availableJobs.length} out of ${safeJobs.length} total jobs`, {
           totalJobs: safeJobs.length,
           jobsWithBids: Array.from(bidJobIds).length,
           viewedJobs: safeViewedJobIds.size,
           availableJobs: availableJobs.length,
         });
       }
-      
+
       if (filter === 'available') {
         return Array.isArray(availableJobs) ? availableJobs : [];
       }
-      
+
       if (filter === 'recommended') {
         // "Recommended" should show:
         // 1. Jobs where contractor has made a bid
         // 2. Jobs with accepted contracts (starting jobs)
         const recommendedJobs: Job[] = [];
-        
+
         // Add jobs with bids (convert bids to job format)
         safeAllBids.forEach((bid) => {
           if (bid?.jobs && typeof bid.jobs === 'object' && bid.jobs.id) {
@@ -393,7 +394,7 @@ export default function ContractorBidsPage() {
             });
           }
         });
-        
+
         // Add starting jobs (assigned jobs with accepted contracts)
         const safeStartingJobs = Array.isArray(startingJobs) ? startingJobs : [];
         safeStartingJobs.forEach((job) => {
@@ -405,20 +406,20 @@ export default function ContractorBidsPage() {
             });
           }
         });
-        
+
         // Sort by most recent (bids by updated_at, starting jobs by job updated_at)
         recommendedJobs.sort((a, b) => {
           const aDate = a.bidCreatedAt || a.createdAt || '';
           const bDate = b.bidCreatedAt || b.createdAt || '';
           return new Date(bDate).getTime() - new Date(aDate).getTime();
         });
-        
+
         return recommendedJobs;
       }
-      
+
       return [];
     } catch (error) {
-      console.error('Error computing filteredJobs:', error);
+      logger.error('Error computing filteredJobs', error);
       return [];
     }
   }, [jobs, bids, allBids, startingJobs, filter, viewedJobIds]);
@@ -427,21 +428,21 @@ export default function ContractorBidsPage() {
   const safeJobsArray = Array.isArray(jobs) ? jobs : [];
   const safeBidsArray = Array.isArray(bids) ? bids : [];
   const safeAllBidsArray = Array.isArray(allBids) ? allBids : [];
-  
+
   // Defensive check: ensure all arrays are valid before accessing length
   const jobsLength = Array.isArray(safeJobsArray) ? safeJobsArray.length : 0;
   const allBidsLength = Array.isArray(safeAllBidsArray) ? safeAllBidsArray.length : 0;
-  
+
   // Ensure all values are numbers before creating summaryCards
   const safeJobsLength = typeof jobsLength === 'number' ? jobsLength : 0;
   const safeAllBidsLength = typeof allBidsLength === 'number' ? allBidsLength : 0;
-  
+
   const summaryCards = [
     { label: 'Jobs available', value: safeJobsLength },
     { label: 'Recommended for you', value: Math.min(5, safeJobsLength) },
     { label: 'Saved bids', value: safeAllBidsLength }, // Use allBids instead of bids to show count regardless of filter
   ];
-  
+
   // Ensure summaryCards is always an array
   const safeSummaryCards = Array.isArray(summaryCards) ? summaryCards : [];
 
@@ -455,7 +456,7 @@ export default function ContractorBidsPage() {
 
   // Safety check for theme
   if (!theme || !theme.colors || !theme.spacing || !theme.typography) {
-    console.error('Theme is not properly initialized');
+    logger.error('Theme is not properly initialized');
     return <div>Loading...</div>;
   }
 
@@ -486,7 +487,7 @@ export default function ContractorBidsPage() {
           const variant = gradientVariants[index % gradientVariants.length] || 'primary';
           const icons = ['briefcase', 'star', 'bookmark'];
           const iconColors = [theme.colors.primary, theme.colors.warning, theme.colors.success];
-          
+
           return (
             <div key={card.label} className="col-span-12 sm:col-span-6 xl:col-span-4">
               <MetricCard
@@ -553,281 +554,281 @@ export default function ContractorBidsPage() {
             }
             const safeFilteredJobs = Array.isArray(filteredJobs) ? filteredJobs : [];
             // Double-check array validity and length accessibility
-            if (!Array.isArray(safeFilteredJobs) || 
-                safeFilteredJobs === null || 
-                safeFilteredJobs === undefined ||
-                typeof safeFilteredJobs.length !== 'number' ||
-                safeFilteredJobs.length === 0) {
+            if (!Array.isArray(safeFilteredJobs) ||
+              safeFilteredJobs === null ||
+              safeFilteredJobs === undefined ||
+              typeof safeFilteredJobs.length !== 'number' ||
+              safeFilteredJobs.length === 0) {
               return [];
             }
-            
+
             // First filter out any undefined/null values, then validate jobs
             return safeFilteredJobs
               .filter((job) => {
                 // First check if job exists
                 if (!job) return false;
-                
+
                 // Strict filtering - ensure job is a valid object with required properties
                 try {
-                  return typeof job === 'object' && 
-                         job !== null &&
-                         'id' in job &&
-                         job.id !== null &&
-                         job.id !== undefined &&
-                         typeof job.id === 'string' &&
-                         job.id.length > 0;
+                  return typeof job === 'object' &&
+                    job !== null &&
+                    'id' in job &&
+                    job.id !== null &&
+                    job.id !== undefined &&
+                    typeof job.id === 'string' &&
+                    job.id.length > 0;
                 } catch (error) {
-                  console.warn('Error filtering job:', error, job);
+                  logger.warn('Error filtering job', { error, job });
                   return false;
                 }
               })
               .map((job) => {
-              // Double-check - this should never happen after filtering, but be defensive
-              try {
-                if (!job || typeof job !== 'object' || job === null || !('id' in job) || !job.id || typeof job.id !== 'string' || job.id.length === 0) {
-                  console.warn('Invalid job in map:', job);
+                // Double-check - this should never happen after filtering, but be defensive
+                try {
+                  if (!job || typeof job !== 'object' || job === null || !('id' in job) || !job.id || typeof job.id !== 'string' || job.id.length === 0) {
+                    logger.warn('Invalid job in map', { job });
+                    return null;
+                  }
+                } catch (error) {
+                  logger.warn('Error validating job in map', { error, job });
                   return null;
                 }
-              } catch (error) {
-                console.warn('Error validating job in map:', error, job);
-                return null;
-              }
-              
-              try {
-                // Safely normalize photos before spreading
-                let normalizedPhotos: string[] = [];
-                if (Array.isArray(job.photos)) {
-                  normalizedPhotos = job.photos;
-                } else if (job.photos && typeof job.photos === 'object') {
-                  // If it's an object but not an array, check if it has array-like properties
-                  // Otherwise default to empty array
-                  normalizedPhotos = [];
-                } else if (job.photos && typeof job.photos === 'string') {
-                  // If it's a single string, wrap it in an array
-                  normalizedPhotos = [job.photos];
-                } else {
-                  // Default to empty array for undefined, null, or other types
-                  normalizedPhotos = [];
-                }
-                
-                // Ensure photos is always an array or undefined
-                const safeJob: any = {
-                  id: String(job.id), // Ensure id is always a string
-                  photos: normalizedPhotos,
-                  title: typeof job.title === 'string' ? job.title : 'Untitled Job',
-                  description: typeof job.description === 'string' ? job.description : '',
-                  location: typeof job.location === 'string' ? job.location : undefined,
-                  category: typeof job.category === 'string' ? job.category : undefined,
-                  budget: typeof job.budget === 'string' || typeof job.budget === 'number' ? job.budget : undefined,
-                  status: typeof job.status === 'string' ? job.status : 'posted',
-                  createdAt: typeof job.createdAt === 'string' ? job.createdAt : new Date().toISOString(),
-                  // Only copy safe properties, avoid spreading potentially problematic properties
-                  ...('postedBy' in job && job.postedBy && typeof job.postedBy === 'object' ? { postedBy: job.postedBy } : {}),
-                };
-                
-                // Preserve bid-related properties if they exist (safely)
-                if (job && typeof job === 'object' && 'hasBid' in job) {
-                  safeJob.hasBid = Boolean(job.hasBid);
-                }
-                if (job && typeof job === 'object' && 'bidInfo' in job && job.bidInfo && typeof job.bidInfo === 'object') {
-                  const bidInfo = job.bidInfo as BidWithJob;
-                  if (bidInfo.amount !== undefined) safeJob.bidAmount = bidInfo.amount;
-                  if (bidInfo.status) safeJob.bidStatus = bidInfo.status;
-                  if (bidInfo.created_at) safeJob.bidCreatedAt = bidInfo.created_at;
-                  if (bidInfo.updated_at) safeJob.bidUpdatedAt = bidInfo.updated_at;
-                }
-                
-                // Final safety check - ensure photos is always an array
-                if (!Array.isArray(safeJob.photos)) {
-                  safeJob.photos = [];
-                }
-                
-                // Ensure photos array is valid
-                if (safeJob.photos === null || safeJob.photos === undefined) {
-                  safeJob.photos = [];
-                }
-                
-                // Final validation before rendering
-                if (!safeJob || !safeJob.id || typeof safeJob.id !== 'string' || (safeJob.id && safeJob.id.length === 0)) {
-                  console.warn('Invalid safeJob before render:', safeJob);
-                  return null;
-                }
-                
-                // Ensure description is always a string
-                if (typeof safeJob.description !== 'string') {
-                  safeJob.description = '';
-                }
-                
-                // Double-check photos before rendering
-                if (!safeJob.photos || !Array.isArray(safeJob.photos)) {
-                  safeJob.photos = [];
-                }
-                
-                         return (
-                           <article
-                             key={safeJob.id}
-                             onClick={() => handleCardClick(safeJob.id)}
-                             className="col-span-12 md:col-span-6 xl:col-span-4 group border border-gray-200 bg-white rounded-2xl p-6 flex flex-col gap-4 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden"
-                           >
-              {/* Subtle top accent */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-              
-              {/* Job Image */}
-              {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 0 && safeJob.photos[0] ? (
-                <div style={{ 
-                  position: 'relative', 
-                  width: '100%', 
-                  height: '100px', 
-                  borderRadius: theme.borderRadius.md, 
-                  overflow: 'hidden', 
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  background: `linear-gradient(135deg, ${theme.colors.primary}10 0%, ${theme.colors.primary}05 100%)`,
-                }}>
-                  <Image
-                    src={safeJob.photos[0] || ''}
-                    alt={safeJob.title || 'Job image'}
-                    fill
-                    style={{ objectFit: 'cover', transition: 'transform 0.3s ease' }}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 100%)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 1 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: theme.spacing[2],
-                        right: theme.spacing[2],
-                        background: 'rgba(0, 0, 0, 0.75)',
-                        backdropFilter: 'blur(8px)',
-                        color: 'white',
-                        padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                        borderRadius: theme.borderRadius.md,
-                        fontSize: theme.typography.fontSize.xs,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[1],
-                        boxShadow: theme.shadows.md,
-                      }}
+
+                try {
+                  // Safely normalize photos before spreading
+                  let normalizedPhotos: string[] = [];
+                  if (Array.isArray(job.photos)) {
+                    normalizedPhotos = job.photos;
+                  } else if (job.photos && typeof job.photos === 'object') {
+                    // If it's an object but not an array, check if it has array-like properties
+                    // Otherwise default to empty array
+                    normalizedPhotos = [];
+                  } else if (job.photos && typeof job.photos === 'string') {
+                    // If it's a single string, wrap it in an array
+                    normalizedPhotos = [job.photos];
+                  } else {
+                    // Default to empty array for undefined, null, or other types
+                    normalizedPhotos = [];
+                  }
+
+                  // Ensure photos is always an array or undefined
+                  const safeJob: any = {
+                    id: String(job.id), // Ensure id is always a string
+                    photos: normalizedPhotos,
+                    title: typeof job.title === 'string' ? job.title : 'Untitled Job',
+                    description: typeof job.description === 'string' ? job.description : '',
+                    location: typeof job.location === 'string' ? job.location : undefined,
+                    category: typeof job.category === 'string' ? job.category : undefined,
+                    budget: typeof job.budget === 'string' || typeof job.budget === 'number' ? job.budget : undefined,
+                    status: typeof job.status === 'string' ? job.status : 'posted',
+                    createdAt: typeof job.createdAt === 'string' ? job.createdAt : new Date().toISOString(),
+                    // Only copy safe properties, avoid spreading potentially problematic properties
+                    ...('postedBy' in job && job.postedBy && typeof job.postedBy === 'object' ? { postedBy: job.postedBy } : {}),
+                  };
+
+                  // Preserve bid-related properties if they exist (safely)
+                  if (job && typeof job === 'object' && 'hasBid' in job) {
+                    safeJob.hasBid = Boolean(job.hasBid);
+                  }
+                  if (job && typeof job === 'object' && 'bidInfo' in job && job.bidInfo && typeof job.bidInfo === 'object') {
+                    const bidInfo = job.bidInfo as BidWithJob;
+                    if (bidInfo.amount !== undefined) safeJob.bidAmount = bidInfo.amount;
+                    if (bidInfo.status) safeJob.bidStatus = bidInfo.status;
+                    if (bidInfo.created_at) safeJob.bidCreatedAt = bidInfo.created_at;
+                    if (bidInfo.updated_at) safeJob.bidUpdatedAt = bidInfo.updated_at;
+                  }
+
+                  // Final safety check - ensure photos is always an array
+                  if (!Array.isArray(safeJob.photos)) {
+                    safeJob.photos = [];
+                  }
+
+                  // Ensure photos array is valid
+                  if (safeJob.photos === null || safeJob.photos === undefined) {
+                    safeJob.photos = [];
+                  }
+
+                  // Final validation before rendering
+                  if (!safeJob || !safeJob.id || typeof safeJob.id !== 'string' || (safeJob.id && safeJob.id.length === 0)) {
+                    logger.warn('Invalid safeJob before render', { safeJob });
+                    return null;
+                  }
+
+                  // Ensure description is always a string
+                  if (typeof safeJob.description !== 'string') {
+                    safeJob.description = '';
+                  }
+
+                  // Double-check photos before rendering
+                  if (!safeJob.photos || !Array.isArray(safeJob.photos)) {
+                    safeJob.photos = [];
+                  }
+
+                  return (
+                    <article
+                      key={safeJob.id}
+                      onClick={() => handleCardClick(safeJob.id)}
+                      className="col-span-12 md:col-span-6 xl:col-span-4 group border border-gray-200 bg-white rounded-2xl p-6 flex flex-col gap-4 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden"
                     >
-                      <ImageIcon className="h-3 w-3 text-white" />
-                      {safeJob.photos && Array.isArray(safeJob.photos) ? safeJob.photos.length : 0}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100px',
-                    borderRadius: theme.borderRadius.md,
-                    background: `linear-gradient(135deg, ${theme.colors.primary}08 0%, ${theme.colors.primary}03 100%)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: `2px dashed ${theme.colors.border}`,
-                  }}
-                >
-                  <div style={{ textAlign: 'center', color: theme.colors.textSecondary }}>
-                    <ImageIcon className="h-5 w-5" style={{ color: theme.colors.textTertiary }} />
-                    <p style={{ margin: `${theme.spacing[1]} 0 0 0`, fontSize: theme.typography.fontSize.xs }}>
-                      No images available
-                    </p>
-                  </div>
-                </div>
-              )}
+                      {/* Subtle top accent */}
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
 
-              <header className="flex justify-between gap-3 items-start">
-                <div className="flex flex-col gap-2 flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
-                      {safeJob.title}
-                    </h2>
-                    {'hasBid' in safeJob && safeJob.hasBid && (
-                      <span
-                        className="px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-[560] inline-flex items-center gap-1.5"
+                      {/* Job Image */}
+                      {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 0 && safeJob.photos[0] ? (
+                        <div style={{
+                          position: 'relative',
+                          width: '100%',
+                          height: '100px',
+                          borderRadius: theme.borderRadius.md,
+                          overflow: 'hidden',
+                          backgroundColor: theme.colors.backgroundSecondary,
+                          background: `linear-gradient(135deg, ${theme.colors.primary}10 0%, ${theme.colors.primary}05 100%)`,
+                        }}>
+                          <Image
+                            src={safeJob.photos[0] || ''}
+                            alt={safeJob.title || 'Job image'}
+                            fill
+                            style={{ objectFit: 'cover', transition: 'transform 0.3s ease' }}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 100%)',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                          {safeJob.photos && Array.isArray(safeJob.photos) && safeJob.photos.length > 1 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: theme.spacing[2],
+                                right: theme.spacing[2],
+                                background: 'rgba(0, 0, 0, 0.75)',
+                                backdropFilter: 'blur(8px)',
+                                color: 'white',
+                                padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                                borderRadius: theme.borderRadius.md,
+                                fontSize: theme.typography.fontSize.xs,
+                                fontWeight: theme.typography.fontWeight.semibold,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: theme.spacing[1],
+                                boxShadow: theme.shadows.md,
+                              }}
+                            >
+                              <ImageIcon className="h-3 w-3 text-white" />
+                              {safeJob.photos && Array.isArray(safeJob.photos) ? safeJob.photos.length : 0}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100px',
+                            borderRadius: theme.borderRadius.md,
+                            background: `linear-gradient(135deg, ${theme.colors.primary}08 0%, ${theme.colors.primary}03 100%)`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: `2px dashed ${theme.colors.border}`,
+                          }}
+                        >
+                          <div style={{ textAlign: 'center', color: theme.colors.textSecondary }}>
+                            <ImageIcon className="h-5 w-5" style={{ color: theme.colors.textTertiary }} />
+                            <p style={{ margin: `${theme.spacing[1]} 0 0 0`, fontSize: theme.typography.fontSize.xs }}>
+                              No images available
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <header className="flex justify-between gap-3 items-start">
+                        <div className="flex flex-col gap-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
+                              {safeJob.title}
+                            </h2>
+                            {'hasBid' in safeJob && safeJob.hasBid && (
+                              <span
+                                className="px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-[560] inline-flex items-center gap-1.5"
+                              >
+                                <CheckCircle2 className="h-3 w-3" style={{ color: theme.colors.success }} />
+                                Bid Submitted
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs font-[460] text-gray-600">
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
+                              {safeJob.location || 'Location not specified'}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <Briefcase className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
+                              {safeJob.category || 'General'}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 font-[560] text-gray-900">
+                              <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.success }} />
+                              {safeJob.budget || 'Budget TBD'}
+                            </span>
+                            {'bidAmount' in safeJob && safeJob.bidAmount && (
+                              <span className="inline-flex items-center gap-1.5 font-[560] text-primary-600">
+                                <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.primary }} />
+                                Your bid: £{typeof safeJob.bidAmount === 'number' ? safeJob.bidAmount.toFixed(2) : safeJob.bidAmount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-[560] text-gray-700 whitespace-nowrap"
+                        >
+                          {safeJob.status || 'Open'}
+                        </span>
+                      </header>
+
+                      <p className="text-sm font-[460] text-gray-700 leading-relaxed m-0 line-clamp-2">
+                        {safeJob.description && typeof safeJob.description === 'string' && safeJob.description.length > 0
+                          ? (safeJob.description.length > 120
+                            ? `${safeJob.description.substring(0, 120)}...`
+                            : safeJob.description)
+                          : 'No description provided'}
+                      </p>
+
+                      <footer
+                        className="flex justify-between items-center border-t border-gray-100 pt-4 text-xs font-[460] text-gray-600"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click when clicking footer
+                        }}
                       >
-                        <CheckCircle2 className="h-3 w-3" style={{ color: theme.colors.success }} />
-                        Bid Submitted
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs font-[460] text-gray-600">
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
-                      {safeJob.location || 'Location not specified'}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Briefcase className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
-                      {safeJob.category || 'General'}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 font-[560] text-gray-900">
-                      <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.success }} />
-                      {safeJob.budget || 'Budget TBD'}
-                    </span>
-                    {'bidAmount' in safeJob && safeJob.bidAmount && (
-                      <span className="inline-flex items-center gap-1.5 font-[560] text-primary-600">
-                        <PoundSterling className="h-3.5 w-3.5" style={{ color: theme.colors.primary }} />
-                        Your bid: £{typeof safeJob.bidAmount === 'number' ? safeJob.bidAmount.toFixed(2) : safeJob.bidAmount}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <span
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs font-[560] text-gray-700 whitespace-nowrap"
-                >
-                  {safeJob.status || 'Open'}
-                </span>
-              </header>
-
-              <p className="text-sm font-[460] text-gray-700 leading-relaxed m-0 line-clamp-2">
-                {safeJob.description && typeof safeJob.description === 'string' && safeJob.description.length > 0
-                  ? (safeJob.description.length > 120
-                      ? `${safeJob.description.substring(0, 120)}...`
-                      : safeJob.description)
-                  : 'No description provided'}
-              </p>
-
-              <footer
-                className="flex justify-between items-center border-t border-gray-100 pt-4 text-xs font-[460] text-gray-600"
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent card click when clicking footer
-                }}
-              >
-                <span>
-                  Posted {new Date(safeJob.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  {'postedBy' in safeJob && safeJob.postedBy && ` • ${safeJob.postedBy.name}`}
-                </span>
-                <Button 
-                  variant={'hasBid' in safeJob && safeJob.hasBid ? 'secondary' : 'primary'}
-                  size='sm' 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent card click when clicking button
-                    handleBidClick(safeJob.id);
-                  }}
-                  className="font-[560]"
-                >
-                  {'hasBid' in safeJob && safeJob.hasBid ? 'View/Update Bid' : 'Submit bid'}
-                </Button>
-              </footer>
-              </article>
-            );
-              } catch (error) {
-                console.error('Error rendering job card:', error, job);
-                return null;
-              }
-            })
-            .filter((item) => item !== null); // Remove any null values from the map
+                        <span>
+                          Posted {new Date(safeJob.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          {'postedBy' in safeJob && safeJob.postedBy && ` • ${safeJob.postedBy.name}`}
+                        </span>
+                        <Button
+                          variant={'hasBid' in safeJob && safeJob.hasBid ? 'secondary' : 'primary'}
+                          size='sm'
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation(); // Prevent card click when clicking button
+                            handleBidClick(safeJob.id);
+                          }}
+                          className="font-[560]"
+                        >
+                          {'hasBid' in safeJob && safeJob.hasBid ? 'View/Update Bid' : 'Submit bid'}
+                        </Button>
+                      </footer>
+                    </article>
+                  );
+                } catch (error) {
+                  console.error('Error rendering job card:', error, job);
+                  return null;
+                }
+              })
+              .filter((item) => item !== null); // Remove any null values from the map
           })()
         )}
       </div>

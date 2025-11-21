@@ -103,8 +103,9 @@ export class RealAIAnalysisService {
                   { type: 'text', text: userPrompt },
                   ...job.photos.slice(0, 4).map((photo) => ({
                     // Limit to 4 photos for API cost
+                    // Use 'auto' detail: balances cost and quality for general job analysis
                     type: 'image_url',
-                    image_url: { url: photo, detail: 'low' },
+                    image_url: { url: photo, detail: 'auto' },
                   })),
                 ]
               : [{ type: 'text', text: userPrompt }],

@@ -213,9 +213,15 @@ export class ABTestIntegration {
     );
 
     // 4. Use DetectorFusionService for correlation-aware Bayesian fusion
-    const fusionResult = DetectorFusionService.fuseDetectors(
+    // Includes drift detection and weight adjustment (paper's Drift Monitor → Adjust Weights)
+    const fusionResult = await DetectorFusionService.fuseDetectors(
       roboflowDetections,
-      assessment.damageAssessment.confidence
+      assessment.damageAssessment.confidence,
+      {
+        propertyType: params.propertyType,
+        region: params.region,
+        season: this.getCurrentSeason(),
+      }
     );
 
     const fusionMean = fusionResult.fusionMean;
@@ -847,6 +853,17 @@ export class ABTestIntegration {
       armId: selectedArm.id,
       armName: selectedArm.name,
     };
+  }
+
+  /**
+   * Get current season for drift detection
+   */
+  private getCurrentSeason(): string {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'fall';
+    return 'winter';
   }
 
   private async logDecision(params: {

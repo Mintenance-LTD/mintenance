@@ -40,16 +40,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-        <html lang="en">
-          <head>
-            {materialSymbolsLink}
-          </head>
-          <body className={inter.variable}>
-            <Script
-              id="className-fix"
-              strategy="beforeInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {materialSymbolsLink}
+      </head>
+      <body className={inter.variable}>
+        <Script
+          id="className-fix"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
                   // Fix for className.split() errors - runs before page interaction
                   (function() {
                     if (typeof window === 'undefined' || typeof Element === 'undefined') return;
@@ -94,17 +94,17 @@ export default function RootLayout({
                     }
                   })();
                 `,
-              }}
-            />
-            <Providers>
-              <ErrorBoundary>
-                {children}
-                <CookieConsent />
-                <WebVitalsMonitor />
-                {/* <PerformanceDashboard /> */}
-              </ErrorBoundary>
-            </Providers>
-          </body>
-        </html>
+          }}
+        />
+        <Providers>
+          <ErrorBoundary>
+            {children}
+            <CookieConsent />
+            <WebVitalsMonitor />
+            {/* <PerformanceDashboard /> */}
+          </ErrorBoundary>
+        </Providers>
+      </body>
+    </html>
   )
 }

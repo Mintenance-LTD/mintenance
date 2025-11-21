@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 const adminLoginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -161,7 +161,7 @@ export default function AdminLoginPage() {
               variant="primary"
               fullWidth
               disabled={isSubmitting || csrfLoading}
-              leftIcon={isSubmitting || csrfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+              loading={isSubmitting || csrfLoading}
             >
               {csrfLoading ? 'Loading...' : isSubmitting ? 'Signing in...' : 'Sign in'}
             </Button>

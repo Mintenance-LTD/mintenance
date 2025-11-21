@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from '../agents/AdaptiveUpdateEngine';
 import { validateURLs } from '@/lib/security/url-validation';
+import { getConfig } from './config/BuildingSurveyorConfig';
 import type {
   Phase1BuildingAssessment,
   AssessmentContext,
@@ -618,12 +619,17 @@ export class BuildingSurveyorService {
       // Initialize memory system
       await this.initializeMemorySystem();
 
-      if (!process.env.OPENAI_API_KEY) {
+      // Get config with fallback to process.env
+      const config = getConfig();
+      if (!config.openaiApiKey) {
         logger.warn('OpenAI API key not configured', {
           service: 'BuildingSurveyorService',
         });
         throw new Error('AI assessment service is not configured');
       }
+
+      // Store config for use in API calls
+      const openaiApiKey = config.openaiApiKey;
 
       if (!imageUrls || imageUrls.length === 0) {
         throw new Error('At least one image is required for assessment');
@@ -717,7 +723,21 @@ export class BuildingSurveyorService {
         });
       }
 
-      // Extract features with detection evidence
+      // 1. Build scene graph from detections and vision analysis
+      // This implements the paper's Perception Layer → Scene Graph Builder
+      const { SceneGraphBuilder } = await import('./scene_graph');
+      const { SceneGraphFeatureExtractor } = await import('./scene_graph_features');
+      const sceneGraph = SceneGraphBuilder.buildSceneGraph(
+        roboflowDetections,
+        visionAnalysis,
+        validatedImageUrls.length
+      );
+
+      // 2. Extract features from scene graph (flatten to vector)
+      // This implements the paper's Feature Extraction: Graph → Vector
+      const sceneGraphFeatures = SceneGraphFeatureExtractor.extractFeatures(sceneGraph);
+
+      // 3. Extract features with detection evidence (fallback for compatibility)
       const features = await this.extractDetectionFeatures(
         validatedImageUrls,
         context,
@@ -726,6 +746,12 @@ export class BuildingSurveyorService {
         visionAnalysis,
       );
 
+      // 4. Use scene graph features if available, otherwise fall back to detection features
+      // Scene graph features take priority as they include structural dependencies
+      const finalFeatures = sceneGraph.nodes.length > 0
+        ? sceneGraphFeatures.featureVector
+        : features;
+
       // Query memory for learned adjustments
       // Use Titans-enhanced query if enabled
       let memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
@@ -733,15 +759,15 @@ export class BuildingSurveyorService {
         const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
         const useTitans = process.env.USE_TITANS === 'true' || false;
 
-        let processedFeatures = features;
+        let processedFeatures = finalFeatures;
         if (useTitans && memorySystem) {
           // Use Titans-enhanced processing
-          processedFeatures = await memorySystem.processWithTitans(features);
+          processedFeatures = await memorySystem.processWithTitans(finalFeatures);
         }
 
         const memoryResults: MemoryQueryResult[] = [];
         for (let level = 0; level < 3; level++) {
-          const result = await memoryManager.query(this.AGENT_NAME, processedFeatures, level);
+          const result = await memoryManager.query(this.AGENT_NAME, processedFeatures.slice(0, 40), level);
           if (result.values && result.values.length === 5) {
             memoryResults.push(result);
           }
@@ -799,7 +825,7 @@ export class BuildingSurveyorService {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

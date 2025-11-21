@@ -131,6 +131,13 @@ const nextConfig = {
 
   // PWA & Service Worker
   webpack: (config, { isServer }) => {
+    // Add root node_modules to resolve paths for hoisted dependencies (monorepo)
+    config.resolve.modules = [
+      ...(config.resolve.modules || []),
+      path.resolve(__dirname, '../../node_modules'),
+      path.resolve(__dirname, 'node_modules'),
+    ];
+
     // Ignore React Native imports in web builds - completely prevent resolution
     config.resolve.alias = {
       ...config.resolve.alias,

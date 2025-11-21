@@ -6,13 +6,43 @@ import { loginSchema } from '@/lib/validation/schemas';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
-export async function POST(request: NextRequest) {
+// Route segment config to ensure proper error handling
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Export route handler with comprehensive error handling
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // CSRF protection
-    await requireCSRF(request);
+    try {
+      await requireCSRF(request);
+    } catch (csrfError) {
+      logger.warn('CSRF validation failed', {
+        service: 'auth',
+        error: csrfError instanceof Error ? csrfError.message : 'Unknown CSRF error',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
     
     // Rate limiting check
-    const rateLimitResult = await checkLoginRateLimit(request);
+    let rateLimitResult;
+    try {
+      rateLimitResult = await checkLoginRateLimit(request);
+    } catch (rateLimitError) {
+      logger.error('Rate limit check failed', rateLimitError, { service: 'auth' });
+      // Continue without rate limiting if it fails (fail open for availability)
+      rateLimitResult = { 
+        allowed: true, 
+        remaining: 100, 
+        resetTime: Date.now() + 3600000,
+        retryAfter: 0 
+      };
+    }
 
     if (!rateLimitResult.allowed) {
       const headers = createRateLimitHeaders(rateLimitResult);
@@ -34,7 +64,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, loginSchema);
+    let validation;
+    try {
+      validation = await validateRequest(request, loginSchema);
+    } catch (validationError) {
+      logger.error('Request validation error', validationError, { service: 'auth' });
+      return NextResponse.json(
+        { error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
+    
     if ('headers' in validation) {
       // Validation failed - return error response
       return validation;
@@ -43,7 +83,16 @@ export async function POST(request: NextRequest) {
     const { email, password, rememberMe } = validation.data;
 
     // Delegate authentication and cookie handling to AuthManager
-    const result = await authManager.login({ email, password }, rememberMe || false);
+    let result;
+    try {
+      result = await authManager.login({ email, password }, rememberMe || false);
+    } catch (authError) {
+      logger.error('AuthManager login error', authError, { service: 'auth', email });
+      return NextResponse.json(
+        { error: 'Authentication service error. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     if (!result.success || !result.user) {
       logger.warn('Login failed', {
@@ -59,7 +108,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Record successful login (for rate limiting)
-    recordSuccessfulLogin(request);
+    try {
+      recordSuccessfulLogin(request);
+    } catch (recordError) {
+      // Log but don't fail the login if rate limit recording fails
+      logger.warn('Failed to record successful login', { error: recordError, service: 'auth' });
+    }
 
     logger.info('User logged in successfully', {
       service: 'auth',
@@ -85,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     // Add cookie headers from auth result
     if (result.cookieHeaders) {
-      result.cookieHeaders.forEach((value, key) => {
+      result.cookieHeaders.forEach((value: string, key: string) => {
         response.headers.append(key, value);
       });
     }
@@ -93,31 +147,58 @@ export async function POST(request: NextRequest) {
     // Add rate limit headers to successful response
     const headers = createRateLimitHeaders(rateLimitResult);
     Object.entries(headers).forEach(([key, value]) => {
-      response.headers.set(key, value);
+      response.headers.set(key, String(value));
     });
 
     return response;
 
   } catch (error) {
+    // Log error details for debugging (server-side only)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : String(error);
+    
+    // Use console.error as fallback if logger fails
+    try {
+      if (logger && typeof logger.error === 'function') {
+        logger.error('Login error', error, { service: 'auth' });
+      } else {
+        console.error('Login error (logger unavailable):', errorMessage, errorStack);
+      }
+    } catch (loggerError) {
+      console.error('Login error (logger failed):', errorMessage, errorStack);
+      console.error('Logger error:', loggerError);
+    }
+
     // Handle CSRF validation errors specifically
     if (error instanceof Error && error.message === 'CSRF validation failed') {
-      logger.warn('CSRF validation failed', {
-        service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      
       return NextResponse.json(
         { error: 'CSRF validation failed' },
         { status: 403 }
       );
     }
     
-    logger.error('Login error', error, { service: 'auth' });
+    // Log the actual error for debugging
+    console.error('Login route error details:', {
+      message: errorMessage,
+      stack: errorStack?.substring(0, 500), // Limit stack trace length
+      type: error?.constructor?.name || typeof error
+    });
 
-    // Don't expose internal error details to client
+    // Always return JSON, never HTML - this is critical
     return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again.' },
-      { status: 500 }
+      { 
+        error: 'An unexpected error occurred. Please try again.',
+        // Include error message in development for debugging
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: errorMessage.substring(0, 200) // Limit length
+        })
+      },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
   }
 }

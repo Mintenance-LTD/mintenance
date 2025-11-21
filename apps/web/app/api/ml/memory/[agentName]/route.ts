@@ -49,11 +49,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { 
+  { params }: { params: { agentName: string } }
+) {
   // CSRF protection
   await requireCSRF(request);
-params }: { params: { agentName: string } }
-) {
   try {
     const { agentName } = params;
     const body = await request.json();

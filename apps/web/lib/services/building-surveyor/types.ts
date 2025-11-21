@@ -121,6 +121,18 @@ export interface VisionAnalysisSummary {
   complexity?: 'simple' | 'moderate' | 'complex';
 }
 
+export interface SAM3SegmentationData {
+  preciseMasks?: number[][][]; // Pixel-perfect segmentation masks
+  preciseBoxes?: number[][]; // [x, y, w, h] bounding boxes
+  affectedArea?: number; // Total affected area in pixels
+  segmentationConfidence?: number; // SAM 3 confidence score (0-100)
+  masks?: Array<{
+    mask: number[][];
+    box: number[];
+    score: number;
+  }>;
+}
+
 export interface Phase1BuildingAssessment {
   damageAssessment: DamageAssessment;
   safetyHazards: SafetyHazards;
@@ -132,6 +144,7 @@ export interface Phase1BuildingAssessment {
   evidence?: {
     roboflowDetections?: RoboflowDetection[];
     visionAnalysis?: VisionAnalysisSummary | null;
+    sam3Segmentation?: SAM3SegmentationData; // SAM 3 precise segmentation data
   };
 }
 

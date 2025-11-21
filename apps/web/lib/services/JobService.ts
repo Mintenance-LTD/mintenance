@@ -17,7 +17,7 @@ async function api<T>(input: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string }): Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string } => ({
+const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string }): Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string } => ({
   id: summary.id,
   title: summary.title,
   status: summary.status,
@@ -28,27 +28,29 @@ const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: s
   budget: (summary as any).budget,
   description: (summary as any).description,
   category: (summary as any).category,
+  homeownerName: (summary as any).homeownerName,
+  contractorName: (summary as any).contractorName,
 });
 
 export class JobService {
-  static async getAvailableJobs(): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[]> {
+  static async getAvailableJobs(): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[]> {
     try {
       const params = new URLSearchParams({ limit: '20', status: 'posted' });
-      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[] }>(`/api/jobs?${params.toString()}`);
-      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[];
+      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?${params.toString()}`);
+      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     } catch (error) {
       logger.error('Job service error', error);
-      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[];
+      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     }
   }
 
-  static async getJobsByHomeowner(_homeownerId: string): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[]> {
+  static async getJobsByHomeowner(_homeownerId: string): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[]> {
     try {
-      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[] }>(`/api/jobs?limit=50`);
-      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[];
+      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?limit=50`);
+      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     } catch (error) {
       logger.error('Job service error', error);
-      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string })[];
+      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     }
   }
 

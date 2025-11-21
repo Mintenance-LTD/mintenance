@@ -5,6 +5,7 @@ import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 import { PhotoGallery } from './components/PhotoGallery';
 import { ContractorViewersList } from './components/ContractorViewersList';
 import { JobLocationMap } from './components/JobLocationMap';
@@ -38,7 +39,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .single();
 
   // Debug logging
-  console.log('JobDetailPage - Fetching job:', {
+  // Debug logging
+  logger.debug('JobDetailPage - Fetching job', {
     jobId: resolvedParams.id,
     jobError: jobError ? JSON.stringify(jobError, null, 2) : null,
     jobErrorType: jobError ? typeof jobError : null,
@@ -48,7 +50,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   });
 
   if (jobError) {
-    console.error('JobDetailPage - Error fetching job:', {
+    logger.error('JobDetailPage - Error fetching job', {
       error: jobError,
       errorString: JSON.stringify(jobError),
       errorMessage: (jobError as any)?.message,
@@ -60,7 +62,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   }
 
   if (!job) {
-    console.error('JobDetailPage - Job not found for ID:', resolvedParams.id);
+    logger.error('JobDetailPage - Job not found for ID', { jobId: resolvedParams.id });
     redirect('/jobs');
   }
 
@@ -99,7 +101,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
           .eq('id', bid.contractor_id)
           .single();
-        
+
         // Fetch contractor portfolio images from contractor_posts
         const { data: portfolioPosts } = await serverSupabase
           .from('contractor_posts')
@@ -110,16 +112,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           .not('media_urls', 'is', null)
           .order('created_at', { ascending: false })
           .limit(12);
-        
+
         // Flatten portfolio images
-        const portfolioImages = portfolioPosts?.flatMap(post => 
+        const portfolioImages = portfolioPosts?.flatMap(post =>
           (post.media_urls || []).map((url: string) => ({
             url,
             title: post.title || 'Previous Work',
             category: post.project_category || 'General'
           }))
         ) || [];
-        
+
         return { ...bid, contractor: { ...contractor, portfolioImages } };
       }
       return bid;
@@ -131,11 +133,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .from('job_attachments')
     .select('*')
     .eq('job_id', resolvedParams.id)
-    .order('created_at', { ascending: false});
+    .order('created_at', { ascending: false });
 
   // Get the accepted bid (if any)
   const acceptedBid = bidsWithContractors?.find((bid: any) => bid.status === 'accepted');
-  
+
   // Fetch contract for this job (if exists)
   const { data: contract } = await serverSupabase
     .from('contracts')
@@ -144,10 +146,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .single();
 
   // Determine contract status for scheduling
-  const contractStatus = !contract 
-    ? 'none' 
-    : contract.status === 'accepted' 
-      ? 'accepted' 
+  const contractStatus = !contract
+    ? 'none'
+    : contract.status === 'accepted'
+      ? 'accepted'
       : 'pending';
 
   // Status configuration
@@ -322,10 +324,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     }}>
                       {job.scheduled_date
                         ? new Date(job.scheduled_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
                         : 'Not scheduled'}
                     </div>
                   </div>
@@ -567,16 +569,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
             {/* Contract Management - Only show if contractor is assigned */}
             {contractor && job.status === 'assigned' && (
-              <ContractManagement 
-                jobId={resolvedParams.id} 
-                userRole="homeowner" 
-                userId={user.id} 
+              <ContractManagement
+                jobId={resolvedParams.id}
+                userRole="homeowner"
+                userId={user.id}
               />
             )}
 
             {/* Job Scheduling - Only show if contractor is assigned */}
             {contractor && job.status === 'assigned' && (
-              <JobScheduling 
+              <JobScheduling
                 jobId={resolvedParams.id}
                 userRole="homeowner"
                 userId={user.id}
@@ -591,9 +593,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
             {/* Location Tracking - Only show if contractor is assigned */}
             {contractor && job.status === 'assigned' && (
-              <LocationTracking 
-                jobId={resolvedParams.id} 
-                contractorId={contractor.id} 
+              <LocationTracking
+                jobId={resolvedParams.id}
+                contractorId={contractor.id}
               />
             )}
 

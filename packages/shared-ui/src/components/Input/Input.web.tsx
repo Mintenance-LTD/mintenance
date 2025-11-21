@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useId } from 'react';
+import React, { useState, useId, forwardRef } from 'react';
 import { webTokens } from '@mintenance/design-tokens';
 import { cn } from '../../utils/cn';
 import type { WebInputProps, InputSize } from './types';
@@ -16,35 +16,36 @@ import type { WebInputProps, InputSize } from './types';
  * 
  * Uses design tokens for consistent styling across platforms
  */
-export function Input({
-  value,
-  defaultValue,
-  placeholder,
-  type = 'text',
-  size = 'md',
-  disabled = false,
-  readOnly = false,
-  required = false,
-  autoFocus = false,
-  autoComplete,
-  label,
-  helperText,
-  errorText,
-  successText,
-  leftIcon,
-  rightIcon,
-  error = false,
-  success = false,
-  onChange,
-  onBlur,
-  onFocus,
-  className = '',
-  'aria-label': ariaLabel,
-  'aria-describedby': ariaDescribedby,
-  'aria-invalid': ariaInvalid,
-  style,
-  ...props
-}: WebInputProps) {
+export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) => {
+  const {
+    value,
+    defaultValue,
+    placeholder,
+    type = 'text',
+    size = 'md',
+    disabled = false,
+    readOnly = false,
+    required = false,
+    autoFocus = false,
+    autoComplete,
+    label,
+    helperText,
+    errorText,
+    successText,
+    leftIcon,
+    rightIcon,
+    error = false,
+    success = false,
+    onChange,
+    onBlur,
+    onFocus,
+    className = '',
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedby,
+    'aria-invalid': ariaInvalid,
+    style,
+    ...restProps
+  } = props;
   const [isFocused, setIsFocused] = useState(false);
 
   const hasError = error || !!errorText;
@@ -134,7 +135,7 @@ export function Input({
   });
 
   // Remove style from props to prevent it from being spread on the input element
-  const { style: _, ...propsWithoutStyle } = props as any;
+  const { style: _, ...propsWithoutStyle } = restProps as any;
 
   // Also filter out any border-related properties from props that might be spread
   // This prevents React Hook Form or other libraries from adding border shorthand
@@ -245,6 +246,7 @@ export function Input({
         )}
 
         <input
+          ref={ref}
           {...finalCleanedProps}
           id={inputId}
           type={type}
@@ -309,7 +311,9 @@ export function Input({
       )}
     </div>
   );
-}
+});
+
+Input.displayName = 'Input';
 
 export default Input;
 

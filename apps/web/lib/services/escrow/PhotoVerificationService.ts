@@ -509,11 +509,13 @@ export class PhotoVerificationService {
             { type: 'text', text: userPrompt },
             ...validatedBeforeUrls.slice(0, 3).map(url => ({
               type: 'image_url',
-              image_url: { url, detail: 'low' },
+              // Use 'high' detail for photo verification (critical for accuracy)
+              image_url: { url, detail: 'high' },
             })),
             ...validatedAfterUrls.slice(0, 3).map(url => ({
               type: 'image_url',
-              image_url: { url, detail: 'low' },
+              // Use 'high' detail for photo verification (critical for accuracy)
+              image_url: { url, detail: 'high' },
             })),
           ],
         },

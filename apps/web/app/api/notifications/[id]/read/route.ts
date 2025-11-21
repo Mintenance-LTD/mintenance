@@ -10,15 +10,15 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { 
+  { params }: { params: Promise<{ id: string }> }
+) {
   // CSRF protection
   await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
-) {
+
   try {
     const user = await getCurrentUserFromCookies();
     const { id } = await params;
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

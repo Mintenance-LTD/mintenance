@@ -19,8 +19,8 @@ interface LargeChartProps {
   data?: Array<{ label: string; value: number; revenue?: number; expenses?: number; profit?: number }>;
 }
 
-export function LargeChart({ 
-  title = 'Revenue Overview', 
+export function LargeChart({
+  title = 'Revenue Overview',
   subtitle = 'Last 6 months',
   data = [
     { label: 'Jan', value: 4500 },
@@ -48,9 +48,11 @@ export function LargeChart({
         display: 'flex',
         flexDirection: 'column',
       }}
+      role="region"
+      aria-label={`${title} Chart`}
     >
       {/* Gradient bar - appears on hover, always visible on large screens */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+      <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
       <div style={{ marginBottom: theme.spacing[5] }}>
         <h2
           className="text-subheading-md font-[560] text-gray-900 tracking-normal mb-1"
@@ -73,7 +75,12 @@ export function LargeChart({
         )}
       </div>
 
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div className="sr-only">
+        Line chart showing {title.toLowerCase()} data.
+        {data.map(d => `${d.label}: ${d.value}`).join(', ')}.
+      </div>
+
+      <div style={{ flex: 1, minHeight: 0 }} aria-hidden="true">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />

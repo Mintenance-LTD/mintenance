@@ -6,14 +6,18 @@
 import { formatMoney } from '@/lib/utils/currency';
 import { theme } from '@/lib/theme';
 import { DashboardMetric } from '../components/dashboard-metrics.types';
-import type { 
-  BidWithRelations, 
-  QuoteWithRelations, 
-  JobWithContractor, 
+import type {
+  BidWithRelations,
+  QuoteWithRelations,
+  JobWithContractor,
   MessageWithContent,
   DashboardActivity,
   UpcomingItem,
-  KpiData
+  KpiData,
+  Job,
+  Property,
+  Subscription,
+  Payment
 } from './types';
 
 export interface ProcessedDashboardData {
@@ -27,11 +31,11 @@ export interface ProcessedDashboardData {
     created_at: string;
     updated_at?: string;
   }>;
-  activeJobs: unknown[];
-  completedJobs: unknown[];
-  postedJobs: unknown[];
-  awaitingBids: unknown[];
-  scheduledJobs: unknown[];
+  activeJobs: Job[];
+  completedJobs: Job[];
+  postedJobs: Job[];
+  awaitingBids: Job[];
+  scheduledJobs: Job[];
   kpiData: KpiData;
   allMetrics: DashboardMetric[];
   primaryMetrics: DashboardMetric[];
@@ -51,8 +55,8 @@ export function combineBidsAndQuotes(
   quotes: QuoteWithRelations[]
 ): Array<{
   id: string;
-  job?: unknown;
-  contractor?: unknown;
+  job?: { id: string; title: string; category?: string; location?: string };
+  contractor?: { id: string; first_name: string; last_name: string; profile_image_url?: string };
   amount: number;
   total_amount: number;
   status: string;
@@ -63,7 +67,7 @@ export function combineBidsAndQuotes(
     ...bids.map((bid) => ({
       ...bid,
       job: Array.isArray(bid.jobs) ? bid.jobs[0] : bid.jobs,
-      contractor: bid.contractor,
+      contractor: Array.isArray(bid.contractor) ? bid.contractor[0] : bid.contractor,
       amount: bid.amount,
       total_amount: bid.amount,
     })),
@@ -79,12 +83,12 @@ export function combineBidsAndQuotes(
 /**
  * Filter jobs by status
  */
-export function filterJobsByStatus(jobs: unknown[]) {
-  const activeJobs = jobs.filter((j: { status?: string }) => ['posted', 'assigned', 'in_progress'].includes(j.status || ''));
-  const completedJobs = jobs.filter((j: { status?: string }) => j.status === 'completed');
-  const postedJobs = jobs.filter((j: { status?: string }) => j.status === 'posted');
-  const awaitingBids = jobs.filter((j: JobWithContractor) => j.status === 'posted' && !j.contractor_id);
-  const scheduledJobs = jobs.filter((j: { status?: string }) => j.status === 'assigned' || j.status === 'in_progress');
+export function filterJobsByStatus(jobs: Job[]) {
+  const activeJobs = jobs.filter((j) => ['posted', 'assigned', 'in_progress'].includes(j.status || ''));
+  const completedJobs = jobs.filter((j) => j.status === 'completed');
+  const postedJobs = jobs.filter((j) => j.status === 'posted');
+  const awaitingBids = jobs.filter((j) => j.status === 'posted' && !j.contractor_id);
+  const scheduledJobs = jobs.filter((j) => j.status === 'assigned' || j.status === 'in_progress');
 
   return {
     activeJobs,
@@ -99,18 +103,18 @@ export function filterJobsByStatus(jobs: unknown[]) {
  * Calculate KPI data
  */
 export function calculateKpiData(
-  jobs: unknown[],
+  jobs: Job[],
   allBids: Array<{ status: string; amount?: number; total_amount?: number }>,
-  properties: unknown[],
-  subscriptions: Array<{ status: string; next_billing_date?: string }>,
-  payments: Array<{ status: string; due_date?: string }>,
-  completedJobs: unknown[],
-  scheduledJobs: unknown[]
+  properties: Property[],
+  subscriptions: Subscription[],
+  payments: Payment[],
+  completedJobs: Job[],
+  scheduledJobs: Job[]
 ): KpiData {
-  const totalRevenue = jobs.reduce((sum: number, job: { budget?: number }) => sum + (Number(job.budget) || 0), 0);
+  const totalRevenue = jobs.reduce((sum, job) => sum + (Number(job.budget) || 0), 0);
   const averageJobSize = jobs.length > 0 ? totalRevenue / jobs.length : 0;
 
-  const activeProperties = properties.filter((p: { is_primary?: boolean }) => p.is_primary === true).length;
+  const activeProperties = properties.filter((p) => p.is_primary === true).length;
   const pendingProperties = properties.length - activeProperties;
 
   const activeSubscriptions = subscriptions.filter((s) => s.status === 'active').length;
@@ -141,8 +145,8 @@ export function calculateKpiData(
       activeBids: allBids.filter((b) => b.status === 'pending').length,
       pendingReview: allBids.filter((b) => b.status === 'pending').length,
       acceptedBids: allBids.filter((b) => b.status === 'accepted').length,
-      averageBid: allBids.length > 0 
-        ? allBids.reduce((sum, b) => sum + (Number(b.amount || b.total_amount) || 0), 0) / allBids.length 
+      averageBid: allBids.length > 0
+        ? allBids.reduce((sum, b) => sum + (Number(b.amount || b.total_amount) || 0), 0) / allBids.length
         : 0,
     },
     propertiesData: {
@@ -316,22 +320,22 @@ export function generateMetrics(kpiData: KpiData): {
 /**
  * Prepare upcoming jobs
  */
-export function prepareUpcomingJobs(scheduledJobs: unknown[]): {
+export function prepareUpcomingJobs(scheduledJobs: Job[]): {
   upcomingJobs: UpcomingItem[];
   upcomingJobsDate: string | null;
 } {
   const upcomingJobs = scheduledJobs
-    .filter((job: { scheduled_start_date?: string }) => job.scheduled_start_date)
-    .sort((a: { scheduled_start_date?: string }, b: { scheduled_start_date?: string }) => {
+    .filter((job) => job.scheduled_start_date)
+    .sort((a, b) => {
       const dateA = new Date(a.scheduled_start_date || 0).getTime();
       const dateB = new Date(b.scheduled_start_date || 0).getTime();
       return dateA - dateB;
     })
     .slice(0, 2)
-    .map((job: { id: string; scheduled_start_date?: string; title?: string; location?: string }) => {
+    .map((job) => {
       const scheduledDate = job.scheduled_start_date ? new Date(job.scheduled_start_date) : null;
       let scheduledTime = 'Not scheduled';
-      
+
       if (scheduledDate) {
         const timeStr = scheduledDate.toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -340,7 +344,7 @@ export function prepareUpcomingJobs(scheduledJobs: unknown[]): {
         });
         scheduledTime = `Scheduled: ${timeStr}`;
       }
-      
+
       return {
         id: job.id,
         title: job.title || 'Seasonal Maintenance',
@@ -352,21 +356,21 @@ export function prepareUpcomingJobs(scheduledJobs: unknown[]): {
 
   const upcomingJobsDate = upcomingJobs.length > 0 && scheduledJobs.length > 0
     ? (() => {
-        const jobsWithDates = scheduledJobs
-          .filter((job: { scheduled_start_date?: string }) => job.scheduled_start_date)
-          .map((job: { scheduled_start_date: string }) => new Date(job.scheduled_start_date))
-          .sort((a, b) => a.getTime() - b.getTime());
-        
-        if (jobsWithDates.length > 0) {
-          return jobsWithDates[0].toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          });
-        }
-        return null;
-      })()
+      const jobsWithDates = scheduledJobs
+        .filter((job) => job.scheduled_start_date)
+        .map((job) => new Date(job.scheduled_start_date!))
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      if (jobsWithDates.length > 0) {
+        return jobsWithDates[0].toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      }
+      return null;
+    })()
     : null;
 
   return {
@@ -379,7 +383,13 @@ export function prepareUpcomingJobs(scheduledJobs: unknown[]): {
  * Prepare upcoming estimates
  */
 export function prepareUpcomingEstimates(
-  allBids: Array<{ id: string; created_at?: string; updated_at?: string; job?: { title?: string; location?: string; id?: string }; contractor?: { profile_image_url?: string } }>
+  allBids: Array<{
+    id: string;
+    created_at: string;
+    updated_at?: string;
+    job?: { id: string; title: string; category?: string; location?: string };
+    contractor?: { id: string; first_name: string; last_name: string; profile_image_url?: string };
+  }>
 ): {
   upcomingEstimates: UpcomingItem[];
   upcomingEstimatesDate: string | null;
@@ -397,26 +407,26 @@ export function prepareUpcomingEstimates(
       const bidDate = new Date(bid.created_at || bid.updated_at || Date.now());
       return {
         id: bid.id,
-        title: (job && typeof job === 'object' && 'title' in job ? job.title : undefined) || 'New Bid Received',
-        location: (job && typeof job === 'object' && 'location' in job ? job.location : undefined) || 'Location not specified',
+        title: (job && job.title) || 'New Bid Received',
+        location: (job && job.location) || 'Location not specified',
         scheduledTime: `Received: ${bidDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        avatar: (contractor && typeof contractor === 'object' && 'profile_image_url' in contractor ? contractor.profile_image_url : undefined),
+        avatar: (contractor && contractor.profile_image_url),
       };
     });
 
   const upcomingEstimatesDate = upcomingEstimates.length > 0
     ? (() => {
-        const mostRecentBid = allBids
-          .map((bid) => new Date(bid.created_at || bid.updated_at || Date.now()))
-          .sort((a, b) => b.getTime() - a.getTime())[0];
-        
-        return mostRecentBid.toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        });
-      })()
+      const mostRecentBid = allBids
+        .map((bid) => new Date(bid.created_at || bid.updated_at || Date.now()))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
+
+      return mostRecentBid.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    })()
     : null;
 
   return {
@@ -429,42 +439,50 @@ export function prepareUpcomingEstimates(
  * Prepare recent activities
  */
 export function prepareRecentActivities(
-  jobs: unknown[],
-  allBids: Array<{ id: string; created_at?: string; updated_at?: string; job?: { title?: string; id?: string }; contractor?: { first_name?: string; last_name?: string }; amount?: number; total_amount?: number }>,
+  jobs: Job[],
+  allBids: Array<{
+    id: string;
+    created_at: string;
+    updated_at?: string;
+    job?: { id: string; title: string; category?: string; location?: string };
+    contractor?: { id: string; first_name: string; last_name: string; profile_image_url?: string };
+    amount: number;
+    total_amount: number;
+  }>,
   recentActivity: MessageWithContent[],
-  payments: Array<{ id: string; status: string; amount: number; created_at: string; due_date?: string }>,
-  subscriptions: Array<{ id: string; status: string; next_billing_date?: string; created_at: string }>
-): DashboardActivity[] {
+  payments: Payment[],
+  subscriptions: Subscription[]
+): Omit<DashboardActivity, 'timestampDate'>[] {
   const activities: DashboardActivity[] = [];
 
   // Add job activities
   const recentJobs = jobs
-    .sort((a: { created_at: string }, b: { created_at: string }) => 
+    .sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
     .slice(0, 5);
 
-  recentJobs.forEach((job: { id: string; created_at: string; scheduled_start_date?: string; status: string; title?: string }) => {
+  recentJobs.forEach((job) => {
     const createdDate = new Date(job.created_at);
     const scheduledDate = job.scheduled_start_date ? new Date(job.scheduled_start_date) : null;
-    
+
     let title = '';
     let description = '';
-    
+
     if (job.status === 'posted') {
       title = `Job posted: ${job.title || 'Untitled Job'}`;
       description = 'Waiting for contractor bids';
     } else if (job.status === 'assigned' || job.status === 'in_progress') {
       if (scheduledDate) {
-        const formattedDate = scheduledDate.toLocaleDateString('en-US', { 
-          month: 'long', 
+        const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+          month: 'long',
           day: 'numeric',
           year: 'numeric'
         });
-        const formattedTime = scheduledDate.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
+        const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
           minute: '2-digit',
-          hour12: true 
+          hour12: true
         });
         title = `${job.title || 'Job'} scheduled for ${formattedDate} at ${formattedTime}.`;
         description = job.status === 'assigned' ? 'Contractor assigned' : 'Work in progress';
@@ -479,14 +497,14 @@ export function prepareRecentActivities(
       title = `Job ${job.status}: ${job.title || 'Untitled Job'}`;
       description = job.status === 'cancelled' ? 'Job cancelled' : 'Status updated';
     }
-    
+
     activities.push({
       id: `job-${job.id}`,
       type: 'job',
       title,
       description,
-      timestamp: createdDate.toLocaleDateString('en-US', { 
-        month: 'long', 
+      timestamp: createdDate.toLocaleDateString('en-US', {
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
       }),
@@ -500,24 +518,24 @@ export function prepareRecentActivities(
   allBids.slice(0, 3).forEach((bid) => {
     const job = bid.job;
     const contractor = bid.contractor;
-    const contractorName = contractor && typeof contractor === 'object' && 'first_name' in contractor
+    const contractorName = contractor
       ? `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || 'A contractor'
       : 'A contractor';
     const createdDate = new Date(bid.created_at || bid.updated_at || Date.now());
-    
+
     activities.push({
       id: `bid-${bid.id}`,
       type: 'estimate',
-      title: `${contractorName} submitted an estimate for ${(job && typeof job === 'object' && 'title' in job ? job.title : undefined) || 'your job'}.`,
+      title: `${contractorName} submitted an estimate for ${(job && job.title) || 'your job'}.`,
       description: `Amount: £${Number(bid.amount || bid.total_amount || 0).toLocaleString()}`,
-      timestamp: createdDate.toLocaleDateString('en-US', { 
-        month: 'long', 
+      timestamp: createdDate.toLocaleDateString('en-US', {
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
       }),
       timestampDate: createdDate,
       linkText: 'View Estimate',
-      linkHref: (job && typeof job === 'object' && 'id' in job ? job.id : undefined) ? `/jobs/${job.id}` : '/jobs',
+      linkHref: (job && job.id) ? `/jobs/${job.id}` : '/jobs',
     });
   });
 
@@ -530,8 +548,8 @@ export function prepareRecentActivities(
         type: 'message',
         title: 'New message received',
         description: message.content ? (message.content.length > 100 ? message.content.substring(0, 100) + '...' : message.content) : 'No content',
-        timestamp: createdDate.toLocaleDateString('en-US', { 
-          month: 'long', 
+        timestamp: createdDate.toLocaleDateString('en-US', {
+          month: 'long',
           day: 'numeric',
           year: 'numeric'
         }),
@@ -550,11 +568,11 @@ export function prepareRecentActivities(
       id: `payment-${payment.id}`,
       type: 'payment',
       title: `Payment ${statusText}: £${Number(payment.amount || 0).toLocaleString()}`,
-      description: payment.due_date 
+      description: payment.due_date
         ? `Due: ${new Date(payment.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
         : 'No due date',
-      timestamp: createdDate.toLocaleDateString('en-US', { 
-        month: 'long', 
+      timestamp: createdDate.toLocaleDateString('en-US', {
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
       }),
@@ -573,14 +591,14 @@ export function prepareRecentActivities(
       const now = new Date();
       const daysUntil = Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const createdDate = new Date(sub.created_at);
-      
+
       activities.push({
         id: `subscription-${sub.id}`,
         type: 'subscription',
         title: `Maintenance service is ${daysUntil <= 0 ? 'due' : `due in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`}.`,
         description: `Next billing: ${nextDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
-        timestamp: createdDate.toLocaleDateString('en-US', { 
-          month: 'long', 
+        timestamp: createdDate.toLocaleDateString('en-US', {
+          month: 'long',
           day: 'numeric',
           year: 'numeric'
         }),

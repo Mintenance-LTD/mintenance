@@ -614,7 +614,8 @@ export class EscrowReleaseAgent {
             { type: 'text', text: userPrompt },
             ...validatedPhotoUrls.slice(0, 4).map((photo) => ({
               type: 'image_url',
-              image_url: { url: photo, detail: 'low' },
+              // Use 'high' detail for escrow verification (critical for payment accuracy)
+              image_url: { url: photo, detail: 'high' },
             })),
           ],
         },

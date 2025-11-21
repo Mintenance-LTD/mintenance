@@ -12,7 +12,9 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
@@ -28,19 +30,6 @@
   ],
   "author": "Mintenance Team",
   "license": "MIT",
-  "dependencies": {
-    "@mintenance/design-tokens": "file:../design-tokens"
-  },
-  "peerDependencies": {
-    "react": ">=18 <20",
-    "react-dom": ">=18 <20",
-    "react-native": ">=0.72.0"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19",
-    "typescript": "^5"
-  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -56,5 +45,16 @@
     },
     "./package.json": "./package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
 }

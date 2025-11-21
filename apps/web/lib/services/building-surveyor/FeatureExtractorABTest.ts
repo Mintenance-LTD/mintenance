@@ -77,7 +77,7 @@ export class FeatureExtractorABTest {
         }
       );
       await this.learnedExtractor.loadState();
-      
+
       logger.info('Feature extractor A/B test initialized', {
         service: 'FeatureExtractorABTest',
         splitRatio: this.splitRatio,
@@ -250,10 +250,10 @@ export class FeatureExtractorABTest {
         costError: originalAssessment.contractorAdvice?.estimatedCost?.recommended &&
           humanValidatedAssessment.contractorAdvice?.estimatedCost?.recommended
           ? Math.abs(
-              (humanValidatedAssessment.contractorAdvice.estimatedCost.recommended -
-               originalAssessment.contractorAdvice.estimatedCost.recommended) /
-              originalAssessment.contractorAdvice.estimatedCost.recommended
-            )
+            (humanValidatedAssessment.contractorAdvice.estimatedCost.recommended -
+              originalAssessment.contractorAdvice.estimatedCost.recommended) /
+            originalAssessment.contractorAdvice.estimatedCost.recommended
+          )
           : 0,
       };
 
@@ -375,8 +375,8 @@ export class FeatureExtractorABTest {
   }
 
   /**
-   * Extract handcrafted features (simplified version)
-   * In production, this would call BuildingSurveyorService.extractDetectionFeaturesHandcrafted
+   * Extract handcrafted features using shared production implementation
+   * This ensures A/B test results accurately reflect production performance
    */
   private static async extractHandcraftedFeatures(
     imageUrls: string[],
@@ -384,33 +384,14 @@ export class FeatureExtractorABTest {
     roboflowDetections?: RoboflowDetection[],
     visionSummary?: VisionAnalysisSummary | null
   ): Promise<number[]> {
-    // This is a placeholder - in production, import and call the actual method
-    // For now, return a simple feature vector
-    const features: number[] = [];
-    
-    // Property context
-    features.push(context?.propertyType === 'residential' ? 1.0 : 0.0);
-    features.push(context?.propertyType === 'commercial' ? 1.0 : 0.0);
-    features.push((context?.ageOfProperty || 0) / 200);
-    
-    // Detection counts
-    const detectionCount = roboflowDetections?.length || 0;
-    features.push(detectionCount / 50);
-    
-    // Vision summary
-    if (visionSummary) {
-      features.push(visionSummary.confidence / 100);
-      features.push(Math.min(1.0, visionSummary.labels.length / 20));
-    } else {
-      features.push(0, 0);
-    }
-    
-    // Pad to 40 dimensions
-    while (features.length < 40) {
-      features.push(0);
-    }
-    
-    return features.slice(0, 40);
+    const { extractHandcraftedFeatures } = await import('./utils/FeatureExtractionUtils');
+    return extractHandcraftedFeatures(
+      imageUrls,
+      context,
+      undefined, // assessment not available during feature extraction
+      roboflowDetections,
+      visionSummary
+    );
   }
 
   /**
