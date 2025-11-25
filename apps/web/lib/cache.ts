@@ -305,7 +305,9 @@ export const getCachedServiceCategories = unstable_cache(
       .order('display_order');
 
     if (error) {
-      console.error('Error fetching service categories:', error);
+      logger.error('Error fetching service categories', error, {
+        service: 'cache',
+      });
       return [];
     }
 
@@ -357,7 +359,10 @@ export const getCachedContractorById = unstable_cache(
       .single();
 
     if (error) {
-      console.error('Error fetching contractor:', error);
+      logger.error('Error fetching contractor', error, {
+        service: 'cache',
+        contractorId: id,
+      });
       return null;
     }
 
@@ -378,7 +383,9 @@ export async function revalidateContractors() {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as any)(CACHE_TAGS.CONTRACTORS);
   } catch (error) {
-    console.error('Error revalidating contractors:', error);
+    logger.error('Error revalidating contractors', error, {
+      service: 'cache',
+    });
   }
 }
 
@@ -387,7 +394,9 @@ export async function revalidateJobs() {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as any)(CACHE_TAGS.JOBS);
   } catch (error) {
-    console.error('Error revalidating jobs:', error);
+    logger.error('Error revalidating jobs', error, {
+      service: 'cache',
+    });
   }
 }
 
@@ -396,7 +405,9 @@ export async function revalidateServiceCategories() {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as any)(CACHE_TAGS.CATEGORIES);
   } catch (error) {
-    console.error('Error revalidating categories:', error);
+    logger.error('Error revalidating categories', error, {
+      service: 'cache',
+    });
   }
 }
 
@@ -405,7 +416,10 @@ export async function revalidateUserProfile(userId: string) {
     const { revalidateTag } = await import('next/cache');
     (revalidateTag as any)(CACHE_TAGS.USER_PROFILES);
   } catch (error) {
-    console.error('Error revalidating user profile:', error);
+    logger.error('Error revalidating user profile', error, {
+      service: 'cache',
+      userId: id,
+    });
   }
 }
 
@@ -430,7 +444,9 @@ export const getCachedUserJobs = unstable_cache(
         errorInfo = { message: String(error) };
       }
       
-      console.error('Error fetching user jobs:', {
+      logger.error('Error fetching user jobs', {
+        service: 'cache',
+        userId,
         code: errorInfo.code,
         message: errorInfo.message,
         details: errorInfo.details,

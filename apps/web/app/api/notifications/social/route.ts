@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,10 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error: notificationsError } = await query;
 
     if (notificationsError) {
-      console.error('Error fetching social notifications:', notificationsError);
+      logger.error('Error fetching social notifications', notificationsError, {
+        service: 'notifications',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
@@ -66,7 +70,9 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
-    console.error('Error in GET /api/notifications/social:', error);
+    logger.error('Error in GET /api/notifications/social', error, {
+      service: 'notifications',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

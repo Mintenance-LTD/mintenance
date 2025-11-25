@@ -208,7 +208,7 @@ export class EscrowReleaseAgent {
 
       // Apply risk multiplier
       const riskLevel = await this.assessJobRisk(jobId, contractorId);
-      holdPeriodDays = Math.ceil(holdPeriodDays * rule?.riskMultiplier || 1.0 * riskLevel.multiplier);
+      holdPeriodDays = Math.ceil(holdPeriodDays * (rule?.riskMultiplier || 1.0) * riskLevel.multiplier);
 
       // Add dispute history penalty
       const disputePenalty = await this.getDisputeHistoryPenalty(contractorId);
@@ -388,7 +388,7 @@ export class EscrowReleaseAgent {
       const homeownerApprovalDate = escrow.homeowner_approval_at
         ? new Date(escrow.homeowner_approval_at)
         : new Date();
-      
+
       const trustBasedReleaseDate = await TrustScoreService.getGraduatedReleaseDate(
         escrowId,
         homeownerApprovalDate
@@ -460,13 +460,13 @@ export class EscrowReleaseAgent {
       }
 
       // Check for active disputes
-      const { count: disputeCount } = await serverSupabase
+      const { count: disputeCount2 } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
         .eq('job_id', job.id)
         .eq('status', 'disputed');
 
-      if ((disputeCount || 0) > 0) {
+      if ((disputeCount2 || 0) > 0) {
         return null; // Active dispute exists
       }
 
@@ -490,25 +490,25 @@ export class EscrowReleaseAgent {
             (r: any) => r.risk_type === 'dispute' && r.severity === 'high'
           );
           if (highRiskDisputes.length > 0) {
-          // Extend hold period
-          const extendedDate = new Date();
-          extendedDate.setDate(extendedDate.getDate() + 7); // Extend by 7 days
+            // Extend hold period
+            const extendedDate = new Date();
+            extendedDate.setDate(extendedDate.getDate() + 7); // Extend by 7 days
 
-          await serverSupabase
-            .from('escrow_transactions')
-            .update({
-              auto_release_date: extendedDate.toISOString(),
-              risk_hold_extended: true,
-              risk_hold_reason: 'High dispute risk predicted',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', escrowId);
+            await serverSupabase
+              .from('escrow_transactions')
+              .update({
+                auto_release_date: extendedDate.toISOString(),
+                risk_hold_extended: true,
+                risk_hold_reason: 'High dispute risk predicted',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', escrowId);
 
-          return {
-            success: true,
-            message: 'Auto-release delayed due to predicted dispute risk',
-            metadata: { extendedDate: extendedDate.toISOString() },
-          };
+            return {
+              success: true,
+              message: 'Auto-release delayed due to predicted dispute risk',
+              metadata: { extendedDate: extendedDate.toISOString() },
+            };
           }
         }
       }
@@ -614,7 +614,8 @@ export class EscrowReleaseAgent {
             { type: 'text', text: userPrompt },
             ...validatedPhotoUrls.slice(0, 4).map((photo) => ({
               type: 'image_url',
-              image_url: { url: photo, detail: 'low' },
+              // Use 'high' detail for escrow verification (critical for payment accuracy)
+              image_url: { url: photo, detail: 'high' },
             })),
           ],
         },

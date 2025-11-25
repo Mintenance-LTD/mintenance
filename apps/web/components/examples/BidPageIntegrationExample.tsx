@@ -12,7 +12,9 @@ import { Button } from '@/components/ui/Button';
 // Example integration in your job list rendering:
 export function ExampleJobListIntegration() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  
+  const allBids: BidWithJob[] = []; // Defined to satisfy TS
+
+
   const handleBidSubmit = async (jobId: string, amount: number) => {
     try {
       const response = await fetch('/api/contractor/bids', {
@@ -42,7 +44,7 @@ export function ExampleJobListIntegration() {
     <div className="grid gap-4">
       {jobs.map((job) => {
         const existingBid = allBids.find((b) => b.job_id === job.id);
-        
+
         return (
           <div key={job.id} className="border rounded-lg p-4">
             <div className="flex items-start justify-between">
@@ -53,7 +55,7 @@ export function ExampleJobListIntegration() {
                   Budget: {job.budget ? `£${parseFloat(job.budget).toLocaleString()}` : 'Not specified'}
                 </p>
               </div>
-              
+
               {/* Use JobDetailsDialog instead of inline details */}
               <JobDetailsDialog
                 job={{

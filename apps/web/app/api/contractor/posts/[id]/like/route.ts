@@ -12,14 +12,14 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -77,7 +77,7 @@ export async function POST(
         .eq('id', postId)
         .single();
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         liked: false,
         likes_count: postData?.likes_count || 0
       });
@@ -106,7 +106,7 @@ export async function POST(
         .eq('id', postId)
         .single();
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         liked: true,
         likes_count: postData?.likes_count || 0
       });

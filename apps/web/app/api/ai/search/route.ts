@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +63,9 @@ const { query, filters, limit = 20 } = await request.json();
       count: filteredResults.length,
     });
   } catch (error) {
-    console.error('Search API error:', error);
+    logger.error('Search API error', error, {
+      service: 'ai_search',
+    });
     return NextResponse.json(
       { error: 'Search failed' },
       { status: 500 }
@@ -87,7 +90,9 @@ async function searchJobs(
       });
 
     if (error) {
-      console.warn('Job search error:', error);
+      logger.warn('Job search error', error, {
+        service: 'ai_search',
+      });
       return [];
     }
 
@@ -105,7 +110,9 @@ async function searchJobs(
       },
     }));
   } catch (error) {
-    console.error('Failed to search jobs', error);
+    logger.error('Failed to search jobs', error, {
+      service: 'ai_search',
+    });
     return [];
   }
 }
@@ -126,7 +133,9 @@ async function searchContractors(
       });
 
     if (error) {
-      console.warn('Contractor search error:', error);
+      logger.warn('Contractor search error', error, {
+        service: 'ai_search',
+      });
       return [];
     }
 
@@ -144,7 +153,9 @@ async function searchContractors(
       },
     }));
   } catch (error) {
-    console.error('Failed to search contractors', error);
+    logger.error('Failed to search contractors', error, {
+      service: 'ai_search',
+    });
     return [];
   }
 }
@@ -238,6 +249,8 @@ async function logSearchAnalytics(analytics: any) {
         created_at: new Date().toISOString(),
       });
   } catch (error) {
-    console.error('Failed to log search analytics', error);
+    logger.error('Failed to log search analytics', error, {
+      service: 'ai_search',
+    });
   }
 }

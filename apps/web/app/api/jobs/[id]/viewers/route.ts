@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get contractors who viewed a job
@@ -65,7 +66,11 @@ export async function GET(
       .order('viewed_at', { ascending: false });
 
     if (viewsError) {
-      console.error('Error fetching viewers:', viewsError);
+      logger.error('Error fetching viewers', viewsError, {
+        service: 'jobs',
+        jobId,
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: 'Failed to fetch viewers' },
         { status: 500 }
@@ -76,7 +81,9 @@ export async function GET(
       viewers: views || [],
     });
   } catch (error) {
-    console.error('Error in viewers route:', error);
+    logger.error('Error in viewers route', error, {
+      service: 'jobs',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

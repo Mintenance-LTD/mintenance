@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string; bidId: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string; bidId: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const { id: jobId, bidId } = await params;
     const user = await getCurrentUserFromCookies();
 
@@ -30,10 +29,9 @@ params }: { params: Promise<{ id: string; bidId: string }> }
       .single();
 
     if (jobError || !job) {
-      console.error('Failed to fetch job', {
+      logger.error('Failed to fetch job', jobError || new Error('Job not found'), {
         service: 'jobs',
         jobId,
-        error: jobError?.message,
       });
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
@@ -51,10 +49,10 @@ params }: { params: Promise<{ id: string; bidId: string }> }
       .single();
 
     if (bidError || !bid) {
-      console.error('Failed to fetch bid', {
+      logger.error('Failed to fetch bid', bidError || new Error('Bid not found'), {
         service: 'jobs',
         bidId,
-        error: bidError?.message,
+        jobId,
       });
       return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
     }
@@ -70,18 +68,19 @@ params }: { params: Promise<{ id: string; bidId: string }> }
       .eq('id', bidId);
 
     if (rejectError) {
-      console.error('Failed to reject bid', {
+      logger.error('Failed to reject bid', rejectError, {
         service: 'jobs',
         bidId,
-        error: rejectError.message,
+        jobId,
       });
       return NextResponse.json({ error: 'Failed to reject bid' }, { status: 500 });
     }
 
-    console.log('Bid rejected successfully', {
+    logger.info('Bid rejected successfully', {
       service: 'jobs',
       bidId,
       jobId,
+      homeownerId: user.id,
     });
 
     return NextResponse.json({
@@ -89,7 +88,9 @@ params }: { params: Promise<{ id: string; bidId: string }> }
       message: 'Bid rejected successfully',
     });
   } catch (error) {
-    console.error('Unexpected error in reject bid', error);
+    logger.error('Unexpected error in reject bid', error, {
+      service: 'jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
           const Stripe = (await import('stripe')).default;
           if (process.env.STRIPE_SECRET_KEY) {
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-              apiVersion: '2025-09-30.clover',
+              apiVersion: '2024-04-10',
             });
             try {
               await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
           throw new Error('STRIPE_SECRET_KEY not configured');
         }
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-          apiVersion: '2025-09-30.clover',
+          apiVersion: '2024-04-10',
         });
         
         const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
               throw new Error('STRIPE_SECRET_KEY not configured');
             }
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-              apiVersion: '2025-09-30.clover',
+              apiVersion: '2024-04-10',
             });
             
             try {
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
         throw new Error('STRIPE_SECRET_KEY not configured');
       }
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2025-09-30.clover',
+        apiVersion: '2024-04-10',
       });
 
       const customer = await stripe.customers.create({
@@ -306,19 +306,18 @@ export async function POST(request: NextRequest) {
     );
 
     // Get Stripe price ID (only for paid plans)
+    // Note: planType is guaranteed to be a paid plan at this point (free tier handled above)
     let priceId = 'free-tier';
-    if (planType !== 'free') {
-      const Stripe = (await import('stripe')).default;
-      if (!process.env.STRIPE_SECRET_KEY) {
-        throw new Error('STRIPE_SECRET_KEY not configured');
-      }
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2025-09-30.clover',
-      });
-
-      const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-      priceId = stripeSubscription.items.data[0]?.price.id || '';
+    const Stripe = (await import('stripe')).default;
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY not configured');
     }
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-04-10',
+    });
+
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    priceId = stripeSubscription.items.data[0]?.price.id || '';
 
     // Save subscription to database
     const subscriptionDbId = await SubscriptionService.saveSubscription(

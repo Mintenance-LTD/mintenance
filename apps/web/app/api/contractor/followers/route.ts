@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,7 +44,11 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (followersError) {
-      console.error('Error fetching followers list:', followersError);
+      logger.error('Error fetching followers list', followersError, {
+        service: 'contractor_followers',
+        userId: user.id,
+        contractorId,
+      });
       return NextResponse.json({ error: 'Failed to fetch followers list' }, { status: 500 });
     }
 
@@ -70,7 +75,9 @@ export async function GET(request: NextRequest) {
       offset 
     });
   } catch (error) {
-    console.error('Error in GET /api/contractor/followers:', error);
+    logger.error('Error in GET /api/contractor/followers', error, {
+      service: 'contractor_followers',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

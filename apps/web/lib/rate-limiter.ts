@@ -2,6 +2,7 @@
  * Distributed rate limiting using Redis
  * Replaces in-memory rate limiting for webhook endpoints
  */
+import { logger } from '@mintenance/shared';
 
 // Global type declaration for rate limit fallback
 declare global {
@@ -40,11 +41,15 @@ export class RedisRateLimiter {
         });
         this.initialized = true;
       } else {
-        console.warn('Redis not configured, falling back to in-memory rate limiting');
+        logger.warn('Redis not configured, falling back to in-memory rate limiting', {
+          service: 'rate_limiter',
+        });
         this.initialized = false;
       }
     } catch (error) {
-      console.warn('Failed to initialize Redis, falling back to in-memory rate limiting:', error);
+      logger.warn('Failed to initialize Redis, falling back to in-memory rate limiting', error, {
+        service: 'rate_limiter',
+      });
       this.initialized = false;
     }
   }
@@ -86,7 +91,10 @@ export class RedisRateLimiter {
         retryAfter,
       };
     } catch (error) {
-      console.error('Redis rate limiting failed, falling back to in-memory:', error);
+      logger.error('Redis rate limiting failed, falling back to in-memory', error, {
+        service: 'rate_limiter',
+        identifier: config.identifier,
+      });
       return this.fallbackRateLimit(config);
     }
   }
@@ -97,15 +105,17 @@ export class RedisRateLimiter {
     const isProduction = process.env.NODE_ENV === 'production';
 
     if (isProduction) {
-      console.warn('[rate-limiter] Redis unavailable - DEGRADED MODE active', {
-        service: 'rate-limiter',
+      logger.warn('[rate-limiter] Redis unavailable - DEGRADED MODE active', {
+        service: 'rate_limiter',
         identifier: config.identifier,
         environment: 'production',
         normalLimit: config.maxRequests,
         degradedLimit: Math.ceil(config.maxRequests * 0.1)
       });
     } else {
-      console.warn('[rate-limiter] Using in-memory fallback - not suitable for production');
+      logger.warn('[rate-limiter] Using in-memory fallback - not suitable for production', {
+        service: 'rate_limiter',
+      });
     }
 
     // Use in-memory fallback with reduced limits in production
@@ -222,7 +232,10 @@ export function recordSuccessfulLogin(request: { headers: { get: (key: string) =
   const identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                    request.headers.get('x-real-ip') ||
                    'unknown';
-  console.log(`[rate-limiter] Successful login recorded for ${identifier}`);
+  logger.info('Successful login recorded', {
+    service: 'rate_limiter',
+    identifier,
+  });
 }
 
 // Helper function to create rate limit headers for response

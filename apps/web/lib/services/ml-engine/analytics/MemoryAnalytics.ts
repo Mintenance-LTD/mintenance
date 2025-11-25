@@ -7,8 +7,8 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { memoryManager } from './MemoryManager';
-import type { MemoryPerformanceMetrics } from './types';
+import { memoryManager } from '../memory/MemoryManager';
+import type { MemoryPerformanceMetrics } from '../memory/types';
 
 /**
  * Analytics configuration

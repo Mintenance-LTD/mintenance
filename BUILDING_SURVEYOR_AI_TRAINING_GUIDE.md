@@ -248,8 +248,71 @@ Train a specialized visual language agent that acts as a building surveyor to:
 
 ### New Service Structure
 
+> **Note**: The BuildingSurveyorService has been refactored into modular components for better maintainability and testability. See [Code Quality Refactoring Summary](./docs/CODE_QUALITY_REFACTORING_SUMMARY.md) for details.
+
+#### Refactored Architecture (Current Implementation)
+
+```
+building-surveyor/
+├── config/
+│   └── BuildingSurveyorConfig.ts      # Centralized configuration
+├── utils/
+│   └── FeatureExtractionUtils.ts      # Shared feature extraction
+├── orchestration/
+│   ├── AssessmentOrchestrator.ts      # Main orchestration & flow control
+│   ├── FeatureExtractionService.ts    # Feature extraction facade
+│   └── PromptBuilder.ts               # GPT-4 Vision prompt construction
+└── index.ts                            # Public API (backward compatible)
+```
+
+**Component Responsibilities:**
+
+1. **AssessmentOrchestrator** - Coordinates the complete assessment pipeline:
+   - Manages detector services (Roboflow, Google Vision)
+   - Coordinates memory system queries
+   - Handles GPT-4 Vision API calls
+   - Builds final assessments with specialized analyses
+
+2. **FeatureExtractionService** - Unified feature extraction interface:
+   - Manages learned vs handcrafted feature extraction
+   - Automatic fallback mechanism
+   - Initialization and state management
+
+3. **PromptBuilder** - GPT-4 Vision prompt engineering:
+   - Constructs system prompts with guidelines
+   - Builds evidence summaries from detections
+   - Creates user prompts with context
+
+4. **BuildingSurveyorConfig** - Configuration management:
+   - Type-safe configuration access
+   - Centralized environment variable management
+   - Validation on load
+
+**Usage Example:**
+
+```typescript
+import { BuildingSurveyorService } from '@/lib/services/building-surveyor';
+
+// Simple assessment
+const assessment = await BuildingSurveyorService.assessDamage(
+  imageUrls,
+  {
+    propertyType: 'residential',
+    location: 'London',
+    ageOfProperty: 50,
+  }
+);
+
+// Or use components directly for advanced use cases
+import { AssessmentOrchestrator } from '@/lib/services/building-surveyor/orchestration/AssessmentOrchestrator';
+const assessment = await AssessmentOrchestrator.assessDamage(imageUrls, context);
+```
+
+#### Legacy Service Structure (Pre-Refactoring)
+
 ```typescript
 // apps/web/lib/services/BuildingSurveyorService.ts
+// Note: This structure has been refactored - see above for current implementation
 
 export interface DamageAssessment {
   damageType: string;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +31,11 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (followError && followError.code !== 'PGRST116') {
-        console.error('Error checking follow status:', followError);
+        logger.error('Error checking follow status', followError, {
+          service: 'contractor_following',
+          userId: user.id,
+          contractorId,
+        });
         return NextResponse.json({ error: 'Failed to check follow status' }, { status: 500 });
       }
 
@@ -63,7 +68,10 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (followingError) {
-      console.error('Error fetching following list:', followingError);
+      logger.error('Error fetching following list', followingError, {
+        service: 'contractor_following',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch following list' }, { status: 500 });
     }
 
@@ -90,7 +98,9 @@ export async function GET(request: NextRequest) {
       offset 
     });
   } catch (error) {
-    console.error('Error in GET /api/contractor/following:', error);
+    logger.error('Error in GET /api/contractor/following', error, {
+      service: 'contractor_following',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

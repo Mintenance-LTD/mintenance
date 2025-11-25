@@ -1,0 +1,7 @@
+filename,image_url,true_class,critical_hazard,property_type,property_age,region
+img_001.jpg,https://storage.googleapis.com/your-bucket/img_001.jpg,Structural Crack,true,residential,25,London
+img_002.jpg,https://storage.googleapis.com/your-bucket/img_002.jpg,Mold,false,residential,10,Manchester
+img_003.jpg,https://storage.googleapis.com/your-bucket/img_003.jpg,Safe,false,commercial,5,London
+img_004.jpg,https://storage.googleapis.com/your-bucket/img_004.jpg,Water Damage,false,residential,30,Birmingham
+img_005.jpg,https://storage.googleapis.com/your-bucket/img_005.jpg,Foundation Crack,true,residential,50,London
+

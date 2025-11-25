@@ -32,12 +32,12 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
         <TouchableOpacity style={styles.locationRow} onPress={onLocationPress}>
           <Ionicons name="location" size={16} color={theme.colors.secondary} />
           <Text style={styles.locationText}>{location}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.textPrimary} />
+          <Ionicons name="chevron-down" size={16} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
-        <Ionicons name="notifications" size={24} color={theme.colors.textPrimary} />
+        <Ionicons name="notifications" size={24} color={theme.colors.white} />
         {hasNotifications && <View style={styles.notificationBadge} />}
       </TouchableOpacity>
     </View>
@@ -51,14 +51,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.xl,
     paddingVertical: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.primary, // Navy Blue
   },
   locationSection: {
     flex: 1,
   },
   locationLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textInverseMuted, // Light gray
     marginBottom: 4,
   },
   locationRow: {
@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.textPrimary,
+    color: theme.colors.white, // White text
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.surfaceTertiary,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -87,6 +87,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.error,
+    backgroundColor: theme.colors.accent, // Gold accent
   },
 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 /**
  * Handle swipe actions on the Discover page
@@ -132,7 +133,12 @@ const user = await getCurrentUserFromCookies();
         });
 
       if (matchError) {
-        console.error('Error saving contractor match:', matchError);
+        logger.error('Error saving contractor match', matchError, {
+          service: 'discover',
+          userId: user.id,
+          contractorId: itemId,
+          action: matchAction,
+        });
         return NextResponse.json(
           { error: 'Failed to save match' },
           { status: 500 }
@@ -154,7 +160,9 @@ const user = await getCurrentUserFromCookies();
       { status: 400 }
     );
   } catch (error) {
-    console.error('Unexpected error in POST /api/discover/swipe', error);
+    logger.error('Unexpected error in POST /api/discover/swipe', error, {
+      service: 'discover',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

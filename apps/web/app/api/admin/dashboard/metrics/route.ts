@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -129,7 +130,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching dashboard metrics:', error);
+    logger.error('Error fetching dashboard metrics', error, {
+      service: 'admin_dashboard',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -193,7 +193,50 @@ export async function POST(request: NextRequest) {
     // 6. Standard flow (no A/B test or not enrolled)
     const assessment = await BuildingSurveyorService.assessDamage(imageUrls, context);
 
+    // 6a. Check decision result from Safe-LUCB Critic
+    const shadowModeEnabled = process.env.SHADOW_MODE_ENABLED === 'true';
+    const shouldAutomate = 
+      assessment.decisionResult?.decision === 'automate' && 
+      !shadowModeEnabled;
+
+    if (shouldAutomate) {
+      // Automated decision - return immediately
+      logger.info('Automated assessment (Safe-LUCB)', {
+        service: 'building-surveyor-api',
+        userId: user.id,
+        decision: assessment.decisionResult.decision,
+        safetyUcb: assessment.decisionResult.safetyUcb,
+        rewardUcb: assessment.decisionResult.rewardUcb,
+      });
+
+      // Still save to database for tracking (marked as validated)
+      try {
+        await serverSupabase.from('building_assessments').insert({
+          user_id: user.id,
+          cache_key: cacheKey,
+          damage_type: assessment.damageAssessment.damageType,
+          severity: assessment.damageAssessment.severity,
+          confidence: assessment.damageAssessment.confidence,
+          safety_score: assessment.safetyHazards.overallSafetyScore,
+          compliance_score: assessment.compliance.complianceScore,
+          insurance_risk_score: assessment.insuranceRisk.riskScore,
+          urgency: assessment.urgency.urgency,
+          assessment_data: assessment,
+          validation_status: 'validated', // Auto-validated by Safe-LUCB
+          created_at: new Date().toISOString(),
+        });
+      } catch (saveError) {
+        logger.warn('Failed to save automated assessment', {
+          service: 'building-surveyor-api',
+          error: saveError,
+        });
+      }
+
+      return NextResponse.json(assessment);
+    }
+
     // 7. Save assessment to database (for training data collection)
+    // Decision is 'escalate' or shadow mode - requires human review
     try {
       const { error: saveError } = await serverSupabase.from('building_assessments').insert({
         user_id: user.id,
@@ -206,7 +249,9 @@ export async function POST(request: NextRequest) {
         insurance_risk_score: assessment.insuranceRisk.riskScore,
         urgency: assessment.urgency.urgency,
         assessment_data: assessment,
-        validation_status: 'pending', // Needs human review
+        validation_status: shadowModeEnabled && assessment.decisionResult?.decision === 'automate'
+          ? 'pending_shadow' // Shadow mode: decision was automate but forced escalation
+          : 'pending', // Needs human review
         created_at: new Date().toISOString(),
       });
 

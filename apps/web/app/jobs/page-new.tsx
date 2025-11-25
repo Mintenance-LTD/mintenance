@@ -34,6 +34,8 @@ interface RawJobData {
   category?: string;
   priority?: string;
   photos?: string[];
+  homeownerName?: string;
+  contractorName?: string;
 }
 
 
@@ -50,7 +52,7 @@ export default function JobsPage() {
     queryKey: ['jobs', user?.id, user?.role],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const jobsRaw = user.role === 'homeowner'
         ? await JobService.getJobsByHomeowner(user.id)
         : await JobService.getAvailableJobs();
@@ -60,7 +62,7 @@ export default function JobsPage() {
         title: j.title ?? 'Untitled Job',
         description: j.description ?? '',
         location: j.location ?? '',
-        customer: 'John Doe', // Mock data - should come from API
+        customer: j.homeownerName ?? 'Anonymous',
         property: j.location ?? '',
         homeowner_id: j.homeowner_id ?? j.homeownerId ?? '',
         contractor_id: j.contractor_id ?? j.contractorId ?? undefined,
@@ -71,7 +73,7 @@ export default function JobsPage() {
         category: j.category ?? undefined,
         priority: (j.priority as any) ?? undefined,
         photos: j.photos ?? [],
-        assignedTo: j.contractor_id ? 'Contractor Name' : undefined,
+        assignedTo: j.contractorName ?? undefined,
         scheduledDate: j.created_at ? new Date(j.created_at).toLocaleDateString() : undefined,
       }));
     },
@@ -81,17 +83,17 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     let data = allJobs;
-    
+
     // Apply status filter
     if (statusFilter !== 'all') {
       data = data.filter((j) => j.status === statusFilter);
     }
-    
+
     // Apply priority filter
     if (priorityFilter !== 'all') {
       data = data.filter((j) => j.priority === priorityFilter);
     }
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -103,7 +105,7 @@ export default function JobsPage() {
           (j.customer && j.customer.toLowerCase().includes(q))
       );
     }
-    
+
     return data;
   }, [allJobs, statusFilter, priorityFilter, searchQuery]);
 
@@ -145,7 +147,7 @@ export default function JobsPage() {
   };
 
   return (
-    <HomeownerLayoutShell 
+    <HomeownerLayoutShell
       currentPath="/jobs"
       userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
       userEmail={user.email}

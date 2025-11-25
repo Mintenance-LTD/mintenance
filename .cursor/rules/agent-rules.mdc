@@ -653,3 +653,6 @@ export function calculateTotal(items: CartItem[], taxRate: number): number {
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 
 
+Change EAS config → Document in eas-cli-config/
+Update dependencies → Document in web-dependencies/
+Fix an issue → Document what worked and what didn't

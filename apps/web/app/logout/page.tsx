@@ -3,6 +3,9 @@ import { authManager } from '@/lib/auth-manager';
 import { logger } from '@mintenance/shared';
 import { cookies } from 'next/headers';
 
+// Mark as dynamic since we use cookies()
+export const dynamic = 'force-dynamic';
+
 /**
  * Logout Page Route
  * 

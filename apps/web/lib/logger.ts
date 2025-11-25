@@ -100,8 +100,14 @@ class Logger {
 
   private toContext(input: unknown): LogContext | undefined {
     if (input == null) return undefined;
-    if (typeof input === 'object')
-      return this.sanitizeContext(input as LogContext);
+    if (typeof input === 'object') {
+      const sanitized = this.sanitizeContext(input as LogContext);
+      // Return undefined if sanitized is empty to satisfy type requirements
+      if (!sanitized || Object.keys(sanitized).length === 0) {
+        return undefined;
+      }
+      return sanitized;
+    }
     try {
       return { value: String(input) } as LogContext;
     } catch (_) {
@@ -187,6 +193,10 @@ class Logger {
           sanitized[key] = value;
         }
       }
+      // Return undefined if empty to satisfy type requirements
+      if (Object.keys(sanitized).length === 0) {
+        return undefined;
+      }
       return sanitized as LogContext;
     } catch (error) {
       return { error: 'Failed to sanitize context' } as LogContext;
@@ -208,7 +218,10 @@ class Logger {
       ? (errorOrContextOrMessage as Error)
       : undefined;
     const ctx = isErr ? context : this.toContext(errorOrContextOrMessage);
-    const sanitizedContext = ctx ? (this.sanitizeContext(ctx) as LogContext | undefined) : undefined;
+    // Ensure ctx is a valid LogContext (has index signature) before sanitizing
+    const sanitizedContext = ctx && typeof ctx === 'object' && Object.keys(ctx).length > 0 
+      ? this.sanitizeContext(ctx as LogContext) 
+      : undefined;
     const formattedMessage = this.formatMessage(
       'error',
       message,

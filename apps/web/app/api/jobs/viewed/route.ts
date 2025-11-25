@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get job IDs that the contractor has viewed
@@ -26,18 +27,27 @@ export async function GET(request: NextRequest) {
       .eq('contractor_id', user.id);
 
     if (viewsError) {
-      console.error('Error fetching viewed jobs:', viewsError);
+      logger.error('Error fetching viewed jobs', viewsError, {
+        service: 'jobs',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch viewed jobs' }, { status: 500 });
     }
 
     // Extract job IDs
     const jobIds = (jobViews || []).map(view => view.job_id).filter(Boolean);
 
-    console.log(`[API] /api/jobs/viewed: Found ${jobIds.length} viewed jobs for contractor ${user.id}`, { jobIds });
+    logger.info('Found viewed jobs for contractor', {
+      service: 'jobs',
+      userId: user.id,
+      count: jobIds.length,
+    });
 
     return NextResponse.json({ jobIds });
   } catch (error) {
-    console.error('Unexpected error in GET /api/jobs/viewed', error);
+    logger.error('Unexpected error in GET /api/jobs/viewed', error, {
+      service: 'jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

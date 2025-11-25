@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 /**
  * Track a view for a help article
@@ -43,14 +44,21 @@ const body = await request.json();
       });
 
     if (error) {
-      console.error('Error tracking help article view:', error);
+      logger.error('Error tracking help article view', error, {
+        service: 'help_articles',
+        articleTitle,
+        category,
+        userId,
+      });
       // Don't fail the request if tracking fails
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in track-view endpoint:', error);
+    logger.error('Error in track-view endpoint', error, {
+      service: 'help_articles',
+    });
     return NextResponse.json(
       { error: 'Failed to track view' },
       { status: 500 }

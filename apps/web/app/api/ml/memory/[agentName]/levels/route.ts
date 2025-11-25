@@ -8,17 +8,17 @@ import { logger } from '@mintenance/shared';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { agentName: string } }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
   try {
-    const { agentName } = params;
+    const { agentName } = await params;
     const levels = memoryManager.getMemoryLevels(agentName);
 
     return NextResponse.json({ levels });
   } catch (error) {
     logger.error('Error getting memory levels', error, {
       service: 'MemoryAPI',
-      agentName: params.agentName,
+      agentName: 'unknown',
     });
     return NextResponse.json(
       { error: 'Failed to get memory levels' },

@@ -36,7 +36,10 @@
     "create:gcp-buckets": "tsx scripts/create-gcp-buckets.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "audit:use-client": "node scripts/audit-use-client.js",
+    "audit:file-sizes": "node scripts/check-file-sizes.js",
+    "audit:all": "npm run audit:use-client && npm run audit:file-sizes"
   },
   "keywords": [
     "marketplace",
@@ -62,6 +65,7 @@
     "jest": "^30.2.0",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.5",
+    "tailwindcss": "^3.4.18",
     "ts-jest": "^29.4.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

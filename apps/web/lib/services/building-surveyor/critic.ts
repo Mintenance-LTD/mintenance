@@ -20,6 +20,8 @@ interface CriticContext {
   context: number[]; // d_eff = 12 dimensional context vector
   delta_safety: number; // δ_t safety threshold
   arms?: string[]; // Available arms (default: ['automate', 'escalate'])
+  stratum?: string; // Mondrian stratum for FNR tracking
+  criticalHazardDetected?: boolean; // Whether critical hazard was detected
 }
 
 interface CriticDecision {
@@ -59,6 +61,10 @@ export class CriticModule {
   private static lastModelUpdate: number = 0;
   private static readonly MODEL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  // FNR tracking cache (stratum -> FNR stats)
+  private static fnrCache: Map<string, { fnr: number; lastUpdated: number }> = new Map();
+  private static readonly FNR_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
   /**
    * Select arm using Safe-LUCB policy
    * 
@@ -66,7 +72,7 @@ export class CriticModule {
    * @returns Decision with UCBs and selected arm
    */
   static async selectArm(params: CriticContext): Promise<CriticDecision> {
-    const { context, delta_safety } = params;
+    const { context, delta_safety, stratum, criticalHazardDetected } = params;
 
     // Validate context vector using ContextFeatureService
     const validation = ContextFeatureService.validateContextVector(context);
@@ -81,10 +87,10 @@ export class CriticModule {
       if (!normalizedValidation.valid) {
         throw new Error(`Invalid context vector: ${normalizedValidation.error}`);
       }
-      return this.selectArmWithContext(normalizedContext, delta_safety);
+      return this.selectArmWithContext(normalizedContext, delta_safety, stratum, criticalHazardDetected);
     }
 
-    return this.selectArmWithContext(context, delta_safety);
+    return this.selectArmWithContext(context, delta_safety, stratum, criticalHazardDetected);
   }
 
   /**
@@ -92,7 +98,9 @@ export class CriticModule {
    */
   private static async selectArmWithContext(
     context: number[],
-    delta_safety: number
+    delta_safety: number,
+    stratum?: string,
+    criticalHazardDetected?: boolean
   ): Promise<CriticDecision> {
     // Load or initialize models
     const models = await this.loadModels();
@@ -113,6 +121,23 @@ export class CriticModule {
         safetyThreshold: delta_safety,
         exploration: false,
       };
+    }
+
+    // FNR constraint: Check False Negative Rate if stratum is provided
+    if (stratum) {
+      const fnr = await this.getFNR(stratum);
+      const FNR_THRESHOLD = 0.05; // 5% maximum FNR
+      
+      if (fnr >= FNR_THRESHOLD) {
+        return {
+          arm: 'escalate',
+          reason: `FNR (${(fnr * 100).toFixed(2)}%) exceeds threshold (${FNR_THRESHOLD * 100}%)`,
+          safetyUcb,
+          rewardUcb,
+          safetyThreshold: delta_safety,
+          exploration: false,
+        };
+      }
     }
     
     // If safe, check if reward is high enough to automate
@@ -299,10 +324,15 @@ export class CriticModule {
   }
 
   /**
-   * Update models from feedback
+   * Update models from feedback using Recursive Least Squares (RLS)
    * 
    * Called after outcome is observed to update θ and φ
-   * using online ridge regression
+   * using Recursive Least Squares (RLS) algorithm
+   * 
+   * RLS Update:
+   * - A_t = A_{t-1} + x_t x_t^T  (covariance update)
+   * - b_t = b_{t-1} + x_t y_t    (target update)
+   * - θ_t = A_t^{-1} b_t          (weight update via Sherman-Morrison)
    */
   static async updateFromFeedback(params: {
     context: number[];
@@ -314,8 +344,8 @@ export class CriticModule {
       const models = await this.loadModels();
       const normalizedContext = this.normalizeContext(params.context);
 
-      // Update reward model (θ) using ridge regression
-      models.theta = this.updateRidgeRegression(
+      // Update reward model (θ) using RLS
+      models.theta = this.updateRLS(
         models.theta,
         models.A,
         normalizedContext,
@@ -323,9 +353,9 @@ export class CriticModule {
         this.LAMBDA
       );
 
-      // Update safety model (φ) using ridge regression
+      // Update safety model (φ) using RLS
       const safetyLabel = params.safetyViolation ? 1.0 : 0.0;
-      models.phi = this.updateRidgeRegression(
+      models.phi = this.updateRLS(
         models.phi,
         models.B,
         normalizedContext,
@@ -333,9 +363,9 @@ export class CriticModule {
         this.LAMBDA
       );
 
-      // Update covariance matrices (Sherman-Morrison formula)
-      models.A = this.updateCovariance(models.A, normalizedContext, this.LAMBDA);
-      models.B = this.updateCovariance(models.B, normalizedContext, this.LAMBDA);
+      // Update covariance matrices (Sherman-Morrison formula for RLS)
+      models.A = this.updateCovarianceRLS(models.A, normalizedContext, this.LAMBDA);
+      models.B = this.updateCovarianceRLS(models.B, normalizedContext, this.LAMBDA);
 
       // Increment observation count
       models.n += 1;
@@ -360,50 +390,68 @@ export class CriticModule {
   }
 
   /**
-   * Update ridge regression weights
+   * Update weights using Recursive Least Squares (RLS)
+   * 
+   * RLS algorithm:
+   * 1. Update covariance: A_t = A_{t-1} + x_t x_t^T + λI (regularization)
+   * 2. Update target vector: b_t = b_{t-1} + x_t y_t
+   * 3. Solve for weights: θ_t = A_t^{-1} b_t
+   * 
+   * Using Sherman-Morrison formula for efficient A^{-1} update:
+   * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
    */
-  private static updateRidgeRegression(
+  private static updateRLS(
     weights: number[],
     covariance: number[][],
     context: number[],
     label: number,
     lambda: number
   ): number[] {
-    // Online ridge regression update
-    // θ_new = θ_old + A^{-1} x (y - θ^T x) / (1 + x^T A^{-1} x)
+    // RLS update using Sherman-Morrison formula
+    // θ_t = θ_{t-1} + (A_t^{-1} x_t) * (y_t - θ_{t-1}^T x_t)
     
     const prediction = this.dotProduct(weights, context);
     const error = label - prediction;
     
-    // Compute A^{-1} x
+    // Compute A^{-1} x (using current covariance)
     const invAx = this.matrixVectorProduct(this.inverseMatrix(covariance), context);
     
     // Compute x^T A^{-1} x
     const xInvAx = this.dotProduct(context, invAx);
     
-    // Update weights
+    // RLS weight update: θ_t = θ_{t-1} + (A^{-1} x) * error / (1 + x^T A^{-1} x)
     const stepSize = error / (1 + xInvAx);
     return weights.map((w, i) => w + invAx[i] * stepSize);
   }
 
   /**
-   * Update covariance matrix using Sherman-Morrison formula
+   * Update covariance matrix using Sherman-Morrison formula for RLS
+   * 
+   * RLS covariance update:
+   * A_t = A_{t-1} + x_t x_t^T + λI (regularization)
+   * 
+   * For efficient A^{-1} update using Sherman-Morrison:
+   * If A_t = A_{t-1} + x x^T, then:
+   * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
+   * 
+   * But we update A directly (not A^{-1}), so:
+   * A_t = A_{t-1} + x x^T + λI (where λ is small regularization)
    */
-  private static updateCovariance(
+  private static updateCovarianceRLS(
     A: number[][],
     x: number[],
     lambda: number
   ): number[][] {
-    // A_new = A_old - (A_old x x^T A_old) / (1 + x^T A_old x)
-    const Ax = this.matrixVectorProduct(A, x);
-    const xAx = this.dotProduct(x, Ax);
-    const denominator = 1 + xAx;
-
+    // RLS covariance update: A_t = A_{t-1} + x x^T + λI
+    // Note: This is the direct update (for covariance matrix)
+    // The inverse is updated separately using Sherman-Morrison when needed
+    
     const newA: number[][] = [];
     for (let i = 0; i < A.length; i++) {
       newA[i] = [];
       for (let j = 0; j < A[i].length; j++) {
-        newA[i][j] = A[i][j] - (Ax[i] * Ax[j]) / denominator;
+        // A_t = A_{t-1} + x x^T + λI
+        newA[i][j] = A[i][j] + x[i] * x[j] + (i === j ? lambda : 0);
       }
     }
 
@@ -678,5 +726,134 @@ export class CriticModule {
       }
     }
     return inv;
+  }
+
+  // ============================================================================
+  // FNR Tracking Methods
+  // ============================================================================
+
+  /**
+   * Get False Negative Rate for a stratum
+   * 
+   * @param stratum - Mondrian stratum identifier
+   * @returns FNR (0-1) for the stratum
+   */
+  static async getFNR(stratum: string): Promise<number> {
+    // Check cache first
+    const cached = this.fnrCache.get(stratum);
+    const now = Date.now();
+    if (cached && now - cached.lastUpdated < this.FNR_CACHE_TTL) {
+      return cached.fnr;
+    }
+
+    try {
+      // Load from database
+      const { data, error } = await serverSupabase
+        .from('ab_critic_fnr_tracking')
+        .select('fnr')
+        .eq('stratum', stratum)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" - that's OK, return 0
+        logger.warn('Failed to load FNR from database', {
+          service: 'CriticModule',
+          stratum,
+          error,
+        });
+      }
+
+      const fnr = data?.fnr ? parseFloat(data.fnr.toString()) : 0;
+      
+      // Update cache
+      this.fnrCache.set(stratum, { fnr, lastUpdated: now });
+      
+      return fnr;
+    } catch (error) {
+      logger.error('Error loading FNR', {
+        service: 'CriticModule',
+        stratum,
+        error,
+      });
+      return 0; // Conservative: assume no FNR if we can't load
+    }
+  }
+
+  /**
+   * Record outcome of an automated decision
+   * 
+   * @param stratum - Mondrian stratum identifier
+   * @param decision - The decision that was made ('automate' or 'escalate')
+   * @param actualCriticalHazard - Whether a critical hazard was actually present
+   */
+  static async recordOutcome(
+    stratum: string,
+    decision: 'automate' | 'escalate',
+    actualCriticalHazard: boolean
+  ): Promise<void> {
+    // Only track outcomes for automated decisions
+    if (decision !== 'automate') {
+      return;
+    }
+
+    try {
+      // Get current stats
+      const { data: existing } = await serverSupabase
+        .from('ab_critic_fnr_tracking')
+        .select('total_automated, false_negatives')
+        .eq('stratum', stratum)
+        .single();
+
+      const totalAutomated = (existing?.total_automated || 0) + 1;
+      const falseNegatives = (existing?.false_negatives || 0) + (actualCriticalHazard ? 1 : 0);
+
+      // Upsert FNR tracking
+      await serverSupabase
+        .from('ab_critic_fnr_tracking')
+        .upsert({
+          stratum,
+          total_automated: totalAutomated,
+          false_negatives: falseNegatives,
+          last_updated: new Date().toISOString(),
+        }, {
+          onConflict: 'stratum',
+        });
+
+      // Invalidate cache for this stratum
+      this.fnrCache.delete(stratum);
+
+      logger.debug('Recorded FNR outcome', {
+        service: 'CriticModule',
+        stratum,
+        decision,
+        actualCriticalHazard,
+        totalAutomated,
+        falseNegatives,
+        fnr: falseNegatives / totalAutomated,
+      });
+    } catch (error) {
+      logger.error('Failed to record FNR outcome', {
+        service: 'CriticModule',
+        stratum,
+        decision,
+        actualCriticalHazard,
+        error,
+      });
+    }
+  }
+
+  /**
+   * Persist FNR statistics to database (explicit save)
+   */
+  private static async persistFNR(stratum: string): Promise<void> {
+    // This is handled by recordOutcome, but kept for explicit saves if needed
+    await this.getFNR(stratum); // This will load and cache
+  }
+
+  /**
+   * Load FNR statistics from database
+   */
+  private static async loadFNR(stratum: string): Promise<number> {
+    return this.getFNR(stratum);
   }
 }

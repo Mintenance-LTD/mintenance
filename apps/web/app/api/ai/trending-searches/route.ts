@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
       .limit(limit);
 
     if (error) {
-      console.error('Trending searches error:', error);
+      logger.error('Trending searches error', error, {
+        service: 'ai_trending_searches',
+      });
       return NextResponse.json({ trending: [] });
     }
 
@@ -35,7 +38,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ trending });
   } catch (error) {
-    console.error('Trending searches API error:', error);
+    logger.error('Trending searches API error', error, {
+      service: 'ai_trending_searches',
+    });
     return NextResponse.json({ trending: [] });
   }
 }

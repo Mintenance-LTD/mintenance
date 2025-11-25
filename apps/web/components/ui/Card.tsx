@@ -99,18 +99,23 @@ function CardComponent({
   );
 }
 
-// Named export
-export const Card = CardComponent;
+// Named export with sub-components attached for backward compatibility
+export const Card = Object.assign(CardComponent, {
+  Header: SharedCardHeader,
+  Footer: SharedCardFooter,
+  Title: CardTitle,
+  Description: CardDescription,
+  Content: CardContent,
+}) as typeof CardComponent & {
+  Header: typeof SharedCardHeader;
+  Footer: typeof SharedCardFooter;
+  Title: typeof CardTitle;
+  Description: typeof CardDescription;
+  Content: typeof CardContent;
+};
 
 // Re-export sub-components
 export { CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '@mintenance/shared-ui';
-
-// For backward compatibility with Card.Header, Card.Title, etc.
-Card.Header = SharedCardHeader;
-Card.Footer = SharedCardFooter;
-Card.Title = CardTitle;
-Card.Description = CardDescription;
-Card.Content = CardContent;
 
 // Default export
 export default Card;

@@ -5,6 +5,7 @@ import { securityMonitor } from '@/lib/security-monitor';
 import { IPBlockingService } from '@/lib/services/admin/IPBlockingService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,11 @@ export async function GET(request: NextRequest) {
       .rpc('get_security_dashboard_metrics', { p_timeframe: timeframe });
 
     if (error) {
-      console.error('Error fetching security metrics:', error);
+      logger.error('Error fetching security metrics', error, {
+        service: 'admin_security',
+        timeframe,
+        userId: user.id,
+      });
       // If RPC function doesn't exist, return empty metrics instead of error
       if (error.code === '42883' || error.message?.includes('function') || error.message?.includes('does not exist')) {
         // Function doesn't exist - return empty metrics
@@ -95,7 +100,10 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (eventsError) {
-      console.error('Error fetching recent events:', eventsError);
+      logger.error('Error fetching recent events', eventsError, {
+        service: 'admin_security',
+        userId: user.id,
+      });
       // If table doesn't exist, continue with empty array
       if (eventsError.code === '42P01' || eventsError.message?.includes('does not exist')) {
         // Table doesn't exist - return empty array
@@ -129,7 +137,10 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (ipsError) {
-      console.error('Error fetching IP data:', ipsError);
+      logger.error('Error fetching IP data', ipsError, {
+        service: 'admin_security',
+        userId: user.id,
+      });
       // If table doesn't exist, continue with empty array
       if (ipsError.code === '42P01' || ipsError.message?.includes('does not exist')) {
         const emptyMetrics = metrics?.[0] || {
@@ -192,7 +203,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Security dashboard error:', error);
+    logger.error('Security dashboard error', error, {
+      service: 'admin_security',
+    });
     return NextResponse.json(
       { error: 'Failed to load security dashboard' },
       { status: 500 }
@@ -227,7 +240,11 @@ export async function POST(request: NextRequest) {
         .eq('id', eventId);
 
       if (error) {
-        console.error('Error resolving security event:', error);
+        logger.error('Error resolving security event', error, {
+          service: 'admin_security',
+          eventId,
+          userId: user.id,
+        });
         return NextResponse.json({ error: 'Failed to resolve event' }, { status: 500 });
       }
 
@@ -326,7 +343,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {
-    console.error('Security dashboard action error:', error);
+    logger.error('Security dashboard action error', error, {
+      service: 'admin_security',
+    });
     return NextResponse.json(
       { error: 'Failed to perform security action' },
       { status: 500 }

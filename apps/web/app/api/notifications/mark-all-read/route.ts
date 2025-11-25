@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -23,7 +24,10 @@ const { userId } = await request.json();
       .eq('read', false);
 
     if (error) {
-      console.error('Mark all as read error:', error);
+      logger.error('Mark all as read error', error, {
+        service: 'notifications',
+        userId,
+      });
       return NextResponse.json(
         { error: 'Failed to mark all as read' },
         { status: 500 }
@@ -32,7 +36,9 @@ const { userId } = await request.json();
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Mark all as read API error:', error);
+    logger.error('Mark all as read API error', error, {
+      service: 'notifications',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,0 +1,19 @@
+{
+  "extends": "../apps/web/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../",
+    "moduleResolution": "node",
+    "paths": {
+      "@/*": ["apps/web/*"],
+      "@mintenance/types": ["packages/types/src"],
+      "@mintenance/auth": ["packages/auth/src"],
+      "@mintenance/shared": ["packages/shared/src"]
+    }
+  },
+  "include": [
+    "../apps/web/**/*",
+    "../packages/**/*",
+    "./**/*"
+  ]
+}
+

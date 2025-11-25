@@ -5,6 +5,7 @@
  * Used in Service Areas management to help contractors optimize coverage
  */
 
+import { logger } from '@mintenance/shared';
 import { calculateDistance } from './map-utils';
 
 export interface ServiceArea {
@@ -87,7 +88,10 @@ export function calculateOverlapPercentage(
 
     return Math.max(0, Math.min(100, (overlapArea / totalArea) * 100));
   } catch (error) {
-    console.error('Error calculating overlap percentage:', error);
+    logger.error('Error calculating overlap percentage', {
+      service: 'overlap-detection',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return 0;
   }
 }

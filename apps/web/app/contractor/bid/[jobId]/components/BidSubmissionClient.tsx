@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { QuoteLineItems, QuoteLineItem } from './QuoteLineItems';
+import { logger } from '@/lib/logger';
 
 interface BidSubmissionClientProps {
   job: {
@@ -93,9 +94,9 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
 
     // Validate proposal text length (minimum 50 characters)
     if (description.trim().length < 50) {
-      setFeedback({ 
-        type: 'error', 
-        message: `Proposal description must be at least 50 characters. You have ${description.trim().length} characters. Please provide more details about your approach, timeline, and experience.` 
+      setFeedback({
+        type: 'error',
+        message: `Proposal description must be at least 50 characters. You have ${description.trim().length} characters. Please provide more details about your approach, timeline, and experience.`
       });
       return;
     }
@@ -131,7 +132,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
         ...quoteData,
       };
 
-      console.log('Submitting bid:', { jobId: job.id, bidAmount: totalAmount, proposalLength: description.trim().length });
+      logger.info('Submitting bid', { jobId: job.id, bidAmount: totalAmount, proposalLength: description.trim().length });
 
       const response = await fetch('/api/contractor/submit-bid', {
         method: 'POST',
@@ -140,30 +141,25 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       });
 
       // Log response details immediately
-      console.log('Response received:', {
+      logger.debug('Response received', {
         ok: response.ok,
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
       });
 
       let responseData: any = {};
       let responseText = '';
-      
+
       try {
         responseText = await response.text();
-        console.log('API Response status:', response.status);
-        console.log('API Response statusText:', response.statusText);
-        console.log('API Response text:', responseText);
-        console.log('API Response text length:', responseText.length);
-        console.log('API Response is empty:', !responseText || responseText.trim().length === 0);
-        
+        // logger.debug('API Response details', { status: response.status, length: responseText.length });
+
         if (responseText && responseText.trim()) {
           try {
             responseData = JSON.parse(responseText);
-            console.log('API Response data:', responseData);
+            // logger.debug('API Response data', responseData);
           } catch (parseError) {
-            console.error('Failed to parse JSON response:', parseError, 'Response text:', responseText);
+            logger.error('Failed to parse JSON response', { error: parseError, responseText });
             // If we can't parse JSON but have a status, use the status
             if (!response.ok) {
               throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}. ${responseText.substring(0, 200)}`);
@@ -172,7 +168,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
           }
         } else if (!response.ok) {
           // Empty response but error status - this is the issue!
-          console.warn('Empty response body with error status:', {
+          logger.warn('Empty response body with error status', {
             status: response.status,
             statusText: response.statusText,
           });
@@ -194,7 +190,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
         }
       } catch (readError: any) {
         // If we can't read the response at all
-        console.error('Error reading response:', readError);
+        logger.error('Error reading response', readError);
         if (!response.ok) {
           const statusMessages: Record<number, string> = {
             400: 'Invalid request. Please check your bid details.',
@@ -231,30 +227,18 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
         // Log everything about the response
         const responseDataKeys = Object.keys(responseData);
         const isEmptyResponse = responseDataKeys.length === 0;
-        
+
         // Log primitive values first to avoid console rendering issues
-        console.error('=== API ERROR DEBUG START ===');
-        console.error('Status:', response.status);
-        console.error('Status Text:', response.statusText);
-        console.error('Response Data Keys Length:', responseDataKeys.length);
-        console.error('Response Data Keys:', responseDataKeys);
-        console.error('Is Empty Response:', isEmptyResponse);
-        console.error('Response Text:', responseText);
-        console.error('Response Text Length:', responseText.length);
-        console.error('JSON Stringified:', JSON.stringify(responseData));
-        console.error('responseData.error:', responseData.error);
-        console.error('responseData.message:', responseData.message);
-        console.error('responseData.detail:', responseData.detail);
-        console.error('=== API ERROR DEBUG END ===');
+        // Debug logging removed for production
 
         // Check if response is empty FIRST, before any other processing
         if (isEmptyResponse) {
           const defaultMessage = getStatusMessage(response.status);
-          console.error('>>> EMPTY RESPONSE - Throwing status-based error:', defaultMessage);
+          logger.error('EMPTY RESPONSE - Throwing status-based error', { defaultMessage });
           throw new Error(defaultMessage);
         }
-        
-        console.error('>>> RESPONSE NOT EMPTY - Keys found:', responseDataKeys.length);
+
+        // console.error('>>> RESPONSE NOT EMPTY - Keys found:', responseDataKeys.length);
 
         // Handle validation errors with details (Zod validation)
         if (responseData.details && Array.isArray(responseData.details)) {
@@ -282,70 +266,59 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
         const errorFromMessage = responseData.message;
         const errorFromDetail = responseData.detail;
         const errorIfString = typeof responseData === 'string' && responseData.trim() ? responseData : '';
-        
+
         const errorMessage = errorFromError || errorFromMessage || errorFromDetail || errorIfString;
-        
+
         // Log primitive values
-        console.error('=== ERROR MESSAGE EXTRACTION ===');
-        console.error('errorFromError:', errorFromError);
-        console.error('errorFromMessage:', errorFromMessage);
-        console.error('errorFromDetail:', errorFromDetail);
-        console.error('errorIfString:', errorIfString);
-        console.error('finalErrorMessage:', errorMessage);
-        console.error('errorMessageType:', typeof errorMessage);
-        console.error('errorMessageLength:', typeof errorMessage === 'string' ? errorMessage.length : 'N/A');
-        console.error('=== END ERROR MESSAGE EXTRACTION ===');
-        
+        // Error message extraction debug removed
+
         // Check if we have a valid, non-empty error message
         const hasValidErrorMessage = typeof errorMessage === 'string' && errorMessage.trim().length > 0;
-        
-        console.error('>>> Has Valid Error Message:', hasValidErrorMessage);
-        
+
+        // console.error('>>> Has Valid Error Message:', hasValidErrorMessage);
+
         if (!hasValidErrorMessage) {
           const defaultMessage = getStatusMessage(response.status);
-          console.error('>>> NO VALID ERROR - Throwing status-based error:', defaultMessage);
+          logger.error('NO VALID ERROR - Throwing status-based error', { defaultMessage });
           throw new Error(defaultMessage);
         }
-        
+
         // We have a valid error message from the API
         // BUT check if it's the generic "Failed to submit bid" message (which shouldn't happen)
         if (errorMessage === 'Failed to submit bid' || errorMessage === 'Failed to submit bid.') {
           const defaultMessage = getStatusMessage(response.status);
-          console.error('>>> DETECTED GENERIC ERROR MESSAGE - Replacing with status-based error:', defaultMessage);
+          logger.error('DETECTED GENERIC ERROR MESSAGE - Replacing with status-based error', { defaultMessage });
           throw new Error(defaultMessage);
         }
-        
-        console.error('>>> USING API ERROR MESSAGE:', errorMessage);
+
+        // logger.debug('USING API ERROR MESSAGE', { errorMessage });
         throw new Error(errorMessage);
       }
 
-      setFeedback({ 
-        type: 'success', 
-        message: responseData.message || (responseData.updated ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.') 
+      setFeedback({
+        type: 'success',
+        message: responseData.message || (responseData.updated ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.')
       });
       setTimeout(() => router.push('/contractor/bid'), 1200);
     } catch (error: any) {
-      console.error('Bid submission error:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error message:', error?.message);
-      console.error('Error string:', error?.toString());
-      
+      logger.error('Bid submission error', error);
+
       // Handle network errors
       if (error instanceof TypeError && error.message?.includes('fetch')) {
         setFeedback({ type: 'error', message: 'Network error. Please check your connection and try again.' });
         return;
       }
-      
+
       // Extract meaningful error message
       let errorMessage = error?.message || error?.toString() || '';
-      
+
       // If we still have the generic "Failed to submit bid" message, something went wrong
       // This should never happen with our error handling above, but just in case...
       if (!errorMessage || errorMessage === 'Failed to submit bid' || errorMessage === 'Failed to submit bid.' || errorMessage === 'Failed to submit bid. Please try again.') {
         errorMessage = 'An error occurred while submitting your bid. Please try again or contact support if the issue persists.';
-        console.error('Generic error message detected in catch block. This indicates an unexpected error flow.');
+        logger.error('Generic error message detected in catch block. This indicates an unexpected error flow.');
       }
-      
+
       setFeedback({ type: 'error', message: errorMessage });
     } finally {
       setSubmitting(false);
@@ -511,10 +484,10 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
                 transition: 'all 0.2s',
               }}
             >
-              <Icon 
-                name={showAdvancedQuote ? 'chevronUp' : 'chevronDown'} 
-                size={16} 
-                color={showAdvancedQuote ? theme.colors.textInverse : theme.colors.textPrimary} 
+              <Icon
+                name={showAdvancedQuote ? 'chevronUp' : 'chevronDown'}
+                size={16}
+                color={showAdvancedQuote ? theme.colors.textInverse : theme.colors.textPrimary}
               />
               {showAdvancedQuote ? 'Hide Details' : 'Advanced Quote Details'}
             </button>

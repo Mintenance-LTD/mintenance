@@ -6,11 +6,21 @@
   "installCommand": "npm ci --ignore-scripts",
   "framework": "nextjs",
   "outputDirectory": "apps/web/.next",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
       "maxDuration": 30
+    },
+    "app/api/building-surveyor/**/*.ts": {
+      "memory": 2048,
+      "maxDuration": 60
+    },
+    "app/api/ai/**/*.ts": {
+      "memory": 2048,
+      "maxDuration": 60
     }
   },
   "headers": [

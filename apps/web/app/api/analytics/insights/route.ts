@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorAnalyticsService } from '@/lib/services/ContractorAnalyticsService';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ insights });
   } catch (error: any) {
-    console.error('Error fetching analytics insights:', error);
+    logger.error('Error fetching analytics insights', error, {
+      service: 'analytics',
+      userId: user.id,
+    });
     return NextResponse.json(
       { error: error.message || 'Failed to fetch insights' },
       { status: 500 }

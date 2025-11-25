@@ -2,6 +2,8 @@
  * Timeout utilities for preventing function timeouts
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface TimeoutOptions {
   timeoutMs?: number;
   fallbackValue?: any;
@@ -30,7 +32,10 @@ export async function withTimeout<T>(
     })
   ]).catch(error => {
     if (error.message === errorMessage) {
-      console.warn(`Operation timed out after ${timeoutMs}ms, returning fallback`);
+      logger.warn('Operation timed out, returning fallback', {
+        service: 'timeout-utils',
+        timeoutMs,
+      });
       return fallbackValue;
     }
     throw error;

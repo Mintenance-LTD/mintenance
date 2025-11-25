@@ -209,6 +209,7 @@ export function DashboardRevenueChart({ data }: DashboardRevenueChartProps) {
       subtitle="Last 6 months"
       data={data.map((item) => ({
         label: item.month,
+        value: item.revenue, // Required property
         revenue: item.revenue,
         expenses: item.expenses,
         profit: item.profit,

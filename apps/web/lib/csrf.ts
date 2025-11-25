@@ -3,6 +3,7 @@
  * Validates CSRF tokens for API routes to prevent cross-site request forgery
  */
 
+import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
 
 /**
@@ -54,7 +55,10 @@ export async function validateCSRF(request: NextRequest): Promise<boolean> {
     
     return headerToken === cookieToken;
   } catch (error) {
-    console.error('CSRF validation error:', error);
+    logger.error('CSRF validation error', {
+      service: 'csrf',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }

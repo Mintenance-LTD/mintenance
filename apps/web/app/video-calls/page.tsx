@@ -2,31 +2,18 @@
 
 import React, { useState } from 'react';
 import { fetchCurrentUser } from '@/lib/auth-client';
-// import { VideoCall as VideoCallComponent } from '@/components/video-call/VideoCall';
 import { theme } from '@/lib/theme';
 import Logo from '../components/Logo';
 import Link from 'next/link';
-import type { VideoCall, User } from '@mintenance/types';
-
-// Placeholder components until video call implementation is complete
-const VideoCallInterface = ({ call, currentUserId, onEndCall }: any) => (
-  <div>Video Call Interface - Coming Soon</div>
-);
-const VideoCallHistory = ({ userId }: any) => (
-  <div>Video Call History - Coming Soon</div>
-);
-const VideoCallScheduler = ({ currentUserId, onSchedule, onCancel }: any) => (
-  <div>Video Call Scheduler - Coming Soon</div>
-);
+import { User } from '@mintenance/types';
+import { VideoCallInterface } from './components/VideoCallInterface';
+import { VideoCallHistory } from './components/VideoCallHistory';
+import { VideoCallScheduler, DBVideoCall } from './components/VideoCallScheduler';
 
 export default function VideoCallsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
-  const [activeCall, setActiveCall] = useState<VideoCall | null>(null);
-  const [selectedParticipant, setSelectedParticipant] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [activeCall, setActiveCall] = useState<DBVideoCall | null>(null);
 
   // Set page title
   React.useEffect(() => {
@@ -47,24 +34,18 @@ export default function VideoCallsPage() {
   }, []);
 
   const handleScheduleCall = () => {
-    // In a real app, you'd probably have a participant selector first
-    setSelectedParticipant({
-      id: 'sample-participant',
-      name: 'John Contractor'
-    });
     setShowScheduler(true);
   };
 
-  const handleCallScheduled = (call: VideoCall) => {
+  const handleCallScheduled = (call: DBVideoCall) => {
     setShowScheduler(false);
-    setSelectedParticipant(null);
     // Optionally start the call immediately if it's an instant call
-    if (!call.scheduledAt || new Date(call.scheduledAt) <= new Date()) {
+    if (!call.scheduled_time || new Date(call.scheduled_time) <= new Date()) {
       setActiveCall(call);
     }
   };
 
-  const handleJoinCall = (call: VideoCall) => {
+  const handleJoinCall = (call: DBVideoCall) => {
     setActiveCall(call);
   };
 
@@ -74,7 +55,6 @@ export default function VideoCallsPage() {
 
   const handleCancelScheduler = () => {
     setShowScheduler(false);
-    setSelectedParticipant(null);
   };
 
   if (!currentUser) {
@@ -275,15 +255,12 @@ export default function VideoCallsPage() {
         />
 
         {/* Scheduler Modal */}
-        {showScheduler && selectedParticipant && (
-          <VideoCallScheduler
-            participantId={selectedParticipant.id}
-            participantName={selectedParticipant.name}
-            onScheduled={handleCallScheduled}
-            onCancel={handleCancelScheduler}
-            isVisible={true}
-          />
-        )}
+        <VideoCallScheduler
+          currentUserId={currentUser.id}
+          onScheduled={handleCallScheduled}
+          onCancel={handleCancelScheduler}
+          isVisible={showScheduler}
+        />
 
         {/* Features Info */}
         <div style={{

@@ -9,7 +9,7 @@ import { env } from '@/lib/env';
 import { requireCronAuth } from '@/lib/cron-auth';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2024-04-10',
 });
 
 /**

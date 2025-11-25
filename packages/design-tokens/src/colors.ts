@@ -7,57 +7,57 @@
  */
 
 export const colors = {
-  // Primary Brand Colors
-  primary: '#0F172A', // Very dark blue/slate - navy blue
-  primaryLight: '#1E293B', // Lighter but still dark blue
-  primaryDark: '#020617', // Darkest blue for pressed states
+  // Primary Brand Colors (Deep Navy)
+  primary: '#0F172A', // Deep Navy - Main brand color
+  primaryLight: '#1E293B', // Lighter Navy
+  primaryDark: '#020617', // Darkest Navy
 
-  // Secondary Colors
-  secondary: '#10B981', // Vibrant emerald green
-  secondaryLight: '#34D399', // Lighter emerald
-  secondaryDark: '#059669', // Darker emerald
+  // Secondary Colors (Emerald Green)
+  secondary: '#10B981', // Emerald Green - Primary Action
+  secondaryLight: '#34D399',
+  secondaryDark: '#059669',
 
-  // Accent Colors
-  accent: '#F59E0B', // Warm amber
-  accentLight: '#FCD34D', // Light amber
-  accentDark: '#D97706', // Dark amber
+  // Accent Colors (Premium Gold)
+  accent: '#F59E0B', // Premium Gold - Highlights/Ratings
+  accentLight: '#FCD34D',
+  accentDark: '#D97706',
 
-  // Success/Error States
-  success: '#34C759',
-  successLight: '#5DD579',
-  successDark: '#248A3D',
+  // Neutral Colors - Slate Gray Scale (Cooler grays for tech feel)
+  gray25: '#F8FAFC',
+  gray50: '#F1F5F9',
+  gray100: '#E2E8F0',
+  gray200: '#CBD5E1',
+  gray300: '#94A3B8',
+  gray400: '#64748B',
+  gray500: '#475569',
+  gray600: '#334155',
+  gray700: '#1E293B',
+  gray800: '#0F172A',
+  gray900: '#020617',
 
-  error: '#FF3B30',
-  errorLight: '#FF6B61',
-  errorDark: '#D70015',
+  // Semantic Colors
+  success: '#10B981', // Emerald
+  successLight: '#34D399',
+  successDark: '#059669',
 
-  warning: '#FF9500',
-  warningLight: '#FFB143',
-  warningDark: '#CC7700',
+  error: '#EF4444', // Red
+  errorLight: '#F87171',
+  errorDark: '#DC2626',
 
-  info: '#007AFF',
-  infoLight: '#339FFF',
-  infoDark: '#0051D5',
+  warning: '#F59E0B', // Amber
+  warningLight: '#FBBF24',
+  warningDark: '#D97706',
 
-  // Neutral Colors - Gray Scale
-  gray25: '#FCFCFD',
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
+  info: '#3B82F6', // Blue
+  infoLight: '#60A5FA',
+  infoDark: '#2563EB',
 
   // Background Colors
   background: '#FFFFFF',
-  backgroundSecondary: '#F8FAFC',
-  backgroundTertiary: '#F1F5F9',
-  backgroundDark: '#1F2937',
-  backgroundSubtle: '#FCFCFD',
+  backgroundSecondary: '#F8FAFC', // Slate 50
+  backgroundTertiary: '#F1F5F9', // Slate 100
+  backgroundDark: '#0F172A', // Primary Navy
+  backgroundSubtle: '#F8FAFC',
   surface: '#FFFFFF',
   surfaceSecondary: '#F8FAFC',
   surfaceTertiary: '#F1F5F9',
@@ -66,24 +66,25 @@ export const colors = {
   white: '#FFFFFF',
   black: '#000000',
 
-  // Text Colors (WCAG AA Compliant)
-  textPrimary: '#1F2937', // 4.5:1 contrast on white
-  textSecondary: '#4B5563', // 4.5:1 contrast on white
-  textTertiary: '#6B7280', // 4.5:1 contrast on white
-  textQuaternary: '#9CA3AF', // For less important text
+  // Text Colors
+  textPrimary: '#0F172A', // Navy 900
+  textSecondary: '#475569', // Slate 500
+  textTertiary: '#64748B', // Slate 400
+  textQuaternary: '#94A3B8', // Slate 300
   textInverse: '#FFFFFF',
   textInverseMuted: 'rgba(255, 255, 255, 0.8)',
-  // Legacy aliases
-  text: '#1F2937',
+
+  // Legacy aliases (mapped to new values)
+  text: '#0F172A',
 
   // Placeholder Text
-  placeholder: '#6B7280', // Meets WCAG AA standard
+  placeholder: '#94A3B8', // Slate 400
 
   // Border Colors
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
-  borderDark: '#D1D5DB',
-  borderFocus: '#0F172A', // Very dark blue for focused states
+  border: '#E2E8F0', // Slate 200
+  borderLight: '#F1F5F9', // Slate 100
+  borderDark: '#CBD5E1', // Slate 300
+  borderFocus: '#0F172A', // Primary Navy
 
   // Priority Colors
   priorityHigh: '#EF4444',
@@ -92,24 +93,24 @@ export const colors = {
   priorityUrgent: '#DC2626',
 
   // Status Colors
-  statusPosted: '#007AFF',
-  statusAssigned: '#FF9500',
-  statusInProgress: '#FF9500',
-  statusCompleted: '#34C759',
-  statusCancelled: '#8E8E93',
+  statusPosted: '#3B82F6', // Blue
+  statusAssigned: '#F59E0B', // Amber
+  statusInProgress: '#8B5CF6', // Purple
+  statusCompleted: '#10B981', // Emerald
+  statusCancelled: '#64748B', // Slate
 
   // Special purpose colors
-  ratingGold: '#FFD700',
+  ratingGold: '#F59E0B', // Matches Accent
 
-  // Category Colors
-  plumbing: '#3B82F6',
-  electrical: '#F59E0B',
-  hvac: '#10B981',
-  handyman: '#8B5CF6',
-  cleaning: '#EF4444',
-  landscaping: '#10B981',
-  appliance: '#EC4899',
-  painting: '#F97316',
+  // Category Colors (Vibrant but professional)
+  plumbing: '#0EA5E9', // Sky
+  electrical: '#F59E0B', // Amber
+  hvac: '#10B981', // Emerald
+  handyman: '#8B5CF6', // Violet
+  cleaning: '#F43F5E', // Rose
+  landscaping: '#22C55E', // Green
+  appliance: '#EC4899', // Pink
+  painting: '#F97316', // Orange
 } as const;
 
 export type Colors = typeof colors;

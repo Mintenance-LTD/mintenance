@@ -47,6 +47,5 @@
     "**/*.spec.tsx",
     "src/services/PaymentGateway.ts",
     "src/services/MLTrainingPipeline.ts"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

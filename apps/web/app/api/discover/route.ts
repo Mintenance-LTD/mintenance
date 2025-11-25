@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ContractorSummary } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ contractors, nextCursor: null, filters });
   } catch (err) {
-    console.error('[API] discover GET error', err);
+    logger.error('discover GET error', err, {
+      service: 'discover',
+    });
     return NextResponse.json({ error: 'Failed to load contractors' }, { status: 500 });
   }
 }

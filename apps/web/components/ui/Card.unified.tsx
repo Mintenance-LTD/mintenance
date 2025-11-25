@@ -46,6 +46,8 @@ export interface CardProps {
   padding?: CardPadding;
   hover?: boolean;
   onClick?: () => void;
+  onMouseEnter?: (event: React.MouseEvent) => void;
+  onMouseLeave?: (event: React.MouseEvent) => void;
   className?: string;
   style?: React.CSSProperties;
   // Accessibility
@@ -66,6 +68,8 @@ export function Card({
   padding = 'md',
   hover = false,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   className = '',
   style = {},
   role,
@@ -140,17 +144,17 @@ export function Card({
   const hoverStyles: React.CSSProperties =
     isInteractive && (hover || isHovered)
       ? {
-          ...getCardHoverStyle(),
-        }
+        ...getCardHoverStyle(),
+      }
       : {};
 
   // Focus styles
   const focusStyles: React.CSSProperties =
     isFocused && isInteractive
       ? {
-          outline: `3px solid ${theme.colors.primary}`,
-          outlineOffset: '2px',
-        }
+        outline: `3px solid ${theme.colors.primary}`,
+        outlineOffset: '2px',
+      }
       : {};
 
   // Combined styles
@@ -176,8 +180,14 @@ export function Card({
       onKeyDown={handleKeyDown}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={(e) => {
+        setIsHovered(true);
+        onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        setIsHovered(false);
+        onMouseLeave?.(e);
+      }}
       role={role || (isInteractive ? 'button' : undefined)}
       tabIndex={tabIndex !== undefined ? tabIndex : isInteractive ? 0 : undefined}
       aria-label={ariaLabel}
@@ -255,8 +265,8 @@ export function MetricCard({
     : {};
 
   return (
-    <Card 
-      padding="lg" 
+    <Card
+      padding="lg"
       hover={true}
       style={{
         ...cardStyle,
@@ -500,6 +510,10 @@ export function DashboardCard({ title, subtitle, children, icon, actions, varian
   );
 }
 Card.Dashboard = DashboardCard;
+Card.Header = CardHeader;
+Card.Title = CardTitle;
+Card.Description = CardDescription;
+Card.Content = CardContent;
+Card.Footer = CardFooter;
 
 export default Card;
-

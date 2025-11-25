@@ -10,7 +10,7 @@ import { Search, MessageCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ArticleDetailModal } from './components/ArticleDetailModal';
 import { cn } from '@/lib/utils';
-import { helpCategories, type Article, type Category } from './lib/categories';
+import { helpCategories, type Article, type Category } from './lib/categories/index';
 import { generateSlug } from './lib/utils';
 
 export default function HelpCentrePage() {

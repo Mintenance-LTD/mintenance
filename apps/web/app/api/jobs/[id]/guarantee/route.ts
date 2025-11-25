@@ -21,14 +21,11 @@ const resolveClaimSchema = z.object({
   payoutAmount: z.number().min(0).max(2500),
 });
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();

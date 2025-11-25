@@ -15,7 +15,7 @@ import type { WebInputProps } from '@mintenance/shared-ui';
 import { cn } from '@/lib/utils';
 
 // Extend shared Input props for backward compatibility
-export type InputType = 'text' | 'email' | 'password' | 'number' | 'search' | 'tel' | 'url';
+export type InputType = 'text' | 'email' | 'password' | 'number' | 'search' | 'tel' | 'url' | 'datetime-local' | 'date' | 'time';
 export type InputSize = 'sm' | 'md' | 'lg';
 
 export interface InputProps extends Omit<WebInputProps, 'type' | 'size' | 'error'> {

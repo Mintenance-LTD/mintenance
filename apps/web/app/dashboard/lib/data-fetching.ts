@@ -4,10 +4,10 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { 
-  getCachedUserJobs, 
-  getCachedUserBids, 
-  getCachedUserPayments, 
+import {
+  getCachedUserJobs,
+  getCachedUserBids,
+  getCachedUserPayments,
   getCachedUserProperties,
   getCachedUserSubscriptions,
   getCachedUserMessages,
@@ -15,6 +15,7 @@ import {
 } from '@/lib/cache';
 import { RecommendationsService } from '@/lib/services/RecommendationsService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
+import { Job, Property, Subscription, Payment, MessageWithContent, BidWithRelations, QuoteWithRelations } from './types';
 
 export interface DashboardData {
   homeownerProfile: {
@@ -23,18 +24,17 @@ export interface DashboardData {
     email: string;
     profile_image_url?: string;
   } | null;
-  jobs: unknown[];
+  jobs: Job[];
   jobIds: string[];
-  bids: unknown[];
-  quotes: unknown[];
-  recentActivity: unknown[];
-  properties: unknown[];
-  subscriptions: unknown[];
-  payments: unknown[];
+  bids: BidWithRelations[];
+  quotes: QuoteWithRelations[];
+  recentActivity: MessageWithContent[];
+  properties: Property[];
+  subscriptions: Subscription[];
+  payments: Payment[];
   recommendations: unknown[];
   onboardingStatus: {
     completed: boolean;
-    [key: string]: unknown;
   };
 }
 
@@ -51,8 +51,8 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
 
   // Fetch jobs first (needed for bids query)
   const homeownerJobs = await getCachedUserJobs(userId, 50);
-  const jobs = homeownerJobs || [];
-  const jobIds = jobs.map((j: { id: string }) => j.id);
+  const jobs = (homeownerJobs || []) as Job[];
+  const jobIds = jobs.map((j) => j.id);
 
   // Fetch remaining data in parallel
   const [
@@ -79,12 +79,12 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
     homeownerProfile,
     jobs,
     jobIds,
-    bids: bidsData || [],
-    quotes: quotesData || [],
-    recentActivity: recentActivity || [],
-    properties: propertiesData || [],
-    subscriptions: subscriptionsData || [],
-    payments: paymentsData || [],
+    bids: (bidsData || []) as BidWithRelations[],
+    quotes: (quotesData || []) as QuoteWithRelations[],
+    recentActivity: (recentActivity || []) as MessageWithContent[],
+    properties: (propertiesData || []) as Property[],
+    subscriptions: (subscriptionsData || []) as Subscription[],
+    payments: (paymentsData || []) as Payment[],
     recommendations: recommendations || [],
     onboardingStatus: onboardingStatus || { completed: false },
   };

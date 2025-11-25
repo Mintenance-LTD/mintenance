@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 /**
  * API endpoint to fetch notification badge counts for the sidebar
@@ -67,7 +68,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching notification counts:', error);
+    logger.error('Error fetching notification counts', error, {
+      service: 'notifications',
+    });
     
     // Return fallback counts on error
     return NextResponse.json({

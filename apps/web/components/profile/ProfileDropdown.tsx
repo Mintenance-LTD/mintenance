@@ -224,7 +224,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
 
           {/* Quick Actions */}
           {[
-            { label: 'View All Jobs', href: '/contractor/bid', icon: 'clipboard' },
+            { label: 'View All Jobs', href: '/contractor/bid', icon: 'briefcase' },
             { label: 'Manage Quotes', href: '/contractor/quotes', icon: 'fileText' },
             { label: 'Finance Dashboard', href: '/contractor/finance', icon: 'currencyPound' },
             { label: 'View Analytics', href: '/contractor/reporting', icon: 'chart' },

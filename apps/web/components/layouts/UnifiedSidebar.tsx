@@ -72,10 +72,10 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
-  
+
   // Use external mobile state if provided, otherwise use internal state
   const isMobileOpen = externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;
-  
+
   const handleMobileClose = () => {
     if (externalMobileOpen !== undefined && onMobileClose) {
       onMobileClose();
@@ -86,7 +86,7 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Check initial screen size
     const checkScreenSize = () => {
       const width = window.innerWidth;
@@ -104,12 +104,12 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
         }
       }
     };
-    
+
     checkScreenSize();
-    
+
     // Add resize listener
     window.addEventListener('resize', checkScreenSize);
-    
+
     return () => {
       window.removeEventListener('resize', checkScreenSize);
     };
@@ -122,7 +122,7 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
   // Handle logout properly - call API then redirect
   const handleLogout = async (): Promise<void> => {
     if (isLoggingOut) return; // Prevent double-click
-    
+
     setIsLoggingOut(true);
     try {
       // Clear session data
@@ -131,7 +131,7 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
 
       // Call logout API endpoint
       await fetch('/api/auth/logout', { method: 'POST' });
-      
+
       // Redirect to login page
       router.push('/login');
       router.refresh();
@@ -181,102 +181,74 @@ export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobil
     <>
       {/* Mobile overlay backdrop */}
       {isMobile && mounted && isMobileOpen && (
-        <div 
+        <div
           className={styles.sidebarOverlay}
           onClick={handleMobileClose}
           suppressHydrationWarning
         />
       )}
       <aside className={sidebarClassName} suppressHydrationWarning>
-      {/* Logo Section */}
-      <div className={styles.logoSection}>
-        <div className={styles.logoContainer}>
-          <Logo width={32} height={32} />
+        {/* Logo Section */}
+        <div className={styles.logoSection}>
+          <div className={styles.logoContainer}>
+            <Logo width={32} height={32} />
+          </div>
+          <div className={styles.logoText} style={{ opacity: shouldShowExpanded ? 1 : 0, visibility: shouldShowExpanded ? 'visible' : 'hidden' }}>
+            Mintenance
+          </div>
         </div>
-        <div className={styles.logoText} style={{ opacity: shouldShowExpanded ? 1 : 0, visibility: shouldShowExpanded ? 'visible' : 'hidden' }}>
-          Mintenance
-        </div>
-      </div>
 
-      {/* Navigation Items */}
-      <nav className={styles.nav} suppressHydrationWarning>
-        {navItems.map((item) => {
-          // Only calculate active state after mount to prevent hydration mismatch
-          // During SSR, always render as inactive, then update after hydration
-          const active = mounted ? isActive(item.href) : false;
-          
-          return (
-            <MenuTab
-              key={`${resolvedUserRole}-nav-${item.href}`}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
-              isActive={active}
-              isExpanded={shouldShowExpanded}
-            />
-          );
-        })}
-      </nav>
+        {/* Navigation Items */}
+        <nav className={styles.nav} suppressHydrationWarning>
+          {navItems.map((item) => {
+            // Only calculate active state after mount to prevent hydration mismatch
+            // During SSR, always render as inactive, then update after hydration
+            const active = mounted ? isActive(item.href) : false;
 
-      {/* Bottom Section */}
-      <div className={styles.bottomSection}>
-        <MenuTab
-          icon="helpCircle"
-          label="Help"
-          href="/help"
-          isActive={false}
-          isExpanded={shouldShowExpanded}
-        />
-        
-        {/* Issues Badge - Removed hardcoded badge as there's no actual issue checking logic */}
-        {/* TODO: Re-implement when issue checking system is available */}
-        
-        <button
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          suppressHydrationWarning
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: shouldShowExpanded ? '16px' : '0',
-            width: shouldShowExpanded ? 'auto' : '48px',
-            height: '48px',
-            borderRadius: '24px',
-            padding: shouldShowExpanded ? '13px 16px 13px 26px' : '13px 16px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: theme.colors.textInverse,
-            cursor: isLoggingOut ? 'not-allowed' : 'pointer',
-            opacity: isLoggingOut ? 0.6 : 1,
-            transition: `all ${theme.animation.duration.normal} ${theme.animation.easing.easeOut}`,
-            textAlign: 'left',
-          }}
-          onMouseEnter={(e) => {
-            if (!isLoggingOut) {
-              e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <LogOut size={22} style={{ color: theme.colors.textInverse }} />
-          <span 
+            return (
+              <MenuTab
+                key={`${resolvedUserRole}-nav-${item.href}`}
+                icon={item.icon}
+                label={item.label}
+                href={item.href}
+                isActive={active}
+                isExpanded={shouldShowExpanded}
+              />
+            );
+          })}
+        </nav>
+
+        {/* Bottom Section */}
+        <div className={styles.bottomSection}>
+          <MenuTab
+            icon="helpCircle"
+            label="Help"
+            href="/help"
+            isActive={false}
+            isExpanded={shouldShowExpanded}
+          />
+
+          {/* Issues Badge - Removed hardcoded badge as there's no actual issue checking logic */}
+          {/* TODO: Re-implement when issue checking system is available */}
+
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
             suppressHydrationWarning
-            style={{ 
-              fontSize: theme.typography.fontSize.sm, 
-              fontWeight: theme.typography.fontWeight.regular,
-              opacity: shouldShowExpanded ? 1 : 0,
-              visibility: shouldShowExpanded ? 'visible' : 'hidden',
-              width: shouldShowExpanded ? 'auto' : '0',
-              overflow: 'hidden',
-            }}
+            className={`flex items-center gap-4 h-12 rounded-full px-4 bg-transparent border-0 text-white/90 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-left ${shouldShowExpanded ? 'w-auto pr-[26px]' : 'w-12 justify-center px-0'
+              }`}
           >
-            {isLoggingOut ? 'Signing out...' : 'Log Out'}
-          </span>
-        </button>
-      </div>
-    </aside>
+            <LogOut size={22} className="text-white/90" />
+            <span
+              suppressHydrationWarning
+              className={`text-sm font-normal overflow-hidden transition-all duration-300 ${shouldShowExpanded ? 'opacity-100 visible w-auto ml-4' : 'opacity-0 invisible w-0 ml-0'
+                }`}
+            >
+              {isLoggingOut ? 'Signing out...' : 'Log Out'}
+            </span>
+          </button>
+        </div>
+      </aside>
     </>
   );
 }

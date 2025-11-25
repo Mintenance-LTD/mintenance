@@ -14,7 +14,7 @@ import { Icon } from '@/components/ui/Icon';
 import type { Message, User } from '@mintenance/types';
 import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
 import { QuoteViewDialog } from './components/QuoteViewDialog';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { VideoCallScheduler } from '@/app/video-calls/components/VideoCallScheduler';
 import { FileText, Phone, FileCheck } from 'lucide-react';
 
 interface ChatPageProps {
@@ -35,7 +35,7 @@ function ChatContent({ params }: ChatPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [homeownerProfile, setHomeownerProfile] = useState<{ 
+  const [homeownerProfile, setHomeownerProfile] = useState<{
     profile_image_url?: string | null;
     name?: string;
   } | null>(null);
@@ -120,13 +120,13 @@ function ChatContent({ params }: ChatPageProps) {
           const job = data.job;
           if (job?.homeowner) {
             const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-            
+
             // Format homeowner name with improved fallback logic
             let homeownerName: string;
             const first = homeowner?.first_name?.trim() ?? '';
             const last = homeowner?.last_name?.trim() ?? '';
             const full = `${first} ${last}`.trim();
-            
+
             if (full) {
               homeownerName = full;
             } else if (homeowner?.email) {
@@ -134,14 +134,14 @@ function ChatContent({ params }: ChatPageProps) {
               const emailName = homeowner.email.split('@')[0];
               homeownerName = emailName
                 .split('.')
-                .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
                 .join(' ');
             } else if (homeowner?.company_name) {
               homeownerName = homeowner.company_name;
             } else {
               homeownerName = 'Homeowner';
             }
-            
+
             // Update homeowner profile state
             setHomeownerProfile({
               profile_image_url: homeowner?.profile_image_url || null,
@@ -220,8 +220,8 @@ function ChatContent({ params }: ChatPageProps) {
       scrollToBottom();
     } catch (err) {
       logger.error('Error sending message', err);
-      const errorMessage = err instanceof Error 
-        ? err.message 
+      const errorMessage = err instanceof Error
+        ? err.message
         : 'Failed to send message. Please try again.';
       alert(errorMessage);
     } finally {
@@ -254,7 +254,7 @@ function ChatContent({ params }: ChatPageProps) {
     const uniqueMessages = Array.from(
       new Map(messages.map(msg => [msg.id, msg])).values()
     );
-    
+
     const groups: { [key: string]: Message[] } = {};
     uniqueMessages.forEach((message) => {
       const dateKey = new Date(message.createdAt).toDateString();
@@ -288,7 +288,7 @@ function ChatContent({ params }: ChatPageProps) {
         </div>
       );
     }
-    
+
     // Only show access denied after loading completes and user is still null
     return (
       <div style={{
@@ -383,7 +383,7 @@ function ChatContent({ params }: ChatPageProps) {
           >
             🔄
           </Button>
-          
+
           {/* Homeowner Profile Dropdown */}
           <div ref={profileMenuRef} style={{ position: 'relative' }}>
             <Button
@@ -415,16 +415,16 @@ function ChatContent({ params }: ChatPageProps) {
                 <span style={{ color: 'white', fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold }}>
                   {(homeownerProfile?.name || otherUserName || 'H')
                     ? (homeownerProfile?.name || otherUserName || 'H')
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 2)
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)
                     : 'H'}
                 </span>
               )}
             </Button>
-            
+
             {showProfileMenu && (
               <div
                 style={{
@@ -643,20 +643,21 @@ function ChatContent({ params }: ChatPageProps) {
         jobId={jobId}
       />
 
-      {/* Video Call Alert Dialog */}
-      <AlertDialog open={showVideoCallDialog} onOpenChange={setShowVideoCallDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Video Call</AlertDialogTitle>
-            <AlertDialogDescription>
-              Video call feature coming soon! This functionality will allow you to have face-to-face conversations with contractors directly from the messaging interface.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowVideoCallDialog(false)}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Video Call Scheduler */}
+      {user && (
+        <VideoCallScheduler
+          currentUserId={user.id}
+          isVisible={showVideoCallDialog}
+          onCancel={() => setShowVideoCallDialog(false)}
+          initialJobId={jobId}
+          onScheduled={(call) => {
+            setShowVideoCallDialog(false);
+            if (confirm('Video call scheduled! Go to Video Calls page to view details?')) {
+              router.push('/video-calls');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

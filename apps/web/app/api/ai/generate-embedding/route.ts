@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,9 @@ const { text, model = 'text-embedding-3-small' } = await request.json();
       model,
     });
   } catch (error) {
-    console.error('Embedding generation error:', error);
+    logger.error('Embedding generation error', error, {
+      service: 'ai_embedding',
+    });
     return NextResponse.json(
       { error: 'Failed to generate embedding' },
       { status: 500 }

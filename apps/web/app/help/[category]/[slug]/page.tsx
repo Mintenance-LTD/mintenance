@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { PublicLayout } from '@/app/components/layouts/PublicLayout';
 import { theme } from '@/lib/theme';
-import { helpCategories, type Article, type Category } from '../../lib/categories';
+import { helpCategories, type Article, type Category } from '../../lib/categories/index';
 import { findArticleBySlug, generateSlug, getAllArticlesWithSlugs } from '../../lib/utils';
 import { Button } from '@/components/ui/Button';
 import { MarkdownContent } from '../../components/MarkdownContent';

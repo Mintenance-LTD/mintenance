@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,10 @@ export async function GET(request: NextRequest) {
       .limit(7); // Maximum 7 notifications - older ones will be automatically excluded when 8th is added
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications', error, {
+        service: 'notifications',
+        userId,
+      });
       return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
@@ -53,16 +57,32 @@ export async function GET(request: NextRequest) {
     const bidReceivedNotifs = mappedNotifications.filter((n: any) => n.type === 'bid_received');
     
     if (bidAcceptedNotifs.length > 0) {
-      console.log(`[Notifications API] Found ${bidAcceptedNotifs.length} bid_accepted notification(s) for user ${userId}`);
+      logger.info('Found bid_accepted notifications', {
+        service: 'notifications',
+        userId,
+        count: bidAcceptedNotifs.length,
+      });
     }
     if (jobViewedNotifs.length > 0) {
-      console.log(`[Notifications API] Found ${jobViewedNotifs.length} job_viewed notification(s) for user ${userId}`);
+      logger.info('Found job_viewed notifications', {
+        service: 'notifications',
+        userId,
+        count: jobViewedNotifs.length,
+      });
     }
     if (jobNearbyNotifs.length > 0) {
-      console.log(`[Notifications API] Found ${jobNearbyNotifs.length} job_nearby notification(s) for user ${userId}`);
+      logger.info('Found job_nearby notifications', {
+        service: 'notifications',
+        userId,
+        count: jobNearbyNotifs.length,
+      });
     }
     if (bidReceivedNotifs.length > 0) {
-      console.log(`[Notifications API] Found ${bidReceivedNotifs.length} bid_received notification(s) for user ${userId}`);
+      logger.info('Found bid_received notifications', {
+        service: 'notifications',
+        userId,
+        count: bidReceivedNotifs.length,
+      });
     }
 
     // Fetch real-time notifications from source tables
@@ -232,7 +252,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(allNotifications.slice(0, 20));
   } catch (error) {
-    console.error('Notification API error:', error);
+    logger.error('Notification API error', error, {
+      service: 'notifications',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -280,7 +302,9 @@ const body = await request.json();
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Notification engagement tracking error:', error);
+    logger.error('Notification engagement tracking error', error, {
+      service: 'notifications',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

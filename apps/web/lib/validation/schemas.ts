@@ -130,7 +130,7 @@ export const refundSchema = z.object({
 // Job Schemas
 // ============================================================================
 
-export const createJobSchema = z.object({
+const baseJobSchema = z.object({
   title: z.string()
     .min(1, 'Title required')
     .max(200, 'Title too long')
@@ -159,7 +159,9 @@ export const createJobSchema = z.object({
   ).max(10, 'Maximum 10 images allowed').optional(),
   requiredSkills: z.array(z.string().max(100)).max(10, 'Maximum 10 skills allowed').optional(),
   preferredStartDate: z.string().optional(),
-}).refine((data) => {
+});
+
+export const createJobSchema = baseJobSchema.refine((data) => {
   // Require at least one photo for jobs over £500
   if (data.budget && data.budget > 500 && (!data.images || data.images.length === 0)) {
     return false;
@@ -170,7 +172,7 @@ export const createJobSchema = z.object({
   path: ['images'],
 });
 
-export const updateJobSchema = createJobSchema.partial().extend({
+export const updateJobSchema = baseJobSchema.partial().extend({
   id: z.string().uuid('Invalid job ID'),
   status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
 });

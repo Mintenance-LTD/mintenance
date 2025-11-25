@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
 
     if (deleteError) {
       // Fallback: Manual deletion if function doesn't exist
-      logger.warn('GDPR delete function not available, using manual deletion', deleteError);
+      logger.warn('GDPR delete function not available, using manual deletion', {
+        service: 'user',
+        error: deleteError.message,
+        code: deleteError.code,
+        details: deleteError.details,
+      });
       
       // Delete in order respecting foreign key constraints
       await serverSupabase.from('messages').delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);

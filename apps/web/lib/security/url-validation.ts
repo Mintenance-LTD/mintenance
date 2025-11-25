@@ -120,7 +120,18 @@ function isAllowedDomain(url: URL): boolean {
 
   // Check if hostname matches any allowed domain
   for (const domain of allowedDomains) {
-    if (hostname === domain || hostname.endsWith('.' + domain)) {
+    // Normalize domain: ensure it has a leading dot for subdomain matching
+    const normalizedDomain = domain.startsWith('.') ? domain : '.' + domain;
+    const domainWithoutDot = normalizedDomain.slice(1);
+    
+    // Check exact match (for domains without subdomains)
+    if (hostname === domainWithoutDot) {
+      return true;
+    }
+    
+    // Check if hostname ends with the normalized domain (for subdomains)
+    // e.g., "abc123.supabase.co" ends with ".supabase.co"
+    if (hostname.endsWith(normalizedDomain)) {
       return true;
     }
   }
@@ -155,6 +166,14 @@ export async function validateURL(
       return {
         isValid: false,
         error: 'URL cannot be empty',
+      };
+    }
+
+    // Reject file:/// URLs (local file paths)
+    if (trimmedUrl.startsWith('file:///') || trimmedUrl.startsWith('file://')) {
+      return {
+        isValid: false,
+        error: 'File URLs are not allowed. Images must be uploaded to cloud storage.',
       };
     }
 

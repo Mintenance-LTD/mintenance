@@ -6,6 +6,7 @@ import {
   NavigationContainer,
   useFocusEffect,
   useNavigation,
+  LinkingOptions,
 } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -304,6 +305,39 @@ const TabNavigator: React.FC = () => {
 };
 
 // ============================================================================
+// LINKING CONFIGURATION
+// ============================================================================
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['mintenance://', 'https://mintenance.app', 'https://www.mintenance.app'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          HomeTab: 'home',
+          DiscoverTab: 'discover',
+          JobsTab: 'jobs',
+          FeedTab: 'feed',
+          MessagingTab: 'messages',
+          ProfileTab: 'profile',
+        },
+      },
+      Auth: {
+        screens: {
+          Login: 'login',
+          Register: 'register',
+        },
+      },
+      Modal: {
+        screens: {
+          ServiceRequest: 'request',
+        },
+      },
+    },
+  },
+};
+
+// ============================================================================
 // ROOT NAVIGATOR
 // ============================================================================
 
@@ -316,7 +350,7 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <AppErrorBoundary>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <RootStack.Navigator
           screenOptions={{
             headerShown: false,

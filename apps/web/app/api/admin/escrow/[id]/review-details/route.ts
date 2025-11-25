@@ -5,7 +5,7 @@ import { logger } from '@mintenance/shared';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const escrowId = params.id;
+    const { id: escrowId } = await params;
 
     if (!escrowId) {
       return NextResponse.json({ error: 'Escrow ID is required' }, { status: 400 });

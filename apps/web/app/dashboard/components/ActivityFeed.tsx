@@ -65,9 +65,9 @@ export const ActivityFeed = React.memo(function ActivityFeed({ activities }: Act
           No recent activity
         </div>
       ) : (
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
+        <ul style={{
+          display: 'flex',
+          flexDirection: 'column',
           gap: theme.spacing[4],
           overflowY: 'auto',
           flex: 1,
@@ -75,9 +75,12 @@ export const ActivityFeed = React.memo(function ActivityFeed({ activities }: Act
           paddingRight: theme.spacing[2],
           scrollbarWidth: 'thin',
           scrollbarColor: `${theme.colors.border} transparent`,
+          listStyle: 'none',
+          padding: 0,
+          margin: 0,
         }}>
           {activities.map((activity, index) => (
-            <div
+            <li
               key={activity.id}
               className="group flex gap-3 pb-4 last:pb-0 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150 rounded-lg px-2 py-2 -mx-2"
             >
@@ -90,7 +93,7 @@ export const ActivityFeed = React.memo(function ActivityFeed({ activities }: Act
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-              }}>
+              }} aria-hidden="true">
                 <Icon
                   name={getActivityIcon(activity.type)}
                   size={16}
@@ -126,7 +129,7 @@ export const ActivityFeed = React.memo(function ActivityFeed({ activities }: Act
                   </span>
                   {activity.linkText && activity.linkHref && (
                     <>
-                      <span style={{ color: theme.colors.textTertiary }}>•</span>
+                      <span style={{ color: theme.colors.textTertiary }} aria-hidden="true">•</span>
                       <Link
                         href={activity.linkHref}
                         style={{
@@ -142,9 +145,9 @@ export const ActivityFeed = React.memo(function ActivityFeed({ activities }: Act
                   )}
                 </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

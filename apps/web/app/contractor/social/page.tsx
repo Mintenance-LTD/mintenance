@@ -1,69 +1,62 @@
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { fetchCurrentUser } from '@/lib/auth-client';
+import { theme } from '@/lib/theme';
+import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
+import { ContractorFeed } from './components/ContractorFeed';
+import { CreatePost } from './components/CreatePost';
+import { User } from '@mintenance/types';
 import { redirect } from 'next/navigation';
-import { ContractorSocialClient } from './components/ContractorSocialClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export default function ContractorSocialPage() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-export default async function ContractorSocialPage() {
-  const user = await getCurrentUserFromCookies();
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await fetchCurrentUser();
+        if (!user) {
+          // Handle redirect in client component effect or use server component
+          window.location.href = '/login';
+          return;
+        }
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    };
 
-  if (!user || user.role !== 'contractor') {
-    redirect('/login');
+    loadUser();
+  }, []);
+
+  const handlePostCreated = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  if (!currentUser) {
+    return <div style={{ padding: theme.spacing[8], textAlign: 'center' }}>Loading...</div>;
   }
 
-  // Fetch posts with contractor info
-  const { data: posts } = await supabase
-    .from('contractor_posts')
-    .select(`
-      *,
-      contractor:contractor_id (
-        id,
-        first_name,
-        last_name,
-        profile_image_url,
-        city,
-        country
-      )
-    `)
-    .eq('is_active', true)
-    .eq('is_flagged', false)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  return (
+    <PageLayout>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <PageHeader
+          title="Contractor Network"
+          description="Connect with other professionals, share your work, and get advice."
+        />
 
-  // Fetch user's likes
-  const { data: userLikes } = await supabase
-    .from('contractor_post_likes')
-    .select('post_id')
-    .eq('contractor_id', user.id);
+        <CreatePost
+          currentUserId={currentUser.id}
+          onPostCreated={handlePostCreated}
+        />
 
-  const likedPostIds = new Set(userLikes?.map(like => like.post_id) || []);
-
-  // Format posts
-  const formattedPosts = (posts || []).map((post: any) => ({
-    id: post.id,
-    title: post.title || '',
-    content: post.content || '',
-    images: Array.isArray(post.images) ? post.images : [],
-    post_type: post.post_type,
-    created_at: post.created_at,
-    likes_count: post.likes_count || 0,
-    comments_count: post.comments_count || 0,
-    shares_count: post.shares_count || 0,
-    views_count: post.views_count || 0,
-    liked: likedPostIds.has(post.id),
-    contractor: post.contractor ? {
-      id: post.contractor.id,
-      first_name: post.contractor.first_name,
-      last_name: post.contractor.last_name,
-      profile_image_url: post.contractor.profile_image_url,
-      city: post.contractor.city,
-      country: post.contractor.country,
-    } : null,
-  }));
-
-  return <ContractorSocialClient posts={formattedPosts as any} currentUserId={user.id} />;
+        <ContractorFeed
+          key={refreshKey}
+          currentUserId={currentUser.id}
+        />
+      </div>
+    </PageLayout>
+  );
 }

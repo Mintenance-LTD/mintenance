@@ -90,7 +90,7 @@ export const MobileLandingPage: React.FC = () => {
           <p className="text-lg mb-8 text-gray-300">
             Connect with verified professionals for your home projects
           </p>
-          
+
           <div className="space-y-3">
             <Link href="/register" style={{ textDecoration: 'none' }}>
               <TouchButton
@@ -105,7 +105,7 @@ export const MobileLandingPage: React.FC = () => {
                 Get Started Free
               </TouchButton>
             </Link>
-            
+
             <Link href="/login" style={{ textDecoration: 'none' }}>
               <TouchButton
                 variant="outline"
@@ -129,8 +129,15 @@ export const MobileLandingPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">
             Popular Services
           </h2>
-          
-          <ResponsiveGrid columns={{ xs: 2, sm: 2 }} gap={3}>
+
+          <ResponsiveGrid
+            areas={{
+              mobile: [['col1'], ['col2']],
+              tablet: [['col1', 'col2']],
+              desktop: [['col1', 'col2']],
+            }}
+            gap="md"
+          >
             {services.map((service, index) => (
               <TouchButton
                 key={index}
@@ -168,7 +175,7 @@ export const MobileLandingPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">
             Why Choose Mintenance?
           </h2>
-          
+
           <div className="space-y-6">
             {features.map((feature, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
@@ -207,7 +214,7 @@ export const MobileLandingPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-center mb-8 text-gray-900">
             What Our Customers Say
           </h2>
-          
+
           <SwipeableCarousel
             autoplay={true}
             autoplayInterval={4000}
@@ -262,7 +269,7 @@ export const MobileLandingPage: React.FC = () => {
           <p className="text-gray-300 mb-8">
             Join thousands of satisfied customers
           </p>
-          
+
           <Link href="/register" style={{ textDecoration: 'none' }}>
             <TouchButton
               variant="primary"
@@ -294,7 +301,7 @@ export const MobileLandingPage: React.FC = () => {
               Mintenance
             </div>
           </div>
-          
+
           <div style={{
             fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textSecondary,
@@ -302,7 +309,7 @@ export const MobileLandingPage: React.FC = () => {
           }}>
             © 2024 Mintenance. All rights reserved.
           </div>
-          
+
           <div style={{ display: 'flex', justifyContent: 'center', gap: theme.spacing[4] }}>
             <Link href="/privacy" style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
               Privacy

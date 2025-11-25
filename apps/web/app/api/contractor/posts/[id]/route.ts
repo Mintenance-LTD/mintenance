@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,16 +11,19 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const postId = id;
 
     // Fetch post with contractor info
     const { data: post, error: postError } = await supabase
@@ -82,26 +86,26 @@ export async function GET(
 
     return NextResponse.json({ post: formattedPost });
   } catch (error) {
-    console.error('Error in GET /api/contractor/posts/[id]:', error);
+    logger.error('Error in GET /api/contractor/posts/[id]', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const { id } = await params;
+    const postId = id;
     const body = await request.json();
     const { title, content, images } = body;
 
@@ -162,7 +166,11 @@ params }: { params: { id: string } }
       .single();
 
     if (updateError) {
-      console.error('Error updating post:', updateError);
+      logger.error('Error updating post', updateError, {
+        service: 'contractor',
+        postId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to update post', details: updateError.message }, { status: 500 });
     }
 
@@ -199,26 +207,26 @@ params }: { params: { id: string } }
 
     return NextResponse.json({ post: formattedPost });
   } catch (error) {
-    console.error('Error in PATCH /api/contractor/posts/[id]:', error);
+    logger.error('Error in PATCH /api/contractor/posts/[id]', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const { id } = await params;
+    const postId = id;
 
     // Verify post exists and belongs to user
     const { data: existingPost, error: fetchError } = await supabase
@@ -243,14 +251,19 @@ params }: { params: { id: string } }
       .eq('id', postId);
 
     if (deleteError) {
-      console.error('Error deleting post:', deleteError);
+      logger.error('Error deleting post', deleteError, {
+        service: 'contractor',
+        postId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to delete post', details: deleteError.message }, { status: 500 });
     }
 
     return NextResponse.json({ message: 'Post deleted successfully' });
   } catch (error) {
-    console.error('Error in DELETE /api/contractor/posts/[id]:', error);
+    logger.error('Error in DELETE /api/contractor/posts/[id]', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

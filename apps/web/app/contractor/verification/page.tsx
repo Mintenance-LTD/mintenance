@@ -64,7 +64,7 @@ export default function ContractorVerificationPage() {
       setLoading(true);
       setFeedback(null);
       const response = await fetch('/api/contractor/verification');
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || `Failed to load verification data (${response.status}). Please try again shortly.`;
@@ -72,11 +72,11 @@ export default function ContractorVerificationPage() {
       }
 
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       setStatus(data);
       if (data.data) {
         setCompanyName(data.data.company_name || '');
@@ -254,86 +254,86 @@ export default function ContractorVerificationPage() {
         </Card.Header>
         <Card.Content>
           <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[4],
-          }}
-        >
-          <div style={{ display: 'grid', gap: theme.spacing[4] }}>
-            <Input
-              label="Company name *"
-              value={companyName}
-              onChange={(event) => setCompanyName(event.target.value)}
-              required
-            />
-            <Input
-              label="Business address *"
-              value={businessAddress}
-              onChange={(event) => setBusinessAddress(event.target.value)}
-              placeholder="Street, city, postcode"
-              required
-            />
-            <Input
-              label="Trade licence number *"
-              value={licenseNumber}
-              onChange={(event) => setLicenseNumber(event.target.value)}
-              required
-            />
-            <Input
-              label="Licence type"
-              value={licenseType}
-              onChange={(event) => setLicenseType(event.target.value)}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: theme.spacing[4] }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
-              <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
-                Years experience
-              </span>
-              <input
-                type="number"
-                min={0}
-                value={yearsExperience}
-                onChange={(event) => setYearsExperience(Number(event.target.value))}
-                style={{
-                  width: '100%',
-                  padding: theme.spacing[3],
-                  borderRadius: theme.borderRadius.md,
-                  border: `1px solid ${theme.colors.border}`,
-                  fontSize: theme.typography.fontSize.base,
-                }}
+            onSubmit={handleSubmit}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[4],
+            }}
+          >
+            <div style={{ display: 'grid', gap: theme.spacing[4] }}>
+              <Input
+                label="Company name *"
+                value={companyName}
+                onChange={(event) => setCompanyName(event.target.value)}
+                required
               />
-            </label>
-            <Input
-              label="Insurance provider"
-              value={insuranceProvider}
-              onChange={(event) => setInsuranceProvider(event.target.value)}
-            />
-            <Input
-              label="Policy number"
-              value={insurancePolicyNumber}
-              onChange={(event) => setInsurancePolicyNumber(event.target.value)}
-            />
-            <Input
-              label="Insurance expiry"
-              type="date"
-              value={insuranceExpiryDate}
-              onChange={(event) => setInsuranceExpiryDate(event.target.value)}
-            />
-          </div>
+              <Input
+                label="Business address *"
+                value={businessAddress}
+                onChange={(event) => setBusinessAddress(event.target.value)}
+                placeholder="Street, city, postcode"
+                required
+              />
+              <Input
+                label="Trade licence number *"
+                value={licenseNumber}
+                onChange={(event) => setLicenseNumber(event.target.value)}
+                required
+              />
+              <Input
+                label="Licence type"
+                value={licenseType}
+                onChange={(event) => setLicenseType(event.target.value)}
+              />
+            </div>
 
-          <footer style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing[3] }}>
-            <Button variant="ghost" type="button" onClick={loadVerificationStatus} disabled={submitting}>
-              Reset
-            </Button>
-            <Button variant="primary" type="submit" disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit verification'}
-            </Button>
-          </footer>
-        </form>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: theme.spacing[4] }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+                <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
+                  Years experience
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  value={yearsExperience}
+                  onChange={(event) => setYearsExperience(Number(event.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: theme.spacing[3],
+                    borderRadius: theme.borderRadius.md,
+                    border: `1px solid ${theme.colors.border}`,
+                    fontSize: theme.typography.fontSize.base,
+                  }}
+                />
+              </label>
+              <Input
+                label="Insurance provider"
+                value={insuranceProvider}
+                onChange={(event) => setInsuranceProvider(event.target.value)}
+              />
+              <Input
+                label="Policy number"
+                value={insurancePolicyNumber}
+                onChange={(event) => setInsurancePolicyNumber(event.target.value)}
+              />
+              <Input
+                label="Insurance expiry"
+                type={"date" as any}
+                value={insuranceExpiryDate}
+                onChange={(event) => setInsuranceExpiryDate(event.target.value)}
+              />
+            </div>
+
+            <footer style={{ display: 'flex', justifyContent: 'flex-end', gap: theme.spacing[3] }}>
+              <Button variant="ghost" type="button" onClick={loadVerificationStatus} disabled={submitting}>
+                Reset
+              </Button>
+              <Button variant="primary" type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit verification'}
+              </Button>
+            </footer>
+          </form>
         </Card.Content>
       </Card>
     </PageLayout>

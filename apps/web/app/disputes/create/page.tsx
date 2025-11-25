@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
@@ -8,8 +8,9 @@ import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
 import { DisputeDocumentationService } from '@/lib/services/disputes/DisputeDocumentationService';
+import { Loader2 } from 'lucide-react';
 
-export default function CreateDisputePage() {
+function CreateDisputeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const escrowId = searchParams.get('escrowId');
@@ -318,3 +319,14 @@ export default function CreateDisputePage() {
   );
 }
 
+export default function CreateDisputePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <CreateDisputeContent />
+    </Suspense>
+  );
+}

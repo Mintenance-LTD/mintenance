@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const createContractSchema = z.object({
   job_id: z.string().uuid(),
@@ -68,13 +69,19 @@ export async function GET(request: NextRequest) {
     const { data: contracts, error } = await query;
 
     if (error) {
-      console.error('Error fetching contracts:', error);
+      logger.error('Error fetching contracts', error, {
+        service: 'contracts',
+        userId: user.id,
+        role: user.role,
+      });
       return NextResponse.json({ error: 'Failed to fetch contracts' }, { status: 500 });
     }
 
     return NextResponse.json({ contracts: contracts || [] });
   } catch (error) {
-    console.error('Unexpected error in GET contracts', error);
+    logger.error('Unexpected error in GET contracts', error, {
+      service: 'contracts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -159,7 +166,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (contractError) {
-      console.error('Error creating contract:', contractError);
+      logger.error('Error creating contract', contractError, {
+        service: 'contracts',
+        jobId: job_id,
+        contractorId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to create contract' }, { status: 500 });
     }
 
@@ -177,7 +188,11 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString(),
         });
     } catch (notificationError) {
-      console.error('Failed to create notification:', notificationError);
+      logger.error('Failed to create notification', notificationError, {
+        service: 'contracts',
+        jobId: job_id,
+        homeownerId: job.homeowner_id,
+      });
       // Don't fail the request
     }
 
@@ -199,7 +214,8 @@ export async function POST(request: NextRequest) {
       // Create message text about the contract
       const contractMessageText = `📋 New contract submitted: £${amount.toLocaleString()}\n\n${title || `Contract for ${job.title || 'your job'}`}${description ? `\n\n${description}` : ''}`;
       
-      console.log('[API] Creating contract message', {
+      logger.info('Creating contract message', {
+        service: 'contracts',
         jobId: job_id,
         senderId: user.id,
         receiverId: job.homeowner_id,
@@ -228,24 +244,26 @@ export async function POST(request: NextRequest) {
           .single();
         
         if (msgError) {
-          console.error('[API] Failed to create contract message', {
-            error: msgError,
-            message: msgError.message,
-            code: msgError.code,
+          logger.error('Failed to create contract message', msgError, {
+            service: 'contracts',
+            jobId: job_id,
+            errorCode: msgError.code,
           });
           throw msgError;
         }
         
         messageInserted = true;
         insertedMessageId = insertedMessage?.id || null;
-        console.log('[API] Contract message created successfully', {
+        logger.info('Contract message created successfully', {
+          service: 'contracts',
           messageId: insertedMessageId,
           messageType: insertedMessage?.message_type,
           createdAt: insertedMessage?.created_at,
         });
-      } catch (msgError: any) {
-        console.error('[API] Failed to create contract message', {
-          error: msgError,
+      } catch (msgError: unknown) {
+        logger.error('Failed to create contract message', msgError, {
+          service: 'contracts',
+          jobId: job_id,
         });
         // Don't throw - message creation is not critical for contract creation
       }
@@ -256,21 +274,30 @@ export async function POST(request: NextRequest) {
           .from('jobs')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', job_id);
-        console.log('[API] Job updated_at timestamp updated for contract message', {
+        logger.info('Job updated_at timestamp updated for contract message', {
+          service: 'contracts',
           jobId: job_id,
           messageId: insertedMessageId,
         });
       } else {
-        console.warn('[API] Contract message was not inserted, but contract creation succeeded');
+        logger.warn('Contract message was not inserted, but contract creation succeeded', {
+          service: 'contracts',
+          jobId: job_id,
+        });
       }
     } catch (messageError) {
-      console.error('[API] Failed to create contract message:', messageError);
+      logger.error('Failed to create contract message', messageError, {
+        service: 'contracts',
+        jobId: job_id,
+      });
       // Don't fail the request if message creation fails, but log it clearly
     }
 
     return NextResponse.json({ contract }, { status: 201 });
   } catch (error) {
-    console.error('Unexpected error in POST contracts', error);
+    logger.error('Unexpected error in POST contracts', error, {
+      service: 'contracts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -351,13 +378,19 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Error updating contract:', updateError);
+      logger.error('Error updating contract', updateError, {
+        service: 'contracts',
+        contractId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to update contract' }, { status: 500 });
     }
 
     return NextResponse.json({ contract: updatedContract });
   } catch (error) {
-    console.error('Unexpected error in PUT contracts', error);
+    logger.error('Unexpected error in PUT contracts', error, {
+      service: 'contracts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

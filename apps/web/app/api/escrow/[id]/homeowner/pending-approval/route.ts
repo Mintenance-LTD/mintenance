@@ -9,15 +9,14 @@ import { logger } from '@mintenance/shared';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: escrowId } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const escrowId = params.id;
 
     // Get escrow with photos
     const { data: escrow, error: escrowError } = await serverSupabase

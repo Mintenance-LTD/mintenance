@@ -40,71 +40,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-        <html lang="en">
-          <head>
-            {materialSymbolsLink}
-          </head>
-          <body className={inter.variable}>
-            <Script
-              id="className-fix"
-              strategy="beforeInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  // Fix for className.split() errors - runs before page interaction
-                  (function() {
-                    if (typeof window === 'undefined' || typeof Element === 'undefined') return;
-                    
-                    try {
-                      // Ensure className always returns a string
-                      const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'className') ||
-                                        Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'className');
-                      
-                      if (descriptor && descriptor.get) {
-                        const originalGet = descriptor.get;
-                        Object.defineProperty(Element.prototype, 'className', {
-                          get: function() {
-                            try {
-                              const value = originalGet.call(this);
-                              // Handle DOMTokenList (SVG elements in some browsers)
-                              if (value && typeof value === 'object') {
-                                if ('value' in value && typeof value.value === 'string') {
-                                  return value.value;
-                                }
-                                if ('toString' in value && typeof value.toString === 'function') {
-                                  return String(value);
-                                }
-                              }
-                              if (typeof value === 'string') return value;
-                              // Fallback to getAttribute if value is not a string
-                              const attr = this.getAttribute?.('class');
-                              return typeof attr === 'string' ? attr : '';
-                            } catch (e) {
-                              const attr = this.getAttribute?.('class');
-                              return typeof attr === 'string' ? attr : '';
-                            }
-                          },
-                          set: descriptor.set,
-                          configurable: true,
-                          enumerable: true,
-                        });
-                      }
-                    } catch (e) {
-                      // Silently fail if we can't patch
-                      console.warn('className fix failed:', e);
-                    }
-                  })();
-                `,
-              }}
-            />
-            <Providers>
-              <ErrorBoundary>
-                {children}
-                <CookieConsent />
-                <WebVitalsMonitor />
-                {/* <PerformanceDashboard /> */}
-              </ErrorBoundary>
-            </Providers>
-          </body>
-        </html>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {materialSymbolsLink}
+      </head>
+      <body className={inter.variable}>
+
+        <Providers>
+          <ErrorBoundary>
+            {children}
+            <CookieConsent />
+            <WebVitalsMonitor />
+            {/* <PerformanceDashboard /> */}
+          </ErrorBoundary>
+        </Providers>
+      </body>
+    </html>
   )
 }

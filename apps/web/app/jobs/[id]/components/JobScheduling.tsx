@@ -26,14 +26,14 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   const [startDate, setStartDate] = useState(
-    currentSchedule?.scheduled_start_date 
+    currentSchedule?.scheduled_start_date
       ? new Date(currentSchedule.scheduled_start_date).toISOString().slice(0, 16)
       : ''
   );
   const [endDate, setEndDate] = useState(
-    currentSchedule?.scheduled_end_date 
+    currentSchedule?.scheduled_end_date
       ? new Date(currentSchedule.scheduled_end_date).toISOString().slice(0, 16)
       : ''
   );
@@ -80,7 +80,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
       setIsEditing(false);
       setSuccessMessage('Job scheduled successfully! Both parties will be notified.');
       setError(null);
-      
+
       // Refresh the page to show updated schedule after a short delay
       setTimeout(() => {
         window.location.reload();
@@ -95,23 +95,23 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not scheduled';
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid date';
-      
+
       // Format consistently to avoid hydration mismatches
       // Use manual formatting to ensure server and client produce identical output
       const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      
+
       const weekday = weekdays[date.getDay()];
       const day = date.getDate();
       const month = months[date.getMonth()];
       const year = date.getFullYear();
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
-      
+
       // Always use the same format: "Sunday 28 December 2025 at 09:30" (no comma)
       return `${weekday} ${day} ${month} ${year} at ${hours}:${minutes}`;
     } catch {
@@ -339,7 +339,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
             <Label htmlFor="start-date">Start Date & Time *</Label>
             <Input
               id="start-date"
-              type="datetime-local"
+              type={"datetime-local" as any}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               min={new Date().toISOString().slice(0, 16)}
@@ -350,7 +350,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
             <Label htmlFor="end-date">End Date & Time (Optional)</Label>
             <Input
               id="end-date"
-              type="datetime-local"
+              type={"datetime-local" as any}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate || new Date().toISOString().slice(0, 16)}
@@ -397,10 +397,10 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
                 setError(null);
                 setSuccessMessage(null);
                 // Reset form
-                setStartDate(currentSchedule?.scheduled_start_date 
+                setStartDate(currentSchedule?.scheduled_start_date
                   ? new Date(currentSchedule.scheduled_start_date).toISOString().slice(0, 16)
                   : '');
-                setEndDate(currentSchedule?.scheduled_end_date 
+                setEndDate(currentSchedule?.scheduled_end_date
                   ? new Date(currentSchedule.scheduled_end_date).toISOString().slice(0, 16)
                   : '');
                 setDurationHours(currentSchedule?.scheduled_duration_hours?.toString() || '');

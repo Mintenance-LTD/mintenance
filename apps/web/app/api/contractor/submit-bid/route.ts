@@ -1,39 +1,26 @@
+/**
+ * Submit Bid API Route
+ * 
+ * Handles bid submission from contractors.
+ * Refactored to use extracted modules for better maintainability.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { EmailService } from '@/lib/email-service';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { submitBidSchema, type SubmitBidInput } from './validation';
+import { processBid, getDatabaseErrorMessage } from './bid-processor';
+import { prepareQuoteData, processQuote } from './quote-processor';
+import { sendBidNotifications } from './notifications';
 
-// Validation schema
-const submitBidSchema = z.object({
-  jobId: z.string().uuid(),
-  bidAmount: z.number().positive(),
-  proposalText: z.string().min(50).max(5000),
-  estimatedDuration: z.number().int().positive().optional(),
-  proposedStartDate: z.string().optional(),
-  materialsCost: z.number().nonnegative().optional(),
-  laborCost: z.number().nonnegative().optional(),
-  // Quote fields
-  lineItems: z.array(z.object({
-    description: z.string(),
-    quantity: z.number().nonnegative(),
-    unitPrice: z.number().nonnegative(),
-    total: z.number().nonnegative(),
-  })).optional(),
-  subtotal: z.number().nonnegative().optional(),
-  taxRate: z.number().min(0).max(100).optional(),
-  taxAmount: z.number().nonnegative().optional(),
-  totalAmount: z.number().positive().optional(),
-  terms: z.string().max(2000).optional(),
-});
-
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // CSRF protection
     await requireCSRF(request);
@@ -75,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
-    let body: any;
+    let body: unknown;
     try {
       body = await request.json();
     } catch (parseError) {
@@ -94,7 +81,7 @@ export async function POST(request: NextRequest) {
       request,
       'submit_bid',
       user.id,
-      body.jobId
+      typeof body === 'object' && body !== null && 'jobId' in body ? String(body.jobId) : ''
     );
 
     const idempotencyCheck = await checkIdempotency(idempotencyKey, 'submit_bid');
@@ -103,12 +90,13 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         idempotencyKey,
         userId: user.id,
-        jobId: body.jobId,
+        jobId: typeof body === 'object' && body !== null && 'jobId' in body ? String(body.jobId) : '',
       });
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    let validatedData;
+    // Validate request body
+    let validatedData: SubmitBidInput;
     try {
       validatedData = submitBidSchema.parse(body);
     } catch (validationError) {
@@ -164,8 +152,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate bid amount doesn't exceed job budget
-    // SECURITY: Check if budget has been reduced after bids were submitted
-    // Note: This prevents homeowners from reducing budget after bids are submitted
     if (job.budget) {
       const bidAmountCents = Math.round(validatedData.bidAmount * 100);
       const budgetCents = Math.round(job.budget * 100);
@@ -183,7 +169,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Check if there are existing bids and warn if budget might have been reduced
+      // Check if budget might have been reduced after bids were submitted
       const { count: existingBidCount } = await serverSupabase
         .from('bids')
         .select('id', { count: 'exact', head: true })
@@ -191,7 +177,6 @@ export async function POST(request: NextRequest) {
         .neq('status', 'withdrawn');
 
       if (existingBidCount && existingBidCount > 0) {
-        // Check if any existing bids exceed current budget (indicates budget was reduced)
         const { data: existingBids } = await serverSupabase
           .from('bids')
           .select('amount, contractor_id, status')
@@ -210,18 +195,9 @@ export async function POST(request: NextRequest) {
             currentBudget: job.budget,
             existingBidCount,
           });
-          // Don't block the bid, but log the issue for admin review
         }
       }
     }
-
-    // Check if contractor already has a bid on this job
-    const { data: existingBid } = await serverSupabase
-      .from('bids')
-      .select('id, quote_id')
-      .eq('job_id', validatedData.jobId)
-      .eq('contractor_id', user.id)
-      .single();
 
     // Get pricing recommendation (async, don't block)
     const pricingRecommendation = await PricingAgent.generateRecommendation(
@@ -243,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     if (pricingRecommendation) {
       competitivenessScore = pricingRecommendation.competitivenessScore;
-      pricingRecommendationId = (pricingRecommendation as any).id || undefined;
+      pricingRecommendationId = pricingRecommendation.id || undefined;
       suggestedPriceRange = {
         min: pricingRecommendation.recommendedMinPrice,
         max: pricingRecommendation.recommendedMaxPrice,
@@ -251,7 +227,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Prepare the bid payload (align with existing DB schema: amount, description, status)
+    // Prepare the bid payload
     const bidPayload = {
       job_id: validatedData.jobId,
       contractor_id: user.id,
@@ -261,185 +237,34 @@ export async function POST(request: NextRequest) {
       competitiveness_score: competitivenessScore,
       pricing_recommendation_id: pricingRecommendationId,
       suggested_price_range: suggestedPriceRange,
-      was_price_recommended: pricingRecommendation ? Math.abs(validatedData.bidAmount - pricingRecommendation.recommendedOptimalPrice) < 0.01 : false,
+      was_price_recommended: pricingRecommendation
+        ? Math.abs(validatedData.bidAmount - pricingRecommendation.recommendedOptimalPrice) < 0.01
+        : false,
       updated_at: new Date().toISOString(),
     };
 
-    let bid;
-    let isUpdate = false;
-
-    if (existingBid) {
-      // Update existing bid
-      const { data: updatedBid, error: updateError } = await serverSupabase
-        .from('bids')
-        .update(bidPayload)
-        .eq('id', existingBid.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        logger.error('Failed to update bid', {
-          service: 'contractor',
-          contractorId: user.id,
-          jobId: validatedData.jobId,
-          bidId: existingBid.id,
-          error: updateError.message,
-          errorCode: updateError.code,
-        });
-        return NextResponse.json({ 
-          error: 'Unable to update your bid. Please try again.' 
-        }, { status: 500 });
-      }
-
-      bid = updatedBid;
-      isUpdate = true;
-    } else {
-      // Create new bid
-      const insertPayload = {
-        ...bidPayload,
-        created_at: new Date().toISOString(),
-      };
-
-      const { data: newBid, error: insertError } = await serverSupabase
-        .from('bids')
-        .insert(insertPayload)
-        .select()
-        .single();
-
-      if (insertError) {
-        // Handle duplicate bid constraint violation (race condition) - try to update instead
-        if (insertError.code === '23505' || insertError.message?.includes('duplicate') || insertError.message?.includes('unique constraint')) {
-          // Try to fetch and update instead
-          const { data: raceConditionBid } = await serverSupabase
-            .from('bids')
-            .select('id')
-            .eq('job_id', validatedData.jobId)
-            .eq('contractor_id', user.id)
-            .single();
-
-          if (raceConditionBid) {
-            const { data: updatedBid, error: updateError } = await serverSupabase
-              .from('bids')
-              .update(bidPayload)
-              .eq('id', raceConditionBid.id)
-              .select()
-              .single();
-
-            if (updateError) {
-              logger.error('Failed to update bid after race condition', {
-                service: 'contractor',
-                contractorId: user.id,
-                jobId: validatedData.jobId,
-                error: updateError.message,
-              });
-              return NextResponse.json({ 
-                error: 'Unable to update your bid. Please try again.' 
-              }, { status: 500 });
-            }
-
-            bid = updatedBid;
-            isUpdate = true;
-          } else {
-            logger.warn('Duplicate bid constraint but bid not found', {
-              service: 'contractor',
-              contractorId: user.id,
-              jobId: validatedData.jobId,
-            });
-            return NextResponse.json({ error: 'You have already submitted a bid for this job' }, { status: 409 });
-          }
-        } else {
-          // Handle other insert errors
-          const bidError = insertError;
-
-      // Log the full error details for debugging
-      // Properly serialize error details
-      const errorInfo = {
-        service: 'contractor',
-        contractorId: user.id,
-        jobId: validatedData.jobId,
-        errorCode: bidError.code || 'NO_CODE',
-        errorMessage: bidError.message || 'NO_MESSAGE',
-        errorDetails: typeof bidError.details === 'string' ? bidError.details : JSON.stringify(bidError.details || {}),
-        errorHint: bidError.hint || 'NO_HINT',
-        // Capture all enumerable properties
-        allProperties: Object.keys(bidError).reduce((acc: any, key) => {
-          acc[key] = (bidError as any)[key];
-          return acc;
-        }, {}),
-        // Also try to stringify the entire error
-        stringified: JSON.stringify(bidError, Object.getOwnPropertyNames(bidError))
-      };
+    // Process bid creation or update
+    let bid: unknown;
+    let isUpdate: boolean;
+    try {
+      const result = await processBid(validatedData, user.id, bidPayload);
+      bid = result.bid;
+      isUpdate = result.isUpdate;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const dbError = error as { code?: string; message?: string };
       
-      logger.error('Failed to create bid in database', errorInfo);
-      
-      // Also log to console for immediate visibility
-      console.error('=== DATABASE ERROR DETAILS ===');
-      console.error('Error Code:', bidError.code);
-      console.error('Error Message:', bidError.message);
-      console.error('Error Details:', bidError.details);
-      console.error('Error Hint:', bidError.hint);
-      console.error('Full Error Object:', bidError);
-      console.error('=== END DATABASE ERROR ===');
-
-      // Provide more specific error messages based on error codes
-      if (bidError.code === '23503') {
-        // Foreign key violation
-        return NextResponse.json({ 
-          error: 'Invalid job or contractor reference. Please refresh and try again.' 
-        }, { status: 400 });
+      // Check if it's a database error we can handle
+      if (dbError.code || dbError.message) {
+        const userMessage = getDatabaseErrorMessage(dbError);
+        return NextResponse.json({ error: userMessage }, { status: 400 });
       }
 
-      if (bidError.code === '23502') {
-        // Not null violation
-        return NextResponse.json({ 
-          error: 'Missing required bid information. Please fill in all fields.' 
-        }, { status: 400 });
-      }
-
-      if (bidError.code === '42501') {
-        // Insufficient privileges
-        return NextResponse.json({ 
-          error: 'You do not have permission to submit bids. Please check your account status.' 
-        }, { status: 403 });
-      }
-
-      if (bidError.code === '23514') {
-        // Check constraint violation
-        return NextResponse.json({ 
-          error: 'Bid failed validation. Please review your inputs and try again.' 
-        }, { status: 400 });
-      }
-
-      // Common text-based patterns from Postgres/PostgREST
-      const messageLower = (bidError.message || '').toLowerCase();
-      if (messageLower.includes('invalid input syntax for type numeric') || messageLower.includes('invalid input syntax')) {
-        return NextResponse.json({ error: 'Bid amount is invalid. Please enter a valid number.' }, { status: 400 });
-      }
-
-      // For unknown errors, return a generic message but include dev diagnostics
-      const devInfo = process.env.NODE_ENV !== 'production'
-        ? {
-            devError: {
-              code: bidError.code,
-              message: bidError.message,
-              details: typeof (bidError as any).details === 'string' ? (bidError as any).details : JSON.stringify((bidError as any).details || {}),
-              hint: (bidError as any).hint,
-            }
-          }
-        : {};
-
-      return NextResponse.json({ 
-        error: 'Unable to submit bid due to a database error. Please try again or contact support.',
-        ...devInfo,
-      }, { status: 500 });
-        }
-      } else {
-        bid = newBid;
-        isUpdate = false;
-      }
+      // Re-throw if it's not a database error
+      throw error;
     }
 
-    if (!bid) {
+    if (!bid || typeof bid !== 'object' || !('id' in bid)) {
       logger.error('Bid creation/update failed but no error was thrown', {
         service: 'contractor',
         contractorId: user.id,
@@ -448,223 +273,65 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to submit bid' }, { status: 500 });
     }
 
-    // Create or update quote linked to this bid
+    // Process quote creation or update
     const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-    const homeownerName = homeowner 
+    const homeownerName = homeowner
       ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Client'
       : 'Client';
     const homeownerEmail = homeowner?.email || '';
 
-    // Prepare quote data
-    const quoteSubtotal = validatedData.subtotal ?? validatedData.bidAmount;
-    const quoteTaxRate = validatedData.taxRate ?? 0;
-    const quoteTaxAmount = validatedData.taxAmount ?? ((quoteSubtotal * quoteTaxRate) / 100);
-    const quoteTotalAmount = validatedData.totalAmount ?? validatedData.bidAmount;
-    const quoteLineItems = validatedData.lineItems && validatedData.lineItems.length > 0
-      ? validatedData.lineItems
-      : [];
+    const quotePayload = prepareQuoteData(
+      validatedData,
+      user.id,
+      job.title,
+      homeownerName,
+      homeownerEmail
+    );
 
-    // Check if quote already exists for this bid
-    const { data: existingQuote } = existingBid?.id
-      ? await serverSupabase
-          .from('contractor_quotes')
-          .select('id')
-          .eq('id', existingBid.quote_id || '')
-          .single()
-      : { data: null };
+    // Get existing quote ID from bid
+    const { data: bidWithQuote } = await serverSupabase
+      .from('bids')
+      .select('quote_id')
+      .eq('id', (bid as { id: string }).id)
+      .single();
 
-    const quotePayload = {
-      contractor_id: user.id,
-      job_id: validatedData.jobId,
-      client_name: homeownerName,
-      client_email: homeownerEmail,
-      title: `Quote for ${job.title}`,
-      description: validatedData.proposalText.trim(),
-      subtotal: quoteSubtotal,
-      tax_rate: quoteTaxRate,
-      tax_amount: quoteTaxAmount,
-      total_amount: quoteTotalAmount,
-      line_items: quoteLineItems.length > 0 ? quoteLineItems : [],
-      terms: validatedData.terms?.trim() || null,
-      status: 'sent' as const, // Quote status: sent when bid is pending
-      quote_date: new Date().toISOString().split('T')[0],
-      updated_at: new Date().toISOString(),
-    };
+    const existingQuoteId = bidWithQuote?.quote_id || null;
 
-    let quote;
-    if (existingQuote?.id) {
-      // Update existing quote
-      const { data: updatedQuote, error: quoteUpdateError } = await serverSupabase
-        .from('contractor_quotes')
-        .update(quotePayload)
-        .eq('id', existingQuote.id)
-        .select()
-        .single();
+    await processQuote(quotePayload, existingQuoteId, (bid as { id: string }).id);
 
-      if (quoteUpdateError) {
-        logger.error('Failed to update quote', {
-          service: 'contractor',
-          contractorId: user.id,
-          jobId: validatedData.jobId,
-          quoteId: existingQuote.id,
-          error: quoteUpdateError.message,
-        });
-        // Don't fail the bid if quote update fails, but log it
-      } else {
-        quote = updatedQuote;
-      }
-    } else {
-      // Create new quote
-      const { data: newQuote, error: quoteInsertError } = await serverSupabase
-        .from('contractor_quotes')
-        .insert({
-          ...quotePayload,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (quoteInsertError) {
-        logger.error('Failed to create quote', {
-          service: 'contractor',
-          contractorId: user.id,
-          jobId: validatedData.jobId,
-          error: quoteInsertError.message,
-        });
-        // Don't fail the bid if quote creation fails, but log it
-      } else {
-        quote = newQuote;
-
-        // Link quote to bid
-        const { error: linkError } = await serverSupabase
-          .from('bids')
-          .update({ quote_id: newQuote.id })
-          .eq('id', bid.id);
-
-        if (linkError) {
-          logger.error('Failed to link quote to bid', {
-            service: 'contractor',
-            contractorId: user.id,
-            jobId: validatedData.jobId,
-            bidId: bid.id,
-            quoteId: newQuote.id,
-            error: linkError.message,
-          });
-          // Don't fail the bid if linking fails
-        }
-      }
-    }
-
-    // Send email notification to homeowner (only for new bids, not updates)
-    if (!isUpdate) {
-      if (homeowner?.email) {
-        const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
-        const homeownerName = `${homeowner.first_name} ${homeowner.last_name}`.trim() || 'Valued Client';
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const proposalExcerpt = validatedData.proposalText.substring(0, 150);
-
-        // Send email notification
-        await EmailService.sendBidNotification(homeowner.email, {
-          homeownerName,
-          contractorName,
-          jobTitle: job.title,
-          bidAmount: validatedData.bidAmount,
-          proposalExcerpt,
-          viewUrl: `${baseUrl}/jobs/${validatedData.jobId}`,
-        }).catch((error) => {
-          logger.error('Failed to send bid notification email', {
-            service: 'contractor',
-            homeownerId: homeowner.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        });
-
-        // Create database notification for homeowner
-        try {
-          console.log('[Bid Submit] Creating notification for homeowner', {
-            service: 'contractor',
-            homeownerId: homeowner.id,
-            jobId: validatedData.jobId,
-            jobTitle: job.title,
-            bidAmount: validatedData.bidAmount,
-          });
-
-          const { error: notificationError } = await serverSupabase
-            .from('notifications')
-            .insert({
-              user_id: homeowner.id,
-              title: 'New Bid Received',
-              message: `${contractorName} has submitted a bid of £${validatedData.bidAmount.toFixed(2)} for your job "${job.title}"`,
-              type: 'bid_received',
-              read: false,
-              action_url: `/jobs/${validatedData.jobId}`,
-              created_at: new Date().toISOString(),
-            });
-
-          if (notificationError) {
-            console.error('[Bid Submit] Failed to create bid notification', {
-              service: 'contractor',
-              homeownerId: homeowner.id,
-              error: notificationError.message,
-              errorDetails: notificationError,
-            });
-            logger.error('Failed to create bid notification', {
-              service: 'contractor',
-              homeownerId: homeowner.id,
-              error: notificationError.message,
-            });
-          } else {
-            console.log('[Bid Submit] Bid notification created for homeowner', {
-              service: 'contractor',
-              homeownerId: homeowner.id,
-              jobId: validatedData.jobId,
-            });
-            logger.info('Bid notification created for homeowner', {
-              service: 'contractor',
-              homeownerId: homeowner.id,
-              jobId: validatedData.jobId,
-            });
-          }
-        } catch (notificationError) {
-          console.error('[Bid Submit] Unexpected error creating notification', {
-            service: 'contractor',
-            homeownerId: homeowner.id,
-            error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
-          });
-          logger.error('Unexpected error creating notification', {
-            service: 'contractor',
-            homeownerId: homeowner.id,
-            error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
-          });
-        }
-      }
-    }
+    // Send notifications (only for new bids, not updates)
+    await sendBidNotifications(
+      job.homeowner,
+      user,
+      job,
+      validatedData,
+      isUpdate
+    );
 
     logger.info('Bid submitted successfully', {
       service: 'contractor',
-      bidId: bid.id,
+      bidId: (bid as { id: string }).id,
       contractorId: user.id,
       jobId: validatedData.jobId,
       bidAmount: validatedData.bidAmount
     });
 
     // Trigger auto-accept evaluation asynchronously (fire-and-forget)
-    // Only evaluate new bids, not updates
-    if (!isUpdate && bid.status === 'pending') {
+    if (!isUpdate && (bid as { status?: string }).status === 'pending') {
       BidAcceptanceAgent.evaluateAutoAccept(
+        (bid as { id: string }).id,
         validatedData.jobId,
-        bid.id,
+        homeowner?.id || '',
         {
           jobId: validatedData.jobId,
           userId: homeowner?.id,
           contractorId: user.id,
         }
       ).catch((error) => {
-        // Log error but don't block the response
         logger.error('Error in auto-accept evaluation', {
           service: 'contractor',
           jobId: validatedData.jobId,
-          bidId: bid.id,
+          bidId: (bid as { id: string }).id,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       });
@@ -673,13 +340,15 @@ export async function POST(request: NextRequest) {
     const responseData = {
       success: true,
       updated: isUpdate,
-      message: isUpdate ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.',
+      message: isUpdate
+        ? 'Your bid has been updated successfully.'
+        : 'Your bid has been submitted successfully.',
       bid: {
-        id: bid.id,
-        jobId: bid.job_id,
-        bidAmount: bid.amount,
-        status: bid.status,
-        createdAt: bid.created_at
+        id: (bid as { id: string }).id,
+        jobId: validatedData.jobId,
+        bidAmount: validatedData.bidAmount,
+        status: (bid as { status?: string }).status || 'pending',
+        createdAt: (bid as { created_at?: string }).created_at
       }
     };
 
@@ -689,7 +358,7 @@ export async function POST(request: NextRequest) {
       'submit_bid',
       responseData,
       user.id,
-      { jobId: validatedData.jobId, bidId: bid.id }
+      { jobId: validatedData.jobId, bidId: (bid as { id: string }).id }
     );
 
     return NextResponse.json(responseData, { status: 201 });
@@ -725,7 +394,7 @@ export async function POST(request: NextRequest) {
         }
       : {};
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'An unexpected error occurred. Please try again or contact support if the issue persists.',
       ...devInfo,
     }, { status: 500 });

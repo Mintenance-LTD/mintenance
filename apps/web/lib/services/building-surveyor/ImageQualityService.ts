@@ -91,8 +91,8 @@ export class ImageQualityService {
     const featureCount = visionAnalysis.detectedFeatures?.length || 0;
     const clarityBoost = Math.min(0.2, featureCount / 20); // Up to 0.2 boost
     
-    // Text detection suggests good lighting and clarity
-    const hasText = (visionAnalysis.text?.length || 0) > 0;
+    // Text detection suggests good lighting and clarity (only available in ImageAnalysisResult)
+    const hasText = 'text' in visionAnalysis && (visionAnalysis.text?.length || 0) > 0;
     const textBoost = hasText ? 0.1 : 0;
     
     const imageClarity = Math.min(1.0, baseQuality + clarityBoost + textBoost);

@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { theme } from '../../theme';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useEnhancedHomeViewModel } from './viewmodels/EnhancedHomeViewModel';
@@ -41,10 +41,11 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
       <LocationHeader
         location={viewModel.location}
-        onLocationPress={() => {}}
-        onNotificationPress={() => {}}
+        onLocationPress={() => { }}
+        onNotificationPress={() => { }}
         hasNotifications
       />
 
@@ -55,7 +56,7 @@ export const EnhancedHomeScreen: React.FC = () => {
         <SearchFilterBar
           value={viewModel.searchQuery}
           onChangeText={viewModel.handleSearch}
-          onFilterPress={() => {}}
+          onFilterPress={() => { }}
         />
 
         <SpecialOffersCarousel
@@ -71,7 +72,7 @@ export const EnhancedHomeScreen: React.FC = () => {
         <TopContractorsList
           contractors={viewModel.topContractors}
           onContractorPress={viewModel.handleContractorPress}
-          onSeeAllPress={() => {}}
+          onSeeAllPress={() => { }}
         />
       </ScrollView>
     </SafeAreaView>

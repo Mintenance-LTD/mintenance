@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,19 +11,19 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const postId = id;
 
     // Verify post exists and is active
     const { data: post, error: postError } = await supabase
@@ -48,7 +49,11 @@ params }: { params: { id: string } }
       .single();
 
     if (updateError) {
-      console.error('Error updating share count:', updateError);
+      logger.error('Error updating share count', updateError, {
+        service: 'contractor_posts',
+        userId: user.id,
+        postId,
+      });
       return NextResponse.json({ error: 'Failed to track share', details: updateError.message }, { status: 500 });
     }
 
@@ -62,7 +67,9 @@ params }: { params: { id: string } }
       message: 'Share tracked successfully'
     });
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts/[id]/share:', error);
+    logger.error('Error in POST /api/contractor/posts/[id]/share', error, {
+      service: 'contractor_posts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

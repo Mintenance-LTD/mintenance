@@ -84,7 +84,7 @@ export default async function JobTrackingPage() {
       .or(`job_id.eq.${selectedJob.id}`)
       .order('created_at', { ascending: false })
       .limit(10);
-    
+
     messages = messagesData || [];
   }
 
@@ -254,7 +254,7 @@ export default async function JobTrackingPage() {
                 const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
 
                 // Determine status color
-                let statusColor = theme.colors.info;
+                let statusColor: string = theme.colors.info;
                 let statusLabel = 'Posted';
                 let statusBg = `${theme.colors.info}20`;
 

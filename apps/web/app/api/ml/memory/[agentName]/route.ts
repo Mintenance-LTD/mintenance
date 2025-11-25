@@ -10,10 +10,10 @@ import { requireCSRF } from '@/lib/csrf';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { agentName: string } }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
   try {
-    const { agentName } = params;
+    const { agentName } = await params;
     const { searchParams } = new URL(request.url);
     const level = searchParams.get('level') ? parseInt(searchParams.get('level')!) : undefined;
 
@@ -34,7 +34,7 @@ export async function GET(
   } catch (error) {
     logger.error('Error querying memory state', error, {
       service: 'MemoryAPI',
-      agentName: params.agentName,
+      agentName: 'unknown',
     });
     return NextResponse.json(
       { error: 'Failed to query memory state' },
@@ -49,13 +49,12 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { 
+  { params }: { params: Promise<{ agentName: string }> }
+) {
   // CSRF protection
   await requireCSRF(request);
-params }: { params: { agentName: string } }
-) {
   try {
-    const { agentName } = params;
+    const { agentName } = await params;
     const body = await request.json();
     const { level, keys, values } = body;
 
@@ -76,7 +75,7 @@ params }: { params: { agentName: string } }
   } catch (error) {
     logger.error('Error updating memory', error, {
       service: 'MemoryAPI',
-      agentName: params.agentName,
+      agentName: 'unknown',
     });
     return NextResponse.json(
       { error: 'Failed to update memory' },

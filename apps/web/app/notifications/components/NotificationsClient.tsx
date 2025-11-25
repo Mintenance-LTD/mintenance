@@ -88,14 +88,14 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
           const receiverId = notification.data?.senderId;
           const receiverName = notification.data?.senderName;
           const jobTitle = notification.data?.jobTitle;
-          
+
           if (jobId) {
             // Build URL with query params for the message thread
             const params = new URLSearchParams();
             if (receiverId) params.set('userId', String(receiverId));
             if (receiverName) params.set('userName', String(receiverName));
             if (jobTitle) params.set('jobTitle', String(jobTitle));
-            
+
             router.push(`/messages/${jobId}${params.toString() ? `?${params.toString()}` : ''}`);
           } else {
             router.push('/messages');
@@ -106,6 +106,12 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         break;
       case 'payment_received':
         router.push('/payments');
+        break;
+      case 'meeting_scheduled':
+        router.push('/scheduling/meetings');
+        break;
+      case 'social_interaction':
+        router.push('/contractor/social');
         break;
       default:
         break;
@@ -141,6 +147,8 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         return 'document';
       case 'system':
         return 'info';
+      case 'social_interaction':
+        return 'users';
       default:
         return 'alert';
     }

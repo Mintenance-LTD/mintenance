@@ -2,17 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Briefcase, 
-  MessageCircle, 
-  Home, 
-  PoundSterling, 
-  Settings, 
-  Users, 
-  Building, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Briefcase,
+  MessageCircle,
+  Home,
+  PoundSterling,
+  Settings,
+  Users,
+  Building,
+  TrendingUp,
   HelpCircle,
   LogOut,
   LucideIcon
@@ -46,12 +46,12 @@ function getIconComponent(iconName: string): LucideIcon {
     helpCircle: HelpCircle,
     logOut: LogOut,
   };
-  
+
   // Ensure currencyDollar always returns PoundSterling, never DollarSign
   if (iconName === 'currencyDollar' || iconName === 'currency' || iconName === 'dollar') {
     return PoundSterling;
   }
-  
+
   return iconMap[iconName] || LayoutDashboard; // Default to LayoutDashboard if not found
 }
 
@@ -82,12 +82,12 @@ export function MenuTab({ icon, label, href, isActive = false, isExpanded = true
 
   // Standardize icon color - always use theme colors, never hardcoded
   const iconColor = isActive ? theme.colors.secondary : theme.colors.textInverse;
-  
+
   // CRITICAL: Always resolve icon deterministically - ensure currencyDollar ALWAYS maps to PoundSterling
   // This prevents any hydration mismatches or screen-size-dependent rendering
   // Resolve icon synchronously (not in useMemo) to ensure consistent SSR/client rendering
-  const normalizedIconName = icon === 'currencyDollar' || icon === 'currency' || icon === 'dollar' 
-    ? 'currencyDollar' 
+  const normalizedIconName = icon === 'currencyDollar' || icon === 'currency' || icon === 'dollar'
+    ? 'currencyDollar'
     : icon;
   const IconComponent = getIconComponent(normalizedIconName);
 
@@ -102,20 +102,10 @@ export function MenuTab({ icon, label, href, isActive = false, isExpanded = true
       className={classNameString}
       style={linkStyle}
       suppressHydrationWarning
-      onMouseEnter={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = theme.colors.primaryLight;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
-      }}
     >
       <span className={styles.menuTabIcon} suppressHydrationWarning>
-        <IconComponent 
-          size={22} 
+        <IconComponent
+          size={22}
           style={{ color: iconColor }}
           aria-hidden="true"
         />

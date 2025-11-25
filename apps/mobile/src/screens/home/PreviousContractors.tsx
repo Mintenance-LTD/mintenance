@@ -31,7 +31,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
           Your trusted professionals
         </Text>
       </View>
-      
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -89,6 +89,10 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                         `${contractor.firstName || ''} ${contractor.lastName || ''}`.trim(),
                     })
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Message ${contractor.firstName || 'contractor'}`}
+                  accessibilityHint="Opens a chat with this contractor"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Ionicons
                     name='chatbubble'
@@ -104,6 +108,10 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                       preferredContractorId: contractor.id,
                     })
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Rehire ${contractor.firstName || 'contractor'}`}
+                  accessibilityHint="Starts a new job request with this contractor"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text style={styles.rehireButtonText}>Rehire</Text>
                 </TouchableOpacity>

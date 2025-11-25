@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/admin/building-assessments
@@ -50,7 +51,9 @@ export async function GET(request: NextRequest) {
       statistics,
     });
   } catch (error: any) {
-    console.error('Error fetching assessments:', error);
+    logger.error('Error fetching assessments', error, {
+      service: 'admin_building_assessments',
+    });
     return NextResponse.json(
       { error: error.message || 'Failed to fetch assessments' },
       { status: 500 }

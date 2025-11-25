@@ -58,7 +58,7 @@ export class NotificationAgent {
 
       // Check quiet hours
       const inQuietHours = await this.isInQuietHours(userId);
-      if (inQuietHours && priority !== 'urgent' && priority !== 'high') {
+      if (inQuietHours && priority !== 'high') {
         // Schedule for after quiet hours
         const scheduledFor = await this.getNextOptimalTime(userId, notificationType);
         return {
@@ -173,8 +173,7 @@ export class NotificationAgent {
       // Log decision
       await AgentLogger.logDecision({
         agentName: 'notification',
-        decisionType: 'engagement_tracked',
-        actionTaken: 'tracked_engagement',
+        decisionType: 'notification_routing',
         confidence: 100,
         reasoning: `Tracked ${notificationType} engagement: opened=${engagement.opened}, clicked=${engagement.clicked}`,
         userId,
@@ -285,8 +284,7 @@ export class NotificationAgent {
 
       await AgentLogger.logDecision({
         agentName: 'notification',
-        decisionType: 'timing_learned',
-        actionTaken: 'updated_preferences',
+        decisionType: 'notification_timing',
         confidence: Math.min(100, (engagements.length / 50) * 100),
         reasoning: `Learned optimal timing for ${Object.keys(typeGroups).length} notification types from ${engagements.length} engagements`,
         userId,

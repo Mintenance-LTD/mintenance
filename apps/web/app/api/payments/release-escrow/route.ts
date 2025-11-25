@@ -18,7 +18,7 @@ import { requireAdminFromDatabase } from '@/lib/admin-verification';
 
 // Initialize Stripe with validated secret key (server-side only)
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2024-04-10',
 });
 
 const releaseEscrowSchema = z.object({

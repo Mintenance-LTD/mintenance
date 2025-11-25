@@ -29,7 +29,9 @@ const { query, limit = 10 } = await request.json();
       suggestions: rankedSuggestions.slice(0, limit),
     });
   } catch (error) {
-    console.error('Search suggestions error:', error);
+    logger.error('Search suggestions error', error, {
+      service: 'ai_search_suggestions',
+    });
     return NextResponse.json(
       { error: 'Failed to get suggestions' },
       { status: 500 }

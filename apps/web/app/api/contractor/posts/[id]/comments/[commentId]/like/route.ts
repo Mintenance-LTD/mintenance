@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,19 +11,18 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { commentId } = params;
+    const { commentId } = await params;
 
     // Verify comment exists
     const { data: comment, error: fetchError } = await supabase
@@ -53,7 +53,11 @@ params }: { params: { id: string; commentId: string } }
       .single();
 
     if (updateError) {
-      console.error('Error updating comment likes:', updateError);
+      logger.error('Error updating comment likes', updateError, {
+        service: 'contractor',
+        commentId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to update comment likes', details: updateError.message }, { status: 500 });
     }
 
@@ -62,7 +66,9 @@ params }: { params: { id: string; commentId: string } }
       likes_count: updatedComment.likes_count 
     });
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts/[id]/comments/[commentId]/like:', error);
+    logger.error('Error in POST /api/contractor/posts/[id]/comments/[commentId]/like', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get contractors near a job location
@@ -62,7 +63,11 @@ export async function GET(
       .eq('job_id', jobId);
 
     if (viewsError) {
-      console.error('Error fetching contractors:', viewsError);
+      logger.error('Error fetching contractors', viewsError, {
+        service: 'jobs',
+        jobId,
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: 'Failed to fetch contractors' },
         { status: 500 }
@@ -101,7 +106,12 @@ export async function GET(
             };
           }
         } catch (err) {
-          console.error('Error geocoding contractor location:', err);
+          logger.error('Error geocoding contractor location', err, {
+            service: 'jobs',
+            jobId,
+            contractorId: contractor.id,
+            location: contractor.location,
+          });
         }
 
         return { ...contractor, latitude: null, longitude: null, name: `${contractor.first_name} ${contractor.last_name}`.trim() };
@@ -127,7 +137,9 @@ export async function GET(
       contractors: contractorsWithDistance,
     });
   } catch (error) {
-    console.error('Error in nearby-contractors route:', error);
+    logger.error('Error in nearby-contractors route', error, {
+      service: 'jobs',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

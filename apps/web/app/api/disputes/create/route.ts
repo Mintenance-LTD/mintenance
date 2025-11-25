@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set priority and SLA
-    await DisputeWorkflowService.setDisputePriority(escrowId, priority);
+    await DisputeWorkflowService.setDisputePriority(escrowId, priority as any);
 
     // Attempt auto-resolution (runs asynchronously)
     DisputeWorkflowService.attemptAutoResolution(escrowId).catch((error) => {

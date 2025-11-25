@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const scheduleSchema = z.object({
   scheduled_start_date: z.string().datetime(),
@@ -11,14 +12,12 @@ const scheduleSchema = z.object({
   scheduled_duration_hours: z.number().int().positive().optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const { id: jobId } = await params;
     const user = await getCurrentUserFromCookies();
 
@@ -83,7 +82,11 @@ params }: { params: Promise<{ id: string }> }
       .eq('id', jobId);
 
     if (updateError) {
-      console.error('Error updating job schedule:', updateError);
+      logger.error('Error updating job schedule', updateError, {
+        service: 'jobs',
+        jobId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to schedule job' }, { status: 500 });
     }
 
@@ -122,7 +125,10 @@ params }: { params: Promise<{ id: string }> }
     try {
       await serverSupabase.from('notifications').insert(notifications);
     } catch (notificationError) {
-      console.error('Failed to create schedule notifications:', notificationError);
+      logger.error('Failed to create schedule notifications', notificationError, {
+        service: 'jobs',
+        jobId,
+      });
       // Don't fail the request
     }
 
@@ -181,7 +187,7 @@ params }: { params: Promise<{ id: string }> }
       jobId,
       userId: user.id,
     }).catch((error) => {
-      console.error('Error getting schedule suggestions', error, {
+      logger.error('Error getting schedule suggestions', error, {
         service: 'schedule',
         jobId,
       });
@@ -192,12 +198,17 @@ params }: { params: Promise<{ id: string }> }
     try {
       // Note: These should be handled by a cron job that checks for notifications with future created_at dates
       // and sends them at the appropriate time. For MVP, we'll create them but note they need a scheduler.
-      console.log('Reminder notifications scheduled for:', {
+      logger.info('Reminder notifications scheduled', {
+        service: 'jobs',
+        jobId,
         reminder24h: reminder24h.toISOString(),
         reminder1h: reminder1h.toISOString(),
       });
     } catch (reminderError) {
-      console.error('Failed to schedule reminders:', reminderError);
+      logger.error('Failed to schedule reminders', reminderError, {
+        service: 'jobs',
+        jobId,
+      });
     }
 
     return NextResponse.json({
@@ -207,7 +218,9 @@ params }: { params: Promise<{ id: string }> }
       scheduled_end_date,
     });
   } catch (error) {
-    console.error('Unexpected error in schedule job', error);
+    logger.error('Unexpected error in schedule job', error, {
+      service: 'jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -249,7 +262,9 @@ export async function GET(
       scheduled_duration_hours: job.scheduled_duration_hours,
     });
   } catch (error) {
-    console.error('Unexpected error in GET schedule', error);
+    logger.error('Unexpected error in GET schedule', error, {
+      service: 'jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

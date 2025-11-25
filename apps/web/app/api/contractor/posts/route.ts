@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,7 +96,10 @@ export async function GET(request: NextRequest) {
     const { data: posts, error: postsError } = await query;
 
     if (postsError) {
-      console.error('Error fetching posts:', postsError);
+      logger.error('Error fetching posts', postsError, {
+        service: 'contractor_posts',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
     }
 
@@ -137,7 +141,9 @@ export async function GET(request: NextRequest) {
       offset 
     });
   } catch (error) {
-    console.error('Error in GET /api/contractor/posts:', error);
+    logger.error('Error in GET /api/contractor/posts', error, {
+      service: 'contractor_posts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -216,7 +222,10 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (postError) {
-      console.error('Error creating post:', postError);
+      logger.error('Error creating post', postError, {
+        service: 'contractor_posts',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to create post', details: postError.message }, { status: 500 });
     }
 
@@ -244,7 +253,9 @@ const user = await getCurrentUserFromCookies();
 
     return NextResponse.json({ post: formattedPost }, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts:', error);
+    logger.error('Error in POST /api/contractor/posts', error, {
+      service: 'contractor_posts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

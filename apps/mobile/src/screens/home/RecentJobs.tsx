@@ -19,14 +19,20 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress }) 
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Service Requests</Text>
-        <TouchableOpacity onPress={onViewAllPress}>
+        <TouchableOpacity
+          onPress={onViewAllPress}
+          accessibilityRole="button"
+          accessibilityLabel="View all recent jobs"
+          accessibilityHint="Navigates to the full list of your jobs"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={styles.viewAllLink}>View All</Text>
         </TouchableOpacity>
       </View>
 
       {/* Recent Jobs header for tests */}
       <Text style={styles.sectionTitle}>Your Recent Jobs</Text>
-      
+
       {jobs && jobs.length > 0 ? (
         jobs.map((job) => (
           <View key={job.id} style={styles.serviceRequestCard}>

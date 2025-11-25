@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +28,9 @@ export async function POST(request: NextRequest) {
 
     // Validate environment variables
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+      logger.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable', new Error('Configuration error'), {
+        service: 'jobs',
+      });
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -35,7 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+      logger.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable', new Error('Configuration error'), {
+        service: 'jobs',
+      });
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -120,7 +125,11 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('Upload error for file:', file.name, uploadError);
+        logger.error('Upload error for file', uploadError, {
+          service: 'jobs',
+          fileName: file.name,
+          userId: user.id,
+        });
         
         // Check if it's a bucket not found error
         if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
@@ -151,13 +160,21 @@ export async function POST(request: NextRequest) {
       if (urlData?.publicUrl) {
         uploadedUrls.push(urlData.publicUrl);
       } else {
-        console.error('Failed to get public URL for uploaded file:', fileName);
+        logger.error('Failed to get public URL for uploaded file', new Error('URL generation failed'), {
+          service: 'jobs',
+          fileName,
+          userId: user.id,
+        });
       }
     }
 
     if (uploadedUrls.length === 0) {
       // All uploads failed - provide more context
-      console.error('All photo uploads failed. Attempted to upload:', photoFiles.length, 'files');
+      logger.error('All photo uploads failed', new Error('All uploads failed'), {
+        service: 'jobs',
+        attemptedFiles: photoFiles.length,
+        userId: user.id,
+      });
       return NextResponse.json(
         { 
           error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
@@ -169,9 +186,12 @@ export async function POST(request: NextRequest) {
     
     // If some files failed but at least one succeeded, log a warning
     if (uploadedUrls.length < photoFiles.length) {
-      console.warn(
-        `Only ${uploadedUrls.length} of ${photoFiles.length} photos uploaded successfully.`
-      );
+      logger.warn('Partial photo upload success', {
+        service: 'jobs',
+        successful: uploadedUrls.length,
+        attempted: photoFiles.length,
+        userId: user.id,
+      });
     }
 
     return NextResponse.json({
@@ -180,7 +200,9 @@ export async function POST(request: NextRequest) {
       count: uploadedUrls.length,
     });
   } catch (error) {
-    console.error('Error uploading job photos:', error);
+    logger.error('Error uploading job photos', error, {
+      service: 'jobs',
+    });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { 
