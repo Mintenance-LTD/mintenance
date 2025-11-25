@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
-export async function POST(_request: NextRequest, context: Params) {
+export async function POST(request: NextRequest, context: Params) {
   try {
-    
+
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -29,7 +30,11 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (jobError) {
-      console.error('[API] mark-read job error', jobError);
+      logger.error('mark-read job error', jobError, {
+        service: 'messages',
+        threadId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
@@ -48,14 +53,20 @@ const user = await getCurrentUserFromCookies();
       .select('id');
 
     if (updateError) {
-      console.error('[API] mark-read update error', updateError);
+      logger.error('mark-read update error', updateError, {
+        service: 'messages',
+        threadId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to mark messages as read' }, { status: 500 });
     }
 
     const updated = updatedRows?.length ?? 0;
     return NextResponse.json({ updated });
   } catch (err) {
-    console.error('[API] mark-read error', err);
+    logger.error('mark-read error', err, {
+      service: 'messages',
+    });
     return NextResponse.json({ error: 'Failed to mark messages as read' }, { status: 500 });
   }
 }

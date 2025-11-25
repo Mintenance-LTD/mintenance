@@ -144,8 +144,10 @@ export interface Phase1BuildingAssessment {
   evidence?: {
     roboflowDetections?: RoboflowDetection[];
     visionAnalysis?: VisionAnalysisSummary | null;
-    sam3Segmentation?: SAM3SegmentationData; // SAM 3 precise segmentation data
+    sam3Segmentation?: SAM3SegmentationData | import('./SAM3Service').DamageTypeSegmentation | null; // SAM 3 precise segmentation data
+    sceneGraphFeatures?: import('./scene_graph_features').SceneGraphFeatures | null; // Scene graph features for Bayesian fusion
   };
+  decisionResult?: DecisionResult; // Safe-LUCB decision with uncertainty metrics
 }
 
 export interface AssessmentContext {
@@ -153,5 +155,27 @@ export interface AssessmentContext {
   propertyType?: 'residential' | 'commercial' | 'industrial';
   ageOfProperty?: number;
   propertyDetails?: string;
+  propertyAge?: number;
+  region?: string;
+  shadowMode?: boolean;
+  assessmentId?: string;
+  userId?: string;
+}
+
+/**
+ * Decision result from Safe-LUCB Critic
+ * Contains the automate/escalate decision along with uncertainty metrics
+ */
+export interface DecisionResult {
+  decision: 'automate' | 'escalate';
+  reason?: string;
+  safetyUcb: number;
+  rewardUcb: number;
+  safetyThreshold: number;
+  exploration: boolean;
+  cpStratum: string;
+  cpPredictionSet: string[];
+  fusionMean: number;
+  fusionVariance: number;
 }
 

@@ -12,6 +12,7 @@
 
 import { logger } from '@mintenance/shared';
 import type { RoboflowDetection, VisionAnalysisSummary } from './types';
+import type { DamageTypeSegmentation } from './SAM3Service';
 
 /**
  * Scene graph node representing an entity in the scene
@@ -108,22 +109,26 @@ export class SceneGraphBuilder {
    * @param roboflowDetections - Bounding box detections from Roboflow/YOLO
    * @param visionAnalysis - Semantic analysis from GPT-4 Vision
    * @param imageCount - Number of images processed
+   * @param sam3Segmentation - SAM 3 segmentation data (optional, prioritized over Roboflow)
    * @returns Complete scene graph with nodes and edges
    */
   static buildSceneGraph(
     roboflowDetections: RoboflowDetection[],
     visionAnalysis: VisionAnalysisSummary | null,
-    imageCount: number = 1
+    imageCount: number = 1,
+    sam3Segmentation?: DamageTypeSegmentation | null
   ): SceneGraph {
     try {
-      // 1. Create nodes from detections
-      const nodes = this.createNodesFromDetections(roboflowDetections);
+      // 1. Create nodes from SAM 3 (prioritized) or Roboflow detections
+      const detectionNodes = sam3Segmentation && sam3Segmentation.success
+        ? this.createNodesFromSAM3(sam3Segmentation)
+        : this.createNodesFromDetections(roboflowDetections);
 
       // 2. Create nodes from vision analysis (NLP extraction)
       const visionNodes = this.createNodesFromVisionAnalysis(visionAnalysis);
 
-      // 3. Merge and deduplicate nodes
-      const mergedNodes = this.mergeNodes([...nodes, ...visionNodes]);
+      // 3. Merge and deduplicate nodes (SAM 3 nodes take priority)
+      const mergedNodes = this.mergeNodes([...detectionNodes, ...visionNodes]);
 
       // 4. Create edges from spatial overlap
       const spatialEdges = this.createSpatialEdges(mergedNodes);
@@ -192,6 +197,68 @@ export class SceneGraphBuilder {
           imageUrl: detection.imageUrl,
         },
       });
+    }
+
+    return nodes;
+  }
+
+  /**
+   * Create nodes from SAM 3 segmentation data
+   */
+  private static createNodesFromSAM3(
+    sam3Segmentation: DamageTypeSegmentation
+  ): SceneNode[] {
+    const nodes: SceneNode[] = [];
+
+    if (!sam3Segmentation.success || !sam3Segmentation.damage_types) {
+      return nodes;
+    }
+
+    let nodeIndex = 0;
+    for (const [damageType, segmentation] of Object.entries(sam3Segmentation.damage_types)) {
+      if (segmentation.error) {
+        continue; // Skip damaged types with errors
+      }
+
+      const nodeType = this.mapClassNameToNodeType(damageType);
+      
+      // Create a node for each instance (box) of this damage type
+      for (let i = 0; i < segmentation.boxes.length; i++) {
+        const box = segmentation.boxes[i];
+        const score = segmentation.scores[i] || 0.5; // Default to 0.5 if score missing
+
+        // Box format: [x, y, width, height] or [x1, y1, x2, y2]
+        // Normalize to [x, y, width, height] format
+        let x: number, y: number, width: number, height: number;
+        if (box.length === 4) {
+          // Assume [x, y, width, height] format
+          [x, y, width, height] = box;
+        } else {
+          // Fallback: treat as [x1, y1, x2, y2] and convert
+          x = box[0] || 0;
+          y = box[1] || 0;
+          width = (box[2] || 0) - x;
+          height = (box[3] || 0) - y;
+        }
+
+        nodes.push({
+          id: `sam3_${damageType}_${nodeIndex++}`,
+          type: nodeType,
+          label: damageType,
+          confidence: Math.min(1, Math.max(0, score / 100)), // Normalize score to [0, 1]
+          boundingBox: {
+            x,
+            y,
+            width: Math.max(0, width),
+            height: Math.max(0, height),
+          },
+          attributes: {
+            source: 'sam3',
+            numInstances: segmentation.num_instances,
+            damageType,
+          },
+        });
+      }
     }
 
     return nodes;

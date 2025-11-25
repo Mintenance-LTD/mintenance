@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +28,9 @@ export async function POST(request: NextRequest) {
 
     // Validate environment variables
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+      logger.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable', new Error('Missing env var'), {
+        service: 'property_photos',
+      });
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -35,7 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+      logger.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable', new Error('Missing env var'), {
+        service: 'property_photos',
+      });
       return NextResponse.json(
         { error: 'Server configuration error. Please contact support.' },
         { status: 500 }
@@ -126,7 +131,11 @@ export async function POST(request: NextRequest) {
         });
 
       if (uploadError) {
-        console.error('Upload error for file:', file.name, uploadError);
+        logger.error('Upload error for file', uploadError, {
+          service: 'property_photos',
+          userId: user.id,
+          fileName: file.name,
+        });
         uploadErrors.push(`${file.name}: ${uploadError.message}`);
         continue;
       }
@@ -145,7 +154,12 @@ export async function POST(request: NextRequest) {
 
     if (uploadedPhotos.length === 0) {
       // All uploads failed - provide more context
-      console.error('All property photo uploads failed. Attempted to upload:', photoFiles.length, 'files');
+      logger.error('All property photo uploads failed', new Error('All uploads failed'), {
+        service: 'property_photos',
+        userId: user.id,
+        attemptedFiles: photoFiles.length,
+        uploadErrors: uploadErrors.length,
+      });
       return NextResponse.json(
         { 
           error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
@@ -158,10 +172,13 @@ export async function POST(request: NextRequest) {
     
     // If some files failed but at least one succeeded, log a warning
     if (uploadedPhotos.length < photoFiles.length) {
-      console.warn(
-        `Only ${uploadedPhotos.length} of ${photoFiles.length} property photos uploaded successfully.`,
-        { errors: uploadErrors }
-      );
+      logger.warn('Partial property photo upload success', {
+        service: 'property_photos',
+        userId: user.id,
+        successful: uploadedPhotos.length,
+        total: photoFiles.length,
+        errors: uploadErrors.length,
+      });
     }
 
     return NextResponse.json({ 
@@ -173,7 +190,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error uploading property photos:', error);
+    logger.error('Error uploading property photos', error, {
+      service: 'property_photos',
+    });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { 

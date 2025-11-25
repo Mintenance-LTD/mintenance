@@ -144,13 +144,19 @@ export class EscrowService {
         return false;
       }
 
-      const contractorId = escrow.job.contractor_id;
+      // Handle both array and single object cases
+      const job = Array.isArray(escrow.job) ? escrow.job[0] : escrow.job;
+      if (!job) {
+        return false;
+      }
+
+      const contractorId = job.contractor_id;
       if (!contractorId) {
         return false;
       }
 
       // Check if job is completed
-      if (escrow.job.status !== 'completed') {
+      if (job.status !== 'completed') {
         return false;
       }
 

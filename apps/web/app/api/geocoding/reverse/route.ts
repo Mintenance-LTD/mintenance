@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@mintenance/shared';
 
 /**
  * API route to proxy reverse geocoding requests to Nominatim
@@ -45,7 +46,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error reverse geocoding from Nominatim:', error);
+    logger.error('Error reverse geocoding from Nominatim', error, {
+      service: 'geocoding',
+      lat,
+      lon,
+    });
     return NextResponse.json(
       { error: 'Failed to get address from location. Please try again.' },
       { status: 500 }

@@ -1,0 +1,85 @@
+{
+  "timestamp": "2025-11-25T12:31:49.693Z",
+  "csvPath": "training-data/ground-truth-labels.csv",
+  "batchNumber": 1,
+  "totalBatches": 199,
+  "overallProgress": {
+    "total": 1981,
+    "successful": 0,
+    "failed": 10,
+    "errors": [
+      {
+        "filename": "Animal-Damage_jpeg.rf.674aa6bfccd894b1b4006040a3973a87.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-16-12-21-38_png.rf.2d0d3c0263cadd109c5749128e90581f.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "22-1405376584805_jpeg_jpg.rf.02acb678e9478bdc9350bc92f2e443e0.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "6-background-cracked-multilayer-paint-rusty-metal-wall-small-texture-copy-space-228658281_jpg.rf.61e03d9b4621d443908376f187d8ead0.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-08-20-45-06_png.rf.08f77f26f1dd0c05b4660b3e45a30ba7.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "183_jpg.rf.510fb4a13301365c97f2b981662262eb.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-14-10-13-47_png.rf.3e130f91383729271f1f22697b073055.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "videoplayback23123_480_jpg.rf.e189cc3646ede91bbb364b64d8df2505.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "00340-3093835349-window-in-a-brick-wall_png_jpg.rf.641ca1153993a58774f19beb55e3fe8a.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "pipe14_jpeg_jpg.rf.ef3b1cde36d08fa638363c3817264760.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      }
+    ]
+  },
+  "currentBatchReport": {
+    "batchNumber": 1,
+    "totalBatches": 199,
+    "batchStartIndex": 0,
+    "batchEndIndex": 9,
+    "batchSize": 10,
+    "processed": 10,
+    "successful": 0,
+    "failed": 10,
+    "elapsedMs": 200163,
+    "averageTimePerImage": 20016.3,
+    "estimatedTimeRemaining": 39452,
+    "successRate": "0.00%",
+    "timestamp": "2025-11-25T12:31:49.692Z"
+  },
+  "allReports": [
+    {
+      "batchNumber": 1,
+      "totalBatches": 199,
+      "batchStartIndex": 0,
+      "batchEndIndex": 9,
+      "batchSize": 10,
+      "processed": 10,
+      "successful": 0,
+      "failed": 10,
+      "elapsedMs": 200163,
+      "averageTimePerImage": 20016.3,
+      "estimatedTimeRemaining": 39452,
+      "successRate": "0.00%",
+      "timestamp": "2025-11-25T12:31:49.692Z"
+    }
+  ]
+}

@@ -8,7 +8,6 @@ import dynamic from 'next/dynamic';
 
 // New enhancement components
 import {
-  TrustIndicators,
   QuickQuoteWidget,
   CustomerTestimonials,
   AIAssessmentShowcase,
@@ -39,7 +38,6 @@ const FeaturesSectionDynamic = dynamic(() => import('./components/landing/Featur
  * 
  * Enhanced with high-converting components for improved engagement:
  * - UrgencyBanner: Creates urgency with limited-time offers
- * - TrustIndicators: Builds credibility with social proof
  * - QuickQuoteWidget: Captures leads with instant estimates
  * - AIAssessmentShowcase: Demonstrates AI-powered damage assessment
  * - CustomerTestimonials: Social proof through success stories
@@ -71,11 +69,6 @@ export default function LandingPage() {
       <main id="main-content">
         {/* Hero Section */}
         <HeroSection />
-
-        {/* Trust Indicators - Immediately after hero for credibility */}
-        <section className="py-12 px-4">
-          <TrustIndicators />
-        </section>
 
         {/* Stats Section */}
         <StatsSectionDynamic />

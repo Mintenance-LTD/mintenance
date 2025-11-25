@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-11-24T19:36:28.198Z",
+  "csvPath": "training-data/ground-truth-labels-test-5.csv",
+  "total": 5,
+  "successful": 5,
+  "failed": 0,
+  "errors": [],
+  "successRate": "100.00%"
+}

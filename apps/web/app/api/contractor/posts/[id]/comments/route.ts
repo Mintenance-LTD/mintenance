@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,16 +11,17 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const postId = id;
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -42,7 +44,11 @@ export async function GET(
       .range(offset, offset + limit - 1);
 
     if (commentsError) {
-      console.error('Error fetching comments:', commentsError);
+      logger.error('Error fetching comments', commentsError, {
+        service: 'contractor',
+        postId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
     }
 
@@ -92,26 +98,28 @@ export async function GET(
       offset 
     });
   } catch (error) {
-    console.error('Error in GET /api/contractor/posts/[id]/comments:', error);
+    logger.error('Error in GET /api/contractor/posts/[id]/comments', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
-    
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const postId = id;
     const body = await request.json();
     const { comment_text, parent_comment_id } = body;
 
@@ -172,7 +180,11 @@ export async function POST(
       .single();
 
     if (commentError) {
-      console.error('Error creating comment:', commentError);
+      logger.error('Error creating comment', commentError, {
+        service: 'contractor',
+        postId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to create comment', details: commentError.message }, { status: 500 });
     }
 
@@ -199,7 +211,9 @@ export async function POST(
 
     return NextResponse.json({ comment: formattedComment }, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts/[id]/comments:', error);
+    logger.error('Error in POST /api/contractor/posts/[id]/comments', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -13,14 +13,12 @@ const verifySchema = z.object({
   reason: z.string().optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ userId: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const admin = await getCurrentUserFromCookies();
 
     if (!admin || admin.role !== 'admin') {

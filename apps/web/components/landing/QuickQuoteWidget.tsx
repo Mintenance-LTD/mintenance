@@ -29,11 +29,11 @@ export function QuickQuoteWidget() {
     return (
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
             <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-[#0F172A] rounded-xl">
+                <div className="p-3 bg-primary-900 rounded-xl">
                     <Calculator className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                    <h3 className="text-2xl font-bold text-[#0F172A]">Get Instant Estimate</h3>
+                    <h3 className="text-2xl font-bold text-primary-900">Get Instant Estimate</h3>
                     <p className="text-gray-600">Free, no obligation quote in 60 seconds</p>
                 </div>
             </div>
@@ -50,7 +50,7 @@ export function QuickQuoteWidget() {
                             setProjectType(e.target.value);
                             setShowEstimate(false);
                         }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all"
                     >
                         <option value="">Select a service...</option>
                         {PROJECT_TYPES.map((type) => (
@@ -74,7 +74,7 @@ export function QuickQuoteWidget() {
                             setShowEstimate(false);
                         }}
                         placeholder="e.g. SW1A 1AA"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#10B981] focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all"
                     />
                 </div>
 
@@ -82,7 +82,7 @@ export function QuickQuoteWidget() {
                 <Button
                     onClick={handleGetQuote}
                     disabled={!projectType || !postcode}
-                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-secondary-500 hover:bg-secondary-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
                 >
                     Get My Free Quote
                     <ArrowRight className="w-5 h-5" />
@@ -92,12 +92,12 @@ export function QuickQuoteWidget() {
                 {showEstimate && selectedProject && (
                     <div className="mt-6 p-6 bg-gradient-to-br from-slate-50 to-emerald-50 rounded-xl border-2 border-emerald-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="flex items-start gap-3 mb-4">
-                            <Sparkles className="w-6 h-6 text-[#10B981] flex-shrink-0 mt-1" />
+                            <Sparkles className="w-6 h-6 text-secondary-500 flex-shrink-0 mt-1" />
                             <div>
-                                <h4 className="font-bold text-lg text-[#0F172A] mb-1">
+                                <h4 className="font-bold text-lg text-primary-900 mb-1">
                                     Estimated Cost Range
                                 </h4>
-                                <p className="text-3xl font-bold text-[#10B981]">
+                                <p className="text-3xl font-bold text-secondary-500">
                                     {selectedProject.avgCost}
                                 </p>
                             </div>
@@ -123,7 +123,7 @@ export function QuickQuoteWidget() {
                                 // Navigate to registration with pre-filled data
                                 window.location.href = `/register?role=homeowner&project=${projectType}&postcode=${postcode}`;
                             }}
-                            className="w-full bg-[#0F172A] hover:bg-[#1E293B] text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+                            className="w-full bg-primary-900 hover:bg-primary-800 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                         >
                             Get Matched with Contractors
                         </Button>
@@ -141,7 +141,7 @@ export function QuickQuoteWidget() {
 
 function CheckIcon() {
     return (
-        <svg className="w-5 h-5 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5 text-secondary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
     );

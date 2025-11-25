@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 import {
   mapMessageRow,
   MESSAGE_TYPES,
@@ -63,14 +64,18 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (jobError) {
-      console.error('[API] message POST job error', jobError);
+      logger.error('Message POST job error', jobError, {
+        service: 'messages',
+        threadId,
+      });
       return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
     const job = jobData as SupabaseJobRow;
     const isParticipant = job.homeowner_id === user.id || job.contractor_id === user.id;
     if (!isParticipant) {
-      console.error('[API] message POST participant check failed', {
+      logger.warn('Message POST participant check failed', {
+        service: 'messages',
         userId: user.id,
         jobHomeownerId: job.homeowner_id,
         jobContractorId: job.contractor_id,
@@ -83,7 +88,8 @@ const user = await getCurrentUserFromCookies();
     const receiverId = data.receiverId ?? inferredReceiverId;
 
     if (!receiverId) {
-      console.error('[API] message POST receiver ID determination failed', {
+      logger.error('Message POST receiver ID determination failed', {
+        service: 'messages',
         userId: user.id,
         jobHomeownerId: job.homeowner_id,
         jobContractorId: job.contractor_id,
@@ -136,8 +142,8 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (insertError) {
-      console.error('[API] message POST insert error', {
-        error: insertError,
+      logger.error('Message POST insert error', insertError, {
+        service: 'messages',
         jobId: threadId,
         senderId: user.id,
         receiverId,
@@ -160,8 +166,8 @@ const user = await getCurrentUserFromCookies();
             .eq('id', threadId);
         } catch (jobUpdateError) {
           // Don't fail the request if job update fails
-          console.error('[API] message POST job timestamp update error', {
-            error: jobUpdateError,
+          logger.error('Message POST job timestamp update error', jobUpdateError, {
+            service: 'messages',
             jobId: threadId,
           });
         }
@@ -201,8 +207,8 @@ const user = await getCurrentUserFromCookies();
         });
     } catch (notificationError) {
       // Don't fail the request if notification creation fails
-      console.error('[API] message POST notification creation error', {
-        error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
+      logger.error('Message POST notification creation error', notificationError, {
+        service: 'messages',
         receiverId,
         jobId: threadId,
       });
@@ -214,7 +220,7 @@ const user = await getCurrentUserFromCookies();
       jobId: threadId,
       userId: user.id,
     }).catch((error) => {
-      console.error('Error in job status evaluation', error, {
+      logger.error('Error in job status evaluation', error, {
         service: 'messages',
         jobId: threadId,
       });
@@ -222,9 +228,10 @@ const user = await getCurrentUserFromCookies();
     
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {
-    console.error('[API] message POST error', {
-      error: err instanceof Error ? err.message : 'Unknown error',
-      stack: err instanceof Error ? err.stack : undefined,
+    const threadId = await context.params.then(p => p.id).catch(() => 'unknown');
+    logger.error('Message POST error', err, {
+      service: 'messages',
+      threadId,
     });
     return NextResponse.json({ 
       error: 'Failed to send message',

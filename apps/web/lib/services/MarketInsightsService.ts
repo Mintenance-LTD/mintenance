@@ -295,12 +295,12 @@ export class MarketInsightsService {
     }
 
     // Calculate market share (simplified - based on job count)
-    const { data: contractorJobCount } = await serverSupabase
+    const { count: contractorJobCount } = await serverSupabase
       .from('jobs')
       .select('id', { count: 'exact', head: true })
       .eq('contractor_id', contractorId);
 
-    const { data: totalJobCount } = await serverSupabase
+    const { count: totalJobCount } = await serverSupabase
       .from('jobs')
       .select('id', { count: 'exact', head: true });
 

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabase';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -215,9 +217,9 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       {/* Announcements List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[5] }}>
         {announcements.map((announcement) => (
-          <Card 
-            key={announcement.id} 
-            style={{ 
+          <Card
+            key={announcement.id}
+            style={{
               padding: theme.spacing[6],
               borderRadius: '16px',
               border: '1px solid #E2E8F0',
@@ -228,10 +230,16 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
             }}
             className="hover:shadow-md"
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              const target = e.currentTarget;
+              if (target instanceof HTMLElement) {
+                target.style.transform = 'translateY(-2px)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
+              const target = e.currentTarget;
+              if (target instanceof HTMLElement) {
+                target.style.transform = 'translateY(0)';
+              }
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: theme.spacing[6] }}>
@@ -314,7 +322,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Metadata */}
                 <div style={{
                   display: 'flex',
@@ -396,7 +404,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   )}
                 </div>
               </div>
-              
+
               {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2], flexShrink: 0 }}>
                 {!announcement.is_published && (
@@ -404,7 +412,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                     variant="primary"
                     onClick={() => handlePublish(announcement.id)}
                     disabled={loading}
-                    style={{ 
+                    style={{
                       fontSize: '13px',
                       fontWeight: 600,
                       padding: '8px 16px',
@@ -419,7 +427,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   variant="ghost"
                   onClick={() => setEditingId(editingId === announcement.id ? null : announcement.id)}
                   disabled={loading}
-                  style={{ 
+                  style={{
                     fontSize: '13px',
                     fontWeight: 500,
                     padding: '8px 16px',
@@ -433,7 +441,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   variant="destructive"
                   onClick={() => handleDelete(announcement.id)}
                   disabled={loading}
-                  style={{ 
+                  style={{
                     fontSize: '13px',
                     fontWeight: 500,
                     padding: '8px 16px',

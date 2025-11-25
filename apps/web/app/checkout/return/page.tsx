@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,7 @@ interface SessionStatus {
  * This page is shown after the customer completes or cancels checkout.
  * It retrieves the session status and displays appropriate messaging.
  */
-export default function CheckoutReturnPage(): JSX.Element {
+function CheckoutReturnContent(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get('session_id');
@@ -181,3 +181,14 @@ export default function CheckoutReturnPage(): JSX.Element {
   );
 }
 
+export default function CheckoutReturnPage(): JSX.Element {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <CheckoutReturnContent />
+    </Suspense>
+  );
+}

@@ -221,7 +221,7 @@ export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnha
             return (
               <Button
                 key={period}
-                variant={isActive ? 'default' : 'ghost'}
+                variant={isActive ? 'primary' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedPeriod(period)}
                 className="capitalize"

@@ -12,18 +12,40 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let contractorId: string | undefined;
+  
   try {
-    const { contractorId } = await req.json();
+    const body = await req.json();
+    contractorId = body.contractorId;
+
+    // Validate required environment variables
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    const appUrl = Deno.env.get('APP_URL');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    
+    if (!appUrl) {
+      throw new Error('APP_URL environment variable is not set');
+    }
+
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL environment variable is not set');
+    }
+
+    if (!supabaseServiceRoleKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
+    }
 
     // Initialize Stripe and Supabase
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    );
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Get contractor information
     const { data: contractor, error: contractorError } = await supabase
@@ -34,7 +56,16 @@ serve(async (req) => {
       .single();
 
     if (contractorError) {
-      throw new Error('Contractor not found');
+      console.error('Contractor lookup error:', contractorError);
+      throw new Error(`Contractor not found: ${contractorError.message}`);
+    }
+
+    if (!contractor) {
+      throw new Error('Contractor data not found');
+    }
+
+    if (!contractor.email) {
+      throw new Error('Contractor email is required but not found');
     }
 
     // Create Stripe Connect account
@@ -52,16 +83,16 @@ serve(async (req) => {
       business_type: 'individual',
       individual: {
         email: contractor.email,
-        first_name: contractor.first_name,
-        last_name: contractor.last_name,
+        first_name: contractor.first_name || 'Contractor',
+        last_name: contractor.last_name || 'User',
       },
     });
 
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${Deno.env.get('APP_URL')}/contractor/payout/refresh`,
-      return_url: `${Deno.env.get('APP_URL')}/contractor/payout/success`,
+      refresh_url: `${appUrl}/contractor/payout/refresh`,
+      return_url: `${appUrl}/contractor/payout/success`,
       type: 'account_onboarding',
     });
 
@@ -109,9 +140,18 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error setting up contractor payout:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error setting up contractor payout:', {
+      message: errorMessage,
+      error: error,
+      contractorId: contractorId || 'unknown',
+    });
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: Deno.env.get('ENVIRONMENT') === 'development' ? String(error) : undefined,
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

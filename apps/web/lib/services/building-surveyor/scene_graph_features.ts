@@ -29,7 +29,8 @@ export interface SceneGraphFeatures {
     avgNodeDegree: number;
     connectivityScore: number;
   };
-  featureVector: number[]; // Flattened vector for Bayesian fusion
+  featureVector: number[]; // Flattened vector for Bayesian fusion (40-dim)
+  compactFeatureVector?: number[]; // Compact vector for critic (12-dim, d_eff = 12)
 }
 
 /**
@@ -65,12 +66,20 @@ export class SceneGraphFeatureExtractor {
         sceneGraph.edges
       );
 
-      // 5. Flatten to vector
+      // 5. Flatten to vector (40-dim)
       const featureVector = this.flattenToVector(
         nodeCounts,
         edgeCounts,
         nodeEdgePatterns,
         spatialFeatures
+      );
+
+      // 6. Extract compact features (12-dim for critic)
+      const compactFeatureVector = this.extractCompactFeatures(
+        nodeCounts,
+        edgeCounts,
+        spatialFeatures,
+        sceneGraph
       );
 
       return {
@@ -79,6 +88,7 @@ export class SceneGraphFeatureExtractor {
         nodeEdgePatterns,
         spatialFeatures,
         featureVector,
+        compactFeatureVector,
       };
     } catch (error) {
       logger.error('Failed to extract scene graph features, returning zero vector', {
@@ -99,8 +109,115 @@ export class SceneGraphFeatureExtractor {
           connectivityScore: 0,
         },
         featureVector: new Array(40).fill(0),
+        compactFeatureVector: new Array(12).fill(0),
       };
     }
+  }
+
+  /**
+   * Extract compact 12-dimensional feature vector for critic (d_eff = 12)
+   * 
+   * Maps 40-dim features to 12-dim using manual selection:
+   * 1. has_critical_hazard (binary) - from crack/structural_damage counts
+   * 2. crack_density (0-1) - normalized crack count
+   * 3. water_damage_area_ratio (0-1) - moisture + stain normalized
+   * 4. structural_elements_count (normalized) - wall + foundation + roof + floor
+   * 5. safety_hazard_count (normalized) - electrical + fire_damage + pest_damage
+   * 6. damage_severity_score (0-1) - weighted combination of damage types
+   * 7. property_age_normalized (0-1) - requires external context (passed separately)
+   * 8. region_risk_factor (0-1) - requires external context (passed separately)
+   * 9. image_quality_score (0-1) - avgNodeConfidence
+   * 10. detection_confidence_avg (0-1) - avgNodeConfidence + avgEdgeConfidence
+   * 11. scene_complexity (0-1) - connectivityScore + node count normalized
+   * 12. uncertainty_estimate (0-1) - inverse of avgNodeConfidence
+   * 
+   * Note: Features 7-8 (property_age, region_risk) require external context
+   * and should be provided separately when calling this method.
+   */
+  static extractCompactFeatures(
+    nodeCounts: Record<NodeType, number>,
+    edgeCounts: Record<EdgeRelation, number>,
+    spatialFeatures: {
+      avgNodeConfidence: number;
+      avgEdgeConfidence: number;
+      maxNodeDegree: number;
+      avgNodeDegree: number;
+      connectivityScore: number;
+    },
+    sceneGraph: SceneGraph,
+    propertyAge?: number,
+    regionRiskFactor?: number
+  ): number[] {
+    const totalNodes = sceneGraph.nodes.length;
+    const totalEdges = sceneGraph.edges.length;
+
+    // 1. has_critical_hazard (binary) - critical if structural damage or high-risk damage
+    const criticalDamageTypes = nodeCounts.crack + nodeCounts.structural_beam +
+      nodeCounts.fire_damage + nodeCounts.electrical;
+    const hasCriticalHazard = criticalDamageTypes > 0 ? 1 : 0;
+
+    // 2. crack_density (0-1) - normalized crack count
+    const crackDensity = totalNodes > 0 ? Math.min(1, nodeCounts.crack / totalNodes) : 0;
+
+    // 3. water_damage_area_ratio (0-1) - moisture + stain normalized
+    const waterDamageCount = nodeCounts.moisture + nodeCounts.stain;
+    const waterDamageAreaRatio = totalNodes > 0 ? Math.min(1, waterDamageCount / totalNodes) : 0;
+
+    // 4. structural_elements_count (normalized) - wall + foundation + roof + floor
+    const structuralElements = nodeCounts.wall + nodeCounts.foundation +
+      nodeCounts.roof + nodeCounts.floor;
+    const structuralElementsCount = totalNodes > 0 ? Math.min(1, structuralElements / totalNodes) : 0;
+
+    // 5. safety_hazard_count (normalized) - electrical + fire_damage + pest_damage
+    const safetyHazards = nodeCounts.electrical + nodeCounts.fire_damage + nodeCounts.pest_damage;
+    const safetyHazardCount = totalNodes > 0 ? Math.min(1, safetyHazards / totalNodes) : 0;
+
+    // 6. damage_severity_score (0-1) - weighted combination
+    // Weights: critical (1.0), high (0.7), medium (0.4), low (0.1)
+    const criticalWeight = (nodeCounts.crack + nodeCounts.structural_beam +
+      nodeCounts.fire_damage) * 1.0;
+    const highWeight = (nodeCounts.mold + nodeCounts.electrical) * 0.7;
+    const mediumWeight = (nodeCounts.moisture + nodeCounts.stain) * 0.4;
+    const lowWeight = (nodeCounts.insulation) * 0.1;
+    const totalWeight = criticalWeight + highWeight + mediumWeight + lowWeight;
+    const damageSeverityScore = totalNodes > 0 ? Math.min(1, totalWeight / totalNodes) : 0;
+
+    // 7. property_age_normalized (0-1) - requires external context, default to 0.5
+    const propertyAgeNormalized = propertyAge !== undefined
+      ? Math.min(1, propertyAge / 200) // Normalize to 200 years max
+      : 0.5;
+
+    // 8. region_risk_factor (0-1) - requires external context, default to 0.5
+    const regionRiskValue = regionRiskFactor !== undefined ? regionRiskFactor : 0.5;
+
+    // 9. image_quality_score (0-1) - avgNodeConfidence
+    const imageQualityScore = spatialFeatures.avgNodeConfidence;
+
+    // 10. detection_confidence_avg (0-1) - avgNodeConfidence + avgEdgeConfidence
+    const detectionConfidenceAvg = (spatialFeatures.avgNodeConfidence +
+      spatialFeatures.avgEdgeConfidence) / 2;
+
+    // 11. scene_complexity (0-1) - connectivityScore + node count normalized
+    const nodeComplexity = Math.min(1, totalNodes / 50); // Normalize to 50 nodes max
+    const sceneComplexity = (spatialFeatures.connectivityScore + nodeComplexity) / 2;
+
+    // 12. uncertainty_estimate (0-1) - inverse of avgNodeConfidence
+    const uncertaintyEstimate = 1 - spatialFeatures.avgNodeConfidence;
+
+    return [
+      hasCriticalHazard,
+      crackDensity,
+      waterDamageAreaRatio,
+      structuralElementsCount,
+      safetyHazardCount,
+      damageSeverityScore,
+      propertyAgeNormalized,
+      regionRiskValue,
+      imageQualityScore,
+      detectionConfidenceAvg,
+      sceneComplexity,
+      uncertaintyEstimate,
+    ];
   }
 
   /**

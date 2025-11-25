@@ -2,12 +2,12 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ResourcesPageClient } from './components/ResourcesPageClient';
 import { DashboardContentWrapper } from '../dashboard-enhanced/components/DashboardContentWrapper';
-import { OnboardingWrapper } from '@/components/OnboardingWrapper';
+import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import { getOnboardingStatus } from '@/lib/onboarding';
 
 export default async function ContractorResourcesPage() {
   const user = await getCurrentUserFromCookies();
-  
+
   if (!user) {
     redirect('/login?redirect=/contractor/resources');
   }
@@ -16,7 +16,7 @@ export default async function ContractorResourcesPage() {
     redirect('/dashboard');
   }
 
-  const onboardingStatus = await getOnboardingStatus(user.id, 'contractor');
+  const onboardingStatus = await getOnboardingStatus(user.id);
 
   return (
     <OnboardingWrapper

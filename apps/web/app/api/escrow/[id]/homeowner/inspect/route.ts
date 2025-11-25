@@ -10,18 +10,18 @@ import { requireCSRF } from '@/lib/csrf';
  */
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const escrowId = params.id;
+    const escrowId = id;
 
     // Verify user is homeowner
     const { data: escrow, error: escrowError } = await serverSupabase

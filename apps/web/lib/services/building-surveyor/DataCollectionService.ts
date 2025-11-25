@@ -34,6 +34,12 @@ const AUTO_VALIDATION_CONFIG = {
   
   // Minimum number of validated assessments before enabling auto-validation
   MIN_VALIDATED_COUNT: 100,
+
+  // Shadow phase: AI makes decision but always escalates to human for learning
+  SHADOW_PHASE_ENABLED: process.env.BUILDING_SURVEYOR_SHADOW_PHASE_ENABLED === 'true',
+  
+  // Minimum number of shadow phase assessments before enabling real automation
+  MIN_SHADOW_PHASE_COUNT: 500,
 };
 
 /**
@@ -44,6 +50,7 @@ const AUTO_VALIDATION_CONFIG = {
  * 
  * Implements hybrid self-training:
  * - Phase 1: 100% human validation (until MIN_VALIDATED_COUNT reached)
+ * - Shadow Phase: AI makes decision but always escalates to human for learning
  * - Phase 2: Confidence-based auto-validation for high-confidence assessments
  * - Phase 3: Active learning (future enhancement)
  */
@@ -56,6 +63,138 @@ export class DataCollectionService {
   }
 
   /**
+   * Check if shadow phase is enabled
+   * In shadow phase, AI makes decisions but always escalates to human for learning
+   */
+  static isShadowPhaseEnabled(): boolean {
+    return AUTO_VALIDATION_CONFIG.SHADOW_PHASE_ENABLED;
+  }
+
+  /**
+   * Get AI decision in shadow phase (for logging and learning)
+   * Returns what the AI would decide, but always escalates in practice
+   */
+  static async getShadowPhaseDecision(
+    assessment: Phase1BuildingAssessment,
+    assessmentId: string
+  ): Promise<{ aiDecision: 'automate' | 'escalate'; reason?: string; confidence?: number }> {
+    try {
+      // Check what AI would decide (using same logic as canAutoValidate)
+      const { canAutoValidate, reason } = await this.canAutoValidate(assessment, assessmentId);
+      
+      return {
+        aiDecision: canAutoValidate ? 'automate' : 'escalate',
+        reason,
+        confidence: assessment.damageAssessment.confidence,
+      };
+    } catch (error) {
+      logger.error('Error getting shadow phase decision', error, {
+        service: 'DataCollectionService',
+        assessmentId,
+      });
+      return { aiDecision: 'escalate', reason: 'Error in shadow phase decision' };
+    }
+  }
+
+  /**
+   * Record feedback from shadow phase
+   * Compares AI decision with human decision and updates critic models
+   */
+  static async recordFeedback(
+    assessmentId: string,
+    aiDecision: 'automate' | 'escalate',
+    humanDecision: 'automate' | 'escalate',
+    actualOutcome: {
+      hasCriticalHazard: boolean;
+      wasCorrect: boolean;
+    }
+  ): Promise<void> {
+    try {
+      // Get assessment context for feedback
+      const { data: assessmentRecord } = await serverSupabase
+        .from('building_assessments')
+        .select('assessment_data, ab_decision_id')
+        .eq('id', assessmentId)
+        .single();
+
+      if (!assessmentRecord) {
+        logger.warn('Assessment not found for feedback', {
+          service: 'DataCollectionService',
+          assessmentId,
+        });
+        return;
+      }
+
+      // Record feedback to AB test feedback service
+      // Determine if AI was correct and if there was a safety violation
+      const isCorrect = aiDecision === humanDecision;
+      const hasSafetyViolation = actualOutcome.hasCriticalHazard && aiDecision === 'automate';
+      
+      // Get validated_by from assessment (default to 'system' for shadow phase)
+      const { data: assessment } = await serverSupabase
+        .from('building_assessments')
+        .select('validated_by')
+        .eq('id', assessmentId)
+        .single();
+      
+      const validatedBy = assessment?.validated_by || 'system';
+      
+      await ABTestFeedbackService.collectFeedback(
+        assessmentId,
+        validatedBy,
+        isCorrect,
+        hasSafetyViolation
+      );
+
+      // Update FNR tracking if AI decision was automate
+      if (aiDecision === 'automate') {
+        // Extract stratum from assessment (if available)
+        const assessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+        // Note: Stratum would need to be stored in assessment metadata
+        // For now, we'll use a default stratum
+        const stratum = 'residential_50-100_unknown_structural'; // Default
+        
+        await import('./critic').then(({ CriticModule }) => {
+          CriticModule.recordOutcome(
+            stratum,
+            aiDecision,
+            actualOutcome.hasCriticalHazard
+          ).catch((error) => {
+            logger.error('Failed to record FNR outcome', {
+              service: 'DataCollectionService',
+              assessmentId,
+              error,
+            });
+          });
+        });
+      }
+
+      logger.info('Feedback recorded', {
+        service: 'DataCollectionService',
+        assessmentId,
+        aiDecision,
+        humanDecision,
+        agreement: aiDecision === humanDecision,
+        hasCriticalHazard: actualOutcome.hasCriticalHazard,
+      });
+
+      this.recordMetric('shadow_phase.feedback', {
+        assessmentId,
+        aiDecision,
+        humanDecision,
+        agreement: aiDecision === humanDecision,
+        hasCriticalHazard: actualOutcome.hasCriticalHazard,
+      });
+    } catch (error) {
+      logger.error('Error recording feedback', error, {
+        service: 'DataCollectionService',
+        assessmentId,
+      });
+      // Don't throw - feedback collection is non-critical
+    }
+  }
+
+  /**
    * Check if assessment meets criteria for auto-validation
    * Returns true if assessment can be auto-validated, false if human review needed
    */
@@ -64,6 +203,25 @@ export class DataCollectionService {
     assessmentId: string
   ): Promise<{ canAutoValidate: boolean; reason?: string }> {
     try {
+      // In shadow phase, always return false (escalate) but log AI decision
+      if (AUTO_VALIDATION_CONFIG.SHADOW_PHASE_ENABLED) {
+        const shadowDecision = await this.getShadowPhaseDecision(assessment, assessmentId);
+        
+        // Log shadow phase decision (for learning)
+        this.recordMetric('shadow_phase.decision', {
+          assessmentId,
+          aiDecision: shadowDecision.aiDecision,
+          reason: shadowDecision.reason,
+          confidence: shadowDecision.confidence,
+        });
+
+        // Always escalate in shadow phase (for learning)
+        return { 
+          canAutoValidate: false, 
+          reason: `Shadow phase: AI would ${shadowDecision.aiDecision}, but escalating for learning` 
+        };
+      }
+
       // Check if auto-validation is enabled
       if (!AUTO_VALIDATION_CONFIG.ENABLED) {
         return { canAutoValidate: false, reason: 'Auto-validation disabled' };

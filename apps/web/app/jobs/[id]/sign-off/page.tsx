@@ -9,7 +9,8 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function JobSignOffPage({ params }: { params: { id: string } }) {
+export default async function JobSignOffPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
@@ -30,7 +31,7 @@ export default async function JobSignOffPage({ params }: { params: { id: string 
         last_name
       )
     `)
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
 
     if (error || !job) {
@@ -41,16 +42,16 @@ export default async function JobSignOffPage({ params }: { params: { id: string 
     if (job.homeowner_id !== user.id) {
         // If user is contractor, maybe show a "Waiting for sign-off" message?
         // For now, redirect.
-        redirect(`/jobs/${params.id}`);
+        redirect(`/jobs/${id}`);
     }
 
     if (job.status === 'completed') {
-        redirect(`/jobs/${params.id}`);
+        redirect(`/jobs/${id}`);
     }
 
     const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
     const contractorName = contractor
-        ? `${(contractor as any).first_name} ${(contractor as any).last_name}`
+        ? `${(contractor as any)?.first_name || ''} ${(contractor as any)?.last_name || ''}`.trim() || 'Contractor'
         : 'Contractor';
 
     return (
@@ -59,7 +60,7 @@ export default async function JobSignOffPage({ params }: { params: { id: string 
                 <PageHeader
                     title="Complete Job"
                     description="Finalize the job and provide your signature."
-                    backUrl={`/jobs/${params.id}`}
+                    backUrl={`/jobs/${id}`}
                 />
                 <JobSignOffClient
                     jobId={job.id}

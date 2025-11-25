@@ -88,6 +88,11 @@ export function LiveActivityFeed() {
     }
 
     const activity = activities[currentIndex] || activities[0];
+    
+    // Safety check: don't render if activity is undefined
+    if (!activity) {
+        return null;
+    }
 
     return (
         <div className="fixed bottom-6 left-6 z-50 max-w-sm hidden lg:block">

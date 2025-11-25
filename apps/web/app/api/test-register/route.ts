@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 // Direct Supabase configuration for testing
 const supabaseUrl = 'http://127.0.0.1:54321';
@@ -21,7 +22,13 @@ export async function POST(request: NextRequest) {
 const body = await request.json();
     const { email, password, firstName, lastName, role, phone } = body;
 
-    console.log('Test registration attempt:', { email, firstName, lastName, role });
+    logger.info('Test registration attempt', {
+      service: 'test_register',
+      email,
+      firstName,
+      lastName,
+      role,
+    });
 
     // Simple validation
     if (!email || !password || !firstName || !lastName) {
@@ -50,14 +57,21 @@ const body = await request.json();
       .select();
 
     if (userError) {
-      console.error('Database error:', userError);
+      logger.error('Database error', userError, {
+        service: 'test_register',
+        email,
+      });
       return NextResponse.json(
         { error: 'Failed to create user', details: userError.message },
         { status: 500 }
       );
     }
 
-    console.log('User created successfully:', userData);
+    logger.info('User created successfully', {
+      service: 'test_register',
+      userId: userData[0]?.id,
+      email,
+    });
 
     return NextResponse.json(
       {
@@ -74,7 +88,9 @@ const body = await request.json();
     );
 
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error', error, {
+      service: 'test_register',
+    });
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }

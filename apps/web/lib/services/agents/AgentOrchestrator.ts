@@ -97,7 +97,7 @@ export class AgentOrchestrator {
         return false;
       }
 
-      return data[automationType] === true;
+      return (data as unknown as Record<string, boolean>)[automationType] === true;
     } catch (error) {
       logger.error('Error checking automation preference', error, {
         service: 'AgentOrchestrator',

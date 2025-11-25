@@ -9,13 +9,12 @@ import { requireCSRF } from '@/lib/csrf';
  */
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { agentName: string } }
+  { params }: { params: Promise<{ agentName: string }> }
 ) {
   try {
-    const { agentName } = params;
+    // CSRF protection
+    await requireCSRF(request);
+    const { agentName } = await params;
     const body = await request.json();
     const { level } = body;
 
@@ -51,7 +50,9 @@ params }: { params: { agentName: string } }
   } catch (error) {
     logger.error('Error consolidating memory', error, {
       service: 'MemoryAPI',
-      agentName: params.agentName,
+      // We can't easily access agentName here if await params failed, but it's unlikely.
+      // We'll try to get it from the URL or just omit it.
+      agentName: 'unknown',
     });
     return NextResponse.json(
       { error: 'Failed to consolidate memory' },
@@ -59,4 +60,3 @@ params }: { params: { agentName: string } }
     );
   }
 }
-

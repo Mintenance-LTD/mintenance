@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,13 +23,18 @@ const body = await request.json();
       .eq('read', false);
 
     if (error) {
-      console.error('Error marking all as read:', error);
+      logger.error('Error marking all as read', error, {
+        service: 'notifications',
+        userId,
+      });
       return NextResponse.json({ error: 'Failed to mark all as read' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Mark all as read API error:', error);
+    logger.error('Mark all as read API error', error, {
+      service: 'notifications',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,9 @@ class GeocodeManager {
 
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
     if (!this.apiKey) {
-      console.warn('⚠️ GOOGLE_MAPS_API_KEY not configured, using fallback coordinates');
+      logger.warn('GOOGLE_MAPS_API_KEY not configured, using fallback coordinates', {
+        service: 'geocoding',
+      });
       // Return approximate coordinates for UK cities as fallback
       return this.getFallbackCoordinates(address);
     }
@@ -41,10 +44,16 @@ class GeocodeManager {
         };
       }
 
-      console.error('Geocoding failed:', data.status, data.error_message);
+      logger.error('Geocoding failed', new Error(`Geocoding status: ${data.status}`), {
+        service: 'geocoding',
+        status: data.status,
+        errorMessage: data.error_message,
+      });
       return this.getFallbackCoordinates(address);
     } catch (error) {
-      console.error('Geocoding API error:', error);
+      logger.error('Geocoding API error', error, {
+        service: 'geocoding',
+      });
       return this.getFallbackCoordinates(address);
     }
   }
@@ -75,7 +84,10 @@ class GeocodeManager {
     }
 
     // Default to London if no match found
-    console.warn(`No coordinates found for "${location}", defaulting to London`);
+    logger.warn('No coordinates found for location, defaulting to London', {
+      service: 'geocoding',
+      location,
+    });
     return { lat: 51.5074, lng: -0.1278 };
   }
 }
@@ -166,7 +178,12 @@ const user = await getCurrentUserFromCookies();
       .eq('id', user.id);
 
     if (insertError) {
-      console.error('Error inserting service area:', insertError);
+      logger.error('Error inserting service area', insertError, {
+        service: 'service_areas',
+        userId: user.id,
+        city,
+        state,
+      });
       return NextResponse.json(
         { error: 'Failed to create service area', details: insertError.message },
         { status: 500 }
@@ -186,7 +203,9 @@ const user = await getCurrentUserFromCookies();
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Service area creation error:', error);
+    logger.error('Service area creation error', error, {
+      service: 'service_areas',
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }

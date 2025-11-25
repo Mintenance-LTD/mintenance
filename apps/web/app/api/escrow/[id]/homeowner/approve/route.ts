@@ -16,18 +16,18 @@ const approveCompletionSchema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
-
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const escrowId = params.id;
+    const escrowId = id;
 
     const validation = await validateRequest(request, approveCompletionSchema);
     if ('headers' in validation) {

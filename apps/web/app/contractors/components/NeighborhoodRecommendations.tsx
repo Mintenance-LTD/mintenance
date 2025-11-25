@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui';
 import Link from 'next/link';
 import { MapPin, Star, Users } from 'lucide-react';
-import { createClient } from '@/lib/api/supabaseClient';
+import { supabase } from '@/lib/supabase';
 
 interface NeighborhoodContractor {
   id: string;
@@ -38,7 +38,6 @@ export function NeighborhoodRecommendations({ userLocation, userCity }: Neighbor
       }
 
       try {
-        const supabase = createClient();
         let query = supabase
           .from('users')
           .select(`
@@ -99,8 +98,8 @@ export function NeighborhoodRecommendations({ userLocation, userCity }: Neighbor
 
             const availabilityStatus = contractor.availability_status?.toLowerCase() || '';
             const sameDayAvailable = availabilityStatus.includes('same day') ||
-                                    availabilityStatus.includes('available now') ||
-                                    availabilityStatus.includes('immediate');
+              availabilityStatus.includes('available now') ||
+              availabilityStatus.includes('immediate');
 
             return {
               id: contractor.id,

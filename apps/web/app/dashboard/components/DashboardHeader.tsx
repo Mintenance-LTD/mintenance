@@ -63,10 +63,9 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
   }, [isMetricsOpen]);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <header
-        className="sticky top-0 z-10 backdrop-blur-md bg-white/80 flex items-center justify-between px-8 py-4 border-b border-gray-200 shadow-sm"
-        style={{ whiteSpace: 'nowrap' }}
+        className="sticky top-0 z-10 backdrop-blur-md bg-white/80 flex items-center justify-between px-8 py-4 border-b border-gray-200 shadow-sm whitespace-nowrap"
       >
         {/* Search */}
         <div className="relative hidden lg:block">
@@ -78,34 +77,34 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
           />
         </div>
 
-      {/* Right Side */}
-      <div className="flex items-center gap-3 ml-auto">
-        {/* Help Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-11 w-11 rounded-xl"
-          aria-label="Help and support"
-        >
-          <Icon name="helpCircle" size={22} color={theme.colors.textSecondary} aria-hidden="true" />
-        </Button>
-
-        {/* Real Notifications */}
-        {userId && <NotificationDropdown userId={userId} />}
-
-        {/* User Avatar */}
-        <div ref={avatarButtonRef}>
+        {/* Right Side */}
+        <div className="flex items-center gap-3 ml-auto">
+          {/* Help Button */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleAvatarClick}
-            aria-label="View profile"
-            className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary-800 text-white font-bold text-sm hover:scale-110 hover:shadow-lg"
+            className="h-11 w-11 rounded-xl"
+            aria-label="Help and support"
           >
-            {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+            <Icon name="helpCircle" size={22} color={theme.colors.textSecondary} aria-hidden="true" />
           </Button>
+
+          {/* Real Notifications */}
+          {userId && <NotificationDropdown userId={userId} />}
+
+          {/* User Avatar */}
+          <div ref={avatarButtonRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAvatarClick}
+              aria-label="View profile"
+              className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary-800 text-white font-bold text-sm hover:scale-110 hover:shadow-lg"
+            >
+              {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </Button>
+          </div>
         </div>
-      </div>
       </header>
       {isMetricsOpen && secondaryMetrics.length > 0 && (
         <div ref={dropdownRef}>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +53,11 @@ const user = await getCurrentUserFromCookies();
 
     if (followCheckError && followCheckError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is expected
-      console.error('Error checking existing follow:', followCheckError);
+      logger.error('Error checking existing follow', followCheckError, {
+        service: 'contractor_follow',
+        userId: user.id,
+        contractorId: contractor_id,
+      });
       return NextResponse.json({ error: 'Failed to check follow status' }, { status: 500 });
     }
 
@@ -64,7 +69,11 @@ const user = await getCurrentUserFromCookies();
         .eq('id', existingFollow.id);
 
       if (deleteError) {
-        console.error('Error unfollowing contractor:', deleteError);
+        logger.error('Error unfollowing contractor', deleteError, {
+          service: 'contractor_follow',
+          userId: user.id,
+          contractorId: contractor_id,
+        });
         return NextResponse.json({ error: 'Failed to unfollow contractor' }, { status: 500 });
       }
 
@@ -84,7 +93,11 @@ const user = await getCurrentUserFromCookies();
         .single();
 
       if (insertError) {
-        console.error('Error following contractor:', insertError);
+        logger.error('Error following contractor', insertError, {
+          service: 'contractor_follow',
+          userId: user.id,
+          contractorId: contractor_id,
+        });
         return NextResponse.json({ error: 'Failed to follow contractor', details: insertError.message }, { status: 500 });
       }
 
@@ -95,7 +108,9 @@ const user = await getCurrentUserFromCookies();
       }, { status: 201 });
     }
   } catch (error) {
-    console.error('Error in POST /api/contractor/follow:', error);
+    logger.error('Error in POST /api/contractor/follow', error, {
+      service: 'contractor_follow',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

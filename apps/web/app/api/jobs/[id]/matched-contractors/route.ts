@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { AIMatchingService } from '@/lib/services/AIMatchingService';
 import type { MatchingCriteria } from '@/lib/services/matching/types';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get intelligently matched contractors for a job
@@ -63,7 +64,11 @@ export async function GET(
           }
         }
       } catch (err) {
-        console.error('Error geocoding job location:', err);
+        logger.error('Error geocoding job location', err, {
+          service: 'jobs',
+          jobId,
+          location: job.location,
+        });
       }
     }
 
@@ -168,7 +173,10 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error getting matched contractors:', error);
+    logger.error('Error getting matched contractors', error, {
+      service: 'jobs',
+      jobId,
+    });
     return NextResponse.json(
       { error: 'Failed to get matched contractors' },
       { status: 500 }

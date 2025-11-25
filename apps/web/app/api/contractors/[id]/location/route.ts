@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -14,14 +15,12 @@ const updateLocationSchema = z.object({
   job_id: z.string().uuid().optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const { id: contractorId } = await params;
     const user = await getCurrentUserFromCookies();
 
@@ -88,7 +87,11 @@ params }: { params: Promise<{ id: string }> }
       .single();
 
     if (locationError) {
-      console.error('Error updating location:', locationError);
+      logger.error('Error updating location', locationError, {
+        service: 'contractor_locations',
+        contractorId,
+        jobId,
+      });
       return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
     }
 
@@ -103,7 +106,9 @@ params }: { params: Promise<{ id: string }> }
       },
     });
   } catch (error) {
-    console.error('Unexpected error in POST location', error);
+    logger.error('Unexpected error in POST location', error, {
+      service: 'contractor_locations',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -164,7 +169,12 @@ export async function GET(
     const { data: locations, error } = await query;
 
     if (error) {
-      console.error('Error fetching location:', error);
+      logger.error('Error fetching location', error, {
+        service: 'contractor_locations',
+        contractorId,
+        jobId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch location' }, { status: 500 });
     }
 
@@ -176,7 +186,9 @@ export async function GET(
       location: locations[0],
     });
   } catch (error) {
-    console.error('Unexpected error in GET location', error);
+    logger.error('Unexpected error in GET location', error, {
+      service: 'contractor_locations',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

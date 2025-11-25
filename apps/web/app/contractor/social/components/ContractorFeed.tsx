@@ -12,7 +12,8 @@ import { User } from '@mintenance/types';
 export interface ContractorPost {
     id: string;
     contractorId: string;
-    type: 'project_showcase' | 'question' | 'tip' | 'news';
+    type: 'portfolio' | 'social' | 'gallery' | 'testimonial';
+    title?: string;
     content: string;
     photos: string[];
     likes: number;
@@ -48,7 +49,7 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
             first_name, last_name, profile_image_url
           )
         `)
-                .eq('is_active', true)
+                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(20);
 
@@ -56,19 +57,24 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
 
             if (data) {
                 // Check likes for current user
-                const { data: userLikes } = await supabase
+                const { data: userLikes, error: likesError } = await supabase
                     .from('contractor_post_likes')
                     .select('post_id')
                     .eq('contractor_id', currentUserId);
+
+                if (likesError) {
+                    console.warn('Error fetching user likes:', likesError.message);
+                }
 
                 const likedPostIds = new Set(userLikes?.map((l: any) => l.post_id) || []);
 
                 const mappedPosts: ContractorPost[] = data.map((p: any) => ({
                     id: p.id,
                     contractorId: p.contractor_id,
-                    type: p.post_type,
-                    content: p.content,
-                    photos: p.images || [],
+                    type: p.post_type || 'social',
+                    title: p.title,
+                    content: p.description || p.title || '',
+                    photos: p.media_urls || [],
                     likes: p.likes_count || 0,
                     comments: p.comments_count || 0,
                     createdAt: p.created_at,
@@ -79,7 +85,54 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
                 setPosts(mappedPosts);
             }
         } catch (error) {
-            console.error('Error fetching posts:', error);
+            // Enhanced error logging for Supabase PostgrestError
+            const errorDetails: Record<string, unknown> = {
+                errorType: error?.constructor?.name || typeof error,
+                timestamp: new Date().toISOString(),
+            };
+
+            // Directly access Supabase error properties (PostgrestError)
+            if (error && typeof error === 'object') {
+                const err = error as any;
+                
+                // Supabase PostgrestError properties
+                if (err.message !== undefined) errorDetails.message = err.message;
+                if (err.code !== undefined) errorDetails.code = err.code;
+                if (err.details !== undefined) errorDetails.details = err.details;
+                if (err.hint !== undefined) errorDetails.hint = err.hint;
+                if (err.statusCode !== undefined) errorDetails.statusCode = err.statusCode;
+                
+                // Standard Error properties
+                if (err.name !== undefined) errorDetails.name = err.name;
+                if (err.stack !== undefined) errorDetails.stack = err.stack;
+                
+                // If still empty, try JSON serialization
+                if (Object.keys(errorDetails).length <= 2) {
+                    try {
+                        const serialized = JSON.parse(JSON.stringify(error));
+                        Object.assign(errorDetails, serialized);
+                    } catch {
+                        // Last resort: convert to string
+                        errorDetails.rawError = String(error);
+                        errorDetails.toStringValue = error?.toString?.();
+                    }
+                }
+            } else {
+                errorDetails.message = String(error || 'Unknown error');
+            }
+
+            // Log with multiple methods to ensure we see something
+            console.error('Error fetching posts:', errorDetails);
+            console.error('Raw error object:', error);
+            console.error('Error string:', String(error));
+            
+            // Also log individual properties if they exist
+            if (error && typeof error === 'object') {
+                const err = error as any;
+                console.error('Error.message:', err.message);
+                console.error('Error.code:', err.code);
+                console.error('Error.details:', err.details);
+            }
         } finally {
             setLoading(false);
         }
@@ -114,7 +167,42 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
                     });
             }
         } catch (error) {
-            console.error('Error toggling like:', error);
+            // Supabase errors have non-enumerable properties, so we need to extract them properly
+            let errorDetails: Record<string, unknown>;
+            
+            if (!error) {
+                errorDetails = { message: 'Unknown error occurred' };
+            } else if (error instanceof Error) {
+                errorDetails = {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                };
+            } else {
+                // For Supabase errors and other objects, use JSON.stringify/parse
+                try {
+                    errorDetails = JSON.parse(JSON.stringify(error));
+                } catch {
+                    errorDetails = { 
+                        message: String(error),
+                        raw: error 
+                    };
+                }
+            }
+            
+            // Also try to extract common Supabase error properties
+            const supabaseError = error as any;
+            if (supabaseError?.code || supabaseError?.details || supabaseError?.hint) {
+                errorDetails = {
+                    ...errorDetails,
+                    code: supabaseError.code,
+                    details: supabaseError.details,
+                    hint: supabaseError.hint,
+                    message: supabaseError.message || errorDetails.message
+                };
+            }
+            
+            console.error('Error toggling like:', errorDetails);
             // Revert on error would go here
         }
     };

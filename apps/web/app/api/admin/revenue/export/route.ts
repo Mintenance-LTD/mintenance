@@ -39,7 +39,12 @@ export async function GET(request: NextRequest) {
       format
     );
 
-    return new NextResponse(file.content, {
+    // Convert Buffer to Uint8Array if needed, otherwise use content as-is
+    const body: BodyInit = Buffer.isBuffer(file.content) 
+      ? new Uint8Array(file.content) 
+      : file.content;
+
+    return new NextResponse(body, {
       headers: {
         'Content-Type': file.contentType,
         'Content-Disposition': `attachment; filename="${file.filename}"`,

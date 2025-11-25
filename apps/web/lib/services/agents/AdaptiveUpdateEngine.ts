@@ -128,14 +128,14 @@ export class AdaptiveUpdateEngine {
       optimalFrequency = 1;
       recommendedChunkSize = Math.max(
         this.config.minChunkSize || 1,
-        Math.floor(10 * (1 - this.config.adaptationRate || 0.1))
+        Math.floor(10 * (1 - (this.config.adaptationRate || 0.1)))
       );
     } else if (trend === 'improving') {
       // Performance improving - can decrease update frequency (larger chunk size)
       optimalFrequency = 16;
       recommendedChunkSize = Math.min(
         this.config.maxChunkSize || 10000,
-        Math.floor(10 * (1 + this.config.adaptationRate || 0.1))
+        Math.floor(10 * (1 + (this.config.adaptationRate || 0.1)))
       );
     }
 

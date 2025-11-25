@@ -116,8 +116,9 @@ export class ContextFeatureService {
 
   /**
    * Validate context vector dimension and range
+   * Also normalizes out-of-range values to [0, 1]
    */
-  static validateContextVector(context: number[]): { valid: boolean; error?: string } {
+  static validateContextVector(context: number[]): { valid: boolean; error?: string; normalized?: number[] } {
     if (context.length !== this.D_EFF) {
       return {
         valid: false,
@@ -125,17 +126,24 @@ export class ContextFeatureService {
       };
     }
 
-    // Check for NaN or Infinity
+    // Normalize out-of-range values and check for NaN or Infinity
+    const normalized: number[] = [];
     for (let i = 0; i < context.length; i++) {
-      if (!Number.isFinite(context[i])) {
+      const value = context[i];
+      
+      if (!Number.isFinite(value)) {
         return {
           valid: false,
-          error: `Context vector contains non-finite value at index ${i}: ${context[i]}`,
+          error: `Context vector contains non-finite value at index ${i}: ${value}`,
         };
       }
+
+      // Normalize to [0, 1] range
+      // Clamp values outside [0, 1] to the range
+      normalized[i] = Math.max(0, Math.min(1, value));
     }
 
-    return { valid: true };
+    return { valid: true, normalized };
   }
 
   /**
@@ -178,6 +186,114 @@ export class ContextFeatureService {
    */
   static getDimension(): number {
     return this.D_EFF;
+  }
+
+  /**
+   * Get property type context features for industrial scaling
+   * 
+   * @param propertyType - Property type (residential, commercial, rail, construction)
+   * @returns Property-specific feature vector (can be integrated into context)
+   */
+  static getPropertyTypeContext(propertyType: string): number[] {
+    const normalized = propertyType.toLowerCase().trim();
+    
+    // Rail-specific features
+    if (normalized.includes('rail')) {
+      return [
+        1.0, // is_rail
+        0.0, // is_construction
+        0.0, // is_residential
+        0.0, // is_commercial
+        0.9, // track_condition (high priority)
+        0.8, // signal_integrity (high priority)
+        0.9, // structural_load (high priority)
+        0.0, // scaffold_safety
+        0.0, // equipment_presence
+        0.0, // worker_safety
+      ];
+    }
+    
+    // Construction-specific features
+    if (normalized.includes('construction') || normalized.includes('site')) {
+      return [
+        0.0, // is_rail
+        1.0, // is_construction
+        0.0, // is_residential
+        0.0, // is_commercial
+        0.0, // track_condition
+        0.0, // signal_integrity
+        0.0, // structural_load
+        0.8, // scaffold_safety (high priority)
+        0.7, // equipment_presence (high priority)
+        0.9, // worker_safety (high priority)
+      ];
+    }
+    
+    // Residential features
+    if (normalized.includes('residential') || normalized.includes('home')) {
+      return [
+        0.0, // is_rail
+        0.0, // is_construction
+        1.0, // is_residential
+        0.0, // is_commercial
+        0.0, // track_condition
+        0.0, // signal_integrity
+        0.0, // structural_load
+        0.0, // scaffold_safety
+        0.0, // equipment_presence
+        0.0, // worker_safety
+      ];
+    }
+    
+    // Commercial features
+    if (normalized.includes('commercial') || normalized.includes('business')) {
+      return [
+        0.0, // is_rail
+        0.0, // is_construction
+        0.0, // is_residential
+        1.0, // is_commercial
+        0.0, // track_condition
+        0.0, // signal_integrity
+        0.0, // structural_load
+        0.0, // scaffold_safety
+        0.0, // equipment_presence
+        0.0, // worker_safety
+      ];
+    }
+    
+    // Default (residential)
+    return [
+      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    ];
+  }
+
+  /**
+   * Get industrial risk factor based on property type and region
+   * 
+   * @param propertyType - Property type
+   * @param region - Geographic region
+   * @returns Risk factor (0-1), higher for rail/construction
+   */
+  static getIndustrialRiskFactor(propertyType: string, region?: string): number {
+    const normalized = propertyType.toLowerCase().trim();
+    
+    // Rail infrastructure has highest risk
+    if (normalized.includes('rail')) {
+      return 0.9;
+    }
+    
+    // Construction sites have high risk
+    if (normalized.includes('construction') || normalized.includes('site')) {
+      return 0.8;
+    }
+    
+    // Commercial has moderate risk
+    if (normalized.includes('commercial')) {
+      return 0.5;
+    }
+    
+    // Residential has lower risk
+    return 0.3;
   }
 }
 

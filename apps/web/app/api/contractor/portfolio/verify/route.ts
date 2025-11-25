@@ -4,14 +4,11 @@ import { requireCSRF } from '@/lib/csrf';
 import { PortfolioVerificationService } from '@/lib/services/verification/PortfolioVerificationService';
 import { logger } from '@mintenance/shared';
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();

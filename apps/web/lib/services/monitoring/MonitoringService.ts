@@ -28,9 +28,10 @@ export class MonitoringService {
         payload,
       });
     } catch (error) {
-      logger.warn('Failed to persist metric', error, {
+      logger.warn('Failed to persist metric', {
         service: 'MonitoringService',
         metric,
+        error,
       });
     }
   }

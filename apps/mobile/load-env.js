@@ -51,6 +51,10 @@ if (envPath) {
         const expoKey = key.replace('NEXT_PUBLIC_', 'EXPO_PUBLIC_');
         process.env[expoKey] = value;
         console.log(`   ✓ Mapped ${key} → ${expoKey}`);
+      } else if (key.startsWith('EXPO_PUBLIC_')) {
+        // Directly use EXPO_PUBLIC_* variables (already in correct format)
+        process.env[key] = value;
+        console.log(`   ✓ Loaded ${key}`);
       } else if (key === 'SUPABASE_URL' || key === 'SUPABASE_ANON_KEY') {
         // Also support non-prefixed versions
         process.env[`EXPO_PUBLIC_${key}`] = value;

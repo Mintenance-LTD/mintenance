@@ -582,13 +582,12 @@ export async function POST(request: NextRequest) {
                 .insert(notifications);
 
               if (notificationError) {
-                console.error('[Job Create] Failed to create job_nearby notifications', {
+                logger.error('Failed to create job_nearby notifications', notificationError, {
                   service: 'jobs',
                   jobId: job.id,
-                  error: notificationError.message,
                 });
               } else {
-                console.log('[Job Create] Created job_nearby notifications', {
+                logger.info('Created job_nearby notifications', {
                   service: 'jobs',
                   jobId: job.id,
                   contractorCount: notifications.length,
@@ -599,10 +598,9 @@ export async function POST(request: NextRequest) {
         }
       } catch (notifyError) {
         // Don't fail job creation if notification fails
-        console.error('[Job Create] Error creating job_nearby notifications', {
+        logger.error('Error creating job_nearby notifications', notifyError, {
           service: 'jobs',
           jobId: job.id,
-          error: notifyError instanceof Error ? notifyError.message : 'Unknown error',
         });
       }
     }

@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import type { ProjectMilestone, MilestoneNote } from '@mintenance/types';
 
@@ -198,6 +199,10 @@ async function updateTimelineProgressInternal(timelineId: string): Promise<void>
       })
       .eq('id', timelineId);
   } catch (error) {
-    console.error('Failed to update timeline progress:', error);
+    logger.error('Failed to update timeline progress', {
+      service: 'milestone-service',
+      timelineId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

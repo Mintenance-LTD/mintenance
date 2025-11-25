@@ -63,7 +63,9 @@ export function postprocessYOLOOutput(
 
   try {
     // Convert to 2D array if needed
-    const output = Array.isArray(modelOutput[0]) ? (modelOutput as number[][]) : reshapeOutput(modelOutput, classNames.length);
+    const output: number[][] = Array.isArray(modelOutput[0]) 
+      ? (modelOutput as number[][]) 
+      : reshapeOutput(modelOutput as Float32Array, classNames.length);
 
     const detections: YOLODetection[] = [];
 

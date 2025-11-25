@@ -344,50 +344,33 @@ export class AssessmentOrchestrator {
             );
 
             const gptStart = Date.now();
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${config.openaiApiKey}`,
-                    'Content-Type': 'application/json',
+            
+            // Import rate limit utility dynamically to avoid circular dependencies
+            const { fetchWithOpenAIRetry } = await import('@/lib/utils/openai-rate-limit');
+            
+            const response = await fetchWithOpenAIRetry(
+                'https://api.openai.com/v1/chat/completions',
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.openaiApiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages,
+                        max_tokens: 2000,
+                        temperature: 0.1,
+                        response_format: { type: 'json_object' },
+                    }),
                 },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages,
-                    max_tokens: 2000,
-                    temperature: 0.1,
-                    response_format: { type: 'json_object' },
-                }),
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = `OpenAI API error: ${response.status}`;
-                
-                // Try to parse OpenAI error response for better error messages
-                try {
-                    const errorData = JSON.parse(errorText);
-                    if (errorData.error) {
-                        const openaiError = errorData.error;
-                        errorMessage = `OpenAI API error: ${response.status} - ${openaiError.message || openaiError.type || 'Unknown error'}`;
-                        
-                        // Include error code if available (e.g., invalid_api_key)
-                        if (openaiError.code) {
-                            errorMessage += ` (code: ${openaiError.code})`;
-                        }
-                    }
-                } catch {
-                    // If parsing fails, use the raw error text
-                    errorMessage = `OpenAI API error: ${response.status} - ${errorText.substring(0, 200)}`;
+                {
+                    maxAttempts: 5,
+                    baseDelayMs: 2000,
+                    maxDelayMs: 60000,
+                    backoffMultiplier: 2,
                 }
-                
-                logger.error('OpenAI API error', {
-                    service: 'AssessmentOrchestrator',
-                    status: response.status,
-                    error: errorText,
-                });
-                
-                throw new Error(errorMessage);
-            }
+            );
 
             const data = await response.json();
             const gptDuration = Date.now() - gptStart;
@@ -534,23 +517,18 @@ export class AssessmentOrchestrator {
         visionAnalysis?: VisionAnalysisSummary | null,
         sam3Segmentation?: SAM3SegmentationData
     ): Promise<Phase1BuildingAssessment> {
-        const safetyAnalysis = SafetyAnalysisService.analyze(
-            aiAssessment.safetyHazards || [],
-            aiAssessment.damageType,
-            aiAssessment.severity
+        const safetyAnalysis = SafetyAnalysisService.processSafetyHazards(
+            aiAssessment.safetyHazards || []
         );
 
-        const complianceAnalysis = ComplianceService.analyze(
-            aiAssessment.complianceIssues || [],
-            aiAssessment.damageType,
-            context
+        const complianceAnalysis = ComplianceService.processCompliance(
+            aiAssessment.complianceIssues || []
         );
 
-        const insuranceRisk = InsuranceRiskService.assess(
+        const insuranceRisk = InsuranceRiskService.processInsuranceRisk(
             aiAssessment.riskFactors || [],
-            aiAssessment.damageType,
-            aiAssessment.severity,
-            context
+            aiAssessment.riskScore,
+            aiAssessment.premiumImpact
         );
 
         return {

@@ -22,18 +22,17 @@ const MAX_FILES = 10;
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
+    const { id: jobId } = await params;
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const jobId = params.id;
 
     // Verify user is contractor for this job
     const { data: job, error: jobError } = await serverSupabase
@@ -110,7 +109,7 @@ export async function POST(
 
       // Validate photo quality
       const qualityResult = await PhotoVerificationService.validatePhotoQuality(urlData.publicUrl);
-      
+
       // Save metadata
       await serverSupabase.from('job_photos_metadata').insert({
         job_id: jobId,
@@ -157,4 +156,3 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to upload photos' }, { status: 500 });
   }
 }
-

@@ -17,8 +17,8 @@ interface CheckoutPageProps {
  * /checkout?priceId=price_1234567890
  * /checkout?priceId=price_1234567890&jobId=xxx&contractorId=yyy&quantity=2
  */
-export default function CheckoutPage({ searchParams }: CheckoutPageProps): JSX.Element {
-  const { priceId, jobId, contractorId, quantity } = searchParams;
+export default async function CheckoutPage({ searchParams }: { searchParams: Promise<CheckoutPageProps['searchParams']> }): Promise<JSX.Element> {
+  const { priceId, jobId, contractorId, quantity } = await searchParams;
 
   if (!priceId) {
     return (

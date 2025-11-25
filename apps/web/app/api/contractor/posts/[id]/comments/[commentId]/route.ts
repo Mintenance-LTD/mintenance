@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,19 +11,18 @@ const supabase = createClient(
 
 export async function PATCH(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { commentId } = params;
+    const { commentId } = await params;
     const body = await request.json();
     const { comment_text, is_solution } = body;
 
@@ -91,7 +91,11 @@ params }: { params: { id: string; commentId: string } }
       .single();
 
     if (updateError) {
-      console.error('Error updating comment:', updateError);
+      logger.error('Error updating comment', updateError, {
+        service: 'contractor',
+        commentId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to update comment', details: updateError.message }, { status: 500 });
     }
 
@@ -115,26 +119,27 @@ params }: { params: { id: string; commentId: string } }
 
     return NextResponse.json({ comment: formattedComment });
   } catch (error) {
-    console.error('Error in PATCH /api/contractor/posts/[id]/comments/[commentId]:', error);
+    logger.error('Error in PATCH /api/contractor/posts/[id]/comments/[commentId]', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string; commentId: string } }
+  { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { commentId } = params;
+    const { commentId } = await params;
 
     // Verify comment exists and belongs to user
     const { data: existingComment, error: fetchError } = await supabase
@@ -158,14 +163,20 @@ params }: { params: { id: string; commentId: string } }
       .eq('id', commentId);
 
     if (deleteError) {
-      console.error('Error deleting comment:', deleteError);
+      logger.error('Error deleting comment', deleteError, {
+        service: 'contractor',
+        commentId,
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to delete comment', details: deleteError.message }, { status: 500 });
     }
 
     // The trigger should automatically update comments_count on contractor_posts
     return NextResponse.json({ message: 'Comment deleted successfully' });
   } catch (error) {
-    console.error('Error in DELETE /api/contractor/posts/[id]/comments/[commentId]:', error);
+    logger.error('Error in DELETE /api/contractor/posts/[id]/comments/[commentId]', error, {
+      service: 'contractor',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

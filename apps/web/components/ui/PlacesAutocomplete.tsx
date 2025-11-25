@@ -15,14 +15,8 @@ interface PlacesAutocompleteProps {
   placeholder?: string;
   style?: React.CSSProperties;
   required?: boolean;
+  className?: string;
 }
-
-/**
- * PlacesAutocomplete Component
- * 
- * Wraps an input field with Google Places Autocomplete functionality.
- * Extracts city, country, and coordinates from selected place.
- */
 
 // Map Google Places country codes to form country codes
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -43,6 +37,7 @@ export function PlacesAutocomplete({
   placeholder = 'Enter address',
   style,
   required = false,
+  className,
 }: PlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -50,11 +45,11 @@ export function PlacesAutocomplete({
   const [isGeocoding, setIsGeocoding] = useState(false);
   const scriptCreatedRef = useRef(false);
   const isLoadedRef = useRef(false);
-  
+
   // Use refs to avoid dependency issues with callbacks
   const onChangeRef = useRef(onChange);
   const onPlaceSelectRef = useRef(onPlaceSelect);
-  
+
   // Update refs when callbacks change
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -90,7 +85,7 @@ export function PlacesAutocomplete({
       // Script exists, wait for it to load and Places API to initialize
       let attempts = 0;
       const maxAttempts = 100; // 10 seconds (100 * 100ms)
-      
+
       const checkInterval = setInterval(() => {
         attempts++;
         try {
@@ -98,7 +93,7 @@ export function PlacesAutocomplete({
             clearInterval(checkInterval);
             return;
           }
-          
+
           if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
             if (typeof console !== 'undefined' && console.warn) {
@@ -123,9 +118,9 @@ export function PlacesAutocomplete({
         console.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured. Please set it in your .env.local file.');
         return undefined;
       }
-      
+
       const scriptId = 'google-maps-places-script';
-      
+
       // Check if script is already being loaded by another component
       if (document.getElementById(scriptId)) {
         // Wait for it to load and Places API to initialize
@@ -138,7 +133,7 @@ export function PlacesAutocomplete({
               clearInterval(checkInterval);
               return;
             }
-            
+
             if (attempts >= maxAttempts) {
               clearInterval(checkInterval);
               if (typeof console !== 'undefined' && console.warn) {
@@ -162,14 +157,14 @@ export function PlacesAutocomplete({
         script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
         script.async = true;
         script.defer = true;
-        
+
         scriptCreatedRef.current = true;
-        
+
         script.onload = () => {
           // Wait a bit for the Places API to initialize after script load
           let attempts = 0;
           const maxAttempts = 50; // 5 seconds max wait
-          
+
           const checkInterval = setInterval(() => {
             attempts++;
             try {
@@ -178,7 +173,7 @@ export function PlacesAutocomplete({
                 // Success - API is loaded, no need to log
                 return;
               }
-              
+
               if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
                 // Only log as warning, not error - autocomplete is optional
@@ -371,20 +366,20 @@ export function PlacesAutocomplete({
     try {
       // Use the Geocoding API to geocode the manually entered address
       const response = await fetch(`/api/geocode?address=${encodeURIComponent(value.trim())}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to geocode address');
       }
 
       const data = await response.json();
-      
+
       if (data.latitude && data.longitude && data.formatted_address) {
         // Extract city and country from formatted address
         const addressParts = data.formatted_address.split(',');
         const city = addressParts[0]?.trim() || '';
         const countryPart = addressParts[addressParts.length - 1]?.trim() || '';
-        
+
         // Try to extract country code from the last part
         let country = 'UK'; // Default
         if (countryPart.includes('United Kingdom') || countryPart.includes('UK')) {
@@ -423,7 +418,7 @@ export function PlacesAutocomplete({
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const hasApiKey = !!apiKey;
-  
+
   // Allow manual typing even if autocomplete isn't loaded yet
   // Autocomplete is a nice-to-have, but users should always be able to type
   const isInputDisabled = false; // Never disable - allow manual entry even without autocomplete
@@ -432,7 +427,7 @@ export function PlacesAutocomplete({
   const showGeocodeButton = isLoaded && hasApiKey && value && value.trim().length > 0 && !isGeocoding;
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div className={className} style={{ position: 'relative', width: '100%' }}>
       <input
         ref={inputRef}
         type="text"
@@ -450,7 +445,8 @@ export function PlacesAutocomplete({
       />
       {isGeocoding && (
         <>
-          <style dangerouslySetInnerHTML={{ __html: `
+          <style dangerouslySetInnerHTML={{
+            __html: `
             @keyframes places-autocomplete-spin {
               to {
                 transform: rotate(360deg);

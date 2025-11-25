@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,9 @@ class GeocodingService {
 
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> {
     if (!this.apiKey) {
-      console.warn('GOOGLE_MAPS_API_KEY not configured; verification will proceed without geocoding.');
+      logger.warn('GOOGLE_MAPS_API_KEY not configured; verification will proceed without geocoding', {
+        service: 'geocoding',
+      });
       return null;
     }
 
@@ -33,10 +36,15 @@ class GeocodingService {
         };
       }
 
-      console.error('Geocoding failed:', data.status);
+      logger.error('Geocoding failed', new Error(`Geocoding status: ${data.status}`), {
+        service: 'geocoding',
+        status: data.status,
+      });
       return null;
     } catch (error) {
-      console.error('Geocoding API error:', error);
+      logger.error('Geocoding API error', error, {
+        service: 'geocoding',
+      });
       return null;
     }
   }
@@ -97,7 +105,9 @@ export async function GET() {
 
     return NextResponse.json(verificationStatus, { status: 200 });
   } catch (error: any) {
-    console.error('Verification status check error:', error);
+    logger.error('Verification status check error', error, {
+      service: 'contractor_verification',
+    });
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }
@@ -176,7 +186,10 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (updateError) {
-      console.error('Error updating contractor verification:', updateError);
+      logger.error('Error updating contractor verification', updateError, {
+        service: 'contractor_verification',
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: 'Failed to update verification', details: updateError.message },
         { status: 500 },
@@ -199,7 +212,9 @@ const user = await getCurrentUserFromCookies();
       { status: 200 },
     );
   } catch (error: any) {
-    console.error('Contractor verification error:', error);
+    logger.error('Contractor verification error', error, {
+      service: 'contractor_verification',
+    });
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

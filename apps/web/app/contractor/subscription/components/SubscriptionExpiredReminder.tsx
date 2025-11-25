@@ -52,9 +52,9 @@ export function SubscriptionExpiredReminder({ daysRemaining, trialEndsAt }: Subs
     // Listen for user actions (clicks, form submissions, etc.)
     const handleUserAction = (event: MouseEvent | KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      
+
       // Check if user clicked on an interactive element
-      const isInteractiveElement = 
+      const isInteractiveElement =
         target.tagName === 'BUTTON' ||
         target.tagName === 'A' ||
         target.tagName === 'INPUT' ||
@@ -66,7 +66,7 @@ export function SubscriptionExpiredReminder({ daysRemaining, trialEndsAt }: Subs
         target.closest('[role="button"]');
 
       // Don't trigger on dismiss/subscribe buttons or links
-      const isSubscriptionAction = 
+      const isSubscriptionAction =
         target.closest('[href*="/contractor/subscription"]') ||
         target.closest('[data-dismiss-reminder]') ||
         target.closest('[data-subscription-action]');
@@ -100,7 +100,7 @@ export function SubscriptionExpiredReminder({ daysRemaining, trialEndsAt }: Subs
   const handleDismiss = () => {
     setIsDismissed(true);
     setIsVisible(false);
-    
+
     // Mark as shown today
     if (typeof window !== 'undefined') {
       const today = new Date().toDateString();
@@ -229,7 +229,7 @@ export function SubscriptionExpiredReminder({ daysRemaining, trialEndsAt }: Subs
               bottom: ${theme.spacing[4]}px !important;
               right: ${theme.spacing[4]}px !important;
               left: ${theme.spacing[4]}px !important;
-              width: calc(100% - ${theme.spacing[4] * 2}px) !important;
+              width: calc(100% - ${parseInt(String(theme.spacing[4])) * 2}px) !important;
               max-width: 100% !important;
             }
           }

@@ -17,20 +17,21 @@ module.exports = {
   theme: {
     extend: {
       // Colors from design tokens
+      // Colors from design tokens
       colors: {
-        // Primary Brand Colors (Navy Blue)
+        // Primary Brand Colors (Deep Navy)
         primary: {
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: webTokens.colors.primary,
-          950: '#020617',
+          50: webTokens.colors.gray25,
+          100: webTokens.colors.gray50,
+          200: webTokens.colors.gray100,
+          300: webTokens.colors.gray200,
+          400: webTokens.colors.gray300,
+          500: webTokens.colors.gray400,
+          600: webTokens.colors.gray500,
+          700: webTokens.colors.gray600,
+          800: webTokens.colors.gray700,
+          900: webTokens.colors.gray800,
+          950: webTokens.colors.gray900,
           DEFAULT: webTokens.colors.primary,
           light: webTokens.colors.primaryLight,
           dark: webTokens.colors.primaryDark,
@@ -51,7 +52,7 @@ module.exports = {
           light: webTokens.colors.secondaryLight,
           dark: webTokens.colors.secondaryDark,
         },
-        // Accent Colors (Amber)
+        // Accent Colors (Premium Gold)
         accent: {
           50: '#FFFBEB',
           100: '#FEF3C7',
@@ -87,12 +88,15 @@ module.exports = {
           primary: webTokens.colors.textPrimary,
           secondary: webTokens.colors.textSecondary,
           tertiary: webTokens.colors.textTertiary,
+          quaternary: webTokens.colors.textQuaternary,
+          inverse: webTokens.colors.textInverse,
         },
         // Border colors
         border: {
           DEFAULT: webTokens.colors.border,
           light: webTokens.colors.borderLight,
           dark: webTokens.colors.borderDark,
+          focus: webTokens.colors.borderFocus,
         },
       },
 

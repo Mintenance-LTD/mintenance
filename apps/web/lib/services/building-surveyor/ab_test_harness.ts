@@ -13,6 +13,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BuildingSurveyorService } from './BuildingSurveyorService';
 import { CriticModule } from './critic';
 import { DetectorFusionService } from './DetectorFusionService';
+import { BayesianFusionService } from './BayesianFusionService';
 import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ContextFeatureService } from './ContextFeatureService';
 import { ImageQualityService } from './ImageQualityService';
@@ -60,7 +61,9 @@ interface CalibrationDataPoint {
 export class ABTestIntegration {
   private experimentId: string;
   private readonly D_EFF = 12; // Effective context dimension
-  private readonly DELTA_SAFETY = 0.001; // δ_t safety threshold
+  private readonly DELTA_SAFETY = 0.001; // δ_t safety threshold (default)
+  private readonly DELTA_SAFETY_RAIL = 0.0001; // Stricter threshold for rail infrastructure
+  private readonly DELTA_SAFETY_CONSTRUCTION = 0.0005; // Stricter threshold for construction sites
 
   constructor(experimentId: string) {
     this.experimentId = experimentId;
@@ -212,9 +215,9 @@ export class ABTestIntegration {
       visionAnalysis
     );
 
-    // 4. Use DetectorFusionService for correlation-aware Bayesian fusion
+    // 4. Use DetectorFusionService for correlation-aware Bayesian fusion (detector-level)
     // Includes drift detection and weight adjustment (paper's Drift Monitor → Adjust Weights)
-    const fusionResult = await DetectorFusionService.fuseDetectors(
+    const detectorFusionResult = await DetectorFusionService.fuseDetectors(
       roboflowDetections,
       assessment.damageAssessment.confidence,
       {
@@ -224,9 +227,50 @@ export class ABTestIntegration {
       }
     );
 
-    const fusionMean = fusionResult.fusionMean;
-    const fusionVariance = fusionResult.fusionVariance;
-    const detectorOutputs = fusionResult.detectorOutputs;
+    // 4b. Use BayesianFusionService for high-level evidence fusion (SAM 3 + GPT-4 + Scene Graph)
+    // This implements the paper's Bayesian Fusion with variance tracking
+    const sam3Evidence = assessment.evidence?.sam3Segmentation;
+    let sam3EvidenceFormatted = null;
+    
+    // Format SAM 3 evidence for BayesianFusionService
+    if (sam3Evidence && 'damage_types' in sam3Evidence) {
+      const damageTypes: Record<string, { confidence: number; numInstances: number }> = {};
+      let totalConfidence = 0;
+      let totalInstances = 0;
+      
+      for (const [damageType, data] of Object.entries(sam3Evidence.damage_types)) {
+        const avgScore = data.scores && data.scores.length > 0
+          ? data.scores.reduce((a, b) => a + b, 0) / data.scores.length
+          : 0.5;
+        damageTypes[damageType] = {
+          confidence: avgScore,
+          numInstances: data.num_instances || 0,
+        };
+        totalConfidence += avgScore * (data.num_instances || 0);
+        totalInstances += data.num_instances || 0;
+      }
+      
+      sam3EvidenceFormatted = {
+        damageTypes,
+        overallConfidence: totalInstances > 0 ? totalConfidence / totalInstances : 0.5,
+      };
+    }
+    
+    const bayesianFusionResult = BayesianFusionService.fuseEvidence({
+      sam3Evidence: sam3EvidenceFormatted,
+      gpt4Assessment: {
+        severity: assessment.damageAssessment.severity,
+        confidence: assessment.damageAssessment.confidence,
+        damageType: assessment.damageAssessment.damageType,
+        hasCriticalHazards: assessment.safetyHazards.hasCriticalHazards,
+      },
+      sceneGraphFeatures: assessment.evidence?.sceneGraphFeatures || null,
+    });
+
+    // Use Bayesian fusion results (more sophisticated) if available, otherwise fall back to detector fusion
+    const fusionMean = bayesianFusionResult.mean || detectorFusionResult.fusionMean;
+    const fusionVariance = bayesianFusionResult.variance || detectorFusionResult.fusionVariance;
+    const detectorOutputs = detectorFusionResult.detectorOutputs;
 
     // 5. Conformal prediction with hierarchical Mondrian + SSBC
     const cpResult = await this.mondrianConformalPrediction(
@@ -241,7 +285,7 @@ export class ABTestIntegration {
     );
 
     // 6. OOD detection (simplified: based on detector confidence distribution)
-    const oodScore = this.computeOODScore(roboflowDetections, fusionResult);
+    const oodScore = this.computeOODScore(roboflowDetections, detectorFusionResult);
 
     // 7. Context features (d_eff = 12)
     const contextFeatures = {
@@ -256,7 +300,7 @@ export class ABTestIntegration {
       property_age: params.propertyAge,
       property_age_bin: ContextFeatureService.getPropertyAgeBin(params.propertyAge),
       num_damage_sites: assessment.damageAssessment.detectedItems?.length || 1,
-      detector_disagreement: Math.sqrt(fusionResult.disagreementVariance),
+      detector_disagreement: Math.sqrt(detectorFusionResult.disagreementVariance),
       ood_score: oodScore,
       region: params.region,
     };
@@ -282,6 +326,7 @@ export class ABTestIntegration {
 
   /**
    * 2B: Hierarchical Mondrian Conformal Prediction with SSBC
+   * Enhanced with industrial scaling (rail, construction)
    */
   private async mondrianConformalPrediction(
     fusionMean: number,
@@ -299,12 +344,16 @@ export class ABTestIntegration {
   }> {
     // 1. Determine Mondrian stratum with enhanced stratification
     // Includes: property_type, age_bin, region, damage_category
+    // Supports: residential, commercial, rail, construction
     // Future: Use learned CART tree for optimal stratification (18 strata)
     const ageBin = ContextFeatureService.getPropertyAgeBin(context.propertyAge);
     const damageCategory = this.normalizeDamageCategory(context.damageCategory);
     
+    // Normalize property type (handle industrial types)
+    const normalizedPropertyType = this.normalizePropertyType(context.propertyType);
+    
     // Start with most specific stratum (4 dimensions)
-    let stratum = `${context.propertyType}_${ageBin}_${context.region}_${damageCategory}`;
+    let stratum = `${normalizedPropertyType}_${ageBin}_${context.region}_${damageCategory}`;
 
     // 2. Hierarchical fallback: leaf → parent → grandparent → global
     let calibrationData = await this.getCalibrationData(stratum);
@@ -421,10 +470,18 @@ export class ABTestIntegration {
       region: aiResult.contextFeatures.region,
     });
 
-    // 3. Call Safe-LUCB critic (stub - implement full critic module)
+    // 3. Adjust safety threshold for industrial contexts (stricter for rail/construction)
+    // Extract property type from stratum (format: propertyType_ageBin_region_damageCategory)
+    const stratumParts = aiResult.cpStratum.split('_');
+    const propertyType = stratumParts.length > 0 ? this.normalizePropertyType(stratumParts[0]) : 'residential';
+    const deltaSafety = this.getSafetyThreshold(propertyType);
+
+    // 4. Call Safe-LUCB critic with stratum and critical hazard info
     const criticDecision = await this.callSafeLUCBCritic({
       context: contextVector,
-      delta_safety: this.DELTA_SAFETY,
+      delta_safety: deltaSafety,
+      stratum: aiResult.cpStratum,
+      criticalHazardDetected: aiResult.predictedSafetyCritical,
     });
 
     // 4. Safety gate: NEVER automate unless safety-UCB ≤ δ_t
@@ -707,6 +764,50 @@ export class ABTestIntegration {
    * Normalize damage category for stratification
    * Maps various damage types to canonical categories for consistent stratification
    */
+  /**
+   * Normalize property type for stratification
+   * Maps industrial types (rail, construction) to standardized names
+   */
+  private normalizePropertyType(propertyType: string): string {
+    const normalized = propertyType.toLowerCase().trim();
+    
+    // Industrial types
+    if (normalized.includes('rail') || normalized.includes('railway') || normalized.includes('track')) {
+      return 'rail';
+    }
+    if (normalized.includes('construction') || normalized.includes('site') || normalized.includes('infrastructure')) {
+      return 'construction';
+    }
+    
+    // Standard types
+    if (normalized.includes('residential') || normalized.includes('home') || normalized.includes('house')) {
+      return 'residential';
+    }
+    if (normalized.includes('commercial') || normalized.includes('business') || normalized.includes('office')) {
+      return 'commercial';
+    }
+    
+    // Default
+    return normalized || 'residential';
+  }
+
+  /**
+   * Get safety threshold based on property type
+   * Industrial contexts (rail, construction) require stricter thresholds
+   */
+  private getSafetyThreshold(propertyType: string): number {
+    const normalized = this.normalizePropertyType(propertyType);
+    
+    if (normalized === 'rail') {
+      return this.DELTA_SAFETY_RAIL;
+    }
+    if (normalized === 'construction') {
+      return this.DELTA_SAFETY_CONSTRUCTION;
+    }
+    
+    return this.DELTA_SAFETY;
+  }
+
   private normalizeDamageCategory(damageType: string): string {
     const normalized = damageType.toLowerCase().trim();
     
@@ -784,6 +885,8 @@ export class ABTestIntegration {
   private async callSafeLUCBCritic(params: {
     context: number[];
     delta_safety: number;
+    stratum?: string;
+    criticalHazardDetected?: boolean;
   }): Promise<{
     arm: 'automate' | 'escalate';
     reason?: string;
@@ -793,11 +896,30 @@ export class ABTestIntegration {
     exploration: boolean;
   }> {
     // Call Safe-LUCB critic module
-    return await CriticModule.selectArm({
+    const decision = await CriticModule.selectArm({
       context: params.context,
       delta_safety: params.delta_safety,
       arms: ['automate', 'escalate'],
+      stratum: params.stratum,
+      criticalHazardDetected: params.criticalHazardDetected,
     });
+
+    // Record outcome if decision was made (async, non-blocking)
+    if (params.stratum && decision.arm === 'automate') {
+      CriticModule.recordOutcome(
+        params.stratum,
+        decision.arm,
+        params.criticalHazardDetected || false
+      ).catch((error) => {
+        logger.error('Failed to record FNR outcome', {
+          service: 'ABTestIntegration',
+          stratum: params.stratum,
+          error,
+        });
+      });
+    }
+
+    return decision;
   }
 
   private async getOrCreateAssignment(userId: string): Promise<{

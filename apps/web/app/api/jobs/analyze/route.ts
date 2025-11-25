@@ -61,7 +61,9 @@ const user = await getCurrentUserFromCookies();
     return NextResponse.json(analysis);
 
   } catch (error) {
-    console.error('Error analyzing job:', error);
+    logger.error('Error analyzing job', error, {
+      service: 'jobs-analyze',
+    });
     return NextResponse.json(
       { error: 'Failed to analyze job description' },
       { status: 500 }

@@ -20,9 +20,10 @@ const approveSchema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
       return NextResponse.json(
@@ -38,7 +39,7 @@ export async function POST(
     const validated = approveSchema.parse(body);
 
     await YOLOCorrectionService.approveCorrection(
-      params.id,
+      id,
       user.id,
       validated.notes
     );
@@ -57,7 +58,7 @@ export async function POST(
 
     logger.error('Failed to approve correction', error, {
       service: 'YOLOCorrectionsAPI',
-      correctionId: params.id,
+      correctionId: 'unknown',
     });
 
     return NextResponse.json(

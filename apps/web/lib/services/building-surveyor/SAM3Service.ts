@@ -3,6 +3,8 @@
  * Integrates with Python SAM 3 microservice for precise segmentation
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface SAM3SegmentationRequest {
   image_base64: string;
   text_prompt: string;
@@ -58,7 +60,10 @@ export class SAM3Service {
       const data = (await response.json()) as SAM3HealthResponse;
       return data.status === 'healthy' && data.model_loaded === true;
     } catch (error) {
-      console.warn('[SAM3Service] Health check failed:', error);
+      logger.warn('SAM3Service health check failed', {
+        service: 'sam3-service',
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }
@@ -99,7 +104,10 @@ export class SAM3Service {
 
       return (await response.json()) as SAM3SegmentationResponse;
     } catch (error) {
-      console.error('[SAM3Service] Segmentation failed:', error);
+      logger.error('SAM3Service segmentation failed', {
+        service: 'sam3-service',
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -137,7 +145,10 @@ export class SAM3Service {
 
       return (await response.json()) as DamageTypeSegmentation;
     } catch (error) {
-      console.error('[SAM3Service] Multi-segmentation failed:', error);
+      logger.error('SAM3Service multi-segmentation failed', {
+        service: 'sam3-service',
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -155,7 +166,10 @@ export class SAM3Service {
       const buffer = Buffer.from(arrayBuffer);
       return buffer.toString('base64');
     } catch (error) {
-      console.error('[SAM3Service] Failed to convert image to base64:', error);
+      logger.error('SAM3Service failed to convert image to base64', {
+        service: 'sam3-service',
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }

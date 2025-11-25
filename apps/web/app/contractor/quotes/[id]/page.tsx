@@ -8,7 +8,8 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function QuoteDetailsPage({ params }: { params: { id: string } }) {
+export default async function QuoteDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
@@ -18,7 +19,7 @@ export default async function QuoteDetailsPage({ params }: { params: { id: strin
     const { data: quote, error } = await supabase
         .from('contractor_quotes')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
 
     if (error || !quote) {

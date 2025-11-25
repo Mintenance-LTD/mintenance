@@ -28,22 +28,22 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.actionButton} onPress={onMessage}>
-        <Ionicons name="chatbubble-outline" size={18} color={theme.colors.textSecondary} />
+        <Ionicons name="chatbubble-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Message</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton} onPress={onCall}>
-        <Ionicons name="call-outline" size={18} color={theme.colors.textSecondary} />
+        <Ionicons name="call-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Call</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton} onPress={onVideo}>
-        <Ionicons name="videocam-outline" size={18} color={theme.colors.textSecondary} />
+        <Ionicons name="videocam-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Video</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton} onPress={onShare}>
-        <Ionicons name="share-social-outline" size={18} color={theme.colors.textSecondary} />
+        <Ionicons name="share-social-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Share</Text>
       </TouchableOpacity>
     </View>
@@ -63,13 +63,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surfaceTertiary,
+    backgroundColor: theme.colors.secondary, // Emerald Green
     borderRadius: theme.borderRadius.base,
     paddingVertical: theme.spacing.md,
     gap: 6,
+    ...theme.shadows.sm,
   },
   actionButtonText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: theme.colors.white,
+    fontWeight: theme.typography.fontWeight.semibold,
   },
 });

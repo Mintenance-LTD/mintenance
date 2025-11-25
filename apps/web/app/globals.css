@@ -1,3 +1,6 @@
+/* Import custom animations */
+@import '../styles/animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -117,9 +120,6 @@ textarea::placeholder {
   --ring: 222.2 84% 4.9%;
   --radius: 0.5rem;
 }
-
-/* Import custom animations */
-@import '../styles/animations.css';
 
 /* Ensure gradient bars are visible on large screens */
 /* Targets gradient bars with the data-gradient-bar attribute */

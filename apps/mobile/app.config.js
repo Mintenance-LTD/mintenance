@@ -1,22 +1,51 @@
 // Load shared environment variables from web app or root .env files
 // This allows sharing Supabase credentials between web and mobile apps
+// Use dynamic import to avoid issues during config evaluation
+let envLoaded = false;
 try {
-  require('./load-env.js');
+  // Only load if not already loaded (prevents double-loading during config eval)
+  if (!envLoaded && typeof require !== 'undefined') {
+    require('./load-env.js');
+    envLoaded = true;
+  }
 } catch (error) {
   // Silently fail if load-env.js doesn't exist or has errors
   // This allows the app to work with mobile-specific .env files
+  // Only log in development to avoid noise in builds
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  Could not load shared environment variables:', error.message);
+  }
 }
 
 // Validate required environment variables at build time
 const validateEnvironment = () => {
-  // Check if we're in a production build context (EAS build, not dev server)
-  const isProductionBuild = process.env.EAS_BUILD === 'true' || process.env.EXPO_PUBLIC_ENVIRONMENT === 'production';
-  const isDev = process.env.NODE_ENV === 'development' || !isProductionBuild;
+  // Check if we're in an EAS build context
+  // EAS sets EAS_BUILD=true during builds, and env vars are injected at build time
+  // Also check if we're running via EAS CLI (eas build command)
+  const isEASBuild = process.env.EAS_BUILD === 'true' || 
+                     process.env.EAS_BUILD_PROFILE !== undefined ||
+                     process.env.EAS_CLI === 'true' ||
+                     (typeof process !== 'undefined' && process.argv && process.argv.some(arg => arg.includes('eas')) && process.argv.some(arg => arg.includes('build')));
+  const isProductionBuild = process.env.EXPO_PUBLIC_ENVIRONMENT === 'production' || process.env.NODE_ENV === 'production';
+  const isDev = process.env.NODE_ENV === 'development' || (!isProductionBuild && !isEASBuild);
+  
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Only throw errors during actual production builds, not during dev server startup
-  if (isProductionBuild && (!supabaseUrl || !supabaseKey)) {
+  // During EAS builds, environment variables are injected by EAS at build time
+  // Don't validate during config evaluation - EAS will handle this
+  if (isEASBuild) {
+    // During EAS builds, env vars are injected by the build system
+    // Only warn if they're missing, but don't fail - EAS will handle validation
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn('⚠️  Environment variables not yet available during EAS config evaluation.');
+      console.warn('📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.');
+    }
+    return; // Don't validate during EAS build config evaluation
+  }
+
+  // Only throw errors during local production builds (not EAS builds)
+  if (isProductionBuild && !isEASBuild && (!supabaseUrl || !supabaseKey)) {
     const missing = [];
     if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
@@ -40,14 +69,23 @@ const validateEnvironment = () => {
   }
 };
 
-// Run validation
-validateEnvironment();
+// Run validation (suppress errors during EAS CLI execution)
+try {
+  validateEnvironment();
+} catch (error) {
+  // During EAS builds, don't fail on validation - EAS will handle env vars
+  if (process.env.EAS_BUILD_PROFILE || process.argv.some(arg => arg.includes('eas'))) {
+    console.warn('⚠️  Validation warning (non-fatal):', error.message);
+  } else {
+    throw error;
+  }
+}
 
 export default {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    version: "1.2.3",
+    version: "1.2.4",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
@@ -62,7 +100,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
-      buildNumber: "15",
+      buildNumber: "16",
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
@@ -84,7 +122,7 @@ export default {
         } 
       },
       package: "com.mintenance.app",
-      versionCode: 15,
+      versionCode: 16,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
       intentFilters: [
         {

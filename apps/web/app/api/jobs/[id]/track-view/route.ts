@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 /**
  * Track when a contractor views a job
  * POST /api/jobs/[id]/track-view
  */
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const resolvedParams = await params;
     const jobId = resolvedParams.id;
     const user = await getCurrentUserFromCookies();
@@ -70,7 +69,11 @@ params }: { params: Promise<{ id: string }> }
       });
 
     if (viewError) {
-      console.error('Error tracking job view:', viewError);
+      logger.error('Error tracking job view', viewError, {
+        service: 'jobs',
+        jobId,
+        contractorId: user.id,
+      });
       return NextResponse.json(
         { error: 'Failed to track view' },
         { status: 500 }
@@ -104,14 +107,13 @@ params }: { params: Promise<{ id: string }> }
           });
 
         if (notificationError) {
-          console.error('[Job View] Failed to create notification for homeowner', {
+          logger.error('Failed to create notification for homeowner', notificationError, {
             service: 'jobs',
             homeownerId: job.homeowner_id,
             jobId,
-            error: notificationError.message,
           });
         } else {
-          console.log('[Job View] Notification created for homeowner', {
+          logger.info('Notification created for homeowner', {
             service: 'jobs',
             homeownerId: job.homeowner_id,
             jobId,
@@ -119,18 +121,19 @@ params }: { params: Promise<{ id: string }> }
           });
         }
       } catch (notificationError) {
-        console.error('[Job View] Unexpected error creating notification', {
+        logger.error('Unexpected error creating notification', notificationError, {
           service: 'jobs',
           homeownerId: job.homeowner_id,
           jobId,
-          error: notificationError instanceof Error ? notificationError.message : 'Unknown error',
         });
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in track-view route:', error);
+    logger.error('Error in track-view route', error, {
+      service: 'jobs',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

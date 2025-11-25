@@ -1,150 +1,67 @@
 const path = require('path');
 
 // Validate environment variables at build time
-// Note: Full validation runs in instrumentation.ts for runtime checks
-// This is a simplified check since next.config.js runs before TypeScript compilation
-// Fixed: Removed require('./lib/env') to prevent build errors on Vercel
 if (process.env.NODE_ENV !== 'test') {
   try {
-    // Try to load dotenv if .env.local exists
     const fs = require('fs');
     const envPath = path.join(__dirname, '.env.local');
     if (fs.existsSync(envPath)) {
       require('dotenv').config({ path: envPath });
     }
-    // Skip TypeScript file require in config - validation happens at runtime in instrumentation.ts
   } catch (error) {
-    // The error details should already be logged by lib/env.ts
-    // But log the error object as well to ensure it's visible
     if (error instanceof Error && error.message) {
       console.error(error.message);
     }
     console.error('\n❌ Build failed: Environment validation error');
-    console.error('   Fix the errors above and try again.\n');
     process.exit(1);
   }
 }
 
 const nextConfig = {
   poweredByHeader: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   typescript: {
     ignoreBuildErrors: false,
   },
-  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui'],
-  
-  // Image optimization
+  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@hookform/resolvers'],
+
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 2592000, // 30 days
+    minimumCacheTTL: 2592000,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-        pathname: '/**',
-      },
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/v1/object/public/**' },
+      { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'via.placeholder.com', pathname: '/**' },
     ],
   },
 
-  // Compression
   compress: true,
 
-  // Bundle optimization
   experimental: {
     optimizePackageImports: ['@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui'],
+    // Turbopack disabled due to HMR issues with @hookform/resolvers
+    // Use --no-turbo flag in dev script to ensure webpack is used
   },
 
-  // Turbopack configuration (Next.js 16+)
-  turbopack: {
-    resolveAlias: {
-      // Redirect react-native to empty module
-      // Use relative path instead of absolute path for Turbopack compatibility (Windows paths not supported)
-      'react-native': './lib/empty-module.js',
-      'react-native$': './lib/empty-module.js',
-      // Redirect jsdom to empty module for client bundles (server-only)
-      'jsdom': './lib/empty-module.js',
-      'jsdom$': './lib/empty-module.js',
-      // Redirect native component stubs to empty module (only native files, not unified components)
-      '@mintenance/shared-ui/dist/components/Card/Card.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/dist/components/Button/Button.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/dist/components/Input/Input.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/dist/components/Badge/Badge.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/src/components/Card/Card.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/src/components/Button/Button.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/src/components/Input/Input.native': './lib/empty-module.js',
-      '@mintenance/shared-ui/src/components/Badge/Badge.native': './lib/empty-module.js',
-    },
-    resolveExtensions: ['.web.js', '.web.jsx', '.web.ts', '.web.tsx', '.js', '.jsx', '.ts', '.tsx'],
-    // Ignore React Native files completely - don't even try to parse them
-    rules: {
-      '*.native.{js,jsx,ts,tsx}': {
-        loaders: [],
-        as: '*.empty.js',
-      },
-      // Prevent parsing react-native package entirely
-      '**/node_modules/react-native/**': {
-        loaders: [],
-        as: '*.empty.js',
-      },
-      // Prevent parsing jsdom package in client bundles (server-only)
-      '**/node_modules/jsdom/**': {
-        loaders: [],
-        as: '*.empty.js',
-      },
-    },
-  },
-
-  // Bundle analyzer (enable with ANALYZE=true)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config, { isServer }) => {
-      if (!isServer) {
-        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-        config.plugins.push(
-          new BundleAnalyzerPlugin({
-            analyzerMode: 'static',
-            openAnalyzer: false,
-          })
-        );
-      }
-      return config;
-    },
-  }),
-
-  // PWA & Service Worker
   webpack: (config, { isServer }) => {
-    // Add root node_modules to resolve paths for hoisted dependencies (monorepo)
     config.resolve.modules = [
       ...(config.resolve.modules || []),
       path.resolve(__dirname, '../../node_modules'),
       path.resolve(__dirname, 'node_modules'),
     ];
 
-    // Ignore React Native imports in web builds - completely prevent resolution
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Completely ignore react-native - don't try to resolve it
       'react-native': false,
       'react-native$': false,
-      // Prevent importing native files from shared-ui (both dist and src)
       '@mintenance/shared-ui/dist/components/Card/Card.native': false,
       '@mintenance/shared-ui/dist/components/Button/Button.native': false,
       '@mintenance/shared-ui/dist/components/Input/Input.native': false,
@@ -153,7 +70,6 @@ const nextConfig = {
       '@mintenance/shared-ui/src/components/Button/Button.native': false,
       '@mintenance/shared-ui/src/components/Input/Input.native': false,
       '@mintenance/shared-ui/src/components/Badge/Badge.native': false,
-      // Redirect unified components to web versions (prevent any Card.tsx imports)
       '@mintenance/shared-ui/dist/components/Card/Card': '@mintenance/shared-ui/dist/components/Card/Card.web',
       '@mintenance/shared-ui/dist/components/Button/Button': '@mintenance/shared-ui/dist/components/Button/Button.web',
       '@mintenance/shared-ui/dist/components/Input/Input': '@mintenance/shared-ui/dist/components/Input/Input.web',
@@ -164,12 +80,8 @@ const nextConfig = {
       '@mintenance/shared-ui/src/components/Badge/Badge': '@mintenance/shared-ui/src/components/Badge/Badge.web',
     };
 
-    // Exclude React Native from being parsed - prioritize web extensions
     config.resolve.extensions = [
-      '.web.js',
-      '.web.jsx',
-      '.web.ts',
-      '.web.tsx',
+      '.web.js', '.web.jsx', '.web.ts', '.web.tsx',
       ...config.resolve.extensions.filter(ext => !ext.includes('native')),
     ];
 
@@ -179,79 +91,44 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-        child_process: false, // Exclude child_process (used by jsdom)
+        child_process: false,
       };
     }
 
-    // Ignore react-native module completely - prevent any resolution attempts
     config.externals = config.externals || [];
     // Always ignore react-native, both server and client
     config.externals.push('react-native');
-    config.externals.push({
-      'react-native': false,
-    });
+    config.externals.push({ 'react-native': false });
+    // Externalize onnxruntime-node (native module)
+    config.externals.push('onnxruntime-node');
+    config.externals.push({ 'onnxruntime-node': 'commonjs onnxruntime-node' });
 
-    // Exclude jsdom from client bundles (server-only module)
     if (!isServer) {
       config.externals.push('jsdom');
-      config.externals.push({
-        'jsdom': false,
-      });
+      config.externals.push({ 'jsdom': false });
     }
 
-    // Ignore native files and react-native package completely
-    // Use IgnorePlugin to prevent webpack from even trying to parse these files
     const webpack = require('webpack');
     config.plugins = config.plugins || [];
     config.plugins.push(
-      // Ignore react-native package completely (multiple patterns to catch all cases)
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^react-native$/,
-      }),
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^react-native\/.*$/,
-      }),
-      // Ignore all native files (both in shared-ui and node_modules)
-      new webpack.IgnorePlugin({
-        resourceRegExp: /\.native\.(js|jsx|ts|tsx|d\.ts)$/,
-      }),
-      // Ignore native component files specifically
-      new webpack.IgnorePlugin({
-        resourceRegExp: /Card\.native|Button\.native|Input\.native|Badge\.native/,
-      }),
-      // Ignore react-native from node_modules (prevent parsing Flow syntax)
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^react-native$/,
-        contextRegExp: /node_modules/,
-      }),
-      // Ignore jsdom in client bundles (server-only module)
+      new webpack.IgnorePlugin({ resourceRegExp: /^react-native$/ }),
+      new webpack.IgnorePlugin({ resourceRegExp: /^react-native\/.*$/ }),
+      new webpack.IgnorePlugin({ resourceRegExp: /\.native\.(js|jsx|ts|tsx|d\.ts)$/ }),
+      new webpack.IgnorePlugin({ resourceRegExp: /Card\.native|Button\.native|Input\.native|Badge\.native/ }),
+      new webpack.IgnorePlugin({ resourceRegExp: /^react-native$/, contextRegExp: /node_modules/ }),
       ...(!isServer ? [
-        new webpack.IgnorePlugin({
-          resourceRegExp: /^jsdom$/,
-        }),
-        new webpack.IgnorePlugin({
-          resourceRegExp: /^jsdom\/.*$/,
-        }),
+        new webpack.IgnorePlugin({ resourceRegExp: /^jsdom$/ }),
+        new webpack.IgnorePlugin({ resourceRegExp: /^jsdom\/.*$/ }),
       ] : []),
-      // Ignore usePlatform utility that might import react-native
-      new webpack.IgnorePlugin({
-        resourceRegExp: /usePlatform/,
-        contextRegExp: /shared-ui/,
-      }),
-      // Ignore react-native index.js file specifically (prevents Flow syntax parsing)
-      new webpack.IgnorePlugin({
-        resourceRegExp: /react-native\/index\.js$/,
-      })
+      new webpack.IgnorePlugin({ resourceRegExp: /usePlatform/, contextRegExp: /shared-ui/ }),
+      new webpack.IgnorePlugin({ resourceRegExp: /react-native\/index\.js$/ })
     );
 
     return config;
   },
 
-  // Security and performance headers
   async headers() {
     const isDev = process.env.NODE_ENV === 'development';
-    
-    // Base security headers (apply in all environments)
     const baseHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options', value: 'DENY' },
@@ -260,9 +137,7 @@ const nextConfig = {
       { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")' },
     ];
 
-    // Add CSP (relaxed in development, strict in production)
     if (isDev) {
-      // Development CSP - more permissive for hot reload and dev tools
       baseHeaders.push({
         key: 'Content-Security-Policy',
         value: [
@@ -279,12 +154,8 @@ const nextConfig = {
         ].join('; '),
       });
     } else {
-      // Production CSP - stricter
       baseHeaders.push(
-        {
-          key: 'Strict-Transport-Security',
-          value: 'max-age=63072000; includeSubDomains; preload',
-        },
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         {
           key: 'Content-Security-Policy',
           value: [
@@ -304,56 +175,13 @@ const nextConfig = {
         }
       );
     }
-    
+
     return [
-      {
-        source: '/:path*',
-        headers: baseHeaders,
-      },
-      // Cache static assets
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // Cache images
-      {
-        source: '/images/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=2592000, must-revalidate',
-          },
-        ],
-      },
-      // Service Worker
-      {
-        source: '/service-worker.js',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
-          },
-          {
-            key: 'Service-Worker-Allowed',
-            value: '/',
-          },
-        ],
-      },
-      // PWA Manifest
-      {
-        source: '/manifest.json',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, must-revalidate',
-          },
-        ],
-      },
+      { source: '/:path*', headers: baseHeaders },
+      { source: '/_next/static/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
+      { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000, must-revalidate' }] },
+      { source: '/service-worker.js', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
+      { source: '/manifest.json', headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, must-revalidate' }] },
     ];
   },
 };

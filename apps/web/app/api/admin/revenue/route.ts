@@ -42,7 +42,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching revenue data:', error);
+    logger.error('Error fetching revenue data', error, {
+      service: 'admin_revenue',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

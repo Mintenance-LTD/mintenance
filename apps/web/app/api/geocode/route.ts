@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@mintenance/shared';
 
 /**
  * Geocode an address to get latitude/longitude
@@ -18,7 +19,9 @@ export async function GET(request: NextRequest) {
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.error('GOOGLE_MAPS_API_KEY not configured');
+      logger.error('GOOGLE_MAPS_API_KEY not configured', new Error('Missing API key'), {
+        service: 'geocoding',
+      });
       return NextResponse.json(
         { error: 'Geocoding service not configured' },
         { status: 500 }
@@ -39,14 +42,21 @@ export async function GET(request: NextRequest) {
         formatted_address: data.results[0].formatted_address,
       });
     } else {
-      console.error('Geocoding error:', data.status, data.error_message);
+      logger.error('Geocoding error', new Error(`Geocoding status: ${data.status}`), {
+        service: 'geocoding',
+        status: data.status,
+        errorMessage: data.error_message,
+        address,
+      });
       return NextResponse.json(
         { error: 'Address not found' },
         { status: 404 }
       );
     }
   } catch (error) {
-    console.error('Error in geocode route:', error);
+    logger.error('Error in geocode route', error, {
+      service: 'geocoding',
+    });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

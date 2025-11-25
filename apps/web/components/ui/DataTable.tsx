@@ -156,7 +156,8 @@ export function DataTable<T extends { id: string | number }>({
           variant="minimal"
           title={emptyTitle}
           description={emptyDescription}
-          action={emptyAction}
+          actionLabel={emptyAction?.label}
+          onAction={emptyAction?.onClick}
         />
       )}
 

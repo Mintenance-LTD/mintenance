@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,13 +46,19 @@ export async function POST(
       .eq('id', id);
 
     if (updateError) {
-      console.error('Error marking notification as read:', updateError);
+      logger.error('Error marking notification as read', updateError, {
+        service: 'notifications',
+        userId: user.id,
+        notificationId: id,
+      });
       return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in POST /api/notifications/[id]/read:', error);
+    logger.error('Error in POST /api/notifications/[id]/read', error, {
+      service: 'notifications',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

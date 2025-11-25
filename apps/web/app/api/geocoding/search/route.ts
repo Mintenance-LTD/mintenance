@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@mintenance/shared';
 
 /**
  * API route to proxy address search requests to Nominatim
@@ -45,7 +46,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching addresses from Nominatim:', error);
+    logger.error('Error fetching addresses from Nominatim', error, {
+      service: 'geocoding',
+      query,
+    });
     return NextResponse.json(
       { error: 'Failed to search addresses. Please try again.' },
       { status: 500 }

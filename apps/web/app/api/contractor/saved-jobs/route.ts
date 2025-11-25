@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get saved jobs for contractor or save a job
@@ -28,7 +29,10 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (savedJobsError) {
-      console.error('Error fetching saved jobs:', savedJobsError);
+      logger.error('Error fetching saved jobs', savedJobsError, {
+        service: 'saved_jobs',
+        userId: user.id,
+      });
       return NextResponse.json({ error: 'Failed to fetch saved jobs' }, { status: 500 });
     }
 
@@ -37,7 +41,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ jobIds });
   } catch (error) {
-    console.error('Unexpected error in GET /api/contractor/saved-jobs', error);
+    logger.error('Unexpected error in GET /api/contractor/saved-jobs', error, {
+      service: 'saved_jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -104,13 +110,19 @@ const user = await getCurrentUserFromCookies();
       });
 
     if (saveError) {
-      console.error('Error saving job:', saveError);
+      logger.error('Error saving job', saveError, {
+        service: 'saved_jobs',
+        userId: user.id,
+        jobId,
+      });
       return NextResponse.json({ error: 'Failed to save job' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, message: 'Job saved successfully' });
   } catch (error) {
-    console.error('Unexpected error in POST /api/contractor/saved-jobs', error);
+    logger.error('Unexpected error in POST /api/contractor/saved-jobs', error, {
+      service: 'saved_jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

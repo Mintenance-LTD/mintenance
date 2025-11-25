@@ -20,18 +20,17 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
  */
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    const { id: jobId } = await params;
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const jobId = params.id;
 
     // Verify user is contractor for this job
     const { data: job, error: jobError } = await serverSupabase
@@ -73,10 +72,10 @@ params }: { params: { id: string } }
       .replace(/\.\./g, '') // Remove path traversal attempts
       .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
       .substring(0, 100); // Limit filename length
-    
+
     // Generate safe filename with user ID and timestamp to prevent collisions
     const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    
+
     // Upload to storage
     const fileName = `job-photos/${jobId}/video/${safeFileName}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -112,4 +111,3 @@ params }: { params: { id: string } }
     return NextResponse.json({ error: 'Failed to upload video' }, { status: 500 });
   }
 }
-

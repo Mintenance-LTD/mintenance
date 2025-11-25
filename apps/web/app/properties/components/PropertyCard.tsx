@@ -38,13 +38,13 @@ const getPropertyIcon = (type: string | null) => {
 
 const calculateHealthScore = (activeJobs: number, completedJobs: number, lastServiceDate: string | null): number => {
   let score = 100;
-  
+
   // Deduct points for active jobs (more active jobs = lower score)
   score -= Math.min(activeJobs * 5, 30);
-  
+
   // Add points for completed jobs (more completed = better maintenance)
   score += Math.min(completedJobs * 2, 20);
-  
+
   // Deduct points if no recent service (older than 90 days)
   if (lastServiceDate) {
     const daysSinceService = (Date.now() - new Date(lastServiceDate).getTime()) / (1000 * 60 * 60 * 24);
@@ -55,7 +55,7 @@ const calculateHealthScore = (activeJobs: number, completedJobs: number, lastSer
     // No service history = lower score
     score -= 20;
   }
-  
+
   return Math.max(0, Math.min(100, Math.round(score)));
 };
 
@@ -78,7 +78,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const healthColor = getHealthColor(healthScore);
   const healthLabel = getHealthLabel(healthScore);
   const hasPhotos = property.photos && property.photos.length > 0;
-  const firstPhoto = hasPhotos ? property.photos[0] : null;
+  const firstPhoto = property.photos?.[0] || null;
 
   const handleAddJob = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -99,7 +99,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 relative h-full group">
         {/* Gradient bar */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-        
+
         {/* Property Photo or Icon */}
         {firstPhoto ? (
           <div className="relative w-full h-48 overflow-hidden bg-gray-100">

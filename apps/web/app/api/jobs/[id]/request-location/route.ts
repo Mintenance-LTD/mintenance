@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const { id: jobId } = await params;
     const user = await getCurrentUserFromCookies();
 
@@ -59,7 +58,12 @@ params }: { params: Promise<{ id: string }> }
       });
 
     if (notificationError) {
-      console.error('Error creating location request notification:', notificationError);
+      logger.error('Error creating location request notification', notificationError, {
+        service: 'jobs',
+        jobId,
+        homeownerId: user.id,
+        contractorId: job.contractor_id,
+      });
       return NextResponse.json({ error: 'Failed to send location request' }, { status: 500 });
     }
 
@@ -69,7 +73,9 @@ params }: { params: Promise<{ id: string }> }
       status: 'pending',
     });
   } catch (error) {
-    console.error('Unexpected error in request location', error);
+    logger.error('Unexpected error in request location', error, {
+      service: 'jobs',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

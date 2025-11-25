@@ -4,14 +4,12 @@ import { MatchCommunicationService } from '@/lib/services/matching/MatchCommunic
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 
-export async function POST(
-  request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: Promise<{ id: string }> }
+export async function POST(  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

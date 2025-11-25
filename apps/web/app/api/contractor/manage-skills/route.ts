@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,7 +49,10 @@ export async function POST(request: NextRequest) {
       .eq('contractor_id', user.id);
 
     if (deleteError) {
-      console.error('Delete skills error:', deleteError);
+      logger.error('Delete skills error', deleteError, {
+        service: 'contractor_skills',
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: 'Failed to remove old skills' },
         { status: 500 }
@@ -78,7 +82,10 @@ export async function POST(request: NextRequest) {
         .select();
 
       if (insertError) {
-        console.error('Insert skills error:', insertError);
+        logger.error('Insert skills error', insertError, {
+          service: 'contractor_skills',
+          userId: user.id,
+        });
         return NextResponse.json(
           { error: 'Failed to add new skills' },
           { status: 500 }
@@ -90,7 +97,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: [] });
   } catch (error) {
-    console.error('Skills management error:', error);
+    logger.error('Skills management error', error, {
+      service: 'contractor_skills',
+    });
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }

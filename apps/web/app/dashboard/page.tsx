@@ -109,7 +109,7 @@ export default async function DashboardPage() {
       userRole="homeowner"
       onboardingCompleted={onboardingStatus.completed}
     >
-      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.colors.backgroundSecondary }}>
+      <div className="flex min-h-screen bg-gray-50">
         {/* Unified Sidebar */}
         <UnifiedSidebar
           userRole="homeowner"
@@ -121,26 +121,13 @@ export default async function DashboardPage() {
         />
 
         {/* Main Content */}
-        <main style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          width: 'calc(100% - 280px)',
-          marginLeft: '280px',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
+        <main className="flex flex-col flex-1 w-[calc(100%-280px)] ml-[280px] transition-[width] duration-300 ease-out">
           {/* Header */}
           <DashboardHeader userName={userDisplayName} userId={user.id} secondaryMetrics={secondaryMetrics} />
 
           {/* Page Content */}
-          <div style={{
-            maxWidth: '1440px',
-            margin: 0,
-            padding: theme.spacing[6],
-            width: '100%',
-            boxSizing: 'border-box',
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+          <div className="max-w-[1440px] m-0 p-6 w-full box-border">
+            <div className="flex flex-col gap-6">
               {/* Header */}
               <section aria-labelledby="dashboard-welcome" className="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 rounded-2xl p-8 mb-6 border border-primary-700/50 shadow-xl">
                 {/* Decorative Elements */}

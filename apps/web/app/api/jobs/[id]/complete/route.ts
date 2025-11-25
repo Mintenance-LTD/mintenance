@@ -7,18 +7,18 @@ import { requireCSRF } from '@/lib/csrf';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
-
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const jobId = params.id;
+    const jobId = id;
 
     // Get job details
     const { data: job, error: jobError } = await serverSupabase

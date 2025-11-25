@@ -34,14 +34,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       rateLimitResult = await checkLoginRateLimit(request);
     } catch (rateLimitError) {
-      logger.error('Rate limit check failed', rateLimitError, { service: 'auth' });
-      // Continue without rate limiting if it fails (fail open for availability)
-      rateLimitResult = { 
-        allowed: true, 
-        remaining: 100, 
-        resetTime: Date.now() + 3600000,
-        retryAfter: 0 
-      };
+      logger.error('Rate limit check failed', rateLimitError, { 
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      // Fail closed: deny request when rate limiting is unavailable (security-first)
+      return NextResponse.json(
+        {
+          error: 'Rate limiting service unavailable. Please try again later.',
+        },
+        {
+          status: 503, // Service Unavailable
+          headers: {
+            'Retry-After': '60', // Suggest retry after 60 seconds
+          }
+        }
+      );
     }
 
     if (!rateLimitResult.allowed) {
@@ -157,16 +165,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : String(error);
     
-    // Use console.error as fallback if logger fails
+    // Log error (logger should always work, but handle gracefully if it doesn't)
     try {
       if (logger && typeof logger.error === 'function') {
         logger.error('Login error', error, { service: 'auth' });
       } else {
-        console.error('Login error (logger unavailable):', errorMessage, errorStack);
+        // If logger is unavailable, use stderr as fallback
+        process.stderr.write(
+          `[CRITICAL] Logger unavailable during login error: ${errorMessage}\nStack: ${errorStack}\n`
+        );
       }
     } catch (loggerError) {
-      console.error('Login error (logger failed):', errorMessage, errorStack);
-      console.error('Logger error:', loggerError);
+      // If logger itself fails, use stderr as absolute fallback
+      process.stderr.write(
+        `[CRITICAL] Logger failed during login error handling: ${errorMessage}\n` +
+        `Stack: ${errorStack}\n` +
+        `Logger error: ${loggerError instanceof Error ? loggerError.message : String(loggerError)}\n`
+      );
     }
 
     // Handle CSRF validation errors specifically
@@ -177,12 +192,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
     
-    // Log the actual error for debugging
-    console.error('Login route error details:', {
-      message: errorMessage,
-      stack: errorStack?.substring(0, 500), // Limit stack trace length
-      type: error?.constructor?.name || typeof error
-    });
+    // Log the actual error for debugging (should already be logged above)
+    // This is a safety net in case the logger call above didn't work
+    try {
+      logger.error('Login route error details', error, {
+        service: 'auth',
+        message: errorMessage,
+        stack: errorStack?.substring(0, 500), // Limit stack trace length
+        type: error?.constructor?.name || typeof error
+      });
+    } catch {
+      // If logger fails again, silently continue - we've already logged to stderr above
+    }
 
     // Always return JSON, never HTML - this is critical
     return NextResponse.json(

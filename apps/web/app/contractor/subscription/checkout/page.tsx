@@ -10,23 +10,24 @@ export const metadata = {
 export default async function SubscriptionCheckoutPage({
   searchParams,
 }: {
-  searchParams: { clientSecret?: string; subscriptionId?: string; planType?: string };
+  searchParams: Promise<{ clientSecret?: string; subscriptionId?: string; planType?: string }>;
 }) {
+  const { clientSecret, subscriptionId, planType } = await searchParams;
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'contractor') {
     redirect('/login');
   }
 
-  if (!searchParams.clientSecret || !searchParams.subscriptionId) {
+  if (!clientSecret || !subscriptionId) {
     redirect('/contractor/subscription');
   }
 
   return (
     <SubscriptionCheckoutClient
-      clientSecret={searchParams.clientSecret}
-      subscriptionId={searchParams.subscriptionId}
-      planType={searchParams.planType || 'basic'}
+      clientSecret={clientSecret}
+      subscriptionId={subscriptionId}
+      planType={planType || 'basic'}
     />
   );
 }

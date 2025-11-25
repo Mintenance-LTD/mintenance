@@ -9,7 +9,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2024-04-10',
 });
 
 /**
@@ -63,12 +63,18 @@ export async function GET(request: NextRequest) {
 
     // Get customer to find default payment method
     const customer = await stripe.customers.retrieve(stripeCustomerId);
-    const defaultPaymentMethodId = 
-      typeof customer !== 'deleted' && customer.invoice_settings?.default_payment_method
-        ? (typeof customer.invoice_settings.default_payment_method === 'string'
-            ? customer.invoice_settings.default_payment_method
-            : customer.invoice_settings.default_payment_method.id)
-        : null;
+
+    // Check if customer is deleted
+    if ((customer as any).deleted) {
+      return NextResponse.json({ error: 'Stripe customer deleted' }, { status: 400 });
+    }
+
+    const stripeCustomer = customer as Stripe.Customer;
+    const defaultPaymentMethodId = stripeCustomer.invoice_settings?.default_payment_method
+      ? (typeof stripeCustomer.invoice_settings.default_payment_method === 'string'
+        ? stripeCustomer.invoice_settings.default_payment_method
+        : stripeCustomer.invoice_settings.default_payment_method.id)
+      : null;
 
     // Retrieve payment methods from Stripe
     const paymentMethods = await stripe.paymentMethods.list({
@@ -83,11 +89,11 @@ export async function GET(request: NextRequest) {
       isDefault: pm.id === defaultPaymentMethodId,
       card: pm.card
         ? {
-            brand: pm.card.brand,
-            last4: pm.card.last4,
-            expMonth: pm.card.exp_month,
-            expYear: pm.card.exp_year,
-          }
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          expMonth: pm.card.exp_month,
+          expYear: pm.card.exp_year,
+        }
         : null,
       billing_details: pm.billing_details,
       created: pm.created,

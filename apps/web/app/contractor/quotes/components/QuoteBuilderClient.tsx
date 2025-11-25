@@ -285,7 +285,7 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
               return (
                 <Button
                   key={filter.id}
-                  variant={isActive ? 'default' : 'outline'}
+                  variant={isActive ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => setSelectedFilter(filter.id)}
                   className="rounded-full capitalize"

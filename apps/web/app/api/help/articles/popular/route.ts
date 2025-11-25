@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 /**
  * Get popular help articles with view counts
@@ -50,7 +51,9 @@ export async function GET() {
 
     return NextResponse.json({ articles: popularArticles });
   } catch (error) {
-    console.error('Error fetching popular articles:', error);
+    logger.error('Error fetching popular articles', error, {
+      service: 'help_articles',
+    });
     // Return empty array on error
     return NextResponse.json({ articles: [] });
   }

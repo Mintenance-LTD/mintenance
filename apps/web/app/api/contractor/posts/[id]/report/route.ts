@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,19 +11,19 @@ const supabase = createClient(
 
 export async function POST(
   request: NextRequest,
-  { 
-  // CSRF protection
-  await requireCSRF(request);
-params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // CSRF protection
+    await requireCSRF(request);
+    const { id } = await params;
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const postId = params.id;
+    const postId = id;
     const body = await request.json();
     const { reason } = body;
 
@@ -52,7 +53,11 @@ params }: { params: { id: string } }
       .eq('id', postId);
 
     if (flagError) {
-      console.error('Error flagging post:', flagError);
+      logger.error('Error flagging post', flagError, {
+        service: 'contractor_posts',
+        userId: user.id,
+        postId,
+      });
       return NextResponse.json({ error: 'Failed to report post', details: flagError.message }, { status: 500 });
     }
 
@@ -60,7 +65,9 @@ params }: { params: { id: string } }
       message: 'Post reported successfully. It will be reviewed by moderators.' 
     });
   } catch (error) {
-    console.error('Error in POST /api/contractor/posts/[id]/report:', error);
+    logger.error('Error in POST /api/contractor/posts/[id]/report', error, {
+      service: 'contractor_posts',
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

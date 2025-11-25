@@ -143,8 +143,12 @@ function validateEnv(): Env {
         });
       }
 
-      // Ensure Redis is configured in production
-      if (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN) {
+      // Ensure Redis is configured in production (skip during build)
+      // During build, Next.js may not have all env vars, so we only validate at runtime
+      const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
+                         process.env.NEXT_PHASE === 'phase-development-build';
+      
+      if (!isBuildTime && (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN)) {
         logger.error('Redis is REQUIRED in production for rate limiting', {
           service: 'env-validation',
         });

@@ -39,11 +39,11 @@ export async function GET() {
     
     const continuousLearningEnabled = 
       envVarValue === 'true' || 
-      envVarValue === true ||
       String(envVarValue).toLowerCase() === 'true';
     
     // Debug log (remove after verification)
-    console.log('[YOLO Status API] Environment variable check:', {
+    logger.info('YOLO Status API Environment variable check', {
+      service: 'YOLORetrainingStatusAPI',
       rawValue: envVarValue,
       type: typeof envVarValue,
       isTrue: envVarValue === 'true',

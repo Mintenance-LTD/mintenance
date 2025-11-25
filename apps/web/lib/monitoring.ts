@@ -1,4 +1,5 @@
 // import * as Sentry from '@sentry/nextjs'; // Temporarily disabled for Next.js 15 compatibility
+import { logger } from '@mintenance/shared';
 
 // Mock Sentry for type safety when disabled
 const Sentry = {
@@ -11,7 +12,9 @@ const Sentry = {
  */
 export function initSentry() {
   // Sentry temporarily disabled for Next.js 15 compatibility
-  console.log('Sentry monitoring disabled for Next.js 15 compatibility');
+  logger.info('Sentry monitoring disabled for Next.js 15 compatibility', {
+    service: 'monitoring',
+  });
   return;
   
   /* Sentry.init({
@@ -85,16 +88,35 @@ export function initSentry() {
 export const captureEvent = {
   // Sentry temporarily disabled for Next.js 15 compatibility
   userAction: (action: string, data?: Record<string, any>) => {
-    console.log('Sentry disabled - User action:', action, data);
+    logger.info('Sentry disabled - User action', {
+      service: 'monitoring',
+      action,
+      data,
+    });
   },
   apiError: (endpoint: string, error: Error, statusCode?: number) => {
-    console.error('Sentry disabled - API error:', endpoint, error.message, statusCode);
+    logger.error('Sentry disabled - API error', {
+      service: 'monitoring',
+      endpoint,
+      errorMessage: error.message,
+      statusCode,
+    });
   },
   performance: (metric: string, value: number, unit: string = 'ms') => {
-    console.log(`Sentry disabled - Performance: ${metric} = ${value}${unit}`);
+    logger.info('Sentry disabled - Performance', {
+      service: 'monitoring',
+      metric,
+      value,
+      unit,
+    });
   },
   businessMetric: (metric: string, value: number, tags?: Record<string, string>) => {
-    console.log(`Sentry disabled - Business metric: ${metric} = ${value}`, tags);
+    logger.info('Sentry disabled - Business metric', {
+      service: 'monitoring',
+      metric,
+      value,
+      tags,
+    });
   }
 };
 

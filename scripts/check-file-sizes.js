@@ -1,204 +1,165 @@
 #!/usr/bin/env node
 
 /**
- * File Size Compliance Checker
- *
- * Automated script to enforce architecture file size limits:
- * - 500 lines: MAXIMUM (hard error)
- * - 400 lines: WARNING (should refactor soon)
- * - 200 lines: IDEAL (for classes/components)
- *
- * @compliance Architecture principles enforcement
+ * Check File Sizes
+ * 
+ * This script identifies files that exceed the 500-line limit
+ * as specified in the project rules.
+ * 
+ * Usage: node scripts/check-file-sizes.js
  */
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
-// Configuration
-const LIMITS = {
-  ERROR: 500,    // Hard limit - fail build
-  WARNING: 400,  // Warning limit - should refactor
-  IDEAL: 200     // Ideal limit for classes
-};
+const WEB_APP_DIR = path.join(__dirname, '../apps/web');
+const MOBILE_APP_DIR = path.join(__dirname, '../apps/mobile');
+const MAX_LINES = 500;
+const WARNING_LINES = 400;
 
-const IGNORE_PATTERNS = [
-  'node_modules/',
-  'coverage/',
-  'dist/',
-  'build/',
-  '.git/',
-  '__tests__/',
-  '.test.',
-  '.spec.',
-  '.backup',
-  'database.ts.backup'
-];
+const LARGE_FILES = [];
+const WARNING_FILES = [];
 
-/**
- * Get all TypeScript files in src directory
- */
-function getAllTSFiles() {
-  try {
-    const result = execSync('find src -name "*.ts" -o -name "*.tsx"', { encoding: 'utf8' });
-    return result.trim().split('\n').filter(file => {
-      return !IGNORE_PATTERNS.some(pattern => file.includes(pattern));
-    });
-  } catch (error) {
-    console.error('Error finding TypeScript files:', error.message);
-    return [];
-  }
-}
-
-/**
- * Count lines in a file
- */
 function countLines(filePath) {
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = fs.readFileSync(filePath, 'utf-8');
     return content.split('\n').length;
   } catch (error) {
-    console.warn(`Warning: Could not read file ${filePath}`);
     return 0;
   }
 }
 
-/**
- * Check file size compliance
- */
-function checkFileSizes() {
-  const files = getAllTSFiles();
-  const violations = {
-    errors: [],
-    warnings: [],
-    large_classes: []
-  };
+function findFiles(dir, fileList = []) {
+  if (!fs.existsSync(dir)) {
+    return fileList;
+  }
 
-  console.log('🔍 Checking file size compliance...\n');
+  const files = fs.readdirSync(dir);
 
-  files.forEach(file => {
-    const lineCount = countLines(file);
+  files.forEach((file) => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
 
-    if (lineCount > LIMITS.ERROR) {
-      violations.errors.push({ file, lines: lineCount });
-    } else if (lineCount > LIMITS.WARNING) {
-      violations.warnings.push({ file, lines: lineCount });
-    } else if (lineCount > LIMITS.IDEAL && (file.includes('Screen') || file.includes('Service') || file.includes('Component'))) {
-      violations.large_classes.push({ file, lines: lineCount });
+    if (stat.isDirectory()) {
+      // Skip node_modules, .next, dist, etc.
+      if (
+        !file.startsWith('.') &&
+        file !== 'node_modules' &&
+        file !== '.next' &&
+        file !== 'dist' &&
+        file !== 'coverage' &&
+        file !== 'build'
+      ) {
+        findFiles(filePath, fileList);
+      }
+    } else if (
+      (file.endsWith('.tsx') || file.endsWith('.ts')) &&
+      !file.endsWith('.d.ts') &&
+      !file.includes('.test.') &&
+      !file.includes('.spec.')
+    ) {
+      fileList.push(filePath);
     }
   });
 
-  return violations;
+  return fileList;
 }
 
-/**
- * Display results with colors
- */
-function displayResults(violations) {
-  const RED = '\x1b[31m';
-  const YELLOW = '\x1b[33m';
-  const BLUE = '\x1b[34m';
-  const GREEN = '\x1b[32m';
-  const RESET = '\x1b[0m';
-  const BOLD = '\x1b[1m';
+function analyzeFiles(baseDir, appName) {
+  const files = findFiles(baseDir);
+  console.log(`\n📁 Analyzing ${appName} (${files.length} files)...\n`);
 
-  // Critical errors (>500 lines)
-  if (violations.errors.length > 0) {
-    console.log(`${RED}${BOLD}❌ CRITICAL VIOLATIONS (>500 lines):${RESET}`);
-    violations.errors.forEach(({ file, lines }) => {
-      const multiplier = (lines / LIMITS.ERROR).toFixed(1);
-      console.log(`${RED}   ${file}: ${lines} lines (${multiplier}x over limit)${RESET}`);
-    });
-    console.log();
-  }
+  files.forEach((filePath) => {
+    const lineCount = countLines(filePath);
+    const relativePath = path.relative(baseDir, filePath);
 
-  // Warnings (400-500 lines)
-  if (violations.warnings.length > 0) {
-    console.log(`${YELLOW}${BOLD}⚠️  WARNING VIOLATIONS (400-500 lines):${RESET}`);
-    violations.warnings.forEach(({ file, lines }) => {
-      console.log(`${YELLOW}   ${file}: ${lines} lines (approaching limit)${RESET}`);
-    });
-    console.log();
-  }
+    if (lineCount > MAX_LINES) {
+      LARGE_FILES.push({
+        file: relativePath,
+        fullPath: filePath,
+        lines: lineCount,
+        app: appName,
+        exceedsBy: lineCount - MAX_LINES,
+      });
+    } else if (lineCount > WARNING_LINES) {
+      WARNING_FILES.push({
+        file: relativePath,
+        fullPath: filePath,
+        lines: lineCount,
+        app: appName,
+      });
+    }
+  });
+}
 
-  // Large classes/components (200-400 lines)
-  if (violations.large_classes.length > 0) {
-    console.log(`${BLUE}${BOLD}📏 LARGE CLASSES (>200 lines):${RESET}`);
-    violations.large_classes.forEach(({ file, lines }) => {
-      console.log(`${BLUE}   ${file}: ${lines} lines (consider splitting)${RESET}`);
-    });
-    console.log();
-  }
+function generateReport() {
+  console.log('\n' + '='.repeat(80));
+  console.log('📊 File Size Audit Report\n');
 
-  // Summary
-  const totalViolations = violations.errors.length + violations.warnings.length;
-
-  if (totalViolations === 0) {
-    console.log(`${GREEN}${BOLD}✅ All files comply with size limits!${RESET}`);
-    console.log(`${GREEN}   Checked files follow the 500-line architecture principle.${RESET}\n`);
+  if (LARGE_FILES.length === 0) {
+    console.log('✅ No files exceed the 500-line limit!\n');
   } else {
-    console.log(`${BOLD}📊 SUMMARY:${RESET}`);
-    console.log(`   Critical errors: ${violations.errors.length}`);
-    console.log(`   Warnings: ${violations.warnings.length}`);
-    console.log(`   Large classes: ${violations.large_classes.length}`);
-    console.log();
+    console.log(`❌ Files exceeding 500-line limit (${LARGE_FILES.length}):\n`);
+    LARGE_FILES.sort((a, b) => b.lines - a.lines).forEach((item) => {
+      console.log(`   ${item.file}`);
+      console.log(`   Lines: ${item.lines} (exceeds by ${item.exceedsBy})`);
+      console.log(`   App: ${item.app}`);
+      console.log('');
+    });
   }
 
-  return totalViolations;
-}
-
-/**
- * Show successful refactoring example
- */
-function showRefactoringSuccess() {
-  const GREEN = '\x1b[32m';
-  const BOLD = '\x1b[1m';
-  const RESET = '\x1b[0m';
-
-  console.log(`${GREEN}${BOLD}🎉 REFACTORING SUCCESS EXAMPLE:${RESET}`);
-  console.log(`${GREEN}   database.ts: 3,778 lines → Split into modular files:${RESET}`);
-  console.log(`${GREEN}   ├── core/database.core.ts: 268 lines ✅${RESET}`);
-  console.log(`${GREEN}   ├── location/location.types.ts: 238 lines ✅${RESET}`);
-  console.log(`${GREEN}   ├── jobs/job.types.ts: 345 lines ✅${RESET}`);
-  console.log(`${GREEN}   └── database.refactored.ts: 88 lines ✅${RESET}`);
-  console.log(`${GREEN}   Total reduction: 3,778 → 939 lines (75% reduction!)${RESET}\n`);
-}
-
-/**
- * Main execution
- */
-function main() {
-  const violations = checkFileSizes();
-  const totalViolations = displayResults(violations);
-
-  // Show refactoring success if we have violations to inspire action
-  if (totalViolations > 0) {
-    showRefactoringSuccess();
-
-    console.log('💡 NEXT STEPS:');
-    console.log('   1. Split large files into domain-specific modules');
-    console.log('   2. Extract components from large screens');
-    console.log('   3. Use service composition over monolithic services');
-    console.log('   4. Follow single responsibility principle\n');
+  if (WARNING_FILES.length > 0) {
+    console.log(`\n⚠️  Files approaching limit (${WARNING_FILES.length} files > ${WARNING_LINES} lines):\n`);
+    WARNING_FILES.sort((a, b) => b.lines - a.lines).slice(0, 10).forEach((item) => {
+      console.log(`   ${item.file} (${item.lines} lines)`);
+    });
+    if (WARNING_FILES.length > 10) {
+      console.log(`   ... and ${WARNING_FILES.length - 10} more`);
+    }
   }
 
-  // Exit with error code if critical violations exist
-  if (violations.errors.length > 0) {
-    console.error('❌ Build failed due to file size violations. Please refactor before continuing.');
+  console.log('\n' + '='.repeat(80));
+  console.log('\n📋 Recommendations:\n');
+  console.log('1. Split large files into smaller, focused modules');
+  console.log('2. Extract business logic into separate service files');
+  console.log('3. Move validation schemas to separate files');
+  console.log('4. Extract helper functions to utility files');
+  console.log('5. Consider breaking components into smaller sub-components\n');
+
+  // Save report
+  const reportPath = path.join(__dirname, '../file-size-audit-report.json');
+  fs.writeFileSync(
+    reportPath,
+    JSON.stringify(
+      {
+        summary: {
+          largeFiles: LARGE_FILES.length,
+          warningFiles: WARNING_FILES.length,
+        },
+        largeFiles: LARGE_FILES,
+        warningFiles: WARNING_FILES,
+      },
+      null,
+      2
+    )
+  );
+  console.log(`📄 Detailed report saved to: ${reportPath}\n`);
+}
+
+// Main execution
+try {
+  console.log('🔍 Scanning for large files...\n');
+  
+  analyzeFiles(WEB_APP_DIR, 'Web App');
+  analyzeFiles(MOBILE_APP_DIR, 'Mobile App');
+
+  generateReport();
+
+  // Exit with error code if large files found
+  if (LARGE_FILES.length > 0) {
     process.exit(1);
   }
-
-  if (violations.warnings.length > 0) {
-    console.warn('⚠️  Warning: Some files are approaching size limits.');
-    // Don't fail build for warnings, but notify
-  }
-
-  console.log('✅ File size check completed successfully.');
+} catch (error) {
+  console.error('Error running file size check:', error);
+  process.exit(1);
 }
-
-// Run if called directly
-if (require.main === module) {
-  main();
-}
-
-module.exports = { checkFileSizes, displayResults };

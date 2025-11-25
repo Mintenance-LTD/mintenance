@@ -1,0 +1,7 @@
+filename,image_url,true_class,critical_hazard,property_type,property_age,region
+Animal-Damage_jpeg.rf.674aa6bfccd894b1b4006040a3973a87.jpg,https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/training-images/Animal-Damage_jpeg.rf.674aa6bfccd894b1b4006040a3973a87.jpg,Structural Crack,true,,,
+Screenshot-2023-11-16-12-21-38_png.rf.2d0d3c0263cadd109c5749128e90581f.jpg,https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/training-images/Screenshot-2023-11-16-12-21-38_png.rf.2d0d3c0263cadd109c5749128e90581f.jpg,Water Damage,false,,,
+22-1405376584805_jpeg_jpg.rf.02acb678e9478bdc9350bc92f2e443e0.jpg,https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/training-images/22-1405376584805_jpeg_jpg.rf.02acb678e9478bdc9350bc92f2e443e0.jpg,Mold,false,,,
+6-background-cracked-multilayer-paint-rusty-metal-wall-small-texture-copy-space-228658281_jpg.rf.61e03d9b4621d443908376f187d8ead0.jpg,https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/training-images/6-background-cracked-multilayer-paint-rusty-metal-wall-small-texture-copy-space-228658281_jpg.rf.61e03d9b4621d443908376f187d8ead0.jpg,Corrosion,true,,,
+Screenshot-2023-11-08-20-45-06_png.rf.08f77f26f1dd0c05b4660b3e45a30ba7.jpg,https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/training-images/Screenshot-2023-11-08-20-45-06_png.rf.08f77f26f1dd0c05b4660b3e45a30ba7.jpg,Water Damage,false,,,
+

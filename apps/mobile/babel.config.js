@@ -6,5 +6,7 @@ module.exports = function(api) {
       // Removed reanimated/worklets plugin temporarily to fix blank screen
       // Will re-add once basic rendering is working
     ],
+    // Ensure TypeScript files are transpiled
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
   };
 };

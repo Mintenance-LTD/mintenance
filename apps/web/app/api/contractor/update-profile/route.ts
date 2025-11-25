@@ -18,7 +18,9 @@ class GeocodingService {
 
   async geocodeAddress(address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> {
     if (!this.apiKey) {
-      console.warn('GOOGLE_MAPS_API_KEY not configured; geocoding will be skipped.');
+      logger.warn('GOOGLE_MAPS_API_KEY not configured; geocoding will be skipped', {
+        service: 'geocoding',
+      });
       return null;
     }
 
@@ -38,10 +40,15 @@ class GeocodingService {
         };
       }
 
-      console.error('Geocoding failed:', data.status);
+      logger.error('Geocoding failed', new Error(`Geocoding status: ${data.status}`), {
+        service: 'geocoding',
+        status: data.status,
+      });
       return null;
     } catch (error) {
-      console.error('Geocoding API error:', error);
+      logger.error('Geocoding API error', error, {
+        service: 'geocoding',
+      });
       return null;
     }
   }
