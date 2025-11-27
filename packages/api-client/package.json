@@ -25,7 +25,7 @@
   "dependencies": {
     "@mintenance/types": "file:../types",
     "@mintenance/shared": "file:../shared",
-    "@supabase/supabase-js": "^2.76.1"
+    "@supabase/supabase-js": "^2.86.0"
   },
   "devDependencies": {
     "typescript": "^5",
