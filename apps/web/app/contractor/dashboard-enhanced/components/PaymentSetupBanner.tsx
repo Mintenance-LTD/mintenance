@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { AlertCircle, CreditCard, X } from 'lucide-react';
 

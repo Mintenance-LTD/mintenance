@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { theme } from '@/lib/theme';
 
@@ -47,9 +45,9 @@ const statusConfig: Record<StatusBadgeVariant, { bg: string; text: string; borde
     border: '#FCA5A5',
   },
   pending: {
-    bg: theme.colors.backgroundSecondary,
-    text: theme.colors.textSecondary,
-    border: theme.colors.border,
+    bg: '#FEF3C7',
+    text: '#B45309',
+    border: '#FDE68A',
   },
 };
 

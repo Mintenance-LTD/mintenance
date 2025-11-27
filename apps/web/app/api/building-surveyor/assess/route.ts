@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
                 compliance_score: 80,
                 insurance_risk_score: 50,
                 urgency: 'monitor',
-                assessment_data: abResult.aiResult as any,
+                assessment_data: abResult.aiResult as Record<string, unknown>,
                 validation_status: 'validated', // Auto-validated by Safe-LUCB
                 created_at: new Date().toISOString(),
               });
@@ -320,14 +320,14 @@ export async function POST(request: NextRequest) {
 
     // 8. Return assessment
     return NextResponse.json(assessment);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in building surveyor assessment', error, {
       service: 'building-surveyor-api',
     });
 
     // Return user-friendly error
     const errorMessage =
-      error.message || 'Failed to assess building damage. Please try again.';
+      error instanceof Error ? error.message : 'Failed to assess building damage. Please try again.';
 
     return NextResponse.json(
       {

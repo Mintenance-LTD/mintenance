@@ -1,5 +1,3 @@
-'use client';
-
 import React, { ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';

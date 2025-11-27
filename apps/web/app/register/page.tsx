@@ -131,50 +131,69 @@ function RegisterForm() {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Left Side - Enhanced Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-700/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+      <div className="hidden lg:flex lg:w-1/2 bg-primary-950 text-white p-12 flex-col justify-between relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-primary-950/95 to-primary-900/90"></div>
+
+        {/* Tech Grid Pattern */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+        {/* Glowing Orbs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 animate-pulse duration-3000"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
 
         <div className="relative z-10">
           <Link href="/" className="flex items-center space-x-3 mb-16 group">
-            <div className="transform transition-transform group-hover:scale-110 duration-300">
+            <div className="transform transition-transform group-hover:scale-110 duration-300 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
               <Logo />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Mintenance</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Mintenance</h1>
           </Link>
           <div>
-            <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Join Mintenance Today</h2>
-            <p className="text-xl text-gray-300 mb-10 leading-relaxed">
+            <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">
+              Join the Network
+            </h2>
+            <p className="text-xl text-primary-100 mb-10 leading-relaxed max-w-md">
               {selectedRole === 'homeowner'
-                ? 'Find trusted tradespeople for your home projects'
-                : 'Grow your business and find quality projects'}
+                ? 'Access a network of elite tradespeople for your home.'
+                : 'Connect with quality projects and grow your business.'}
             </p>
             <div className="space-y-4">
-              <div className="flex items-start gap-4 group">
-                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <p className="text-gray-200 leading-relaxed">Verified tradespeople only</p>
+                <div>
+                  <p className="text-white font-medium">Verified Professionals</p>
+                  <p className="text-primary-300 text-sm">Strict vetting process</p>
+                </div>
               </div>
-              <div className="flex items-start gap-4 group">
-                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <p className="text-gray-200 leading-relaxed">Secure payment protection</p>
+                <div>
+                  <p className="text-white font-medium">Secure Payments</p>
+                  <p className="text-primary-300 text-sm">Escrow protection</p>
+                </div>
               </div>
-              <div className="flex items-start gap-4 group">
-                <div className="p-2 bg-secondary/20 rounded-lg group-hover:bg-secondary/30 transition-colors">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
+              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <p className="text-gray-200 leading-relaxed">AI-powered matching</p>
+                <div>
+                  <p className="text-white font-medium">AI-Powered Matching</p>
+                  <p className="text-primary-300 text-sm">Find the perfect fit</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="text-sm text-gray-400 relative z-10">
-          <p className="font-medium">© 2025 MINTENANCE LTD</p>
-          <p className="text-gray-500">Company No. 16542104</p>
+        <div className="text-sm text-primary-400 relative z-10 mt-12">
+          <p className="font-medium text-white">© 2025 MINTENANCE LTD</p>
+          <p>Building the future of home maintenance</p>
         </div>
       </div>
 

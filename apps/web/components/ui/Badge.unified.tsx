@@ -7,8 +7,6 @@
  * This wrapper will be removed once all files are migrated.
  */
 
-'use client';
-
 import React from 'react';
 import { Badge as SharedBadge } from '@mintenance/shared-ui';
 import type { WebBadgeProps } from '@mintenance/shared-ui';

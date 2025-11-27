@@ -4,6 +4,8 @@
  * Handles in-app notifications and notification preferences
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface NotificationData {
   id: string;
   title: string;
@@ -46,7 +48,7 @@ export class NotificationService {
       const data = await response.json();
       return data.notifications || [];
     } catch (error) {
-      console.error('Failed to get user notifications', error);
+      logger.error('Failed to get user notifications', error, { service: 'NotificationService', userId });
       throw error;
     }
   }
@@ -65,7 +67,7 @@ export class NotificationService {
       const data = await response.json();
       return data.count || 0;
     } catch (error) {
-      console.error('Failed to get unread count', error);
+      logger.error('Failed to get unread count', error, { service: 'NotificationService', userId });
       return 0;
     }
   }
@@ -83,7 +85,7 @@ export class NotificationService {
         throw new Error('Failed to mark notification as read');
       }
     } catch (error) {
-      console.error('Failed to mark notification as read', error);
+      logger.error('Failed to mark notification as read', error, { service: 'NotificationService', notificationId });
       throw error;
     }
   }
@@ -105,7 +107,7 @@ export class NotificationService {
         throw new Error('Failed to mark all as read');
       }
     } catch (error) {
-      console.error('Failed to mark all as read', error);
+      logger.error('Failed to mark all as read', error, { service: 'NotificationService', userId });
       throw error;
     }
   }
@@ -123,7 +125,7 @@ export class NotificationService {
         throw new Error('Failed to delete notification');
       }
     } catch (error) {
-      console.error('Failed to delete notification', error);
+      logger.error('Failed to delete notification', error, { service: 'NotificationService', notificationId });
       throw error;
     }
   }
@@ -142,7 +144,7 @@ export class NotificationService {
       const data = await response.json();
       return data.preferences || this.getDefaultPreferences();
     } catch (error) {
-      console.error('Failed to get preferences', error);
+      logger.error('Failed to get preferences', error, { service: 'NotificationService', userId });
       return this.getDefaultPreferences();
     }
   }
@@ -167,7 +169,7 @@ export class NotificationService {
         throw new Error('Failed to update preferences');
       }
     } catch (error) {
-      console.error('Failed to update preferences', error);
+      logger.error('Failed to update preferences', error, { service: 'NotificationService', userId });
       throw error;
     }
   }

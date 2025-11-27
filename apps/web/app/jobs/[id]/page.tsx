@@ -1,11 +1,13 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
-import { theme } from '@/lib/theme';
+import { unstable_cache } from 'next/cache';
 import { Icon } from '@/components/ui/Icon';
-import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
+import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
+import { PageHeader } from '@/components/layouts/PageHeader';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';
+import { theme } from '@/lib/theme';
 import { PhotoGallery } from './components/PhotoGallery';
 import { ContractorViewersList } from './components/ContractorViewersList';
 import { JobLocationMap } from './components/JobLocationMap';
@@ -79,6 +81,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .eq('id', job.contractor_id)
     .single() : { data: null };
 
+  // Fetch bids with contractor info in a single query using joins (no N+1)
   const { data: bids } = await serverSupabase
     .from('bids')
     .select(`
@@ -88,45 +91,59 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       status,
       created_at,
       contractor_id,
-      quote_id
+      quote_id,
+      contractor:users!bids_contractor_id_fkey (
+        id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        profile_image_url,
+        admin_verified,
+        company_name,
+        license_number
+      )
     `)
     .eq('job_id', resolvedParams.id);
 
-  // Fetch contractor info for each bid
-  const bidsWithContractors = bids ? await Promise.all(
-    bids.map(async (bid) => {
-      if (bid.contractor_id) {
-        const { data: contractor } = await serverSupabase
-          .from('users')
-          .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
-          .eq('id', bid.contractor_id)
-          .single();
+  // Fetch portfolio images for all contractors in batch (avoid N+1)
+  const contractorIds = bids?.map(b => b.contractor_id).filter(Boolean) || [];
+  const portfolioMap = new Map();
+  if (contractorIds.length > 0) {
+    const { data: portfolioPosts } = await serverSupabase
+      .from('contractor_posts')
+      .select('contractor_id, media_urls, title, project_category')
+      .in('contractor_id', contractorIds)
+      .in('post_type', ['portfolio', 'work_showcase'])
+      .eq('is_active', true)
+      .not('media_urls', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(100); // Limit total posts
 
-        // Fetch contractor portfolio images from contractor_posts
-        const { data: portfolioPosts } = await serverSupabase
-          .from('contractor_posts')
-          .select('media_urls, title, project_category')
-          .eq('contractor_id', bid.contractor_id)
-          .in('post_type', ['portfolio', 'work_showcase'])
-          .eq('is_active', true)
-          .not('media_urls', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(12);
-
-        // Flatten portfolio images
-        const portfolioImages = portfolioPosts?.flatMap(post =>
-          (post.media_urls || []).map((url: string) => ({
-            url,
-            title: post.title || 'Previous Work',
-            category: post.project_category || 'General'
-          }))
-        ) || [];
-
-        return { ...bid, contractor: { ...contractor, portfolioImages } };
+    // Group portfolio images by contractor_id
+    portfolioPosts?.forEach(post => {
+      if (!portfolioMap.has(post.contractor_id)) {
+        portfolioMap.set(post.contractor_id, []);
       }
-      return bid;
-    })
-  ) : [];
+      const images = (post.media_urls || []).map((url: string) => ({
+        url,
+        title: post.title || 'Previous Work',
+        category: post.project_category || 'General'
+      }));
+      portfolioMap.get(post.contractor_id).push(...images);
+    });
+  }
+
+  // Process bids - contractor data is already included from join
+  const bidsWithContractors = bids ? bids.map((bid) => {
+    const contractor = Array.isArray(bid.contractor) ? bid.contractor[0] : bid.contractor;
+    const portfolioImages = bid.contractor_id ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12) : [];
+    
+    return {
+      ...bid,
+      contractor: contractor ? { ...contractor, portfolioImages } : null,
+    };
+  }) : [];
 
   // Fetch job photos/attachments
   const { data: photos } = await serverSupabase
@@ -163,94 +180,58 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   const currentStatus = statusConfig[job.status || 'posted'] || statusConfig.posted;
 
+  const userDisplayName = user.first_name && user.last_name
+    ? `${user.first_name} ${user.last_name}`.trim()
+    : user.email;
+
+  // Fetch user profile for avatar
+  const { data: userProfile } = await serverSupabase
+    .from('users')
+    .select('profile_image_url, email')
+    .eq('id', user.id)
+    .single();
+
   return (
-    <HomeownerLayoutShell currentPath="/jobs">
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-      }}>
-        {/* Track view when contractors visit this page */}
-        <JobViewTracker jobId={resolvedParams.id} />
-        {/* Back Button */}
-        <Link
-          href="/jobs"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            color: theme.colors.textSecondary,
-            fontSize: theme.typography.fontSize.sm,
-            textDecoration: 'none',
-            marginBottom: theme.spacing[4],
-          }}
-        >
-          <Icon name="arrowLeft" size={16} />
-          Back to Jobs
-        </Link>
+    <div className="flex min-h-screen bg-gray-50">
+      <UnifiedSidebar
+        userRole="homeowner"
+        userInfo={{
+          name: userDisplayName,
+          email: userProfile?.email || user.email,
+          avatar: userProfile?.profile_image_url,
+        }}
+      />
 
-        {/* Header */}
+      <main className="flex flex-col flex-1 ml-[240px]">
+        <PageHeader
+          title="Job Details"
+          subtitle={job.title || 'Untitled Job'}
+          showSearch={true}
+          darkBackground={true}
+          userName={userDisplayName}
+          userAvatar={userProfile?.profile_image_url}
+          actions={
+            user.role === 'homeowner' && job.status === 'posted' ? (
+              <DeleteJobButton jobId={resolvedParams.id} jobTitle={job.title || 'Untitled Job'} />
+            ) : undefined
+          }
+        />
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: theme.spacing[6],
-          flexWrap: 'wrap',
-          gap: theme.spacing[4],
+          maxWidth: '1440px',
+          margin: '0 auto',
+          padding: theme.spacing[6],
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[2] }}>
-              <h1 style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize['3xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}>
-                {job.title || 'Untitled Job'}
-              </h1>
-              <span style={{
-                padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                borderRadius: theme.borderRadius.full,
-                backgroundColor: currentStatus.bg,
-                color: currentStatus.color,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-              }}>
-                <Icon name={currentStatus.icon as any} size={14} color={currentStatus.color} />
-                {currentStatus.label}
-              </span>
-            </div>
-            {property && (
-              <p style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-              }}>
-                <Icon name="home" size={16} />
-                {property.property_name || property.address}
-              </p>
-            )}
-          </div>
-          {/* Delete button - only show for homeowners on posted jobs */}
-          {user.role === 'homeowner' && job.status === 'posted' && (
-            <DeleteJobButton jobId={resolvedParams.id} jobTitle={job.title || 'Untitled Job'} />
-          )}
-        </div>
+          {/* Track view when contractors visit this page */}
+          <JobViewTracker jobId={resolvedParams.id} />
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: theme.spacing[6],
-        }}>
-          {/* Left Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Job Details Card */}
+          {/* Top Row: Details (left) and Map (right) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: theme.spacing[6],
+            marginBottom: theme.spacing[6],
+          }}>
+            {/* Details Card */}
             <div style={{
               backgroundColor: theme.colors.surface,
               border: `1px solid ${theme.colors.border}`,
@@ -264,115 +245,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                 fontWeight: theme.typography.fontWeight.semibold,
                 color: theme.colors.textPrimary,
               }}>
-                Job Details
+                Details
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}>
-                    Description
-                  </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    lineHeight: 1.6,
-                  }}>
-                    {job.description || 'No description provided'}
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: theme.spacing[4],
-                }}>
-                  <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      Budget
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.primary,
-                    }}>
-                      £{Number(job.budget || 0).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      Scheduled Date
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                    }}>
-                      {job.scheduled_date
-                        ? new Date(job.scheduled_date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })
-                        : 'Not scheduled'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      Created
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                    }}>
-                      {new Date(job.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      Category
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                    }}>
-                      {job.category || 'General'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location */}
-                {job.location && (
+                {property && (
                   <div>
                     <div style={{
                       fontSize: theme.typography.fontSize.sm,
@@ -385,106 +262,208 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                     <div style={{
                       fontSize: theme.typography.fontSize.base,
                       color: theme.colors.textPrimary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[1],
-                      marginBottom: theme.spacing[4],
                     }}>
-                      <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
-                      {job.location}
+                      {property.property_name || property.address}
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Job Location Map - Inside Job Details Card */}
-              {job.location && (
-                <div style={{
-                  marginTop: theme.spacing[4],
-                  paddingTop: theme.spacing[4],
-                  borderTop: `1px solid ${theme.colors.border}`,
-                }}>
-                  <JobLocationMap jobLocation={job.location} jobId={resolvedParams.id} />
+                {job.category && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2] }}>
+                    <span style={{
+                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                      borderRadius: theme.borderRadius.md,
+                      backgroundColor: theme.colors.primary + '20',
+                      color: theme.colors.primary,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                    }}>
+                      {job.category}
+                    </span>
+                    {job.status && (
+                      <span style={{
+                        padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                        borderRadius: theme.borderRadius.md,
+                        backgroundColor: currentStatus.bg,
+                        color: currentStatus.color,
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.medium,
+                      }}>
+                        {currentStatus.label}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Map Card */}
+            {job.location && (
+              <div style={{
+                backgroundColor: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.borderRadius.lg,
+                padding: theme.spacing[6],
+              }}>
+                <JobLocationMap jobLocation={job.location} jobId={resolvedParams.id} />
+              </div>
+            )}
+          </div>
+
+          {/* Progress Card - Full Width */}
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.borderRadius.lg,
+            padding: theme.spacing[6],
+            marginBottom: theme.spacing[6],
+          }}>
+            <h2 style={{
+              margin: 0,
+              marginBottom: theme.spacing[4],
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              Progress
+            </h2>
+
+            {/* Progress Steps - Horizontal Layout */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: theme.spacing[2] }}>
+              {[
+                { label: 'Job Posted', status: 'posted', completed: true },
+                { label: 'Contractor Assigned', status: 'assigned', completed: job.status !== 'posted' },
+                { label: 'Work In Progress', status: 'in_progress', completed: job.status === 'in_progress' || job.status === 'completed' },
+                { label: 'Work Completed', status: 'completed', completed: job.status === 'completed' },
+              ].map((step, index, array) => (
+                <div key={step.status} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: '120px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: theme.spacing[2], width: '100%' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: theme.borderRadius.full,
+                      backgroundColor: step.completed ? theme.colors.success : theme.colors.backgroundTertiary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      border: `2px solid ${step.completed ? theme.colors.success : theme.colors.border}`,
+                    }}>
+                      {step.completed ? (
+                        <Icon name="check" size={20} color="white" />
+                      ) : (
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: theme.borderRadius.full,
+                          backgroundColor: theme.colors.textTertiary,
+                        }} />
+                      )}
+                    </div>
+                    <div style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: step.completed ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
+                      color: step.completed ? theme.colors.textPrimary : theme.colors.textSecondary,
+                      textAlign: 'center',
+                    }}>
+                      {step.label}
+                    </div>
+                  </div>
+                  {index < array.length - 1 && (
+                    <div style={{
+                      flex: 1,
+                      height: '2px',
+                      backgroundColor: step.completed ? theme.colors.success : theme.colors.border,
+                      minWidth: '40px',
+                      margin: `0 ${theme.spacing[2]}`,
+                    }} />
+                  )}
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Photo Uploads Card - Full Width */}
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.borderRadius.lg,
+            padding: theme.spacing[6],
+            marginBottom: theme.spacing[6],
+          }}>
+            <h2 style={{
+              margin: 0,
+              marginBottom: theme.spacing[4],
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              Photo uploads
+            </h2>
+            <PhotoGallery photos={photos || []} />
+          </div>
+
+          {/* Bidders Card - Full Width */}
+          <div style={{
+            backgroundColor: theme.colors.surface,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.borderRadius.lg,
+            padding: theme.spacing[6],
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: theme.spacing[4],
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}>
+                Bidders
+              </h2>
+              {bidsWithContractors && bidsWithContractors.length > 0 && (
+                <Link
+                  href={`/jobs/${resolvedParams.id}/bids`}
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.primary,
+                    textDecoration: 'none',
+                  }}
+                >
+                  See All
+                </Link>
               )}
             </div>
 
-            {/* Contractor Card */}
-            {contractor && (
+            {(!bidsWithContractors || bidsWithContractors.length === 0) ? (
               <div style={{
-                backgroundColor: theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                padding: theme.spacing[6],
+                textAlign: 'center',
+                padding: theme.spacing[8],
+                color: theme.colors.textSecondary,
               }}>
-                <h2 style={{
-                  margin: 0,
-                  marginBottom: theme.spacing[4],
-                  fontSize: theme.typography.fontSize.xl,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                }}>
-                  Assigned Contractor
-                </h2>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[3],
-                  marginBottom: theme.spacing[4],
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: theme.borderRadius.full,
-                    backgroundColor: theme.colors.primary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: theme.typography.fontSize.xl,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: 'white',
-                  }}>
-                    {contractor.first_name?.[0]}{contractor.last_name?.[0]}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textPrimary,
-                      marginBottom: '2px',
-                    }}>
-                      {contractor.first_name} {contractor.last_name}
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.textSecondary,
-                    }}>
-                      {contractor.email}
-                    </div>
-                    {contractor.phone && (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                      }}>
-                        {contractor.phone}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Message Contractor Button */}
-                <MessageContractorButton
-                  jobId={resolvedParams.id}
-                  contractorId={contractor.id}
-                  contractorName={`${contractor.first_name} ${contractor.last_name}`}
-                  jobTitle={job.title || 'Job'}
-                />
+                <Icon name="users" size={48} color={theme.colors.textTertiary} />
+                <p style={{ marginTop: theme.spacing[2], margin: 0, fontSize: theme.typography.fontSize.base }}>
+                  No contractors have bid yet
+                </p>
               </div>
+            ) : (
+              <BidListClient bids={bidsWithContractors.slice(0, 3)} jobId={resolvedParams.id} />
             )}
+          </div>
 
-            {/* Accepted Bid Card */}
-            {acceptedBid && (
+          {/* Additional Info Section - Below main cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: theme.spacing[6],
+            marginTop: theme.spacing[6],
+          }}>
+            {/* Left Column - Additional Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+              {/* Job Details Card */}
               <div style={{
                 backgroundColor: theme.colors.surface,
                 border: `1px solid ${theme.colors.border}`,
@@ -498,36 +477,33 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                   fontWeight: theme.typography.fontWeight.semibold,
                   color: theme.colors.textPrimary,
                 }}>
-                  Accepted Bid
+                  Job Information
                 </h2>
 
-                <div style={{
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: theme.borderRadius.md,
-                  padding: theme.spacing[4],
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: theme.spacing[3],
-                  }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+                  <div>
                     <div style={{
                       fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
                       color: theme.colors.textSecondary,
+                      marginBottom: theme.spacing[1],
                     }}>
-                      Bid Amount
+                      Description
                     </div>
                     <div style={{
-                      fontSize: theme.typography.fontSize['2xl'],
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.success,
+                      fontSize: theme.typography.fontSize.base,
+                      color: theme.colors.textPrimary,
+                      lineHeight: 1.6,
                     }}>
-                      £{Number(acceptedBid.amount).toLocaleString()}
+                      {job.description || 'No description provided'}
                     </div>
                   </div>
 
-                  {acceptedBid.description && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: theme.spacing[4],
+                  }}>
                     <div>
                       <div style={{
                         fontSize: theme.typography.fontSize.sm,
@@ -535,217 +511,254 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
                         color: theme.colors.textSecondary,
                         marginBottom: theme.spacing[1],
                       }}>
-                        Proposal Details
+                        Budget
                       </div>
                       <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textPrimary,
-                        lineHeight: 1.6,
+                        fontSize: theme.typography.fontSize.lg,
+                        fontWeight: theme.typography.fontWeight.bold,
+                        color: theme.colors.primary,
                       }}>
-                        {acceptedBid.description}
+                        £{Number(job.budget || 0).toLocaleString()}
                       </div>
                     </div>
-                  )}
 
-                  <div style={{
-                    marginTop: theme.spacing[3],
-                    paddingTop: theme.spacing[3],
-                    borderTop: `1px solid ${theme.colors.border}`,
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}>
-                    Submitted on {new Date(acceptedBid.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    <div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        fontWeight: theme.typography.fontWeight.medium,
+                        color: theme.colors.textSecondary,
+                        marginBottom: theme.spacing[1],
+                      }}>
+                        Created
+                      </div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.base,
+                        color: theme.colors.textPrimary,
+                      }}>
+                        {new Date(job.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Right Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Contract Management - Only show if contractor is assigned */}
-            {contractor && job.status === 'assigned' && (
-              <ContractManagement
-                jobId={resolvedParams.id}
-                userRole="homeowner"
-                userId={user.id}
-              />
-            )}
+              {/* Contractor Card */}
+              {contractor && (
+                <div style={{
+                  backgroundColor: theme.colors.surface,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.lg,
+                  padding: theme.spacing[6],
+                }}>
+                  <h2 style={{
+                    margin: 0,
+                    marginBottom: theme.spacing[4],
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}>
+                    Assigned Contractor
+                  </h2>
 
-            {/* Job Scheduling - Only show if contractor is assigned */}
-            {contractor && job.status === 'assigned' && (
-              <JobScheduling
-                jobId={resolvedParams.id}
-                userRole="homeowner"
-                userId={user.id}
-                currentSchedule={{
-                  scheduled_start_date: job.scheduled_start_date || null,
-                  scheduled_end_date: job.scheduled_end_date || null,
-                  scheduled_duration_hours: job.scheduled_duration_hours || null,
-                }}
-                contractStatus={contractStatus}
-              />
-            )}
-
-            {/* Location Tracking - Only show if contractor is assigned */}
-            {contractor && job.status === 'assigned' && (
-              <LocationTracking
-                jobId={resolvedParams.id}
-                contractorId={contractor.id}
-              />
-            )}
-
-            {/* Job Progress Card */}
-            <div style={{
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              padding: theme.spacing[6],
-            }}>
-              <h2 style={{
-                margin: 0,
-                marginBottom: theme.spacing[4],
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}>
-                Job Progress
-              </h2>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-                {/* Progress Steps */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-                  {[
-                    { label: 'Job Posted', status: 'posted', completed: true },
-                    { label: 'Contractor Assigned', status: 'assigned', completed: job.status !== 'posted' },
-                    { label: 'Work In Progress', status: 'in_progress', completed: job.status === 'in_progress' || job.status === 'completed' },
-                    { label: 'Work Completed', status: 'completed', completed: job.status === 'completed' },
-                  ].map((step, index) => (
-                    <div
-                      key={step.status}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[3],
-                      }}
-                    >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[3],
+                    marginBottom: theme.spacing[4],
+                  }}>
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: theme.borderRadius.full,
+                      backgroundColor: theme.colors.primary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: theme.typography.fontSize.xl,
+                      fontWeight: theme.typography.fontWeight.bold,
+                      color: 'white',
+                    }}>
+                      {contractor.first_name?.[0]}{contractor.last_name?.[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
                       <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: theme.borderRadius.full,
-                        backgroundColor: step.completed ? theme.colors.success : theme.colors.backgroundTertiary,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
+                        fontSize: theme.typography.fontSize.lg,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                        color: theme.colors.textPrimary,
+                        marginBottom: '2px',
                       }}>
-                        {step.completed ? (
-                          <Icon name="check" size={18} color="white" />
-                        ) : (
-                          <div style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: theme.borderRadius.full,
-                            backgroundColor: theme.colors.textTertiary,
-                          }} />
-                        )}
+                        {contractor.first_name} {contractor.last_name}
                       </div>
-                      <div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        color: theme.colors.textSecondary,
+                      }}>
+                        {contractor.email}
+                      </div>
+                      {contractor.phone && (
                         <div style={{
-                          fontSize: theme.typography.fontSize.base,
-                          fontWeight: step.completed ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium,
-                          color: step.completed ? theme.colors.textPrimary : theme.colors.textSecondary,
+                          fontSize: theme.typography.fontSize.sm,
+                          color: theme.colors.textSecondary,
                         }}>
-                          {step.label}
+                          {contractor.phone}
                         </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Message Contractor Button */}
+                  <MessageContractorButton
+                    jobId={resolvedParams.id}
+                    contractorId={contractor.id}
+                    contractorName={`${contractor.first_name} ${contractor.last_name}`}
+                    jobTitle={job.title || 'Job'}
+                  />
+                </div>
+              )}
+
+              {/* Accepted Bid Card */}
+              {acceptedBid && (
+                <div style={{
+                  backgroundColor: theme.colors.surface,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.lg,
+                  padding: theme.spacing[6],
+                }}>
+                  <h2 style={{
+                    margin: 0,
+                    marginBottom: theme.spacing[4],
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}>
+                    Accepted Bid
+                  </h2>
+
+                  <div style={{
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    borderRadius: theme.borderRadius.md,
+                    padding: theme.spacing[4],
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: theme.spacing[3],
+                    }}>
+                      <div style={{
+                        fontSize: theme.typography.fontSize.sm,
+                        color: theme.colors.textSecondary,
+                      }}>
+                        Bid Amount
+                      </div>
+                      <div style={{
+                        fontSize: theme.typography.fontSize['2xl'],
+                        fontWeight: theme.typography.fontWeight.bold,
+                        color: theme.colors.success,
+                      }}>
+                        £{Number(acceptedBid.amount).toLocaleString()}
                       </div>
                     </div>
-                  ))}
+
+                    {acceptedBid.description && (
+                      <div>
+                        <div style={{
+                          fontSize: theme.typography.fontSize.sm,
+                          fontWeight: theme.typography.fontWeight.medium,
+                          color: theme.colors.textSecondary,
+                          marginBottom: theme.spacing[1],
+                        }}>
+                          Proposal Details
+                        </div>
+                        <div style={{
+                          fontSize: theme.typography.fontSize.sm,
+                          color: theme.colors.textPrimary,
+                          lineHeight: 1.6,
+                        }}>
+                          {acceptedBid.description}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{
+                      marginTop: theme.spacing[3],
+                      paddingTop: theme.spacing[3],
+                      borderTop: `1px solid ${theme.colors.border}`,
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                    }}>
+                      Submitted on {new Date(acceptedBid.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Photos Card */}
-            <div style={{
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              padding: theme.spacing[6],
-            }}>
-              <h2 style={{
-                margin: 0,
-                marginBottom: theme.spacing[4],
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}>
-                Job Photos ({photos?.length || 0})
-              </h2>
-              <PhotoGallery photos={photos || []} />
-            </div>
+            {/* Right Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+              {/* Contract Management - Only show if contractor is assigned */}
+              {contractor && job.status === 'assigned' && (
+                <ContractManagement
+                  jobId={resolvedParams.id}
+                  userRole="homeowner"
+                  userId={user.id}
+                />
+              )}
 
-            {/* Contractors Interested / All Bids Card */}
-            <div style={{
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              padding: theme.spacing[6],
-            }}>
-              <h2 style={{
-                margin: 0,
-                marginBottom: theme.spacing[4],
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}>
-                Contractors Who Bid ({bidsWithContractors?.length || 0})
-              </h2>
+              {/* Job Scheduling - Only show if contractor is assigned */}
+              {contractor && job.status === 'assigned' && (
+                <JobScheduling
+                  jobId={resolvedParams.id}
+                  userRole="homeowner"
+                  userId={user.id}
+                  currentSchedule={{
+                    scheduled_start_date: job.scheduled_start_date || null,
+                    scheduled_end_date: job.scheduled_end_date || null,
+                    scheduled_duration_hours: job.scheduled_duration_hours || null,
+                  }}
+                  contractStatus={contractStatus}
+                />
+              )}
 
-              {(!bidsWithContractors || bidsWithContractors.length === 0) ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: theme.spacing[8],
-                  color: theme.colors.textSecondary,
-                }}>
-                  <Icon name="users" size={48} color={theme.colors.textTertiary} />
-                  <p style={{ marginTop: theme.spacing[2], margin: 0, fontSize: theme.typography.fontSize.base }}>
-                    No contractors have bid yet
-                  </p>
-                  <p style={{ marginTop: theme.spacing[1], margin: 0, fontSize: theme.typography.fontSize.sm }}>
-                    Contractors viewing this job will be able to submit bids
-                  </p>
-                </div>
-              ) : (
-                <BidListClient bids={bidsWithContractors} jobId={resolvedParams.id} />
+              {/* Location Tracking - Only show if contractor is assigned */}
+              {contractor && job.status === 'assigned' && (
+                <LocationTracking
+                  jobId={resolvedParams.id}
+                  contractorId={contractor.id}
+                />
               )}
             </div>
           </div>
+
+          {/* Balanced Grid Section - Intelligent Matching and Contractors Viewing */}
+          {/* Only show these sections for homeowners */}
+          {user.role === 'homeowner' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: theme.spacing[6],
+              marginTop: theme.spacing[6],
+            }}>
+              {/* Intelligent Matching - Top Matched Contractors */}
+              {job.status === 'posted' && (
+                <IntelligentMatching jobId={resolvedParams.id} />
+              )}
+
+              {/* Contractors Viewing This Job */}
+              <ContractorViewersList jobId={resolvedParams.id} />
+            </div>
+          )}
         </div>
-
-        {/* Balanced Grid Section - Intelligent Matching and Contractors Viewing */}
-        {/* Only show these sections for homeowners */}
-        {user.role === 'homeowner' && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-            gap: theme.spacing[6],
-            marginTop: theme.spacing[6],
-          }}>
-            {/* Intelligent Matching - Top Matched Contractors */}
-            {job.status === 'posted' && (
-              <IntelligentMatching jobId={resolvedParams.id} />
-            )}
-
-            {/* Contractors Viewing This Job */}
-            <ContractorViewersList jobId={resolvedParams.id} />
-          </div>
-        )}
-      </div>
-    </HomeownerLayoutShell>
+      </main>
+    </div>
   );
 }
 

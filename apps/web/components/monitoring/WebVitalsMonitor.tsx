@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@mintenance/shared';
 
 interface WebVitalsMonitorProps {
   className?: string;
@@ -9,7 +10,7 @@ interface WebVitalsMonitorProps {
 export function WebVitalsMonitor({ className = '' }: WebVitalsMonitorProps) {
   React.useEffect(() => {
     // Web vitals monitoring would go here
-    console.log('Web vitals monitoring initialized');
+    logger.info('Web vitals monitoring initialized', { service: 'WebVitalsMonitor' });
   }, []);
 
   return (

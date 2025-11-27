@@ -104,11 +104,12 @@ export async function GET() {
     };
 
     return NextResponse.json(verificationStatus, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Verification status check error', error, {
       service: 'contractor_verification',
     });
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
   }
 }
 
@@ -211,11 +212,12 @@ const user = await getCurrentUserFromCookies();
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Contractor verification error', error, {
       service: 'contractor_verification',
     });
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
   }
 }
 
@@ -225,5 +227,5 @@ interface VerificationStatusResponse {
   hasGeolocation: boolean;
   hasCompanyName: boolean;
   isFullyVerified: boolean;
-  data: any;
+  data: Record<string, unknown> | null;
 }

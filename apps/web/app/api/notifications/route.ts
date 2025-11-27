@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Also limit to max 7 notifications to auto-remove older ones
     const { data: notifications, error } = await serverSupabase
       .from('notifications')
-      .select('*')
+      .select('id, type, title, message, read, created_at, action_url, link, user_id')
       .eq('user_id', userId)
       .or(`created_at.gte.${twentyFourHoursAgo.toISOString()},read.eq.false`)
       .order('created_at', { ascending: false })
@@ -39,8 +39,30 @@ export async function GET(request: NextRequest) {
     }
 
     // Map database notifications to component format
-    const mappedNotifications = (notifications || []).map((notif: any) => ({
-      id: notif.id,
+    interface NotificationRecord {
+      id: string;
+      type?: string;
+      title?: string;
+      message?: string;
+      read?: boolean | number;
+      created_at?: string;
+      action_url?: string;
+      link?: string;
+    }
+
+    interface MappedNotification {
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      read: boolean;
+      created_at: string;
+      link?: string;
+      action_url?: string;
+    }
+
+    const mappedNotifications: MappedNotification[] = (notifications || []).map((notif: NotificationRecord) => ({
+      id: String(notif.id || ''),
       type: notif.type || 'bid_received',
       title: notif.title || 'Notification',
       message: notif.message || '',
@@ -51,10 +73,10 @@ export async function GET(request: NextRequest) {
     }));
 
     // Debug: Log specific notification types
-    const bidAcceptedNotifs = mappedNotifications.filter((n: any) => n.type === 'bid_accepted');
-    const jobViewedNotifs = mappedNotifications.filter((n: any) => n.type === 'job_viewed');
-    const jobNearbyNotifs = mappedNotifications.filter((n: any) => n.type === 'job_nearby');
-    const bidReceivedNotifs = mappedNotifications.filter((n: any) => n.type === 'bid_received');
+    const bidAcceptedNotifs = mappedNotifications.filter((n) => n.type === 'bid_accepted');
+    const jobViewedNotifs = mappedNotifications.filter((n) => n.type === 'job_viewed');
+    const jobNearbyNotifs = mappedNotifications.filter((n) => n.type === 'job_nearby');
+    const bidReceivedNotifs = mappedNotifications.filter((n) => n.type === 'bid_received');
     
     if (bidAcceptedNotifs.length > 0) {
       logger.info('Found bid_accepted notifications', {
@@ -109,8 +131,18 @@ export async function GET(request: NextRequest) {
       .order('viewed_at', { ascending: false })
       .limit(10);
 
+    interface QuoteRecord {
+      id: string;
+      client_name?: string;
+      title?: string;
+      quote_number?: string;
+      viewed_at?: string;
+      accepted_at?: string;
+      total_amount?: string | number;
+    }
+
     if (viewedQuotes && viewedQuotes.length > 0) {
-      viewedQuotes.forEach((quote: any) => {
+      viewedQuotes.forEach((quote: QuoteRecord) => {
         // Check if notification already exists
         const existingNotif = mappedNotifications.find(n => n.id === `quote-viewed-${quote.id}`);
         if (!existingNotif) {
@@ -141,7 +173,7 @@ export async function GET(request: NextRequest) {
       .limit(10);
 
     if (acceptedQuotes && acceptedQuotes.length > 0) {
-      acceptedQuotes.forEach((quote: any) => {
+      acceptedQuotes.forEach((quote: QuoteRecord) => {
         const existingNotif = mappedNotifications.find(n => n.id === `quote-accepted-${quote.id}`);
         if (!existingNotif) {
           realTimeNotifications.push({
@@ -167,17 +199,33 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10);
 
+    interface MessageRecord {
+      id: string;
+      sender_id: string;
+      receiver_id: string;
+      content?: string;
+      created_at: string;
+      job_id?: string;
+    }
+
+    interface SenderRecord {
+      id: string;
+      first_name?: string;
+      last_name?: string;
+      company_name?: string;
+    }
+
     if (unreadMessages && unreadMessages.length > 0) {
       // Get sender names
-      const senderIds = [...new Set(unreadMessages.map((m: any) => m.sender_id))];
+      const senderIds = [...new Set(unreadMessages.map((m: MessageRecord) => m.sender_id))];
       const { data: senders } = await serverSupabase
         .from('users')
         .select('id, first_name, last_name, company_name')
         .in('id', senderIds);
 
-      const senderMap = new Map((senders || []).map((s: any) => [s.id, s]));
+      const senderMap = new Map<string, SenderRecord>((senders || []).map((s: SenderRecord) => [s.id, s]));
 
-      unreadMessages.forEach((msg: any) => {
+      unreadMessages.forEach((msg: MessageRecord) => {
         const existingNotif = mappedNotifications.find(n => n.id === `msg-${msg.id}`);
         if (!existingNotif) {
           const sender = senderMap.get(msg.sender_id);
@@ -188,7 +236,9 @@ export async function GET(request: NextRequest) {
             : 'Someone';
           
           const messageContent = msg.content || msg.message_text || '';
-          const jobTitle = (msg.jobs as any)?.title || 'Job';
+          const jobTitle = (msg.jobs && typeof msg.jobs === 'object' && 'title' in msg.jobs && typeof msg.jobs.title === 'string') 
+            ? msg.jobs.title 
+            : 'Job';
           
           // Build message thread URL with query params for proper routing
           const actionUrl = msg.job_id 
@@ -204,7 +254,7 @@ export async function GET(request: NextRequest) {
             created_at: msg.created_at || new Date().toISOString(),
             action_url: actionUrl,
             // Store job info in action_url query params, which the notification handler will parse
-          } as any);
+          });
         }
       });
     }
@@ -224,8 +274,15 @@ export async function GET(request: NextRequest) {
       .order('scheduled_start_date', { ascending: true })
       .limit(10);
 
+    interface JobRecord {
+      id: string;
+      title?: string;
+      scheduled_start_date?: string;
+      status?: string;
+    }
+
     if (upcomingJobs && upcomingJobs.length > 0) {
-      upcomingJobs.forEach((job: any) => {
+      upcomingJobs.forEach((job: JobRecord) => {
         const existingNotif = mappedNotifications.find(n => n.id === `project-reminder-${job.id}`);
         if (!existingNotif) {
           const startDate = new Date(job.scheduled_start_date);

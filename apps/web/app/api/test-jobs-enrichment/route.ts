@@ -43,7 +43,14 @@ export async function GET() {
     }
 
     // Check if enrichment worked
-    const firstJob = jobs?.[0] as any;
+    interface JobRecord {
+      homeowner?: { id?: string; first_name?: string; last_name?: string; email?: string };
+      contractor?: { id?: string; first_name?: string; last_name?: string; email?: string };
+      bids?: { count?: number }[];
+      [key: string]: unknown;
+    }
+
+    const firstJob = (jobs?.[0] as JobRecord | undefined);
     const enrichmentStatus = {
       totalJobs: count,
       jobsReturned: jobs?.length ?? 0,
@@ -61,11 +68,13 @@ export async function GET() {
       ...enrichmentStatus
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json({
       success: false,
-      error: error.message || 'Unknown error',
-      stack: error.stack
+      error: errorMessage,
+      stack: errorStack
     }, { status: 500 });
   }
 }

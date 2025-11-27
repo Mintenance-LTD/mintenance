@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Reset password error', error, { service: 'auth' });
 
     return NextResponse.json(

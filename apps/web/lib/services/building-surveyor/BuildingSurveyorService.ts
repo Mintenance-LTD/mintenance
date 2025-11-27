@@ -1,8 +1,6 @@
 import { logger } from '@mintenance/shared';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import { AdaptiveUpdateEngine } from '../agents/AdaptiveUpdateEngine';
 import { validateURLs } from '@/lib/security/url-validation';
 import { getConfig } from './config/BuildingSurveyorConfig';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
@@ -16,39 +14,26 @@ import type {
 } from './types';
 import { RoboflowDetectionService } from './RoboflowDetectionService';
 import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
-import type { ImageAnalysisResult } from '@/lib/services/ImageAnalysisService';
-import type { ContinuumMemoryConfig, MemoryQueryResult } from '../ml-engine/memory/types';
+import type { MemoryQueryResult } from '../ml-engine/memory/types';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
-import { SafetyAnalysisService } from './SafetyAnalysisService';
-import { ComplianceService } from './ComplianceService';
-import { InsuranceRiskService } from './InsuranceRiskService';
-import { LearnedFeatureExtractor } from './LearnedFeatureExtractor';
 import { AI_ASSESSMENT_SCHEMA, type AiAssessmentPayload } from './validation-schemas';
-import {
-  encodeLocation,
-  encodeBuildingStyle,
-  encodeDamageType,
-  encodeDamageLocation,
-  encodeUrgency,
-} from './encoding-utils';
-import { normalizeSeverity, normalizeUrgency } from './normalization-utils';
 import { buildSystemPrompt, buildUserPrompt } from './prompt-builder';
 import { toVisionSummary, buildEvidenceSummary } from './evidence-processor';
 import { structureAssessment } from './assessment-structurer';
 import { applyMemoryAdjustments } from './memory-adjustments';
 import { extractDetectionFeatures } from './feature-extractor';
-import { queryMemoryAdjustments } from './memory-query-handler';
-import { learnFromRepairOutcome, learnFromProgression } from './learning-handler';
+import { learnFromRepairOutcome, learnFromProgression, learnFromValidation } from './learning-handler';
 import { BayesianFusionService } from './BayesianFusionService';
 import { CriticModule } from './critic';
 import { ContextFeatureService } from './ContextFeatureService';
 import { ImageQualityService } from './ImageQualityService';
-import type { DecisionResult } from './types';
 import { formatSAM3EvidenceForFusion } from './evidence-formatter';
 import { mondrianConformalPrediction } from './conformal-prediction';
 import { computeOODScore, computeDetectorDisagreement } from './detector-metrics';
 import { normalizeDamageCategory, normalizePropertyType, getSafetyThreshold } from './normalization-utils';
 import { logDecisionForShadowMode } from './shadow-mode-logger';
+import { initializeMemorySystem, getLearnedFeatureExtractor, isLearnedFeaturesEnabled } from './initialization/BuildingSurveyorInitializationService';
+import { runWithTimeout } from './utils/timeout-utils';
 
 /**
  * Building Surveyor Service
@@ -79,159 +64,13 @@ export class BuildingSurveyorService {
     10,
   ) || 1024 * 768;
 
-  private static memorySystemInitialized = false;
   private static readonly AGENT_NAME = 'building-surveyor';
-  private static adaptiveEngine: AdaptiveUpdateEngine | null = null;
-  private static learnedFeatureExtractor: LearnedFeatureExtractor | null = null;
-  private static useLearnedFeatures: boolean = 
-    process.env.USE_LEARNED_FEATURES === 'true' || false;
 
   private static recordMetric(metric: string, payload: Record<string, unknown>): void {
     MonitoringService.record(metric, {
       agentName: this.AGENT_NAME,
       ...payload,
     });
-  }
-
-  /**
-   * Initialize adaptive update engine
-   */
-  private static async initializeAdaptiveEngine(): Promise<void> {
-    if (!this.adaptiveEngine) {
-      this.adaptiveEngine = new AdaptiveUpdateEngine({
-        agentName: this.AGENT_NAME,
-      });
-    }
-  }
-
-  /**
-   * Trigger self-modification when accuracy drops
-   */
-  private static async triggerSelfModification(accuracyDrop: number): Promise<void> {
-    await this.initializeAdaptiveEngine();
-
-    logger.info('BuildingSurveyorService self-modification triggered', {
-      agentName: this.AGENT_NAME,
-      accuracyDrop,
-    });
-
-    if (this.adaptiveEngine) {
-      await this.adaptiveEngine.recordPerformance(1 - accuracyDrop);
-    }
-  }
-
-  /**
-   * Initialize learned feature extractor
-   */
-  private static async initializeLearnedFeatureExtractor(): Promise<void> {
-    if (this.learnedFeatureExtractor || !this.useLearnedFeatures) return;
-
-    try {
-      this.learnedFeatureExtractor = new LearnedFeatureExtractor(
-        this.AGENT_NAME,
-        {
-          inputDim: 50,  // Raw input dimension (will be padded/truncated)
-          outputDim: 40, // Fixed output dimension (matches handcrafted features)
-          hiddenDims: [64, 48],
-          learningRate: 0.001,
-          regularization: 0.0001,
-        }
-      );
-
-      await this.learnedFeatureExtractor.loadState();
-
-      logger.info('Learned feature extractor initialized', {
-        service: 'BuildingSurveyorService',
-        agentName: this.AGENT_NAME,
-      });
-    } catch (error) {
-      logger.error('Failed to initialize learned feature extractor', error, {
-        service: 'BuildingSurveyorService',
-      });
-      // Fallback to handcrafted features
-      this.useLearnedFeatures = false;
-    }
-  }
-
-  /**
-   * Initialize continuum memory system for building surveyor
-   */
-  private static async initializeMemorySystem(): Promise<void> {
-    if (this.memorySystemInitialized) return;
-
-    await this.initializeAdaptiveEngine();
-    await this.initializeLearnedFeatureExtractor();
-
-    try {
-      const config: ContinuumMemoryConfig = {
-        agentName: this.AGENT_NAME,
-        defaultChunkSize: 10,
-        defaultLearningRate: 0.001,
-        levels: [
-          {
-            level: 0,
-            frequency: 1, // Updates every assessment
-            chunkSize: 10,
-            learningRate: 0.01,
-            mlpConfig: {
-              inputSize: 40,
-              hiddenSizes: [64, 32],
-              outputSize: 5, // [damage_type_adjustment, severity_adjustment, cost_adjustment, urgency_adjustment, confidence_calibration]
-              activation: 'relu',
-            },
-          },
-          {
-            level: 1,
-            frequency: 16, // Updates daily (assuming ~16 assessments/day)
-            chunkSize: 100,
-            learningRate: 0.005,
-            mlpConfig: {
-              inputSize: 40,
-              hiddenSizes: [128, 64],
-              outputSize: 5,
-              activation: 'relu',
-            },
-          },
-          {
-            level: 2,
-            frequency: 1000000, // Updates weekly (low frequency)
-            chunkSize: 1000,
-            learningRate: 0.001,
-            mlpConfig: {
-              inputSize: 40,
-              hiddenSizes: [256, 128, 64],
-              outputSize: 5,
-              activation: 'relu',
-            },
-          },
-        ],
-      };
-
-      const memorySystem = await memoryManager.getOrCreateMemorySystem(config);
-      
-      // Enable Titans for self-modification
-      const useTitans = process.env.USE_TITANS === 'true' || false;
-      if (useTitans) {
-        memorySystem.enableTitans(true);
-        logger.info('Titans enabled for building surveyor', {
-          agentName: this.AGENT_NAME,
-        });
-      }
-      
-      this.memorySystemInitialized = true;
-
-      logger.info('BuildingSurveyorService memory system initialized', {
-        agentName: this.AGENT_NAME,
-        levels: config.levels.length,
-        useLearnedFeatures: this.useLearnedFeatures,
-        useTitans,
-      });
-    } catch (error) {
-      logger.error('Failed to initialize memory system', error, {
-        service: 'BuildingSurveyorService',
-      });
-      // Continue with fallback behavior
-    }
   }
 
   /**
@@ -251,8 +90,8 @@ export class BuildingSurveyorService {
       assessment,
       roboflowDetections,
       visionSummary,
-      this.useLearnedFeatures,
-      this.learnedFeatureExtractor
+      isLearnedFeaturesEnabled(),
+      getLearnedFeatureExtractor()
     );
   }
 
@@ -268,7 +107,7 @@ export class BuildingSurveyorService {
     const startedAt = Date.now();
     try {
       // Initialize memory system
-      await this.initializeMemorySystem();
+      await initializeMemorySystem();
 
       // Get config with fallback to process.env
       const config = getConfig();
@@ -301,12 +140,12 @@ export class BuildingSurveyorService {
 
       // Run external detectors in parallel with timeouts
       const [roboflowResult, visionResult] = await Promise.all([
-        this.runWithTimeout(
+        runWithTimeout(
           () => RoboflowDetectionService.detect(validatedImageUrls),
           this.DETECTOR_TIMEOUT_MS,
           'roboflow-detect',
         ),
-        this.runWithTimeout(
+        runWithTimeout(
           () => ImageAnalysisService.analyzePropertyImages(validatedImageUrls),
           this.VISION_TIMEOUT_MS,
           'vision-analyze',
@@ -488,15 +327,20 @@ export class BuildingSurveyorService {
       const hasDetectionEvidence = roboflowDetections.length > 0 || !!visionAnalysis;
       const userPrompt = buildUserPrompt(context, evidenceSummary, hasDetectionEvidence);
 
-      const messages: any[] = [
+      interface ChatMessage {
+        role: 'system' | 'user' | 'assistant';
+        content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' | 'auto' } }>;
+      }
+
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: [
             { type: 'text', text: userPrompt },
             ...imagesToAnalyze.map((url) => ({
-              type: 'image_url',
-              image_url: { url, detail: 'high' },
+              type: 'image_url' as const,
+              image_url: { url, detail: 'high' as const },
             })),
           ],
         },
@@ -701,192 +545,14 @@ export class BuildingSurveyorService {
 
   /**
    * Learn from human validation outcome
-   * Compares original assessment with human-validated assessment and updates memory
+   * Delegates to learning-handler module
    */
   static async learnFromValidation(
     assessmentId: string,
     humanValidatedAssessment: Phase1BuildingAssessment
   ): Promise<void> {
-    await this.initializeMemorySystem();
-
-    try {
-      // Get original assessment from database
-      const { data: assessmentRecord, error } = await serverSupabase
-        .from('building_assessments')
-        .select('assessment_data, user_id')
-        .eq('id', assessmentId)
-        .single();
-
-      if (error || !assessmentRecord) {
-        logger.warn('Assessment not found for learning', {
-          service: 'BuildingSurveyorService',
-          assessmentId,
-        });
-        return;
-      }
-
-      const originalAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
-
-      // Get context from database (if available)
-      const { data: images } = await serverSupabase
-        .from('assessment_images')
-        .select('image_url')
-        .eq('assessment_id', assessmentId)
-        .order('image_index');
-
-      const imageUrls = images?.map(img => img.image_url) || [];
-      const context: AssessmentContext = {}; // Could be enhanced to fetch from user profile
-
-      // Extract features for original assessment
-      const originalFeatures = await this.extractDetectionFeaturesInternal(
-        imageUrls,
-        context,
-        originalAssessment,
-        originalAssessment.evidence?.roboflowDetections,
-        originalAssessment.evidence?.visionAnalysis ?? null,
-      );
-
-      // Extract features for validated assessment (target features)
-      const validatedFeatures = await this.extractDetectionFeaturesInternal(
-        imageUrls,
-        context,
-        humanValidatedAssessment,
-        originalAssessment.evidence?.roboflowDetections,
-        originalAssessment.evidence?.visionAnalysis ?? null,
-      );
-
-      // Learn from surprise signal in feature extractor
-      if (this.useLearnedFeatures && this.learnedFeatureExtractor) {
-        try {
-          // Build raw input for learning
-          const rawInput = this.learnedFeatureExtractor['buildRawInput'](
-            imageUrls,
-            context,
-            originalAssessment.evidence?.roboflowDetections,
-            originalAssessment.evidence?.visionAnalysis ?? null
-          );
-
-          // Learn from surprise: validated features are the target
-          await this.learnedFeatureExtractor.learnFromSurprise(
-            rawInput,
-            validatedFeatures
-          );
-
-          logger.debug('Feature extractor learned from validation', {
-            service: 'BuildingSurveyorService',
-            assessmentId,
-            avgError: this.learnedFeatureExtractor.getAverageError(),
-          });
-        } catch (featureError) {
-          logger.warn('Failed to learn in feature extractor', {
-            service: 'BuildingSurveyorService',
-            assessmentId,
-            error: featureError,
-          });
-        }
-      }
-
-      // Calculate surprise signals for memory system
-      const damageTypeAccuracy = originalAssessment.damageAssessment.damageType ===
-        humanValidatedAssessment.damageAssessment.damageType ? 1.0 : 0.0;
-
-      const severityAccuracy = originalAssessment.damageAssessment.severity ===
-        humanValidatedAssessment.damageAssessment.severity ? 1.0 : 0.0;
-
-      const confidenceError = Math.abs(
-        originalAssessment.damageAssessment.confidence -
-        humanValidatedAssessment.damageAssessment.confidence
-      ) / 100;
-
-      const costAccuracy = originalAssessment.contractorAdvice?.estimatedCost?.recommended &&
-        humanValidatedAssessment.contractorAdvice?.estimatedCost?.recommended
-        ? Math.max(-1, Math.min(1, 
-            (humanValidatedAssessment.contractorAdvice.estimatedCost.recommended -
-             originalAssessment.contractorAdvice.estimatedCost.recommended) /
-            originalAssessment.contractorAdvice.estimatedCost.recommended
-          ))
-        : 0.0;
-
-      const urgencyAccuracy = originalAssessment.urgency.urgency ===
-        humanValidatedAssessment.urgency.urgency ? 1.0 : 0.0;
-
-      // Values: [damage_type_accuracy, severity_accuracy, cost_accuracy, urgency_accuracy, confidence_error]
-      const values = [
-        damageTypeAccuracy,
-        severityAccuracy,
-        costAccuracy,
-        urgencyAccuracy,
-        confidenceError,
-      ];
-
-      // Add context flow to all memory levels (with Titans if enabled)
-      const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
-      const useTitans = process.env.USE_TITANS === 'true' || false;
-
-      if (useTitans && memorySystem) {
-        // Use Titans-enhanced learning
-        for (let level = 0; level < 3; level++) {
-          try {
-            await memorySystem.learnFromSurpriseWithTitans(
-              originalFeatures,
-              values,
-              level
-            );
-          } catch (levelError) {
-            logger.warn('Failed to learn with Titans at memory level', {
-              service: 'BuildingSurveyorService',
-              level,
-              error: levelError,
-            });
-          }
-        }
-      } else {
-        // Standard memory learning
-        for (let level = 0; level < 3; level++) {
-          try {
-            await memoryManager.addContextFlow(
-              this.AGENT_NAME,
-              originalFeatures,
-              values,
-              level
-            );
-          } catch (levelError) {
-            logger.warn('Failed to add context flow to memory level', {
-              service: 'BuildingSurveyorService',
-              level,
-              error: levelError,
-            });
-          }
-        }
-      }
-
-      // Calculate overall accuracy
-      const overallAccuracy = (
-        damageTypeAccuracy * 0.3 +
-        severityAccuracy * 0.25 +
-        urgencyAccuracy * 0.15 +
-        (1 - Math.min(1, confidenceError)) * 0.1 +
-        (1 - Math.min(1, Math.abs(costAccuracy))) * 0.2
-      );
-
-      // Trigger self-modification if accuracy is low
-      if (overallAccuracy < 0.7) {
-        await this.triggerSelfModification(1 - overallAccuracy);
-      }
-
-      logger.info('Learning from validation completed', {
-        service: 'BuildingSurveyorService',
-        assessmentId,
-        overallAccuracy,
-        damageTypeAccuracy,
-        severityAccuracy,
-      });
-    } catch (error) {
-      logger.error('Failed to learn from validation', error, {
-        service: 'BuildingSurveyorService',
-        assessmentId,
-      });
-    }
+    await initializeMemorySystem();
+    await learnFromValidation(assessmentId, humanValidatedAssessment);
   }
 
   /**
@@ -899,14 +565,14 @@ export class BuildingSurveyorService {
     actualCost?: number,
     actualUrgency?: UrgencyLevel
   ): Promise<void> {
-    await this.initializeMemorySystem();
+    await initializeMemorySystem();
     await learnFromRepairOutcome(
       assessmentId,
       actualSeverity,
       actualCost,
       actualUrgency,
-      this.useLearnedFeatures,
-      this.learnedFeatureExtractor
+      isLearnedFeaturesEnabled(),
+      getLearnedFeatureExtractor()
     );
   }
 
@@ -918,55 +584,13 @@ export class BuildingSurveyorService {
     originalAssessmentId: string,
     followUpAssessmentId: string
   ): Promise<void> {
-    await this.initializeMemorySystem();
+    await initializeMemorySystem();
     await learnFromProgression(
       originalAssessmentId,
       followUpAssessmentId,
-      this.useLearnedFeatures,
-      this.learnedFeatureExtractor
+      isLearnedFeaturesEnabled(),
+      getLearnedFeatureExtractor()
     );
-  }
-
-
-  private static async runWithTimeout<T>(
-    task: () => Promise<T>,
-    timeoutMs: number,
-    label: string,
-  ): Promise<{
-    success: boolean;
-    data?: T;
-    error?: unknown;
-    durationMs: number;
-    timedOut: boolean;
-  }> {
-    const start = Date.now();
-    const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
-    let timeoutHandle: NodeJS.Timeout | undefined;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(timeoutError), timeoutMs);
-    });
-
-    try {
-      const data = await Promise.race([task(), timeoutPromise]);
-      return {
-        success: true,
-        data: data as T,
-        durationMs: Date.now() - start,
-        timedOut: false,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error,
-        durationMs: Date.now() - start,
-        timedOut: error === timeoutError,
-      };
-    } finally {
-      if (timeoutHandle) {
-        clearTimeout(timeoutHandle);
-      }
-    }
   }
 
   // Safety, compliance, and insurance risk processing moved to dedicated services:

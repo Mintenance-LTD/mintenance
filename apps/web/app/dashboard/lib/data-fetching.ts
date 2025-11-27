@@ -11,7 +11,8 @@ import {
   getCachedUserProperties,
   getCachedUserSubscriptions,
   getCachedUserMessages,
-  getCachedUserQuotes
+  getCachedUserQuotes,
+  getCachedUser
 } from '@/lib/cache';
 import { RecommendationsService } from '@/lib/services/RecommendationsService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
@@ -42,12 +43,8 @@ export interface DashboardData {
  * Fetch all dashboard data for a homeowner
  */
 export async function fetchDashboardData(userId: string): Promise<DashboardData> {
-  // Fetch homeowner profile
-  const { data: homeownerProfile } = await serverSupabase
-    .from('users')
-    .select('first_name, last_name, email, profile_image_url')
-    .eq('id', userId)
-    .single();
+  // Fetch homeowner profile (cached)
+  const homeownerProfile = await getCachedUser(userId);
 
   // Fetch jobs first (needed for bids query)
   const homeownerJobs = await getCachedUserJobs(userId, 50);

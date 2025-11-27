@@ -130,15 +130,16 @@ export async function GET(request: NextRequest) {
       trends,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error retrieving A/B test dashboard data', error, {
       service: 'ab-test-dashboard-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Failed to retrieve dashboard data',
-        message: error.message,
+        message: errorMessage,
       },
       { status: 500 }
     );
@@ -263,9 +264,15 @@ async function getCriticModelPerformance(experimentId: string): Promise<{
       };
     }
 
-    const params = criticModel.parameters as any;
-    const theta = params.theta || [];
-    const phi = params.phi || [];
+    interface CriticModelParameters {
+      theta?: number[];
+      phi?: number[];
+      [key: string]: unknown;
+    }
+
+    const params = criticModel.parameters as CriticModelParameters;
+    const theta = Array.isArray(params.theta) ? params.theta : [];
+    const phi = Array.isArray(params.phi) ? params.phi : [];
 
     // Calculate L2 norms
     const rewardModelNorm = Math.sqrt(theta.reduce((sum: number, val: number) => sum + val * val, 0));

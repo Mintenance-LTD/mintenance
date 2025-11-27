@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
+import { CalendarHeader } from './CalendarHeader';
+import { CalendarGrid } from './CalendarGrid';
 
 interface CalendarEvent {
   id: string;
@@ -19,7 +19,6 @@ interface CalendarProps {
 
 export function Calendar({ events }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const router = useRouter();
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -96,7 +95,10 @@ export function Calendar({ events }: CalendarProps) {
     );
   };
 
-  const getEventsForDay = (day: number): CalendarEvent[] => {
+  const getEventsForDay = (day: number, targetMonth?: number, targetYear?: number): CalendarEvent[] => {
+    const checkMonth = targetMonth !== undefined ? targetMonth : currentDate.getMonth();
+    const checkYear = targetYear !== undefined ? targetYear : currentDate.getFullYear();
+    
     return events.filter(event => {
       // Convert date to Date object if it's a string (serialized from server)
       const eventDate = typeof event.date === 'string' ? new Date(event.date) : event.date;
@@ -128,13 +130,10 @@ export function Calendar({ events }: CalendarProps) {
         eventDay = eventDate.getDate();
       }
       
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth();
-      
       const matches = (
         eventDay === day &&
-        eventMonth === currentMonth &&
-        eventYear === currentYear
+        eventMonth === checkMonth &&
+        eventYear === checkYear
       );
       
       // Debug logging for development
@@ -145,9 +144,9 @@ export function Calendar({ events }: CalendarProps) {
           eventDay,
           eventMonth,
           eventYear,
-          currentDay: day,
-          currentMonth,
-          currentYear
+          checkDay: day,
+          checkMonth,
+          checkYear
         });
       }
       
@@ -157,12 +156,28 @@ export function Calendar({ events }: CalendarProps) {
 
   const { month, year, daysInMonth, startingDayOfWeek } = getMonthData(currentDate);
 
+  // Get previous month's last days
+  const prevMonth = new Date(year, month, 0);
+  const prevMonthDays = prevMonth.getDate();
+  
   const calendarDays = [];
-  for (let i = 0; i < startingDayOfWeek; i++) {
-    calendarDays.push(null);
+  
+  // Add previous month's trailing days
+  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    const day = prevMonthDays - i;
+    calendarDays.push({ day, isCurrentMonth: false, month: month - 1, year });
   }
+  
+  // Add current month's days
   for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(day);
+    calendarDays.push({ day, isCurrentMonth: true, month, year });
+  }
+  
+  // Add next month's leading days to fill the grid (42 cells = 6 weeks)
+  const totalCells = 42;
+  const remainingCells = totalCells - calendarDays.length;
+  for (let day = 1; day <= remainingCells; day++) {
+    calendarDays.push({ day, isCurrentMonth: false, month: month + 1, year });
   }
 
   const getEventColor = (type: string) => {
@@ -185,117 +200,14 @@ export function Calendar({ events }: CalendarProps) {
       border: `1px solid ${theme.colors.border}`,
       overflow: 'hidden',
     }}>
-      {/* Calendar Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: theme.spacing[6],
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}>
-        <h2 style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          margin: 0,
-        }}>
-          {monthNames[month]} {year}
-        </h2>
-
-        <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-          <button
-            onClick={goToToday}
-            style={{
-              padding: `${theme.spacing[2.5]} ${theme.spacing[4]}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            Today
-          </button>
-
-          <div style={{ display: 'flex', gap: theme.spacing[1] }}>
-            <button
-              onClick={goToPreviousMonth}
-              type="button"
-              aria-label="Previous month"
-              style={{
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.colors.backgroundSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <Icon name="chevronLeft" size={20} color={theme.colors.textPrimary} />
-            </button>
-
-            <button
-              onClick={goToNextMonth}
-              type="button"
-              aria-label="Next month"
-              style={{
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.colors.backgroundSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.borderRadius.lg,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <Icon name="chevronRight" size={20} color={theme.colors.textPrimary} />
-            </button>
-          </div>
-        </div>
-      </div>
+      <CalendarHeader
+        month={month}
+        year={year}
+        monthNames={monthNames}
+        onPreviousMonth={goToPreviousMonth}
+        onNextMonth={goToNextMonth}
+        onToday={goToToday}
+      />
 
       {/* Days of Week */}
       <div style={{
@@ -321,136 +233,14 @@ export function Calendar({ events }: CalendarProps) {
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        minHeight: '500px',
-      }}>
-        {calendarDays.map((day, index) => {
-          const dayEvents = day ? getEventsForDay(day) : [];
-          const today = day && isToday(day);
-
-          return (
-            <div
-              key={index}
-              style={{
-                minHeight: '120px',
-                padding: theme.spacing[3],
-                borderRight: index % 7 !== 6 ? `1px solid ${theme.colors.border}` : 'none',
-                borderBottom: `1px solid ${theme.colors.border}`,
-                backgroundColor: day ? theme.colors.white : theme.colors.backgroundSecondary,
-                position: 'relative',
-                transition: 'background-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (day) {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (day) {
-                  e.currentTarget.style.backgroundColor = theme.colors.white;
-                }
-              }}
-            >
-              {day && (
-                <>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: theme.borderRadius.full,
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: today ? theme.typography.fontWeight.bold : theme.typography.fontWeight.semibold,
-                      color: today ? theme.colors.white : theme.colors.textPrimary,
-                      backgroundColor: today ? theme.colors.primary : 'transparent',
-                      marginBottom: theme.spacing[3],
-                      transition: 'all 0.2s ease',
-                      boxShadow: today ? '0 2px 4px rgba(59, 130, 246, 0.3)' : 'none',
-                    }}
-                  >
-                    {day}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1.5] }}>
-                    {dayEvents.map((event) => {
-                      // Extract job ID from event ID (handle prefixed IDs like "job-posted-{id}", "appointment-{id}", etc.)
-                      const jobId = event.id.replace(/^(job-posted-|appointment-|appointment-end-|meeting-|job-scheduled-|maintenance-)/, '');
-                      // Job events include posted, scheduled, and appointment events (but not maintenance)
-                      const isJobEvent = event.id.startsWith('job-posted-') || 
-                                        event.id.startsWith('job-scheduled-') || 
-                                        event.id.startsWith('appointment-') ||
-                                        (!event.id.includes('-') && !event.id.startsWith('maintenance-'));
-                      
-                      const eventColor = getEventColor(event.type);
-                      
-                      return (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => {
-                          // Only navigate to job page if it's a job event, not maintenance or subscription
-                          if (isJobEvent && jobId) {
-                            router.push(`/jobs/${jobId}`);
-                          }
-                        }}
-                        disabled={!isJobEvent || !jobId}
-                        onKeyDown={(e) => {
-                          if (isJobEvent && jobId && (e.key === 'Enter' || e.key === ' ')) {
-                            e.preventDefault();
-                            router.push(`/jobs/${jobId}`);
-                          }
-                        }}
-                        style={{
-                          padding: `${theme.spacing[1.5]} ${theme.spacing[2]}`,
-                          backgroundColor: `${eventColor}15`,
-                          border: `1px solid ${eventColor}30`,
-                          borderLeft: `3px solid ${eventColor}`,
-                          borderRadius: theme.borderRadius.md,
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          color: theme.colors.textPrimary,
-                          cursor: isJobEvent && jobId ? 'pointer' : 'default',
-                          transition: 'all 0.2s ease',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          textAlign: 'left',
-                          width: '100%',
-                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (isJobEvent && jobId) {
-                            e.currentTarget.style.transform = 'translateX(2px)';
-                            e.currentTarget.style.opacity = '0.9';
-                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                            e.currentTarget.style.backgroundColor = `${eventColor}20`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateX(0)';
-                          e.currentTarget.style.opacity = '1';
-                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-                          e.currentTarget.style.backgroundColor = `${eventColor}15`;
-                        }}
-                        title={event.title}
-                        aria-label={isJobEvent && jobId ? `View job: ${event.title}` : event.title}
-                      >
-                        {event.title}
-                      </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <CalendarGrid
+        calendarDays={calendarDays}
+        currentDate={currentDate}
+        events={events}
+        getEventsForDay={getEventsForDay}
+        isToday={isToday}
+        getEventColor={getEventColor}
+      />
     </div>
   );
 }

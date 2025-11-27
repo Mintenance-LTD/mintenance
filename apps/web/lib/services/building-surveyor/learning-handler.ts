@@ -1,13 +1,14 @@
 /**
  * Learning Handler for Building Surveyor Service
- * Handles learning from repair outcomes and damage progression
+ * Handles learning from repair outcomes, damage progression, and validation outcomes
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import type { Phase1BuildingAssessment, DamageSeverity, UrgencyLevel } from './types';
+import type { Phase1BuildingAssessment, DamageSeverity, UrgencyLevel, AssessmentContext } from './types';
 import { extractDetectionFeatures } from './feature-extractor';
 import { logger } from '@mintenance/shared';
+import { initializeMemorySystem, triggerSelfModification, getLearnedFeatureExtractor, isLearnedFeaturesEnabled } from './initialization/BuildingSurveyorInitializationService';
 
 const AGENT_NAME = 'building-surveyor';
 
@@ -222,6 +223,203 @@ export async function learnFromProgression(
       service: 'learning-handler',
       originalAssessmentId,
       followUpAssessmentId,
+    });
+  }
+}
+
+/**
+ * Learn from human validation outcome
+ * Compares original assessment with human-validated assessment and updates memory
+ */
+export async function learnFromValidation(
+  assessmentId: string,
+  humanValidatedAssessment: Phase1BuildingAssessment
+): Promise<void> {
+  await initializeMemorySystem();
+
+  try {
+    // Get original assessment from database
+    const { data: assessmentRecord, error } = await serverSupabase
+      .from('building_assessments')
+      .select('assessment_data, user_id')
+      .eq('id', assessmentId)
+      .single();
+
+    if (error || !assessmentRecord) {
+      logger.warn('Assessment not found for learning', {
+        service: 'learning-handler',
+        assessmentId,
+      });
+      return;
+    }
+
+    const originalAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+
+    // Get context from database (if available)
+    const { data: images } = await serverSupabase
+      .from('assessment_images')
+      .select('image_url')
+      .eq('assessment_id', assessmentId)
+      .order('image_index');
+
+    const imageUrls = images?.map(img => img.image_url) || [];
+    const context: AssessmentContext = {}; // Could be enhanced to fetch from user profile
+
+    const useLearnedFeatures = isLearnedFeaturesEnabled();
+    const learnedFeatureExtractor = getLearnedFeatureExtractor();
+
+    // Extract features for original assessment
+    const originalFeatures = await extractDetectionFeatures(
+      imageUrls,
+      context,
+      originalAssessment,
+      originalAssessment.evidence?.roboflowDetections,
+      originalAssessment.evidence?.visionAnalysis ?? null,
+      useLearnedFeatures,
+      learnedFeatureExtractor
+    );
+
+    // Extract features for validated assessment (target features)
+    const validatedFeatures = await extractDetectionFeatures(
+      imageUrls,
+      context,
+      humanValidatedAssessment,
+      originalAssessment.evidence?.roboflowDetections,
+      originalAssessment.evidence?.visionAnalysis ?? null,
+      useLearnedFeatures,
+      learnedFeatureExtractor
+    );
+
+    // Learn from surprise signal in feature extractor
+    if (useLearnedFeatures && learnedFeatureExtractor) {
+      try {
+        // Build raw input for learning
+        const rawInput = (learnedFeatureExtractor as unknown as { buildRawInput: (imageUrls: string[], context: AssessmentContext, roboflowDetections?: unknown, visionAnalysis?: unknown) => unknown }).buildRawInput(
+          imageUrls,
+          context,
+          originalAssessment.evidence?.roboflowDetections,
+          originalAssessment.evidence?.visionAnalysis ?? null
+        );
+
+        // Learn from surprise: validated features are the target
+        await learnedFeatureExtractor.learnFromSurprise(
+          rawInput as number[],
+          validatedFeatures
+        );
+
+        logger.debug('Feature extractor learned from validation', {
+          service: 'learning-handler',
+          assessmentId,
+          avgError: learnedFeatureExtractor.getAverageError(),
+        });
+      } catch (featureError) {
+        logger.warn('Failed to learn in feature extractor', {
+          service: 'learning-handler',
+          assessmentId,
+          error: featureError,
+        });
+      }
+    }
+
+    // Calculate surprise signals for memory system
+    const damageTypeAccuracy = originalAssessment.damageAssessment.damageType ===
+      humanValidatedAssessment.damageAssessment.damageType ? 1.0 : 0.0;
+
+    const severityAccuracy = originalAssessment.damageAssessment.severity ===
+      humanValidatedAssessment.damageAssessment.severity ? 1.0 : 0.0;
+
+    const confidenceError = Math.abs(
+      originalAssessment.damageAssessment.confidence -
+      humanValidatedAssessment.damageAssessment.confidence
+    ) / 100;
+
+    const costAccuracy = originalAssessment.contractorAdvice?.estimatedCost?.recommended &&
+      humanValidatedAssessment.contractorAdvice?.estimatedCost?.recommended
+      ? Math.max(-1, Math.min(1, 
+          (humanValidatedAssessment.contractorAdvice.estimatedCost.recommended -
+           originalAssessment.contractorAdvice.estimatedCost.recommended) /
+          originalAssessment.contractorAdvice.estimatedCost.recommended
+        ))
+      : 0.0;
+
+    const urgencyAccuracy = originalAssessment.urgency.urgency ===
+      humanValidatedAssessment.urgency.urgency ? 1.0 : 0.0;
+
+    // Values: [damage_type_accuracy, severity_accuracy, cost_accuracy, urgency_accuracy, confidence_error]
+    const values = [
+      damageTypeAccuracy,
+      severityAccuracy,
+      costAccuracy,
+      urgencyAccuracy,
+      confidenceError,
+    ];
+
+    // Add context flow to all memory levels (with Titans if enabled)
+    const memorySystem = memoryManager.getMemorySystem(AGENT_NAME);
+    const useTitans = process.env.USE_TITANS === 'true' || false;
+
+    if (useTitans && memorySystem) {
+      // Use Titans-enhanced learning
+      for (let level = 0; level < 3; level++) {
+        try {
+          await memorySystem.learnFromSurpriseWithTitans(
+            originalFeatures,
+            values,
+            level
+          );
+        } catch (levelError) {
+          logger.warn('Failed to learn with Titans at memory level', {
+            service: 'learning-handler',
+            level,
+            error: levelError,
+          });
+        }
+      }
+    } else {
+      // Standard memory learning
+      for (let level = 0; level < 3; level++) {
+        try {
+          await memoryManager.addContextFlow(
+            AGENT_NAME,
+            originalFeatures,
+            values,
+            level
+          );
+        } catch (levelError) {
+          logger.warn('Failed to add context flow to memory level', {
+            service: 'learning-handler',
+            level,
+            error: levelError,
+          });
+        }
+      }
+    }
+
+    // Calculate overall accuracy
+    const overallAccuracy = (
+      damageTypeAccuracy * 0.3 +
+      severityAccuracy * 0.25 +
+      urgencyAccuracy * 0.15 +
+      (1 - Math.min(1, confidenceError)) * 0.1 +
+      (1 - Math.min(1, Math.abs(costAccuracy))) * 0.2
+    );
+
+    // Trigger self-modification if accuracy is low
+    if (overallAccuracy < 0.7) {
+      await triggerSelfModification(1 - overallAccuracy);
+    }
+
+    logger.info('Learning from validation completed', {
+      service: 'learning-handler',
+      assessmentId,
+      overallAccuracy,
+      damageTypeAccuracy,
+      severityAccuracy,
+    });
+  } catch (error) {
+    logger.error('Failed to learn from validation', error, {
+      service: 'learning-handler',
+      assessmentId,
     });
   }
 }

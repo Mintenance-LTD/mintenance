@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -235,38 +236,19 @@ export default function PaymentMethodsPage() {
             <div>Loading payment methods...</div>
           </div>
         ) : paymentMethods.length === 0 ? (
-          <div style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.xl,
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[12],
-            textAlign: 'center',
-          }}>
-            <Icon name="creditCard" size={64} color={theme.colors.textTertiary} style={{ marginBottom: theme.spacing[4] }} />
-            <h2 style={{
-              margin: 0,
-              marginBottom: theme.spacing[2],
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              No Payment Methods
-            </h2>
-            <p style={{
-              margin: 0,
-              marginBottom: theme.spacing[4],
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-            }}>
-              Add a payment method to make payments faster and easier
-            </p>
-            <Button
-              variant="primary"
-              onClick={() => setShowAddDialog(true)}
-            >
-              Add Payment Method
-            </Button>
-          </div>
+          <EmptyState
+            icon="creditCard"
+            title="No Payment Methods"
+            description="No payment methods have been added yet. Add one to continue."
+            actionLabel="Add Payment Method"
+            onAction={() => setShowAddDialog(true)}
+            variant="default"
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.xl,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          />
         ) : (
           <div style={{
             display: 'flex',

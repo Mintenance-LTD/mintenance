@@ -5,6 +5,8 @@
  * Uses OpenAI embeddings for intelligent matching and natural language processing.
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface SearchResult {
   id: string;
   type: 'job' | 'contractor' | 'service';
@@ -81,7 +83,8 @@ export class AISearchService {
 
       const data = await response.json();
 
-      console.log('AI search completed', {
+      logger.info('AI search completed', {
+        service: 'AISearchService',
         query,
         resultsCount: data.results.length,
         searchTime: Date.now() - startTime,
@@ -89,7 +92,7 @@ export class AISearchService {
 
       return data.results;
     } catch (error) {
-      console.error('AI search failed', error);
+      logger.error('AI search failed', error, { service: 'AISearchService', query });
       throw error;
     }
   }

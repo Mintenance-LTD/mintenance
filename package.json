@@ -39,7 +39,9 @@
     "e2e:ui": "playwright test --ui",
     "audit:use-client": "node scripts/audit-use-client.js",
     "audit:file-sizes": "node scripts/check-file-sizes.js",
-    "audit:all": "npm run audit:use-client && npm run audit:file-sizes"
+    "audit:any-types": "node scripts/find-any-types.js",
+    "audit:console": "node scripts/find-console-statements.js",
+    "audit:all": "npm run audit:use-client && npm run audit:file-sizes && npm run audit:any-types && npm run audit:console"
   },
   "keywords": [
     "marketplace",

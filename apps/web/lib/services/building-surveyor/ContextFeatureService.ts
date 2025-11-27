@@ -97,7 +97,7 @@ export class ContextFeatureService {
    * 
    * Used when reconstructing context from ab_decisions.context_features JSONB
    */
-  static extractContextVector(contextFeatures: Record<string, any>): number[] {
+  static extractContextVector(contextFeatures: Partial<ContextFeatures> | Record<string, unknown>): number[] {
     return this.constructContextVector({
       fusion_confidence: contextFeatures.fusion_confidence,
       fusion_variance: contextFeatures.fusion_variance,

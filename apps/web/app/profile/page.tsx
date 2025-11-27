@@ -5,29 +5,30 @@ import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
-import { theme } from '@/lib/theme';
-import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { LoadingSpinner, ErrorView } from '@/components/ui';
-import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, MapPin } from 'lucide-react';
 import { ProfilePictureSection } from './components/ProfilePictureSection';
-import { ProfileFormField } from './components/ProfileFormField';
-import { DangerZone } from './components/DangerZone';
-import { LocationInput } from './components/LocationInput';
-import { useAddressSearch, useGeolocation } from './lib/hooks';
 import { validateImageFile, readImageFile, saveProfile } from './lib/utils';
 import type { ProfileFormData } from './lib/types';
 import Link from 'next/link';
+import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ProfileFormField } from './components/ProfileFormField';
+import { LocationInput } from './components/LocationInput';
+import { DangerZone } from './components/DangerZone';
+import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
+import { useAddressSearch, useGeolocation } from './lib/hooks';
+import { theme } from '@/lib/theme';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -227,56 +228,27 @@ export default function ProfilePage() {
         flexDirection: 'column',
         gap: theme.spacing[6],
       }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: theme.spacing[2],
-        }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              marginBottom: theme.spacing[2],
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Profile
-            </h1>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              Manage your profile information and preferences
-            </p>
-          </div>
-          {!isEditing ? (
-            <Button
-              variant="primary"
-              onClick={() => setIsEditing(true)}
-            >
-              <Icon name="edit" size={16} />
-              Edit Profile
-            </Button>
-          ) : (
-            <div style={{ display: 'flex', gap: theme.spacing[2] }}>
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
+        {/* Header - Navy Blue Command Center Style */}
+        <div className="relative overflow-hidden bg-primary-900 p-8 -m-8 rounded-2xl mb-2 shadow-xl border border-primary-800">
+          {/* Decorative Elements */}
+          <div aria-hidden="true" className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+          <div aria-hidden="true" className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-primary-800 flex items-center justify-center shadow-inner border border-primary-700">
+                <Icon name="user" size={28} color="white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
+                  Profile Settings
+                </h1>
+                <p className="text-base font-medium text-primary-200 leading-relaxed">
+                  Manage your personal information and account security
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {error && (
@@ -287,113 +259,169 @@ export default function ProfilePage() {
           </Alert>
         )}
 
-        {/* Profile Card */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius['2xl'],
-          padding: theme.spacing[8],
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        }}>
-          {/* Profile Picture Section */}
-          <ProfilePictureSection
-            profileImage={profileImage}
-            initials={initials}
-            isEditing={isEditing}
-            onImageSelect={handleImageSelect}
-          />
-
-          {/* Profile Information */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: theme.spacing[6],
-          }}>
-            <ProfileFormField
-              label="First Name"
-              value={formData.firstName}
-              isEditing={isEditing}
-              displayValue={user.first_name || undefined}
-              onChange={(value) => setFormData(prev => ({ ...prev, firstName: value }))}
-            />
-
-            <ProfileFormField
-              label="Last Name"
-              value={formData.lastName}
-              isEditing={isEditing}
-              displayValue={user.last_name || undefined}
-              onChange={(value) => setFormData(prev => ({ ...prev, lastName: value }))}
-            />
-
-            <ProfileFormField
-              label="Email Address"
-              value={formData.email}
-              isEditing={isEditing}
-              displayValue={user.email}
-              type="email"
-              onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
-              verified={user.email_verified}
-            />
-
-            <ProfileFormField
-              label="Phone Number"
-              value={formData.phone}
-              isEditing={isEditing}
-              displayValue={user.phone || undefined}
-              type="tel"
-              placeholder="+44 123 456 7890"
-              onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-            />
-
-            <ProfileFormField
-              label="Location"
-              value={formData.location}
-              isEditing={isEditing}
-              displayValue={(user as { location?: string }).location || undefined}
-              fullWidth
-              icon="mapPin"
+        {/* Tabs Interface */}
+        <Tabs defaultValue="personal" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-8 bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
+            <TabsTrigger
+              value="personal"
+              className="data-[state=active]:bg-primary-900 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
-              {isEditing ? (
-                <LocationInput
-                  value={formData.location}
-                  onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-                  onSelect={handleLocationSelect}
-                  suggestions={locationSuggestions}
-                  showSuggestions={showSuggestions}
-                  onFocus={() => {
-                    if (locationSuggestions.length > 0) {
-                      setShowSuggestions(true);
-                    }
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowSuggestions(false), 200);
-                  }}
-                  onDetectLocation={handleDetectLocation}
-                  isDetectingLocation={isDetectingLocation}
-                />
-              ) : (
-                <div style={{
-                  fontSize: theme.typography.fontSize.lg,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.textPrimary,
-                  padding: `${theme.spacing[2]} 0`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}>
-                  <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
-                  {(user as { location?: string }).location || 'Not set'}
-                </div>
-              )}
-            </ProfileFormField>
-          </div>
-        </div>
+              Personal Info
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className="data-[state=active]:bg-primary-900 data-[state=active]:text-white rounded-lg transition-all duration-200"
+            >
+              Security & Account
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Danger Zone Card */}
-        <DangerZone
-          onDeleteClick={() => setShowDeleteModal(true)}
-          disabled={isSaving}
-        />
+          <TabsContent value="personal" className="mt-0">
+            {/* Profile Card */}
+            <div style={{
+              backgroundColor: theme.colors.white,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.borderRadius['2xl'],
+              padding: theme.spacing[8],
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            }}>
+              {/* Profile Picture Section */}
+              <ProfilePictureSection
+                profileImage={profileImage}
+                initials={initials}
+                isEditing={isEditing}
+                onImageSelect={handleImageSelect}
+              />
+
+              {/* Profile Information */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[4],
+              }}>
+                <ProfileFormField
+                  label="First Name"
+                  value={formData.firstName}
+                  isEditing={isEditing}
+                  displayValue={user.first_name || undefined}
+                  onChange={(value) => setFormData(prev => ({ ...prev, firstName: value }))}
+                />
+
+                <ProfileFormField
+                  label="Last Name"
+                  value={formData.lastName}
+                  isEditing={isEditing}
+                  displayValue={user.last_name || undefined}
+                  onChange={(value) => setFormData(prev => ({ ...prev, lastName: value }))}
+                />
+
+                <ProfileFormField
+                  label="Email Address"
+                  value={formData.email}
+                  isEditing={isEditing}
+                  displayValue={user.email}
+                  type="email"
+                  onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
+                  verified={user.email_verified}
+                />
+
+                <ProfileFormField
+                  label="Phone Number"
+                  value={formData.phone}
+                  isEditing={isEditing}
+                  displayValue={user.phone || undefined}
+                  type="tel"
+                  placeholder="+44 123 456 7890"
+                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                />
+
+                <ProfileFormField
+                  label="Location"
+                  value={formData.location}
+                  isEditing={isEditing}
+                  displayValue={(user as { location?: string }).location || undefined}
+                  fullWidth
+                  icon="mapPin"
+                >
+                  {isEditing ? (
+                    <LocationInput
+                      value={formData.location}
+                      onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
+                      onSelect={handleLocationSelect}
+                      suggestions={locationSuggestions}
+                      showSuggestions={showSuggestions}
+                      onFocus={() => {
+                        if (locationSuggestions.length > 0) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setShowSuggestions(false), 200);
+                      }}
+                      onDetectLocation={handleDetectLocation}
+                      isDetectingLocation={isDetectingLocation}
+                    />
+                  ) : (
+                    <div style={{
+                      fontSize: theme.typography.fontSize.lg,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      color: theme.colors.textPrimary,
+                      padding: `${theme.spacing[2]} 0`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                    }}>
+                      <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
+                      {(user as { location?: string }).location || 'Not set'}
+                    </div>
+                  )}
+                </ProfileFormField>
+              </div>
+
+              {/* Edit Profile Button - Below form fields */}
+              <div className="mt-6">
+                {!isEditing ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => setIsEditing(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    fullWidth
+                  >
+                    <Icon name="edit" size={16} className="mr-2" />
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <div className="flex gap-3">
+                    <Button
+                      variant="ghost"
+                      onClick={handleCancel}
+                      fullWidth
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      fullWidth
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="security" className="mt-0">
+            {/* Danger Zone Card */}
+            <DangerZone
+              onDeleteClick={() => setShowDeleteModal(true)}
+              disabled={isSaving}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Delete Account Modal */}

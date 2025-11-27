@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import type { SearchFilters } from '@/lib/services/AISearchService';
+
+interface SearchResult {
+  id: string;
+  type: 'job' | 'contractor';
+  title: string;
+  description: string;
+  relevanceScore: number;
+  metadata: {
+    location?: string;
+    category?: string;
+    price?: number;
+    availability?: string;
+    rating?: number;
+    [key: string]: unknown;
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,7 +92,7 @@ const { query, filters, limit = 20 } = await request.json();
 
 async function searchJobs(
   queryEmbedding: number[],
-  filters: any,
+  filters: SearchFilters,
   limit: number
 ) {
   try {
@@ -90,23 +107,24 @@ async function searchJobs(
       });
 
     if (error) {
-      logger.warn('Job search error', error, {
+      logger.warn('Job search error', {
         service: 'ai_search',
+        error: error instanceof Error ? error.message : String(error),
       });
       return [];
     }
 
-    return (data || []).map((job: any) => ({
-      id: job.id,
+    return (data || []).map((job: Record<string, unknown>) => ({
+      id: String(job.id || ''),
       type: 'job' as const,
-      title: job.title,
-      description: job.description,
-      relevanceScore: job.similarity_score || 0.5,
+      title: String(job.title || ''),
+      description: String(job.description || ''),
+      relevanceScore: typeof job.similarity_score === 'number' ? job.similarity_score : 0.5,
       metadata: {
-        location: job.location,
-        category: job.category,
-        price: job.budget,
-        availability: job.status,
+        location: typeof job.location === 'string' ? job.location : undefined,
+        category: typeof job.category === 'string' ? job.category : undefined,
+        price: typeof job.budget === 'number' ? job.budget : undefined,
+        availability: typeof job.status === 'string' ? job.status : undefined,
       },
     }));
   } catch (error) {
@@ -119,7 +137,7 @@ async function searchJobs(
 
 async function searchContractors(
   queryEmbedding: number[],
-  filters: any,
+  filters: SearchFilters,
   limit: number
 ) {
   try {
@@ -133,25 +151,36 @@ async function searchContractors(
       });
 
     if (error) {
-      logger.warn('Contractor search error', error, {
+      logger.warn('Contractor search error', {
         service: 'ai_search',
+        error: error instanceof Error ? error.message : String(error),
       });
       return [];
     }
 
-    return (data || []).map((contractor: any) => ({
-      id: contractor.id,
-      type: 'contractor' as const,
-      title: `${contractor.first_name} ${contractor.last_name}`,
-      description: contractor.bio || contractor.specialties?.join(', ') || '',
-      relevanceScore: contractor.similarity_score || 0.5,
-      metadata: {
-        location: contractor.location,
-        category: contractor.specialties?.[0],
-        rating: contractor.rating,
-        availability: contractor.availability,
-      },
-    }));
+    return (data || []).map((contractor: Record<string, unknown>) => {
+      const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
+      const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
+      const bio = typeof contractor.bio === 'string' ? contractor.bio : '';
+      const specialties = Array.isArray(contractor.specialties) ? contractor.specialties as string[] : [];
+      const location = typeof contractor.location === 'string' ? contractor.location : undefined;
+      const rating = typeof contractor.rating === 'number' ? contractor.rating : undefined;
+      const availability = typeof contractor.availability === 'string' ? contractor.availability : undefined;
+      
+      return {
+        id: String(contractor.id || ''),
+        type: 'contractor' as const,
+        title: `${firstName} ${lastName}`.trim() || 'Unknown Contractor',
+        description: bio || specialties.join(', ') || '',
+        relevanceScore: typeof contractor.similarity_score === 'number' ? contractor.similarity_score : 0.5,
+        metadata: {
+          location,
+          category: specialties[0],
+          rating,
+          availability,
+        },
+      };
+    });
   } catch (error) {
     logger.error('Failed to search contractors', error, {
       service: 'ai_search',
@@ -160,7 +189,7 @@ async function searchContractors(
   }
 }
 
-function rankResults(results: any[], query: string) {
+function rankResults(results: SearchResult[], query: string): SearchResult[] {
   return results
     .map(result => ({
       ...result,
@@ -170,7 +199,7 @@ function rankResults(results: any[], query: string) {
     .sort((a, b) => b.relevanceScore - a.relevanceScore);
 }
 
-function calculateRelevanceScore(result: any, query: string): number {
+function calculateRelevanceScore(result: SearchResult, query: string): number {
   const queryLower = query.toLowerCase();
   const titleLower = result.title.toLowerCase();
   const descriptionLower = result.description.toLowerCase();
@@ -186,7 +215,7 @@ function calculateRelevanceScore(result: any, query: string): number {
   }
 
   // Boost score for high-rated contractors
-  if (result.type === 'contractor' && result.metadata.rating) {
+  if (result.type === 'contractor' && typeof result.metadata.rating === 'number') {
     score += (result.metadata.rating - 3) * 0.05;
   }
 
@@ -198,28 +227,31 @@ function calculateRelevanceScore(result: any, query: string): number {
   return Math.min(score, 1.0);
 }
 
-function applyFilters(results: any[], filters: any) {
+function applyFilters(results: SearchResult[], filters: SearchFilters): SearchResult[] {
   return results.filter(result => {
-    if (filters.location && result.metadata.location) {
+    if (filters.location && typeof result.metadata.location === 'string') {
       if (!result.metadata.location.toLowerCase().includes(filters.location.toLowerCase())) {
         return false;
       }
     }
 
-    if (filters.category && result.metadata.category) {
+    if (filters.category && typeof result.metadata.category === 'string') {
       if (result.metadata.category.toLowerCase() !== filters.category.toLowerCase()) {
         return false;
       }
     }
 
-    if (filters.priceRange && result.metadata.price) {
+    if (filters.priceRange && typeof result.metadata.price === 'number') {
       const price = result.metadata.price;
-      if (price < filters.priceRange.min || price > filters.priceRange.max) {
+      if (filters.priceRange.min !== undefined && price < filters.priceRange.min) {
+        return false;
+      }
+      if (filters.priceRange.max !== undefined && price > filters.priceRange.max) {
         return false;
       }
     }
 
-    if (filters.rating && result.metadata.rating) {
+    if (filters.rating !== undefined && typeof result.metadata.rating === 'number') {
       if (result.metadata.rating < filters.rating) {
         return false;
       }
@@ -229,13 +261,13 @@ function applyFilters(results: any[], filters: any) {
   });
 }
 
-function calculateAverageRelevance(results: any[]): number {
+function calculateAverageRelevance(results: SearchResult[]): number {
   if (results.length === 0) return 0;
   const sum = results.reduce((acc, result) => acc + result.relevanceScore, 0);
   return sum / results.length;
 }
 
-async function logSearchAnalytics(analytics: any) {
+async function logSearchAnalytics(analytics: Record<string, unknown>) {
   try {
     await serverSupabase
       .from('search_analytics')

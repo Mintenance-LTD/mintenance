@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { errorResponse, successResponse, ErrorCodes } from '@/lib/utils/api-response';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,7 @@ export async function POST(
     const { id } = await params;
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
     }
 
     // Verify notification belongs to user
@@ -32,11 +33,11 @@ export async function POST(
       .single();
 
     if (fetchError || !notification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+      return errorResponse('Notification not found', ErrorCodes.NOT_FOUND, 404);
     }
 
     if (notification.user_id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return errorResponse('Unauthorized', ErrorCodes.FORBIDDEN, 403);
     }
 
     // Mark as read
@@ -51,14 +52,19 @@ export async function POST(
         userId: user.id,
         notificationId: id,
       });
-      return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
+      return errorResponse(
+        'Failed to mark notification as read',
+        ErrorCodes.PROCESSING_ERROR,
+        500,
+        { notificationId: id }
+      );
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     logger.error('Error in POST /api/notifications/[id]/read', error, {
       service: 'notifications',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', ErrorCodes.INTERNAL_ERROR, 500);
   }
 }

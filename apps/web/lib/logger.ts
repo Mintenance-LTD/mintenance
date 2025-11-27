@@ -2,11 +2,12 @@
 // Adapted from mobile logger pattern for browser and server-side compatibility
 
 // Conditional import for Next.js headers (server-side only)
-let headers: any = null;
+type HeadersFunction = () => Headers;
+let headers: HeadersFunction | null = null;
 try {
   // Only import in server environments
   if (typeof window === 'undefined') {
-    headers = require('next/headers').headers;
+    headers = require('next/headers').headers as HeadersFunction;
   }
 } catch {
   // Headers not available in browser environment
@@ -82,14 +83,14 @@ class Logger {
     
     // Get request ID from headers if available (server-side only)
     let requestId = '';
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' && headers) {
       try {
         const headersList = headers();
         const id = headersList.get('x-request-id');
         if (id) {
           requestId = `[${id}] `;
         }
-      } catch (error) {
+      } catch {
         // Headers not available in this context
       }
     }
@@ -118,7 +119,7 @@ class Logger {
   debug(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage,
       maybeContext
     );
     if (this.isDevelopment) {
@@ -138,7 +139,7 @@ class Logger {
   info(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage,
       maybeContext
     );
     if (this.isDevelopment) {
@@ -159,7 +160,7 @@ class Logger {
   warn(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage,
       maybeContext
     );
     if (this.isDevelopment) {
@@ -210,7 +211,7 @@ class Logger {
   ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      errorOrContextOrMessage as any,
+      errorOrContextOrMessage,
       maybeContext
     );
     const isErr = errorOrContextOrMessage instanceof Error;
@@ -380,22 +381,22 @@ export const log = {
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.debug(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.debug(messageOrTag, contextOrMessage, maybeContext),
   info: (
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.info(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.info(messageOrTag, contextOrMessage, maybeContext),
   warn: (
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.warn(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.warn(messageOrTag, contextOrMessage, maybeContext),
   error: (
     messageOrTag: string,
     errorOrContextOrMessage?: unknown | string | LogContext,
     maybeContext?: LogContext | unknown
-  ) => logger.error(messageOrTag, errorOrContextOrMessage as any, maybeContext),
+  ) => logger.error(messageOrTag, errorOrContextOrMessage, maybeContext),
   performance: (
     operation: string,
     duration: number,

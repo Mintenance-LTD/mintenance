@@ -5,20 +5,18 @@
 
 'use client';
 
-// Client-side logger for session management
+import { logger } from '@mintenance/shared';
+
+// Client-side logger wrapper for session management
 const sessionLogger = {
   info: (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.info(`[SessionManager] ${message}`, data || '');
-    }
+    logger.info(`[SessionManager] ${message}`, data || undefined);
   },
   error: (message: string, error?: unknown) => {
-    console.error(`[SessionManager] ${message}`, error || '');
+    logger.error(`[SessionManager] ${message}`, error, { service: 'SessionManager' });
   },
   warn: (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[SessionManager] ${message}`, data || '');
-    }
+    logger.warn(`[SessionManager] ${message}`, data || undefined);
   }
 };
 

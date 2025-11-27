@@ -20,7 +20,7 @@ import { DriftMonitorService } from './DriftMonitorService';
 
 export interface DetectorOutput {
   confidence: number;
-  detections: any[];
+  detections: RoboflowDetection[];
 }
 
 export interface DetectorFusionResult {

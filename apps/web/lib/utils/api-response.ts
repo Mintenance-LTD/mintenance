@@ -5,7 +5,7 @@ export interface StandardErrorResponse {
     error: {
         message: string;
         code: string;
-        details?: any;
+        details?: Record<string, unknown>;
         timestamp: string;
         requestId?: string;
     };
@@ -24,7 +24,7 @@ export function errorResponse(
     message: string,
     code: string,
     status: number = 500,
-    details?: any,
+    details?: Record<string, unknown>,
     requestId?: string
 ): NextResponse<StandardErrorResponse> {
     const response: StandardErrorResponse = {

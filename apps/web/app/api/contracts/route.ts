@@ -322,7 +322,7 @@ export async function PUT(request: NextRequest) {
     // Verify contract exists and user has permission
     const { data: contract, error: contractError } = await serverSupabase
       .from('contracts')
-      .select('*')
+      .select('id, job_id, contractor_id, homeowner_id, title, description, amount, status, start_date, end_date, terms, created_at, updated_at, signed_at')
       .eq('id', contractId)
       .single();
 

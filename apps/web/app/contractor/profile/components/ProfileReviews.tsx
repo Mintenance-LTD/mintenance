@@ -1,10 +1,23 @@
-'use client';
-
 import React from 'react';
 import { theme } from '@/lib/theme';
 
+interface Review {
+  reviewer?: {
+    profile_image_url?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  created_at: string;
+  rating: number;
+  job?: {
+    title?: string;
+    category?: string;
+  };
+  comment?: string;
+}
+
 interface ProfileReviewsProps {
-  reviews: any[];
+  reviews: Review[];
 }
 
 function StarIcon() {

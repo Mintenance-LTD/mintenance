@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Get escrow transaction
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('*')
+      .select('id, job_id, amount, status, stripe_payment_intent_id, created_at, released_at, refunded_at')
       .eq('id', escrowTransactionId)
       .eq('job_id', jobId)
       .single();

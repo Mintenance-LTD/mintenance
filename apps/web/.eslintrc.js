@@ -2,11 +2,11 @@ module.exports = {
   extends: ['next/core-web-vitals', 'prettier'],
   rules: {
     // Enforce structured logging - no console.log allowed
-    // Based on code review: 631 instances found that need replacement
+    // All console statements should use logger from @mintenance/shared
     'no-console': [
       'error',
       {
-        allow: ['warn', 'error'], // Temporarily allow warn/error while migrating to logger
+        allow: [], // No console statements allowed - use logger instead
       },
     ],
     // Enforce no explicit any types
@@ -32,15 +32,15 @@ module.exports = {
   },
   overrides: [
     {
-      // Allow console statements only in logger implementation and instrumentation
+      // Allow console statements only in scripts and migration runners (CLI tools)
       files: [
-        '**/lib/logger.ts',
-        '**/instrumentation.ts',
         '**/scripts/**/*.ts',
         '**/scripts/**/*.js',
+        '**/migration-runner.ts',
+        '**/redis-validator.ts',
       ],
       rules: {
-        'no-console': 'off',
+        'no-console': 'off', // CLI scripts can use console
       },
     },
     {

@@ -13,7 +13,8 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+// Use relative path for tsx compatibility (when running scripts from root)
+import { serverSupabase } from '../../../api/supabaseServer';
 
 export interface TitansConfig {
   inputDim: number;        // Input dimension (e.g., 40 for features)

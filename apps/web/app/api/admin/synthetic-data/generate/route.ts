@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       count: syntheticAssessments.length,
       assessments: syntheticAssessments,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error generating synthetic data', error, {
       service: 'synthetic-data-api',
     });

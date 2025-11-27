@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
-    const formattedNotifications = (notifications || []).map((notif: any) => ({
+    const formattedNotifications = (notifications || []).map((notif: Record<string, unknown>) => ({
       id: notif.id,
       type: notif.type,
       title: notif.title,

@@ -50,12 +50,13 @@ export async function GET(request: NextRequest) {
       assessments,
       statistics,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching assessments', error, {
       service: 'admin_building_assessments',
     });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch assessments';
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch assessments' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

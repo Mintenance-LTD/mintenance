@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { theme } from '@/lib/theme';
+import { Icon } from '@/components/ui/Icon';
 
 interface DiscoverHeaderProps {
   userRole?: 'contractor' | 'homeowner' | 'admin';
@@ -18,133 +19,62 @@ interface DiscoverHeaderProps {
  */
 export function DiscoverHeader({ userRole, remainingCount, progressPercentage = 0, matchCount = 0 }: DiscoverHeaderProps) {
   const isContractor = userRole === 'contractor';
-  
+
   return (
     <>
       {/* Logo Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: theme.spacing[6],
-        backgroundColor: theme.colors.surface,
-        borderBottom: `1px solid ${theme.colors.border}`,
-      }}>
-        <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Image src="/assets/icon.png" alt="Mintenance Logo" width={40} height={40} className="w-10 h-10" />
-          <span style={{
-            marginLeft: theme.spacing[3],
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary
-          }}>
+      <div className="flex items-center justify-center p-6 bg-white border-b border-gray-200">
+        <Link href="/dashboard" className="flex items-center no-underline group">
+          <div className="transform transition-transform group-hover:scale-110 duration-200">
+            <Image src="/assets/icon.png" alt="Mintenance Logo" width={40} height={40} className="w-10 h-10" />
+          </div>
+          <span className="ml-3 text-2xl font-bold text-primary-900 tracking-tight">
             Mintenance
           </span>
         </Link>
       </div>
 
       {/* Title Header */}
-      <div style={{ 
-        background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryLight} 100%)`,
-        paddingTop: '40px',
-        paddingBottom: '24px' 
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          gap: '20px',
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ flex: 1, minWidth: '200px' }}>
-            <h1 style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: 'white',
-              margin: 0,
-              marginBottom: '8px'
-            }}>
+      <div className="bg-primary-900 pt-10 pb-6 relative overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+        <div className="max-w-[1200px] mx-auto flex flex-wrap justify-between items-center px-5 gap-5 relative z-10">
+          <div className="flex-1 min-w-[200px]">
+            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
               {isContractor ? 'Discover Jobs' : 'Discover Contractors'}
             </h1>
-            <p style={{
-              fontSize: theme.typography.fontSize.lg,
-              color: 'rgba(255, 255, 255, 0.9)',
-              fontWeight: theme.typography.fontWeight.normal,
-              margin: 0
-            }}>
+            <p className="text-lg text-primary-200 font-normal">
               {isContractor
                 ? 'Find your next project opportunity'
                 : 'Swipe to find trusted professionals'}
             </p>
           </div>
-          <div style={{ 
-            display: 'flex',
-            gap: '16px',
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}>
+
+          <div className="flex gap-4 items-center flex-wrap">
             {/* Match Count Badge */}
             {matchCount > 0 && (
-              <div style={{ 
-                textAlign: 'center',
-                backgroundColor: theme.colors.success,
-                padding: '12px 20px',
-                borderRadius: '16px',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }}>
-                <div style={{
-                  fontSize: theme.typography.fontSize['2xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: 'white',
-                  margin: 0
-                }}>
+              <div className="text-center bg-emerald-500 px-5 py-3 rounded-2xl border border-white/30 shadow-lg animate-in fade-in zoom-in duration-300">
+                <div className="text-2xl font-bold text-white leading-none">
                   {matchCount}
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  margin: 0
-                }}>
+                <div className="text-xs text-white/90 font-medium">
                   {matchCount === 1 ? 'match' : 'matches'}
                 </div>
               </div>
             )}
-            
+
             {/* Remaining Count */}
-            <div style={{ 
-              textAlign: 'right',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              backdropFilter: 'blur(10px)',
-              padding: '12px 20px',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.3)'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: 'white',
-                margin: 0
-              }}>
+            <div className="text-right bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 shadow-sm">
+              <div className="text-2xl font-bold text-white leading-none">
                 {remainingCount}
               </div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: 'rgba(255, 255, 255, 0.9)',
-                margin: 0
-              }}>
+              <div className="text-sm text-primary-200">
                 remaining
               </div>
               {progressPercentage > 0 && (
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  marginTop: '4px'
-                }}>
+                <div className="text-xs text-primary-300 mt-1">
                   {progressPercentage}% complete
                 </div>
               )}

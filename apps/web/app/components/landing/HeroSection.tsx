@@ -1,5 +1,3 @@
-'use client';
-
 import { HeroStoryAnimation } from './HeroStoryAnimation';
 import Link from 'next/link';
 
@@ -15,39 +13,38 @@ export function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Left Column: Text Content */}
           <div className="max-w-2xl text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-500/10 border border-secondary-500/20 text-secondary-400 text-sm font-medium mb-6 mx-auto lg:mx-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-500/10 border border-accent-500/20 text-accent-400 text-sm font-medium mb-6 mx-auto lg:mx-0">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
               </span>
-              For homeowners and local tradespeople
+              Verified Pros Available Now
             </div>
 
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-tight">
-              Book trusted home <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary-400 to-emerald-200">
-                pros
-              </span>{' '}
-              in just a few taps
+              Home Maintenance, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary-400 to-secondary-200">
+                Simplified
+              </span>
             </h1>
 
             <p className="text-lg text-gray-300 mb-8 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Homeowners post a job once and get competitive quotes. Tradespeople
-              win more of the right work with less admin.
+              Connect with trusted professionals for all your home repair and maintenance needs.
+              Quality work, fair prices, and peace of mind.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
               <Link
                 href="/register?role=homeowner"
-                className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-secondary-500 rounded-xl hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 focus:ring-offset-primary-900 shadow-lg shadow-secondary-500/20 hover:shadow-secondary-500/40 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-secondary-600 rounded-xl hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 focus:ring-offset-primary-900 shadow-lg shadow-secondary-500/20 hover:shadow-secondary-500/40 hover:-translate-y-0.5"
               >
-                I'm a homeowner
+                Find a Contractor
               </Link>
               <Link
                 href="/register?role=contractor"
-                className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/20 focus:ring-offset-primary-900 backdrop-blur-sm hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-200 bg-transparent border border-white/20 rounded-xl hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/20 focus:ring-offset-primary-900 backdrop-blur-sm hover:-translate-y-0.5"
               >
-                I'm a tradesperson
+                I'm a Pro
               </Link>
             </div>
           </div>

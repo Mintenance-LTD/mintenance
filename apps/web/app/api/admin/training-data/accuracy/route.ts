@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(accuracyMetrics);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error tracking GPT-4 accuracy', error, {
       service: 'training-data-accuracy-api',
     });
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     const stats = await DataCollectionService.getGPT4AccuracyStatistics();
 
     return NextResponse.json(stats);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching accuracy statistics', error, {
       service: 'training-data-accuracy-api',
     });

@@ -75,11 +75,33 @@ export async function GET(
     }
 
     // Extract unique contractors and geocode their locations
-    const contractorMap = new Map();
-    (views || []).forEach((view: any) => {
+    interface ViewRecord {
+      contractor?: {
+        id: string;
+        location?: string;
+        first_name?: string;
+        last_name?: string;
+        [key: string]: unknown;
+      };
+    }
+
+    interface ContractorRecord {
+      id: string;
+      location?: string;
+      first_name?: string;
+      last_name?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+      name?: string;
+      distance?: number;
+      [key: string]: unknown;
+    }
+
+    const contractorMap = new Map<string, ContractorRecord>();
+    (views || []).forEach((view: ViewRecord) => {
       const contractor = view.contractor;
-      if (contractor && !contractorMap.has(contractor.id)) {
-        contractorMap.set(contractor.id, contractor);
+      if (contractor && contractor.id && !contractorMap.has(contractor.id)) {
+        contractorMap.set(contractor.id, contractor as ContractorRecord);
       }
     });
 
@@ -87,22 +109,25 @@ export async function GET(
 
     // Geocode contractor locations
     const contractorsWithCoords = await Promise.all(
-      contractors.map(async (contractor: any) => {
-        if (!contractor.location) {
+      contractors.map(async (contractor: ContractorRecord) => {
+        const location = typeof contractor.location === 'string' ? contractor.location : undefined;
+        if (!location) {
           return { ...contractor, latitude: null, longitude: null };
         }
 
         try {
           const geocodeResponse = await fetch(
-            `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(contractor.location)}`
+            `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(location)}`
           );
           if (geocodeResponse.ok) {
-            const geocodeData = await geocodeResponse.json();
+            const geocodeData = await geocodeResponse.json() as { latitude?: number; longitude?: number };
+            const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
+            const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
             return {
               ...contractor,
-              latitude: geocodeData.latitude,
-              longitude: geocodeData.longitude,
-              name: `${contractor.first_name} ${contractor.last_name}`.trim(),
+              latitude: geocodeData.latitude ?? null,
+              longitude: geocodeData.longitude ?? null,
+              name: `${firstName} ${lastName}`.trim(),
             };
           }
         } catch (err) {
@@ -110,27 +135,33 @@ export async function GET(
             service: 'jobs',
             jobId,
             contractorId: contractor.id,
-            location: contractor.location,
+            location,
           });
         }
 
-        return { ...contractor, latitude: null, longitude: null, name: `${contractor.first_name} ${contractor.last_name}`.trim() };
+        const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
+        const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
+        return { ...contractor, latitude: null, longitude: null, name: `${firstName} ${lastName}`.trim() };
       })
     );
 
     // Filter contractors with valid coordinates and calculate distances
     const contractorsWithDistance = contractorsWithCoords
-      .filter((c: any) => c.latitude && c.longitude)
-      .map((contractor: any) => {
+      .filter((c: ContractorRecord) => typeof c.latitude === 'number' && typeof c.longitude === 'number')
+      .map((contractor: ContractorRecord) => {
         const distance = calculateDistance(
           lat,
           lng,
-          contractor.latitude,
-          contractor.longitude
+          contractor.latitude as number,
+          contractor.longitude as number
         );
         return { ...contractor, distance };
       })
-      .sort((a: any, b: any) => a.distance - b.distance)
+      .sort((a: ContractorRecord, b: ContractorRecord) => {
+        const distA = typeof a.distance === 'number' ? a.distance : Infinity;
+        const distB = typeof b.distance === 'number' ? b.distance : Infinity;
+        return distA - distB;
+      })
       .slice(0, 20); // Limit to 20 nearest contractors
 
     return NextResponse.json({

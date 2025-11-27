@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
-import { Button } from '@/components/ui/Button';
+import { MoreVertical } from 'lucide-react';
 import Image from 'next/image';
+import { formatMoney } from '@/lib/utils/currency';
 
 interface PropertyCardProps {
   property: {
@@ -23,196 +24,171 @@ interface PropertyCardProps {
   };
 }
 
-const getPropertyIcon = (type: string | null) => {
-  switch (type) {
-    case 'residential':
-      return 'home';
-    case 'commercial':
-      return 'building';
-    case 'rental':
-      return 'key';
-    default:
-      return 'home';
-  }
-};
-
-const calculateHealthScore = (activeJobs: number, completedJobs: number, lastServiceDate: string | null): number => {
-  let score = 100;
-
-  // Deduct points for active jobs (more active jobs = lower score)
-  score -= Math.min(activeJobs * 5, 30);
-
-  // Add points for completed jobs (more completed = better maintenance)
-  score += Math.min(completedJobs * 2, 20);
-
-  // Deduct points if no recent service (older than 90 days)
-  if (lastServiceDate) {
-    const daysSinceService = (Date.now() - new Date(lastServiceDate).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceService > 90) {
-      score -= Math.min((daysSinceService - 90) / 10, 30);
-    }
-  } else {
-    // No service history = lower score
-    score -= 20;
-  }
-
-  return Math.max(0, Math.min(100, Math.round(score)));
-};
-
-const getHealthColor = (score: number): string => {
-  if (score >= 80) return '#10B981'; // Green
-  if (score >= 60) return '#F59E0B'; // Amber
-  return '#EF4444'; // Red
-};
-
-const getHealthLabel = (score: number): string => {
-  if (score >= 80) return 'Excellent';
-  if (score >= 60) return 'Good';
-  if (score >= 40) return 'Fair';
-  return 'Needs Attention';
-};
-
 export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();
-  const healthScore = calculateHealthScore(property.activeJobs, property.completedJobs, property.lastServiceDate);
-  const healthColor = getHealthColor(healthScore);
-  const healthLabel = getHealthLabel(healthScore);
   const hasPhotos = property.photos && property.photos.length > 0;
   const firstPhoto = property.photos?.[0] || null;
+  const totalJobs = property.activeJobs + property.completedJobs;
+  const isActive = property.activeJobs > 0 || property.completedJobs > 0;
 
-  const handleAddJob = (e: React.MouseEvent) => {
+  const handleEllipsisClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Navigate to job creation with property_id as query parameter
-    // The create job page can be updated later to pre-select this property
-    router.push(`/jobs/create?property_id=${property.id}&property_name=${encodeURIComponent(property.property_name || '')}`);
+    // TODO: Open menu
   };
 
-  const handleViewJobs = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.push(`/properties/${property.id}#jobs`);
+  const handleCardClick = () => {
+    router.push(`/properties/${property.id}`);
   };
 
   return (
-    <div className="col-span-12 md:col-span-6 xl:col-span-4">
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 relative h-full group">
-        {/* Gradient bar */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-
-        {/* Property Photo or Icon */}
-        {firstPhoto ? (
-          <div className="relative w-full h-48 overflow-hidden bg-gray-100">
-            <Image
-              src={firstPhoto}
-              alt={property.property_name || 'Property'}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-            {property.is_primary && (
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                Primary
-              </div>
-            )}
-            {/* Health Score Badge */}
-            <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1"
-              style={{ backgroundColor: healthColor }}>
-              <Icon name="activity" size={12} color="white" />
-              {healthScore}
+    <Link
+      href={`/properties/${property.id}`}
+      onClick={handleCardClick}
+      className="block bg-white rounded-xl border border-gray-200 p-6 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 relative"
+    >
+      {/* Card Layout: Image on left, content on right */}
+      <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }}>
+        {/* Image Section - Left Side (Square) */}
+        <div style={{ flexShrink: 0 }}>
+          {firstPhoto ? (
+            <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative" style={{ width: '150px', height: '150px' }}>
+              <Image
+                src={firstPhoto}
+                alt={property.property_name || 'Property'}
+                width={150}
+                height={150}
+                className="object-cover"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%'
+                }}
+                loading="lazy"
+              />
             </div>
-          </div>
-        ) : (
-          <div className="relative w-full h-32 bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center">
-            <Icon name={getPropertyIcon(property.property_type)} size={48} color={theme.colors.primary} />
-            {property.is_primary && (
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                Primary
-              </div>
-            )}
-            {/* Health Score Badge */}
-            <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-white text-xs font-semibold flex items-center gap-1"
-              style={{ backgroundColor: healthColor }}>
-              <Icon name="activity" size={12} color="white" />
-              {healthScore}
+          ) : (
+            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center" style={{ width: '150px', height: '150px' }}>
+              <Icon name="info" size={48} color={theme.colors.textSecondary} />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="p-6">
-          {/* Property Header */}
-          <div className="mb-4">
-            <h3 className="text-lg font-[560] text-gray-900 mb-1 line-clamp-1">
-              {property.property_name || 'Unnamed Property'}
-            </h3>
-            <p className="text-sm font-[460] text-gray-600 leading-[1.5] line-clamp-2">
-              {property.address || 'Address not specified'}
-            </p>
-            {/* Health Label */}
-            <div className="mt-2 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: healthColor }}></div>
-              <span className="text-xs font-[460]" style={{ color: healthColor }}>
-                {healthLabel}
+        {/* Content Section - Right Side */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[2], position: 'relative' }}>
+          {/* Top Row: Title, Tag, Ellipsis */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[2] }}>
+            <div style={{ flex: 1 }}>
+              <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-1">
+                {property.property_name || 'Unnamed Property'}
+              </h3>
+              <p style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+                lineHeight: 1.5,
+                margin: 0,
+                marginBottom: theme.spacing[1],
+              }}>
+                {property.address || 'Address not specified'}
+              </p>
+              {/* Green Tag */}
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: `${theme.spacing[0.5]} ${theme.spacing[2]}`,
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: '#D1FAE5',
+                  border: '1px solid #10B981',
+                  marginTop: theme.spacing[1],
+                }}
+              >
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: '#065F46',
+                  fontWeight: theme.typography.fontWeight.semibold,
+                }}>
+                  My Properties
+                </span>
+              </div>
+            </div>
+            {/* Ellipsis Menu */}
+            <button
+              onClick={handleEllipsisClick}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              aria-label="More options"
+            >
+              <MoreVertical className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Details Section - Horizontal Layout */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[6],
+            paddingTop: theme.spacing[3],
+            borderTop: `1px solid ${theme.colors.border}`,
+            flexWrap: 'wrap',
+          }}>
+            {/* Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                Status
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+                {isActive && (
+                  <Icon name="check" size={16} color="#10B981" />
+                )}
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: isActive ? '#10B981' : theme.colors.textSecondary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}>
+                  {isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+
+            {/* Jobs */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[0.5] }}>
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                Jobs
+              </span>
+              <span style={{
+                fontSize: theme.typography.fontSize.lg,
+                color: theme.colors.textPrimary,
+                fontWeight: theme.typography.fontWeight.bold,
+              }}>
+                {totalJobs}
+              </span>
+            </div>
+
+            {/* Spend */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[0.5] }}>
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}>
+                Spend
+              </span>
+              <span style={{
+                fontSize: theme.typography.fontSize.lg,
+                color: theme.colors.textPrimary,
+                fontWeight: theme.typography.fontWeight.bold,
+              }}>
+                {formatMoney(Number(property.totalSpent || 0), 'GBP')}
               </span>
             </div>
           </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3 mb-4 pb-4 border-b border-gray-200">
-            <div>
-              <div className="text-xs font-[460] text-gray-600 mb-0.5">Active</div>
-              <div className="text-base font-[560] text-gray-900">{property.activeJobs}</div>
-            </div>
-            <div>
-              <div className="text-xs font-[460] text-gray-600 mb-0.5">Completed</div>
-              <div className="text-base font-[560] text-gray-900">{property.completedJobs}</div>
-            </div>
-            <div>
-              <div className="text-xs font-[460] text-gray-600 mb-0.5">Spent</div>
-              <div className="text-base font-[560] text-gray-900">£{property.totalSpent.toLocaleString()}</div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex gap-2 mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddJob}
-              className="flex-1 text-xs"
-              leftIcon={<Icon name="plus" size={14} color={theme.colors.primary} />}
-            >
-              Add Job
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewJobs}
-              className="flex-1 text-xs"
-              leftIcon={<Icon name="briefcase" size={14} color={theme.colors.primary} />}
-            >
-              View Jobs
-            </Button>
-          </div>
-
-          {/* Footer */}
-          <Link
-            href={`/properties/${property.id}`}
-            className="flex items-center justify-between text-sm text-primary-600 hover:text-primary-700 font-medium"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="text-xs text-gray-500">
-              {property.lastServiceDate ? `Last service: ${property.lastServiceDate}` : 'No service history'}
-            </span>
-            <span className="flex items-center gap-1">
-              View Details
-              <Icon name="arrowRight" size={14} color={theme.colors.primary} />
-            </span>
-          </Link>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

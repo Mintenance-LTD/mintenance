@@ -1,5 +1,3 @@
-'use client';
-
 import { theme } from '@/lib/theme';
 import Link from 'next/link';
 

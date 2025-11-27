@@ -97,17 +97,24 @@ async function getLocationSuggestions(partialQuery: string, limit: number) {
   }
 }
 
-function rankSuggestions(suggestions: any[], partialQuery: string) {
+interface SearchSuggestion {
+  text: string;
+  relevanceScore?: number;
+  [key: string]: unknown;
+}
+
+function rankSuggestions(suggestions: SearchSuggestion[], partialQuery: string): SearchSuggestion[] {
   return suggestions
     .map(suggestion => ({
       ...suggestion,
       relevanceScore: calculateSuggestionRelevance(suggestion, partialQuery),
     }))
-    .sort((a, b) => b.relevanceScore - a.relevanceScore);
+    .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
 }
 
-function calculateSuggestionRelevance(suggestion: any, partialQuery: string): number {
-  const suggestionLower = suggestion.text.toLowerCase();
+function calculateSuggestionRelevance(suggestion: SearchSuggestion, partialQuery: string): number {
+  const suggestionText = typeof suggestion.text === 'string' ? suggestion.text : '';
+  const suggestionLower = suggestionText.toLowerCase();
   const queryLower = partialQuery.toLowerCase();
 
   if (suggestionLower.startsWith(queryLower)) {

@@ -151,7 +151,7 @@ export async function GET(
           hourlyRate: match.contractor.hourlyRate,
           skills: match.contractor.skills?.map(s => s.skillName) || [],
           rating: match.contractor.reviews?.length > 0
-            ? match.contractor.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / match.contractor.reviews.length
+            ? match.contractor.reviews.reduce((sum: number, r: { rating: number }) => sum + (typeof r.rating === 'number' ? r.rating : 0), 0) / match.contractor.reviews.length
             : null,
           reviewCount: match.contractor.reviews?.length || 0,
         },

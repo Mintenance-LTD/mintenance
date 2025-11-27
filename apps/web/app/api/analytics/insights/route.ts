@@ -18,13 +18,14 @@ export async function GET(request: NextRequest) {
     const insights = await ContractorAnalyticsService.getPerformanceInsights(user.id);
 
     return NextResponse.json({ insights });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching analytics insights', error, {
       service: 'analytics',
       userId: user.id,
     });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch insights';
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch insights' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

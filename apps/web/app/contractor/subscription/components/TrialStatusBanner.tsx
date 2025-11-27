@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/Button';

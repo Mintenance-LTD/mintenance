@@ -12,10 +12,11 @@ import { MetricsDropdown } from './MetricsDropdown';
 interface DashboardHeaderProps {
   userName: string;
   userId?: string;
+  userAvatar?: string;
   secondaryMetrics?: DashboardMetric[];
 }
 
-export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: DashboardHeaderProps) {
+export function DashboardHeader({ userName, userId, userAvatar, secondaryMetrics = [] }: DashboardHeaderProps) {
   const router = useRouter();
   const [isMetricsOpen, setIsMetricsOpen] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement | null>(null);
@@ -65,7 +66,7 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
   return (
     <div className="relative">
       <header
-        className="sticky top-0 z-10 backdrop-blur-md bg-white/80 flex items-center justify-between px-8 py-4 border-b border-gray-200 shadow-sm whitespace-nowrap"
+        className="sticky top-0 z-10 bg-[#1e293b] flex items-center justify-between px-8 py-4 border-b border-[#475569] shadow-sm whitespace-nowrap"
       >
         {/* Search */}
         <div className="relative hidden lg:block">
@@ -73,7 +74,7 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
             type="text"
             placeholder="Search for jobs or contractors..."
             aria-label="Search for jobs or contractors"
-            className="h-11 w-full min-w-[400px]"
+            className="h-11 w-full min-w-[400px] bg-[#334155] border-[#475569] text-white placeholder:text-gray-400 focus:border-emerald-500 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -83,10 +84,10 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
           <Button
             variant="ghost"
             size="sm"
-            className="h-11 w-11 rounded-xl"
+            className="h-11 w-11 rounded-xl hover:bg-[#334155] text-gray-300 hover:text-white"
             aria-label="Help and support"
           >
-            <Icon name="helpCircle" size={22} color={theme.colors.textSecondary} aria-hidden="true" />
+            <Icon name="helpCircle" size={22} color="currentColor" aria-hidden="true" />
           </Button>
 
           {/* Real Notifications */}
@@ -94,15 +95,24 @@ export function DashboardHeader({ userName, userId, secondaryMetrics = [] }: Das
 
           {/* User Avatar */}
           <div ref={avatarButtonRef}>
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={handleAvatarClick}
               aria-label="View profile"
-              className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary-800 text-white font-bold text-sm hover:scale-110 hover:shadow-lg"
+              className="flex items-center gap-2 h-11 px-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer border-0 bg-transparent"
             >
-              {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </Button>
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={userName}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-[#475569]"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-semibold text-sm border-2 border-[#475569]">
+                  {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                </div>
+              )}
+              <Icon name="chevronDown" size={16} color="#94A3B8" />
+            </button>
           </div>
         </div>
       </header>

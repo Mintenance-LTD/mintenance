@@ -9,6 +9,8 @@
  * Maintains quality while optimizing for API usage
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface CompressionOptions {
     maxWidth?: number; // Default: 2048px
     maxHeight?: number; // Default: 2048px
@@ -110,7 +112,7 @@ export async function compressImageServerSide(
     try {
         // Try to use sharp if available (better compression)
         const sharp = await import('sharp').catch(() => null);
-        
+
         if (sharp) {
             const sharpInstance = sharp.default || sharp;
             return await sharpInstance(bufferToProcess)
@@ -123,7 +125,7 @@ export async function compressImageServerSide(
         }
     } catch (error) {
         // Sharp not available, return original buffer
-        console.warn('Sharp not available, skipping server-side compression:', error);
+        logger.warn('Sharp not available, skipping server-side compression', { error, service: 'image-compression' });
     }
 
     // Fallback: return original buffer
@@ -138,10 +140,10 @@ export function shouldCompressImage(
     file: File | Buffer,
     thresholdMB: number = 5
 ): boolean {
-    const sizeMB = file instanceof File 
+    const sizeMB = file instanceof File
         ? file.size / (1024 * 1024)
         : file.length / (1024 * 1024);
-    
+
     return sizeMB > thresholdMB;
 }
 

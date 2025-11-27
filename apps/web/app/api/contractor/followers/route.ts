@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch followers list' }, { status: 500 });
     }
 
-    const formattedFollowers = (followers || []).map((follow: any) => ({
+    const formattedFollowers = (followers || []).map((follow: Record<string, unknown>) => ({
       id: follow.id,
       contractor_id: follow.follower_id,
       created_at: follow.created_at,

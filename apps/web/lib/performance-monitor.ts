@@ -3,6 +3,8 @@
  * Collects and tracks Core Web Vitals and custom performance metrics
  */
 
+import { logger } from '@mintenance/shared';
+
 export interface PerformanceMetric {
   name: string;
   value: number;
@@ -102,7 +104,7 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
           });
         }
       } catch (error) {
-        console.error('Error collecting FCP:', error);
+        logger.error('Error collecting FCP', error, { service: 'performance-monitor' });
       }
 
       // Collect TTFB (Time to First Byte)
@@ -121,60 +123,61 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
           });
         }
       } catch (error) {
-        console.error('Error collecting TTFB:', error);
+        logger.error('Error collecting TTFB', error, { service: 'performance-monitor' });
       }
 
       // Collect LCP using PerformanceObserver
       try {
         const lcpObserver = new PerformanceObserver(list => {
           const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1] as any;
+          const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number };
           if (lastEntry) {
             const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'LCP')!;
+            const renderTime = 'renderTime' in lastEntry ? lastEntry.renderTime : undefined;
+            const loadTime = 'loadTime' in lastEntry ? lastEntry.loadTime : undefined;
+            const value = renderTime || loadTime || 0;
             metrics.push({
               name: 'LCP',
-              value: Math.round(lastEntry.renderTime || lastEntry.loadTime),
-              rating: getMetricRating(
-                lastEntry.renderTime || lastEntry.loadTime,
-                budget
-              ),
+              value: Math.round(value),
+              rating: getMetricRating(value, budget),
               timestamp: Date.now(),
             });
           }
         });
         lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
       } catch (error) {
-        console.error('Error collecting LCP:', error);
+        logger.error('Error collecting LCP', error, { service: 'performance-monitor' });
       }
 
       // Collect FID using PerformanceObserver
       try {
         const fidObserver = new PerformanceObserver(list => {
-          list.getEntries().forEach((entry: any) => {
+          list.getEntries().forEach((entry) => {
+            const fidEntry = entry as PerformanceEventTiming;
             const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'FID')!;
+            const processingStart = fidEntry.processingStart || fidEntry.startTime;
+            const value = processingStart - fidEntry.startTime;
             metrics.push({
               name: 'FID',
-              value: Math.round(entry.processingStart - entry.startTime),
-              rating: getMetricRating(
-                entry.processingStart - entry.startTime,
-                budget
-              ),
+              value: Math.round(value),
+              rating: getMetricRating(value, budget),
               timestamp: Date.now(),
             });
           });
         });
         fidObserver.observe({ type: 'first-input', buffered: true });
       } catch (error) {
-        console.error('Error collecting FID:', error);
+        logger.error('Error collecting FID', error, { service: 'performance-monitor' });
       }
 
       // Collect CLS using PerformanceObserver
       try {
         let clsValue = 0;
         const clsObserver = new PerformanceObserver(list => {
-          list.getEntries().forEach((entry: any) => {
-            if (!entry.hadRecentInput) {
-              clsValue += entry.value;
+          list.getEntries().forEach((entry) => {
+            const layoutShiftEntry = entry as LayoutShift;
+            if (!layoutShiftEntry.hadRecentInput) {
+              clsValue += layoutShiftEntry.value;
             }
           });
           const budget = PERFORMANCE_BUDGETS.find(b => b.metric === 'CLS')!;
@@ -187,7 +190,7 @@ export function collectCoreWebVitals(): Promise<PerformanceMetric[]> {
         });
         clsObserver.observe({ type: 'layout-shift', buffered: true });
       } catch (error) {
-        console.error('Error collecting CLS:', error);
+        logger.error('Error collecting CLS', error, { service: 'performance-monitor' });
       }
 
       // Wait a bit for metrics to be collected
@@ -224,7 +227,7 @@ export function collectCustomMetrics(): PerformanceMetric[] {
       });
     }
   } catch (error) {
-    console.error('Error collecting DOM metrics:', error);
+    logger.error('Error collecting DOM metrics', error, { service: 'performance-monitor' });
   }
 
   // Measure resource count
@@ -237,7 +240,7 @@ export function collectCustomMetrics(): PerformanceMetric[] {
       timestamp: Date.now(),
     });
   } catch (error) {
-    console.error('Error collecting resource metrics:', error);
+    logger.error('Error collecting resource metrics', error, { service: 'performance-monitor' });
   }
 
   return metrics;
@@ -300,7 +303,7 @@ export function storePerformanceData(data: PerformanceData): void {
     const trimmed = history.slice(-50);
     localStorage.setItem('performance-history', JSON.stringify(trimmed));
   } catch (error) {
-    console.error('Error storing performance data:', error);
+    logger.error('Error storing performance data', error, { service: 'performance-monitor' });
   }
 }
 
@@ -318,7 +321,7 @@ export function getPerformanceHistory(): Array<{
     const stored = localStorage.getItem('performance-history');
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error reading performance history:', error);
+    logger.error('Error reading performance history', error, { service: 'performance-monitor' });
     return [];
   }
 }
@@ -328,17 +331,24 @@ export function getPerformanceHistory(): Array<{
  */
 export function reportPerformanceMetric(metric: PerformanceMetric): void {
   // This would integrate with your analytics service (e.g., Google Analytics, Sentry)
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', 'web_vitals', {
-      event_category: 'Web Vitals',
-      event_label: metric.name,
-      value: Math.round(metric.value),
-      metric_rating: metric.rating,
-    });
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gtag = (window as any).gtag as ((...args: unknown[]) => void) | undefined;
+    if (gtag) {
+      gtag('event', 'web_vitals', {
+        event_category: 'Web Vitals',
+        event_label: metric.name,
+        value: Math.round(metric.value),
+        metric_rating: metric.rating,
+      });
+    }
   }
 
-  // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[Performance] ${metric.name}: ${metric.value}ms (${metric.rating})`);
-  }
+  // Log performance metric
+  logger.info(`Performance metric: ${metric.name}`, {
+    service: 'performance-monitor',
+    metric: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+  });
 }

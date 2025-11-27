@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { MessageCircle } from 'lucide-react';

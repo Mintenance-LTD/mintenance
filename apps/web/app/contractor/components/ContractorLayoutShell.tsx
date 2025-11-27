@@ -162,8 +162,8 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
         suppressHydrationWarning
         style={{
           flex: '1 1 0%',
-          width: mounted && isMobile ? '100%' : 'calc(100% - 280px)',
-          marginLeft: mounted && isMobile ? '0' : '280px',
+          width: mounted && isMobile ? '100%' : 'calc(100% - 240px)',
+          marginLeft: mounted && isMobile ? '0' : '240px',
           display: 'flex',
           flexDirection: 'column',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
