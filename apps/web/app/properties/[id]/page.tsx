@@ -1,6 +1,7 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
@@ -16,36 +17,51 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     redirect('/login?redirect=/properties');
   }
 
-  // Fetch real property data from database
-  const { data: property, error: propertyError } = await serverSupabase
-    .from('properties')
-    .select('*')
-    .eq('id', resolvedParams.id)
-    .eq('owner_id', user.id)
-    .single();
+  // Fetch real property data from database with caching (300s revalidation)
+  const property = await unstable_cache(
+    async () => {
+      const { data, error } = await serverSupabase
+        .from('properties')
+        .select('*')
+        .eq('id', resolvedParams.id)
+        .eq('owner_id', user.id)
+        .single();
+      if (error || !data) throw new Error('Property not found');
+      return data;
+    },
+    [`property-${resolvedParams.id}-${user.id}`],
+    { revalidate: 300 }
+  )().catch(() => null);
 
-  if (propertyError || !property) {
+  if (!property) {
     redirect('/properties');
   }
 
-  // Fetch real jobs associated with this property
-  const { data: jobs } = await serverSupabase
-    .from('jobs')
-    .select(`
-      id,
-      title,
-      status,
-      budget,
-      created_at,
-      scheduled_date,
-      contractor:users!jobs_contractor_id_fkey (
-        first_name,
-        last_name
-      )
-    `)
-    .eq('property_id', resolvedParams.id)
-    .eq('homeowner_id', user.id)
-    .order('created_at', { ascending: false });
+  // Fetch real jobs associated with this property with caching (60s revalidation)
+  const jobs = await unstable_cache(
+    async () => {
+      const { data } = await serverSupabase
+        .from('jobs')
+        .select(`
+          id,
+          title,
+          status,
+          budget,
+          created_at,
+          scheduled_date,
+          contractor:users!jobs_contractor_id_fkey (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('property_id', resolvedParams.id)
+        .eq('homeowner_id', user.id)
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+    [`property-jobs-${resolvedParams.id}-${user.id}`],
+    { revalidate: 60 }
+  )();
 
   // Calculate stats from real data
   const activeJobs = jobs?.filter(j => ['posted', 'assigned', 'in_progress'].includes(j.status || '')).length || 0;

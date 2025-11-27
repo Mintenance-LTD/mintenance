@@ -6,6 +6,7 @@ import { theme } from '@/lib/theme';
 import { Card, CardContent } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Image as ImageIcon, Send } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface CreatePostProps {
     currentUserId: string;
@@ -42,7 +43,11 @@ export function CreatePost({ currentUserId, onPostCreated }: CreatePostProps) {
             setPostType('project_showcase');
             onPostCreated();
         } catch (error) {
-            console.error('Error creating post:', error);
+            logger.error('Error creating post', error, {
+                service: 'contractor_social',
+                userId: currentUserId,
+                postType,
+            });
             alert('Failed to post. Please try again.');
         } finally {
             setIsSubmitting(false);

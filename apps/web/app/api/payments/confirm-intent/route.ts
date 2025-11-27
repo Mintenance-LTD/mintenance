@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Get current escrow transaction for optimistic locking
     const { data: currentEscrow, error: fetchError } = await serverSupabase
       .from('escrow_transactions')
-      .select('*')
+      .select('id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at')
       .eq('payment_intent_id', paymentIntentId)
       .eq('job_id', jobId)
       .single();

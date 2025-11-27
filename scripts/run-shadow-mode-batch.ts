@@ -31,6 +31,12 @@ import { createHash } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
 import type { AssessmentContext } from '../apps/web/lib/services/building-surveyor/types';
+import { 
+  getRetryMetrics, 
+  resetRetryMetrics, 
+  BATCH_PROCESSING_RETRY_CONFIG,
+  shouldIncreaseBaseDelay 
+} from '../apps/web/lib/utils/openai-rate-limit';
 
 // Dynamic import for BuildingSurveyorService (after env vars are loaded)
 let BuildingSurveyorService: typeof import('../apps/web/lib/services/building-surveyor/BuildingSurveyorService').BuildingSurveyorService;
@@ -84,6 +90,9 @@ interface ProgressReport {
   averageTimePerImage: number;
   estimatedTimeRemaining: number;
   successRate: string;
+  retryRate: number;
+  avgRetriesPerRequest: number;
+  totalRetries: number;
   timestamp: string;
 }
 
@@ -152,10 +161,10 @@ async function runShadowModeAssessment(
   row: GroundTruthRow,
   index: number,
   total: number,
-  maxRetries: number = 5
+  maxRetries: number = 5,
+  baseDelayMs: number = 2000
 ): Promise<{ success: boolean; error?: string }> {
-  const baseDelayMs = 2000; // Start with 2 seconds
-  const maxDelayMs = 60000; // Max 60 seconds
+  const maxDelayMs = 300000; // Max 5 minutes for rate limit retries
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -183,7 +192,8 @@ async function runShadowModeAssessment(
         shadowMode: true,
       };
 
-      // Run assessment
+      // Run assessment (retry config is handled internally via fetchWithOpenAIRetry)
+      // The service uses DEFAULT_RETRY_CONFIG, but we track metrics globally
       const assessment = await BuildingSurveyorService.assessDamage(
         [row.image_url],
         context
@@ -268,22 +278,61 @@ async function runShadowModeAssessment(
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const isRateLimitError = errorMessage.includes('429') || errorMessage.includes('rate limit') || errorMessage.includes('too many requests');
+      const errorObj = error as any;
+      
+      // Log the full error for debugging
+      if (attempt === 0) {
+        logger.error(`Error processing ${row.filename}`, {
+          error: errorMessage,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          rateLimitInfo: errorObj?.rateLimitInfo,
+          fullError: errorObj,
+        });
+      }
+      
+      // Check for rate limit error - multiple patterns (be very permissive)
+      const isRateLimitError = 
+        errorMessage.includes('429') || 
+        errorMessage.includes('rate limit') || 
+        errorMessage.includes('too many requests') ||
+        errorMessage.includes('AI assessment failed: 429') ||
+        errorMessage.includes('rate_limit') ||
+        errorMessage.toLowerCase().includes('rate') ||
+        (errorObj?.rateLimitInfo !== undefined) ||
+        (errorObj?.status === 429);
       
       // If it's a rate limit error and we have retries left, wait and retry
       if (isRateLimitError && attempt < maxRetries) {
-        // Exponential backoff: 2s, 4s, 8s, 16s, 32s, max 60s
-        const delayMs = Math.min(
-          baseDelayMs * Math.pow(2, attempt),
-          maxDelayMs
-        );
+        // Use rate limit info if available, otherwise use exponential backoff
+        let retryDelayMs: number;
         
-        logger.warn(
-          `Rate limit hit for ${row.filename}, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`,
-          { error: errorMessage }
-        );
+        if (errorObj?.rateLimitInfo?.retryAfter) {
+          // Use the retry-after header value (in seconds, convert to ms)
+          retryDelayMs = Math.min(errorObj.rateLimitInfo.retryAfter * 1000, maxDelayMs);
+          logger.warn(
+            `Rate limit hit for ${row.filename}, using retry-after header: ${retryDelayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`,
+            { 
+              error: errorMessage,
+              rateLimitInfo: errorObj.rateLimitInfo
+            }
+          );
+        } else {
+          // Exponential backoff using baseDelayMs: baseDelayMs, baseDelayMs*2, baseDelayMs*4, etc.
+          retryDelayMs = Math.min(
+            baseDelayMs * Math.pow(2, attempt),
+            maxDelayMs
+          );
+          logger.warn(
+            `Rate limit hit for ${row.filename}, retrying in ${retryDelayMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`,
+            { error: errorMessage }
+          );
+        }
         
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        // Add extra buffer for rate limit windows (wait a bit longer to be safe)
+        const safeDelayMs = Math.min(retryDelayMs + 5000, maxDelayMs); // Add 5s buffer, cap at max
+        
+        logger.info(`⏳ Waiting ${(safeDelayMs / 1000).toFixed(1)}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, safeDelayMs));
         continue; // Retry the request
       }
       
@@ -291,7 +340,8 @@ async function runShadowModeAssessment(
       logger.error(`Failed to process ${row.filename}`, { 
         error: errorMessage,
         attempt: attempt + 1,
-        maxAttempts: maxRetries + 1
+        maxAttempts: maxRetries + 1,
+        isRateLimitError
       });
       return { success: false, error: errorMessage };
     }
@@ -311,7 +361,10 @@ function generateProgressReport(
   batchEndIndex: number,
   batchSize: number,
   batchStartTime: number,
-  overallResult: BatchResult
+  overallResult: BatchResult,
+  delayMs: number,
+  maxRetries: number,
+  csvPath: string
 ): ProgressReport {
   const now = Date.now();
   const elapsedMs = now - batchStartTime;
@@ -319,6 +372,9 @@ function generateProgressReport(
   const averageTimePerImage = processed > 0 ? elapsedMs / processed : 0;
   const remaining = overallResult.total - processed;
   const estimatedTimeRemaining = Math.round((averageTimePerImage * remaining) / 1000); // in seconds
+
+  // Get retry metrics
+  const retryMetrics = getRetryMetrics();
 
   const report: ProgressReport = {
     batchNumber,
@@ -333,6 +389,9 @@ function generateProgressReport(
     averageTimePerImage,
     estimatedTimeRemaining,
     successRate: `${((overallResult.successful / processed) * 100).toFixed(2)}%`,
+    retryRate: retryMetrics.retryRate,
+    avgRetriesPerRequest: retryMetrics.averageRetriesPerRequest,
+    totalRetries: retryMetrics.totalRetries,
     timestamp: new Date().toISOString(),
   };
 
@@ -345,9 +404,21 @@ function generateProgressReport(
   console.log(`   Successful:       ${overallResult.successful}`);
   console.log(`   Failed:           ${overallResult.failed}`);
   console.log(`   Success Rate:     ${report.successRate}`);
+  console.log(`   Retry Rate:       ${report.retryRate.toFixed(2)}%`);
+  console.log(`   Avg Retries/Req:  ${report.avgRetriesPerRequest.toFixed(2)}`);
+  console.log(`   Total Retries:    ${report.totalRetries}`);
   console.log(`   Elapsed Time:     ${formatTime(elapsedMs)}`);
   console.log(`   Avg Time/Image:   ${(averageTimePerImage / 1000).toFixed(2)}s`);
   console.log(`   Est. Remaining:   ${formatTime(estimatedTimeRemaining * 1000)}`);
+  
+  // Adaptive delay suggestion
+  if (shouldIncreaseBaseDelay(retryMetrics)) {
+    const suggestedDelay = Math.round(delayMs * 1.5);
+    console.log(`\n   ⚠️  WARNING: Retry rate is ${report.retryRate.toFixed(2)}% (above 50%)`);
+    console.log(`   💡 Suggestion: Increase delay to ${suggestedDelay}ms to reduce rate limits`);
+    console.log(`      Example: npx tsx scripts/run-shadow-mode-batch.ts ${csvPath} ${batchSize} ${suggestedDelay} ${maxRetries}`);
+  }
+  
   console.log('='.repeat(80) + '\n');
 
   return report;
@@ -376,8 +447,22 @@ function formatTime(ms: number): string {
 async function main() {
   const csvPath = process.argv[2];
   const batchSize = parseInt(process.argv[3] || '50', 10); // Default 50 images per batch
-  const delayMs = parseInt(process.argv[4] || '2000', 10); // Default 2 seconds
-  const maxRetries = parseInt(process.argv[5] || '5', 10); // Default 5 retries
+  const delayMs = parseInt(process.argv[4] || '20000', 10); // Default 20 seconds
+  const maxRetries = parseInt(process.argv[5] || '10', 10); // Default 10 retries
+
+  // Validation and warnings
+  if (delayMs < 5000) {
+    logger.warn('Delay is less than 5 seconds - this may be too fast for batch processing', {
+      delayMs,
+      recommendation: 'Consider using at least 20 seconds (20000ms) for batch processing',
+    });
+  }
+  if (maxRetries > 30) {
+    logger.warn('Max retries is very high - this may cause extremely long processing times', {
+      maxRetries,
+      recommendation: 'Consider using 10-20 retries maximum',
+    });
+  }
 
   if (!csvPath) {
     console.error('❌ Missing CSV file path');
@@ -392,11 +477,16 @@ async function main() {
   try {
     console.log('\n🚀 Starting Shadow Mode Batch Execution');
     console.log('='.repeat(80));
+    
+    // Reset retry metrics at start
+    resetRetryMetrics();
+    
     logger.info('Starting shadow mode batch execution', { 
       csvPath, 
       batchSize,
       delayMs, 
       maxRetries,
+      batchConfig: BATCH_PROCESSING_RETRY_CONFIG,
       note: 'Using retry logic with exponential backoff for rate limit errors'
     });
 
@@ -434,7 +524,8 @@ async function main() {
 
       // Process each image in this batch
       for (let i = batchStartIndex; i < batchEndIndex; i++) {
-        const rowResult = await runShadowModeAssessment(rows[i], i, rows.length, maxRetries);
+        // Pass delayMs as baseDelayMs for retry backoff
+        const rowResult = await runShadowModeAssessment(rows[i], i, rows.length, maxRetries, delayMs);
         
         if (rowResult.success) {
           result.successful++;
@@ -447,7 +538,8 @@ async function main() {
         }
 
         // Add configurable delay between requests (default 2 seconds)
-        if (i < rows.length - 1) {
+        // Only delay if not the last image in the batch
+        if (i < batchEndIndex - 1) {
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
       }
@@ -460,7 +552,10 @@ async function main() {
         batchEndIndex - 1,
         batchEndIndex - batchStartIndex,
         batchStartTime,
-        result
+        result,
+        delayMs,
+        maxRetries,
+        csvPath
       );
       progressReports.push(report);
 

@@ -202,12 +202,13 @@ const user = await getCurrentUserFromCookies();
       longitude: newArea.longitude,
     }, { status: 201 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Service area creation error', error, {
       service: 'service_areas',
     });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }

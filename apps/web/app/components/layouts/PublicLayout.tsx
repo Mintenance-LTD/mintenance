@@ -1,5 +1,3 @@
-'use client';
-
 import React, { ReactNode } from 'react';
 import Link from 'next/link';
 import Logo from '../../components/Logo';

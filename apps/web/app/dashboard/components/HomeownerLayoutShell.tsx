@@ -10,13 +10,15 @@ interface HomeownerLayoutShellProps {
   currentPath?: string;
   userName?: string;
   userEmail?: string;
+  userAvatar?: string;
 }
 
 export function HomeownerLayoutShell({ 
   children, 
   currentPath = '/dashboard',
   userName,
-  userEmail 
+  userEmail,
+  userAvatar
 }: HomeownerLayoutShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -33,18 +35,19 @@ export function HomeownerLayoutShell({
 
       {/* Main Content */}
       <div 
-        className="lg:ml-[280px]"
+        className="lg:ml-[240px]"
         style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           flex: 1, 
-          marginLeft: '280px',
+          marginLeft: '240px',
         }}
       >
         {/* Header */}
         {userName && (
           <DashboardHeader
             userName={userName}
+            userAvatar={userAvatar}
           />
         )}
         

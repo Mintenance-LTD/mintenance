@@ -3,4 +3,5 @@
 # See https://typicode.github.io/husky
 
 node scripts/ci/check-no-hex.js
+node scripts/pre-commit-checks.js
 

@@ -12,15 +12,20 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let assessmentId: string | undefined;
+  let userId: string | undefined;
+  
   try {
     // CSRF protection
     await requireCSRF(request);
     const { id } = await params;
+    assessmentId = id;
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    userId = user.id;
 
     const body = await request.json();
     const { validated, notes } = body;
@@ -36,14 +41,15 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error validating assessment', error, {
       service: 'admin_building_assessments',
-      assessmentId: id,
-      userId: user.id,
+      assessmentId,
+      userId,
     });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to validate assessment';
     return NextResponse.json(
-      { error: error.message || 'Failed to validate assessment' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -3,8 +3,8 @@ import { logger } from '@mintenance/shared';
 
 // Mock Sentry for type safety when disabled
 const Sentry = {
-  setUser: (_user: any) => {},
-  setTag: (_key: string, _value: any) => {},
+  setUser: (_user: { id?: string; email?: string; username?: string } | null) => {},
+  setTag: (_key: string, _value: string | null) => {},
 };
 
 /**
@@ -87,7 +87,7 @@ export function initSentry() {
  */
 export const captureEvent = {
   // Sentry temporarily disabled for Next.js 15 compatibility
-  userAction: (action: string, data?: Record<string, any>) => {
+  userAction: (action: string, data?: Record<string, unknown>) => {
     logger.info('Sentry disabled - User action', {
       service: 'monitoring',
       action,

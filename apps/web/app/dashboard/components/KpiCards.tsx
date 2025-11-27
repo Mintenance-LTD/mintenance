@@ -1,9 +1,8 @@
-'use client';
-
 import React from 'react';
 import { theme } from '@/lib/theme';
 import { MetricCard } from '@/components/ui/figma';
 import { DashboardMetric } from './dashboard-metrics.types';
+import { TrendSparkline } from '@/components/ui/TrendSparkline';
 
 interface KpiCardsProps {
   metrics: DashboardMetric[];
@@ -15,7 +14,7 @@ export const KpiCards = React.memo(function KpiCards({ metrics }: KpiCardsProps)
       {metrics.map((metric) => (
         <div
           key={metric.key}
-          className="group relative overflow-hidden bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          className="group relative overflow-hidden bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
         >
           {/* Gradient bar - appears on hover, always visible on large screens */}
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
@@ -54,22 +53,22 @@ export const KpiCards = React.memo(function KpiCards({ metrics }: KpiCardsProps)
               </p>
             )}
 
-            {/* Trend */}
+            {/* Trend with Sparkline */}
             {metric.trend && (
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-                  metric.trend.direction === 'up'
-                    ? 'bg-secondary-50 text-secondary-700'
-                    : 'bg-red-50 text-red-700'
-                }`}>
-                  <span className="text-sm font-bold">
-                    {metric.trend.direction === 'up' ? '↑' : '↓'}
-                  </span>
-                  <span className="text-xs font-semibold">
-                    {metric.trend.value}
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  <TrendSparkline 
+                    direction={metric.trend.direction} 
+                    color={metric.trend.direction === 'up' ? theme.colors.secondary : theme.colors.error}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className={`text-xs font-semibold ${
+                    metric.trend.direction === 'up' ? 'text-emerald-600' : 'text-red-600'
+                  }`}>
+                    {metric.trend.direction === 'up' ? '↑' : '↓'} {metric.trend.value}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">vs last period</span>
               </div>
             )}
           </div>

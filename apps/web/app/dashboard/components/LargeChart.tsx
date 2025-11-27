@@ -42,7 +42,7 @@ export function LargeChart({
 
   return (
     <div
-      className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 group relative overflow-hidden"
+      className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 group relative overflow-hidden"
       style={{
         height: '100%',
         display: 'flex',

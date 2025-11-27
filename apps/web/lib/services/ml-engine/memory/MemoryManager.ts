@@ -278,7 +278,8 @@ export class MemoryManager {
     agentName: string,
     level: MemoryLevel
   ): Promise<MemoryPerformanceMetrics> {
-    const { serverSupabase } = await import('@/lib/api/supabaseServer');
+    // Use relative path for tsx compatibility (when running scripts from root)
+    const { serverSupabase } = await import('../../../api/supabaseServer');
 
     // Get memory state ID
     const memoryStateId = await this.getMemoryStateId(agentName, level.level);
@@ -350,7 +351,8 @@ export class MemoryManager {
     agentName: string,
     level: number
   ): Promise<string> {
-    const { serverSupabase } = await import('@/lib/api/supabaseServer');
+    // Use relative path for tsx compatibility (when running scripts from root)
+    const { serverSupabase } = await import('../../../api/supabaseServer');
 
     const { data } = await serverSupabase
       .from('continuum_memory_states')

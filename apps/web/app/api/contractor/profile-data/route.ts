@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Fetch contractor data
     const { data: contractor } = await supabase
       .from('users')
-      .select('*')
+      .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry, created_at, updated_at')
       .eq('id', user.id)
       .single();
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     // Fetch contractor posts
     const { data: posts } = await supabase
       .from('contractor_posts')
-      .select('*')
+      .select('id, contractor_id, post_type, title, content, media_urls, likes_count, comments_count, shares_count, views_count, created_at, updated_at')
       .eq('contractor_id', user.id)
       .eq('post_type', 'work_showcase')
       .eq('is_active', true)

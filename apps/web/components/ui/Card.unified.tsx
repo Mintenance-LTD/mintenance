@@ -129,11 +129,11 @@ export function Card({
     lg: `${theme.spacing[8]}px`, // 32px
   };
 
-  // Base styles - Consistent with plan: rounded-2xl (16px), padding 24px, shadow-sm
+  // Base styles - Consistent with design: rounded-xl (12px), padding 24px, shadow-sm
   const baseStyles: React.CSSProperties = {
     ...variantStyles[variant],
     padding: paddingValues[padding],
-    borderRadius: '16px', // rounded-2xl per plan (was 20px)
+    borderRadius: '12px', // rounded-xl to match design images
     cursor: isInteractive ? 'pointer' : 'default',
     transition: 'all 0.2s ease-in-out',
     outline: 'none',

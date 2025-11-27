@@ -16,7 +16,9 @@
         "migrate:apply": "npm run migrate apply",
         "migrate:rollback": "npm run migrate rollback",
         "clean": "rimraf .next",
-        "type-check": "tsc --noEmit"
+        "type-check": "tsc --noEmit",
+        "test:load": "k6 run load-tests/k6/critical-endpoints.js",
+        "test:load:api": "k6 run load-tests/k6/api-endpoints.js"
     },
     "dependencies": {
         "@google-cloud/aiplatform": "^5.12.0",

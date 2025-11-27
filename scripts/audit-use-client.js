@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const WEB_APP_DIR = path.resolve(__dirname, '../apps/web');
+const WEB_APP_DIR = path.resolve(__dirname, '..', 'apps', 'web');
 const RESULTS = {
   total: 0,
   necessary: [],

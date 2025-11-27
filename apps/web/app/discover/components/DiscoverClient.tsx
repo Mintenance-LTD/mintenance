@@ -41,12 +41,12 @@ interface DiscoverClientProps {
   contractorSkills?: string[];
 }
 
-export function DiscoverClient({ 
-  user, 
-  contractors, 
+export function DiscoverClient({
+  user,
+  contractors,
   jobs,
   contractorLocation,
-  contractorSkills 
+  contractorSkills
 }: DiscoverClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +61,7 @@ export function DiscoverClient({
   const items = isContractor ? jobs : contractors;
   const hasMoreItems = currentIndex < items.length;
   const remainingCount = items.length - currentIndex;
-  const progressPercentage = items.length > 0 
+  const progressPercentage = items.length > 0
     ? Math.round((currentIndex / items.length) * 100)
     : 0;
 
@@ -136,12 +136,12 @@ export function DiscoverClient({
     } catch (err) {
       console.error('Error saving swipe:', err);
       setError(err instanceof Error ? err.message : 'Failed to save action');
-      
+
       // Rollback: restore previous index
       setCurrentIndex(previousIndex);
       setSwipeHistory(prev => prev.slice(0, -1));
       setShowUndo(false);
-      
+
       // Show error toast for 3 seconds
       setTimeout(() => setError(null), 3000);
     } finally {
@@ -196,9 +196,9 @@ export function DiscoverClient({
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.colors.surfaceSecondary }}>
-      <DiscoverHeader 
-        userRole={user?.role} 
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <DiscoverHeader
+        userRole={user?.role}
         remainingCount={remainingCount}
         progressPercentage={progressPercentage}
         matchCount={matchCount}
@@ -206,38 +206,17 @@ export function DiscoverClient({
 
       {/* Progress Bar */}
       {items.length > 0 && (
-        <div style={{
-          width: '100%',
-          height: '4px',
-          backgroundColor: theme.colors.border,
-          position: 'relative'
-        }}>
-          <div style={{
-            width: `${progressPercentage}%`,
-            height: '100%',
-            backgroundColor: theme.colors.primary,
-            transition: 'width 0.3s ease'
-          }} />
+        <div className="w-full h-1 bg-gray-200 relative">
+          <div
+            className="h-full bg-primary-600 transition-all duration-300 ease-out"
+            style={{ width: `${progressPercentage}%` }}
+          />
         </div>
       )}
 
       {/* Error Toast */}
       {error && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: theme.colors.error,
-          color: 'white',
-          padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-          borderRadius: theme.borderRadius.md,
-          boxShadow: theme.shadows.lg,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2]
-        }}>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-in fade-in slide-in-from-top-5">
           <Icon name="xCircle" size={20} color="white" />
           <span>{error}</span>
         </div>
@@ -247,10 +226,10 @@ export function DiscoverClient({
       <Dialog open={showMatchModal} onOpenChange={setShowMatchModal}>
         <DialogContent className="max-w-md text-center">
           <DialogHeader>
-            <div className="text-5xl mb-4">🎉</div>
-            <DialogTitle className="text-2xl">It's a Match!</DialogTitle>
-            <DialogDescription className="text-base">
-              {isContractor 
+            <div className="text-5xl mb-4 animate-bounce">🎉</div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">It's a Match!</DialogTitle>
+            <DialogDescription className="text-base text-gray-600">
+              {isContractor
                 ? 'The homeowner is interested in working with you!'
                 : 'This contractor is interested in your job!'}
             </DialogDescription>
@@ -259,7 +238,7 @@ export function DiscoverClient({
             <Button
               variant="primary"
               onClick={() => setShowMatchModal(false)}
-              className="w-full"
+              className="w-full bg-secondary-500 hover:bg-secondary-600 text-white"
             >
               Great!
             </Button>
@@ -268,14 +247,7 @@ export function DiscoverClient({
       </Dialog>
 
       {/* Main Content */}
-      <div style={{
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        minHeight: 'calc(100vh - 140px)',
-        position: 'relative'
-      }}>
+      <div className="flex-1 p-5 flex flex-col items-center min-h-[calc(100vh-140px)] relative">
         {!hasMoreItems ? (
           <DiscoverEmptyState userRole={user?.role} onRestart={handleRestart} />
         ) : (
@@ -285,46 +257,17 @@ export function DiscoverClient({
               <button
                 onClick={handleUndo}
                 disabled={isLoading}
-                style={{
-                  position: 'absolute',
-                  top: '20px',
-                  right: '20px',
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.textPrimary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  boxShadow: theme.shadows.sm,
-                  zIndex: 100
-                }}
+                className="absolute top-5 right-5 px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-sm font-medium cursor-pointer flex items-center gap-2 shadow-sm z-10 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
               >
-                <Icon name="arrowLeft" size={16} color={theme.colors.textPrimary} />
+                <Icon name="arrowLeft" size={16} />
                 Undo
               </button>
             )}
 
             {/* Loading Overlay */}
             {isLoading && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(255,255,255,0.8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 50
-              }}>
-                <Icon name="loader" size={32} color={theme.colors.primary} className="animate-spin" />
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50 backdrop-blur-sm">
+                <Icon name="loader" size={32} className="text-primary-600 animate-spin" />
               </div>
             )}
 
@@ -335,13 +278,13 @@ export function DiscoverClient({
               onSwipeRight={() => handleSwipe('like')}
               onSwipeUp={() => handleSwipe('super_like')}
               onSwipeDown={() => handleSwipe('maybe')}
-              renderCard={(item) => 
-                isContractor 
-                  ? <JobCard 
-                      job={item} 
-                      contractorLocation={contractorLocation}
-                      contractorSkills={contractorSkills}
-                    /> 
+              renderCard={(item) =>
+                isContractor
+                  ? <JobCard
+                    job={item}
+                    contractorLocation={contractorLocation}
+                    contractorSkills={contractorSkills}
+                  />
                   : <ContractorCard contractor={item} />
               }
             />

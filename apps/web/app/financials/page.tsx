@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import { InvoiceLink } from './components/InvoiceLink';
+import { TrendSparkline } from '@/components/ui/TrendSparkline';
 
 export default async function FinancialsPage() {
   const user = await getCurrentUserFromCookies();
@@ -97,11 +98,11 @@ export default async function FinancialsPage() {
   const totalSpent = paymentsList
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  
+
   const pendingPayments = paymentsList
     .filter(p => ['pending', 'processing'].includes(p.status || ''))
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  
+
   const overduePayments = paymentsList.filter(p => {
     if (!p.due_date || p.status === 'completed') return false;
     return new Date(p.due_date) < now && p.status !== 'completed';
@@ -125,196 +126,133 @@ export default async function FinancialsPage() {
       case 'completed':
       case 'paid':
       case 'active':
-        return { bg: '#D1FAE5', text: '#065F46', icon: 'checkCircle' };
+        return { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: 'checkCircle' };
       case 'pending':
       case 'processing':
       case 'sent':
       case 'viewed':
-        return { bg: '#FEF3C7', text: '#92400E', icon: 'clock' };
+        return { bg: 'bg-amber-100', text: 'text-amber-800', icon: 'clock' };
       case 'overdue':
       case 'failed':
-        return { bg: '#FEE2E2', text: '#991B1B', icon: 'xCircle' };
+        return { bg: 'bg-red-100', text: 'text-red-800', icon: 'xCircle' };
       case 'cancelled':
       case 'refunded':
-        return { bg: '#F3F4F6', text: '#4B5563', icon: 'x' };
+        return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'x' };
       default:
-        return { bg: '#F3F4F6', text: '#4B5563', icon: 'info' };
+        return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'info' };
     }
   };
 
   return (
     <HomeownerLayoutShell currentPath="/financials">
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[6],
-      }}>
-        {/* Header */}
-        <div>
-        <h1 style={{
-            margin: 0,
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-        }}>
-          Financials
-        </h1>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-          }}>
-            Manage your subscriptions, invoices, and billing overview
-          </p>
+      <div className="max-w-[1440px] mx-auto p-6 flex flex-col gap-6">
+        {/* Header - Navy Blue Command Center Style */}
+        <div className="relative overflow-hidden bg-primary-900 p-8 -m-8 rounded-2xl mb-2 shadow-xl border border-primary-800">
+          {/* Decorative Elements */}
+          <div aria-hidden="true" className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+          <div aria-hidden="true" className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary-800 flex items-center justify-center shadow-inner border border-primary-700">
+              <Icon name="currencyDollar" size={28} color="white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
+                Financials
+              </h1>
+              <p className="text-base font-medium text-primary-200 leading-relaxed">
+                Manage your subscriptions, invoices, and billing overview
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Billing Overview Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: theme.spacing[4],
-        }}>
-          <div style={{
-            backgroundColor: theme.colors.white,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.xl,
-            padding: theme.spacing[5],
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[2],
-            }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+          {/* Total Spent - Emerald Accent */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-secondary-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:bg-secondary-500/10 transition-colors"></div>
+            <div className="text-sm font-medium text-gray-500 mb-2 relative z-10">
               Total Spent
             </div>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
+            <div className="text-2xl font-bold text-gray-900 relative z-10 mb-3">
               {formatMoney(totalSpent)}
             </div>
+            <div className="flex items-center justify-between relative z-10 pt-3 border-t border-gray-100">
+              <TrendSparkline direction="up" />
+            </div>
           </div>
 
-          <div style={{
-            backgroundColor: theme.colors.white,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.xl,
-            padding: theme.spacing[5],
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[2],
-            }}>
+          {/* Pending Payments - Amber Accent */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:bg-accent-500/10 transition-colors"></div>
+            <div className="text-sm font-medium text-gray-500 mb-2 relative z-10">
               Pending Payments
             </div>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.accent,
-            }}>
+            <div className="text-2xl font-bold text-accent-600 relative z-10 mb-3">
               {formatMoney(pendingPayments)}
             </div>
-            {overduePayments > 0 && (
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.error,
-                marginTop: theme.spacing[1],
-              }}>
-                {overduePayments} overdue
-              </div>
-            )}
+            <div className="flex items-center justify-between relative z-10 pt-3 border-t border-gray-100">
+              <TrendSparkline direction="up" />
+              {overduePayments > 0 && (
+                <div className="text-xs text-red-600 font-medium flex items-center gap-1">
+                  <Icon name="alertCircle" size={12} />
+                  {overduePayments} overdue
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{
-            backgroundColor: theme.colors.white,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.xl,
-            padding: theme.spacing[5],
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[2],
-            }}>
+          {/* Active Subscriptions - Navy Accent */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:bg-primary-500/10 transition-colors"></div>
+            <div className="text-sm font-medium text-gray-500 mb-2 relative z-10">
               Active Subscriptions
             </div>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
+            <div className="text-2xl font-bold text-gray-900 relative z-10 mb-3">
               {activeSubscriptions}
             </div>
-            {overdueSubscriptions > 0 && (
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.error,
-                marginTop: theme.spacing[1],
-              }}>
-                {overdueSubscriptions} overdue
-              </div>
-            )}
+            <div className="flex items-center justify-between relative z-10 pt-3 border-t border-gray-100">
+              <TrendSparkline direction="up" />
+              {overdueSubscriptions > 0 && (
+                <div className="text-xs text-red-600 font-medium flex items-center gap-1">
+                  <Icon name="alertCircle" size={12} />
+                  {overdueSubscriptions} overdue
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{
-            backgroundColor: theme.colors.white,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.xl,
-            padding: theme.spacing[5],
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[2],
-            }}>
+          {/* Total Budget - Gray Accent */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 group-hover:bg-gray-500/10 transition-colors"></div>
+            <div className="text-sm font-medium text-gray-500 mb-2 relative z-10">
               Total Budget
             </div>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
+            <div className="text-2xl font-bold text-gray-900 relative z-10 mb-3">
               {formatMoney(totalBudget)}
+            </div>
+            <div className="flex items-center justify-between relative z-10 pt-3 border-t border-gray-100">
+              <TrendSparkline direction="up" />
             </div>
           </div>
         </div>
 
         {/* Subscriptions Section */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-        }}>
-          <h2 style={{
-            margin: 0,
-            marginBottom: theme.spacing[4],
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-          }}>
-            Subscriptions ({subscriptionsList.length})
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            Subscriptions <span className="text-gray-400 font-normal text-base">({subscriptionsList.length})</span>
           </h2>
 
           {subscriptionsList.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: theme.spacing[8],
-              color: theme.colors.textSecondary,
-            }}>
-              <Icon name="calendar" size={48} color={theme.colors.textTertiary} style={{ marginBottom: theme.spacing[2] }} />
-              <p style={{ margin: 0, fontSize: theme.typography.fontSize.base }}>
-                No subscriptions yet
-              </p>
+            <div className="text-center py-8 text-gray-500">
+              <div className="flex justify-center mb-2">
+                <Icon name="calendar" size={48} className="text-gray-300" />
+              </div>
+              <p className="text-base">No subscriptions yet</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            <div className="flex flex-col gap-3">
               {subscriptionsList.map((sub) => {
                 const statusConfig = getStatusColor(sub.status || 'active');
                 const nextBilling = sub.next_billing_date
@@ -325,61 +263,24 @@ export default async function FinancialsPage() {
                 return (
                   <div
                     key={sub.id}
-                    style={{
-                      padding: theme.spacing[4],
-                      borderRadius: theme.borderRadius.lg,
-                      border: `1px solid ${theme.colors.border}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: theme.spacing[3],
-                    }}
+                    className="p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center gap-3 hover:bg-gray-50 transition-colors"
                   >
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[2],
-                        marginBottom: theme.spacing[1],
-                      }}>
-                        <h3 style={{
-                          margin: 0,
-                          fontSize: theme.typography.fontSize.base,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          color: theme.colors.textPrimary,
-                        }}>
+                    <div className="flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-semibold text-gray-900">
                           {sub.name || 'Subscription'}
                         </h3>
-                        <span style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                          borderRadius: theme.borderRadius.full,
-                          backgroundColor: statusConfig.bg,
-                          color: statusConfig.text,
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.spacing[1],
-                        }}>
-                          <Icon name={statusConfig.icon as any} size={12} color={statusConfig.text} />
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
+                          <Icon name={statusConfig.icon as any} size={12} />
                           {sub.status || 'active'}
                         </span>
                       </div>
-                      <p style={{
-                        margin: 0,
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                      }}>
+                      <p className="text-sm text-gray-500">
                         Next billing: {nextBilling}
-                        {isOverdue && <span style={{ color: theme.colors.error, marginLeft: theme.spacing[1] }}>• Overdue</span>}
+                        {isOverdue && <span className="text-red-600 ml-1 font-medium">• Overdue</span>}
                       </p>
                     </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.textPrimary,
-                    }}>
+                    <div className="text-lg font-bold text-gray-900">
                       {formatMoney(Number(sub.amount || 0))}
                     </div>
                   </div>
@@ -390,35 +291,13 @@ export default async function FinancialsPage() {
         </div>
 
         {/* Invoices Section */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: theme.spacing[4],
-          }}>
-            <h2 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              Invoices ({invoicesList.length})
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              Invoices <span className="text-gray-400 font-normal text-base">({invoicesList.length})</span>
             </h2>
             {pendingInvoices > 0 && (
-              <span style={{
-                padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                borderRadius: theme.borderRadius.full,
-                backgroundColor: '#FEF3C7',
-                color: '#92400E',
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-              }}>
+              <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
                 {pendingInvoices} pending
               </span>
             )}
@@ -426,16 +305,14 @@ export default async function FinancialsPage() {
 
           {invoicesList.length === 0 ? (
             <InvoiceLink href="/payments">
-              <Icon name="fileText" size={48} color={theme.colors.textTertiary} style={{ marginBottom: theme.spacing[2] }} />
-              <p style={{ margin: 0, fontSize: theme.typography.fontSize.base }}>
-                No invoices yet
-              </p>
-              <p style={{ margin: 0, marginTop: theme.spacing[2], fontSize: theme.typography.fontSize.sm, color: theme.colors.textTertiary }}>
-                Click to view payment page
-              </p>
+              <div className="flex justify-center mb-2">
+                <Icon name="fileText" size={48} className="text-gray-300" />
+              </div>
+              <p className="text-base m-0">No invoices yet</p>
+              <p className="text-sm text-gray-400 mt-2 m-0">Click to view payment page</p>
             </InvoiceLink>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            <div className="flex flex-col gap-3">
               {invoicesList.map((invoice) => {
                 const statusConfig = getStatusColor(invoice.status || 'draft');
                 const contractor = Array.isArray(invoice.contractor) ? invoice.contractor[0] : invoice.contractor;
@@ -456,69 +333,31 @@ export default async function FinancialsPage() {
                     href={`/payments${invoice.id ? `?invoice=${invoice.id}` : ''}`}
                     isCard={true}
                   >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      flexWrap: 'wrap',
-                      gap: theme.spacing[3],
-                    }}>
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.spacing[2],
-                          marginBottom: theme.spacing[1],
-                        }}>
-                          <h3 style={{
-                            margin: 0,
-                            fontSize: theme.typography.fontSize.base,
-                            fontWeight: theme.typography.fontWeight.semibold,
-                            color: theme.colors.textPrimary,
-                          }}>
+                    <div className="flex flex-wrap justify-between items-start gap-3 w-full">
+                      <div className="flex-1 min-w-[200px] text-left">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-base font-semibold text-gray-900 m-0">
                             {invoice.title || invoice.invoice_number}
                           </h3>
-                          <span style={{
-                            padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                            borderRadius: theme.borderRadius.full,
-                            backgroundColor: statusConfig.bg,
-                            color: statusConfig.text,
-                            fontSize: theme.typography.fontSize.xs,
-                            fontWeight: theme.typography.fontWeight.semibold,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: theme.spacing[1],
-                          }}>
-                            <Icon name={statusConfig.icon as any} size={12} color={statusConfig.text} />
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
+                            <Icon name={statusConfig.icon as any} size={12} />
                             {invoice.status || 'draft'}
                           </span>
                         </div>
-                        <p style={{
-                          margin: 0,
-                          fontSize: theme.typography.fontSize.sm,
-                          color: theme.colors.textSecondary,
-                          marginBottom: theme.spacing[1],
-                        }}>
+                        <p className="text-sm text-gray-500 mb-1 m-0">
                           {contractorName}
                         </p>
-                        <div style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.textTertiary,
-                        }}>
+                        <div className="text-xs text-gray-400">
                           Invoice #{invoice.invoice_number} • {invoiceDate}
                           {invoice.due_date && (
-                            <span style={{ marginLeft: theme.spacing[2] }}>
+                            <span className="ml-2">
                               Due: {dueDate}
-                              {isOverdue && <span style={{ color: theme.colors.error }}> • Overdue</span>}
+                              {isOverdue && <span className="text-red-600 font-medium"> • Overdue</span>}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div style={{
-                        fontSize: theme.typography.fontSize.lg,
-                        fontWeight: theme.typography.fontWeight.bold,
-                        color: theme.colors.textPrimary,
-                      }}>
+                      <div className="text-lg font-bold text-gray-900">
                         {formatMoney(Number(invoice.total_amount || 0))}
                       </div>
                     </div>
@@ -530,35 +369,20 @@ export default async function FinancialsPage() {
         </div>
 
         {/* Recent Payments Section */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-        }}>
-          <h2 style={{
-            margin: 0,
-            marginBottom: theme.spacing[4],
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-          }}>
-            Recent Payments ({paymentsList.length})
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            Recent Payments <span className="text-gray-400 font-normal text-base">({paymentsList.length})</span>
           </h2>
 
           {paymentsList.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: theme.spacing[8],
-              color: theme.colors.textSecondary,
-            }}>
-              <Icon name="currencyDollar" size={48} color={theme.colors.textTertiary} style={{ marginBottom: theme.spacing[2] }} />
-              <p style={{ margin: 0, fontSize: theme.typography.fontSize.base }}>
-                No payments yet
-              </p>
+            <div className="text-center py-8 text-gray-500">
+              <div className="flex justify-center mb-2">
+                <Icon name="currencyDollar" size={48} className="text-gray-300" />
+              </div>
+              <p className="text-base">No payments yet</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+            <div className="flex flex-col gap-3">
               {paymentsList.slice(0, 10).map((payment) => {
                 const statusConfig = getStatusColor(payment.status || 'pending');
                 const job = Array.isArray(payment.job) ? payment.job[0] : payment.job;
@@ -569,69 +393,28 @@ export default async function FinancialsPage() {
                 return (
                   <div
                     key={payment.id}
-                    style={{
-                      padding: theme.spacing[4],
-                      borderRadius: theme.borderRadius.lg,
-                      border: `1px solid ${theme.colors.border}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: theme.spacing[3],
-                    }}
+                    className="p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center gap-3 hover:bg-gray-50 transition-colors"
                   >
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[2],
-                        marginBottom: theme.spacing[1],
-                      }}>
-                        <h3 style={{
-                          margin: 0,
-                          fontSize: theme.typography.fontSize.base,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          color: theme.colors.textPrimary,
-                        }}>
+                    <div className="flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-semibold text-gray-900">
                           {payment.description || job?.title || 'Payment'}
                         </h3>
-                        <span style={{
-                          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                          borderRadius: theme.borderRadius.full,
-                          backgroundColor: statusConfig.bg,
-                          color: statusConfig.text,
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.spacing[1],
-                        }}>
-                          <Icon name={statusConfig.icon as any} size={12} color={statusConfig.text} />
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
+                          <Icon name={statusConfig.icon as any} size={12} />
                           {payment.status || 'pending'}
                         </span>
                       </div>
-                      <p style={{
-                        margin: 0,
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                      }}>
+                      <p className="text-sm text-gray-500 flex items-center gap-2">
                         {paymentDate}
                         {job && (
-                          <Link href={`/jobs/${job.id}`} style={{
-                            marginLeft: theme.spacing[2],
-                            color: theme.colors.primary,
-                            textDecoration: 'none',
-                          }}>
-                            View Job →
+                          <Link href={`/jobs/${job.id}`} className="text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1">
+                            View Job <Icon name="arrowRight" size={12} />
                           </Link>
                         )}
                       </p>
                     </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.textPrimary,
-                    }}>
+                    <div className="text-lg font-bold text-gray-900">
                       {formatMoney(Number(payment.amount || 0))}
                     </div>
                   </div>

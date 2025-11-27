@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { UnifiedSidebar } from './layouts/UnifiedSidebar';
 import { SkeletonCard, SkeletonList, SkeletonText } from './ui/SkeletonLoader';

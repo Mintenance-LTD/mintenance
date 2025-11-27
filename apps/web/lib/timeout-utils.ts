@@ -4,9 +4,9 @@
 
 import { logger } from '@mintenance/shared';
 
-export interface TimeoutOptions {
+export interface TimeoutOptions<T = unknown> {
   timeoutMs?: number;
-  fallbackValue?: any;
+  fallbackValue?: T;
   errorMessage?: string;
 }
 
@@ -15,7 +15,7 @@ export interface TimeoutOptions {
  */
 export async function withTimeout<T>(
   operation: () => Promise<T>,
-  options: TimeoutOptions = {}
+  options: TimeoutOptions<T> = {}
 ): Promise<T> {
   const {
     timeoutMs = 25000, // 25 seconds default (leave 5s buffer for Vercel's 30s limit)

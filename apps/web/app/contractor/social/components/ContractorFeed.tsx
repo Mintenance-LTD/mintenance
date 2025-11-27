@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge.unified';
 import { ThumbsUp, MessageSquare, Share2, MoreHorizontal } from 'lucide-react';
 import { User } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 export interface ContractorPost {
     id: string;
@@ -63,23 +64,50 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
                     .eq('contractor_id', currentUserId);
 
                 if (likesError) {
-                    console.warn('Error fetching user likes:', likesError.message);
+                    logger.warn('Error fetching user likes', {
+                        service: 'contractor_feed',
+                        error: likesError,
+                        userId: currentUserId,
+                    });
                 }
 
-                const likedPostIds = new Set(userLikes?.map((l: any) => l.post_id) || []);
+                interface LikeRecord {
+                    post_id: string;
+                }
 
-                const mappedPosts: ContractorPost[] = data.map((p: any) => ({
-                    id: p.id,
-                    contractorId: p.contractor_id,
-                    type: p.post_type || 'social',
+                interface PostRecord {
+                    id: string;
+                    contractor_id: string;
+                    post_type?: string;
+                    title?: string;
+                    description?: string;
+                    media_urls?: string[];
+                    likes_count?: number;
+                    comments_count?: number;
+                    created_at: string;
+                    contractor?: {
+                        first_name: string;
+                        last_name: string;
+                        profile_image_url?: string;
+                    };
+                }
+
+                const likedPostIds = new Set<string>(
+                    (userLikes || []).map((l: LikeRecord) => String(l.post_id || ''))
+                );
+
+                const mappedPosts: ContractorPost[] = data.map((p: PostRecord) => ({
+                    id: String(p.id || ''),
+                    contractorId: String(p.contractor_id || ''),
+                    type: (p.post_type || 'social') as ContractorPost['type'],
                     title: p.title,
                     content: p.description || p.title || '',
-                    photos: p.media_urls || [],
-                    likes: p.likes_count || 0,
-                    comments: p.comments_count || 0,
+                    photos: Array.isArray(p.media_urls) ? p.media_urls : [],
+                    likes: typeof p.likes_count === 'number' ? p.likes_count : 0,
+                    comments: typeof p.comments_count === 'number' ? p.comments_count : 0,
                     createdAt: p.created_at,
                     contractor: p.contractor,
-                    isLikedByUser: likedPostIds.has(p.id)
+                    isLikedByUser: likedPostIds.has(String(p.id))
                 }));
 
                 setPosts(mappedPosts);
@@ -93,7 +121,7 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
 
             // Directly access Supabase error properties (PostgrestError)
             if (error && typeof error === 'object') {
-                const err = error as any;
+                const err = error as { message?: string; code?: string; details?: string; hint?: string };
                 
                 // Supabase PostgrestError properties
                 if (err.message !== undefined) errorDetails.message = err.message;
@@ -121,18 +149,12 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
                 errorDetails.message = String(error || 'Unknown error');
             }
 
-            // Log with multiple methods to ensure we see something
-            console.error('Error fetching posts:', errorDetails);
-            console.error('Raw error object:', error);
-            console.error('Error string:', String(error));
-            
-            // Also log individual properties if they exist
-            if (error && typeof error === 'object') {
-                const err = error as any;
-                console.error('Error.message:', err.message);
-                console.error('Error.code:', err.code);
-                console.error('Error.details:', err.details);
-            }
+            // Log error with structured context
+            logger.error('Error fetching posts', error, {
+                service: 'contractor_feed',
+                userId: currentUserId,
+                errorDetails,
+            });
         } finally {
             setLoading(false);
         }
@@ -191,7 +213,7 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
             }
             
             // Also try to extract common Supabase error properties
-            const supabaseError = error as any;
+            const supabaseError = error as { code?: string; details?: string; hint?: string };
             if (supabaseError?.code || supabaseError?.details || supabaseError?.hint) {
                 errorDetails = {
                     ...errorDetails,
@@ -202,7 +224,13 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
                 };
             }
             
-            console.error('Error toggling like:', errorDetails);
+            logger.error('Error toggling like', error, {
+                service: 'contractor_feed',
+                postId,
+                isLiked,
+                userId: currentUserId,
+                errorDetails,
+            });
             // Revert on error would go here
         }
     };

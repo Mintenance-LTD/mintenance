@@ -112,8 +112,29 @@ export async function GET(request: NextRequest) {
     const likedPostIds = new Set(userLikes?.map(like => like.post_id) || []);
 
     // Map posts to include liked status and format images
-    const formattedPosts = (posts || []).map((post: any) => ({
-      id: post.id,
+    interface PostRecord {
+      id: string;
+      title?: string;
+      content?: string;
+      images?: unknown;
+      post_type?: string;
+      created_at?: string;
+      likes_count?: number;
+      comments_count?: number;
+      shares_count?: number;
+      views_count?: number;
+      contractor?: {
+        id: string;
+        first_name?: string;
+        last_name?: string;
+        profile_image_url?: string;
+        city?: string;
+        country?: string;
+      };
+    }
+
+    const formattedPosts = (posts || []).map((post: PostRecord) => ({
+      id: String(post.id || ''),
       title: post.title || '',
       content: post.content || '',
       images: Array.isArray(post.images) ? post.images : [],

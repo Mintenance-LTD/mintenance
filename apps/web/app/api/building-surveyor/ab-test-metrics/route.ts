@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       trends,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error retrieving A/B test metrics', error, {
       service: 'ab-test-metrics-api',
     });

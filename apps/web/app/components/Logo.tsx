@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 
 export default function Logo({ width = 32, height = 32 }: { width?: number; height?: number }) {

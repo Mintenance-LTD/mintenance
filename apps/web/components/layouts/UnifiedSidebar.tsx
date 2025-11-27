@@ -2,254 +2,275 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { LogOut } from 'lucide-react';
-import { MenuTab } from '@/components/ui/figma';
-import Logo from '@/app/components/Logo';
-import { Icon } from '@/components/ui/Icon';
-import { SessionManager } from '@/lib/session-manager';
-import { logger } from '@/lib/logger';
-import { theme } from '@/lib/theme';
-import styles from './UnifiedSidebar.module.css';
+import { usePathname } from 'next/navigation';
+import {
+    Home,
+    Calendar,
+    Briefcase,
+    MessageSquare,
+    User,
+    Settings,
+    ChevronDown,
+    Bell,
+    HelpCircle,
+    Building2,
+    Users,
+    TrendingUp,
+    PoundSterling
+} from 'lucide-react';
 
 interface NavItem {
-  icon: string;
-  label: string;
-  href: string;
-  badge?: number;
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: number;
+    children?: NavItem[];
 }
 
 interface UnifiedSidebarProps {
-  userRole: 'homeowner' | 'contractor';
-  userInfo?: {
-    name?: string;
-    email?: string;
-    avatar?: string;
-  };
-  isMobileOpen?: boolean;
-  onMobileClose?: () => void;
+    userRole: 'homeowner' | 'contractor';
+    userInfo?: {
+        name?: string;
+        email?: string;
+        avatar?: string;
+    };
+    isMobileOpen?: boolean;
+    onMobileClose?: () => void;
 }
-
-// App primary color scheme (blue)
-const SIDEBAR_COLORS = {
-  background: '#0F172A', // Dark navy blue - app primary color
-  hover: '#1E293B', // Lighter blue for hover
-  text: '#FFFFFF',
-  textMuted: 'rgba(255, 255, 255, 0.8)',
-  border: 'rgba(255, 255, 255, 0.15)',
-  active: 'rgba(255, 255, 255, 0.2)',
-};
-
-// Navigation items based on user role - defined outside component to ensure stable references
-// Using Object.freeze to prevent any accidental mutations
-const homeownerNav: readonly NavItem[] = Object.freeze([
-  { icon: 'dashboard', label: 'Dashboard', href: '/dashboard' },
-  { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
-  { icon: 'briefcase', label: 'Jobs', href: '/jobs' },
-  { icon: 'messages', label: 'Messages', href: '/messages' },
-  { icon: 'home', label: 'Properties', href: '/properties' },
-  { icon: 'currencyDollar', label: 'Financials', href: '/financials' },
-  { icon: 'settings', label: 'Settings', href: '/settings' },
-]);
-
-const contractorNav: readonly NavItem[] = Object.freeze([
-  { icon: 'dashboard', label: 'Dashboard', href: '/contractor/dashboard-enhanced' },
-  { icon: 'calendar', label: 'Scheduling', href: '/scheduling' },
-  { icon: 'briefcase', label: 'Jobs', href: '/contractor/bid' },
-  { icon: 'users', label: 'Customers', href: '/contractor/crm' },
-  { icon: 'messages', label: 'Messages', href: '/contractor/messages' },
-  { icon: 'currencyDollar', label: 'Financials', href: '/contractor/finance' },
-  { icon: 'building', label: 'Company', href: '/contractor/profile' },
-  { icon: 'trendingUp', label: 'Reporting', href: '/contractor/reporting' },
-]);
 
 export function UnifiedSidebar({ userRole, userInfo, isMobileOpen: externalMobileOpen, onMobileClose }: UnifiedSidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+    const pathname = usePathname();
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [mounted, setMounted] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [internalMobileOpen, setInternalMobileOpen] = useState(false);
 
-  // Use external mobile state if provided, otherwise use internal state
-  const isMobileOpen = externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;
+    // Use external mobile state if provided, otherwise use internal state
+    const isMobileOpen = externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;
 
-  const handleMobileClose = () => {
-    if (externalMobileOpen !== undefined && onMobileClose) {
-      onMobileClose();
-    } else {
-      setInternalMobileOpen(false);
-    }
-  };
-
-  useEffect(() => {
-    setMounted(true);
-
-    // Check initial screen size
-    const checkScreenSize = () => {
-      const width = window.innerWidth;
-      const mobile = width < 1024;
-      setIsMobile(mobile);
-      // Auto-collapse on mobile, auto-expand on desktop
-      if (mobile) {
-        setIsCollapsed(true);
-      } else {
-        setIsCollapsed(false);
-        if (externalMobileOpen === undefined) {
-          setInternalMobileOpen(false);
-        } else if (onMobileClose) {
-          onMobileClose();
+    const handleMobileClose = () => {
+        if (externalMobileOpen !== undefined && onMobileClose) {
+            onMobileClose();
+        } else {
+            setInternalMobileOpen(false);
         }
-      }
     };
 
-    checkScreenSize();
+    useEffect(() => {
+        setMounted(true);
 
-    // Add resize listener
-    window.addEventListener('resize', checkScreenSize);
+        // Check initial screen size
+        const checkScreenSize = () => {
+            const width = window.innerWidth;
+            const mobile = width < 1024;
+            setIsMobile(mobile);
+        };
 
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
+        checkScreenSize();
+
+        // Add resize listener
+        window.addEventListener('resize', checkScreenSize);
+
+        return () => {
+            window.removeEventListener('resize', checkScreenSize);
+        };
+    }, []);
+
+    // Homeowner navigation - matching DarkNavySidebar structure
+    const homeownerNav: NavItem[] = React.useMemo(() => [
+        { label: 'Dashboard', href: '/dashboard', icon: Home },
+        { label: 'Messages', href: '/messages', icon: MessageSquare, badge: 3 },
+        {
+            label: 'Job Details',
+            href: '/jobs',
+            icon: Briefcase,
+            children: [
+                { label: 'All Jobs', href: '/jobs', icon: Briefcase },
+                { label: 'Active', href: '/jobs?status=active', icon: Briefcase },
+                { label: 'Completed', href: '/jobs?status=completed', icon: Briefcase },
+            ]
+        },
+        { label: 'Jobs', href: '/jobs', icon: Briefcase },
+        { label: 'Scheduling', href: '/scheduling', icon: Calendar },
+        { label: 'Properties', href: '/properties', icon: Building2 },
+        { label: 'Financials', href: '/financials', icon: PoundSterling },
+        { label: 'Profiles', href: '/profile', icon: User },
+        { label: 'Settings', href: '/settings', icon: Settings },
+    ], []);
+
+    // Contractor navigation
+    const contractorNav: NavItem[] = React.useMemo(() => [
+        { label: 'Dashboard', href: '/contractor/dashboard-enhanced', icon: Home },
+        { label: 'Messages', href: '/contractor/messages', icon: MessageSquare },
+        {
+            label: 'Job Details',
+            href: '/contractor/bid',
+            icon: Briefcase,
+            children: [
+                { label: 'All Jobs', href: '/contractor/bid', icon: Briefcase },
+                { label: 'Active', href: '/contractor/bid?status=active', icon: Briefcase },
+                { label: 'Completed', href: '/contractor/bid?status=completed', icon: Briefcase },
+            ]
+        },
+        { label: 'Jobs', href: '/contractor/bid', icon: Briefcase },
+        { label: 'Scheduling', href: '/scheduling', icon: Calendar },
+        { label: 'Customers', href: '/contractor/crm', icon: Users },
+        { label: 'Financials', href: '/contractor/finance', icon: PoundSterling },
+        { label: 'Company', href: '/contractor/profile', icon: Building2 },
+        { label: 'Reporting', href: '/contractor/reporting', icon: TrendingUp },
+        { label: 'Settings', href: '/settings', icon: Settings },
+    ], []);
+
+    const navItems = userRole === 'contractor' ? contractorNav : homeownerNav;
+
+    const toggleExpand = (label: string) => {
+        setExpandedItems(prev =>
+            prev.includes(label)
+                ? prev.filter(item => item !== label)
+                : [...prev, label]
+        );
     };
-  }, [externalMobileOpen, onMobileClose]);
 
-  // Ensure userRole has a default value to prevent hydration mismatches
-  // This ensures consistent array selection during SSR and client
-  const resolvedUserRole = userRole || 'contractor';
-
-  // Handle logout properly - call API then redirect
-  const handleLogout = async (): Promise<void> => {
-    if (isLoggingOut) return; // Prevent double-click
-
-    setIsLoggingOut(true);
-    try {
-      // Clear session data
-      const sessionManager = SessionManager.getInstance();
-      sessionManager.clearSession();
-
-      // Call logout API endpoint
-      await fetch('/api/auth/logout', { method: 'POST' });
-
-      // Redirect to login page
-      router.push('/login');
-      router.refresh();
-    } catch (error) {
-      logger.error('Logout failed', error);
-      // Still redirect to login even if API call fails
-      router.push('/login');
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  // Select navigation items based on user role - use stable reference
-  // Use resolvedUserRole to ensure consistent selection during SSR and client
-  const navItems = React.useMemo(() => {
-    if (resolvedUserRole === 'contractor') {
-      return contractorNav;
-    }
-    return homeownerNav;
-  }, [resolvedUserRole]);
-
-  // Memoize isActive calculation to ensure consistency between SSR and client
-  // Always default to false during SSR to prevent hydration mismatches
-  const isActive = React.useMemo(() => {
-    return (href: string) => {
-      // During SSR or if pathname is not available, always return false
-      // This ensures consistent rendering between server and client
-      if (typeof window === 'undefined' || !pathname) {
-        return false;
-      }
-      if (href === '/dashboard' || href === '/contractor/dashboard-enhanced') {
-        return pathname === href;
-      }
-      return pathname.startsWith(href);
+    const isActive = (href: string) => {
+        if (href === '/dashboard' || href === '/contractor/dashboard-enhanced') {
+            return pathname === href;
+        }
+        return pathname?.startsWith(href);
     };
-  }, [pathname]);
 
-  // Use CSS classes to avoid hydration mismatches from inline style normalization
-  // Always render expanded state initially to match SSR, then allow collapse after mount
-  // On mobile, sidebar should be hidden by default unless isMobileOpen is true
-  const sidebarClassName = `${styles.sidebar} ${isCollapsed && mounted ? styles.sidebarCollapsed : ''} ${isMobile && mounted && !isMobileOpen ? styles.sidebarMobileHidden : ''}`;
-  const shouldShowExpanded = !isCollapsed || !mounted;
+    // Mobile overlay and sidebar visibility
+    const sidebarClassName = `fixed left-0 top-0 h-screen w-[240px] bg-[#1e293b] flex flex-col z-50 transition-transform duration-300 ${
+        isMobile && mounted && !isMobileOpen ? '-translate-x-full' : ''
+    }`;
 
-  // Always render the same structure to prevent hydration mismatches
-  // The nav element must always be present, even during SSR
-  return (
-    <>
-      {/* Mobile overlay backdrop */}
-      {isMobile && mounted && isMobileOpen && (
-        <div
-          className={styles.sidebarOverlay}
-          onClick={handleMobileClose}
-          suppressHydrationWarning
-        />
-      )}
-      <aside className={sidebarClassName} suppressHydrationWarning>
-        {/* Logo Section */}
-        <div className={styles.logoSection}>
-          <div className={styles.logoContainer}>
-            <Logo width={32} height={32} />
-          </div>
-          <div className={styles.logoText} style={{ opacity: shouldShowExpanded ? 1 : 0, visibility: shouldShowExpanded ? 'visible' : 'hidden' }}>
-            Mintenance
-          </div>
-        </div>
+    return (
+        <>
+            {/* Mobile overlay backdrop */}
+            {isMobile && mounted && isMobileOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40"
+                    onClick={handleMobileClose}
+                    suppressHydrationWarning
+                />
+            )}
+            
+            <aside className={sidebarClassName} suppressHydrationWarning>
+                {/* Logo */}
+                <div className="p-6 border-b border-slate-700">
+                    <Link href="/dashboard" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">M</span>
+                        </div>
+                        <span className="text-white font-semibold text-lg">Mintenance</span>
+                    </Link>
+                </div>
 
-        {/* Navigation Items */}
-        <nav className={styles.nav} suppressHydrationWarning>
-          {navItems.map((item) => {
-            // Only calculate active state after mount to prevent hydration mismatch
-            // During SSR, always render as inactive, then update after hydration
-            const active = mounted ? isActive(item.href) : false;
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto py-4">
+                    {navItems.map((item) => (
+                        <div key={item.label}>
+                            {item.children ? (
+                                <>
+                                    <button
+                                        onClick={() => toggleExpand(item.label)}
+                                        className={`w-full flex items-center gap-3 px-6 py-3 text-sm transition-colors ${
+                                            isActive(item.href)
+                                                ? 'text-teal-400 bg-slate-800'
+                                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        }`}
+                                    >
+                                        <item.icon className="w-5 h-5" />
+                                        <span className="flex-1 text-left">{item.label}</span>
+                                        <ChevronDown
+                                            className={`w-4 h-4 transition-transform ${
+                                                expandedItems.includes(item.label) ? 'rotate-180' : ''
+                                            }`}
+                                        />
+                                    </button>
+                                    {expandedItems.includes(item.label) && (
+                                        <div className="bg-slate-900">
+                                            {item.children.map((child) => (
+                                                <Link
+                                                    key={child.href}
+                                                    href={child.href}
+                                                    className={`flex items-center gap-3 px-6 pl-14 py-2 text-sm transition-colors ${
+                                                        isActive(child.href)
+                                                            ? 'text-teal-400 bg-slate-800'
+                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                                    }`}
+                                                >
+                                                    <span>{child.label}</span>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <Link
+                                    href={item.href}
+                                    className={`flex items-center gap-3 px-6 py-3 text-sm transition-colors ${
+                                        isActive(item.href)
+                                            ? 'text-teal-400 bg-slate-800'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <item.icon className="w-5 h-5" />
+                                    <span className="flex-1">{item.label}</span>
+                                    {item.badge && (
+                                        <span className="bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                                            {item.badge}
+                                        </span>
+                                    )}
+                                </Link>
+                            )}
+                        </div>
+                    ))}
+                </nav>
 
-            return (
-              <MenuTab
-                key={`${resolvedUserRole}-nav-${item.href}`}
-                icon={item.icon}
-                label={item.label}
-                href={item.href}
-                isActive={active}
-                isExpanded={shouldShowExpanded}
-              />
-            );
-          })}
-        </nav>
+                {/* User Profile Section */}
+                {userInfo && userInfo.name && (
+                    <div className="border-t border-slate-700 p-4">
+                        <div className="flex items-center gap-3">
+                            {userInfo.avatar ? (
+                                <img
+                                    src={userInfo.avatar}
+                                    alt={userInfo.name}
+                                    className="w-10 h-10 rounded-full"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center">
+                                    <span className="text-white font-semibold">
+                                        {userInfo.name.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-medium truncate">
+                                    {userInfo.name}
+                                </p>
+                                {userInfo.email && (
+                                    <p className="text-slate-400 text-xs truncate">
+                                        {userInfo.email}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-        {/* Bottom Section */}
-        <div className={styles.bottomSection}>
-          <MenuTab
-            icon="helpCircle"
-            label="Help"
-            href="/help"
-            isActive={false}
-            isExpanded={shouldShowExpanded}
-          />
-
-          {/* Issues Badge - Removed hardcoded badge as there's no actual issue checking logic */}
-          {/* TODO: Re-implement when issue checking system is available */}
-
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            suppressHydrationWarning
-            className={`flex items-center gap-4 h-12 rounded-full px-4 bg-transparent border-0 text-white/90 cursor-pointer transition-all duration-300 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-left ${shouldShowExpanded ? 'w-auto pr-[26px]' : 'w-12 justify-center px-0'
-              }`}
-          >
-            <LogOut size={22} className="text-white/90" />
-            <span
-              suppressHydrationWarning
-              className={`text-sm font-normal overflow-hidden transition-all duration-300 ${shouldShowExpanded ? 'opacity-100 visible w-auto ml-4' : 'opacity-0 invisible w-0 ml-0'
-                }`}
-            >
-              {isLoggingOut ? 'Signing out...' : 'Log Out'}
-            </span>
-          </button>
-        </div>
-      </aside>
-    </>
-  );
+                {/* Bottom Icons */}
+                <div className="border-t border-slate-700 p-4 flex items-center justify-around">
+                    <button className="text-slate-400 hover:text-white transition-colors" aria-label="Notifications">
+                        <Bell className="w-5 h-5" />
+                    </button>
+                    <button className="text-slate-400 hover:text-white transition-colors" aria-label="Help">
+                        <HelpCircle className="w-5 h-5" />
+                    </button>
+                    <button className="text-slate-400 hover:text-white transition-colors" aria-label="Settings">
+                        <Settings className="w-5 h-5" />
+                    </button>
+                </div>
+            </aside>
+        </>
+    );
 }
-

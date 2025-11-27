@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { theme } from '@/lib/theme';
 import { BarChart } from '@/components/ui/SimpleChart';
@@ -28,7 +26,7 @@ export function BarChartsSection({
 }: BarChartsSectionProps) {
   return (
     <div
-      className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 group relative overflow-hidden"
+      className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 group relative overflow-hidden"
       style={{
         height: '100%',
         display: 'flex',

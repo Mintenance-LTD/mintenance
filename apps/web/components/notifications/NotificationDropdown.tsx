@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
+import { logger } from '@mintenance/shared';
 
 interface Notification {
   id: string;
@@ -71,11 +72,11 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       // Fetch both regular notifications and social notifications
       const [regularResponse, socialResponse] = await Promise.all([
         fetch(`/api/notifications?userId=${userId}`).catch((err) => {
-          console.error('Error fetching regular notifications:', err);
+          logger.error('Error fetching regular notifications', err, { service: 'NotificationDropdown', userId });
           return null;
         }),
         fetch('/api/notifications/social?limit=20&unread_only=false').catch((err) => {
-          console.error('Error fetching social notifications:', err);
+          logger.error('Error fetching social notifications', err, { service: 'NotificationDropdown', userId });
           return null;
         }),
       ]);
@@ -105,14 +106,15 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
           // Debug: Log bid_accepted notifications
           const bidAccepted = parsedNotifications.filter(n => n.type === 'bid_accepted');
           if (bidAccepted.length > 0) {
-            console.log(`[NotificationDropdown] Found ${bidAccepted.length} bid_accepted notification(s)`, bidAccepted);
+            logger.info(`Found ${bidAccepted.length} bid_accepted notification(s)`, { service: 'NotificationDropdown', count: bidAccepted.length, notifications: bidAccepted });
           }
         } catch (parseError) {
-          console.error('Error parsing regular notifications response:', parseError);
+          logger.error('Error parsing regular notifications response', parseError, { service: 'NotificationDropdown', userId });
         }
       } else if (regularResponse) {
         const errorText = await regularResponse.text().catch(() => 'Unknown error');
-        console.warn('Regular notifications API returned non-OK status:', {
+        logger.warn('Regular notifications API returned non-OK status', {
+          service: 'NotificationDropdown',
           status: regularResponse.status,
           statusText: regularResponse.statusText,
           error: errorText,
@@ -136,7 +138,8 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       
       // Debug logging
       if (typeof window !== 'undefined' && uniqueNotifications.length > 0) {
-        console.log('Notifications fetched:', {
+        logger.info('Notifications fetched', {
+          service: 'NotificationDropdown',
           total: uniqueNotifications.length,
           unread: uniqueNotifications.filter(n => !n.read).length,
           types: uniqueNotifications.map(n => n.type),
@@ -144,7 +147,7 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         });
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      logger.error('Failed to fetch notifications', error, { service: 'NotificationDropdown', userId });
     } finally {
       setLoading(false);
     }
@@ -159,7 +162,7 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      logger.error('Failed to mark notification as read', error, { service: 'NotificationDropdown', notificationId });
     }
   };
 
@@ -172,7 +175,7 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      logger.error('Failed to mark all as read', error, { service: 'NotificationDropdown', userId });
     }
   };
 

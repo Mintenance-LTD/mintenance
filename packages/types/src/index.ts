@@ -172,33 +172,6 @@ export interface ContractorProfile extends User {
   availability?: 'immediate' | 'this_week' | 'this_month' | 'busy';
   certifications?: string[];
   // Additional fields for UI compatibility
-  rating?: number;
-  profileImageUrl?: string;
-  totalJobsCompleted?: number;
-}
-
-// Messaging types
-export interface Message {
-  id: string;
-  jobId: string;
-  senderId: string;
-  receiverId: string;
-  messageText: string;
-  messageType: 'text' | 'image' | 'file' | 'video_call_invitation' | 'video_call_started' | 'video_call_ended' | 'video_call_missed' | 'contract_submitted';
-  attachmentUrl?: string;
-  read: boolean;
-  createdAt: string;
-  // Video call specific fields
-  callId?: string;
-  callDuration?: number;
-  // Populated fields
-  senderName?: string;
-  senderRole?: string;
-}
-
-export interface MessageThread {
-  jobId: string;
-  jobTitle: string;
   lastMessage?: Message;
   unreadCount: number;
   participants: {
@@ -304,10 +277,10 @@ export interface PaymentIntent {
   amount: number;
   currency: string;
   status:
-    | 'requires_payment_method'
-    | 'requires_confirmation'
-    | 'succeeded'
-    | 'canceled';
+  | 'requires_payment_method'
+  | 'requires_confirmation'
+  | 'succeeded'
+  | 'canceled';
   client_secret: string;
 }
 
@@ -721,7 +694,7 @@ export interface GroupDiscussion {
   contentHtml?: string;
   postType: GroupDiscussionType;
   images: string[];
-  attachments: Array<{name: string; url: string; type: string; size: number}>;
+  attachments: Array<{ name: string; url: string; type: string; size: number }>;
   isPinned: boolean;
   isLocked: boolean;
   isHidden: boolean;

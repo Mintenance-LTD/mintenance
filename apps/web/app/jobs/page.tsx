@@ -6,18 +6,17 @@ import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { JobService } from '@/lib/services/JobService';
-import { SearchBar } from '@/components/SearchBar';
-import { Card, LoadingSpinner, ErrorView } from '@/components/ui';
+import { LoadingSpinner, ErrorView } from '@/components/ui';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { StatusBadge } from '@/components/ui/figma';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { theme } from '@/lib/theme';
 import { logger } from '@/lib/logger';
 import { formatMoney } from '@/lib/utils/currency';
-import Logo from '../components/Logo';
 import Link from 'next/link';
-import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
+import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
+import { PageHeader } from '@/components/layouts/PageHeader';
+import { MoreVertical } from 'lucide-react';
 import type { Job, User } from '@mintenance/types';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
@@ -70,6 +69,19 @@ export default function JobsPage() {
   useEffect(() => {
     document.title = 'Jobs | Mintenance';
   }, []);
+
+  // Fetch user profile for avatar
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const response = await fetch(`/api/users/${user.id}/profile`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Use React Query for data fetching
   const { data: allJobs = [], isLoading: loading, error: jobsError } = useQuery({
@@ -172,66 +184,65 @@ export default function JobsPage() {
     );
   }
 
-  // Use HomeownerLayoutShell for homeowners, old layout for contractors
+  // Use UnifiedSidebar and PageHeader for homeowners
   const userDisplayName = user.first_name && user.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
 
+  const userAvatar = userProfile?.profile_image_url || (user as any)?.profile_image_url;
+
   if (user.role === 'homeowner') {
     return (
-      <HomeownerLayoutShell
-        currentPath="/jobs"
-        userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-        userEmail={user.email}
-      >
-        <div style={{ padding: theme.spacing[6], maxWidth: '1440px', margin: '0 auto' }}>
-          {/* Page Header */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8 -m-8 rounded-2xl mb-8">
-            <div className="flex flex-wrap items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center shadow-sm">
-                  <Icon name="briefcase" size={28} color={theme.colors.primary} />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
-                    Your Jobs
-                  </h1>
-                  <p className="text-base font-medium text-gray-600 leading-relaxed">
-                    {allJobs.length} {allJobs.length === 1 ? 'job' : 'jobs'} total
-                  </p>
-                </div>
-              </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <UnifiedSidebar
+          userRole="homeowner"
+          userInfo={{
+            name: userDisplayName,
+            email: user.email,
+            avatar: userAvatar,
+          }}
+        />
+
+        <main className="flex flex-col flex-1 ml-[240px]">
+          <PageHeader
+            title="Your Jobs"
+            darkBackground={true}
+            actions={
               <Button
                 variant="primary"
                 size="lg"
                 onClick={() => router.push('/jobs/create')}
-                className="bg-secondary text-white hover:bg-secondary-600 shadow-md hover:shadow-lg"
+                className="bg-emerald-500 text-white hover:bg-emerald-600"
               >
                 <Icon name="plus" size={20} color="white" />
                 New Job
               </Button>
-            </div>
-          </div>
+            }
+            userName={userDisplayName}
+            userAvatar={userAvatar}
+          />
 
-          {/* Job List for Homeowners */}
-          {loading ? (
-            <LoadingSpinner message="Loading jobs..." />
-          ) : filteredJobs.length === 0 ? (
-            <EmptyState
-              variant="default"
-              icon="briefcase"
-              title="No jobs yet"
-              description="Use the button above to post your first maintenance job and get competitive quotes from verified contractors in your area."
-            />
-          ) : (
-            <div style={{ display: 'grid', gap: theme.spacing[4] }}>
-              {filteredJobs.map((job) => (
-                <JobCard key={job.id} job={job} user={user} router={router} />
-              ))}
-            </div>
-          )}
-        </div>
-      </HomeownerLayoutShell>
+          <div style={{ padding: theme.spacing[6], maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+            {/* Job List for Homeowners */}
+            {loading ? (
+              <LoadingSpinner message="Loading jobs..." />
+            ) : filteredJobs.length === 0 ? (
+              <EmptyState
+                variant="default"
+                icon="briefcase"
+                title="No jobs yet"
+                description="Use the button above to post your first maintenance job and get competitive quotes from verified contractors in your area."
+              />
+            ) : (
+              <div style={{ display: 'grid', gap: theme.spacing[4] }}>
+                {filteredJobs.map((job) => (
+                  <JobCard key={job.id} job={job} user={user} router={router} />
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -247,23 +258,7 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
-  const createdDate = (job as any).createdAt || (job as ProcessedJob).created_at;
-  const daysAgo = Math.floor(
-    (Date.now() - new Date(createdDate || Date.now()).getTime()) / (1000 * 3600 * 24)
-  );
   const hasPhotos = !!(job.photos && job.photos.length > 0);
-
-  // Check if user can pay for this job
-  const canPayForJob = user && (
-    (user.role === 'homeowner' && job.homeowner_id === user.id && job.status === 'completed') ||
-    (user.role === 'contractor' && job.contractor_id === user.id && job.status === 'completed')
-  );
-
-  const handlePayNow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.push(`/jobs/${job.id}/payment`);
-  };
 
   // Ensure job.id exists before rendering
   if (!job.id) {
@@ -281,48 +276,61 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
 
   // Handle card click navigation
   const handleCardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Only navigate if clicking on the card itself, not on interactive elements
     const target = e.target as HTMLElement;
-
-    // Check if click is on a button or other interactive element inside the card
     const clickedButton = target.closest('button');
     const clickedLink = target.closest('a[href]:not(.job-card-interactive)');
 
     if (clickedButton || clickedLink) {
-      // Don't navigate if clicking on Pay Now button or nested links
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-
-    // Debug logging
-    logger.debug('JobCard clicked', { jobId: job.id, url: jobDetailUrl });
   };
+
+  // Get status badge color based on status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { bg: '#D1FAE5', text: '#065F46', border: '#10B981' }; // Green
+      case 'in_progress':
+        return { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' }; // Yellow
+      case 'posted':
+        return { bg: '#E9D5FF', text: '#6B21A8', border: '#A855F7' }; // Purple
+      default:
+        return { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' }; // Gray
+    }
+  };
+
+  const statusColor = getStatusColor(job.status || 'posted');
+  const statusLabel = job.status === 'completed' ? 'COMPLETED' : 
+                     job.status === 'in_progress' ? 'IN PROGRESS' : 
+                     job.status === 'posted' ? 'POSTED' : 'PENDING';
+  
+  // Use shorter status labels for display
+  const displayStatusLabel = job.status === 'completed' ? 'DONE' : 
+                            job.status === 'in_progress' ? 'ACTIVE' : 
+                            job.status === 'posted' ? 'NEW' : 'PENDING';
 
   return (
     <Link
       href={jobDetailUrl}
-      className="job-card-interactive group bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 relative overflow-hidden"
+      className="job-card-interactive group bg-white rounded-xl border border-gray-200 p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-gray-300 relative"
       data-job-id={job.id}
       onClick={handleCardClick}
       data-href={jobDetailUrl}
     >
-      {/* Gradient bar - appears on hover, always visible on large screens */}
-      < div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10" ></div >
       {/* Card Layout: Photo on left, content on right */}
-      < div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }
-      }>
-        {/* Photo Section - Left Side */}
-        < div style={{ flexShrink: 0 }
-        }>
+      <div style={{ display: 'flex', gap: theme.spacing[4], alignItems: 'flex-start' }}>
+        {/* Photo Section - Left Side (Small Square) */}
+        <div style={{ flexShrink: 0 }}>
           {hasPhotos && job.photos && job.photos.length > 0 ? (
-            <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 relative group-hover:shadow-lg transition-shadow duration-300">
+            <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50 relative" style={{ width: '100px', height: '100px' }}>
               <Image
                 src={job.photos[0]}
                 alt={`${job.title} - Problem photo`}
-                width={200}
-                height={150}
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                width={100}
+                height={100}
+                className="object-cover"
                 style={{
                   display: 'block',
                   width: '100%',
@@ -330,164 +338,117 @@ const JobCard: React.FC<JobCardProps> = ({ job, user, router }) => {
                 }}
                 loading="lazy"
               />
-              {/* Photo count badge if multiple photos */}
-              {job.photos.length > 1 && (
-                <div style={{
-                  position: 'absolute',
-                  top: theme.spacing[2],
-                  right: theme.spacing[2],
-                  backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                  backdropFilter: 'blur(8px)',
-                  color: 'white',
-                  padding: `${theme.spacing[1]} ${theme.spacing[2.5]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1.5],
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
-                }}>
-                  <Icon name="image" size={12} color="white" />
-                  {job.photos.length}
-                </div>
-              )}
             </div>
           ) : (
-            <div className="w-[200px] h-[150px] rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 group-hover:border-gray-400 transition-colors duration-200">
-              <Icon name="image" size={32} color={theme.colors.textSecondary} />
+            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center" style={{ width: '100px', height: '100px' }}>
+              <Icon name="image" size={24} color={theme.colors.textSecondary} />
             </div>
           )}
-        </div >
+        </div>
 
         {/* Content Section - Right Side */}
-        < div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
-          {/* Header Row: Title, Priority, Budget */}
-          < div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3] }}>
-            <div style={{ flex: 1 }}>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 tracking-tight group-hover:text-primary transition-colors">
-                {job.title}
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], flexWrap: 'wrap' }}>
-                {/* Date */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
-                  <Icon name="clock" size={14} color={theme.colors.textSecondary} />
-                  <span style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}>
-                    {daysAgo === 0 ? 'Today' :
-                      daysAgo === 1 ? '1 day ago' :
-                        `${daysAgo} days ago`}
-                  </span>
-                </div>
-                {/* Location */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
-                  <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
-                  <span style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    fontWeight: theme.typography.fontWeight.medium
-                  }}>
-                    {job.location || 'Location not set'}
-                  </span>
-                </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: theme.spacing[2], position: 'relative' }}>
+          {/* Top Row: Title, Status Tag, Ellipsis */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[2] }}>
+            <h3 className="text-lg font-bold text-gray-900 tracking-tight" style={{ flex: 1 }}>
+              {job.title}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
+              {/* Status Tag */}
+              <div
+                style={{
+                  padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: statusColor.bg,
+                  border: `1px solid ${statusColor.border}`,
+                }}
+              >
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: statusColor.text,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                }}>
+                  {displayStatusLabel}
+                </span>
               </div>
+              {/* Ellipsis Menu */}
+              <button
+                onClick={handleInteractiveClick}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: theme.spacing[1]
+          </div>
+
+          {/* Description */}
+          {job.description && (
+            <p style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
+              lineHeight: 1.5,
+              margin: 0,
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
             }}>
-              <span className="text-2xl font-bold text-primary tracking-tight">
-                {formatMoney(Number(job.budget || 0), 'GBP')}
-              </span>
+              {job.description}
+            </p>
+          )}
+
+          {/* Details Line 1: Location and Budget */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[4], flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+              <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
               <span style={{
                 fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary
+                color: theme.colors.textSecondary,
+              }}>
+                Location
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+              <div style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: theme.colors.textSecondary,
+              }} />
+              <span style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
               }}>
                 Budget
               </span>
             </div>
-          </div >
+          </div>
 
-          {/* Description */}
-          {
-            job.description && (
-              <p style={{
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.6,
-                margin: 0,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}>
-                {job.description}
-              </p>
-            )
-          }
-
-          {/* Footer: Priority Badge and Status */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingTop: theme.spacing[4],
-            borderTop: `1px solid ${theme.colors.border}`
-          }}>
-            <div style={{
-              padding: `${theme.spacing[1.5]} ${theme.spacing[3]}`,
-              borderRadius: theme.borderRadius.lg,
-              backgroundColor: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-            }}
-              className="group-hover:bg-gray-100 transition-colors duration-200"
-            >
+          {/* Details Line 2: Actual Location and Budget Values */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[4], flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+              <Icon name="mapPin" size={14} color={theme.colors.textSecondary} />
               <span style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-                fontWeight: theme.typography.fontWeight.semibold,
-                letterSpacing: '0.5px'
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textPrimary,
+                fontWeight: theme.typography.fontWeight.medium,
               }}>
-                {(job.priority || 'NORMAL').toUpperCase()}
+                {job.location || 'Location not set'}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-              {canPayForJob && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={(e) => {
-                    handleInteractiveClick(e);
-                    handlePayNow(e);
-                  }}
-                  className="bg-success text-white hover:bg-success-dark"
-                >
-                  Pay Now
-                </Button>
-              )}
-              {job.status !== 'all' && (
-                <StatusBadge
-                  status={job.status === 'completed' ? 'completed' : job.status === 'in_progress' ? 'on_going' : job.status === 'posted' ? 'posted' : 'pending'}
-                />
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+              <span style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textPrimary,
+                fontWeight: theme.typography.fontWeight.medium,
+              }}>
+                {formatMoney(Number(job.budget || 0), 'GBP')}
+              </span>
             </div>
           </div>
-        </div >
-      </div >
-      <style jsx>{`
-        .job-card-interactive:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
-          border-color: rgba(0, 0, 0, 0.12);
-        }
-        .job-card-interactive:active {
-          transform: translateY(-2px) scale(0.99);
-        }
-      `}</style>
-    </Link >
+        </div>
+      </div>
+    </Link>
   );
 };

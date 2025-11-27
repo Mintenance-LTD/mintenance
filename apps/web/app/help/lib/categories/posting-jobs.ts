@@ -12,8 +12,8 @@ export const postingjobsCategory: Category = {
   icon: '📝',
   color: '#F59E0B',
   articles: [
-    { 
-      title: 'How to post a job', 
+    {
+      title: 'How to post a job',
       content: 'Create a detailed job posting to attract the right tradespeople.',
       fullContent: `# How to Post a Job
 
@@ -48,8 +48,8 @@ Posting a job on Mintenance helps you find the right tradesperson for your proje
 - Check tradesperson profiles and reviews
 - Select the best match for your project`
     },
-    { 
-      title: 'Setting a realistic budget', 
+    {
+      title: 'Setting a realistic budget',
       content: 'Guidelines for determining fair pricing for your project.',
       fullContent: `# Setting a Realistic Budget
 
@@ -80,8 +80,8 @@ Setting a realistic budget helps attract quality tradespeople and ensures fair p
 - Consider quality vs. cost trade-offs
 - Be transparent about your budget range`
     },
-    { 
-      title: 'Adding photos and details', 
+    {
+      title: 'Adding photos and details',
       content: 'Best practices for providing comprehensive job information.',
       fullContent: `# Adding Photos and Details
 
@@ -119,9 +119,9 @@ Detailed job postings attract better tradespeople and more accurate quotes.
 - Parking availability
 - Working hours preferences`
     },
-    { 
-      title: 'Editing or cancelling a job', 
-      content: 'How to modify or cancel a job posting after it's been created.',
+    {
+      title: 'Editing or cancelling a job',
+      content: 'How to modify or cancel a job posting after it\'s been created.',
       fullContent: `# Editing or Cancelling a Job
 
 You can edit or cancel your job posting at any time before accepting a bid.

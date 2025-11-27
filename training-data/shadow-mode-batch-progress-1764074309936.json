@@ -1,0 +1,195 @@
+{
+  "timestamp": "2025-11-25T12:38:29.936Z",
+  "csvPath": "training-data/ground-truth-labels.csv",
+  "batchNumber": 3,
+  "totalBatches": 199,
+  "overallProgress": {
+    "total": 1981,
+    "successful": 0,
+    "failed": 30,
+    "errors": [
+      {
+        "filename": "Animal-Damage_jpeg.rf.674aa6bfccd894b1b4006040a3973a87.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-16-12-21-38_png.rf.2d0d3c0263cadd109c5749128e90581f.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "22-1405376584805_jpeg_jpg.rf.02acb678e9478bdc9350bc92f2e443e0.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "6-background-cracked-multilayer-paint-rusty-metal-wall-small-texture-copy-space-228658281_jpg.rf.61e03d9b4621d443908376f187d8ead0.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-08-20-45-06_png.rf.08f77f26f1dd0c05b4660b3e45a30ba7.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "183_jpg.rf.510fb4a13301365c97f2b981662262eb.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-14-10-13-47_png.rf.3e130f91383729271f1f22697b073055.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "videoplayback23123_480_jpg.rf.e189cc3646ede91bbb364b64d8df2505.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "00340-3093835349-window-in-a-brick-wall_png_jpg.rf.641ca1153993a58774f19beb55e3fe8a.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "pipe14_jpeg_jpg.rf.ef3b1cde36d08fa638363c3817264760.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "videoplayback23123_450_jpg.rf.d444b9f58742a9f72a005975d0607534.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Gesesa-2_jpg.rf.8fc071738ffbc4244f05a0bd906161a2.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "photo-1756293530026_jpg.rf.9d890b6c0736c492ffefd2b4285ebda5.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "t1_jpg.rf.494e98851cff997bee85c7313f3cc3d2.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "184_jpg.rf.292364fee68f9da9437ecf0cb43a060d.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "videoplayback_12000_jpg.rf.d42754c7e7e4873757851ee04af72781.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-08-20-39-22_png.rf.a4bd7db9377a8335ab98e680930368ad.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "pipe-18_jpeg_jpg.rf.e9a42f08ff602e3b45b591e4d435520d.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "00332-3093835341-window-in-a-brick-wall_png_jpg.rf.3786eaa6aebde745334e740bad2dbbd6.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "img4-11467-com_2021_02-25_2367350591_jpg.rf.969bc2f42d314f4272d2c197b0576052.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "00330-3093835339-window-in-a-brick-wall_png_jpg.rf.5a69b88e1a4433830ac8d4ffd55a4d86.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "72-post-katrina_mold_in_house_on_dublin_street_carrollton_new_orleans_jpg.rf.c612ff338a92ca94f88d75c0d6744b4e.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "24-small-stain-2_jpeg_jpg.rf.705df80f9f3def144f924179ece2d251.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "18-why-do-cracked-walls-happen_jpg.rf.bbe822af4640218159b6a4a2e86a7ca6.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "82-gettyimages-130854560-57c7488a3df78c71b61cb61d_jpg.rf.583c071b82ef6a02b1065d1fad04a20e.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "24-small-stain-2_jpeg_jpg.rf.311fef6a6cb83262320947d7b89390ab.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "23-moldinsidewalls-d40fdee134fd46cf9e9090bb3576e5c6_jpg.rf.3af87ccbaad77380361a07ee0b753212.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "185_jpg.rf.380695460d3182210c09bb56418c4cea.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "image10_png.rf.c245954b11a2a97ee1c75a5c8ad7e411.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      },
+      {
+        "filename": "Screenshot-2023-11-08-20-14-19_png.rf.36675e7c601e52e92cbe60368189e511.jpg",
+        "error": "Cannot find module '@/lib/api/supabaseServer'\nRequire stack:\n- C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts"
+      }
+    ]
+  },
+  "currentBatchReport": {
+    "batchNumber": 3,
+    "totalBatches": 199,
+    "batchStartIndex": 20,
+    "batchEndIndex": 29,
+    "batchSize": 10,
+    "processed": 30,
+    "successful": 0,
+    "failed": 30,
+    "elapsedMs": 200124,
+    "averageTimePerImage": 6670.8,
+    "estimatedTimeRemaining": 13015,
+    "successRate": "0.00%",
+    "timestamp": "2025-11-25T12:38:29.935Z"
+  },
+  "allReports": [
+    {
+      "batchNumber": 1,
+      "totalBatches": 199,
+      "batchStartIndex": 0,
+      "batchEndIndex": 9,
+      "batchSize": 10,
+      "processed": 10,
+      "successful": 0,
+      "failed": 10,
+      "elapsedMs": 200163,
+      "averageTimePerImage": 20016.3,
+      "estimatedTimeRemaining": 39452,
+      "successRate": "0.00%",
+      "timestamp": "2025-11-25T12:31:49.692Z"
+    },
+    {
+      "batchNumber": 2,
+      "totalBatches": 199,
+      "batchStartIndex": 10,
+      "batchEndIndex": 19,
+      "batchSize": 10,
+      "processed": 20,
+      "successful": 0,
+      "failed": 20,
+      "elapsedMs": 200107,
+      "averageTimePerImage": 10005.35,
+      "estimatedTimeRemaining": 19620,
+      "successRate": "0.00%",
+      "timestamp": "2025-11-25T12:35:09.804Z"
+    },
+    {
+      "batchNumber": 3,
+      "totalBatches": 199,
+      "batchStartIndex": 20,
+      "batchEndIndex": 29,
+      "batchSize": 10,
+      "processed": 30,
+      "successful": 0,
+      "failed": 30,
+      "elapsedMs": 200124,
+      "averageTimePerImage": 6670.8,
+      "estimatedTimeRemaining": 13015,
+      "successRate": "0.00%",
+      "timestamp": "2025-11-25T12:38:29.935Z"
+    }
+  ]
+}

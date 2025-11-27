@@ -1,6 +1,24 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
-import type { MessageThread } from '@mintenance/types';
+
+interface MessageThread {
+  jobId: string;
+  jobTitle: string;
+  participants: Array<{
+    id: string;
+    name: string;
+    role?: string;
+    profile_image_url?: string;
+  }>;
+  lastMessage?: {
+    senderId: string;
+    messageText: string;
+    messageType?: string;
+    content?: string;
+    createdAt: string;
+  };
+  unreadCount: number;
+}
 
 interface ConversationCardProps {
   conversation: MessageThread;
@@ -14,7 +32,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   onClick,
 }) => {
   const otherParticipant = conversation.participants.find(
-    (p) => p.id !== currentUserId
+    (p: { id: string }) => p.id !== currentUserId
   );
 
   const displayName = otherParticipant?.name ?? 'Unknown User';
@@ -22,7 +40,38 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     ? otherParticipant.name.charAt(0).toUpperCase()
     : '?';
 
-  const formatTime = (dateString: string) => {
+  const truncateMessage = (text: string, maxLength: number = 60) => {
+    if (text.length <= maxLength) return text;
+    return `${text.substring(0, maxLength)}...`;
+  };
+
+  const getLastMessagePreview = () => {
+    if (!conversation.lastMessage) {
+      return 'No messages yet';
+    }
+
+    const messageText = conversation.lastMessage.messageText || conversation.lastMessage.content || '';
+    const { messageType } = conversation.lastMessage;
+
+    switch (messageType) {
+      case 'image':
+        return '📷 Photo';
+      case 'file':
+        return '📎 File';
+      case 'video_call_invitation':
+        return '📞 Video call invitation';
+      case 'video_call_started':
+        return '🎥 Video call started';
+      case 'video_call_ended':
+        return '📞 Call ended';
+      case 'video_call_missed':
+        return '📞 Missed call';
+      default:
+        return truncateMessage(messageText, 50);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -31,176 +80,121 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     const days = Math.floor(diff / 86400000);
 
     if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
     return date.toLocaleDateString();
-  };
-
-  const truncateMessage = (text: string, maxLength: number = 60) => {
-    if (text.length <= maxLength) return text;
-    return `${text.substring(0, maxLength)}...`;
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'contractor':
-        return '🔧';
-      case 'homeowner':
-        return '🏠';
-      default:
-        return '👤';
-    }
-  };
-
-  const roleIcon = getRoleIcon(otherParticipant?.role ?? '');
-
-  const getLastMessagePreview = () => {
-    if (!conversation.lastMessage) {
-      return 'No messages yet';
-    }
-
-    const { messageText, messageType } = conversation.lastMessage;
-    const isCurrentUserSender = conversation.lastMessage.senderId === currentUserId;
-    const prefix = isCurrentUserSender ? 'You: ' : '';
-
-    switch (messageType) {
-      case 'image':
-        return `${prefix}📷 Photo`;
-      case 'file':
-        return `${prefix}📎 File`;
-      case 'video_call_invitation':
-        return `${prefix}📞 Video call invitation`;
-      case 'video_call_started':
-        return `${prefix}🎥 Video call started`;
-      case 'video_call_ended':
-        return `${prefix}📞 Call ended`;
-      case 'video_call_missed':
-        return `${prefix}📞 Missed call`;
-      default:
-        return `${prefix}${truncateMessage(messageText)}`;
-    }
   };
 
   return (
     <div
       onClick={onClick}
-      className="flex items-center p-4 border-b border-gray-200 cursor-pointer bg-white transition-colors duration-200 hover:bg-gray-50"
+      className="flex items-center p-4 cursor-pointer bg-white transition-colors duration-200 hover:bg-gray-50"
+      style={{ padding: '16px 24px' }}
     >
-      {/* Profile Avatar - Clickable */}
+      {/* Profile Avatar - Left Side */}
       <div
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent double-triggering
-          onClick();
-        }}
         style={{
-          width: '50px',
-          height: '50px',
+          width: '48px',
+          height: '48px',
           borderRadius: '50%',
-          backgroundColor: theme.colors.primary,
+          backgroundColor: otherParticipant?.profile_image_url ? 'transparent' : '#14b8a6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginRight: theme.spacing.md,
-          fontSize: theme.typography.fontSize.lg,
-          color: theme.colors.white,
-          fontWeight: theme.typography.fontWeight.bold,
+          marginRight: '16px',
+          fontSize: '18px',
+          color: '#FFFFFF',
+          fontWeight: 600,
           flexShrink: 0,
           cursor: 'pointer',
+          overflow: 'hidden',
         }}
-        title={`Click to message ${displayName}`}
       >
-        {avatarInitial}
+        {otherParticipant?.profile_image_url ? (
+          <img
+            src={otherParticipant.profile_image_url}
+            alt={displayName}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          avatarInitial
+        )}
       </div>
 
-      {/* Conversation Details */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Header with name and timestamp */}
+      {/* Conversation Details - Right Side */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {/* Sender Name */}
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '2px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <span
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent double-triggering
-                onClick();
-              }}
-              className={`text-base mr-2 overflow-hidden text-ellipsis whitespace-nowrap cursor-pointer ${
-                conversation.unreadCount > 0
-                  ? 'font-[560] text-gray-900'
-                  : 'font-[460] text-gray-700'
-              }`}
-              title={`Click to message ${displayName}`}
-            >
-              {displayName}
-            </span>
-            <span style={{ fontSize: '12px' }}>
-              {roleIcon}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            {conversation.lastMessage && (
-              <span
-                style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginRight: theme.spacing.xs,
-                }}
-              >
-                {formatTime(conversation.lastMessage.createdAt)}
-              </span>
-            )}
-            {conversation.unreadCount > 0 && (
-              <div
-                style={{
-                  backgroundColor: theme.colors.error,
-                  color: theme.colors.white,
-                  borderRadius: '10px',
-                  minWidth: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.bold,
-                  padding: '0 6px',
-                }}
-              >
-                {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Job title */}
-        <div
-          style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.textSecondary,
-            marginBottom: '2px',
+            fontSize: '16px',
+            fontWeight: 600,
+            color: '#111827',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}
         >
-          📋 {conversation.jobTitle}
+          {displayName}
         </div>
 
-        {/* Last message preview */}
+        {/* Message Preview */}
         <div
-          className={`text-sm overflow-hidden text-ellipsis whitespace-nowrap ${
-            conversation.unreadCount > 0
-              ? 'font-[560] text-gray-900'
-              : 'font-[460] text-gray-600'
-          }`}
+          style={{
+            fontSize: '14px',
+            color: '#6B7280',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            lineHeight: 1.5,
+          }}
         >
           {getLastMessagePreview()}
         </div>
+      </div>
+
+      {/* Right Side: Timestamp and Unread Badge */}
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'flex-end', 
+        gap: '8px',
+        flexShrink: 0,
+        marginLeft: '16px',
+      }}>
+        {conversation.lastMessage && (
+          <span
+            style={{
+              fontSize: '12px',
+              color: '#6B7280',
+            }}
+          >
+            {formatTimeAgo(conversation.lastMessage.createdAt)}
+          </span>
+        )}
+        {conversation.unreadCount > 0 && (
+          <div
+            style={{
+              backgroundColor: '#14b8a6',
+              color: '#FFFFFF',
+              borderRadius: '50%',
+              minWidth: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '0 8px',
+            }}
+          >
+            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+          </div>
+        )}
       </div>
     </div>
   );

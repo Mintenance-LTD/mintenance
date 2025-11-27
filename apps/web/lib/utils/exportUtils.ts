@@ -3,6 +3,7 @@
  */
 
 import { sanitizeHtml } from '@/lib/sanitizer';
+import { logger } from '@mintenance/shared';
 
 export interface ExportData {
   headers: string[];
@@ -48,7 +49,7 @@ export function exportToCSV(data: ExportData, filename: string = 'report.csv'): 
 /**
  * Export data as JSON file
  */
-export function exportToJSON(data: any, filename: string = 'report.json'): void {
+export function exportToJSON(data: unknown, filename: string = 'report.json'): void {
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   downloadFile(blob, filename);
@@ -61,7 +62,7 @@ export function exportToJSON(data: any, filename: string = 'report.json'): void 
 export function exportToPDF(elementId: string, filename: string = 'report.pdf'): void {
   const element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id "${elementId}" not found`);
+    logger.error(`Element with id "${elementId}" not found`, undefined, { service: 'export-utils', elementId });
     return;
   }
   
@@ -104,7 +105,9 @@ export async function exportToPDFAdvanced(
 ): Promise<void> {
   try {
     // Dynamic import to avoid bundling if not used
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jsPDF = (await import('jspdf' as any)).default;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const html2canvas = (await import('html2canvas' as any)).default;
     
     const element = document.getElementById(elementId);
@@ -144,7 +147,7 @@ export async function exportToPDFAdvanced(
     
     pdf.save(filename);
   } catch (error) {
-    console.error('Error exporting to PDF:', error);
+    logger.error('Error exporting to PDF', error, { service: 'export-utils', elementId, filename });
     // Fallback to basic print
     exportToPDF(elementId, filename);
   }

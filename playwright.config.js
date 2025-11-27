@@ -5,8 +5,8 @@ const { defineConfig, devices } = require('@playwright/test');
  * @see https://playwright.dev/docs/test-configuration
  */
 module.exports = defineConfig({
-  testDir: './e2e',
-  testMatch: '**/*.spec.js',
+  testDir: './apps/web/e2e',
+  testMatch: '**/*.spec.{ts,js}',
   testIgnore: ['**/__tests__*/**', '**/node_modules/**', '**/tests/**', '**/*.test.ts', '**/*.test.js'],
   /* Run tests in files in parallel */
   fullyParallel: true,

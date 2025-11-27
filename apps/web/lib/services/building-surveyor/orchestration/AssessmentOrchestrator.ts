@@ -23,6 +23,10 @@ import type {
     RoboflowDetection,
     VisionAnalysisSummary,
     SAM3SegmentationData,
+    DamageSeverity,
+    UrgencyLevel,
+    HomeownerExplanation,
+    ContractorAdvice,
 } from '../types';
 import type { ContinuumMemoryConfig, MemoryQueryResult } from '../../ml-engine/memory/types';
 
@@ -150,7 +154,7 @@ export class AssessmentOrchestrator {
         task: () => Promise<T>,
         timeoutMs: number,
         taskName: string
-    ): Promise<{ success: boolean; data?: T; error?: any; timedOut: boolean; durationMs: number }> {
+    ): Promise<{ success: boolean; data?: T; error?: unknown; timedOut: boolean; durationMs: number }> {
         const startTime = Date.now();
 
         try {
@@ -181,16 +185,17 @@ export class AssessmentOrchestrator {
     /**
      * Convert vision analysis to summary format
      */
-    private static toVisionSummary(analysis: any): VisionAnalysisSummary | null {
-        if (!analysis) return null;
+    private static toVisionSummary(analysis: unknown): VisionAnalysisSummary | null {
+        if (!analysis || typeof analysis !== 'object') return null;
 
+        const analysisObj = analysis as Record<string, unknown>;
         return {
             provider: 'google-vision',
-            confidence: analysis.confidence || 50,
-            labels: analysis.labels || [],
-            objects: analysis.objects || [],
-            detectedFeatures: analysis.detectedFeatures || [],
-            suggestedCategories: analysis.suggestedCategories || [],
+            confidence: (typeof analysisObj.confidence === 'number' ? analysisObj.confidence : 50),
+            labels: (Array.isArray(analysisObj.labels) ? analysisObj.labels : []) as Array<{ description: string; score: number }>,
+            objects: (Array.isArray(analysisObj.objects) ? analysisObj.objects : []) as Array<{ name: string; score: number }>,
+            detectedFeatures: (Array.isArray(analysisObj.detectedFeatures) ? analysisObj.detectedFeatures : []) as string[],
+            suggestedCategories: (Array.isArray(analysisObj.suggestedCategories) ? analysisObj.suggestedCategories : []) as Array<{ category: string; confidence: number; reason: string }>,
         };
     }
 
@@ -511,7 +516,25 @@ export class AssessmentOrchestrator {
      * Build final assessment with all specialized analyses
      */
     private static async buildFinalAssessment(
-        aiAssessment: any,
+        aiAssessment: {
+            damageType?: string;
+            severity?: string;
+            confidence?: number;
+            location?: string;
+            description?: string;
+            detectedItems?: string[];
+            safetyHazards?: unknown[];
+            complianceIssues?: unknown[];
+            riskFactors?: unknown[];
+            riskScore?: number;
+            premiumImpact?: string;
+            urgency?: string;
+            recommendedActionTimeline?: string;
+            estimatedTimeToWorsen?: string;
+            urgencyReasoning?: string;
+            homeownerExplanation?: unknown;
+            contractorAdvice?: unknown;
+        },
         context?: AssessmentContext,
         roboflowDetections?: RoboflowDetection[],
         visionAnalysis?: VisionAnalysisSummary | null,
@@ -531,10 +554,61 @@ export class AssessmentOrchestrator {
             aiAssessment.premiumImpact
         );
 
+        // Type-safe helper functions
+        const isValidSeverity = (s: string | undefined): s is DamageSeverity => {
+            return s === 'early' || s === 'midway' || s === 'full';
+        };
+
+        const isValidUrgency = (u: string | undefined): u is UrgencyLevel => {
+            return u === 'immediate' || u === 'urgent' || u === 'soon' || u === 'planned' || u === 'monitor';
+        };
+
+        const isValidHomeownerExplanation = (obj: unknown): obj is HomeownerExplanation => {
+            return (
+                typeof obj === 'object' &&
+                obj !== null &&
+                'whatIsIt' in obj &&
+                'whyItHappened' in obj &&
+                'whatToDo' in obj
+            );
+        };
+
+        const isValidContractorAdvice = (obj: unknown): obj is ContractorAdvice => {
+            return (
+                typeof obj === 'object' &&
+                obj !== null &&
+                'repairNeeded' in obj &&
+                'materials' in obj &&
+                'tools' in obj &&
+                'estimatedTime' in obj &&
+                'estimatedCost' in obj &&
+                'complexity' in obj
+            );
+        };
+
+        const defaultHomeownerExplanation: HomeownerExplanation = {
+            whatIsIt: 'Building damage detected',
+            whyItHappened: 'Cause unknown',
+            whatToDo: 'Consult a professional',
+        };
+
+        const defaultContractorAdvice: ContractorAdvice = {
+            repairNeeded: [],
+            materials: [],
+            tools: [],
+            estimatedTime: 'Unknown',
+            estimatedCost: {
+                min: 0,
+                max: 0,
+                recommended: 0,
+            },
+            complexity: 'medium',
+        };
+
         return {
             damageAssessment: {
                 damageType: aiAssessment.damageType || 'unknown_damage',
-                severity: aiAssessment.severity || 'early',
+                severity: isValidSeverity(aiAssessment.severity) ? aiAssessment.severity : 'early',
                 confidence: aiAssessment.confidence || 50,
                 location: aiAssessment.location || 'Unknown',
                 description: aiAssessment.description || 'No description available',
@@ -544,33 +618,22 @@ export class AssessmentOrchestrator {
             compliance: complianceAnalysis,
             insuranceRisk,
             urgency: {
-                urgency: aiAssessment.urgency || 'monitor',
+                urgency: isValidUrgency(aiAssessment.urgency) ? aiAssessment.urgency : 'monitor',
                 recommendedActionTimeline: aiAssessment.recommendedActionTimeline || 'Monitor for changes',
                 estimatedTimeToWorsen: aiAssessment.estimatedTimeToWorsen,
                 reasoning: aiAssessment.urgencyReasoning || 'Standard assessment',
                 priorityScore: this.calculatePriorityScore(
-                    aiAssessment.urgency || 'monitor',
-                    aiAssessment.severity || 'early',
+                    isValidUrgency(aiAssessment.urgency) ? aiAssessment.urgency : 'monitor',
+                    isValidSeverity(aiAssessment.severity) ? aiAssessment.severity : 'early',
                     safetyAnalysis.overallSafetyScore
                 ),
             },
-            homeownerExplanation: aiAssessment.homeownerExplanation || {
-                whatIsIt: 'Building damage detected',
-                whyItHappened: 'Cause unknown',
-                whatToDo: 'Consult a professional',
-            },
-            contractorAdvice: aiAssessment.contractorAdvice || {
-                repairNeeded: [],
-                materials: [],
-                tools: [],
-                estimatedTime: 'Unknown',
-                estimatedCost: {
-                    min: 0,
-                    max: 0,
-                    recommended: 0,
-                },
-                complexity: 'medium',
-            },
+            homeownerExplanation: isValidHomeownerExplanation(aiAssessment.homeownerExplanation)
+                ? aiAssessment.homeownerExplanation
+                : defaultHomeownerExplanation,
+            contractorAdvice: isValidContractorAdvice(aiAssessment.contractorAdvice)
+                ? aiAssessment.contractorAdvice
+                : defaultContractorAdvice,
             evidence: {
                 roboflowDetections,
                 visionAnalysis,

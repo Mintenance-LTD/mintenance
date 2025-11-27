@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error exporting training data', error, {
       service: 'training-data-export-api',
     });

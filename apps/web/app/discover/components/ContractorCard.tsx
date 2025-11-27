@@ -1,10 +1,26 @@
-'use client';
-
 import React from 'react';
 import { theme } from '@/lib/theme';
 
+interface ContractorSkill {
+  skill_name: string;
+}
+
+interface Contractor {
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  bio?: string;
+  profile_image_url?: string;
+  email_verified?: boolean;
+  rating?: number;
+  total_jobs_completed?: number;
+  city?: string;
+  is_available?: boolean;
+  contractor_skills?: ContractorSkill[];
+}
+
 interface ContractorCardProps {
-  contractor: any;
+  contractor: Contractor;
 }
 
 /**
@@ -13,7 +29,7 @@ interface ContractorCardProps {
 export const ContractorCard: React.FC<ContractorCardProps> = ({ contractor }) => {
   const rating = contractor.rating || 0;
   const reviewCount = contractor.total_jobs_completed || 0;
-  const specialties = contractor.contractor_skills?.map((s: any) => s.skill_name) || [];
+  const specialties = contractor.contractor_skills?.map((s) => s.skill_name) || [];
   
   return (
     <div style={{

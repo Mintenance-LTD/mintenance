@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@mintenance/shared';
 
 const loginFormSchema = z.object({
   email: z
@@ -22,7 +23,7 @@ const loginFormSchema = z.object({
     .min(1, 'Email is required')
     .email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean().optional(),
 });
 
 type LoginFormData = z.infer<typeof loginFormSchema>;
@@ -87,7 +88,10 @@ export default function LoginPage() {
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        console.error('Non-JSON response from login API:', text.substring(0, 500));
+        logger.error('Non-JSON response from login API', new Error('Invalid response format'), {
+          service: 'login',
+          responsePreview: text.substring(0, 500),
+        });
         throw new Error('Server error: Invalid response format. Please try again.');
       }
 
@@ -128,25 +132,53 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Left Side - Enhanced Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-700/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+      <div className="hidden lg:flex lg:w-1/2 bg-primary-950 text-white p-12 flex-col justify-between relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-primary-950/95 to-primary-900/90"></div>
+
+        {/* Tech Grid Pattern */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+        {/* Glowing Orbs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 animate-pulse duration-3000"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
 
         <div className="relative z-10">
           <Link href="/" className="flex items-center space-x-3 mb-16 group">
-            <div className="transform transition-transform group-hover:scale-110 duration-300">
+            <div className="transform transition-transform group-hover:scale-110 duration-300 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
               <Logo />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Mintenance</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Mintenance</h1>
           </Link>
-          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Welcome Back!</h2>
-          <p className="text-xl text-gray-300 leading-relaxed">
-            Sign in to manage your home projects and connect with trusted tradespeople.
+          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">
+            Welcome Back!
+          </h2>
+          <p className="text-xl text-primary-100 leading-relaxed max-w-md">
+            Sign in to your command center to manage projects and connect with top-tier tradespeople.
           </p>
         </div>
-        <div className="text-sm text-gray-400 relative z-10">
-          <p className="font-medium">© 2025 MINTENANCE LTD</p>
-          <p className="text-gray-500">Company No. 16542104</p>
+
+        <div className="relative z-10 space-y-6">
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+              <div className="text-secondary-400 font-bold text-lg mb-1">AI-Powered</div>
+              <div className="text-primary-200 text-sm">Smart matching & insights</div>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
+              <div className="text-accent-400 font-bold text-lg mb-1">Secure</div>
+              <div className="text-primary-200 text-sm">Protected payments & data</div>
+            </div>
+          </div>
+
+          <div className="text-sm text-primary-400 flex justify-between items-end">
+            <div>
+              <p className="font-medium text-white">© 2025 MINTENANCE LTD</p>
+              <p>Building the future of home maintenance</p>
+            </div>
+            <div className="text-xs opacity-50">v2.0.0</div>
+          </div>
         </div>
       </div>
 

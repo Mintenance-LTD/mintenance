@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch following list' }, { status: 500 });
     }
 
-    const formattedFollowing = (following || []).map((follow: any) => ({
+    const formattedFollowing = (following || []).map((follow: Record<string, unknown>) => ({
       id: follow.id,
       contractor_id: follow.following_id,
       created_at: follow.created_at,

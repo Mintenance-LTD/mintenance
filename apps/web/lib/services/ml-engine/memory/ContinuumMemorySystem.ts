@@ -11,7 +11,8 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+// Use relative path for tsx compatibility (when running scripts from root)
+import { serverSupabase } from '../../../api/supabaseServer';
 import { SelfModifyingTitans } from './SelfModifyingTitans';
 import type {
   ContinuumMemoryConfig,

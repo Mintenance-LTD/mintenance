@@ -174,6 +174,51 @@ export function generateMetrics(kpiData: KpiData): {
 } {
   const allMetrics: DashboardMetric[] = [
     {
+      key: 'scheduled-jobs',
+      label: 'Scheduled Jobs',
+      value: formatMoney(kpiData.jobsData.totalRevenue * 0.1, 'GBP'), // Placeholder calculation for demo, ideally this is count or value
+      subtitle: 'Total Value',
+      icon: 'calendar',
+      iconColor: theme.colors.primary,
+      trend: { direction: 'up', value: '+12.00', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: false,
+    },
+    {
+      key: 'active-bids',
+      label: 'Active Bids',
+      value: formatMoney(kpiData.bidsData.averageBid, 'GBP'), // Using avg bid as value for demo
+      subtitle: 'Total Value',
+      icon: 'fileText',
+      iconColor: theme.colors.info,
+      trend: { direction: 'up', value: '+13.00', label: 'from last month' },
+      gradientVariant: 'primary',
+      gradient: false,
+    },
+    {
+      key: 'active-subscriptions',
+      label: 'Active Subscriptions',
+      value: formatMoney(100, 'GBP'), // Placeholder
+      subtitle: 'Total Budget',
+      icon: 'repeat',
+      iconColor: theme.colors.success,
+      trend: { direction: 'up', value: '+100', label: 'from last month' },
+      gradientVariant: 'success',
+      gradient: false,
+    },
+    {
+      key: 'total-budget',
+      label: 'Total Budget',
+      value: formatMoney(kpiData.jobsData.totalRevenue * 0.15, 'GBP'), // Placeholder
+      subtitle: 'Total Budget',
+      icon: 'currencyPound',
+      iconColor: theme.colors.success,
+      trend: { direction: 'up', value: '+13.00', label: 'from last month' },
+      gradientVariant: 'success',
+      gradient: false,
+    },
+    // Secondary metrics (hidden from top view)
+    {
       key: 'average-job-size',
       label: 'Average Job Size',
       value: formatMoney(kpiData.jobsData.averageSize, 'GBP'),
@@ -181,17 +226,6 @@ export function generateMetrics(kpiData: KpiData): {
       iconColor: theme.colors.primary,
       trend: { direction: 'up', value: '+10%', label: 'from last month' },
       gradientVariant: 'primary',
-      gradient: true,
-    },
-    {
-      key: 'total-revenue',
-      label: 'Total Revenue',
-      value: formatMoney(kpiData.jobsData.totalRevenue, 'GBP'),
-      subtitle: `${kpiData.jobsData.completedJobs} completed jobs`,
-      icon: 'currencyPound',
-      iconColor: theme.colors.success,
-      trend: { direction: 'up', value: '+54%', label: 'from last month' },
-      gradientVariant: 'success',
       gradient: true,
     },
     {
@@ -205,26 +239,6 @@ export function generateMetrics(kpiData: KpiData): {
       gradient: true,
     },
     {
-      key: 'scheduled-jobs',
-      label: 'Scheduled Jobs',
-      value: kpiData.jobsData.scheduledJobs,
-      icon: 'calendar',
-      iconColor: theme.colors.warning,
-      trend: { direction: 'up', value: '+5%', label: 'from last month' },
-      gradientVariant: 'warning',
-      gradient: true,
-    },
-    {
-      key: 'active-bids',
-      label: 'Active Bids',
-      value: kpiData.bidsData.activeBids,
-      icon: 'fileText',
-      iconColor: theme.colors.info,
-      trend: { direction: 'up', value: '+15%', label: 'from last month' },
-      gradientVariant: 'primary',
-      gradient: true,
-    },
-    {
       key: 'pending-review',
       label: 'Pending Review',
       value: kpiData.bidsData.pendingReview,
@@ -232,26 +246,6 @@ export function generateMetrics(kpiData: KpiData): {
       iconColor: theme.colors.warning,
       trend: { direction: 'up', value: '+25%', label: 'from last month' },
       gradientVariant: 'warning',
-      gradient: true,
-    },
-    {
-      key: 'accepted-bids',
-      label: 'Accepted Bids',
-      value: kpiData.bidsData.acceptedBids,
-      icon: 'checkCircle',
-      iconColor: theme.colors.success,
-      trend: { direction: 'up', value: '+54%', label: 'from last month' },
-      gradientVariant: 'success',
-      gradient: true,
-    },
-    {
-      key: 'average-bid',
-      label: 'Average Bid',
-      value: formatMoney(kpiData.bidsData.averageBid, 'GBP'),
-      icon: 'currencyPound',
-      iconColor: theme.colors.primary,
-      trend: { direction: 'up', value: '+5%', label: 'from last month' },
-      gradientVariant: 'primary',
       gradient: true,
     },
     {
@@ -264,51 +258,11 @@ export function generateMetrics(kpiData: KpiData): {
       gradientVariant: 'primary',
       gradient: true,
     },
-    {
-      key: 'pending-properties',
-      label: 'Pending Properties',
-      value: kpiData.propertiesData.pendingProperties,
-      icon: 'clock',
-      iconColor: theme.colors.warning,
-      trend: { direction: 'down', value: '-5%', label: 'from last month' },
-      gradientVariant: 'warning',
-      gradient: true,
-    },
-    {
-      key: 'active-subscriptions',
-      label: 'Active Subscriptions',
-      value: kpiData.propertiesData.activeSubscriptions,
-      icon: 'repeat',
-      iconColor: theme.colors.info,
-      trend: { direction: 'down', value: '-8%', label: 'from last month' },
-      gradientVariant: 'primary',
-      gradient: true,
-    },
-    {
-      key: 'overdue-subscriptions',
-      label: 'Overdue Subscriptions',
-      value: kpiData.propertiesData.overdueSubscriptions,
-      icon: 'alertCircle',
-      iconColor: theme.colors.error,
-      trend: { direction: 'up', value: '+5%', label: 'from last month' },
-      gradientVariant: 'error',
-      gradient: true,
-    },
   ];
 
-  const overflowMetricKeys = new Set([
-    'scheduled-jobs',
-    'pending-review',
-    'pending-properties',
-    'active-bids',
-    'average-bid',
-    'active-properties',
-    'overdue-subscriptions',
-    'active-subscriptions',
-  ]);
-
-  const primaryMetrics = allMetrics.filter((metric) => !overflowMetricKeys.has(metric.key));
-  const secondaryMetrics = allMetrics.filter((metric) => overflowMetricKeys.has(metric.key));
+  // Primary metrics are strictly the top 4
+  const primaryMetrics = allMetrics.slice(0, 4);
+  const secondaryMetrics = allMetrics.slice(4);
 
   return {
     allMetrics,

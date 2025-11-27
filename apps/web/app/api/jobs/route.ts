@@ -356,8 +356,8 @@ export async function POST(request: NextRequest) {
       insertPayload.property_id = payload.property_id;
     }
 
-    let data: any;
-    let error: any;
+    let data: unknown;
+    let error: unknown;
     
     // Try insert with required_skills first
     let result = await serverSupabase
@@ -528,8 +528,20 @@ export async function POST(request: NextRequest) {
 
           if (!contractorsError && contractors && contractors.length > 0) {
             // Find contractors within 25km radius
-            const nearbyContractors = contractors.filter((contractor: any) => {
-              const distance = calculateDistance(jobLat!, jobLng!, contractor.latitude, contractor.longitude);
+            interface ContractorRecord {
+              id: string;
+              latitude?: number;
+              longitude?: number;
+              [key: string]: unknown;
+            }
+
+            const nearbyContractors = contractors.filter((contractor: ContractorRecord) => {
+              const lat = typeof contractor.latitude === 'number' ? contractor.latitude : undefined;
+              const lng = typeof contractor.longitude === 'number' ? contractor.longitude : undefined;
+              if (lat === undefined || lng === undefined || jobLat === undefined || jobLng === undefined) {
+                return false;
+              }
+              const distance = calculateDistance(jobLat, jobLng, lat, lng);
               return distance <= 25; // 25km radius
             });
 
@@ -537,17 +549,22 @@ export async function POST(request: NextRequest) {
             let contractorsToNotify = nearbyContractors;
             if (insertPayload.required_skills && insertPayload.required_skills.length > 0) {
               // Get contractor skills
-              const contractorIds = nearbyContractors.map((c: any) => c.id);
+              const contractorIds = nearbyContractors.map((c: ContractorRecord) => c.id);
               const { data: contractorSkills } = await serverSupabase
                 .from('contractor_skills')
                 .select('contractor_id, skill_name')
                 .in('contractor_id', contractorIds);
 
+              interface ContractorSkillRecord {
+                contractor_id: string;
+                skill_name: string;
+              }
+
               // Filter to only contractors with matching skills
-              const contractorsWithMatchingSkills = nearbyContractors.filter((contractor: any) => {
+              const contractorsWithMatchingSkills = nearbyContractors.filter((contractor: ContractorRecord) => {
                 const contractorSkillNames = (contractorSkills || [])
-                  .filter((cs: any) => cs.contractor_id === contractor.id)
-                  .map((cs: any) => cs.skill_name);
+                  .filter((cs: ContractorSkillRecord) => cs.contractor_id === contractor.id)
+                  .map((cs: ContractorSkillRecord) => cs.skill_name);
                 
                 // Check if contractor has at least one matching skill
                 return insertPayload.required_skills!.some(skill => contractorSkillNames.includes(skill));
@@ -560,7 +577,7 @@ export async function POST(request: NextRequest) {
 
             // Create notifications for matching contractors
             if (contractorsToNotify.length > 0) {
-              const notifications = contractorsToNotify.map((contractor: any) => {
+              const notifications = contractorsToNotify.map((contractor: ContractorRecord) => {
                 const budgetText = insertPayload.budget ? `£${insertPayload.budget.toLocaleString()}` : 'Negotiable';
                 const skillsText = insertPayload.required_skills && insertPayload.required_skills.length > 0
                   ? `Requires: ${insertPayload.required_skills.join(', ')}. `
