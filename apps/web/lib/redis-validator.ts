@@ -4,6 +4,7 @@
  */
 
 import { Redis } from '@upstash/redis';
+import { logger } from '@mintenance/shared';
 
 interface RedisConfig {
   url: string;
@@ -190,27 +191,27 @@ export async function validateRedisConfig(): Promise<ValidationResult> {
  * CLI validation script
  */
 export async function runRedisValidation(): Promise<void> {
-  console.log('🔍 Validating Redis configuration...');
+  logger.info('🔍 Validating Redis configuration...');
   
   const result = await validateRedisConfig();
   
   if (result.success) {
-    console.log('✅ Redis validation successful!');
-    console.log('📊 Test Results:');
-    console.log(`  Connection: ${result.details.connection ? '✅' : '❌'}`);
-    console.log(`  Write: ${result.details.write ? '✅' : '❌'}`);
-    console.log(`  Read: ${result.details.read ? '✅' : '❌'}`);
-    console.log(`  TTL: ${result.details.ttl ? '✅' : '❌'}`);
-    console.log(`  Delete: ${result.details.delete ? '✅' : '❌'}`);
+    logger.info('✅ Redis validation successful!');
+    logger.info('📊 Test Results:');
+    logger.info(`  Connection: ${result.details.connection ? '✅' : '❌'}`);
+    logger.info(`  Write: ${result.details.write ? '✅' : '❌'}`);
+    logger.info(`  Read: ${result.details.read ? '✅' : '❌'}`);
+    logger.info(`  TTL: ${result.details.ttl ? '✅' : '❌'}`);
+    logger.info(`  Delete: ${result.details.delete ? '✅' : '❌'}`);
   } else {
-    console.error('❌ Redis validation failed!');
-    console.error(`Error: ${result.error}`);
-    console.log('📊 Test Results:');
-    console.log(`  Connection: ${result.details.connection ? '✅' : '❌'}`);
-    console.log(`  Write: ${result.details.write ? '✅' : '❌'}`);
-    console.log(`  Read: ${result.details.read ? '✅' : '❌'}`);
-    console.log(`  TTL: ${result.details.ttl ? '✅' : '❌'}`);
-    console.log(`  Delete: ${result.details.delete ? '✅' : '❌'}`);
+    logger.error('❌ Redis validation failed!');
+    logger.error(`Error: ${result.error}`);
+    logger.info('📊 Test Results:');
+    logger.info(`  Connection: ${result.details.connection ? '✅' : '❌'}`);
+    logger.info(`  Write: ${result.details.write ? '✅' : '❌'}`);
+    logger.info(`  Read: ${result.details.read ? '✅' : '❌'}`);
+    logger.info(`  TTL: ${result.details.ttl ? '✅' : '❌'}`);
+    logger.info(`  Delete: ${result.details.delete ? '✅' : '❌'}`);
     process.exit(1);
   }
 }

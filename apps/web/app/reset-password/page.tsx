@@ -8,10 +8,9 @@ import { z } from 'zod';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { AuthCard, PasswordInput, AuthLink } from '@/components/auth';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters')
@@ -31,8 +30,6 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [accessToken, setAccessToken] = React.useState('');
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
 
@@ -48,6 +45,9 @@ function ResetPasswordForm() {
       confirmPassword: '',
     },
   });
+
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -105,37 +105,39 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push('/login');
       }, 2000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to reset password. Please try again.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password. Please try again.';
+      setErrorMessage(errorMessage);
       setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center mb-6">
-            <Logo />
+          <Link href="/" className="inline-flex items-center justify-center space-x-2 mb-6">
+            <Logo className="w-10 h-10" />
+            <span className="text-2xl font-bold text-[#0066CC]">Mintenance</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white mb-2">Reset Your Password</h1>
-          <p className="text-gray-300">Enter your new password below</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Create new password</h1>
+          <p className="text-base text-gray-600">
+            Your new password must be different from previously used passwords
+          </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 group relative overflow-hidden">
-          {/* Gradient bar - appears on hover, always visible on large screens */}
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
+        <AuthCard>
           {submitStatus === 'success' ? (
-            <div className="text-center">
-              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-secondary" />
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
-              <AlertTitle className="text-2xl font-bold text-primary mb-3">Password Reset Successful!</AlertTitle>
-              <AlertDescription className="text-gray-600 mb-6">
-                Your password has been reset. Redirecting you to login...
-              </AlertDescription>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">Password reset!</h2>
+              <p className="text-gray-600 mb-6">
+                Your password has been successfully reset. Redirecting you to login...
+              </p>
             </div>
           ) : (
             <>
@@ -148,85 +150,77 @@ function ResetPasswordForm() {
               )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      {...register('password')}
-                      error={errors.password?.message}
-                      placeholder="Enter new password"
-                      disabled={isSubmitting || !accessToken}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Must contain: 8+ characters, uppercase, lowercase, number, and special character
-                  </p>
-                </div>
+                <PasswordInput
+                  label="New password"
+                  placeholder="Create a strong password"
+                  autoComplete="new-password"
+                  autoFocus
+                  showStrengthMeter
+                  showRequirements
+                  {...register('password')}
+                  error={errors.password?.message}
+                  value={password}
+                  disabled={isSubmitting || !accessToken}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      {...register('confirmPassword')}
-                      error={errors.confirmPassword?.message}
-                      placeholder="Confirm new password"
-                      disabled={isSubmitting || !accessToken}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
+                <PasswordInput
+                  label="Confirm new password"
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                  {...register('confirmPassword')}
+                  error={errors.confirmPassword?.message}
+                  value={confirmPassword}
+                  disabled={isSubmitting || !accessToken}
+                />
 
                 <Button
                   type="submit"
                   variant="primary"
+                  size="lg"
                   fullWidth
                   loading={isSubmitting}
                   disabled={isSubmitting || !accessToken}
+                  className="bg-[#0066CC] hover:bg-[#0052A3] text-white shadow-lg hover:shadow-xl transition-all duration-200"
                 >
-                  {isSubmitting ? 'Resetting...' : 'Reset Password'}
+                  {isSubmitting ? 'Resetting password...' : 'Reset Password'}
                 </Button>
 
                 <div className="text-center">
-                  <Link href="/login" className="text-sm text-gray-600 hover:text-primary transition-colors">
-                    ← Back to Login
-                  </Link>
+                  <AuthLink href="/login" variant="default" className="inline-flex items-center gap-2 text-sm font-medium">
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to login
+                  </AuthLink>
                 </div>
               </form>
             </>
           )}
-        </div>
+        </AuthCard>
 
         {/* Security Notice */}
-        <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
-          <div className="flex items-start">
-            <AlertCircle className="w-5 h-5 text-secondary mr-3 mt-0.5 shrink-0" />
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-5 h-5 text-[#0066CC] mt-0.5">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
             <div>
-              <h3 className="text-sm font-semibold text-white mb-1">Security Tip</h3>
-              <p className="text-xs text-gray-300">
-                Choose a strong password with at least 8 characters, including numbers and special characters.
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">Security tip</h3>
+              <p className="text-xs text-gray-600">
+                Use a strong password with at least 8 characters, including uppercase and lowercase letters, numbers, and special characters.
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Legal Links */}
+        <div className="mt-6 text-center">
+          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+            <AuthLink href="/terms" variant="muted">Terms</AuthLink>
+            <span>•</span>
+            <AuthLink href="/privacy" variant="muted">Privacy</AuthLink>
+            <span>•</span>
+            <AuthLink href="/help" variant="muted">Help</AuthLink>
           </div>
         </div>
       </div>

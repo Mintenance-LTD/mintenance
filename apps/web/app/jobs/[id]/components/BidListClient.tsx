@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { BidSwipeCard } from './BidSwipeCard';
 import { useRouter } from 'next/navigation';
@@ -15,8 +16,29 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+interface BidData {
+  id: string;
+  amount: number;
+  description?: string;
+  status: string;
+  created_at: string;
+  contractor_id: string;
+  quote_id?: string;
+  contractor?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    rating?: number;
+    company_name?: string;
+    admin_verified?: boolean;
+    email?: string;
+    phone?: string;
+  };
+}
+
 interface BidListClientProps {
-  bids: any[];
+  bids: BidData[];
   jobId: string;
 }
 
@@ -53,7 +75,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
 
       if (!response.ok) {
         const errorMessage = data.error || `Failed to accept bid (${response.status})`;
-        console.error('Error accepting bid:', {
+        logger.error('Error accepting bid:', {
           status: response.status,
           error: errorMessage,
           details: data,
@@ -65,7 +87,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
       router.refresh();
       handleCloseModal();
     } catch (error) {
-      console.error('Error accepting bid:', error);
+      logger.error('Error accepting bid:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to accept bid. Please try again.';
       setErrorDialog({ open: true, message: errorMessage });
     } finally {
@@ -90,7 +112,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
 
       if (!response.ok) {
         const errorMessage = data.error || `Failed to reject bid (${response.status})`;
-        console.error('Error rejecting bid:', {
+        logger.error('Error rejecting bid:', {
           status: response.status,
           error: errorMessage,
           details: data,
@@ -102,7 +124,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
       router.refresh();
       handleCloseModal();
     } catch (error) {
-      console.error('Error rejecting bid:', error);
+      logger.error('Error rejecting bid:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to reject bid. Please try again.';
       setErrorDialog({ open: true, message: errorMessage });
     } finally {
@@ -113,7 +135,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-        {bids.map((bid: any, index: number) => {
+        {bids.map((bid: BidData, index: number) => {
           const bidContractor = bid.contractor;
           const contractorName = bidContractor?.first_name && bidContractor?.last_name
             ? `${bidContractor.first_name} ${bidContractor.last_name}`

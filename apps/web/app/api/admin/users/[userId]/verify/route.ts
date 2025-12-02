@@ -81,13 +81,21 @@ export async function POST(  request: NextRequest,
     }
 
     // Log verification action
+    // Convert VerificationCheck[] to ChecksPassed format
+    const checksPassed: Record<string, boolean> = {};
+    if (automatedCheck.checks && Array.isArray(automatedCheck.checks)) {
+      automatedCheck.checks.forEach((check: { name: string; passed: boolean }) => {
+        checksPassed[check.name] = check.passed;
+      });
+    }
+    
     await VerificationService.logVerificationAction(
       userId,
       admin.id,
       action === 'approve' ? 'approved' : 'rejected',
       reason || null,
       verificationScore,
-      automatedCheck.checks,
+      checksPassed,
       previousStatus,
       newStatus
     );

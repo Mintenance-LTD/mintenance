@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface GoogleMapContainerProps {
   center: { lat: number; lng: number };
@@ -27,7 +29,15 @@ interface GoogleMapContainerProps {
  *   }}
  * />
  */
-export function GoogleMapContainer({
+export function GoogleMapContainer(props: GoogleMapContainerProps): JSX.Element {
+  return (
+    <ErrorBoundary componentName="GoogleMapContainer">
+      <GoogleMapContent {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function GoogleMapContent({
   center,
   zoom = 10,
   onMapLoad,
@@ -57,7 +67,7 @@ export function GoogleMapContainer({
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     
     if (!apiKey) {
-      console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
+      logger.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
       setError('Map configuration error. Please contact support.');
       setLoading(false);
       return;
@@ -74,7 +84,7 @@ export function GoogleMapContainer({
       // Type assertion for google maps
       const google = (window as any).google;
       if (!google || !google.maps || !google.maps.Map) {
-        console.warn('Google Maps API not fully loaded yet');
+        logger.warn('Google Maps API not fully loaded yet');
         return;
       }
 
@@ -101,7 +111,7 @@ export function GoogleMapContainer({
         mapInstanceRef.current = mapInstance;
         setLoading(false);
         
-        console.log(`✅ Map loaded in ${loadTime.toFixed(0)}ms`);
+        logger.info(`✅ Map loaded in ${loadTime.toFixed(0)}ms`);
 
         // Track performance
         if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -114,7 +124,7 @@ export function GoogleMapContainer({
 
         onMapLoad?.(mapInstance);
       } catch (error) {
-        console.error('Error initializing map:', error);
+        logger.error('Error initializing map:', error);
         setError('Failed to initialize map');
         setLoading(false);
       }
@@ -165,7 +175,7 @@ export function GoogleMapContainer({
     script.defer = true;
 
     script.onerror = () => {
-      console.error('❌ Error loading Google Maps script');
+      logger.error('❌ Error loading Google Maps script');
       delete (window as any)[callbackName];
       setError('Failed to load map. Please try again.');
       setLoading(false);

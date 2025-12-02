@@ -14,6 +14,10 @@ interface AutomatedVerificationResult {
   verificationScore: number;
 }
 
+interface ChecksPassed {
+  [checkName: string]: boolean;
+}
+
 interface VerificationHistoryEntry {
   id: string;
   admin_id: string | null;
@@ -21,7 +25,7 @@ interface VerificationHistoryEntry {
   reason: string | null;
   verification_score: number | null;
   created_at: string;
-  checks_passed: any;
+  checks_passed: ChecksPassed | null;
   previous_status: boolean | null;
   new_status: boolean | null;
 }
@@ -252,7 +256,7 @@ export class VerificationService {
     action: 'approved' | 'rejected' | 'auto_flagged' | 'auto_approved',
     reason: string | null,
     verificationScore: number | null,
-    checksPassed: any,
+    checksPassed: ChecksPassed | null,
     previousStatus: boolean | null,
     newStatus: boolean | null
   ): Promise<void> {

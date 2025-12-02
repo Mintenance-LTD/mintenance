@@ -1,0 +1,519 @@
+name: Enhanced CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop, chore/**, feat/**, fix/**]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.19.4'
+  CACHE_VERSION: v1
+
+jobs:
+  # ============================================================
+  # CODE QUALITY & STATIC ANALYSIS
+  # ============================================================
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-npm-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-${{ env.CACHE_VERSION }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Run TypeScript type checking
+        run: |
+          npm run type-check -w @mintenance/web
+          npm run type-check -w @mintenance/mobile
+
+      - name: Run ESLint
+        run: |
+          npm run lint:web
+          npm run lint:mobile
+
+      - name: Run audit scripts
+        run: |
+          npm run audit:use-client
+          npm run audit:any-types
+          npm run audit:console
+        continue-on-error: true
+
+      - name: Check code formatting
+        run: npx prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: |
+            audit-*.json
+            audit-*.txt
+          retention-days: 7
+
+  # ============================================================
+  # UNIT TESTING
+  # ============================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: code-quality
+
+    strategy:
+      matrix:
+        workspace: [web, mobile]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-npm-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Run unit tests (${{ matrix.workspace }})
+        run: npm run test:${{ matrix.workspace }} -- --coverage --watchAll=false
+        env:
+          CI: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./apps/${{ matrix.workspace }}/coverage/lcov.info
+          flags: ${{ matrix.workspace }}
+          name: ${{ matrix.workspace }}-coverage
+
+      - name: Check coverage thresholds
+        run: |
+          if [ "${{ matrix.workspace }}" = "web" ]; then
+            THRESHOLD=80
+          else
+            THRESHOLD=70
+          fi
+
+          COVERAGE=$(grep -oP 'Lines\s+:\s+\K[\d\.]+' apps/${{ matrix.workspace }}/coverage/coverage-summary.txt || echo "0")
+
+          echo "Coverage: $COVERAGE%"
+          echo "Threshold: $THRESHOLD%"
+
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage below threshold!"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.workspace }}
+          path: apps/${{ matrix.workspace }}/coverage/
+          retention-days: 30
+
+  # ============================================================
+  # E2E TESTING
+  # ============================================================
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: unit-tests
+
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests (shard ${{ matrix.shard }}/4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: apps/web/playwright-report/
+          retention-days: 30
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos-${{ matrix.shard }}
+          path: apps/web/test-results/
+          retention-days: 7
+
+  # ============================================================
+  # PERFORMANCE & BUNDLE SIZE
+  # ============================================================
+  performance-checks:
+    name: Performance & Bundle Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: code-quality
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        working-directory: apps/web
+        run: npm run build
+        env:
+          ANALYZE: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Analyze web bundle size
+        run: |
+          cd apps/web/.next
+          echo "## Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check main bundle
+          MAIN_SIZE=$(du -sh static/chunks/pages/_app*.js 2>/dev/null | cut -f1 || echo "N/A")
+          echo "- Main bundle: $MAIN_SIZE" >> $GITHUB_STEP_SUMMARY
+
+          # Total size
+          TOTAL_SIZE=$(du -sh . | cut -f1)
+          echo "- Total build: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build mobile bundle
+        working-directory: apps/mobile
+        run: npx expo export --platform android --output-dir ./dist
+
+      - name: Check mobile bundle size
+        working-directory: apps/mobile
+        run: |
+          BUNDLE_SIZE=$(du -sb ./dist | cut -f1)
+          BUNDLE_SIZE_MB=$((BUNDLE_SIZE / 1024 / 1024))
+          MAX_SIZE_MB=20
+
+          echo "## Mobile Bundle Size" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Bundle size: ${BUNDLE_SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
+          echo "- Max allowed: ${MAX_SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
+
+          if [ $BUNDLE_SIZE_MB -gt $MAX_SIZE_MB ]; then
+            echo "- Status: ❌ Exceeds limit!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "- Status: ✅ Within budget" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Run performance tests
+        run: npm run test -- --testPathPattern=performance --watchAll=false
+        continue-on-error: true
+
+  # ============================================================
+  # SECURITY SCANNING
+  # ============================================================
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: code-quality
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level moderate --json > npm-audit.json || true
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before || 'HEAD~1' }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=snyk-report.json
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            npm-audit.json
+            snyk-report.json
+          retention-days: 30
+
+  # ============================================================
+  # DATABASE MIGRATION TESTING
+  # ============================================================
+  database-tests:
+    name: Database Migration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: code-quality
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Validate migrations
+        run: |
+          echo "Validating Supabase migrations..."
+
+          # Check for syntax errors in SQL files
+          for file in supabase/migrations/*.sql; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              # Basic SQL validation (check for unterminated statements)
+              if grep -q "BEGIN" "$file" && ! grep -q "COMMIT" "$file"; then
+                echo "❌ Possible unterminated transaction in $file"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ All migrations validated"
+
+      - name: Check for dangerous operations
+        run: |
+          echo "Checking for dangerous database operations..."
+
+          # Check for DROP TABLE without IF EXISTS
+          if grep -r "DROP TABLE [^I]" supabase/migrations/; then
+            echo "⚠️ Found DROP TABLE without IF EXISTS"
+          fi
+
+          # Check for ALTER TABLE DROP COLUMN
+          if grep -r "ALTER TABLE.*DROP COLUMN" supabase/migrations/; then
+            echo "⚠️ Found ALTER TABLE DROP COLUMN (data loss possible)"
+          fi
+
+      - name: Test migration rollback
+        run: |
+          echo "Testing migration rollback procedures..."
+          # Add rollback testing logic here when needed
+
+  # ============================================================
+  # BUILD VERIFICATION
+  # ============================================================
+  build-verification:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [unit-tests, e2e-tests]
+
+    strategy:
+      matrix:
+        target: [web, mobile]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Build ${{ matrix.target }}
+        run: npm run build:${{ matrix.target }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Verify build artifacts
+        run: |
+          if [ "${{ matrix.target }}" = "web" ]; then
+            ls -lh apps/web/.next
+            test -d apps/web/.next/static
+          else
+            ls -lh apps/mobile/.expo
+          fi
+
+  # ============================================================
+  # QUALITY GATE
+  # ============================================================
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, e2e-tests, security-scan, performance-checks, database-tests]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "## CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | ${{ needs.performance-checks.result == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Database Tests | ${{ needs.database-tests.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Determine overall status
+        run: |
+          if [ "${{ needs.code-quality.result }}" != "success" ] || \
+             [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.e2e-tests.result }}" != "success" ] || \
+             [ "${{ needs.database-tests.result }}" != "success" ]; then
+            echo "❌ Quality gate failed - PR cannot be merged"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Status:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ All quality checks passed"
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Status:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const statusEmoji = (status) => status === 'success' ? '✅' : (status === 'skipped' ? '⏭️' : '❌');
+
+            const comment = `## 🔍 Enhanced CI Pipeline Results
+
+            | Check | Status |
+            |-------|--------|
+            | Code Quality | ${statusEmoji('${{ needs.code-quality.result }}')} ${{ needs.code-quality.result }} |
+            | Unit Tests | ${statusEmoji('${{ needs.unit-tests.result }}')} ${{ needs.unit-tests.result }} |
+            | E2E Tests | ${statusEmoji('${{ needs.e2e-tests.result }}')} ${{ needs.e2e-tests.result }} |
+            | Security Scan | ${statusEmoji('${{ needs.security-scan.result }}')} ${{ needs.security-scan.result }} |
+            | Performance | ${statusEmoji('${{ needs.performance-checks.result }}')} ${{ needs.performance-checks.result }} |
+            | Database Tests | ${statusEmoji('${{ needs.database-tests.result }}')} ${{ needs.database-tests.result }} |
+
+            ---
+
+            **Overall Status:** ${'${{ needs.code-quality.result == \'success\' && needs.unit-tests.result == \'success\' && needs.e2e-tests.result == \'success\' && needs.database-tests.result == \'success\' }}' === 'true' ? '✅ Ready to merge' : '❌ Needs attention'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

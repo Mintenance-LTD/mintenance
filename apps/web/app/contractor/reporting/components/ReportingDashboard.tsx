@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -465,7 +466,7 @@ export function ReportingDashboard({ analytics }: ReportingDashboardProps) {
             filename="business-analytics-report"
             exportElementId="export-content"
             formats={['csv', 'json', 'pdf']}
-            onExport={(format) => console.log(`Exported as ${format}`)}
+            onExport={(format) => logger.info('Export format selected', { format })}
           />
         </div>
       </header>

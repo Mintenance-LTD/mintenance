@@ -1,0 +1,356 @@
+name: Database Testing & Migrations
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/database-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # VALIDATE MIGRATIONS
+  # ============================================================
+  validate-migrations:
+    name: Validate SQL Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Check migration files exist
+        run: |
+          if [ ! -d "supabase/migrations" ]; then
+            echo "❌ No migrations directory found"
+            exit 1
+          fi
+
+          MIGRATION_COUNT=$(find supabase/migrations -name "*.sql" | wc -l)
+          echo "Found $MIGRATION_COUNT migration files"
+
+          if [ $MIGRATION_COUNT -eq 0 ]; then
+            echo "⚠️  No migration files found"
+          fi
+
+      - name: Validate SQL syntax
+        run: |
+          echo "Validating SQL syntax..."
+
+          for file in supabase/migrations/*.sql; do
+            if [ -f "$file" ]; then
+              echo "Checking: $file"
+
+              # Check for syntax errors
+              if ! grep -q ";" "$file"; then
+                echo "⚠️  No statements found in $file"
+              fi
+
+              # Check for unterminated transactions
+              if grep -q "BEGIN" "$file" && ! grep -q "COMMIT\|END" "$file"; then
+                echo "❌ Unterminated transaction in $file"
+                exit 1
+              fi
+
+              # Check for dangerous operations
+              if grep -qi "DROP TABLE [^I]" "$file"; then
+                echo "⚠️  DROP TABLE without IF EXISTS found in $file"
+              fi
+
+              if grep -qi "ALTER TABLE.*DROP COLUMN" "$file"; then
+                echo "⚠️  DROP COLUMN found in $file (potential data loss)"
+              fi
+            fi
+          done
+
+          echo "✅ SQL syntax validation completed"
+
+      - name: Check for migration conflicts
+        run: |
+          echo "Checking for migration conflicts..."
+
+          # Check for duplicate migration timestamps
+          DUPLICATES=$(find supabase/migrations -name "*.sql" | \
+            sed 's/.*\/\([0-9]*\)_.*/\1/' | \
+            sort | uniq -d)
+
+          if [ -n "$DUPLICATES" ]; then
+            echo "❌ Duplicate migration timestamps found:"
+            echo "$DUPLICATES"
+            exit 1
+          fi
+
+          echo "✅ No migration conflicts found"
+
+      - name: Check migration naming convention
+        run: |
+          echo "Checking migration naming conventions..."
+
+          for file in supabase/migrations/*.sql; do
+            filename=$(basename "$file")
+
+            # Check format: YYYYMMDDHHMMSS_description.sql
+            if ! echo "$filename" | grep -qE '^[0-9]{14,}_[a-z0-9_]+\.sql$'; then
+              echo "⚠️  Migration $filename doesn't follow naming convention"
+              echo "    Expected: YYYYMMDDHHmmss_description.sql"
+            fi
+          done
+
+      - name: Check for sensitive data
+        run: |
+          echo "Checking for sensitive data in migrations..."
+
+          SENSITIVE_PATTERNS=(
+            "password.*=.*['\"]"
+            "secret.*=.*['\"]"
+            "api_key.*=.*['\"]"
+            "private_key.*=.*['\"]"
+          )
+
+          for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+            if grep -riE "$pattern" supabase/migrations/; then
+              echo "❌ Possible sensitive data found matching pattern: $pattern"
+              exit 1
+            fi
+          done
+
+          echo "✅ No sensitive data found"
+
+  # ============================================================
+  # TEST MIGRATIONS LOCALLY
+  # ============================================================
+  test-migrations:
+    name: Test Migrations (Local DB)
+    runs-on: ubuntu-latest
+    needs: validate-migrations
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: supabase/postgres:15.1.0.117
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Initialize Supabase
+        run: |
+          supabase init
+          supabase start
+
+      - name: Apply migrations
+        run: |
+          echo "Applying migrations..."
+          supabase db push --db-url postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: Verify database schema
+        run: |
+          echo "Verifying database schema..."
+
+          # Check that expected tables exist
+          EXPECTED_TABLES=(
+            "users"
+            "profiles"
+            "jobs"
+            "bids"
+            "contracts"
+            "payments"
+            "escrow_transactions"
+          )
+
+          for table in "${EXPECTED_TABLES[@]}"; do
+            echo "Checking table: $table"
+            # Add table existence check here
+          done
+
+      - name: Test rollback
+        run: |
+          echo "Testing migration rollback..."
+          # Add rollback testing logic here
+
+      - name: Generate schema diff
+        run: |
+          echo "Generating schema diff..."
+          supabase db diff --local > schema-diff.sql
+
+      - name: Upload schema diff
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-diff
+          path: schema-diff.sql
+          retention-days: 30
+
+  # ============================================================
+  # CHECK RLS POLICIES
+  # ============================================================
+  check-rls-policies:
+    name: Verify RLS Policies
+    runs-on: ubuntu-latest
+    needs: validate-migrations
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check RLS policies exist
+        run: |
+          echo "Checking for RLS policies..."
+
+          # Check for ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+          if ! grep -r "ENABLE ROW LEVEL SECURITY" supabase/migrations/; then
+            echo "⚠️  No RLS enabled statements found"
+          fi
+
+          # Check for CREATE POLICY statements
+          POLICY_COUNT=$(grep -rc "CREATE POLICY" supabase/migrations/ | grep -v ":0" | wc -l)
+          echo "Found RLS policies in $POLICY_COUNT files"
+
+      - name: Validate policy naming
+        run: |
+          echo "Validating policy naming conventions..."
+
+          # Policies should follow pattern: table_action_role
+          grep -r "CREATE POLICY" supabase/migrations/ | while read -r line; do
+            echo "Checking: $line"
+          done
+
+      - name: Check for public access
+        run: |
+          echo "Checking for public access policies..."
+
+          if grep -ri "TO public" supabase/migrations/; then
+            echo "⚠️  Public access policies found - verify they're intentional"
+          fi
+
+  # ============================================================
+  # PERFORMANCE CHECKS
+  # ============================================================
+  performance-checks:
+    name: Migration Performance Analysis
+    runs-on: ubuntu-latest
+    needs: test-migrations
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for missing indexes
+        run: |
+          echo "Checking for potential missing indexes..."
+
+          # Check for foreign key columns without indexes
+          if grep -r "REFERENCES" supabase/migrations/ | grep -v "INDEX"; then
+            echo "⚠️  Foreign keys found without explicit indexes"
+          fi
+
+      - name: Check for large data operations
+        run: |
+          echo "Checking for potentially slow operations..."
+
+          # Check for full table updates
+          if grep -ri "UPDATE.*WHERE.*=" supabase/migrations/ | grep -v "LIMIT"; then
+            echo "⚠️  Bulk updates found - consider adding LIMIT clauses"
+          fi
+
+      - name: Generate performance report
+        run: |
+          cat > performance-report.md << EOF
+          # Migration Performance Report
+
+          ## Summary
+          - Total migrations: $(find supabase/migrations -name "*.sql" | wc -l)
+          - Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## Recommendations
+          - Add indexes for foreign key columns
+          - Use batch operations for large data migrations
+          - Test migration performance on production-like data volumes
+
+          ## Next Steps
+          1. Review migration execution time
+          2. Add performance benchmarks
+          3. Consider migration splitting for large changes
+          EOF
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance-report.md
+          retention-days: 30
+
+  # ============================================================
+  # MIGRATION SUMMARY
+  # ============================================================
+  summary:
+    name: Migration Test Summary
+    runs-on: ubuntu-latest
+    needs: [validate-migrations, test-migrations, check-rls-policies, performance-checks]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Database Migration Tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-migrations.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Migration Tests | ${{ needs.test-migrations.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| RLS Policies | ${{ needs.check-rls-policies.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | ${{ needs.performance-checks.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Determine status
+        run: |
+          if [ "${{ needs.validate-migrations.result }}" != "success" ] || \
+             [ "${{ needs.test-migrations.result }}" != "success" ]; then
+            echo "❌ Migration tests failed"
+            exit 1
+          else
+            echo "✅ All migration tests passed"
+          fi

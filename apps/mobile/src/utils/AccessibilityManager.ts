@@ -50,7 +50,7 @@ class AccessibilityManager {
       // Set up event listeners
       this.setupEventListeners();
     } catch (error) {
-      console.error('Failed to initialize AccessibilityManager:', error);
+      logger.error('Failed to initialize AccessibilityManager:', error);
     }
   }
 

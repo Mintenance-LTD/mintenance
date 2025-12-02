@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { Users, MapPin } from 'lucide-react';
 
 // Fallback activities if no real data is available
@@ -51,7 +52,7 @@ export function LiveActivityFeed() {
                     setActiveUserCount(data.activeUserCount);
                 }
             } catch (error) {
-                console.error('Error fetching activities:', error);
+                logger.error('Error fetching activities:', error);
                 setActivities([]);
                 setHasRealData(false);
             } finally {

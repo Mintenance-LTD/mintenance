@@ -9,15 +9,15 @@ const currentCovered = coverage.total.lines.covered;
 const targetCovered = Math.ceil(totalLines * 0.50);
 const linesNeeded = targetCovered - currentCovered;
 
-console.log('WEEK 3 TEST COVERAGE PLAN');
-console.log('='.repeat(70));
-console.log('Current Coverage:', coverage.total.lines.pct.toFixed(2) + '%');
-console.log('Target Coverage: 50%');
-console.log('Total Lines:', totalLines);
-console.log('Currently Covered:', currentCovered);
-console.log('Target Covered:', targetCovered);
-console.log('Lines Needed:', linesNeeded);
-console.log('');
+logger.info('WEEK 3 TEST COVERAGE PLAN');
+logger.info('='.repeat(70));
+logger.info('Current Coverage:', coverage.total.lines.pct.toFixed(2) + '%');
+logger.info('Target Coverage: 50%');
+logger.info('Total Lines:', totalLines);
+logger.info('Currently Covered:', currentCovered);
+logger.info('Target Covered:', targetCovered);
+logger.info('Lines Needed:', linesNeeded);
+logger.info('');
 
 // Categorize uncovered files
 const categorized = noCoverage.map(f => {
@@ -60,27 +60,27 @@ const totalPlanFiles = Object.values(plan).flat().length;
 const totalPlanLines = Object.values(plan).flat().reduce((sum, f) => sum + f.lines, 0);
 const estimatedCoverage = ((currentCovered + totalPlanLines) / totalLines * 100).toFixed(2);
 
-console.log('RECOMMENDED TEST PLAN: ' + totalPlanFiles + ' FILES');
-console.log('='.repeat(70));
-console.log('Total Lines to Test:', totalPlanLines);
-console.log('Estimated Final Coverage:', estimatedCoverage + '%');
-console.log('');
+logger.info('RECOMMENDED TEST PLAN: ' + totalPlanFiles + ' FILES');
+logger.info('='.repeat(70));
+logger.info('Total Lines to Test:', totalPlanLines);
+logger.info('Estimated Final Coverage:', estimatedCoverage + '%');
+logger.info('');
 
 // Print plan by category
 Object.entries(plan).forEach(([category, items]) => {
-  console.log(`\n${category.toUpperCase()} (${items.length} files, ${items.reduce((s, f) => s + f.lines, 0)} lines):`);
-  console.log('-'.repeat(70));
+  logger.info(`\n${category.toUpperCase()} (${items.length} files, ${items.reduce((s, f) => s + f.lines, 0)} lines):`);
+  logger.info('-'.repeat(70));
   items.forEach((item, i) => {
-    console.log(`${(i+1).toString().padStart(2)}. ${item.shortPath}`);
-    console.log(`    ${item.lines} lines, ${item.functions} functions, ${item.branches} branches`);
+    logger.info(`${(i+1).toString().padStart(2)}. ${item.shortPath}`);
+    logger.info(`    ${item.lines} lines, ${item.functions} functions, ${item.branches} branches`);
   });
 });
 
-console.log('\n');
-console.log('EXECUTION STRATEGY:');
-console.log('='.repeat(70));
-console.log('Phase 1 (Day 1): Utils - 8 files, highest impact');
-console.log('Phase 2 (Day 2): Services - 10 files, business logic');
-console.log('Phase 3 (Day 3): Hooks - 5 files, React patterns');
-console.log('Phase 4 (Day 4): Components - 7 files, UI testing');
-console.log('Phase 5 (Day 5): Review and adjust to hit 50% target');
+logger.info('\n');
+logger.info('EXECUTION STRATEGY:');
+logger.info('='.repeat(70));
+logger.info('Phase 1 (Day 1): Utils - 8 files, highest impact');
+logger.info('Phase 2 (Day 2): Services - 10 files, business logic');
+logger.info('Phase 3 (Day 3): Hooks - 5 files, React patterns');
+logger.info('Phase 4 (Day 4): Components - 7 files, UI testing');
+logger.info('Phase 5 (Day 5): Review and adjust to hit 50% target');

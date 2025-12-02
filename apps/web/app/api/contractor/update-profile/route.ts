@@ -7,6 +7,24 @@ import { requireCSRF } from '@/lib/csrf-validator';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 
+// Type definition for profile update data
+interface ProfileUpdateData {
+  first_name: string;
+  last_name: string;
+  bio: string;
+  city: string;
+  country: string;
+  phone: string;
+  company_name: string | null;
+  license_number: string | null;
+  is_available: boolean;
+  updated_at: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  profile_image_url?: string;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -257,7 +275,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user profile in database
-    const updateData: any = {
+    const updateData: ProfileUpdateData = {
       first_name: firstName,
       last_name: lastName,
       bio,

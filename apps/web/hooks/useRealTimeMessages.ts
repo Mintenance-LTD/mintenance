@@ -7,7 +7,7 @@ interface UseRealTimeMessagesOptions {
   enabled?: boolean;
   onNewMessage?: (message: Message) => void;
   onMessageUpdate?: (message: Message) => void;
-  onError?: (error: any) => void;
+  onError?: (error: Error) => void;
 }
 
 export function useRealTimeMessages(
@@ -41,9 +41,9 @@ export function useRealTimeMessages(
         logger.info('Message updated', { messageId: updatedMessage.id, jobId });
         onMessageUpdate?.(updatedMessage);
       },
-      (error: any) => {
+      (error: unknown) => {
         logger.error('Real-time messaging error', error);
-        onError?.(error);
+        onError?.(error instanceof Error ? error : new Error(String(error)));
       }
     );
 
@@ -76,7 +76,7 @@ export function useRealTimeMessages(
 export function useRealTimeMessageThreads(
   userId: string,
   onNewMessage?: (message: Message) => void,
-  onError?: (error: any) => void
+  onError?: (error: Error) => void
 ) {
   const subscriptionsRef = useRef<Map<string, () => void>>(new Map());
 
@@ -94,9 +94,9 @@ export function useRealTimeMessageThreads(
         }
       },
       () => {}, // onMessageUpdate - not needed for thread list
-      (error: any) => {
+      (error: unknown) => {
         logger.error('Real-time error for job', error, { jobId });
-        onError?.(error);
+        onError?.(error instanceof Error ? error : new Error(String(error)));
       }
     );
 

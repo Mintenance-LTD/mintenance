@@ -55,9 +55,11 @@ export async function POST(request: NextRequest) {
       service: 'synthetic-data-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate synthetic data';
+
     return NextResponse.json(
       {
-        error: error.message || 'Failed to generate synthetic data',
+        error: errorMessage,
       },
       { status: 500 }
     );

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
@@ -91,7 +92,9 @@ export function PostDetailClient({ post: initialPost, currentUserId }: PostDetai
         likes_count: data.likes_count,
       }));
     } catch (error) {
-      console.error('Error liking post:', error);
+      logger.error('Error liking post', error, {
+        service: 'post-detail',
+      });
       setNotification({ tone: 'warning', message: 'Failed to update like. Please try again.' });
     }
   };
@@ -112,7 +115,9 @@ export function PostDetailClient({ post: initialPost, currentUserId }: PostDetai
         setShowShareModal(true);
       }
     } catch (error) {
-      console.error('Error sharing post:', error);
+      logger.error('Error sharing post', error, {
+        service: 'post-detail',
+      });
       setNotification({ tone: 'warning', message: 'Failed to share post' });
     }
   };

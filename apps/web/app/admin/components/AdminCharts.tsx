@@ -14,6 +14,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface ChartDataPoint {
   date: string;
@@ -41,7 +42,15 @@ function LegendDots({ items }: { items: Array<{ label: string; color: string }> 
   );
 }
 
-export function AdminCharts({ userGrowth, jobGrowth }: AdminChartsProps) {
+export function AdminCharts(props: AdminChartsProps) {
+  return (
+    <ErrorBoundary componentName="AdminCharts">
+      <AdminChartsContent {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function AdminChartsContent({ userGrowth, jobGrowth }: AdminChartsProps) {
   // Calculate stats for header
   const userStats = useMemo(() => {
     const total = userGrowth.reduce((sum, item) => sum + (item.users || 0), 0);

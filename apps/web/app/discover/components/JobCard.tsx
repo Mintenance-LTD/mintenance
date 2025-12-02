@@ -6,9 +6,10 @@ import { theme } from '@/lib/theme';
 import { formatLocationShort, calculateDistance, formatDistance } from '@/lib/utils/location';
 import { formatMoney } from '@/lib/utils/currency';
 import { Icon } from '@/components/ui/Icon';
+import type { Job } from '@mintenance/types';
 
 interface JobCardProps {
-  job: any;
+  job: Job & { photoUrls?: string[] };
   contractorLocation?: { latitude: number; longitude: number } | null;
   contractorSkills?: string[];
 }
@@ -95,11 +96,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
   }
 
   // Extract skills from job (if available)
-  const jobSkills = job.skills || job.category ? [job.category].filter(Boolean) : [];
+  const jobSkills: string[] = job.skills || (job.category ? [job.category] : []);
   
   // Match contractor skills with job skills
   const matchedSkills = contractorSkills
-    ? jobSkills.filter(skill => contractorSkills.includes(skill))
+    ? jobSkills.filter(skill => skill && contractorSkills.includes(skill))
     : [];
 
   const homeownerName = job.homeowner?.first_name || 'Homeowner';
@@ -406,7 +407,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.primary,
             }}>
-              {formatMoney(job.budget ? parseFloat(job.budget) : 0)}
+              {formatMoney(job.budget || 0)}
             </div>
           </div>
           

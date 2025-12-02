@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import { AISearchService, SearchResult, SearchFilters, SearchSuggestion } from '@/lib/services/AISearchService';
 import type { User } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 interface AISearchClientProps {
   user: Pick<User, 'id' | 'role' | 'email'>;
@@ -45,7 +46,7 @@ export function AISearchClient({ user }: AISearchClientProps) {
       const trending = await AISearchService.getTrendingSearches(10);
       setTrendingSearches(trending);
     } catch (error) {
-      console.error('Failed to load trending searches', error);
+      logger.error('Failed to load trending searches', error);
     }
   };
 
@@ -55,7 +56,7 @@ export function AISearchClient({ user }: AISearchClientProps) {
       setSuggestions(suggestionList);
       setShowSuggestions(true);
     } catch (error) {
-      console.error('Failed to load suggestions', error);
+      logger.error('Failed to load suggestions', error);
     }
   };
 
@@ -71,7 +72,7 @@ export function AISearchClient({ user }: AISearchClientProps) {
       setResults(searchResults);
     } catch (err) {
       setError('Search failed. Please try again.');
-      console.error('Search failed', err);
+      logger.error('Search failed', err);
     } finally {
       setLoading(false);
     }

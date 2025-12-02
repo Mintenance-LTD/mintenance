@@ -7,6 +7,16 @@
 
 import type { SafetyHazardSeverity, UrgencyLevel } from './types';
 
+// Input type for raw hazard data from AI response
+interface RawSafetyHazard {
+  type?: string;
+  severity?: string;
+  location?: string;
+  description?: string;
+  immediateAction?: string;
+  urgency?: string;
+}
+
 export interface SafetyHazard {
   type: string;
   severity: SafetyHazardSeverity;
@@ -26,7 +36,7 @@ export class SafetyAnalysisService {
   /**
    * Process safety hazards from AI response
    */
-  static processSafetyHazards(hazards: any[]): SafetyAnalysisResult {
+  static processSafetyHazards(hazards: RawSafetyHazard[]): SafetyAnalysisResult {
     const processedHazards = hazards.map((h) => ({
       type: h.type || 'unknown_hazard',
       severity: this.normalizeSafetySeverity(h.severity),
@@ -52,10 +62,10 @@ export class SafetyAnalysisService {
   /**
    * Normalize safety hazard severity
    */
-  private static normalizeSafetySeverity(severity: any): SafetyHazardSeverity {
+  private static normalizeSafetySeverity(severity: string | undefined): SafetyHazardSeverity {
     const valid: SafetyHazardSeverity[] = ['low', 'medium', 'high', 'critical'];
-    if (valid.includes(severity)) {
-      return severity;
+    if (severity && valid.includes(severity as SafetyHazardSeverity)) {
+      return severity as SafetyHazardSeverity;
     }
     const s = String(severity).toLowerCase();
     if (s.includes('critical') || s.includes('severe')) {
@@ -73,10 +83,10 @@ export class SafetyAnalysisService {
   /**
    * Normalize urgency level
    */
-  private static normalizeUrgency(urgency: any): UrgencyLevel {
+  private static normalizeUrgency(urgency: string | undefined): UrgencyLevel {
     const valid: UrgencyLevel[] = ['immediate', 'urgent', 'soon', 'planned', 'monitor'];
-    if (valid.includes(urgency)) {
-      return urgency;
+    if (urgency && valid.includes(urgency as UrgencyLevel)) {
+      return urgency as UrgencyLevel;
     }
     const u = String(urgency).toLowerCase();
     if (u.includes('immediate') || u.includes('critical')) {

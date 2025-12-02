@@ -195,7 +195,7 @@ export class ImageAnalysisService {
 
           // Process objects
           if (objectResult?.localizedObjectAnnotations) {
-            objectResult.localizedObjectAnnotations.forEach((obj: any) => {
+            objectResult.localizedObjectAnnotations.forEach((obj) => {
               if (obj.name && obj.score) {
                 const existingScore = allObjects.get(obj.name) || 0;
                 allObjects.set(obj.name, Math.max(existingScore, obj.score));

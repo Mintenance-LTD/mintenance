@@ -39,14 +39,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch escrows' }, { status: 500 });
     }
 
-    const formattedEscrows = (escrows || []).map((escrow: any) => ({
-      id: escrow.id,
-      jobId: escrow.job_id,
-      jobTitle: escrow.jobs?.title || 'Unknown Job',
-      amount: escrow.amount,
-      status: escrow.status,
-      createdAt: escrow.created_at,
-    }));
+    interface EscrowWithJob {
+      id: string;
+      job_id: string;
+      amount: number;
+      status: string;
+      created_at: string;
+      jobs: {
+        id: string;
+        title: string;
+        contractor_id: string;
+      }[] | null;
+    }
+
+    const formattedEscrows = (escrows || []).map((escrow: EscrowWithJob) => {
+      const job = Array.isArray(escrow.jobs) ? escrow.jobs[0] : escrow.jobs;
+      return {
+        id: escrow.id,
+        jobId: escrow.job_id,
+        jobTitle: job?.title || 'Unknown Job',
+        amount: escrow.amount,
+        status: escrow.status,
+        createdAt: escrow.created_at,
+      };
+    });
 
     return NextResponse.json({ success: true, data: formattedEscrows });
   } catch (error) {

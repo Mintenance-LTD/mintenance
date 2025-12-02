@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +17,7 @@ export interface DBVideoCall {
     participants: string[];
     status: string;
     scheduled_time?: string;
-    metadata?: any;
+    metadata?: Record<string, string | number | boolean>;
     created_at: string;
 }
 
@@ -37,7 +38,13 @@ export function VideoCallScheduler({
 }: VideoCallSchedulerProps) {
     const [scheduledTime, setScheduledTime] = useState('');
     const [purpose, setPurpose] = useState('consultation');
-    const [jobs, setJobs] = useState<any[]>([]);
+    interface JobForScheduler {
+        id: string;
+        title: string;
+        contractor_id: string;
+        homeowner_id: string;
+    }
+    const [jobs, setJobs] = useState<JobForScheduler[]>([]);
     const [selectedJobId, setSelectedJobId] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -102,7 +109,7 @@ export function VideoCallScheduler({
                 onScheduled(data as DBVideoCall);
             }
         } catch (error) {
-            console.error('Error scheduling call:', error);
+            logger.error('Error scheduling call:', error);
             alert('Failed to schedule call');
         } finally {
             setLoading(false);

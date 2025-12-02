@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/lib/supabase';
@@ -34,8 +35,28 @@ interface ContractorMarker {
   city?: string;
 }
 
+interface ContractorMapData {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  is_visible_on_map?: boolean;
+  rating?: number;
+  category?: string;
+  profile_image_url?: string;
+  city?: string;
+  company_name?: string;
+  bio?: string;
+  email_verified?: boolean;
+  total_jobs_completed?: number;
+  is_available?: boolean;
+  contractor_skills?: Array<{ skill_name: string }>;
+  [key: string]: unknown;
+}
+
 interface ContractorMapViewProps {
-  contractors: any[];
+  contractors: ContractorMapData[];
 }
 
 /**
@@ -72,7 +93,11 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
           });
         },
         (error) => {
-          console.warn('Geolocation not available:', error);
+          logger.warn('Geolocation not available', {
+            service: 'contractor-map',
+            error: error.message || String(error),
+            code: error.code,
+          });
           // Default to London
           setUserLocation({ lat: 51.5074, lng: -0.1278 });
         }
@@ -89,12 +114,12 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       // Transform initial contractors or fetch from database
       if (initialContractors && initialContractors.length > 0) {
         const markers: ContractorMarker[] = initialContractors
-          .filter((c: any) => c.latitude && c.longitude && c.is_visible_on_map !== false)
-          .map((contractor: any) => ({
+          .filter((c: ContractorMapData) => c.latitude && c.longitude && c.is_visible_on_map !== false)
+          .map((contractor: ContractorMapData) => ({
             id: contractor.id,
             name: `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || 'Contractor',
-            latitude: parseFloat(contractor.latitude),
-            longitude: parseFloat(contractor.longitude),
+            latitude: typeof contractor.latitude === 'string' ? parseFloat(contractor.latitude) : (contractor.latitude as number),
+            longitude: typeof contractor.longitude === 'string' ? parseFloat(contractor.longitude) : (contractor.longitude as number),
             rating: contractor.rating || 0,
             skills: [],
             profileImage: contractor.profile_image_url,
@@ -114,12 +139,12 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         if (error) throw error;
 
         const markers: ContractorMarker[] = (data || [])
-          .filter((contractor: any) => contractor.is_visible_on_map !== false)
-          .map((contractor: any) => ({
+          .filter((contractor: ContractorMapData) => contractor.is_visible_on_map !== false && contractor.latitude && contractor.longitude)
+          .map((contractor: ContractorMapData) => ({
             id: contractor.id,
             name: `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || 'Contractor',
-            latitude: parseFloat(contractor.latitude),
-            longitude: parseFloat(contractor.longitude),
+            latitude: typeof contractor.latitude === 'string' ? parseFloat(contractor.latitude) : (contractor.latitude as number),
+            longitude: typeof contractor.longitude === 'string' ? parseFloat(contractor.longitude) : (contractor.longitude as number),
             rating: contractor.rating || 0,
             skills: [],
             profileImage: contractor.profile_image_url,
@@ -130,7 +155,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error loading contractors:', error);
+      logger.error('Error loading contractors:', error);
       setMapError('Failed to load contractors on map');
       setLoading(false);
     }
@@ -220,7 +245,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
           markers: markersRef.current,
           algorithm: new (MarkerClusterer as any).SuperClusterAlgorithm({ radius: 100 }),
         });
-        console.log(`✅ Marker clustering enabled for ${contractors.length} contractors`);
+        logger.info(`✅ Marker clustering enabled for ${contractors.length} contractors`);
       }
 
       // Fit map to show all contractors
@@ -269,7 +294,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
       });
 
       if (!response.ok) {
-        console.warn('Failed to fetch service areas');
+        logger.warn('Failed to fetch service areas');
         return;
       }
 
@@ -292,9 +317,9 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         });
       });
 
-      console.log(`✅ Displayed ${circlesRef.current.length} service area circles`);
+      logger.info(`✅ Displayed ${circlesRef.current.length} service area circles`);
     } catch (error) {
-      console.error('Error fetching service areas:', error);
+      logger.error('Error fetching service areas:', error);
       // Service areas are optional - don't block user experience
     } finally {
       setLoadingServiceAreas(false);

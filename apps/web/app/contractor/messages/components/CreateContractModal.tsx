@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { fetchCurrentUser } from '@/lib/auth-client';
+import { logger } from '@mintenance/shared';
 
 interface CreateContractModalProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export function CreateContractModal({
           }
         }
       } catch (err) {
-        console.error('Error loading contractor verification info:', err);
+        logger.error('Error loading contractor verification info:', err);
       } finally {
         setLoadingCompanyName(false);
       }

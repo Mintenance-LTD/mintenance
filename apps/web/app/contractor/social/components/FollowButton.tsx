@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,7 +39,7 @@ export function FollowButton({ contractorId, currentUserId, onFollowChange, vari
           setFollowing(data.following || false);
         }
       } catch (error) {
-        console.error('Error checking follow status:', error);
+        logger.error('Error checking follow status:', error);
       }
     };
 
@@ -69,7 +70,7 @@ export function FollowButton({ contractorId, currentUserId, onFollowChange, vari
       setFollowing(data.following);
       onFollowChange?.(data.following);
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      logger.error('Error toggling follow:', error);
       setError(error instanceof Error ? error.message : 'Failed to update follow status');
     } finally {
       setLoading(false);

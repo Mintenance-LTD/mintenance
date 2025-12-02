@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 
 interface PaymentMethodModalProps {
@@ -112,7 +113,7 @@ export function PaymentMethodModal({ isOpen, onClose, onAddPaymentMethod }: Paym
             });
             onClose();
         } catch (error) {
-            console.error('Error adding payment method:', error);
+            logger.error('Error adding payment method:', error);
         } finally {
             setIsSubmitting(false);
         }

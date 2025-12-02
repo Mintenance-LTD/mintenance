@@ -1,11 +1,27 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import { SelfModifyingAgent } from './SelfModifyingAgent';
 import { AdaptiveUpdateEngine } from './AdaptiveUpdateEngine';
 import type { MatchingScore } from '../matching/types';
-import type { ContinuumMemoryConfig, MLPConfig } from '../ml-engine/memory/types';
-import type { SelfModificationConfig, PerformanceMetrics } from './SelfModifyingAgent';
+import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
+import type { SelfModificationConfig } from './SelfModifyingAgent';
+
+// Job type for learning context
+interface JobForLearning {
+  id: string;
+  category?: string | null;
+  budget?: number | null;
+  contractor_id?: string | null;
+  homeowner_id?: string;
+}
+
+// Job result type for homeowner jobs query
+interface HomeownerJobResult {
+  id: string;
+  category?: string | null;
+  budget?: number | null;
+  contractor_id?: string | null;
+}
 
 /**
  * Service for learning-based matching improvements
@@ -413,7 +429,7 @@ export class LearningMatchingService {
   private static async extractMatchingKeysForLearning(
     contractorId: string,
     homeownerId: string,
-    job: any
+    job: JobForLearning
   ): Promise<number[]> {
     const keys: number[] = [];
 
@@ -441,7 +457,8 @@ export class LearningMatchingService {
     keys.push(Math.min((job.budget || 0) / 5000, 1)); // Normalized budget
 
     // Homeowner preference features
-    const pastContractorIds = homeownerJobs?.map((j: any) => j.contractor_id) || [];
+    const typedJobs = (homeownerJobs || []) as HomeownerJobResult[];
+    const pastContractorIds = typedJobs.map((j) => j.contractor_id);
     keys.push(pastContractorIds.includes(contractorId) ? 1 : 0);
     keys.push(Math.min((homeownerJobs?.length || 0) / 10, 1));
 

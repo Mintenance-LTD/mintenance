@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
             id: `quote-accepted-${quote.id}`,
             type: 'quote_accepted',
             title: 'Quote Accepted! 🎉',
-            message: `${quote.client_name || 'A client'} accepted your quote "${quote.title || quote.quote_number || 'Untitled'}" for £${parseFloat(quote.total_amount || 0).toFixed(2)}`,
+            message: `${quote.client_name || 'A client'} accepted your quote "${quote.title || quote.quote_number || 'Untitled'}" for £${parseFloat(String(quote.total_amount || 0)).toFixed(2)}`,
             read: false,
             created_at: quote.accepted_at || new Date().toISOString(),
             action_url: `/contractor/quotes/${quote.id}`,
@@ -204,8 +204,13 @@ export async function GET(request: NextRequest) {
       sender_id: string;
       receiver_id: string;
       content?: string;
+      message_text?: string;
       created_at: string;
       job_id?: string;
+      jobs?: {
+        title?: string;
+        [key: string]: unknown;
+      } | null;
     }
 
     interface SenderRecord {
@@ -284,7 +289,7 @@ export async function GET(request: NextRequest) {
     if (upcomingJobs && upcomingJobs.length > 0) {
       upcomingJobs.forEach((job: JobRecord) => {
         const existingNotif = mappedNotifications.find(n => n.id === `project-reminder-${job.id}`);
-        if (!existingNotif) {
+        if (!existingNotif && job.scheduled_start_date) {
           const startDate = new Date(job.scheduled_start_date);
           const hoursUntil = Math.round((startDate.getTime() - now.getTime()) / (1000 * 60 * 60));
           

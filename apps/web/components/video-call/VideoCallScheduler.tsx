@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 interface VideoCallSchedulerProps {
   jobId?: string;
@@ -58,7 +59,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       onScheduled?.(call);
 
     } catch (error) {
-      console.error('Failed to schedule call:', error);
+      logger.error('Failed to schedule call:', error);
       alert('Failed to schedule call. Please try again.');
     } finally {
       setIsScheduling(false);
@@ -82,7 +83,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       onScheduled?.(call);
 
     } catch (error) {
-      console.error('Failed to create instant call:', error);
+      logger.error('Failed to create instant call:', error);
       alert('Failed to start call. Please try again.');
     } finally {
       setIsScheduling(false);

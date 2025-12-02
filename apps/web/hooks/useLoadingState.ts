@@ -2,20 +2,20 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
-interface LoadingState {
+interface LoadingState<T = unknown> {
   isLoading: boolean;
   error: string | null;
-  data: any;
+  data: T | null;
 }
 
-interface UseLoadingStateOptions {
-  initialData?: any;
+interface UseLoadingStateOptions<T = unknown> {
+  initialData?: T;
   onError?: (error: string) => void;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T) => void;
 }
 
-export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
-  const [state, setState] = useState<LoadingState>({
+export const useLoadingState = <T = unknown>(options: UseLoadingStateOptions<T> = {}) => {
+  const [state, setState] = useState<LoadingState<T>>({
     isLoading: false,
     error: null,
     data: options.initialData || null,
@@ -41,7 +41,7 @@ export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
     }
   }, [options.onError]);
 
-  const setData = useCallback((data: any) => {
+  const setData = useCallback((data: T | null) => {
     setState(prev => ({
       ...prev,
       data,
@@ -49,7 +49,7 @@ export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
       error: null,
     }));
     
-    if (options.onSuccess) {
+    if (options.onSuccess && data !== null) {
       options.onSuccess(data);
     }
   }, [options.onSuccess]);
@@ -62,15 +62,15 @@ export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
     });
   }, [options.initialData]);
 
-  const execute = useCallback(async <T>(
-    asyncFunction: () => Promise<T>,
-    options: { 
-      onSuccess?: (data: T) => void;
+  const execute = useCallback(async <R>(
+    asyncFunction: () => Promise<R>,
+    executeOptions: { 
+      onSuccess?: (data: R) => void;
       onError?: (error: string) => void;
       showLoading?: boolean;
     } = {}
   ) => {
-    const { onSuccess, onError, showLoading = true } = options;
+    const { onSuccess, onError, showLoading = true } = executeOptions;
     
     try {
       if (showLoading) {
@@ -79,7 +79,7 @@ export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
       
       const result = await asyncFunction();
       
-      setData(result);
+      setData(result as T | null);
       
       if (onSuccess) {
         onSuccess(result);
@@ -108,8 +108,17 @@ export const useLoadingState = (options: UseLoadingStateOptions = {}) => {
   };
 };
 
+/**
+ * Loading state entry for multiple states
+ */
+interface LoadingStateEntry<D = unknown> {
+  isLoading: boolean;
+  error: string | null;
+  data: D | null;
+}
+
 // Hook for managing multiple loading states
-export const useMultipleLoadingStates = <T extends Record<string, any>>(
+export const useMultipleLoadingStates = <T extends Record<string, LoadingStateEntry>>(
   initialStates: T
 ) => {
   const [states, setStates] = useState<T>(initialStates);
@@ -142,9 +151,9 @@ export const useMultipleLoadingStates = <T extends Record<string, any>>(
     }));
   }, []);
 
-  const setData = useCallback(<K extends keyof T>(
+  const setData = useCallback(<K extends keyof T, D>(
     key: K,
-    data: any
+    data: D
   ) => {
     setStates(prev => ({
       ...prev,
@@ -157,15 +166,15 @@ export const useMultipleLoadingStates = <T extends Record<string, any>>(
     }));
   }, []);
 
-  const execute = useCallback(async <K extends keyof T>(
+  const execute = useCallback(async <K extends keyof T, R>(
     key: K,
-    asyncFunction: () => Promise<any>,
+    asyncFunction: () => Promise<R>,
     options: { 
-      onSuccess?: (data: any) => void;
+      onSuccess?: (data: R) => void;
       onError?: (error: string) => void;
       showLoading?: boolean;
     } = {}
-  ) => {
+  ): Promise<R> => {
     const { onSuccess, onError, showLoading = true } = options;
     
     try {

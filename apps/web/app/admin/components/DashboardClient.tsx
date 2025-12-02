@@ -13,6 +13,7 @@ import { ModelVersionHealthCard } from '@/components/admin/ModelVersionHealthCar
 import { SafetyExperimentHealthSection } from '@/components/admin/SafetyExperimentHealthSection';
 import { YOLOLearningStatusCard } from '@/components/admin/YOLOLearningStatusCard';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { logger } from '@mintenance/shared';
 
 interface ChartDataPoint {
   date: string;
@@ -84,7 +85,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
           setLastUpdated(new Date());
         }
       } catch (error) {
-        console.error('Error fetching dashboard metrics:', error);
+        logger.error('Error fetching dashboard metrics:', error);
       } finally {
         setLoading(false);
       }

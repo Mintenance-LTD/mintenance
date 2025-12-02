@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -108,7 +109,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
         await fetchSecurityData(); // Refresh data
       }
     } catch (err) {
-      console.error('Failed to resolve event:', err);
+      logger.error('Failed to resolve event:', err);
     }
   };
 
@@ -134,14 +135,14 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
         alert(`IP ${ipAddress} has been blocked`);
       }
     } catch (err) {
-      console.error('Failed to block IP:', err);
+      logger.error('Failed to block IP:', err);
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'text-red-600 bg-red-100';
-      case 'high': return 'text-orange-600 bg-orange-100';
+      case 'high': return 'text-emerald-600 bg-emerald-100';
       case 'medium': return 'text-yellow-600 bg-yellow-100';
       case 'low': return 'text-green-600 bg-green-100';
       default: return 'text-gray-600 bg-gray-100';
@@ -474,7 +475,7 @@ export function SecurityDashboard({ className }: SecurityDashboardProps) {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(entry: any) => `${entry.name} ${(entry.percent * 100).toFixed(0)}%`}
+                    label={(entry: { name: string; percent: number }) => `${entry.name} ${(entry.percent * 100).toFixed(0)}%`}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"

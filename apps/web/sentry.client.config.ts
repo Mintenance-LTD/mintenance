@@ -42,7 +42,7 @@ Sentry.init({
   release: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
 
   // Before send hook to filter sensitive data
-  beforeSend(event: any, hint: any) {
+  beforeSend(event: Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[0], hint: Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[1]) {
     // Filter out sensitive data
     if (event.request) {
       if (event.request.cookies) {

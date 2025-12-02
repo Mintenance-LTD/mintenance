@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/Icon';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 
 interface AddPropertyDialogProps {
   open: boolean;
@@ -119,16 +120,24 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
         throw new Error(errorData.error || 'Failed to search addresses');
       }
 
+      interface LocationSuggestionItem {
+        display_name?: string;
+        address?: string;
+        name?: string;
+        place_id?: string;
+        osm_id?: string;
+      }
+
       const data = await response.json();
       if (Array.isArray(data)) {
-        setLocationSuggestions(data.map((item: any) => ({
-          display_name: item.display_name || item.address || item.name,
+        setLocationSuggestions(data.map((item: LocationSuggestionItem) => ({
+          display_name: item.display_name || item.address || item.name || 'Unknown location',
           place_id: item.place_id || item.osm_id || Math.random().toString(),
         })));
         setShowSuggestions(data.length > 0);
       }
     } catch (err) {
-      console.error('Error fetching address suggestions:', err);
+      logger.error('Error fetching address suggestions:', err);
       setLocationSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -219,7 +228,7 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
       setUploadedImages(categorizedPhotos);
       return categorizedPhotos;
     } catch (error) {
-      console.error('Error uploading images:', error);
+      logger.error('Error uploading images:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
       alert(errorMessage);
       return [];
@@ -260,7 +269,7 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
 
       if (!response.ok) {
         // Log detailed error for debugging
-        console.error('Property creation failed:', {
+        logger.error('Property creation failed:', {
           status: response.status,
           error: responseData.error,
           details: responseData.details,
@@ -277,9 +286,10 @@ export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddProperty
 
       onSuccess();
       onOpenChange(false);
-    } catch (err: any) {
-      console.error('Error in onSubmit:', err);
-      setSubmitError(err.message || 'Failed to create property. Please try again.');
+    } catch (err: unknown) {
+      const error = err as Error;
+      logger.error('Error in onSubmit:', error);
+      setSubmitError(error.message || 'Failed to create property. Please try again.');
     }
   };
 

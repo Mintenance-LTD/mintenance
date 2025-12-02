@@ -50,7 +50,10 @@ export async function POST(request: NextRequest) {
 
     const { escrowTransactionId, releaseReason } = validation.data;
 
-    // Idempotency check - prevent duplicate escrow releases
+    // Get MFA token from header if present
+    const mfaToken = request.headers.get('x-mfa-token');
+
+    // Idempotency check - prevent duplicate escrow releases (with distributed locking)
     const idempotencyKey = getIdempotencyKeyFromRequest(
       request,
       'release_escrow',
@@ -58,7 +61,8 @@ export async function POST(request: NextRequest) {
       escrowTransactionId
     );
 
-    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'release_escrow');
+    // Use distributed locking for idempotency check
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'release_escrow', true);
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info('Duplicate escrow release detected, returning cached result', {
         service: 'payments',
@@ -67,6 +71,19 @@ export async function POST(request: NextRequest) {
         escrowTransactionId,
       });
       return NextResponse.json(idempotencyCheck.cachedResult);
+    }
+
+    // Check if lock contention occurred
+    if (idempotencyCheck === null && !idempotencyCheck?.cachedResult) {
+      logger.warn('Lock contention detected for escrow release', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+      });
+      return NextResponse.json(
+        { error: 'Request is being processed. Please wait and try again.' },
+        { status: 409 }
+      );
     }
 
     // Get escrow transaction with job details and all new fields
@@ -96,6 +113,70 @@ export async function POST(request: NextRequest) {
 
     const job = escrowTransaction.jobs;
 
+    // MFA requirement check for high-risk escrow releases
+    const { requiresMFA, HighRiskOperation } = await import('@/lib/payments/high-risk-checks');
+    const mfaCheck = await requiresMFA(
+      HighRiskOperation.ESCROW_RELEASE,
+      escrowTransaction.amount,
+      user.id
+    );
+
+    if (mfaCheck.required) {
+      // Validate MFA token if provided
+      if (!mfaToken) {
+        logger.warn('MFA required for escrow release but no token provided', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: escrowTransaction.amount,
+          riskScore: mfaCheck.riskScore,
+        });
+
+        return NextResponse.json(
+          {
+            error: 'MFA verification required',
+            reason: mfaCheck.reason,
+            riskScore: mfaCheck.riskScore,
+            mfaRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Validate the MFA token
+      const { validateMFAForPayment } = await import('@/lib/payments/high-risk-checks');
+      const mfaValidation = await validateMFAForPayment(
+        user.id,
+        mfaToken,
+        HighRiskOperation.ESCROW_RELEASE
+      );
+
+      if (!mfaValidation.valid) {
+        logger.warn('Invalid MFA token for escrow release', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: escrowTransaction.amount,
+        });
+
+        return NextResponse.json(
+          {
+            error: 'MFA verification failed',
+            reason: mfaValidation.reason,
+            mfaRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      logger.info('MFA validated successfully for escrow release', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        amount: escrowTransaction.amount,
+      });
+    }
+
     // Verify user has permission to release escrow
     // SECURITY: For admin operations, verify role from database (not just JWT)
     let isAdminVerified = false;
@@ -112,8 +193,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized to release this escrow' }, { status: 403 });
       }
     }
-    
-    const canRelease = 
+
+    const canRelease =
       isAdminVerified || // Admin can release any escrow (verified from database)
       (user.role === 'homeowner' && job.homeowner_id === user.id) || // Homeowner can release their escrow
       (user.role === 'contractor' && job.contractor_id === user.id && releaseReason === 'job_completed'); // Contractor can request release when job completed
@@ -593,18 +674,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.error('Error releasing escrow', error, { service: 'payments' });
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
-    }
+    // Use sanitized error handling
+    const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
+    const errorResponse = createPaymentErrorResponse(error, {
+      operation: 'release_escrow',
+      userId: user?.id,
+      escrowTransactionId: validation.data?.escrowTransactionId,
+      ip: request.headers.get('x-forwarded-for') || undefined,
+    });
 
     return NextResponse.json(
-      { error: 'Failed to release escrow' },
-      { status: 500 }
+      {
+        error: errorResponse.error,
+        code: errorResponse.code,
+        retryable: errorResponse.retryable
+      },
+      { status: errorResponse.status }
     );
   }
 }

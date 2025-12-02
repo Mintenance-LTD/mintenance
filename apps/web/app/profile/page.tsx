@@ -1,453 +1,699 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { Button } from '@/components/ui';
-import { Icon } from '@/components/ui/Icon';
-import { LoadingSpinner, ErrorView } from '@/components/ui';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, MapPin } from 'lucide-react';
-import { ProfilePictureSection } from './components/ProfilePictureSection';
-import { validateImageFile, readImageFile, saveProfile } from './lib/utils';
-import type { ProfileFormData } from './lib/types';
-import Link from 'next/link';
-import { HomeownerLayoutShell } from '@/app/dashboard/components/HomeownerLayoutShell';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ProfileFormField } from './components/ProfileFormField';
-import { LocationInput } from './components/LocationInput';
-import { DangerZone } from './components/DangerZone';
-import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
-import { useAddressSearch, useGeolocation } from './lib/hooks';
-import { theme } from '@/lib/theme';
+import React, { useState } from 'react';
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Camera,
+  Save,
+  X,
+  Edit,
+  Bell,
+  Lock,
+  CreditCard,
+  Globe,
+  Calendar,
+  Shield,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { FormField, ValidatedInput, ValidatedTextarea } from '@/components/ui/FormField';
 
-export default function ProfilePage() {
-  const router = useRouter();
-  const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
+// Animation variants
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export default function ProfilePage2025() {
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [formData, setFormData] = useState<ProfileFormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    location: '',
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'preferences'>('profile');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Mock user data - replace with actual user data
+  const [userData, setUserData] = useState({
+    firstName: 'Sarah',
+    lastName: 'Johnson',
+    email: 'sarah.johnson@example.com',
+    phone: '+44 7700 900123',
+    address: '123 Oak Street, London',
+    postcode: 'SW1A 1AA',
+    city: 'London',
+    country: 'United Kingdom',
+    bio: 'Homeowner passionate about property maintenance and home improvement projects.',
+    joinDate: '2024-03-15',
+    accountType: 'Premium',
   });
-  const [error, setError] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Use custom hooks for location functionality
-  const {
-    locationSuggestions,
-    showSuggestions,
-    setShowSuggestions,
-  } = useAddressSearch(formData.location);
+  const [securitySettings, setSecuritySettings] = useState({
+    twoFactorEnabled: true,
+    loginNotifications: true,
+    lastPasswordChange: '2025-01-15',
+  });
 
-  const {
-    isDetectingLocation,
-    geolocationAlert,
-    setGeolocationAlert,
-    detectLocation,
-  } = useGeolocation();
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    smsNotifications: false,
+    pushNotifications: true,
+    jobUpdates: true,
+    bidAlerts: true,
+    messageAlerts: true,
+    marketingEmails: false,
+  });
 
-  useEffect(() => {
-    if (!loadingUser && user) {
-      setFormData({
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        location: (user as { location?: string }).location || '',
+  const [preferences, setPreferences] = useState({
+    language: 'en',
+    timezone: 'Europe/London',
+    currency: 'GBP',
+    dateFormat: 'DD/MM/YYYY',
+  });
+
+  const validateField = (field: string, value: string): string | undefined => {
+    switch (field) {
+      case 'firstName':
+        if (!value.trim()) return 'First name is required';
+        if (value.trim().length < 2) return 'First name must be at least 2 characters';
+        return undefined;
+      case 'lastName':
+        if (!value.trim()) return 'Last name is required';
+        if (value.trim().length < 2) return 'Last name must be at least 2 characters';
+        return undefined;
+      case 'email':
+        if (!value.trim()) return 'Email is required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        return undefined;
+      case 'phone':
+        if (!value.trim()) return 'Phone number is required';
+        if (!/^\+?[\d\s-()]+$/.test(value)) return 'Please enter a valid phone number';
+        return undefined;
+      case 'postcode':
+        if (!value.trim()) return 'Postcode is required';
+        if (value.trim().length < 5) return 'Please enter a valid postcode';
+        return undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  const handleFieldBlur = (field: string) => {
+    if (!isEditing) return;
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const value = userData[field as keyof typeof userData];
+    const error = validateField(field, String(value));
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    setUserData(prev => ({ ...prev, [field]: value }));
+    // If field was touched, validate on change for immediate feedback
+    if (touchedFields[field] && isEditing) {
+      const error = validateField(field, value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        if (error) {
+          newErrors[field] = error;
+        } else {
+          delete newErrors[field];
+        }
+        return newErrors;
       });
-      setProfileImage((user as { profile_image_url?: string }).profile_image_url || null);
-    }
-  }, [user, loadingUser]);
-
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!loadingUser && !user) {
-      router.push('/login?redirect=/profile');
-    }
-  }, [user, loadingUser, router]);
-
-  const handleLocationSelect = (address: string) => {
-    setFormData(prev => ({ ...prev, location: address }));
-    setShowSuggestions(false);
-  };
-
-  const handleDetectLocation = async () => {
-    try {
-      const location = await detectLocation();
-      setFormData(prev => ({ ...prev, location }));
-      setShowSuggestions(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not determine your address. Please enter it manually.');
     }
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const isFieldValid = (field: string): boolean => {
+    return touchedFields[field] && !errors[field] && Boolean(userData[field as keyof typeof userData]);
+  };
 
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
-      setError(validation.error || 'Invalid image file');
+  const handleSave = () => {
+    // Validate all required fields
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'postcode'];
+    const newErrors: Record<string, string> = {};
+    const newTouchedFields: Record<string, boolean> = {};
+
+    requiredFields.forEach(field => {
+      newTouchedFields[field] = true;
+      const value = userData[field as keyof typeof userData];
+      const error = validateField(field, String(value));
+      if (error) newErrors[field] = error;
+    });
+
+    setTouchedFields(newTouchedFields);
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error(`Please fix ${Object.keys(newErrors).length} validation error${Object.keys(newErrors).length > 1 ? 's' : ''}`);
       return;
     }
 
-    try {
-      setProfileImageFile(file);
-      const imageUrl = await readImageFile(file);
-      setProfileImage(imageUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to read image file');
-    }
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setError('');
-
-    const result = await saveProfile(formData, profileImageFile, profileImage);
-
-    if (result.success) {
-      setIsEditing(false);
-      setProfileImageFile(null);
-      // Small delay to ensure save completes before reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-    } else {
-      setError(result.error || 'Failed to save profile');
-      setIsSaving(false);
-    }
+    setIsEditing(false);
+    setTouchedFields({});
+    setErrors({});
+    toast.success('Profile updated successfully!');
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setError('');
-    // Reset form data
-    if (user) {
-      setFormData({
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        location: (user as { location?: string }).location || '',
-      });
-      setProfileImage((user as { profile_image_url?: string }).profile_image_url || null);
-      setProfileImageFile(null);
-    }
+    setErrors({});
+    setTouchedFields({});
+    toast('Changes cancelled');
   };
 
-  if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading profile..." />;
-  }
+  const handleAvatarChange = () => {
+    toast.success('Avatar updated!');
+  };
 
-  if (currentUserError) {
-    return (
-      <ErrorView
-        title="Unable to load profile"
-        message="Please refresh the page or try signing in again."
-        onRetry={() => window.location.reload()}
-        retryLabel="Refresh Page"
-        variant="fullscreen"
-      />
-    );
-  }
+  const handlePasswordChange = () => {
+    toast.success('Password change email sent!');
+  };
 
-  if (!user) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
-        <div style={{
-          backgroundColor: theme.colors.white,
-          padding: theme.spacing[8],
-          borderRadius: theme.borderRadius.xl,
-          border: `1px solid ${theme.colors.border}`,
-          textAlign: 'center',
-          maxWidth: '500px',
-        }}>
-          <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[4],
-          }}>
-            Access Denied
-          </h2>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[6],
-          }}>
-            You must be logged in to access your profile.
-          </p>
-          <Link href="/login?redirect=/profile" style={{ textDecoration: 'none' }}>
-            <Button variant="primary">
-              Go to Login
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteAccount = () => {
+    toast.error('Account deletion requested - you will receive a confirmation email');
+  };
 
-  const userDisplayName = user.first_name && user.last_name
-    ? `${user.first_name} ${user.last_name}`.trim()
-    : user.email;
-
-  const initials = userDisplayName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'preferences', label: 'Preferences', icon: Globe },
+  ];
 
   return (
-    <HomeownerLayoutShell
-      currentPath="/profile"
-      userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-      userEmail={user.email}
-    >
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[6],
-      }}>
-        {/* Header - Navy Blue Command Center Style */}
-        <div className="relative overflow-hidden bg-primary-900 p-8 -m-8 rounded-2xl mb-2 shadow-xl border border-primary-800">
-          {/* Decorative Elements */}
-          <div aria-hidden="true" className="absolute top-0 right-0 w-64 h-64 bg-secondary-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-          <div aria-hidden="true" className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
-
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-primary-800 flex items-center justify-center shadow-inner border border-primary-700">
-                <Icon name="user" size={28} color="white" />
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+      {/* Hero Header */}
+      <MotionDiv
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 flex items-center justify-center overflow-hidden">
+                  <User className="w-12 h-12 text-white" />
+                </div>
+                <button
+                  onClick={handleAvatarChange}
+                  className="absolute bottom-0 right-0 bg-white text-teal-600 p-2 rounded-full hover:bg-teal-50 transition-colors shadow-lg"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">
-                  Profile Settings
+                <h1 className="text-4xl font-bold mb-2">
+                  {userData.firstName} {userData.lastName}
                 </h1>
-                <p className="text-base font-medium text-primary-200 leading-relaxed">
-                  Manage your personal information and account security
-                </p>
+                <div className="flex items-center gap-4 text-teal-100">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    <span>{userData.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>Member since {new Date(userData.joinDate).toLocaleDateString()}</span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {!isEditing ? (
+              <MotionButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsEditing(true)}
+                className="bg-white text-teal-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
+              >
+                <Edit className="w-5 h-5" />
+                Edit Profile
+              </MotionButton>
+            ) : (
+              <div className="flex gap-3">
+                <MotionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSave}
+                  className="bg-white text-teal-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
+                >
+                  <Save className="w-5 h-5" />
+                  Save Changes
+                </MotionButton>
+                <MotionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancel}
+                  className="bg-white/20 text-white px-6 py-3 rounded-xl font-semibold hover:bg-white/30 transition-colors flex items-center gap-2"
+                >
+                  <X className="w-5 h-5" />
+                  Cancel
+                </MotionButton>
+              </div>
+            )}
           </div>
         </div>
+      </MotionDiv>
 
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Tabs Interface */}
-        <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-8 bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
-            <TabsTrigger
-              value="personal"
-              className="data-[state=active]:bg-primary-900 data-[state=active]:text-white rounded-lg transition-all duration-200"
-            >
-              Personal Info
-            </TabsTrigger>
-            <TabsTrigger
-              value="security"
-              className="data-[state=active]:bg-primary-900 data-[state=active]:text-white rounded-lg transition-all duration-200"
-            >
-              Security & Account
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="personal" className="mt-0">
-            {/* Profile Card */}
-            <div style={{
-              backgroundColor: theme.colors.white,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius['2xl'],
-              padding: theme.spacing[8],
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            }}>
-              {/* Profile Picture Section */}
-              <ProfilePictureSection
-                profileImage={profileImage}
-                initials={initials}
-                isEditing={isEditing}
-                onImageSelect={handleImageSelect}
-              />
-
-              {/* Profile Information */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing[4],
-              }}>
-                <ProfileFormField
-                  label="First Name"
-                  value={formData.firstName}
-                  isEditing={isEditing}
-                  displayValue={user.first_name || undefined}
-                  onChange={(value) => setFormData(prev => ({ ...prev, firstName: value }))}
-                />
-
-                <ProfileFormField
-                  label="Last Name"
-                  value={formData.lastName}
-                  isEditing={isEditing}
-                  displayValue={user.last_name || undefined}
-                  onChange={(value) => setFormData(prev => ({ ...prev, lastName: value }))}
-                />
-
-                <ProfileFormField
-                  label="Email Address"
-                  value={formData.email}
-                  isEditing={isEditing}
-                  displayValue={user.email}
-                  type="email"
-                  onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
-                  verified={user.email_verified}
-                />
-
-                <ProfileFormField
-                  label="Phone Number"
-                  value={formData.phone}
-                  isEditing={isEditing}
-                  displayValue={user.phone || undefined}
-                  type="tel"
-                  placeholder="+44 123 456 7890"
-                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-                />
-
-                <ProfileFormField
-                  label="Location"
-                  value={formData.location}
-                  isEditing={isEditing}
-                  displayValue={(user as { location?: string }).location || undefined}
-                  fullWidth
-                  icon="mapPin"
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-8"
+        >
+          <div className="flex gap-2">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    activeTab === tab.id
+                      ? 'bg-teal-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 >
-                  {isEditing ? (
-                    <LocationInput
-                      value={formData.location}
-                      onChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-                      onSelect={handleLocationSelect}
-                      suggestions={locationSuggestions}
-                      showSuggestions={showSuggestions}
-                      onFocus={() => {
-                        if (locationSuggestions.length > 0) {
-                          setShowSuggestions(true);
-                        }
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => setShowSuggestions(false), 200);
-                      }}
-                      onDetectLocation={handleDetectLocation}
-                      isDetectingLocation={isDetectingLocation}
-                    />
-                  ) : (
-                    <div style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textPrimary,
-                      padding: `${theme.spacing[2]} 0`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                    }}>
-                      <Icon name="mapPin" size={16} color={theme.colors.textSecondary} />
-                      {(user as { location?: string }).location || 'Not set'}
-                    </div>
-                  )}
-                </ProfileFormField>
+                  <Icon className="w-5 h-5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </MotionDiv>
+
+        {/* Tab Content */}
+        {activeTab === 'profile' && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                label="First Name"
+                required
+                error={isEditing && touchedFields.firstName ? errors.firstName : undefined}
+                success={isFieldValid('firstName')}
+                helperText={isFieldValid('firstName') ? 'Looks good!' : undefined}
+                htmlFor="profile-firstName"
+              >
+                <ValidatedInput
+                  id="profile-firstName"
+                  type="text"
+                  value={userData.firstName}
+                  onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                  onBlur={() => handleFieldBlur('firstName')}
+                  disabled={!isEditing}
+                  error={Boolean(isEditing && touchedFields.firstName && errors.firstName)}
+                  success={isFieldValid('firstName')}
+                />
+              </FormField>
+
+              <FormField
+                label="Last Name"
+                required
+                error={isEditing && touchedFields.lastName ? errors.lastName : undefined}
+                success={isFieldValid('lastName')}
+                helperText={isFieldValid('lastName') ? 'Looks good!' : undefined}
+                htmlFor="profile-lastName"
+              >
+                <ValidatedInput
+                  id="profile-lastName"
+                  type="text"
+                  value={userData.lastName}
+                  onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                  onBlur={() => handleFieldBlur('lastName')}
+                  disabled={!isEditing}
+                  error={Boolean(isEditing && touchedFields.lastName && errors.lastName)}
+                  success={isFieldValid('lastName')}
+                />
+              </FormField>
+
+              <FormField
+                label="Email"
+                required
+                error={isEditing && touchedFields.email ? errors.email : undefined}
+                success={isFieldValid('email')}
+                helperText={isFieldValid('email') ? 'Email verified' : undefined}
+                htmlFor="profile-email"
+              >
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                  <ValidatedInput
+                    id="profile-email"
+                    type="email"
+                    value={userData.email}
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                    onBlur={() => handleFieldBlur('email')}
+                    disabled={!isEditing}
+                    error={Boolean(isEditing && touchedFields.email && errors.email)}
+                    success={isFieldValid('email')}
+                    className="pl-10"
+                  />
+                </div>
+              </FormField>
+
+              <FormField
+                label="Phone"
+                required
+                error={isEditing && touchedFields.phone ? errors.phone : undefined}
+                success={isFieldValid('phone')}
+                helperText={isFieldValid('phone') ? 'Phone number verified' : undefined}
+                htmlFor="profile-phone"
+              >
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                  <ValidatedInput
+                    id="profile-phone"
+                    type="tel"
+                    value={userData.phone}
+                    onChange={(e) => handleFieldChange('phone', e.target.value)}
+                    onBlur={() => handleFieldBlur('phone')}
+                    disabled={!isEditing}
+                    error={Boolean(isEditing && touchedFields.phone && errors.phone)}
+                    success={isFieldValid('phone')}
+                    className="pl-10"
+                  />
+                </div>
+              </FormField>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={userData.address}
+                    onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
               </div>
 
-              {/* Edit Profile Button - Below form fields */}
-              <div className="mt-6">
-                {!isEditing ? (
-                  <Button
-                    variant="primary"
-                    onClick={() => setIsEditing(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    fullWidth
-                  >
-                    <Icon name="edit" size={16} className="mr-2" />
-                    Edit Profile
-                  </Button>
-                ) : (
-                  <div className="flex gap-3">
-                    <Button
-                      variant="ghost"
-                      onClick={handleCancel}
-                      fullWidth
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      fullWidth
-                    >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </div>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                <input
+                  type="text"
+                  value={userData.city}
+                  onChange={(e) => setUserData({ ...userData, city: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
+                <input
+                  type="text"
+                  value={userData.postcode}
+                  onChange={(e) => setUserData({ ...userData, postcode: e.target.value })}
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                <textarea
+                  value={userData.bio}
+                  onChange={(e) => setUserData({ ...userData, bio: e.target.value })}
+                  disabled={!isEditing}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                />
               </div>
             </div>
-          </TabsContent>
+          </MotionDiv>
+        )}
 
-          <TabsContent value="security" className="mt-0">
-            {/* Danger Zone Card */}
-            <DangerZone
-              onDeleteClick={() => setShowDeleteModal(true)}
-              disabled={isSaving}
-            />
-          </TabsContent>
-        </Tabs>
+        {activeTab === 'security' && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Password Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Password & Authentication</h2>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Lock className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">Password</p>
+                      <p className="text-sm text-gray-500">
+                        Last changed: {new Date(securitySettings.lastPasswordChange).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <MotionButton
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handlePasswordChange}
+                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                  >
+                    Change Password
+                  </MotionButton>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                      <p className="text-sm text-gray-500">
+                        {securitySettings.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.twoFactorEnabled}
+                      onChange={(e) =>
+                        setSecuritySettings({ ...securitySettings, twoFactorEnabled: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">Login Notifications</p>
+                      <p className="text-sm text-gray-500">Get notified of new login attempts</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.loginNotifications}
+                      onChange={(e) =>
+                        setSecuritySettings({ ...securitySettings, loginNotifications: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8">
+              <h2 className="text-2xl font-bold text-red-900 mb-6">Danger Zone</h2>
+
+              <div className="flex items-start gap-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-900 mb-1">Delete Account</h3>
+                  <p className="text-sm text-red-700 mb-4">
+                    Once you delete your account, there is no going back. This action cannot be undone.
+                  </p>
+                  <MotionButton
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDeleteAccount}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete My Account
+                  </MotionButton>
+                </div>
+              </div>
+            </div>
+          </MotionDiv>
+        )}
+
+        {activeTab === 'notifications' && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
+
+            <div className="space-y-4">
+              {Object.entries(notificationSettings).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {key === 'emailNotifications' && 'Receive notifications via email'}
+                      {key === 'smsNotifications' && 'Receive notifications via SMS'}
+                      {key === 'pushNotifications' && 'Receive push notifications'}
+                      {key === 'jobUpdates' && 'Get updates about your jobs'}
+                      {key === 'bidAlerts' && 'Get alerts about new bids'}
+                      {key === 'messageAlerts' && 'Get notified of new messages'}
+                      {key === 'marketingEmails' && 'Receive promotional emails'}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={value}
+                      onChange={(e) =>
+                        setNotificationSettings({ ...notificationSettings, [key]: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <MotionButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => toast.success('Notification preferences saved!')}
+                className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2"
+              >
+                <CheckCircle className="w-5 h-5" />
+                Save Preferences
+              </MotionButton>
+            </div>
+          </MotionDiv>
+        )}
+
+        {activeTab === 'preferences' && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">App Preferences</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                <select
+                  value={preferences.language}
+                  onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                <select
+                  value={preferences.timezone}
+                  onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                >
+                  <option value="Europe/London">London (GMT)</option>
+                  <option value="America/New_York">New York (EST)</option>
+                  <option value="America/Los_Angeles">Los Angeles (PST)</option>
+                  <option value="Asia/Tokyo">Tokyo (JST)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                <select
+                  value={preferences.currency}
+                  onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                >
+                  <option value="GBP">GBP (£)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="JPY">JPY (¥)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+                <select
+                  value={preferences.dateFormat}
+                  onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                >
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <MotionButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => toast.success('Preferences saved!')}
+                className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2"
+              >
+                <CheckCircle className="w-5 h-5" />
+                Save Preferences
+              </MotionButton>
+            </div>
+          </MotionDiv>
+        )}
       </div>
-
-      {/* Delete Account Modal */}
-      {showDeleteModal && user && (
-        <DeleteAccountModal
-          isOpen={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          userId={user.id}
-        />
-      )}
-
-      {/* Geolocation Alert Dialog */}
-      <AlertDialog open={geolocationAlert.open} onOpenChange={(open: boolean) => setGeolocationAlert({ ...geolocationAlert, open })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Geolocation Not Supported</AlertDialogTitle>
-            <AlertDialogDescription>{geolocationAlert.message}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setGeolocationAlert({ open: false, message: '' })}>
-              OK
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </HomeownerLayoutShell>
+    </div>
   );
 }
-

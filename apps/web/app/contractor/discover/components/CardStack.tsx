@@ -4,21 +4,21 @@ import React from 'react';
 import { SwipeableCard } from '@/components/SwipeableCard';
 import { theme } from '@/lib/theme';
 
-interface CardStackProps {
-  items: any[];
+interface CardStackProps<T extends { id: string | number }> {
+  items: T[];
   currentIndex: number;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onSwipeUp: () => void;
   onSwipeDown: () => void;
-  renderCard: (item: any) => React.ReactNode;
+  renderCard: (item: T) => React.ReactNode;
 }
 
 /**
  * Card stack component with swipe functionality
  * Shows the current card and a preview of upcoming cards
  */
-export function CardStack({
+export function CardStack<T extends { id: string | number }>({
   items,
   currentIndex,
   onSwipeLeft,
@@ -26,7 +26,7 @@ export function CardStack({
   onSwipeUp,
   onSwipeDown,
   renderCard
-}: CardStackProps) {
+}: CardStackProps<T>): React.ReactNode {
   const currentItem = items[currentIndex];
   const upcomingItems = items.slice(currentIndex + 1, currentIndex + 3);
 

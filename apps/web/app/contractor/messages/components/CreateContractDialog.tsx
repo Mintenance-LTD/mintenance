@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Loader2, FileText } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface CreateContractDialogProps {
   open: boolean;
@@ -94,7 +95,7 @@ export function CreateContractDialog({
           }
         }
       } catch (err) {
-        console.error('Error loading contractor verification info:', err);
+        logger.error('Error loading contractor verification info:', err);
       } finally {
         setLoadingCompanyName(false);
       }

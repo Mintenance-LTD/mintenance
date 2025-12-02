@@ -6,6 +6,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Simple logger for config file
+const logger = {
+  info: (...args) => console.log('[INFO]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+};
+
 // Paths to check for .env files (in order of priority)
 const envPaths = [
   path.join(__dirname, '../web/.env.local'),  // Web app's .env.local
@@ -24,7 +31,7 @@ for (const candidatePath of envPaths) {
 }
 
 if (envPath) {
-  console.log(`📋 Loading environment variables from: ${path.relative(process.cwd(), envPath)}`);
+  logger.info(`📋 Loading environment variables from: ${path.relative(process.cwd(), envPath)}`);
   
   // Read and parse .env file
   const envContent = fs.readFileSync(envPath, 'utf8');
@@ -46,23 +53,23 @@ if (envPath) {
       if (key.startsWith('NEXT_PUBLIC_SUPABASE_')) {
         const expoKey = key.replace('NEXT_PUBLIC_', 'EXPO_PUBLIC_');
         process.env[expoKey] = value;
-        console.log(`   ✓ Mapped ${key} → ${expoKey}`);
+        logger.info(`   ✓ Mapped ${key} → ${expoKey}`);
       } else if (key.startsWith('NEXT_PUBLIC_STRIPE_')) {
         const expoKey = key.replace('NEXT_PUBLIC_', 'EXPO_PUBLIC_');
         process.env[expoKey] = value;
-        console.log(`   ✓ Mapped ${key} → ${expoKey}`);
+        logger.info(`   ✓ Mapped ${key} → ${expoKey}`);
       } else if (key.startsWith('EXPO_PUBLIC_')) {
         // Directly use EXPO_PUBLIC_* variables (already in correct format)
         process.env[key] = value;
-        console.log(`   ✓ Loaded ${key}`);
+        logger.info(`   ✓ Loaded ${key}`);
       } else if (key === 'SUPABASE_URL' || key === 'SUPABASE_ANON_KEY') {
         // Also support non-prefixed versions
         process.env[`EXPO_PUBLIC_${key}`] = value;
-        console.log(`   ✓ Mapped ${key} → EXPO_PUBLIC_${key}`);
+        logger.info(`   ✓ Mapped ${key} → EXPO_PUBLIC_${key}`);
       }
     }
   });
 } else {
-  console.log('⚠️  No shared .env file found. Using mobile-specific .env if it exists.');
+  logger.info('⚠️  No shared .env file found. Using mobile-specific .env if it exists.');
 }
 

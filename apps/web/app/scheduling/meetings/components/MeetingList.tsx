@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card.unified';
 import { Badge } from '@/components/ui/Badge.unified';
 import { Button } from '@/components/ui/Button';
 import { MapPin, Clock, Calendar, User as UserIcon } from 'lucide-react';
+import type { User } from '@mintenance/types';
 import { ContractorMeeting } from './MeetingScheduler';
 
 interface MeetingListProps {
@@ -47,9 +49,29 @@ export function MeetingList({ userId, userRole, onScheduleNew }: MeetingListProp
 
             if (error) throw error;
 
+            interface MeetingDbResponse {
+                id: string;
+                job_id: string;
+                homeowner_id: string;
+                contractor_id: string;
+                scheduled_datetime: string;
+                status: string;
+                meeting_type: string;
+                latitude?: number;
+                longitude?: number;
+                address?: string;
+                duration: number;
+                notes?: string;
+                created_at: string;
+                updated_at: string;
+                homeowner?: { id: string; first_name: string; last_name: string; email: string } | Array<{ id: string; first_name: string; last_name: string; email: string }>;
+                contractor?: { id: string; first_name: string; last_name: string; email: string } | Array<{ id: string; first_name: string; last_name: string; email: string }>;
+                job?: { id: string; title: string; location: string } | Array<{ id: string; title: string; location: string }>;
+            }
+
             if (data) {
                 // Map DB response to frontend type
-                const mappedMeetings: ContractorMeeting[] = data.map((m: any) => ({
+                const mappedMeetings: ContractorMeeting[] = data.map((m: MeetingDbResponse) => ({
                     id: m.id,
                     jobId: m.job_id,
                     homeownerId: m.homeowner_id,
@@ -66,14 +88,14 @@ export function MeetingList({ userId, userRole, onScheduleNew }: MeetingListProp
                     notes: m.notes,
                     createdAt: m.created_at,
                     updatedAt: m.updated_at,
-                    homeowner: m.homeowner,
-                    contractor: m.contractor,
-                    job: m.job
+                    homeowner: (Array.isArray(m.homeowner) ? m.homeowner[0] : m.homeowner) as User | undefined,
+                    contractor: (Array.isArray(m.contractor) ? m.contractor[0] : m.contractor) as User | undefined,
+                    job: Array.isArray(m.job) ? m.job[0] : m.job
                 }));
                 setMeetings(mappedMeetings);
             }
         } catch (error) {
-            console.error('Error fetching meetings:', error);
+            logger.error('Error fetching meetings:', error);
         } finally {
             setLoading(false);
         }

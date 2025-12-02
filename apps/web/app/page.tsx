@@ -1,47 +1,35 @@
 import { SkipLink } from '../components/ui/SkipLink';
-import { MobileNavigation } from '../components/ui/MobileNavigation';
 import { LandingNavigation } from './components/landing/LandingNavigation';
 import { HeroSection } from './components/landing/HeroSection';
-import { FooterSection } from './components/landing/FooterSection';
-import { CTAClient } from './components/landing/CTAClient';
-import dynamic from 'next/dynamic';
-
-// New enhancement components
-import {
-  QuickQuoteWidget,
-  CustomerTestimonials,
-  AIAssessmentShowcase,
-  LiveActivityFeed,
-  UrgencyBanner,
-} from '../components/landing';
-
-// Dynamic imports for code splitting - load non-critical sections lazily
-const StatsSectionDynamic = dynamic(() => import('./components/landing/StatsSection').then(mod => ({ default: mod.StatsSection })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
-});
-
-const HowItWorksSectionDynamic = dynamic(() => import('./components/landing/HowItWorksSection').then(mod => ({ default: mod.HowItWorksSection })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
-});
-
-const ServicesSectionDynamic = dynamic(() => import('./components/landing/ServicesSection').then(mod => ({ default: mod.ServicesSection })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-48 rounded-lg" />
-});
-
-const FeaturesSectionDynamic = dynamic(() => import('./components/landing/FeaturesSection').then(mod => ({ default: mod.FeaturesSection })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
-});
+import { FeaturesSection2025 } from './components/landing/FeaturesSection2025';
+import { HowItWorksSection2025 } from './components/landing/HowItWorksSection2025';
+import { SocialProofSection2025 } from './components/landing/SocialProofSection2025';
+import { AIAssessmentShowcase } from '@/components/landing/AIAssessmentShowcase';
+import { PricingSection2025 } from './components/landing/PricingSection2025';
+import { CTASection2025 } from './components/landing/CTASection2025';
+import { Footer2025 } from './components/landing/Footer2025';
+import { LiveActivityFeed } from '@/components/landing/LiveActivityFeed';
 
 /**
- * Landing page - main entry point for the application
- * Orchestrates landing page sections using modular components
- * 
- * Enhanced with high-converting components for improved engagement:
- * - UrgencyBanner: Creates urgency with limited-time offers
- * - QuickQuoteWidget: Captures leads with instant estimates
- * - AIAssessmentShowcase: Demonstrates AI-powered damage assessment
- * - CustomerTestimonials: Social proof through success stories
- * - LiveActivityFeed: Creates FOMO with real-time activity
+ * Landing Page - Completely Redesigned for 2025
+ *
+ * Modern, sleek, and professional design optimized for conversions.
+ * Features:
+ * - Bold hero with search functionality and trust indicators
+ * - Feature showcase with hover effects and animations
+ * - Tabbed "How It Works" for homeowners and contractors
+ * - Social proof with animated statistics and testimonials
+ * - AI Assessment showcase with interactive demo
+ * - Transparent pricing with annual billing toggle
+ * - Strong CTA with no credit card messaging
+ * - Comprehensive footer with newsletter and trust badges
+ *
+ * Design System:
+ * - Primary Blue: #0066CC
+ * - Secondary Orange: #10B981
+ * - Smooth animations with reduced motion support
+ * - Mobile-first responsive design
+ * - WCAG 2.2 AA accessibility
  */
 export default function LandingPage() {
   return (
@@ -51,67 +39,41 @@ export default function LandingPage() {
       <SkipLink href="#navigation">Skip to navigation</SkipLink>
       <SkipLink href="#footer">Skip to footer</SkipLink>
 
-      {/* Urgency Banner - Top of page for maximum visibility */}
-      <UrgencyBanner />
-
       {/* Navigation */}
       <LandingNavigation />
-      <MobileNavigation
-        items={[
-          { label: 'How It Works', href: '#how-it-works' },
-          { label: 'Services', href: '#services' },
-          { label: 'Features', href: '#features' },
-        ]}
-        className="md:hidden"
-      />
 
       {/* Main Content */}
       <main id="main-content">
-        {/* Hero Section */}
+        {/* Hero Section - Full viewport with search */}
         <HeroSection />
 
-        {/* Stats Section */}
-        <StatsSectionDynamic />
+        {/* Features Section - Unique platform features */}
+        <FeaturesSection2025 />
 
-        {/* Quick Quote Widget - High visibility for lead capture */}
-        <section className="py-16 bg-gradient-to-b from-gray-50 to-white">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                Get Your Free Quote in 60 Seconds
-              </h2>
-              <p className="text-xl text-gray-600">
-                No obligation, no spam - just instant estimates
-              </p>
-            </div>
-            <QuickQuoteWidget />
-          </div>
-        </section>
+        {/* How It Works - Tabbed for homeowners/contractors */}
+        <HowItWorksSection2025 />
 
-        {/* How It Works Section */}
-        <HowItWorksSectionDynamic />
+        {/* Social Proof - Stats, testimonials, live feed */}
+        <SocialProofSection2025 />
 
-        {/* AI Assessment Showcase - Highlight your technology */}
+        {/* AI Assessment Showcase - Interactive demo */}
         <AIAssessmentShowcase />
 
-        {/* Customer Testimonials - Build trust with social proof */}
-        <CustomerTestimonials />
+        {/* Pricing Section - Transparent plans */}
+        <PricingSection2025 />
 
-        {/* Services Section */}
-        <ServicesSectionDynamic />
-
-        {/* Features Section */}
-        <FeaturesSectionDynamic />
-
-        {/* Final CTA */}
-        <CTAClient />
+        {/* Final CTA - Strong conversion section */}
+        <CTASection2025 />
       </main>
 
-      {/* Footer */}
-      <FooterSection />
+      {/* Footer - Comprehensive navigation and trust signals */}
+      <footer id="footer">
+        <Footer2025 />
+      </footer>
 
       {/* Live Activity Feed - Fixed position, creates FOMO */}
       <LiveActivityFeed />
     </div>
   );
 }
+

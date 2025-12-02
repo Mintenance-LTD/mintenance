@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';
 import Logo from '@/app/components/Logo';
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { NotificationService, NotificationData } from '@/lib/services/NotificationService';
-import type { User } from '@mintenance/types';
+import type { User, Notification } from '@mintenance/types';
 
 interface NotificationsClientProps {
   user: Pick<User, 'id' | 'role' | 'email'>;
@@ -39,7 +40,7 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
       setError(null);
     } catch (err) {
       setError('Failed to load notifications');
-      console.error('Failed to load notifications', err);
+      logger.error('Failed to load notifications', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -73,8 +74,9 @@ export function NotificationsClient({ user }: NotificationsClientProps) {
         break;
       case 'bid_received':
         // For homeowners, route to the job page. For contractors, route to finance.
-        if ((notification as any).action_url) {
-          router.push((notification as any).action_url);
+        const notificationWithAction = notification as NotificationData & { action_url?: string };
+        if (notificationWithAction.action_url) {
+          router.push(notificationWithAction.action_url);
         } else if (notification.data?.jobId) {
           router.push(`/jobs/${notification.data.jobId}`);
         } else {

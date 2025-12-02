@@ -3,6 +3,30 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
+// Type definitions for escrow approval data
+interface PhotoMetadata {
+  photo_url: string;
+  angle_type?: string;
+  quality_score?: number;
+  photo_type?: string;
+}
+
+interface JobWithPhotos {
+  id: string;
+  title: string;
+  homeowner_id: string;
+  before_photos?: PhotoMetadata[];
+  after_photos?: PhotoMetadata[];
+}
+
+interface EscrowRecord {
+  id: string;
+  amount: number;
+  homeowner_approval: boolean | null;
+  auto_approval_date: string | null;
+  jobs: JobWithPhotos;
+}
+
 /**
  * GET /api/escrow/:id/homeowner/pending-approval
  * Get pending approval details
@@ -51,29 +75,30 @@ export async function GET(
       return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
     }
 
-    const job = (escrow as any).jobs;
-    if (job.homeowner_id !== user.id && user.role !== 'admin') {
+    const typedEscrow = escrow as any;
+    const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
+    if (!job || (job.homeowner_id !== user.id && user.role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Filter photos by type
-    const beforePhotos = (job.before_photos || []).filter((p: any) => p.photo_type === 'before');
-    const afterPhotos = (job.after_photos || []).filter((p: any) => p.photo_type === 'after');
+    const beforePhotos = (job.before_photos || []).filter((p: PhotoMetadata) => p.photo_type === 'before');
+    const afterPhotos = (job.after_photos || []).filter((p: PhotoMetadata) => p.photo_type === 'after');
 
     return NextResponse.json({
       success: true,
       data: {
-        escrowId: escrow.id,
-        amount: escrow.amount,
+        escrowId: typedEscrow.id,
+        amount: typedEscrow.amount,
         jobTitle: job.title,
-        homeownerApproval: escrow.homeowner_approval,
-        autoApprovalDate: escrow.auto_approval_date,
-        beforePhotos: beforePhotos.map((p: any) => ({
+        homeownerApproval: typedEscrow.homeowner_approval,
+        autoApprovalDate: typedEscrow.auto_approval_date,
+        beforePhotos: beforePhotos.map((p: PhotoMetadata) => ({
           url: p.photo_url,
           angleType: p.angle_type,
           qualityScore: p.quality_score,
         })),
-        afterPhotos: afterPhotos.map((p: any) => ({
+        afterPhotos: afterPhotos.map((p: PhotoMetadata) => ({
           url: p.photo_url,
           angleType: p.angle_type,
           qualityScore: p.quality_score,

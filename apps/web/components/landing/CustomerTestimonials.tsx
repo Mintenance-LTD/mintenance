@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { Star, Quote } from 'lucide-react';
 
 // Fallback testimonials if no real data is available
@@ -75,7 +76,7 @@ export function CustomerTestimonials() {
                     setTestimonials(data.testimonials);
                 }
             } catch (error) {
-                console.error('Error fetching testimonials:', error);
+                logger.error('Error fetching testimonials:', error);
                 // Keep fallback testimonials on error
             } finally {
                 setIsLoading(false);

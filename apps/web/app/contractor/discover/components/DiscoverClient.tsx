@@ -22,6 +22,7 @@ import { JobCard } from './JobCard';
 import { Icon } from '@/components/ui/Icon';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
+import { logger } from '@mintenance/shared';
 
 interface SwipeHistory {
   index: number;
@@ -29,9 +30,40 @@ interface SwipeHistory {
   action: 'like' | 'pass' | 'super_like' | 'maybe';
 }
 
+interface JobData {
+  id: string;
+  title?: string;
+  description?: string;
+  budget?: number;
+  category?: string;
+  city?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+  photoUrls?: string[];
+  status?: 'posted' | 'assigned' | 'in_progress' | 'completed';
+  created_at?: string;
+  updated_at?: string;
+  skills?: string[];
+  timeline?: string;
+  homeowner?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    rating?: number;
+    jobs_count?: number;
+    city?: string;
+    country?: string;
+  };
+  homeowner_id?: string;
+  contractor_id?: string;
+}
+
 interface DiscoverClientProps {
   user: Pick<User, "id" | "role" | "email">;
-  jobs: any[];
+  jobs: JobData[];
   contractorLocation?: { latitude: number; longitude: number } | null;
   contractorSkills?: string[];
 }
@@ -127,7 +159,7 @@ export function DiscoverClient({
         setTimeout(() => setShowMatchModal(false), 3000);
       }
     } catch (err) {
-      console.error('Error saving swipe:', err);
+      logger.error('Error saving swipe:', err);
       setError(err instanceof Error ? err.message : 'Failed to save action');
       
       // Rollback: restore previous index
@@ -319,9 +351,9 @@ export function DiscoverClient({
               onSwipeRight={() => handleSwipe('like')}
               onSwipeUp={() => handleSwipe('super_like')}
               onSwipeDown={() => handleSwipe('maybe')}
-              renderCard={(item: any) => (
+              renderCard={(item: JobData) => (
                 <JobCard 
-                  job={item} 
+                  job={item as Parameters<typeof JobCard>[0]['job']} 
                   contractorLocation={contractorLocation}
                   contractorSkills={contractorSkills}
                 />

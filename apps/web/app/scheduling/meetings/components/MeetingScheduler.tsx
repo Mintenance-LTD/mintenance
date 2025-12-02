@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -16,12 +17,12 @@ export interface ContractorMeeting {
     homeownerId: string;
     contractorId: string;
     scheduledDateTime: string;
-    status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
-    meetingType: 'site_visit' | 'consultation' | 'work_session';
+    status: string;
+    meetingType: string;
     location: {
-        latitude: number;
-        longitude: number;
-        address: string;
+        latitude?: number;
+        longitude?: number;
+        address?: string;
     };
     duration: number;
     notes?: string;
@@ -164,7 +165,7 @@ export function MeetingScheduler({
                 onScheduled(newMeeting);
             }
         } catch (error) {
-            console.error('Error scheduling meeting:', error);
+            logger.error('Error scheduling meeting:', error);
             alert('Failed to schedule meeting');
         } finally {
             setLoading(false);

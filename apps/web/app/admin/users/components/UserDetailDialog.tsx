@@ -30,7 +30,7 @@ interface VerificationData {
     reason: string | null;
     verification_score: number | null;
     created_at: string;
-    checks_passed: any;
+    checks_passed: Record<string, boolean> | null;
   }>;
   companyName?: string;
   licenseNumber?: string;

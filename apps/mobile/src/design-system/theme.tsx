@@ -393,7 +393,7 @@ export const getThemeColor = (
   for (const path of paths) {
     current = current?.[path];
     if (current === undefined) {
-      console.warn(`Theme color not found: ${colorPath}`);
+      logger.warn(`Theme color not found: ${colorPath}`);
       return theme.colors.text.primary;
     }
   }

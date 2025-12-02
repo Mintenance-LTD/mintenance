@@ -10,6 +10,7 @@
 import React from 'react';
 import { PricingTable, PricingPlan } from '@/components/ui/PricingTable';
 import { ResponsiveGrid, GridArea } from '@/components/ui/ResponsiveGrid';
+import { logger } from '@mintenance/shared';
 
 // Example pricing plans data
 const examplePlans: PricingPlan[] = [
@@ -64,7 +65,7 @@ const examplePlans: PricingPlan[] = [
 
 export function PricingExample() {
   const handleSelectPlan = (planId: string) => {
-    console.log('Selected plan:', planId);
+    logger.info('Selected plan', { planId });
     // Handle plan selection logic here
   };
 

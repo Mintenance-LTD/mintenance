@@ -1,23 +1,58 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 
+interface BidData {
+  id: string;
+  amount: number;
+  message?: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  timeline?: string;
+  estimated_duration?: string;
+}
+
+interface PortfolioImage {
+  url: string;
+  title?: string;
+}
+
+interface ContractorData {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
+  email?: string;
+  phone?: string;
+  rating?: number;
+  total_jobs_completed?: number;
+  profile_image_url?: string;
+  portfolioImages?: Array<string | PortfolioImage>;
+  years_experience?: number;
+  license_number?: string;
+  city?: string;
+  country?: string;
+}
+
 interface BidSwipeCardProps {
-  bid: any;
-  contractor: any;
+  bid: BidData;
+  contractor?: ContractorData;
   onAccept: () => void;
   onReject: () => void;
   onClose: () => void;
-  nextBid?: any;
-  nextContractor?: any;
+  nextBid?: BidData;
+  nextContractor?: ContractorData;
 }
 
 export function BidSwipeCard({ bid, contractor, onAccept, onReject, onClose }: BidSwipeCardProps) {
   // Debug: Log contractor data to check if portfolioImages are present
   React.useEffect(() => {
-    console.log('BidSwipeCard - Contractor data:', {
+    logger.debug('BidSwipeCard - Contractor data:', {
       contractorId: contractor?.id,
       portfolioImages: contractor?.portfolioImages,
       portfolioImagesLength: contractor?.portfolioImages?.length,
@@ -122,16 +157,16 @@ export function BidSwipeCard({ bid, contractor, onAccept, onReject, onClose }: B
             color: 'white',
             overflow: 'hidden',
             border: `4px solid ${theme.colors.primary}`,
+            position: 'relative',
           }}>
             {contractor?.profile_image_url ? (
-              <img
+              <Image
                 src={contractor.profile_image_url}
                 alt={contractorName}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
+                fill
+                className="object-cover"
+                sizes="120px"
+                priority
               />
             ) : (
               initials
@@ -282,7 +317,10 @@ export function BidSwipeCard({ bid, contractor, onAccept, onReject, onClose }: B
                 gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
                 gap: theme.spacing[2],
               }}>
-                {contractor.portfolioImages.slice(0, 6).map((image: any, index: number) => (
+                {contractor.portfolioImages.slice(0, 6).map((image: string | PortfolioImage, index: number) => {
+                  const imageUrl = typeof image === 'string' ? image : image.url;
+                  const imageTitle = typeof image === 'string' ? undefined : image.title;
+                  return (
                   <div
                     key={index}
                     style={{
@@ -300,23 +338,23 @@ export function BidSwipeCard({ bid, contractor, onAccept, onReject, onClose }: B
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'scale(1)';
                     }}
+                    style={{ position: 'relative' }}
                   >
-                    <img
-                      src={image.url}
-                      alt={image.title || `Portfolio image ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
+                    <Image
+                      src={imageUrl}
+                      alt={imageTitle || `Portfolio image ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 50vw, 33vw"
                       loading="lazy"
-                      onError={(e) => {
-                        console.error('Failed to load portfolio image:', image.url);
+                      onError={() => {
+                        logger.error('Failed to load portfolio image:', imageUrl);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {contractor.portfolioImages.length > 6 && (
                 <div style={{

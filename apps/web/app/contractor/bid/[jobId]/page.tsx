@@ -1,37 +1,67 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
+import { BidSubmissionClient2025 } from './components/BidSubmissionClient2025';
 import { redirect } from 'next/navigation';
-import { BidSubmissionClient } from './components/BidSubmissionClient';
 
-export default async function BidSubmissionPage({ params }: { params: Promise<{ jobId: string }> }) {
-  const { jobId } = await params;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export default async function BidSubmissionPage2025({ params }: { params: { jobId: string } }) {
   const user = await getCurrentUserFromCookies();
 
   if (!user || user.role !== 'contractor') {
     redirect('/login');
   }
 
-  const { data: job, error: jobError } = await serverSupabase
+  // Fetch job details
+  const { data: job, error } = await supabase
     .from('jobs')
-    .select('*')
-    .eq('id', jobId)
+    .select(`
+      *,
+      homeowner:homeowner_id (
+        first_name,
+        last_name,
+        email,
+        profile_image_url
+      )
+    `)
+    .eq('id', params.jobId)
     .single();
 
-  if (jobError || !job) {
+  if (error || !job) {
     redirect('/contractor/bid');
   }
 
-  // Map database fields to component expected format
-  const mappedJob = {
-    id: job.id,
-    title: job.title || 'Untitled Job',
-    description: job.description || '',
-    budget: job.budget ? String(job.budget) : undefined,
-    location: job.location || undefined,
-    category: job.category || undefined,
-    createdAt: job.created_at || undefined,
-    postedBy: undefined, // Can be fetched separately if needed
-  };
+  // Check if contractor already has a bid for this job
+  const { data: existingBid } = await supabase
+    .from('bids')
+    .select('*')
+    .eq('job_id', params.jobId)
+    .eq('contractor_id', user.id)
+    .single();
 
-  return <BidSubmissionClient job={mappedJob} />;
+  return (
+    <BidSubmissionClient2025
+      job={{
+        id: job.id,
+        title: job.title,
+        description: job.description,
+        budget: job.budget?.toString(),
+        location: job.location,
+        category: job.category,
+        createdAt: job.created_at,
+        photos: job.photos || [],
+        homeowner: Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner,
+      }}
+      existingBid={existingBid ? {
+        amount: existingBid.bid_amount,
+        description: existingBid.proposal_text,
+        lineItems: existingBid.line_items,
+        taxRate: existingBid.tax_rate,
+        terms: existingBid.terms,
+      } : undefined}
+    />
+  );
 }

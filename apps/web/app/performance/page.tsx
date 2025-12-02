@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   getPerformanceData,
   storePerformanceData,
@@ -28,7 +29,7 @@ export default function PerformancePage() {
       setPerformanceData(data);
       storePerformanceData(data);
     } catch (error) {
-      console.error('Error loading performance data:', error);
+      logger.error('Error loading performance data:', error);
     } finally {
       setLoading(false);
     }

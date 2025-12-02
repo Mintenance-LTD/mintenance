@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Icon } from '@/components/ui/Icon';
 import { Check, Copy, Share2, X } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface ShareDialogProps {
   open: boolean;
@@ -37,7 +38,7 @@ export function ShareDialog({ open, onOpenChange, postId, postTitle, shareLink }
         setTimeout(() => setCopied(false), 2000);
       }
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      logger.error('Failed to copy link:', error);
     }
   };
 
@@ -51,7 +52,11 @@ export function ShareDialog({ open, onOpenChange, postId, postTitle, shareLink }
         });
       } catch (error) {
         // User cancelled or error occurred
-        console.log('Share cancelled or failed:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.info('Share cancelled or failed', {
+          service: 'share-dialog',
+          error: errorMessage,
+        });
       }
     }
   };

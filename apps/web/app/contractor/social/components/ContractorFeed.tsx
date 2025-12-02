@@ -121,7 +121,7 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
 
             // Directly access Supabase error properties (PostgrestError)
             if (error && typeof error === 'object') {
-                const err = error as { message?: string; code?: string; details?: string; hint?: string };
+                const err = error as { message?: string; code?: string; details?: string; hint?: string; statusCode?: number; name?: string; stack?: string };
                 
                 // Supabase PostgrestError properties
                 if (err.message !== undefined) errorDetails.message = err.message;
@@ -213,7 +213,7 @@ export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
             }
             
             // Also try to extract common Supabase error properties
-            const supabaseError = error as { code?: string; details?: string; hint?: string };
+            const supabaseError = error as { code?: string; details?: string; hint?: string; message?: string };
             if (supabaseError?.code || supabaseError?.details || supabaseError?.hint) {
                 errorDetails = {
                     ...errorDetails,

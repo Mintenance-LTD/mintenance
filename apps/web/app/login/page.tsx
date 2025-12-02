@@ -4,18 +4,23 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 import { logger } from '@mintenance/shared';
+import {
+  AuthCard,
+  AuthInput,
+  PasswordInput,
+  AuthBrandSide,
+  AuthLink
+} from '@/components/auth';
 
 const loginFormSchema = z.object({
   email: z
@@ -31,7 +36,6 @@ type LoginFormData = z.infer<typeof loginFormSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { csrfToken, loading: csrfLoading } = useCSRF();
-  const [showPassword, setShowPassword] = React.useState(false);
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
   const [mounted, setMounted] = React.useState(false);
@@ -45,12 +49,11 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
-    clearErrors,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
-    mode: 'onSubmit', // Only validate on submit, not on mount or change
-    reValidateMode: 'onChange', // Revalidate on change after first validation
-    shouldUnregister: false, // Keep form values when fields are unmounted
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    shouldUnregister: false,
     defaultValues: {
       email: '',
       password: '',
@@ -58,6 +61,8 @@ export default function LoginPage() {
     },
   });
 
+  const email = watch('email');
+  const password = watch('password');
   const rememberMe = watch('rememberMe');
 
   const onSubmit = async (data: LoginFormData) => {
@@ -118,9 +123,26 @@ export default function LoginPage() {
         }
       }
 
+      // Check if MFA is required
+      if (responseData.requiresMfa && responseData.preMfaToken) {
+        // Redirect to MFA verification page
+        const redirectParam = searchParams.get('redirect') || '';
+        const mfaUrl = `/auth/mfa-verify?token=${responseData.preMfaToken}${redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : ''}`;
+        router.push(mfaUrl);
+        return;
+      }
+
       setSubmitStatus('success');
       setTimeout(() => {
-        router.push('/dashboard');
+        // Redirect based on user role or specified redirect
+        const redirect = searchParams.get('redirect');
+        if (redirect) {
+          router.push(redirect);
+        } else if (responseData.user?.role === 'contractor') {
+          router.push('/contractor/dashboard-enhanced');
+        } else {
+          router.push('/dashboard');
+        }
         router.refresh();
       }, 500);
     } catch (err) {
@@ -130,170 +152,118 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      {/* Left Side - Enhanced Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary-950 text-white p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-primary-950/95 to-primary-900/90"></div>
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Left Side - Brand */}
+      <AuthBrandSide
+        title="Welcome Back!"
+        description="Sign in to manage your projects and connect with top-tier professionals."
+        role={null}
+      />
 
-        {/* Tech Grid Pattern */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-
-        {/* Glowing Orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 animate-pulse duration-3000"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
-
-        <div className="relative z-10">
-          <Link href="/" className="flex items-center space-x-3 mb-16 group">
-            <div className="transform transition-transform group-hover:scale-110 duration-300 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-              <Logo />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Mintenance</h1>
-          </Link>
-          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">
-            Welcome Back!
-          </h2>
-          <p className="text-xl text-primary-100 leading-relaxed max-w-md">
-            Sign in to your command center to manage projects and connect with top-tier tradespeople.
-          </p>
-        </div>
-
-        <div className="relative z-10 space-y-6">
-          {/* Feature Highlights */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-              <div className="text-secondary-400 font-bold text-lg mb-1">AI-Powered</div>
-              <div className="text-primary-200 text-sm">Smart matching & insights</div>
-            </div>
-            <div className="bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10">
-              <div className="text-accent-400 font-bold text-lg mb-1">Secure</div>
-              <div className="text-primary-200 text-sm">Protected payments & data</div>
-            </div>
-          </div>
-
-          <div className="text-sm text-primary-400 flex justify-between items-end">
-            <div>
-              <p className="font-medium text-white">© 2025 MINTENANCE LTD</p>
-              <p>Building the future of home maintenance</p>
-            </div>
-            <div className="text-xs opacity-50">v2.0.0</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side - Modern Form */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
+      {/* Right Side - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden mb-8">
-            <Link href="/" className="flex items-center space-x-2 mb-4">
-              <Logo />
-              <h1 className="text-2xl font-bold text-primary">Mintenance</h1>
+          <div className="lg:hidden mb-8 text-center">
+            <Link href="/" className="inline-flex items-center space-x-2 mb-4">
+              <Logo className="w-8 h-8" />
+              <h1 className="text-2xl font-bold text-[#0066CC]">Mintenance</h1>
             </Link>
           </div>
 
-          {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Sign in</h2>
-            <p className="text-base text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/register" className="font-semibold text-primary hover:text-primary-700 transition-colors">
-                Create one
-              </Link>
-            </p>
-          </div>
+          {/* Card */}
+          <AuthCard>
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+                Sign in
+              </h2>
+              <p className="text-base text-gray-600">
+                New to Mintenance?{' '}
+                <AuthLink href="/register" variant="primary">
+                  Create an account
+                </AuthLink>
+              </p>
+            </div>
 
-          {/* Success Alert */}
-          {submitStatus === 'success' && (
-            <Alert className="mb-6 border-green-500 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800">Login Successful!</AlertTitle>
-              <AlertDescription className="text-green-700">
-                Redirecting to your dashboard...
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Success Alert */}
+            {submitStatus === 'success' && (
+              <Alert className="mb-6 border-green-500 bg-green-50">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Login Successful!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  Redirecting to your dashboard...
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {/* Error Alert */}
-          {submitStatus === 'error' && errorMessage && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Login Failed</AlertTitle>
-              <AlertDescription>
-                {errorMessage}
-                {(errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('incorrect')) && (
-                  <div className="mt-2">
-                    <Link href="/forgot-password" className="text-sm underline font-medium">
-                      Reset your password
-                    </Link>
-                  </div>
-                )}
-                {errorMessage.toLowerCase().includes('email') && !errorMessage.toLowerCase().includes('password') && (
-                  <div className="mt-2">
-                    <Link href="/register" className="text-sm underline font-medium">
-                      Create an account
-                    </Link>
-                  </div>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Error Alert */}
+            {submitStatus === 'error' && errorMessage && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Login Failed</AlertTitle>
+                <AlertDescription>
+                  {errorMessage}
+                  {(errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('incorrect')) && (
+                    <div className="mt-2">
+                      <AuthLink href="/forgot-password" variant="primary" className="text-sm underline">
+                        Reset your password
+                      </AuthLink>
+                    </div>
+                  )}
+                  {errorMessage.toLowerCase().includes('email') && !errorMessage.toLowerCase().includes('password') && (
+                    <div className="mt-2">
+                      <AuthLink href="/register" variant="primary" className="text-sm underline">
+                        Create an account
+                      </AuthLink>
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email Input */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Email Input */}
+              <AuthInput
+                label="Email address"
                 type="email"
-                {...register('email')}
-                error={errors.email?.message || undefined}
-                errorText={errors.email?.message || undefined}
+                icon={<Mail className="w-5 h-5" />}
                 placeholder="you@example.com"
                 autoComplete="email"
+                autoFocus
+                showSuccess={!!email && !errors.email}
+                {...register('email')}
+                error={errors.email?.message}
               />
-            </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  {...register('password')}
-                  error={errors.password?.message || undefined}
-                  errorText={errors.password?.message || undefined}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+              {/* Password Input */}
+              <PasswordInput
+                label="Password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                {...register('password')}
+                error={errors.password?.message}
+                value={password}
+              />
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember-me"
+                    {...register('rememberMe')}
+                    checked={rememberMe}
+                  />
+                  <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-gray-600">
+                    Remember me
+                  </Label>
+                </div>
+                <AuthLink href="/forgot-password" variant="primary" className="text-sm">
+                  Forgot password?
+                </AuthLink>
               </div>
-            </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember-me"
-                {...register('rememberMe')}
-                checked={rememberMe}
-              />
-              <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-gray-600">
-                Remember me for 30 days
-              </Label>
-            </div>
-
-            {/* Submit Button */}
-            <div className="relative group">
+              {/* Submit Button */}
               <Button
                 type="submit"
                 variant="primary"
@@ -301,49 +271,39 @@ export default function LoginPage() {
                 fullWidth
                 loading={isSubmitting || csrfLoading}
                 disabled={isSubmitting || csrfLoading || !csrfToken}
-                className={cn(
-                  "transition-all",
-                  (!csrfToken && !isSubmitting && !csrfLoading) && "opacity-60 cursor-not-allowed"
-                )}
-                aria-label={!csrfToken ? "Please wait while we load security settings..." : "Sign in"}
+                className="mt-6 bg-[#0066CC] hover:bg-[#0052A3] text-white shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 {isSubmitting ? 'Signing in...' : 'Sign in'}
               </Button>
+
               {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                  Please wait while we load security settings...
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full">
-                    <div className="border-4 border-transparent border-t-gray-900"></div>
-                  </div>
-                </div>
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
+                  <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                  Loading security settings...
+                </p>
               )}
-            </div>
-            {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
-              <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
-                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
-                Loading security settings...
+            </form>
+
+            {/* Footer Links */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <AuthLink href="/register" variant="primary">
+                  Sign up for free
+                </AuthLink>
               </p>
-            )}
-
-            {/* Forgot Password Link */}
-            <div className="text-center pt-2">
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-              >
-                Forgot your password?
-              </Link>
             </div>
-          </form>
+          </AuthCard>
 
-          {/* Divider */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/register" className="font-semibold text-primary hover:text-primary-700 transition-colors">
-                Sign up for free
-              </Link>
-            </p>
+          {/* Legal Links */}
+          <div className="mt-6 text-center">
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+              <AuthLink href="/terms" variant="muted">Terms</AuthLink>
+              <span>•</span>
+              <AuthLink href="/privacy" variant="muted">Privacy</AuthLink>
+              <span>•</span>
+              <AuthLink href="/help" variant="muted">Help</AuthLink>
+            </div>
           </div>
         </div>
       </div>

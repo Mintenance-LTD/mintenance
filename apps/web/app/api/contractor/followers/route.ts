@@ -52,21 +52,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch followers list' }, { status: 500 });
     }
 
-    const formattedFollowers = (followers || []).map((follow: Record<string, unknown>) => ({
-      id: follow.id,
-      contractor_id: follow.follower_id,
-      created_at: follow.created_at,
-      contractor: follow.contractor ? {
-        id: follow.contractor.id,
-        first_name: follow.contractor.first_name,
-        last_name: follow.contractor.last_name,
-        profile_image_url: follow.contractor.profile_image_url,
-        city: follow.contractor.city,
-        country: follow.contractor.country,
-        rating: follow.contractor.rating,
-        total_jobs_completed: follow.contractor.total_jobs_completed,
-      } : null,
-    }));
+    interface ContractorData {
+      id: string;
+      first_name: string | null;
+      last_name: string | null;
+      profile_image_url: string | null;
+      city: string | null;
+      country: string | null;
+      rating: number | null;
+      total_jobs_completed: number | null;
+    }
+
+    interface FollowData {
+      id: string;
+      follower_id: string;
+      created_at: string;
+      contractor?: ContractorData | ContractorData[] | null;
+    }
+
+    const formattedFollowers = (followers || []).map((follow: FollowData) => {
+      const contractor = Array.isArray(follow.contractor) ? follow.contractor[0] : follow.contractor;
+      
+      return {
+        id: follow.id,
+        contractor_id: follow.follower_id,
+        created_at: follow.created_at,
+        contractor: contractor ? {
+          id: contractor.id,
+          first_name: contractor.first_name,
+          last_name: contractor.last_name,
+          profile_image_url: contractor.profile_image_url,
+          city: contractor.city,
+          country: contractor.country,
+          rating: contractor.rating,
+          total_jobs_completed: contractor.total_jobs_completed,
+        } : null,
+      };
+    });
 
     return NextResponse.json({ 
       followers: formattedFollowers,

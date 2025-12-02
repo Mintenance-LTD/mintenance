@@ -132,7 +132,13 @@ function replaceConsoleStatements(content: string, filePath: string): { content:
       // Determine logger method based on console method
       let loggerMethod = method;
       if (method === 'log') {
-        loggerMethod = 'info'; // console.log -> logger.info
+        // Check if it's a debug log (contains "debug" or "Debug" in message)
+        const argsLower = args.toLowerCase();
+        if (argsLower.includes('debug') || argsLower.includes('📅') || argsLower.includes('state:')) {
+          loggerMethod = 'debug'; // console.log with debug context -> logger.debug
+        } else {
+          loggerMethod = 'info'; // console.log -> logger.info
+        }
       }
 
       // Create replacement
@@ -151,16 +157,22 @@ function replaceConsoleStatements(content: string, filePath: string): { content:
         if (argsTrimmed.startsWith('"') || argsTrimmed.startsWith("'") || argsTrimmed.startsWith('`')) {
           replacement = `${indent}logger.${loggerMethod}(${args});`;
         } else {
-          // Multiple arguments - treat first as message, rest as context
-          // This is a simplified approach - may need manual review for complex cases
-          const argParts = args.split(',').map(a => a.trim());
-          if (argParts.length === 1) {
-            replacement = `${indent}logger.${loggerMethod}(${args});`;
+          // Check if it's an object literal (starts with {)
+          if (argsTrimmed.startsWith('{')) {
+            // Object literal - treat as context, add generic message
+            replacement = `${indent}logger.${loggerMethod}('Log statement', ${args});`;
           } else {
-            // Multiple args: first is message, rest is context
-            const message = argParts[0];
-            const context = argParts.slice(1).join(', ');
-            replacement = `${indent}logger.${loggerMethod}(${message}, { ${context} });`;
+            // Multiple arguments - treat first as message, rest as context
+            // This is a simplified approach - may need manual review for complex cases
+            const argParts = args.split(',').map(a => a.trim());
+            if (argParts.length === 1) {
+              replacement = `${indent}logger.${loggerMethod}(${args});`;
+            } else {
+              // Multiple args: first is message, rest is context
+              const message = argParts[0];
+              const context = argParts.slice(1).join(', ');
+              replacement = `${indent}logger.${loggerMethod}(${message}, { ${context} });`;
+            }
           }
         }
       }

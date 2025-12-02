@@ -72,11 +72,18 @@ export class JobStatusAgent {
         'finished the work',
       ];
 
+      interface MessageRecord {
+        id: string;
+        content: string;
+        sender_id: string;
+        created_at: string;
+      }
+
       const contractorMessages = messages.filter(
         (m) => m.sender_id === job.contractor_id
       );
 
-      const hasCompletionSignal = contractorMessages.some((message: any) => {
+      const hasCompletionSignal = contractorMessages.some((message: MessageRecord) => {
         const content = (message.content || '').toLowerCase();
         return completionKeywords.some((keyword) => content.includes(keyword));
       });
@@ -86,7 +93,7 @@ export class JobStatusAgent {
         (m) => m.sender_id === job.homeowner_id
       );
       const confirmationKeywords = ['thanks', 'thank you', 'looks good', 'perfect', 'great'];
-      const hasConfirmation = homeownerMessages.some((message: any) => {
+      const hasConfirmation = homeownerMessages.some((message: MessageRecord) => {
         const content = (message.content || '').toLowerCase();
         return confirmationKeywords.some((keyword) => content.includes(keyword));
       });

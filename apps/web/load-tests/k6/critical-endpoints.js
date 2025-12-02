@@ -44,7 +44,7 @@ const testUsers = {
 
 export function setup() {
   // Setup: Create test users if needed, get auth tokens, etc.
-  console.log('Setting up load test environment...');
+  logger.info('Setting up load test environment...');
   
   return {
     baseUrl: BASE_URL,
@@ -117,6 +117,6 @@ export default function (data) {
 
 export function teardown(data) {
   // Cleanup: Remove test data if needed
-  console.log('Tearing down load test environment...');
+  logger.info('Tearing down load test environment...');
 }
 

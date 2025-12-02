@@ -40,14 +40,14 @@ export const colors = {
     950: '#082F49',
   },
 
-  // Secondary Brand Colors (Emerald)
+  // Secondary Brand Colors (Mint Green)
   secondary: {
-    50: '#ECFDF5',
-    100: '#D1FAE5',
-    200: '#A7F3D0',
-    300: '#6EE7B7',
-    400: '#34D399',
-    500: '#10B981', // Main secondary
+    50: '#F0FDF9',
+    100: '#DCFCE7',
+    200: '#BBF7D0',
+    300: '#86EFAC',
+    400: '#4ADE80',
+    500: '#10B981', // Main mint green
     600: '#059669',
     700: '#047857',
     800: '#065F46',

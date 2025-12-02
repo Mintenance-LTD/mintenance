@@ -14,6 +14,8 @@ import { logger } from '@mintenance/shared';
 // Use relative path for tsx compatibility (when running scripts from root)
 import { serverSupabase } from '../../../api/supabaseServer';
 import { SelfModifyingTitans } from './SelfModifyingTitans';
+import { MLPBackpropagation, type BackpropConfig } from './MLPBackpropagation';
+import { ActivationFunctions, type ActivationType } from './ActivationFunctions';
 import type {
   ContinuumMemoryConfig,
   MemoryLevel,
@@ -40,6 +42,8 @@ export class ContinuumMemorySystem {
   private contextFlowBuffer: Map<string, ContextFlow[]> = new Map();
   private titansModules: Map<string, SelfModifyingTitans> = new Map();
   private useTitans: boolean = false;
+  private useProperBackprop: boolean = true; // Use proper backpropagation (default: true)
+  private activation: ActivationType = 'relu'; // Default activation function
 
   constructor(config: ContinuumMemoryConfig) {
     this.config = config;
@@ -56,6 +60,29 @@ export class ContinuumMemorySystem {
         agentName: this.config.agentName,
       });
     }
+  }
+
+  /**
+   * Enable or disable proper backpropagation
+   * Set to false to use simplified gradient descent (legacy behavior)
+   */
+  enableProperBackpropagation(enable: boolean = true): void {
+    this.useProperBackprop = enable;
+    logger.info('Backpropagation mode changed', {
+      agentName: this.config.agentName,
+      mode: enable ? 'proper' : 'simplified',
+    });
+  }
+
+  /**
+   * Set activation function type
+   */
+  setActivationFunction(activation: ActivationType): void {
+    this.activation = activation;
+    logger.info('Activation function changed', {
+      agentName: this.config.agentName,
+      activation,
+    });
   }
 
   /**
@@ -79,13 +106,22 @@ export class ContinuumMemorySystem {
         });
       }
 
+      // Define type for existing state records
+      interface ExistingMemoryState {
+        memory_level: number;
+        parameters_jsonb: MemoryParameters;
+        last_update_step: number | null;
+        last_updated: string;
+        update_count: number | null;
+      }
+
       // Initialize each level
       for (const levelConfig of this.config.levels) {
         const levelKey = this.getLevelKey(levelConfig.level);
         
         // Check if state exists in database
-        const existingState = existingStates?.find(
-          (s: any) => s.memory_level === levelConfig.level
+        const existingState = (existingStates as ExistingMemoryState[] | null)?.find(
+          (s: ExistingMemoryState) => s.memory_level === levelConfig.level
         );
 
         if (existingState) {
@@ -314,20 +350,64 @@ export class ContinuumMemorySystem {
       };
     }
 
-    // Calculate accumulated error
-    const accumulatedError = this.calculateAccumulatedError(
-      memoryLevel.parameters,
-      contextFlows,
-      this.config.levels.find(l => l.level === level)!.learningRate
-    );
-
-    // Update parameters: θ_{i+1} = θ_i - error
     const parametersBefore = JSON.parse(JSON.stringify(memoryLevel.parameters));
-    const parametersAfter = this.updateParameters(
-      memoryLevel.parameters,
-      accumulatedError,
-      this.config.levels.find(l => l.level === level)!.learningRate
-    );
+    const levelConfig = this.config.levels.find(l => l.level === level)!;
+    let parametersAfter: MemoryParameters;
+
+    if (this.useProperBackprop) {
+      // Use proper backpropagation
+      const { weights, biases } = MLPBackpropagation.parametersToArrays(memoryLevel.parameters);
+
+      const backpropConfig: BackpropConfig = {
+        learningRate: levelConfig.learningRate,
+        gradientClipMax: 5.0,
+        useMomentum: true,
+        momentumBeta: 0.9,
+        l2Regularization: 0.0001, // Small L2 regularization for stability
+      };
+
+      // Extract inputs and targets from context flows
+      const inputs = contextFlows.map(flow => flow.keys);
+      const targets = contextFlows.map(flow => flow.values);
+
+      // Train on batch
+      const result = MLPBackpropagation.trainBatch(
+        inputs,
+        targets,
+        weights,
+        biases,
+        backpropConfig,
+        this.activation
+      );
+
+      // Convert back to MemoryParameters
+      parametersAfter = MLPBackpropagation.arraysToParameters(
+        result.weights,
+        result.biases,
+        memoryLevel.parameters
+      );
+
+      logger.info('Backpropagation training completed', {
+        agentName: this.config.agentName,
+        level,
+        averageLoss: result.averageLoss,
+        averageGradientNorm: result.averageGradientNorm,
+        samples: contextFlows.length,
+      });
+    } else {
+      // Use simplified gradient descent (legacy)
+      const accumulatedError = this.calculateAccumulatedError(
+        memoryLevel.parameters,
+        contextFlows,
+        levelConfig.learningRate
+      );
+
+      parametersAfter = this.updateParameters(
+        memoryLevel.parameters,
+        accumulatedError,
+        levelConfig.learningRate
+      );
+    }
 
     // Update memory level
     memoryLevel.parameters = parametersAfter;
@@ -357,6 +437,7 @@ export class ContinuumMemorySystem {
       updateStep: this.currentStep,
       errorReduction,
       contextFlowsProcessed: contextFlows.length,
+      method: this.useProperBackprop ? 'backpropagation' : 'simplified',
     });
 
     return {
@@ -408,7 +489,7 @@ export class ContinuumMemorySystem {
         for (let j = 0; j < layer.inputSize; j++) {
           sum += currentInput[j] * layer.weights[i][j];
         }
-        output[i] = this.applyActivation(sum, 'relu');
+        output[i] = ActivationFunctions.apply(sum, this.activation);
       }
 
       currentInput = output;
@@ -515,34 +596,39 @@ export class ContinuumMemorySystem {
 
   /**
    * Update parameters with accumulated error
+   * Uses proper backpropagation or simplified gradient descent based on configuration
    */
   private updateParameters(
     parameters: MemoryParameters,
     accumulatedError: number[],
     learningRate: number
   ): MemoryParameters {
-    // Simple gradient descent update
-    // In practice, this would use backpropagation through the MLP
-    // For now, we update the output layer biases directly
-    
-    const updatedLayers = parameters.layers.map((layer, layerIndex) => {
-      if (layerIndex === parameters.layers.length - 1) {
-        // Update output layer biases
-        const updatedBiases = layer.biases.map((bias, i) => 
-          bias - (accumulatedError[i] || 0)
-        );
-        return { ...layer, biases: updatedBiases };
-      }
-      return layer;
-    });
+    if (!this.useProperBackprop) {
+      // Legacy: Simplified gradient descent update
+      // Only updates output layer biases
+      const updatedLayers = parameters.layers.map((layer, layerIndex) => {
+        if (layerIndex === parameters.layers.length - 1) {
+          // Update output layer biases
+          const updatedBiases = layer.biases.map((bias, i) =>
+            bias - (accumulatedError[i] || 0)
+          );
+          return { ...layer, biases: updatedBiases };
+        }
+        return layer;
+      });
 
-    return {
-      layers: updatedLayers,
-      metadata: {
-        ...parameters.metadata,
-        updatedAt: new Date(),
-      },
-    };
+      return {
+        layers: updatedLayers,
+        metadata: {
+          ...parameters.metadata,
+          updatedAt: new Date(),
+        },
+      };
+    }
+
+    // This method is not used with proper backpropagation
+    // Proper backpropagation is handled in updateMemoryLevel
+    return parameters;
   }
 
   /**
@@ -577,22 +663,6 @@ export class ContinuumMemorySystem {
     return (totalErrorBefore - totalErrorAfter) / totalErrorBefore;
   }
 
-  /**
-   * Apply activation function
-   */
-  private applyActivation(value: number, activation: string): number {
-    switch (activation) {
-      case 'relu':
-        return Math.max(0, value);
-      case 'tanh':
-        return Math.tanh(value);
-      case 'sigmoid':
-        return 1 / (1 + Math.exp(-value));
-      case 'linear':
-      default:
-        return value;
-    }
-  }
 
   /**
    * Calculate confidence for query result

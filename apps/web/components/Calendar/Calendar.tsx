@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarGrid } from './CalendarGrid';
 
@@ -17,8 +18,11 @@ interface CalendarProps {
   events: CalendarEvent[];
 }
 
+export type CalendarView = 'month' | 'week' | 'day';
+
 export function Calendar({ events }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<CalendarView>('month');
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -42,21 +46,18 @@ export function Calendar({ events }: CalendarProps) {
         };
       }).filter(Boolean);
 
-      console.log('📅 Calendar Component Debug:', {
-        eventsCount: events.length,
-        currentDate: currentDate.toISOString(),
-        currentMonth: currentDate.getMonth(),
-        currentYear: currentDate.getFullYear(),
-        currentMonthName: monthNames[currentDate.getMonth()],
-        eventsInCurrentMonth: eventsByMonth.filter(e => 
-          e && e.month === currentDate.getMonth() && e.year === currentDate.getFullYear()
-        ).length,
-        eventsByMonth: eventsByMonth.slice(0, 10),
-        allEvents: events.slice(0, 10).map(e => ({
-          title: e.title,
-          date: typeof e.date === 'string' ? e.date : e.date.toISOString(),
-        }))
-      });
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('📅 Calendar Component Debug', {
+          eventsCount: events.length,
+          currentDate: currentDate.toISOString(),
+          currentMonth: currentDate.getMonth(),
+          currentYear: currentDate.getFullYear(),
+          currentMonthName: monthNames[currentDate.getMonth()],
+          eventsInCurrentMonth: eventsByMonth.filter(e => 
+            e && e.month === currentDate.getMonth() && e.year === currentDate.getFullYear()
+          ).length,
+        });
+      }
     }
   }, [events, currentDate, monthNames]);
 
@@ -105,7 +106,7 @@ export function Calendar({ events }: CalendarProps) {
       
       if (isNaN(eventDate.getTime())) {
         // Invalid date, skip this event
-        console.warn('Invalid date for event:', event);
+        logger.warn('Invalid date for event', { event: event.title });
         return false;
       }
       
@@ -138,7 +139,8 @@ export function Calendar({ events }: CalendarProps) {
       
       // Debug logging for development
       if (process.env.NODE_ENV === 'development' && matches) {
-        console.log('Event matched for day', day, ':', {
+        logger.info('Event matched for day', {
+          day,
           eventTitle: event.title,
           eventDate: typeof event.date === 'string' ? event.date : event.date.toISOString(),
           eventDay,
@@ -207,6 +209,8 @@ export function Calendar({ events }: CalendarProps) {
         onPreviousMonth={goToPreviousMonth}
         onNextMonth={goToNextMonth}
         onToday={goToToday}
+        view={view}
+        onViewChange={setView}
       />
 
       {/* Days of Week */}

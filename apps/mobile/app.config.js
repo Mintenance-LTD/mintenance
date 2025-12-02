@@ -1,3 +1,10 @@
+// Simple logger for config file
+const logger = {
+  info: (...args) => console.log('[INFO]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+};
+
 // Load shared environment variables from web app or root .env files
 // This allows sharing Supabase credentials between web and mobile apps
 // Use dynamic import to avoid issues during config evaluation
@@ -13,7 +20,7 @@ try {
   // This allows the app to work with mobile-specific .env files
   // Only log in development to avoid noise in builds
   if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️  Could not load shared environment variables:', error.message);
+    logger.warn('⚠️  Could not load shared environment variables:', error.message);
   }
 }
 
@@ -38,8 +45,8 @@ const validateEnvironment = () => {
     // During EAS builds, env vars are injected by the build system
     // Only warn if they're missing, but don't fail - EAS will handle validation
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('⚠️  Environment variables not yet available during EAS config evaluation.');
-      console.warn('📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.');
+      logger.warn('⚠️  Environment variables not yet available during EAS config evaluation.');
+      logger.warn('📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.');
     }
     return; // Don't validate during EAS build config evaluation
   }
@@ -50,10 +57,10 @@ const validateEnvironment = () => {
     if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-    console.error('❌ Missing required environment variables:', missing.join(', '));
-    console.error('📋 Set these variables before building for production:');
-    console.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-    console.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
+    logger.error('❌ Missing required environment variables:', missing.join(', '));
+    logger.error('📋 Set these variables before building for production:');
+    logger.error('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+    logger.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
 
     throw new Error(`Production build requires Supabase credentials: ${missing.join(', ')}`);
   } else if (isDev && (!supabaseUrl || !supabaseKey)) {
@@ -62,10 +69,10 @@ const validateEnvironment = () => {
     if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-    console.warn('⚠️  Missing Supabase environment variables:', missing.join(', '));
-    console.warn('📋 App will use mock client. Set these for real data:');
-    console.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-    console.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
+    logger.warn('⚠️  Missing Supabase environment variables:', missing.join(', '));
+    logger.warn('📋 App will use mock client. Set these for real data:');
+    logger.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+    logger.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
   }
 };
 
@@ -75,7 +82,7 @@ try {
 } catch (error) {
   // During EAS builds, don't fail on validation - EAS will handle env vars
   if (process.env.EAS_BUILD_PROFILE || process.argv.some(arg => arg.includes('eas'))) {
-    console.warn('⚠️  Validation warning (non-fatal):', error.message);
+    logger.warn('⚠️  Validation warning (non-fatal):', error.message);
   } else {
     throw error;
   }

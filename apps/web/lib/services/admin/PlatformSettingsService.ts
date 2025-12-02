@@ -4,10 +4,13 @@ import { logger } from '@mintenance/shared';
 export type SettingType = 'string' | 'number' | 'boolean' | 'json' | 'array';
 export type SettingCategory = 'general' | 'email' | 'security' | 'features' | 'payment' | 'notifications';
 
+// Type for setting values - can be primitive or structured
+export type SettingValue = string | number | boolean | Record<string, unknown> | unknown[];
+
 export interface PlatformSetting {
   id: string;
   setting_key: string;
-  setting_value: any;
+  setting_value: SettingValue;
   setting_type: SettingType;
   category: SettingCategory;
   description?: string;
@@ -129,7 +132,7 @@ export class PlatformSettingsService {
    */
   static async updateSetting(
     key: string,
-    value: any,
+    value: SettingValue,
     updatedBy: string
   ): Promise<PlatformSetting | null> {
     try {
@@ -184,7 +187,7 @@ export class PlatformSettingsService {
    */
   static async createSetting(
     key: string,
-    value: any,
+    value: SettingValue,
     type: SettingType,
     category: SettingCategory,
     description: string | undefined,

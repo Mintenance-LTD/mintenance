@@ -9,6 +9,12 @@ import { validateRequest } from '@/lib/validation/validator';
 import { validateURLs } from '@/lib/security/url-validation';
 import { requireCSRF } from '@/lib/csrf';
 
+// Type definition for photo metadata
+interface PhotoRecord {
+  photo_url: string;
+  geolocation?: { lat: number; lng: number };
+}
+
 const verifyPhotosEnhancedSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
   jobId: z.string().uuid('Invalid job ID'),
@@ -77,7 +83,7 @@ export async function POST(
       .eq('job_id', jobId)
       .eq('photo_type', 'before');
 
-    const beforeUrls = (beforePhotos || []).map((p: any) => p.photo_url);
+    const beforeUrls = (beforePhotos || []).map((p: PhotoRecord) => p.photo_url);
 
     // Get job location (if available)
     const jobLocation = job.location as { lat?: number; lng?: number } | null;

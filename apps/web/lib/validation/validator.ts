@@ -4,7 +4,7 @@
  * Helper functions for validating request data using Zod schemas
  */
 
-import { z, ZodError } from 'zod';
+import { z, ZodError, ZodIssue } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 
 export interface ValidationError {
@@ -35,7 +35,7 @@ export async function validateRequestBody<T>(
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const errors: ValidationError[] = error.issues.map((err: any) => ({
+      const errors: ValidationError[] = error.issues.map((err: ZodIssue) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -76,7 +76,7 @@ export function validateQueryParams<T>(
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const errors: ValidationError[] = error.issues.map((err: any) => ({
+      const errors: ValidationError[] = error.issues.map((err: ZodIssue) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

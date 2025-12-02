@@ -18,7 +18,7 @@ beforeEach(() => {
       setTimeout(() => {
         (window as any).google = {
           maps: {
-            Map: jest.fn().mockImplementation((element: HTMLElement, options: any) => ({
+            Map: jest.fn().mockImplementation((element: HTMLElement, options: google.maps.MapOptions) => ({
               setCenter: jest.fn(),
               setZoom: jest.fn(),
             })),

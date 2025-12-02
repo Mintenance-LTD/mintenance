@@ -6,6 +6,7 @@ import { TrialService, TrialStatus } from '@/lib/services/subscription/TrialServ
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { TrialStatusBanner } from './TrialStatusBanner';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { Button } from '@/components/ui/Button';
@@ -103,7 +104,7 @@ export function SubscriptionClient({
         setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
       }
     } catch (error) {
-      console.error('Error subscribing:', error);
+      logger.error('Error subscribing:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create subscription. Please try again.';
       setAlertDialog({
         open: true,
@@ -159,7 +160,7 @@ export function SubscriptionClient({
       setSuccessAlert({ show: true, message: 'Subscription cancellation scheduled successfully.' });
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
     } catch (error) {
-      console.error('Error canceling subscription:', error);
+      logger.error('Error canceling subscription:', error);
       setCancelDialog(false);
       setAlertDialog({
         open: true,

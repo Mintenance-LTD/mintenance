@@ -16,6 +16,7 @@ import {
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { Icon } from '@/components/ui/Icon';
+import { logger } from '@mintenance/shared';
 
 interface FeeTransfer {
   id: string;
@@ -67,7 +68,7 @@ export function FeeTransferManagementClient() {
       const data = await response.json();
       setTransfers(data.transfers || []);
     } catch (error) {
-      console.error('Error fetching pending transfers:', error);
+      logger.error('Error fetching pending transfers:', error);
       setErrorDialog({ open: true, message: 'Failed to load fee transfers' });
     } finally {
       setLoading(false);

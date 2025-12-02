@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { logger } from '@mintenance/shared';
 
 interface JobViewTrackerProps {
   jobId: string;
@@ -31,7 +32,10 @@ export function JobViewTracker({ jobId }: JobViewTrackerProps) {
         });
       } catch (error) {
         // Silently fail - don't interrupt user experience
-        console.error('Failed to track job view:', error);
+        logger.error('Failed to track job view', error, {
+          service: 'job-view-tracker',
+          jobId,
+        });
       }
     }
 

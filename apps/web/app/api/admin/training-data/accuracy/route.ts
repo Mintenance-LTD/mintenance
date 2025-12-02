@@ -50,9 +50,11 @@ export async function POST(request: NextRequest) {
       service: 'training-data-accuracy-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to track accuracy';
+
     return NextResponse.json(
       {
-        error: error.message || 'Failed to track accuracy',
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -82,9 +84,11 @@ export async function GET(request: NextRequest) {
       service: 'training-data-accuracy-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch accuracy statistics';
+
     return NextResponse.json(
       {
-        error: error.message || 'Failed to fetch accuracy statistics',
+        error: errorMessage,
       },
       { status: 500 }
     );

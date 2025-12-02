@@ -5,13 +5,21 @@ import { PredictiveAgent } from './PredictiveAgent';
 import { validateURLs } from '@/lib/security/url-validation';
 import type { AgentResult, AgentContext } from './types';
 
+interface AIAnalysisResult {
+  completionIndicators: string[];
+  matchesDescription: boolean;
+  qualityScore: number;
+  concerns: string[];
+  recommendation: 'verified' | 'failed' | 'manual_review';
+}
+
 interface PhotoVerificationResult {
   verificationScore: number; // 0-1
   matchesJobDescription: boolean;
   completionIndicators: string[];
   qualityScore: number; // 0-1
   status: 'verified' | 'failed' | 'manual_review';
-  aiAnalysis?: Record<string, any>;
+  aiAnalysis?: AIAnalysisResult;
 }
 
 interface AutoReleaseRule {
@@ -27,6 +35,25 @@ interface AutoReleaseRule {
   riskMultiplier: number;
   disputeHistoryPenaltyDays: number;
   priority: number;
+}
+
+// Job info type for escrow queries
+interface EscrowJobInfo {
+  id: string;
+  status: string;
+  contractor_id: string;
+  homeowner_id: string;
+}
+
+interface RiskPrediction {
+  risk_type: string;
+  severity: string;
+  probability?: number;
+}
+
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }>;
 }
 
 /**
@@ -305,7 +332,9 @@ export class EscrowReleaseAgent {
         return null; // Auto-release disabled
       }
 
-      const job = escrow.jobs as any;
+      // Handle Supabase join result (can be array or single object)
+      const jobsResult = escrow.jobs;
+      const job = (Array.isArray(jobsResult) ? jobsResult[0] : jobsResult) as EscrowJobInfo | undefined;
       if (!job || job.status !== 'completed') {
         return null; // Job must be completed
       }
@@ -479,15 +508,19 @@ export class EscrowReleaseAgent {
 
       // If high dispute risk predicted, extend hold
       // Find result with risks in metadata
+      interface MetadataWithRisks {
+        risks?: RiskPrediction[];
+      }
+      
       const riskAssessmentWithRisks = riskAssessmentResults.find(
-        (result) => result.metadata && typeof result.metadata === 'object' && (result.metadata as any).risks
+        (result) => result.metadata && typeof result.metadata === 'object' && (result.metadata as MetadataWithRisks).risks
       );
 
       if (riskAssessmentWithRisks?.metadata && typeof riskAssessmentWithRisks.metadata === 'object') {
-        const risks = (riskAssessmentWithRisks.metadata as any).risks;
+        const risks = (riskAssessmentWithRisks.metadata as MetadataWithRisks).risks;
         if (Array.isArray(risks)) {
           const highRiskDisputes = risks.filter(
-            (r: any) => r.risk_type === 'dispute' && r.severity === 'high'
+            (r: RiskPrediction) => r.risk_type === 'dispute' && r.severity === 'high'
           );
           if (highRiskDisputes.length > 0) {
             // Extend hold period
@@ -559,7 +592,7 @@ export class EscrowReleaseAgent {
   private static async analyzePhotosWithAI(
     photoUrls: string[],
     job: { title: string; description: string; category?: string }
-  ): Promise<any> {
+  ): Promise<AIAnalysisResult> {
     try {
       if (!process.env.OPENAI_API_KEY) {
         logger.warn('OpenAI API key not configured, using fallback analysis', {
@@ -606,7 +639,7 @@ export class EscrowReleaseAgent {
       
       Do the photos show completed work that matches the job description?`;
 
-      const messages: any[] = [
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
@@ -668,7 +701,7 @@ export class EscrowReleaseAgent {
   /**
    * Generate fallback analysis when AI is unavailable
    */
-  private static generateFallbackAnalysis(job: { title: string; description: string }): any {
+  private static generateFallbackAnalysis(_job: { title: string; description: string }): AIAnalysisResult {
     // Conservative fallback - requires manual review
     return {
       completionIndicators: [],
@@ -682,7 +715,7 @@ export class EscrowReleaseAgent {
   /**
    * Calculate verification score from AI analysis
    */
-  private static calculateVerificationScore(aiAnalysis: any, job: { description: string }): number {
+  private static calculateVerificationScore(aiAnalysis: AIAnalysisResult, _job: { description: string }): number {
     let score = 0;
 
     // Base score from matchesDescription
@@ -709,7 +742,7 @@ export class EscrowReleaseAgent {
   /**
    * Extract completion indicators from AI analysis
    */
-  private static extractCompletionIndicators(aiAnalysis: any): string[] {
+  private static extractCompletionIndicators(aiAnalysis: AIAnalysisResult): string[] {
     return aiAnalysis.completionIndicators || [];
   }
 

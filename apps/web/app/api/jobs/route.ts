@@ -370,15 +370,22 @@ export async function POST(request: NextRequest) {
     error = result.error;
 
     // If insert fails due to missing required_skills column, retry without it
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? String(error.message) 
+      : '';
+    const errorCode = error && typeof error === 'object' && 'code' in error 
+      ? String(error.code) 
+      : '';
+    
     if (error && insertPayload.required_skills && (
-      error.message?.includes('required_skills') || 
-      error.code === '42703' || // undefined_column
-      error.message?.includes('column') && error.message?.includes('required_skills')
+      errorMessage.includes('required_skills') || 
+      errorCode === '42703' || // undefined_column
+      (errorMessage.includes('column') && errorMessage.includes('required_skills'))
     )) {
       logger.warn('Required_skills column not found, retrying without it', {
         service: 'jobs',
         userId: user.id,
-        originalError: error.message,
+        originalError: errorMessage,
       });
       
       // Remove required_skills and retry
@@ -393,10 +400,13 @@ export async function POST(request: NextRequest) {
       error = result.error;
       
       if (!error) {
+        const jobId = data && typeof data === 'object' && 'id' in data 
+          ? String(data.id) 
+          : undefined;
         logger.info('Job created successfully without required_skills column', {
           service: 'jobs',
           userId: user.id,
-          jobId: data?.id,
+          jobId,
         });
       }
     }
@@ -412,18 +422,32 @@ export async function POST(request: NextRequest) {
 
     // Calculate and update serious buyer score
     try {
-      const { SeriousBuyerService } = await import('@/lib/services/jobs/SeriousBuyerService');
-      const photoUrls = payload.photoUrls || [];
-      await SeriousBuyerService.updateScore(data.id, user.id, {
-        description: payload.description,
-        budget: payload.budget,
-        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
-      });
+      const jobId = data && typeof data === 'object' && 'id' in data 
+        ? String(data.id) 
+        : null;
+      
+      if (!jobId) {
+        logger.warn('Cannot calculate serious buyer score: job ID not found', {
+          service: 'jobs',
+          userId: user.id,
+        });
+      } else {
+        const { SeriousBuyerService } = await import('@/lib/services/jobs/SeriousBuyerService');
+        const photoUrls = payload.photoUrls || [];
+        await SeriousBuyerService.updateScore(jobId, user.id, {
+          description: payload.description,
+          budget: payload.budget,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        });
+      }
     } catch (scoreError) {
       // Log but don't fail job creation
+      const jobId = data && typeof data === 'object' && 'id' in data 
+        ? String(data.id) 
+        : undefined;
       logger.error('Failed to calculate serious buyer score', scoreError, {
         service: 'jobs',
-        jobId: data.id,
+        jobId,
       });
     }
 

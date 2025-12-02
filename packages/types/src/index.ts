@@ -17,6 +17,14 @@ export interface User {
   firstName?: string;
   lastName?: string;
   createdAt?: string;
+  // Additional profile fields
+  bio?: string;
+  city?: string;
+  country?: string;
+  company_name?: string;
+  admin_verified?: boolean;
+  rating?: number;
+  jobs_count?: number;
 }
 
 // Database User type (for creation)
@@ -101,6 +109,33 @@ export interface Job {
   updatedAt?: string; // Alias for updated_at
   // Additional relationships for display
   bids?: Bid[];
+  // Geolocation fields (from geocoding or manual entry)
+  latitude?: number;
+  longitude?: number;
+  city?: string;
+  // Joined relations (populated via database joins)
+  homeowner?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    rating?: number;
+    jobs_count?: number;
+    email?: string;
+    city?: string;
+    country?: string;
+  };
+  contractor?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    company_name?: string;
+    profile_image_url?: string;
+  };
+  // Additional computed/display fields
+  timeline?: string;
+  skills?: string[];
+  photoUrls?: string[]; // Normalized photo URLs
 }
 
 export interface Bid {
@@ -117,6 +152,28 @@ export interface Bid {
   jobDescription?: string;
   jobLocation?: string;
   jobBudget?: number;
+  // Database field aliases (snake_case)
+  job_id?: string;
+  contractor_id?: string;
+  homeowner_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Joined relations
+  job?: Job;
+  jobs?: Job | Job[]; // Sometimes returned as array from Supabase
+  contractor?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    company_name?: string;
+    profile_image_url?: string;
+  };
+  homeowner?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+  };
 }
 
 export interface ContractorSkill {
@@ -154,6 +211,41 @@ export interface LocationData {
   speed?: number;
 }
 
+// Message types
+export interface Message {
+  id: string;
+  jobId?: string;
+  senderId: string;
+  receiverId: string;
+  messageText?: string;
+  content?: string;
+  messageType?: 'text' | 'image' | 'file' | 'video_call_invitation' | 'video_call_started' | 'video_call_ended' | 'video_call_missed' | 'contract_submitted';
+  attachmentUrl?: string;
+  callId?: string;
+  callDuration?: number;
+  read?: boolean;
+  createdAt: string;
+  syncedAt?: string;
+  senderName?: string;
+  senderRole?: string;
+  // Relationships
+  sender?: User;
+  receiver?: User;
+  job?: Job;
+}
+
+export interface MessageThread {
+  jobId: string;
+  jobTitle: string;
+  participants: Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>;
+  unreadCount: number;
+  lastMessage?: Message;
+}
+
 // Contractor types
 export interface ContractorProfile extends User {
   skills: ContractorSkill[];
@@ -164,21 +256,30 @@ export interface ContractorProfile extends User {
   companyLogo?: string;
   businessAddress?: string;
   licenseNumber?: string;
+  license_number?: string; // Database field alias
   yearsExperience?: number;
+  years_experience?: number; // Database field alias
   hourlyRate?: number;
+  hourly_rate?: number; // Database field alias
   portfolioImages?: string[];
   specialties?: string[];
   serviceRadius?: number; // in kilometers
   availability?: 'immediate' | 'this_week' | 'this_month' | 'busy';
+  is_available?: boolean; // Database field
   certifications?: string[];
   // Additional fields for UI compatibility
   lastMessage?: Message;
-  unreadCount: number;
-  participants: {
+  unreadCount?: number;
+  participants?: {
     id: string;
     name: string;
     role: string;
   }[];
+  // Geolocation
+  latitude?: number;
+  longitude?: number;
+  // Stats
+  total_jobs_completed?: number;
 }
 
 // Enhanced Video call types
@@ -936,6 +1037,64 @@ export interface ContractorCompany {
 }
 
 export type CompanyTeamRole = 'owner' | 'admin' | 'member';
+
+// Subscription types for scheduling/maintenance
+export interface Subscription {
+  id: string;
+  name?: string;
+  next_billing_date: string | null;
+  status: string;
+  created_at: string;
+  user_id?: string;
+}
+
+// Google Places API response types
+export interface PlaceSuggestion {
+  place_id: string;
+  description: string;
+  structured_formatting?: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
+// Meeting types for scheduling
+export interface ContractorMeeting {
+  id: string;
+  job_id?: string;
+  contractor_id: string;
+  homeowner_id?: string;
+  meeting_type: 'site_visit' | 'consultation' | 'work_session';
+  scheduled_datetime: string;
+  status: string;
+  contractor?: User;
+  homeowner?: User;
+  job?: {
+    id: string;
+    title: string;
+  };
+}
+
+// Notification types
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  action_url?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Error types
+export interface ApiError {
+  message: string;
+  code?: string;
+  statusCode?: number;
+  details?: unknown;
+}
 export type CompanyEmploymentType = 'full_time' | 'part_time' | 'contract' | 'apprentice';
 export type CompanyTeamStatus = 'active' | 'inactive' | 'invited' | 'left';
 
@@ -1020,3 +1179,472 @@ export interface CompanyReview {
   updatedAt: string;
   reviewer?: User;
 }
+
+// =====================================================
+// Additional Utility Types for Type Safety
+// =====================================================
+
+/**
+ * Paginated API response wrapper
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+/**
+ * Form data record for handling form submissions
+ */
+export interface FormDataRecord {
+  [key: string]: string | number | boolean | null | undefined | File | FileList;
+}
+
+/**
+ * Standard API error response
+ */
+export interface ApiErrorResponse {
+  error: string;
+  message?: string;
+  details?: Record<string, unknown>;
+  statusCode?: number;
+}
+
+/**
+ * Property type for homeowners
+ */
+export interface Property {
+  id: string;
+  homeowner_id: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  county?: string;
+  postcode: string;
+  country: string;
+  property_type: 'house' | 'flat' | 'bungalow' | 'maisonette' | 'other';
+  bedrooms?: number;
+  bathrooms?: number;
+  year_built?: number;
+  square_footage?: number;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Quote/Estimate from contractor
+ */
+export interface Quote {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  amount: number;
+  currency: string;
+  description: string;
+  line_items?: QuoteLineItem[];
+  valid_until: string;
+  status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  notes?: string;
+  terms_and_conditions?: string;
+  created_at: string;
+  updated_at: string;
+  // Populated fields
+  job?: Job;
+  contractor?: User;
+  homeowner?: User;
+}
+
+export interface QuoteLineItem {
+  id: string;
+  quote_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  category?: string;
+}
+
+/**
+ * Contract between homeowner and contractor
+ */
+export interface Contract {
+  id: string;
+  job_id: string;
+  quote_id?: string;
+  contractor_id: string;
+  homeowner_id: string;
+  title: string;
+  description: string;
+  total_amount: number;
+  currency: string;
+  start_date?: string;
+  end_date?: string;
+  status: 'draft' | 'pending_signature' | 'active' | 'completed' | 'cancelled' | 'disputed';
+  contractor_signed_at?: string;
+  homeowner_signed_at?: string;
+  terms: string;
+  created_at: string;
+  updated_at: string;
+  // Populated fields
+  job?: Job;
+  contractor?: User;
+  homeowner?: User;
+}
+
+/**
+ * Testimonial/Review from homeowner
+ */
+export interface Testimonial {
+  id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  job_id?: string;
+  rating: number;
+  title?: string;
+  content: string;
+  response?: string;
+  response_date?: string;
+  is_featured: boolean;
+  is_verified: boolean;
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+  // Populated fields
+  contractor?: User;
+  homeowner?: User;
+  job?: Job;
+}
+
+/**
+ * Schedule/Appointment for jobs
+ */
+export interface Schedule {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  type: 'site_visit' | 'consultation' | 'work_session' | 'inspection' | 'follow_up';
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  notes?: string;
+  location?: string;
+  reminder_sent: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Financial summary for dashboards
+ */
+export interface FinancialSummary {
+  totalRevenue: number;
+  totalExpenses: number;
+  netIncome: number;
+  pendingPayments: number;
+  completedPayments: number;
+  averageJobValue: number;
+  revenueByMonth: { month: string; amount: number }[];
+  expensesByCategory: { category: string; amount: number }[];
+  currency: string;
+  period: {
+    start: string;
+    end: string;
+  };
+}
+
+/**
+ * Pricing plan for subscriptions
+ */
+export interface PricingPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price_monthly: number;
+  price_yearly: number;
+  currency: string;
+  features: string[];
+  limits: {
+    jobs_per_month?: number;
+    bids_per_month?: number;
+    photos_per_job?: number;
+    team_members?: number;
+  };
+  is_popular: boolean;
+  is_active: boolean;
+  stripe_price_id_monthly?: string;
+  stripe_price_id_yearly?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Customer (homeowner from contractor's perspective)
+ */
+export interface Customer {
+  id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  total_jobs: number;
+  total_spent: number;
+  last_job_date?: string;
+  rating?: number;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+  // Populated fields
+  homeowner?: User;
+  jobs?: Job[];
+}
+
+/**
+ * Swipe action for discovery cards
+ */
+export interface SwipeAction {
+  type: 'like' | 'pass' | 'super_like';
+  target_id: string;
+  target_type: 'job' | 'contractor';
+  user_id: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Recommendation for contractors/jobs
+ */
+export interface Recommendation {
+  id: string;
+  type: 'contractor' | 'job';
+  target_id: string;
+  user_id: string;
+  score: number;
+  reason: string;
+  factors: {
+    factor: string;
+    weight: number;
+    score: number;
+  }[];
+  created_at: string;
+  // Populated fields
+  contractor?: ContractorProfile;
+  job?: Job;
+}
+
+/**
+ * Job tracking data
+ */
+export interface TrackingData {
+  job_id: string;
+  status: string;
+  progress_percentage: number;
+  milestones: {
+    id: string;
+    name: string;
+    status: 'pending' | 'in_progress' | 'completed';
+    completed_at?: string;
+  }[];
+  timeline: {
+    event: string;
+    timestamp: string;
+    actor_id: string;
+    details?: string;
+  }[];
+  estimated_completion: string;
+  actual_completion?: string;
+  delays?: {
+    reason: string;
+    duration_days: number;
+    reported_at: string;
+  }[];
+}
+
+/**
+ * Sign-off data for job completion
+ */
+export interface SignOffData {
+  job_id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'disputed';
+  completion_photos: string[];
+  completion_notes?: string;
+  homeowner_signature?: string;
+  contractor_signature?: string;
+  signed_at?: string;
+  issues?: {
+    description: string;
+    severity: 'minor' | 'major' | 'critical';
+    resolution?: string;
+  }[];
+  final_amount: number;
+  payment_released: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Card design for contractor business cards
+ */
+export interface CardDesign {
+  id: string;
+  contractor_id: string;
+  template_id: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+  };
+  logo_url?: string;
+  tagline?: string;
+  contact_info: {
+    phone?: string;
+    email?: string;
+    website?: string;
+    address?: string;
+  };
+  social_links?: {
+    platform: string;
+    url: string;
+  }[];
+  qr_code_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * GDPR data export
+ */
+export interface GDPRExportData {
+  user: User;
+  profile?: ContractorProfile;
+  jobs: Job[];
+  bids: Bid[];
+  messages: Message[];
+  payments: EscrowTransaction[];
+  properties?: Property[];
+  reviews: Review[];
+  notifications: Notification[];
+  exported_at: string;
+}
+
+// =====================================================
+// Feature Access & Subscription Types
+// =====================================================
+
+/**
+ * Subscription tier for contractors
+ */
+export type SubscriptionTier = 'free' | 'basic' | 'professional' | 'enterprise';
+
+/**
+ * Feature limit definition
+ */
+export interface FeatureLimit {
+  free?: number | boolean | 'unlimited';
+  basic?: number | boolean | 'unlimited';
+  professional?: number | boolean | 'unlimited';
+  enterprise?: number | boolean | 'unlimited';
+  homeowner?: boolean;
+}
+
+/**
+ * Feature definition with access controls
+ */
+export interface FeatureDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  limits: FeatureLimit;
+  upgradeMessage?: string;
+  learnMoreUrl?: string;
+}
+
+/**
+ * Feature usage tracking
+ */
+export interface FeatureUsage {
+  id: string;
+  user_id: string;
+  feature_id: string;
+  used_count: number;
+  limit_count: number | 'unlimited';
+  reset_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Feature access result
+ */
+export interface FeatureAccessResult {
+  hasAccess: boolean;
+  limit: number | boolean | 'unlimited';
+  used?: number;
+  remaining?: number | 'unlimited';
+  requiresUpgrade: boolean;
+  upgradeTiers: SubscriptionTier[];
+  feature?: FeatureDefinition;
+}
+
+/**
+ * Subscription information
+ */
+export interface SubscriptionInfo {
+  tier: SubscriptionTier;
+  status: 'free' | 'active' | 'past_due' | 'canceled' | 'expired';
+  currentPeriodEnd?: string | null;
+  currentPeriodStart?: string | null;
+  canceledAt?: string | null;
+  cancelAtPeriodEnd?: boolean;
+}
+
+/**
+ * Tier pricing information
+ */
+export interface TierPricing {
+  name: string;
+  price: number;
+  period: string;
+  description: string;
+  popular?: boolean;
+  features?: string[];
+}
+
+/**
+ * Feature category
+ */
+export type FeatureCategory =
+  | 'Job Management'
+  | 'Bidding'
+  | 'Discovery'
+  | 'Social'
+  | 'Portfolio'
+  | 'Branding'
+  | 'Analytics'
+  | 'Business Tools'
+  | 'Support'
+  | 'Marketing'
+  | 'Communication'
+  | 'Resources'
+  | 'Content'
+  | 'Payments'
+  | 'Reviews'
+  | 'Properties';

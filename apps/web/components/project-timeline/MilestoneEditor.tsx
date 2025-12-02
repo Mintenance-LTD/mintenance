@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { ProjectMilestone, ProjectTimeline } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 interface MilestoneEditorProps {
   timeline: ProjectTimeline;
@@ -88,13 +89,13 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
       setSaving(true);
       await onSave(formData);
     } catch (error) {
-      console.error('Failed to save milestone:', error);
+      logger.error('Failed to save milestone:', error);
     } finally {
       setSaving(false);
     }
   };
 
-  const updateFormData = (field: keyof MilestoneFormData, value: any) => {
+  const updateFormData = (field: keyof MilestoneFormData, value: MilestoneFormData[keyof MilestoneFormData]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when field is updated
     if (errors[field]) {

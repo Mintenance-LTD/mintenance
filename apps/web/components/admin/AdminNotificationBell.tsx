@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
@@ -71,7 +72,7 @@ export function AdminNotificationBell({ userId }: AdminNotificationBellProps) {
       setNotifications(newNotifications);
       setUnreadCount(newNotifications.filter(n => !n.read).length);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     }
   };
 

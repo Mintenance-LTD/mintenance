@@ -50,7 +50,9 @@ export async function GET() {
       [key: string]: unknown;
     }
 
-    const firstJob = (jobs?.[0] as JobRecord | undefined);
+    const firstJob = jobs && Array.isArray(jobs) && jobs.length > 0 
+      ? (jobs[0] as unknown as JobRecord) 
+      : undefined;
     const enrichmentStatus = {
       totalJobs: count,
       jobsReturned: jobs?.length ?? 0,

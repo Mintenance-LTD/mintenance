@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 import { Button } from './Button';
@@ -66,7 +67,7 @@ export function ExportMenu({
 
       setIsOpen(false);
     } catch (error) {
-      console.error(`Error exporting as ${format}:`, error);
+      logger.error(`Error exporting as ${format}:`, error);
     } finally {
       setIsExporting(false);
     }

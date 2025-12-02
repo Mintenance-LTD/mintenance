@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { logger } from '@mintenance/shared';
 
 interface PlacesAutocompleteProps {
   value: string;
@@ -96,17 +97,13 @@ export function PlacesAutocomplete({
 
           if (attempts >= maxAttempts) {
             clearInterval(checkInterval);
-            if (typeof console !== 'undefined' && console.warn) {
-              console.warn('Google Maps Places API script exists but failed to initialize after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
-            }
+            logger.warn('Google Maps Places API script exists but failed to initialize after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
             setIsLoaded(false);
           }
         } catch (error) {
           clearInterval(checkInterval);
           setIsLoaded(false);
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('Error checking Google Maps Places API:', error);
-          }
+          logger.warn('Error checking Google Maps Places API:', { error });
         }
       }, 100);
 
@@ -115,7 +112,7 @@ export function PlacesAutocomplete({
       // Load Google Maps script if not already loaded
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
       if (!apiKey) {
-        console.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured. Please set it in your .env.local file.');
+        logger.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured. Please set it in your .env.local file.');
         return undefined;
       }
 
@@ -136,17 +133,13 @@ export function PlacesAutocomplete({
 
             if (attempts >= maxAttempts) {
               clearInterval(checkInterval);
-              if (typeof console !== 'undefined' && console.warn) {
-                console.warn('Google Maps Places API failed to load after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
-              }
+              logger.warn('Google Maps Places API failed to load after 10 seconds. Ensure Places API is enabled in Google Cloud Console.');
               setIsLoaded(false);
             }
           } catch (error) {
             clearInterval(checkInterval);
             setIsLoaded(false);
-            if (typeof console !== 'undefined' && console.warn) {
-              console.warn('Error checking Google Maps Places API:', error);
-            }
+            logger.warn('Error checking Google Maps Places API:', { error });
           }
         }, 100);
         cleanup = () => clearInterval(checkInterval);
@@ -178,9 +171,7 @@ export function PlacesAutocomplete({
                 clearInterval(checkInterval);
                 // Only log as warning, not error - autocomplete is optional
                 // Suppress error to prevent React from treating it as unhandled
-                if (typeof console !== 'undefined' && console.warn) {
-                  console.warn('Google Maps Places API did not initialize after 5 seconds. Autocomplete will be unavailable, but manual address entry still works. Ensure Places API is enabled in Google Cloud Console.');
-                }
+                logger.warn('Google Maps Places API did not initialize after 5 seconds. Autocomplete will be unavailable, but manual address entry still works. Ensure Places API is enabled in Google Cloud Console.');
                 // Set loaded to false so component knows autocomplete isn't available
                 setIsLoaded(false);
               }
@@ -188,18 +179,14 @@ export function PlacesAutocomplete({
               // Catch any errors during the check to prevent them from bubbling up
               clearInterval(checkInterval);
               setIsLoaded(false);
-              if (typeof console !== 'undefined' && console.warn) {
-                console.warn('Error checking Google Maps Places API availability:', error);
-              }
+              logger.warn('Error checking Google Maps Places API availability:', { error });
             }
           }, 100);
         };
 
         script.onerror = () => {
           // Log as warning instead of error - autocomplete is optional functionality
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('Failed to load Google Maps Places API script. Check your API key and ensure Places API is enabled in Google Cloud Console. Manual address entry will still work.');
-          }
+          logger.warn('Failed to load Google Maps Places API script. Check your API key and ensure Places API is enabled in Google Cloud Console. Manual address entry will still work.');
           setIsLoaded(false);
         };
 
@@ -327,13 +314,13 @@ export function PlacesAutocomplete({
                 longitude: place.geometry?.location?.lng(),
               });
             } catch (error) {
-              console.error('Error in onPlaceSelect callback:', error);
+              logger.error('Error in onPlaceSelect callback:', error);
             }
           }
           setIsGeocoding(false);
         });
       } catch (error) {
-        console.error('Error initializing Google Places Autocomplete:', error);
+        logger.error('Error initializing Google Places Autocomplete:', error);
       }
     }, 100); // Small delay to ensure DOM is ready
 
@@ -357,7 +344,7 @@ export function PlacesAutocomplete({
     }
 
     if (!isLoaded) {
-      console.warn('Google Maps API not loaded yet');
+      logger.warn('Google Maps API not loaded yet');
       return;
     }
 
@@ -409,7 +396,7 @@ export function PlacesAutocomplete({
         throw new Error('No location data returned');
       }
     } catch (error) {
-      console.error('Error geocoding address:', error);
+      logger.error('Error geocoding address:', error);
       alert('Unable to geocode this address. Please try selecting from the autocomplete suggestions or check your address format.');
     } finally {
       setIsGeocoding(false);

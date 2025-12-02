@@ -150,10 +150,10 @@ function ChatContent({ params }: ChatPageProps) {
           }
         } else if (response.status === 403) {
           // Access denied - this shouldn't happen if user is a participant, but handle gracefully
-          console.warn('Access denied when fetching homeowner profile - user may not be a participant');
+          logger.warn('Access denied when fetching homeowner profile - user may not be a participant');
         }
       } catch (err) {
-        console.error('Error fetching homeowner profile:', err);
+        logger.error('Error fetching homeowner profile:', err);
       }
     };
 

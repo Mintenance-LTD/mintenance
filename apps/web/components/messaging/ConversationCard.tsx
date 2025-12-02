@@ -1,24 +1,6 @@
 import React from 'react';
 import { theme } from '@/lib/theme';
-
-interface MessageThread {
-  jobId: string;
-  jobTitle: string;
-  participants: Array<{
-    id: string;
-    name: string;
-    role?: string;
-    profile_image_url?: string;
-  }>;
-  lastMessage?: {
-    senderId: string;
-    messageText: string;
-    messageType?: string;
-    content?: string;
-    createdAt: string;
-  };
-  unreadCount: number;
-}
+import type { MessageThread } from '@mintenance/types';
 
 interface ConversationCardProps {
   conversation: MessageThread;
@@ -33,7 +15,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 }) => {
   const otherParticipant = conversation.participants.find(
     (p: { id: string }) => p.id !== currentUserId
-  );
+  ) as { id: string; name: string; role: string; profile_image_url?: string } | undefined;
 
   const displayName = otherParticipant?.name ?? 'Unknown User';
   const avatarInitial = otherParticipant?.name
@@ -51,7 +33,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     }
 
     const messageText = conversation.lastMessage.messageText || conversation.lastMessage.content || '';
-    const { messageType } = conversation.lastMessage;
+    const messageType = conversation.lastMessage.messageType;
 
     switch (messageType) {
       case 'image':

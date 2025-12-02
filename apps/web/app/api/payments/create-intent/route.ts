@@ -40,6 +40,53 @@ export async function POST(request: NextRequest) {
 
     const { amount, currency, jobId, contractorId, metadata } = validation.data;
 
+    // Monitor transaction for anomalies
+    const { PaymentMonitoringService } = await import('@/lib/monitoring/payment-monitor');
+    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
+      userId: user.id,
+      amount,
+      currency: currency || 'usd',
+      type: 'payment',
+      metadata: {
+        jobId,
+        contractorId,
+        ip: request.headers.get('x-forwarded-for') || undefined,
+      },
+    });
+
+    // Block if high risk
+    if (anomalyCheck.blockedReasons.length > 0) {
+      logger.warn('Payment blocked due to security concerns', {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        amount,
+        riskScore: anomalyCheck.riskScore,
+        blockedReasons: anomalyCheck.blockedReasons,
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Payment blocked for security reasons',
+          reasons: anomalyCheck.blockedReasons,
+          riskScore: anomalyCheck.riskScore,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Log warnings if anomalous but not blocked
+    if (anomalyCheck.isAnomalous) {
+      logger.warn('Anomalous payment detected but allowed', {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        amount,
+        riskScore: anomalyCheck.riskScore,
+        reasons: anomalyCheck.reasons,
+      });
+    }
+
     // Verify job exists and user is the homeowner
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
@@ -148,6 +195,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
+    // Record payment attempt
+    await serverSupabase.from('payment_attempts').insert({
+      user_id: user.id,
+      amount,
+      currency: currency || 'usd',
+      status: 'pending',
+      ip_address: request.headers.get('x-forwarded-for')?.split(',')[0] || null,
+      user_agent: request.headers.get('user-agent') || null,
+      metadata: { jobId, contractorId },
+      created_at: new Date().toISOString(),
+    });
+
     // Generate idempotency key for Stripe (separate from our internal idempotency)
     // Using UUID for better collision resistance than timestamp
     const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
@@ -232,18 +291,23 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    logger.error('Error creating payment intent', error, { service: 'payments' });
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
-    }
+    // Use sanitized error handling
+    const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
+    const errorResponse = createPaymentErrorResponse(error, {
+      operation: 'create_payment_intent',
+      userId: user?.id,
+      jobId: validation.data?.jobId,
+      amount: validation.data?.amount,
+      ip: request.headers.get('x-forwarded-for') || undefined,
+    });
 
     return NextResponse.json(
-      { error: 'Failed to create payment intent' },
-      { status: 500 }
+      {
+        error: errorResponse.error,
+        code: errorResponse.code,
+        retryable: errorResponse.retryable
+      },
+      { status: errorResponse.status }
     );
   }
 }

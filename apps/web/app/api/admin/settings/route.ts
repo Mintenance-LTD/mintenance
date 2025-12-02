@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { PlatformSettingsService } from '@/lib/services/admin/PlatformSettingsService';
+import { PlatformSettingsService, SettingCategory } from '@/lib/services/admin/PlatformSettingsService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
@@ -8,6 +8,9 @@ import { adminSettingUpdateSchema, adminSettingCreateSchema } from '@/lib/valida
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import { requireCSRF } from '@/lib/csrf';
 import { checkAdminRateLimit } from '@/lib/rate-limiting/admin-gdpr';
+
+// Type for sensitive value sanitization
+type SanitizableValue = string | number | boolean | Record<string, unknown> | unknown[] | null | undefined;
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
     const category = request.nextUrl.searchParams.get('category');
     
     if (category) {
-      const settings = await PlatformSettingsService.getSettingsByCategory(category as any);
+      const settings = await PlatformSettingsService.getSettingsByCategory(category as SettingCategory);
       return NextResponse.json({ settings });
     }
 
@@ -231,7 +234,7 @@ export async function POST(request: NextRequest) {
 /**
  * Sanitize sensitive setting values before logging
  */
-function sanitizeSensitiveValue(key: string, value: any): any {
+function sanitizeSensitiveValue(key: string, value: SanitizableValue): SanitizableValue {
   // List of setting keys that contain sensitive information
   const sensitiveKeys = [
     'api_key',

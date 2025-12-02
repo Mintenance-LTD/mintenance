@@ -3,7 +3,20 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card.unified';
 import { Icon } from '@/components/ui/Icon';
-import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import type {
+  Phase1BuildingAssessment,
+  Urgency,
+  DamageAssessment,
+  SafetyHazards,
+  SafetyHazard,
+  Compliance,
+  ComplianceIssue,
+  InsuranceRisk,
+  RiskFactor,
+  HomeownerExplanation as HomeownerExplanationType,
+  ContractorAdvice as ContractorAdviceType,
+  Material,
+} from '@/lib/services/building-surveyor/types';
 
 interface BuildingAssessmentDisplayProps {
   assessment: Phase1BuildingAssessment;
@@ -39,10 +52,10 @@ export function BuildingAssessmentDisplay({
       <InsuranceRiskCard insuranceRisk={assessment.insuranceRisk} />
 
       {/* Homeowner Explanation */}
-      <HomeownerExplanation explanation={assessment.homeownerExplanation} />
+      <HomeownerExplanationCard explanation={assessment.homeownerExplanation} />
 
       {/* Contractor Advice */}
-      <ContractorAdvice advice={assessment.contractorAdvice} />
+      <ContractorAdviceCard advice={assessment.contractorAdvice} />
 
       {/* Use Assessment Button */}
       {onUseAssessment && (
@@ -63,7 +76,7 @@ export function BuildingAssessmentDisplay({
 /**
  * Urgency Badge Component
  */
-export function UrgencyBadge({ urgency }: { urgency: any }) {
+export function UrgencyBadge({ urgency }: { urgency: Urgency }) {
   const urgencyConfig: Record<string, { color: string; bgColor: string; icon: string }> = {
     immediate: {
       color: 'text-red-700',
@@ -71,8 +84,8 @@ export function UrgencyBadge({ urgency }: { urgency: any }) {
       icon: 'alert',
     },
     urgent: {
-      color: 'text-orange-700',
-      bgColor: 'bg-orange-100 border-orange-300',
+      color: 'text-emerald-700',
+      bgColor: 'bg-emerald-100 border-emerald-300',
       icon: 'warning',
     },
     soon: {
@@ -122,7 +135,7 @@ export function UrgencyBadge({ urgency }: { urgency: any }) {
 export function DamageAssessmentCard({
   damageAssessment,
 }: {
-  damageAssessment: any;
+  damageAssessment: DamageAssessment;
 }) {
   const severityColors: Record<string, { bg: string; text: string; border: string }> = {
     early: {
@@ -194,7 +207,7 @@ export function DamageAssessmentCard({
 /**
  * Safety Hazards Card Component
  */
-export function SafetyHazardsCard({ safetyHazards }: { safetyHazards: any }) {
+export function SafetyHazardsCard({ safetyHazards }: { safetyHazards: SafetyHazards }) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -224,14 +237,14 @@ export function SafetyHazardsCard({ safetyHazards }: { safetyHazards: any }) {
 
         {expanded && (
           <div className="space-y-3 pt-2">
-            {safetyHazards.hazards.map((hazard: any, index: number) => (
+            {safetyHazards.hazards.map((hazard: SafetyHazard, index: number) => (
               <div
                 key={index}
                 className={`p-3 rounded-lg border ${
                   hazard.severity === 'critical' || hazard.severity === 'high'
                     ? 'bg-red-50 border-red-200'
                     : hazard.severity === 'medium'
-                    ? 'bg-orange-50 border-orange-200'
+                    ? 'bg-emerald-50 border-emerald-200'
                     : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
@@ -242,7 +255,7 @@ export function SafetyHazardsCard({ safetyHazards }: { safetyHazards: any }) {
                       hazard.severity === 'critical' || hazard.severity === 'high'
                         ? 'bg-red-200 text-red-800'
                         : hazard.severity === 'medium'
-                        ? 'bg-orange-200 text-orange-800'
+                        ? 'bg-emerald-200 text-emerald-800'
                         : 'bg-yellow-200 text-yellow-800'
                     }`}
                   >
@@ -268,7 +281,7 @@ export function SafetyHazardsCard({ safetyHazards }: { safetyHazards: any }) {
 /**
  * Compliance Flags Card Component
  */
-export function ComplianceFlagsCard({ compliance }: { compliance: any }) {
+export function ComplianceFlagsCard({ compliance }: { compliance: Compliance }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -306,14 +319,14 @@ export function ComplianceFlagsCard({ compliance }: { compliance: any }) {
 
         {expanded && (
           <div className="space-y-3 pt-2">
-            {compliance.complianceIssues.map((issue: any, index: number) => (
+            {compliance.complianceIssues.map((issue: ComplianceIssue, index: number) => (
               <div
                 key={index}
                 className={`p-3 rounded-lg border ${
                   issue.severity === 'violation'
                     ? 'bg-red-50 border-red-200'
                     : issue.severity === 'warning'
-                    ? 'bg-orange-50 border-orange-200'
+                    ? 'bg-emerald-50 border-emerald-200'
                     : 'bg-blue-50 border-blue-200'
                 }`}
               >
@@ -341,17 +354,17 @@ export function ComplianceFlagsCard({ compliance }: { compliance: any }) {
 /**
  * Insurance Risk Card Component
  */
-export function InsuranceRiskCard({ insuranceRisk }: { insuranceRisk: any }) {
+export function InsuranceRiskCard({ insuranceRisk }: { insuranceRisk: InsuranceRisk }) {
   const riskColor =
     insuranceRisk.riskScore >= 70
       ? 'text-red-600'
       : insuranceRisk.riskScore >= 40
-      ? 'text-orange-600'
+      ? 'text-emerald-600'
       : 'text-green-600';
 
   const premiumImpactColors: Record<string, string> = {
     high: 'bg-red-100 text-red-800',
-    medium: 'bg-orange-100 text-orange-800',
+    medium: 'bg-emerald-100 text-emerald-800',
     low: 'bg-yellow-100 text-yellow-800',
     none: 'bg-green-100 text-green-800',
   };
@@ -381,7 +394,7 @@ export function InsuranceRiskCard({ insuranceRisk }: { insuranceRisk: any }) {
         {insuranceRisk.riskFactors.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-gray-200">
             <div className="text-sm font-[560] text-gray-700">Risk Factors:</div>
-            {insuranceRisk.riskFactors.map((factor: any, index: number) => (
+            {insuranceRisk.riskFactors.map((factor: RiskFactor, index: number) => (
               <div key={index} className="text-sm font-[460] text-gray-600">
                 <span className="font-[560]">{factor.factor}:</span> {factor.impact}
               </div>
@@ -410,7 +423,7 @@ export function InsuranceRiskCard({ insuranceRisk }: { insuranceRisk: any }) {
 /**
  * Homeowner Explanation Component
  */
-export function HomeownerExplanation({ explanation }: { explanation: any }) {
+export function HomeownerExplanationCard({ explanation }: { explanation: HomeownerExplanationType }) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -459,7 +472,7 @@ export function HomeownerExplanation({ explanation }: { explanation: any }) {
 /**
  * Contractor Advice Component
  */
-export function ContractorAdvice({ advice }: { advice: any }) {
+export function ContractorAdviceCard({ advice }: { advice: ContractorAdviceType }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -522,7 +535,7 @@ export function ContractorAdvice({ advice }: { advice: any }) {
               <div>
                 <div className="text-sm font-[560] text-gray-700 mb-2">Materials Needed:</div>
                 <div className="space-y-1">
-                  {advice.materials.map((material: any, index: number) => (
+                  {advice.materials.map((material: Material, index: number) => (
                     <div
                       key={index}
                       className="text-sm font-[460] text-gray-600 flex justify-between"

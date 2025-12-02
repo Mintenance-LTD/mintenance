@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { AdminCard } from './AdminCard';
 import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
@@ -47,11 +48,11 @@ export function YOLOLearningStatusCard() {
         }
 
         const data = await response.json();
-        console.log('YOLO Learning Status API Response:', data);
-        console.log('continuousLearningEnabled:', data.continuousLearningEnabled);
+        logger.info('YOLO Learning Status API Response:', data);
+        logger.info('continuousLearningEnabled:', data.continuousLearningEnabled);
         setStatus(data);
       } catch (err) {
-        console.error('Error fetching YOLO learning status:', err);
+        logger.error('Error fetching YOLO learning status:', err);
         setStatus(null);
       } finally {
         setLoading(false);

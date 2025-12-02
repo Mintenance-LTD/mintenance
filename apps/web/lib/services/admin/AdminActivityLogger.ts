@@ -18,9 +18,20 @@ export interface AdminActivityLogEntry {
   target_type?: string;
   target_id?: string;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
+}
+
+interface AdminActivityLogRecord extends AdminActivityLogEntry {
+  id: string;
+  created_at: string;
+  admin?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
 }
 
 /**
@@ -78,7 +89,7 @@ export class AdminActivityLogger {
     description: string,
     targetType?: string,
     targetId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                      request.headers.get('x-real-ip') ||
@@ -109,7 +120,7 @@ export class AdminActivityLogger {
     startDate?: Date;
     endDate?: Date;
   }): Promise<{
-    logs: any[];
+    logs: AdminActivityLogRecord[];
     total: number;
   }> {
     try {

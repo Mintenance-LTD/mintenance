@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { generateSlug } from '../lib/utils';
+import { logger } from '@mintenance/shared';
 
 interface Article {
   title: string;
@@ -45,7 +46,7 @@ export function PopularArticlesSection({ categories }: PopularArticlesSectionPro
         const data = await response.json();
         setArticles(data.articles || []);
       } catch (error) {
-        console.error('Error fetching popular articles:', error);
+        logger.error('Error fetching popular articles:', error);
         // Fallback to empty array
         setArticles([]);
       } finally {

@@ -247,7 +247,12 @@ export class EscrowStatusService {
    * Determine next action based on escrow state
    */
   private static determineNextAction(
-    escrow: any,
+    escrow: {
+      admin_hold_status?: string;
+      homeowner_approval?: boolean;
+      photo_verification_status?: string;
+      cooling_off_ends_at?: string;
+    },
     blockingReasons: string[]
   ): string | null {
     if (blockingReasons.length === 0) {

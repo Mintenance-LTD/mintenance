@@ -16,10 +16,10 @@ export interface TimeoutOptions<T = unknown> {
 export async function withTimeout<T>(
   operation: () => Promise<T>,
   options: TimeoutOptions<T> = {}
-): Promise<T> {
+): Promise<T | null> {
   const {
     timeoutMs = 25000, // 25 seconds default (leave 5s buffer for Vercel's 30s limit)
-    fallbackValue = null,
+    fallbackValue = null as T | null,
     errorMessage = 'Operation timed out'
   } = options;
 
@@ -73,10 +73,10 @@ export async function batchOperations<T, R>(
 export function createTimeoutQuery<T>(
   queryFn: () => Promise<T>,
   timeoutMs: number = 20000
-): Promise<T> {
+): Promise<T | null> {
   return withTimeout(queryFn, {
     timeoutMs,
-    fallbackValue: null,
+    fallbackValue: null as T | null,
     errorMessage: `Database query timed out after ${timeoutMs}ms`
   });
 }

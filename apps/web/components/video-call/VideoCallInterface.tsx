@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall, VideoCallParticipant, CallQualityMetrics } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 interface VideoCallInterfaceProps {
   call: VideoCall;
@@ -82,7 +83,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       startQualityMonitoring();
 
     } catch (error) {
-      console.error('Failed to initialize call:', error);
+      logger.error('Failed to initialize call:', error);
       setConnectionStatus('disconnected');
     }
   };
@@ -91,7 +92,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
     try {
       await VideoCallService.endCall(call.id);
     } catch (error) {
-      console.error('Error during cleanup:', error);
+      logger.error('Error during cleanup:', error);
     }
   };
 
@@ -112,7 +113,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
         const quality = await VideoCallService.getCallQuality(call.id);
         setCallQuality(quality);
       } catch (error) {
-        console.error('Quality monitoring error:', error);
+        logger.error('Quality monitoring error:', error);
       }
     }, 5000);
 
@@ -125,7 +126,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       setIsAudioEnabled(!isAudioEnabled);
       onToggleAudio?.();
     } catch (error) {
-      console.error('Failed to toggle audio:', error);
+      logger.error('Failed to toggle audio:', error);
     }
   };
 
@@ -135,7 +136,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       setIsVideoEnabled(!isVideoEnabled);
       onToggleVideo?.();
     } catch (error) {
-      console.error('Failed to toggle video:', error);
+      logger.error('Failed to toggle video:', error);
     }
   };
 
@@ -149,7 +150,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       setIsScreenSharing(!isScreenSharing);
       onToggleScreenShare?.();
     } catch (error) {
-      console.error('Failed to toggle screen share:', error);
+      logger.error('Failed to toggle screen share:', error);
     }
   };
 
@@ -158,7 +159,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
       await VideoCallService.endCall(call.id);
       onEndCall?.();
     } catch (error) {
-      console.error('Failed to end call:', error);
+      logger.error('Failed to end call:', error);
     }
   };
 

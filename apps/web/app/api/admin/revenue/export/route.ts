@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
       RevenueAnalytics.getRevenueTrends(days),
     ]);
 
+    if (!revenueMetrics) {
+      return NextResponse.json({ error: 'Failed to fetch revenue metrics' }, { status: 500 });
+    }
+
     // Generate export file
     const file = await ExportService.exportRevenue(
       {

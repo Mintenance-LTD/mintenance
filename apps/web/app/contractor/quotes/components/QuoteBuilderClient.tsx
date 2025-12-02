@@ -128,8 +128,9 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
       setFeedback({ type: 'success', message: 'Quote sent successfully.' });
       router.refresh();
-    } catch (error: any) {
-      setFeedback({ type: 'error', message: error.message || 'Failed to send quote.' });
+    } catch (error: unknown) {
+      const err = error as Error;
+      setFeedback({ type: 'error', message: err.message || 'Failed to send quote.' });
     } finally {
       setActionBusyId(null);
     }
@@ -153,8 +154,9 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
 
       setFeedback({ type: 'success', message: 'Quote deleted successfully.' });
       router.refresh();
-    } catch (error: any) {
-      setFeedback({ type: 'error', message: error.message || 'Failed to delete quote.' });
+    } catch (error: unknown) {
+      const err = error as Error;
+      setFeedback({ type: 'error', message: err.message || 'Failed to delete quote.' });
     } finally {
       setActionBusyId(null);
       setPendingDelete(null);

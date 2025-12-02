@@ -1,0 +1,319 @@
+name: Mobile Build Pipeline (EAS)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - '.github/workflows/mobile-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+        default: 'android'
+      profile:
+        description: 'Build profile'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: 'development'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.platform || 'auto' }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # PRE-BUILD VALIDATION
+  # ============================================================
+  pre-build-checks:
+    name: Pre-Build Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    outputs:
+      should-build: ${{ steps.check-changes.outputs.should-build }}
+      build-profile: ${{ steps.determine-profile.outputs.profile }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for mobile changes
+        id: check-changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should-build=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || echo "")
+
+          if echo "$CHANGED_FILES" | grep -q "apps/mobile/\|packages/"; then
+            echo "should-build=true" >> $GITHUB_OUTPUT
+            echo "Mobile code changes detected"
+          else
+            echo "should-build=false" >> $GITHUB_OUTPUT
+            echo "No mobile code changes"
+          fi
+
+      - name: Determine build profile
+        id: determine-profile
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "profile=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "profile=staging" >> $GITHUB_OUTPUT
+          else
+            echo "profile=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate environment
+        working-directory: apps/mobile
+        run: npm run validate:env || true
+
+      - name: Type check
+        working-directory: apps/mobile
+        run: npm run type-check
+
+      - name: Lint mobile code
+        working-directory: apps/mobile
+        run: npm run lint
+
+  # ============================================================
+  # ANDROID BUILD (EAS)
+  # ============================================================
+  build-android:
+    name: Build Android (${{ needs.pre-build-checks.outputs.build-profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: pre-build-checks
+    if: |
+      needs.pre-build-checks.outputs.should-build == 'true' &&
+      (github.event.inputs.platform == 'android' ||
+       github.event.inputs.platform == 'all' ||
+       github.event_name != 'workflow_dispatch')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Configure EAS credentials
+        working-directory: apps/mobile
+        run: |
+          echo "Setting up EAS credentials..."
+          # Credentials are managed via secrets
+
+      - name: Build Android APK/AAB
+        working-directory: apps/mobile
+        run: |
+          PROFILE="${{ needs.pre-build-checks.outputs.build-profile }}"
+
+          if [ "$PROFILE" = "production" ]; then
+            eas build --platform android --profile stable --non-interactive --no-wait
+          else
+            eas build --platform android --profile $PROFILE --non-interactive --no-wait
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
+      - name: Wait for build completion
+        working-directory: apps/mobile
+        run: |
+          echo "Build submitted to EAS. Check status at:"
+          echo "https://expo.dev/accounts/$(cat package.json | grep -o '"name": "[^"]*' | cut -d'"' -f4)/projects/mintenance/builds"
+
+      - name: Get build URL
+        id: build-url
+        working-directory: apps/mobile
+        run: |
+          BUILD_URL=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].artifacts.buildUrl')
+          echo "build-url=$BUILD_URL" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Post build summary
+        run: |
+          echo "## Android Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Profile: ${{ needs.pre-build-checks.outputs.build-profile }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Platform: Android" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Submitted to EAS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View build status on EAS](https://expo.dev)" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # iOS BUILD (EAS)
+  # ============================================================
+  build-ios:
+    name: Build iOS (${{ needs.pre-build-checks.outputs.build-profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: pre-build-checks
+    if: |
+      needs.pre-build-checks.outputs.should-build == 'true' &&
+      (github.event.inputs.platform == 'ios' ||
+       github.event.inputs.platform == 'all' ||
+       (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Build iOS
+        working-directory: apps/mobile
+        run: |
+          PROFILE="${{ needs.pre-build-checks.outputs.build-profile }}"
+          eas build --platform ios --profile $PROFILE --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
+      - name: Post build summary
+        run: |
+          echo "## iOS Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Profile: ${{ needs.pre-build-checks.outputs.build-profile }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Platform: iOS" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Submitted to EAS" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # POST-BUILD VERIFICATION
+  # ============================================================
+  post-build-verification:
+    name: Post-Build Verification
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: always() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
+
+    steps:
+      - name: Verify builds
+        run: |
+          echo "## Build Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.build-android.result }}" = "success" ]; then
+            echo "✅ Android build submitted successfully" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.build-ios.result }}" = "success" ]; then
+            echo "✅ iOS build submitted successfully" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check build progress on [Expo Dashboard](https://expo.dev)" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # NOTIFY ON FAILURE
+  # ============================================================
+  notify-failure:
+    name: Notify Build Failure
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: |
+      failure() &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Mobile build failed for ${context.ref}`;
+            const body = `## Mobile Build Failure
+
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+            **Workflow:** ${context.workflow}
+            **Run ID:** ${context.runId}
+
+            [View workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+            ### Failed Jobs
+            - Android: ${{ needs.build-android.result }}
+            - iOS: ${{ needs.build-ios.result }}
+
+            Please investigate and fix the build issues.
+            `;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['build-failure', 'mobile', 'urgent']
+            });

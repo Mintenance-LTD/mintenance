@@ -40,9 +40,11 @@ export async function GET(request: NextRequest) {
       service: 'training-data-export-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to export training data';
+
     return NextResponse.json(
       {
-        error: error.message || 'Failed to export training data',
+        error: errorMessage,
       },
       { status: 500 }
     );

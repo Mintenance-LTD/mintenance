@@ -25,15 +25,18 @@ export class InsuranceRiskService {
    * Process insurance risk from AI response
    */
   static processInsuranceRisk(
-    riskFactors: any[],
+    riskFactors: Array<{ factor?: string; severity?: string; impact?: string }>,
     riskScore?: number,
-    premiumImpact?: any
+    premiumImpact?: string | PremiumImpact
   ): InsuranceRiskResult {
-    const processedFactors = riskFactors.map((factor) => ({
-      factor: factor.factor || 'unknown_risk',
-      severity: factor.severity || 'medium',
-      impact: factor.impact || 'May affect insurance coverage',
-    }));
+    const processedFactors: RiskFactor[] = riskFactors.map((factor) => {
+      const severity = factor.severity as 'low' | 'medium' | 'high';
+      return {
+        factor: factor.factor || 'unknown_risk',
+        severity: (severity === 'low' || severity === 'medium' || severity === 'high') ? severity : 'medium',
+        impact: factor.impact || 'May affect insurance coverage',
+      };
+    });
 
     const normalizedRiskScore = riskScore
       ? Math.max(0, Math.min(100, riskScore))
@@ -86,10 +89,10 @@ export class InsuranceRiskService {
   /**
    * Normalize premium impact
    */
-  private static normalizePremiumImpact(impact: any): PremiumImpact {
+  private static normalizePremiumImpact(impact: string | PremiumImpact | undefined | null): PremiumImpact {
     const valid: PremiumImpact[] = ['none', 'low', 'medium', 'high'];
-    if (valid.includes(impact)) {
-      return impact;
+    if (impact && typeof impact === 'string' && valid.includes(impact as PremiumImpact)) {
+      return impact as PremiumImpact;
     }
     const i = String(impact).toLowerCase();
     if (i.includes('high') || i.includes('significant')) {

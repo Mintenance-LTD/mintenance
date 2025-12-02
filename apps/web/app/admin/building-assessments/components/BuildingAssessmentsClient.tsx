@@ -23,6 +23,7 @@ import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { CircularProgress } from '@/components/ui/CircularProgress';
+import { logger } from '@mintenance/shared';
 
 interface Assessment {
   id: string;
@@ -157,7 +158,9 @@ export function BuildingAssessmentsClient({
       setAssessments(data.assessments || []);
       setStatistics(data.statistics || statistics);
     } catch (error) {
-      console.error('Error refreshing assessments:', error);
+      logger.error('Error refreshing assessments', error, {
+        service: 'building-assessments',
+      });
     } finally {
       setLoading(false);
     }
@@ -183,7 +186,9 @@ export function BuildingAssessmentsClient({
       setSelectedAssessment(null);
       setValidationNotes('');
     } catch (error) {
-      console.error('Error validating assessment:', error);
+      logger.error('Error validating assessment', error, {
+        service: 'building-assessments',
+      });
       setErrorDialog({ open: true, message: 'Failed to validate assessment. Please try again.' });
     } finally {
       setLoading(false);
@@ -209,7 +214,9 @@ export function BuildingAssessmentsClient({
           });
         }
       } catch (error) {
-        console.error('Failed to fetch correction stats:', error);
+        logger.error('Failed to fetch correction stats', error, {
+          service: 'building-assessments',
+        });
       }
     }
     fetchCorrectionStats();

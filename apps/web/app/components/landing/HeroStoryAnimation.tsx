@@ -17,6 +17,7 @@ import {
     Star,
     MapPin,
 } from 'lucide-react';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 // ----------------- TYPES & STORY FLOW -----------------
 
@@ -54,22 +55,100 @@ function useStoryCycle(): StoryPhase {
     return phase;
 }
 
+// ----------------- STATIC VERSION FOR REDUCED MOTION -----------------
+
+function StaticHeroAnimation() {
+    return (
+        <div className="relative flex h-[520px] w-full items-center justify-center">
+            <div className="relative flex h-[420px] w-[720px] max-w-full items-center justify-center overflow-hidden rounded-[32px] border border-slate-800 bg-[#0f172a] shadow-[0_40px_120px_rgba(15,23,42,0.9)]">
+                {/* Static background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+                
+                {/* Static grid pattern */}
+                <div 
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                        backgroundImage: 'linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)',
+                        backgroundSize: '40px 40px'
+                    }}
+                />
+                
+                {/* Static homeowner */}
+                <div className="absolute left-24 top-1/2 -translate-y-1/2">
+                    <div className="relative">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                            <span className="text-2xl">👤</span>
+                        </div>
+                        <div className="mt-2 text-center">
+                            <span className="text-xs text-blue-300 font-medium">Homeowner</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Static connection line */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <svg width="200" height="4" className="overflow-visible">
+                        <line x1="0" y1="2" x2="200" y2="2" stroke="#10b981" strokeWidth="2" strokeDasharray="8,4" />
+                    </svg>
+                </div>
+
+                {/* Static contractor */}
+                <div className="absolute right-24 top-1/2 -translate-y-1/2">
+                    <div className="relative">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                            <span className="text-2xl">🔧</span>
+                        </div>
+                        <div className="mt-2 text-center">
+                            <span className="text-xs text-amber-300 font-medium">Contractor</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Static success badge */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 rounded-full">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm text-emerald-300 font-medium">Connected</span>
+                    </div>
+                </div>
+
+                {/* Static message bubbles */}
+                <div className="absolute bottom-16 left-1/3 -translate-x-1/2">
+                    <div className="px-3 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg rounded-bl-none">
+                        <span className="text-xs text-blue-200">Need help?</span>
+                    </div>
+                </div>
+
+                <div className="absolute bottom-8 right-1/3 translate-x-1/2">
+                    <div className="px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg rounded-br-none">
+                        <span className="text-xs text-amber-200">I can help!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ----------------- ROOT COMPONENT -----------------
 
 export function HeroStoryAnimation() {
+    const prefersReducedMotion = useReducedMotion();
     const phase = useStoryCycle();
     const [isBlinking, setIsBlinking] = useState(false);
 
     // shared blink for both characters
     useEffect(() => {
+        // Skip animation intervals if reduced motion is preferred
+        if (prefersReducedMotion) return;
+        
         const id = setInterval(() => {
             setIsBlinking(true);
             setTimeout(() => setIsBlinking(false), 160);
         }, 3800);
         return () => clearInterval(id);
-    }, []);
+    }, [prefersReducedMotion]);
 
-    // Parallax
+    // Parallax - only active if reduced motion is not preferred
     const x = useMotionValue(0);
     const y = useMotionValue(0);
     const sx = useSpring(x, { stiffness: 120, damping: 24 });
@@ -79,10 +158,16 @@ export function HeroStoryAnimation() {
     const rotateY = useTransform(sx, [-0.5, 0.5], [-8, 8]);
 
     const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (prefersReducedMotion) return;
         const rect = e.currentTarget.getBoundingClientRect();
         x.set((e.clientX - rect.left) / rect.width - 0.5);
         y.set((e.clientY - rect.top) / rect.height - 0.5);
     };
+
+    // Return static version for reduced motion preference
+    if (prefersReducedMotion) {
+        return <StaticHeroAnimation />;
+    }
 
     return (
         <motion.div

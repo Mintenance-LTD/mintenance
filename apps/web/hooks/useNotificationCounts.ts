@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 
 interface NotificationCounts {
   messages: number;
@@ -52,7 +53,7 @@ export function useNotificationCounts() {
       // Silently handle errors - don't show error to user for background polling
       setError(null);
       setCounts({ messages: 0 });
-      console.error('Failed to fetch notification counts:', err);
+      logger.error('Failed to fetch notification counts:', err);
     } finally {
       setLoading(false);
     }

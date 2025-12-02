@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { TrendSparkline } from '@/components/ui/TrendSparkline';
@@ -13,16 +15,17 @@ interface SchedulingKpiCardsProps {
   kpis?: KpiCard[];
 }
 
-const defaultKpis: KpiCard[] = [
-  { icon: 'calendar', title: 'Scheduled Jobs', value: '8 Bids' },
-  { icon: 'target', title: 'Active Bids', value: '3 Bids' },
-  { icon: 'user', title: 'Active Bids', value: '3 Bids' },
-  { icon: 'clock', title: 'Active Bids', value: '4 Bids' },
-  { icon: 'target', title: 'Scheduled Jobs', value: '8 Bids' },
-  { icon: 'calendar', title: 'Scheduled Jobs', value: '8 Bids' },
-];
+export function SchedulingKpiCards({ kpis }: SchedulingKpiCardsProps) {
+  const defaultKpis: KpiCard[] = React.useMemo(() => [
+    { icon: 'calendar', title: 'Scheduled Jobs', value: '8 Bids' },
+    { icon: 'target', title: 'Active Bids', value: '3 Bids' },
+    { icon: 'user', title: 'Active Bids', value: '3 Bids' },
+    { icon: 'clock', title: 'Active Bids', value: '4 Bids' },
+    { icon: 'target', title: 'Scheduled Jobs', value: '8 Bids' },
+    { icon: 'calendar', title: 'Scheduled Jobs', value: '8 Bids' },
+  ], []);
 
-export function SchedulingKpiCards({ kpis = defaultKpis }: SchedulingKpiCardsProps) {
+  const displayKpis = kpis || defaultKpis;
   return (
     <div style={{
       display: 'flex',
@@ -38,7 +41,7 @@ export function SchedulingKpiCards({ kpis = defaultKpis }: SchedulingKpiCardsPro
         Additional KPIs
       </h3>
       
-      {kpis.map((kpi, index) => (
+      {displayKpis.map((kpi, index) => (
         <div
           key={index}
           style={{
@@ -67,7 +70,7 @@ export function SchedulingKpiCards({ kpis = defaultKpis }: SchedulingKpiCardsPro
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Icon name={kpi.icon as any} size={20} color={theme.colors.primary} />
+              <Icon name={kpi.icon} size={20} color={theme.colors.primary} />
             </div>
             <span style={{
               fontSize: theme.typography.fontSize.sm,

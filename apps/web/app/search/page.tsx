@@ -271,9 +271,9 @@ function SearchContent() {
           fontSize: theme.typography.fontSize['2xl'],
           flexShrink: 0
         }}>
-          {contractor.profileImageUrl ? (
+          {contractor.profile_image_url ? (
             <img
-              src={contractor.profileImageUrl}
+              src={contractor.profile_image_url}
               alt={contractor.first_name}
               style={{
                 width: '100%',
@@ -313,13 +313,13 @@ function SearchContent() {
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.warning
                 }}>
-                  {'⭐'.repeat(Math.floor(contractor.rating || 0))} {contractor.rating?.toFixed(1)}
+                  {'⭐'.repeat(Math.floor((contractor as any).rating || 0))} {(contractor as any).rating?.toFixed(1) || 'N/A'}
                 </span>
                 <span style={{
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary
                 }}>
-                  {contractor.totalJobsCompleted} jobs completed
+                  {(contractor as any).totalJobsCompleted || 0} jobs completed
                 </span>
               </div>
             </div>

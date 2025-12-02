@@ -98,19 +98,20 @@ export class ContextFeatureService {
    * Used when reconstructing context from ab_decisions.context_features JSONB
    */
   static extractContextVector(contextFeatures: Partial<ContextFeatures> | Record<string, unknown>): number[] {
+    const typedFeatures = contextFeatures as Partial<ContextFeatures>;
     return this.constructContextVector({
-      fusion_confidence: contextFeatures.fusion_confidence,
-      fusion_variance: contextFeatures.fusion_variance,
-      cp_set_size: contextFeatures.cp_set_size,
-      safety_critical_candidate: contextFeatures.safety_critical_candidate,
-      lighting_quality: contextFeatures.lighting_quality,
-      image_clarity: contextFeatures.image_clarity,
-      property_age: contextFeatures.property_age,
-      property_age_bin: contextFeatures.property_age_bin,
-      num_damage_sites: contextFeatures.num_damage_sites,
-      detector_disagreement: contextFeatures.detector_disagreement,
-      ood_score: contextFeatures.ood_score,
-      region: contextFeatures.region,
+      fusion_confidence: typedFeatures.fusion_confidence,
+      fusion_variance: typedFeatures.fusion_variance,
+      cp_set_size: typedFeatures.cp_set_size,
+      safety_critical_candidate: typedFeatures.safety_critical_candidate,
+      lighting_quality: typedFeatures.lighting_quality,
+      image_clarity: typedFeatures.image_clarity,
+      property_age: typedFeatures.property_age,
+      property_age_bin: typedFeatures.property_age_bin,
+      num_damage_sites: typedFeatures.num_damage_sites,
+      detector_disagreement: typedFeatures.detector_disagreement,
+      ood_score: typedFeatures.ood_score,
+      region: typedFeatures.region,
     });
   }
 

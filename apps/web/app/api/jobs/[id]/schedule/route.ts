@@ -6,6 +6,14 @@ import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
+// Type definition for schedule update data
+interface ScheduleUpdateData {
+  scheduled_start_date: string;
+  updated_at: string;
+  scheduled_end_date?: string;
+  scheduled_duration_hours?: number;
+}
+
 const scheduleSchema = z.object({
   scheduled_start_date: z.string().datetime(),
   scheduled_end_date: z.string().datetime().optional(),
@@ -64,7 +72,7 @@ export async function POST(  request: NextRequest,
     }
 
     // Update job with scheduled dates
-    const updateData: any = {
+    const updateData: ScheduleUpdateData = {
       scheduled_start_date: scheduled_start_date,
       updated_at: new Date().toISOString(),
     };

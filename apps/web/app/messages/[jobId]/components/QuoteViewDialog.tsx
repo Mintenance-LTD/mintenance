@@ -70,10 +70,16 @@ export function QuoteViewDialog({ open, onOpenChange, jobId }: QuoteViewDialogPr
       const bidsResponse = await fetch(`/api/jobs/${jobId}?includeBids=true`);
       let bidId = null;
 
+      interface BidEntry {
+        id: string;
+        status: string;
+        job_id?: string;
+      }
+
       if (bidsResponse.ok) {
         const jobWithBids = await bidsResponse.json();
         if (jobWithBids.bids && Array.isArray(jobWithBids.bids) && jobWithBids.bids.length > 0) {
-          const bid = jobWithBids.bids.find((b: any) => b.status === 'accepted') || jobWithBids.bids[0];
+          const bid = (jobWithBids.bids as BidEntry[]).find((b) => b.status === 'accepted') || jobWithBids.bids[0];
           bidId = bid.id;
         }
       }
@@ -83,7 +89,7 @@ export function QuoteViewDialog({ open, onOpenChange, jobId }: QuoteViewDialogPr
         if (contractorBidsResponse.ok) {
           const contractorBids = await contractorBidsResponse.json();
           const bid = Array.isArray(contractorBids) 
-            ? contractorBids.find((b: any) => b.job_id === jobId && (b.status === 'accepted' || b.status === 'pending'))
+            ? (contractorBids as BidEntry[]).find((b) => b.job_id === jobId && (b.status === 'accepted' || b.status === 'pending'))
             : null;
           if (bid) {
             bidId = bid.id;

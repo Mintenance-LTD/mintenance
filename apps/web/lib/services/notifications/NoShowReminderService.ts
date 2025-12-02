@@ -52,7 +52,12 @@ export class NoShowReminderService {
   /**
    * Send no-show notification
    */
-  private static async sendNoShowNotification(job: any): Promise<void> {
+  private static async sendNoShowNotification(job: {
+    id: string;
+    title: string;
+    contractor_id: string;
+    homeowner_id: string;
+  }): Promise<void> {
     try {
       const notifications = [
         {
@@ -137,7 +142,13 @@ export class NoShowReminderService {
   /**
    * Send reminder notification
    */
-  private static async sendReminder(job: any, timeUntil: string): Promise<void> {
+  private static async sendReminder(job: {
+    id: string;
+    title: string;
+    contractor_id: string;
+    homeowner_id: string;
+    scheduled_start_date: string | null;
+  }, timeUntil: string): Promise<void> {
     try {
       const notifications = [
         {

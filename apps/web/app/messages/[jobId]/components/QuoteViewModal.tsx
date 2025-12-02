@@ -67,6 +67,12 @@ export function QuoteViewModal({ isOpen, onClose, jobId }: QuoteViewModalProps) 
 
       // Fetch bids for this job - we'll query directly from Supabase via an API
       // For now, try to get accepted bid or first bid
+      interface BidData {
+        id: string;
+        status: string;
+        job_id?: string;
+      }
+
       const bidsResponse = await fetch(`/api/jobs/${jobId}?includeBids=true`);
       let bidId = null;
 
@@ -74,7 +80,7 @@ export function QuoteViewModal({ isOpen, onClose, jobId }: QuoteViewModalProps) 
         const jobWithBids = await bidsResponse.json();
         if (jobWithBids.bids && Array.isArray(jobWithBids.bids) && jobWithBids.bids.length > 0) {
           // Find accepted bid, or use the first bid
-          const bid = jobWithBids.bids.find((b: any) => b.status === 'accepted') || jobWithBids.bids[0];
+          const bid = (jobWithBids.bids as BidData[]).find((b: BidData) => b.status === 'accepted') || jobWithBids.bids[0];
           bidId = bid.id;
         }
       }
@@ -85,7 +91,7 @@ export function QuoteViewModal({ isOpen, onClose, jobId }: QuoteViewModalProps) 
         if (contractorBidsResponse.ok) {
           const contractorBids = await contractorBidsResponse.json();
           const bid = Array.isArray(contractorBids) 
-            ? contractorBids.find((b: any) => b.job_id === jobId && (b.status === 'accepted' || b.status === 'pending'))
+            ? (contractorBids as BidData[]).find((b: BidData) => b.job_id === jobId && (b.status === 'accepted' || b.status === 'pending'))
             : null;
           if (bid) {
             bidId = bid.id;

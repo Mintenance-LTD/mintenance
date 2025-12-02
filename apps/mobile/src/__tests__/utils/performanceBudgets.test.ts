@@ -20,7 +20,7 @@ import {
   withPerformanceEnforcement,
   usePerformanceMonitoring,
   reactNativePerformanceEnforcer,
-} from '../../utils/performanceBudgets';
+} from '../../utils/performance';
 import React from 'react';
 import { render } from '../setup/testUtils';
 

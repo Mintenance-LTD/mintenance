@@ -1,6 +1,7 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
+import { logger } from '@mintenance/shared';
 import type {
   RootStackParamList,
   JobsStackParamList,
@@ -179,7 +180,7 @@ export const useEnhancedNavigation = () => {
 
       // Role-based guard
       if (options?.allowedRoles && user && !options.allowedRoles.includes(user.role)) {
-        console.warn(`Navigation blocked: User role ${user.role} not allowed for ${screen}`);
+        logger.warn(`Navigation blocked: User role ${user.role} not allowed for ${screen}`);
         const fallback = options.fallbackScreen || 'Main';
         navigation.navigate(fallback);
         return false;
@@ -197,14 +198,14 @@ export const useEnhancedNavigation = () => {
 
       return true;
     } catch (error) {
-      console.error('Navigation error:', error);
+      logger.error('Navigation error:', error);
 
       // Fallback navigation on error
       const fallback = options?.fallbackScreen || 'Main';
       try {
         navigation.navigate(fallback);
       } catch (fallbackError) {
-        console.error('Fallback navigation also failed:', fallbackError);
+        logger.error('Fallback navigation also failed:', fallbackError);
       }
 
       return false;
@@ -223,12 +224,12 @@ export const useEnhancedNavigation = () => {
 
       return true;
     } catch (error) {
-      console.error('Go back error:', error);
+      logger.error('Go back error:', error);
 
       try {
         navigation.navigate(fallbackScreen);
       } catch (fallbackError) {
-        console.error('Fallback go back also failed:', fallbackError);
+        logger.error('Fallback go back also failed:', fallbackError);
       }
 
       return false;
@@ -254,7 +255,7 @@ export const useEnhancedNavigation = () => {
 
       return true;
     } catch (error) {
-      console.error('Reset navigation error:', error);
+      logger.error('Reset navigation error:', error);
       return false;
     }
   };

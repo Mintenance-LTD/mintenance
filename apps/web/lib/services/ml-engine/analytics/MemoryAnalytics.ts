@@ -103,25 +103,32 @@ export class MemoryAnalytics {
         return null;
       }
 
+      // Define type for update history records
+      interface UpdateHistoryRecord {
+        frequency_compliance: number | null;
+        error_reduction: number | null;
+        update_duration_ms: number | null;
+      }
+
       // Calculate update frequency compliance
-      const compliantUpdates = updateHistory.filter(
-        (uh: any) => uh.frequency_compliance && uh.frequency_compliance >= 95
+      const compliantUpdates = (updateHistory as UpdateHistoryRecord[]).filter(
+        (uh: UpdateHistoryRecord) => uh.frequency_compliance && uh.frequency_compliance >= 95
       ).length;
       const compliance = updateHistory.length > 0
         ? (compliantUpdates / updateHistory.length) * 100
         : 100;
 
       // Calculate average error reduction
-      const errorReductions = updateHistory
-        .map((uh: any) => uh.error_reduction || 0)
+      const errorReductions = (updateHistory as UpdateHistoryRecord[])
+        .map((uh: UpdateHistoryRecord) => uh.error_reduction || 0)
         .filter((er: number) => er > 0);
       const avgErrorReduction = errorReductions.length > 0
         ? errorReductions.reduce((a: number, b: number) => a + b, 0) / errorReductions.length
         : 0;
 
       // Calculate average update latency
-      const latencies = updateHistory
-        .map((uh: any) => uh.update_duration_ms || 0)
+      const latencies = (updateHistory as UpdateHistoryRecord[])
+        .map((uh: UpdateHistoryRecord) => uh.update_duration_ms || 0)
         .filter((l: number) => l > 0);
       const avgLatency = latencies.length > 0
         ? latencies.reduce((a: number, b: number) => a + b, 0) / latencies.length
@@ -170,7 +177,7 @@ export class MemoryAnalytics {
    * Estimate compression ratio
    */
   private static estimateCompressionRatio(
-    parameters: any,
+    parameters: Record<string, unknown> | null,
     updateCount: number
   ): number {
     if (!parameters || updateCount === 0) {
@@ -228,8 +235,14 @@ export class MemoryAnalytics {
           .eq('memory_state_id', await this.getMemoryStateId(agentName, level.level))
           .gte('created_at', new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString());
 
+        // Define type for compliance record
+        interface ComplianceRecord {
+          frequency_compliance: number | null;
+          update_count: number | null;
+        }
+
         const compliant = updateHistory?.filter(
-          (uh: any) => uh.frequency_compliance && uh.frequency_compliance >= 95
+          (uh: ComplianceRecord) => uh.frequency_compliance && uh.frequency_compliance >= 95
         ).length || 0;
         const total = updateHistory?.length || 0;
         const compliance = total > 0 ? (compliant / total) * 100 : 100;

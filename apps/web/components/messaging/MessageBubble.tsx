@@ -39,7 +39,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const isSystemMessage = message.messageType.includes('video_call');
+  const isSystemMessage = message.messageType?.includes('video_call') ?? false;
   
   // Contract messages should be styled more prominently
   const isContractMessage = message.messageType === 'contract_submitted';

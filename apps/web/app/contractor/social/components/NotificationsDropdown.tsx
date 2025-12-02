@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Bell, Heart, MessageCircle, UserPlus } from 'lucide-react';
 
@@ -68,7 +69,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
         setUnreadCount(data.unread_count || 0);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
         setUnreadCount(data.unread_count || 0);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      logger.error('Error fetching unread count:', error);
     }
   };
 
@@ -98,7 +99,7 @@ export function NotificationsDropdown({ currentUserId }: NotificationsDropdownPr
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
       } catch (error) {
-        console.error('Error marking notification as read:', error);
+        logger.error('Error marking notification as read:', error);
       }
     }
 

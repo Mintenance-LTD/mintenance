@@ -47,8 +47,9 @@ export class RedisRateLimiter {
         this.initialized = false;
       }
     } catch (error) {
-      logger.warn('Failed to initialize Redis, falling back to in-memory rate limiting', error, {
+      logger.warn('Failed to initialize Redis, falling back to in-memory rate limiting', {
         service: 'rate_limiter',
+        error,
       });
       this.initialized = false;
     }
@@ -100,34 +101,52 @@ export class RedisRateLimiter {
   }
 
   private fallbackRateLimit(config: RateLimitConfig): RateLimitResult {
-    // SECURITY: Graceful degradation when Redis unavailable in production
-    // Allow reduced rate limit (10% of normal) to maintain availability
+    // CRITICAL FIX: Enhanced production safeguards
+    // When Redis is down, in-memory Map won't sync across Vercel Edge instances
+    // This creates a security vulnerability where rate limits can be bypassed
     const isProduction = process.env.NODE_ENV === 'production';
 
     if (isProduction) {
-      logger.warn('[rate-limiter] Redis unavailable - DEGRADED MODE active', {
+      // SECURITY ALERT: Redis unavailable in production - this is a critical infrastructure issue
+      logger.error('[SECURITY ALERT] Redis unavailable in production - rate limiting compromised', {
         service: 'rate_limiter',
         identifier: config.identifier,
         environment: 'production',
+        severity: 'CRITICAL',
+        impact: 'Rate limits not enforced across Edge instances',
         normalLimit: config.maxRequests,
-        degradedLimit: Math.ceil(config.maxRequests * 0.1)
       });
-    } else {
-      logger.warn('[rate-limiter] Using in-memory fallback - not suitable for production', {
-        service: 'rate_limiter',
-      });
+
+      // FAIL CLOSED: Return 503 to prevent bypassing rate limits
+      // In production, we should never fall back to unreliable in-memory storage
+      // that doesn't sync across Edge instances
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: Date.now() + config.windowMs,
+        retryAfter: 60, // Retry after 60 seconds
+      };
     }
 
-    // Use in-memory fallback with reduced limits in production
-    const effectiveMaxRequests = isProduction
-      ? Math.ceil(config.maxRequests * 0.1)
-      : config.maxRequests;
+    // Development/test environments: allow in-memory fallback
+    logger.warn('[rate-limiter] Using in-memory fallback - not suitable for production', {
+      service: 'rate_limiter',
+      identifier: config.identifier,
+    });
+
+    // Use in-memory fallback with reduced limits (5% with hard cap)
+    const FALLBACK_PERCENTAGE = 0.05;
+    const FALLBACK_HARD_CAP = 10; // Maximum 10 requests even if 5% is higher
+    const effectiveMaxRequests = Math.min(
+      FALLBACK_HARD_CAP,
+      Math.ceil(config.maxRequests * FALLBACK_PERCENTAGE)
+    );
 
     const now = Date.now();
     const windowStart = Math.floor(now / config.windowMs) * config.windowMs;
     const key = `${config.identifier}:${windowStart}`;
 
-    // Use a simple Map for fallback (note: won't sync across instances)
+    // Use a simple Map for fallback (WARNING: won't sync across instances)
     if (!globalThis.rateLimitFallback) {
       globalThis.rateLimitFallback = new Map();
     }
@@ -137,7 +156,7 @@ export class RedisRateLimiter {
 
     globalThis.rateLimitFallback.set(key, count);
 
-    // Clean up old entries
+    // Clean up old entries to prevent memory leak
     for (const [k] of globalThis.rateLimitFallback) {
       const windowTime = parseInt(k.split(':').pop() || '0');
       if (now - windowTime > config.windowMs) {

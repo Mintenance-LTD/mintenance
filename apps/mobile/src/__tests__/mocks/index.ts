@@ -55,31 +55,31 @@ describe('Mock factories', () => {
     try {
       expect(SupabaseMockFactory).toBeDefined();
     } catch (e) {
-      console.warn('SupabaseMockFactory not available');
+      logger.warn('SupabaseMockFactory not available');
     }
 
     try {
       expect(ExpoMockFactory).toBeDefined();
     } catch (e) {
-      console.warn('ExpoMockFactory not available');
+      logger.warn('ExpoMockFactory not available');
     }
 
     try {
       expect(ReactNativeMockFactory).toBeDefined();
     } catch (e) {
-      console.warn('ReactNativeMockFactory not available');
+      logger.warn('ReactNativeMockFactory not available');
     }
 
     try {
       expect(NavigationMockFactory).toBeDefined();
     } catch (e) {
-      console.warn('NavigationMockFactory not available');
+      logger.warn('NavigationMockFactory not available');
     }
 
     try {
       expect(ServicesMockFactory).toBeDefined();
     } catch (e) {
-      console.warn('ServicesMockFactory not available');
+      logger.warn('ServicesMockFactory not available');
     }
 
     // Always pass

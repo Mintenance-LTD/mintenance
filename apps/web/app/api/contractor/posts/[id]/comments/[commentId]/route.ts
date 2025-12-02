@@ -4,6 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
+// Type definition for comment update data
+interface CommentUpdateData {
+  updated_at: string;
+  comment_text?: string;
+  is_solution?: boolean;
+  solution_verified_by?: string;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -42,7 +50,7 @@ export async function PATCH(
     }
 
     // Build update payload
-    const updateData: any = {
+    const updateData: CommentUpdateData = {
       updated_at: new Date().toISOString(),
     };
 

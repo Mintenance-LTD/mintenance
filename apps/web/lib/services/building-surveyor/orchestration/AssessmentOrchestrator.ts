@@ -17,6 +17,8 @@ import { FeatureExtractionService } from './FeatureExtractionService';
 import { PromptBuilder } from './PromptBuilder';
 import { getConfig } from '../config/BuildingSurveyorConfig';
 import { SAM3Service } from '../SAM3Service';
+import { HybridInferenceService } from '../HybridInferenceService';
+import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
 import type {
     AssessmentContext,
     Phase1BuildingAssessment,
@@ -244,6 +246,32 @@ export class AssessmentOrchestrator {
 
             const validatedImageUrls = urlValidation.valid;
 
+            // Use hybrid inference if enabled
+            if (config.useHybridInference) {
+                logger.info('Using hybrid inference routing', {
+                    service: 'AssessmentOrchestrator',
+                });
+
+                const result = await HybridInferenceService.assessDamage(
+                    validatedImageUrls,
+                    context
+                );
+
+                logger.info('Hybrid inference completed', {
+                    service: 'AssessmentOrchestrator',
+                    route: result.route,
+                    confidence: result.confidence,
+                    durationMs: Date.now() - startedAt,
+                });
+
+                return result.assessment;
+            }
+
+            // Otherwise, use standard GPT-4 Vision pipeline
+            logger.info('Using standard GPT-4 Vision pipeline', {
+                service: 'AssessmentOrchestrator',
+            });
+
             const [roboflowResult, visionResult] = await Promise.all([
                 this.runWithTimeout(
                     () => RoboflowDetectionService.detect(validatedImageUrls),
@@ -395,6 +423,7 @@ export class AssessmentOrchestrator {
 
             // Optionally enhance with SAM 3 precise segmentation
             let sam3Segmentation: SAM3SegmentationData | undefined;
+            let sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null = null;
             if (
                 process.env.ENABLE_SAM3_SEGMENTATION === 'true' &&
                 validatedImageUrls.length > 0
@@ -406,9 +435,9 @@ export class AssessmentOrchestrator {
                         
                         // Get damage type from AI assessment for targeted segmentation
                         const damageType = aiAssessment.damageType || aiAssessment.damageAssessment?.damageType || 'damage';
-                        
+
                         // Segment the primary image
-                        const sam3Result = await SAM3Service.segmentDamageTypes(
+                        sam3Result = await SAM3Service.segmentDamageTypes(
                             validatedImageUrls[0],
                             [damageType]
                         );
@@ -476,6 +505,20 @@ export class AssessmentOrchestrator {
                 sam3Segmentation
             );
 
+            // Capture training data asynchronously (non-blocking)
+            this.captureTrainingDataAsync(
+                context?.assessmentId,
+                validatedImageUrls,
+                assessment,
+                sam3Result,
+                context
+            ).catch(error => {
+                logger.warn('Failed to capture training data (non-critical)', {
+                    service: 'AssessmentOrchestrator',
+                    error,
+                });
+            });
+
             const totalDuration = Date.now() - startedAt;
             this.recordMetric('assessment.complete', {
                 success: true,
@@ -541,15 +584,28 @@ export class AssessmentOrchestrator {
         sam3Segmentation?: SAM3SegmentationData
     ): Promise<Phase1BuildingAssessment> {
         const safetyAnalysis = SafetyAnalysisService.processSafetyHazards(
-            aiAssessment.safetyHazards || []
+            (aiAssessment.safetyHazards || []) as Array<{
+                type?: string;
+                severity?: string;
+                location?: string;
+                description?: string;
+                immediateAction?: string;
+                urgency?: string;
+            }>
         );
 
         const complianceAnalysis = ComplianceService.processCompliance(
-            aiAssessment.complianceIssues || []
+            (aiAssessment.complianceIssues || []) as Array<{
+                issue?: string;
+                regulation?: string;
+                severity?: string;
+                description?: string;
+                recommendation?: string;
+            }>
         );
 
         const insuranceRisk = InsuranceRiskService.processInsuranceRisk(
-            aiAssessment.riskFactors || [],
+            (aiAssessment.riskFactors || []) as Array<{ factor?: string; severity?: string; impact?: string }>,
             aiAssessment.riskScore,
             aiAssessment.premiumImpact
         );
@@ -682,5 +738,66 @@ export class AssessmentOrchestrator {
             agentName: this.AGENT_NAME,
             accuracyDrop,
         });
+    }
+
+    /**
+     * Capture training data asynchronously (non-blocking)
+     * Records GPT-4 outputs and SAM3 masks for knowledge distillation
+     */
+    private static async captureTrainingDataAsync(
+        assessmentId: string | undefined,
+        imageUrls: string[],
+        assessment: Phase1BuildingAssessment,
+        sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null,
+        context?: AssessmentContext
+    ): Promise<void> {
+        try {
+            // Only capture if we have an assessment ID (saved to database)
+            if (!assessmentId) {
+                logger.debug('Skipping training data capture - no assessment ID', {
+                    service: 'AssessmentOrchestrator',
+                });
+                return;
+            }
+
+            // Record GPT-4 Vision output for damage classifier training
+            await KnowledgeDistillationService.recordGPT4Output(
+                assessmentId,
+                assessment,
+                imageUrls,
+                context ? {
+                    location: context.location,
+                    propertyType: context.propertyType,
+                    ageOfProperty: context.ageOfProperty,
+                    propertyDetails: context.propertyDetails,
+                    region: context.region,
+                } : undefined
+            );
+
+            // Record SAM3 masks if available
+            if (sam3Result?.success) {
+                for (let i = 0; i < imageUrls.length && i < 4; i++) {
+                    await KnowledgeDistillationService.recordSAM3Output(
+                        assessmentId,
+                        imageUrls[i],
+                        sam3Result,
+                        i
+                    );
+                }
+            }
+
+            logger.debug('Training data captured successfully', {
+                service: 'AssessmentOrchestrator',
+                assessmentId,
+                hasSAM3Data: !!sam3Result?.success,
+            });
+        } catch (error) {
+            // Don't throw - this is non-critical background work
+            logger.warn('Training data capture failed (non-critical)', {
+                service: 'AssessmentOrchestrator',
+                assessmentId,
+                error,
+            });
+        }
     }
 }

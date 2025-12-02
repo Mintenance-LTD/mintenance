@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { logger } from '@mintenance/shared';
 
 export interface PlatformAdapter<T> {
   web: T;
@@ -72,7 +73,7 @@ export class WebPlatformServices {
 
       return !!credential;
     } catch (error) {
-      console.warn('WebAuthn authentication failed:', error);
+      logger.warn('WebAuthn authentication failed:', error);
       return false;
     }
   }
@@ -89,7 +90,7 @@ export class WebPlatformServices {
         audio: false
       });
     } catch (error) {
-      console.warn('Web camera access failed:', error);
+      logger.warn('Web camera access failed:', error);
       return null;
     }
   }
@@ -119,7 +120,7 @@ export class WebPlatformServices {
       const permission = await Notification.requestPermission();
       return permission === 'granted';
     } catch (error) {
-      console.warn('Web notification permission failed:', error);
+      logger.warn('Web notification permission failed:', error);
       return false;
     }
   }
@@ -142,7 +143,7 @@ export class WebPlatformServices {
         new Notification(title, options);
       }
     } catch (error) {
-      console.warn('Web notification failed:', error);
+      logger.warn('Web notification failed:', error);
     }
   }
 
@@ -188,7 +189,7 @@ export class WebPlatformServices {
       dataTransfer.items.add(file);
       return dataTransfer.files;
     } catch (error) {
-      console.warn('Web file picker failed:', error);
+      logger.warn('Web file picker failed:', error);
       return null;
     }
   }

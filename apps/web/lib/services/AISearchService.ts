@@ -127,7 +127,7 @@ export class AISearchService {
       const data = await response.json();
       return data.suggestions;
     } catch (error) {
-      console.error('Failed to get search suggestions', error);
+      logger.error('Failed to get search suggestions', error);
       return this.getPopularSearches(limit);
     }
   }
@@ -146,7 +146,7 @@ export class AISearchService {
       const data = await response.json();
       return data.trending;
     } catch (error) {
-      console.error('Failed to get trending searches', error);
+      logger.error('Failed to get trending searches', error);
       return [];
     }
   }
@@ -165,7 +165,7 @@ export class AISearchService {
       const data = await response.json();
       return data.similar;
     } catch (error) {
-      console.error('Failed to find similar jobs', error);
+      logger.error('Failed to find similar jobs', error);
       throw error;
     }
   }

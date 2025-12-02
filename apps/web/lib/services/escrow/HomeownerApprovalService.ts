@@ -5,6 +5,31 @@ import { EscrowStatusService } from './EscrowStatusService';
 const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
 
+// Type definitions for escrow queries
+interface JobInfo {
+  id: string;
+  homeowner_id: string;
+  contractor_id?: string;
+}
+
+interface EscrowWithJob {
+  id: string;
+  job_id: string;
+  homeowner_approval?: boolean;
+  auto_approval_date?: string;
+  jobs: JobInfo | JobInfo[];
+}
+
+// Helper to normalize jobs (Supabase can return object or array)
+const getJob = (jobs: JobInfo | JobInfo[] | undefined): JobInfo | undefined => {
+  if (!jobs) return undefined;
+  return Array.isArray(jobs) ? jobs[0] : jobs;
+};
+
+interface PhotoMetadata {
+  photo_url: string;
+}
+
 /**
  * Service for homeowner approval workflow with auto-approval and reminders
  */
@@ -37,8 +62,9 @@ export class HomeownerApprovalService {
         throw new Error('Escrow not found');
       }
 
-      const job = (escrow as any).jobs;
-      const homeownerId = job.homeowner_id;
+      const typedEscrow = escrow as EscrowWithJob;
+      const job = getJob(typedEscrow.jobs);
+      const homeownerId = job?.homeowner_id;
 
       if (!homeownerId) {
         throw new Error('Homeowner not found');
@@ -114,8 +140,9 @@ export class HomeownerApprovalService {
         throw new Error('Escrow not found');
       }
 
-      const job = (escrow as any).jobs;
-      if (job.homeowner_id !== homeownerId) {
+      const typedEscrow = escrow as EscrowWithJob;
+      const job = getJob(typedEscrow.jobs);
+      if (!job || job.homeowner_id !== homeownerId) {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
 
@@ -126,7 +153,7 @@ export class HomeownerApprovalService {
         .eq('job_id', job.id)
         .eq('photo_type', 'after');
 
-      const photoUrls = (photos || []).map((p: any) => p.photo_url);
+      const photoUrls = (photos || []).map((p: PhotoMetadata) => p.photo_url);
 
       // Record approval in history
       await serverSupabase.from('homeowner_approval_history').insert({
@@ -163,7 +190,9 @@ export class HomeownerApprovalService {
       );
 
       // Send notification to contractor
-      await this.sendApprovalNotification(escrowId, job.contractor_id);
+      if (job.contractor_id) {
+        await this.sendApprovalNotification(escrowId, job.contractor_id);
+      }
 
       logger.info('Homeowner approved completion', {
         service: 'HomeownerApprovalService',
@@ -211,8 +240,9 @@ export class HomeownerApprovalService {
         throw new Error('Escrow not found');
       }
 
-      const job = (escrow as any).jobs;
-      if (job.homeowner_id !== homeownerId) {
+      const typedEscrow = escrow as EscrowWithJob & { jobs: JobInfo & { contractor_id: string } };
+      const job = getJob(typedEscrow.jobs) as (JobInfo & { contractor_id: string }) | undefined;
+      if (job?.homeowner_id !== homeownerId) {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
 
@@ -220,10 +250,10 @@ export class HomeownerApprovalService {
       const { data: photos } = await serverSupabase
         .from('job_photos_metadata')
         .select('photo_url')
-        .eq('job_id', job.id)
+        .eq('job_id', job?.id || '')
         .eq('photo_type', 'after');
 
-      const photoUrls = (photos || []).map((p: any) => p.photo_url);
+      const photoUrls = (photos || []).map((p: PhotoMetadata) => p.photo_url);
 
       // Record rejection in history
       await serverSupabase.from('homeowner_approval_history').insert({
@@ -297,13 +327,14 @@ export class HomeownerApprovalService {
         return; // Already approved or not found
       }
 
-      const job = (escrow as any).jobs;
+      const typedEscrow = escrow as EscrowWithJob;
+      const job = getJob(typedEscrow.jobs);
       const autoApprovalDate = escrow.auto_approval_date
         ? new Date(escrow.auto_approval_date)
         : null;
 
-      if (!autoApprovalDate) {
-        return; // No auto-approval date set
+      if (!autoApprovalDate || !job) {
+        return; // No auto-approval date set or job not found
       }
 
       const now = new Date();
@@ -415,8 +446,13 @@ export class HomeownerApprovalService {
         return false;
       }
 
-      const job = (escrow as any).jobs;
-      const homeownerId = job.homeowner_id;
+      const typedEscrow = escrow as EscrowWithJob;
+      const job = getJob(typedEscrow.jobs);
+      const homeownerId = job?.homeowner_id;
+
+      if (!homeownerId) {
+        return false;
+      }
 
       // Auto-approve
       await this.approveCompletion(escrowId, homeownerId, 'Auto-approved after 7 days (homeowner did not respond)');

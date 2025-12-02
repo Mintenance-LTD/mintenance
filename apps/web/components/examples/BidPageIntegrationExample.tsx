@@ -6,6 +6,7 @@
  * This shows how to add the dialog to apps/web/app/contractor/bid/page.tsx
  */
 
+import { logger } from '@mintenance/shared';
 import { JobDetailsDialog } from '@/components/jobs/JobDetailsDialog';
 import { Button } from '@/components/ui/Button';
 
@@ -35,7 +36,7 @@ export function ExampleJobListIntegration() {
       // Refresh jobs list
       // ... your refresh logic
     } catch (error) {
-      console.error('Error submitting bid:', error);
+      logger.error('Error submitting bid:', error);
       throw error; // Re-throw to let dialog handle it
     }
   };

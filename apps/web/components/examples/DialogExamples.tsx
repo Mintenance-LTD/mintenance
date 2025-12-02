@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   Dialog,
   DialogContent,
@@ -77,7 +78,7 @@ export function DialogExample() {
             <Button
               variant="primary"
               onClick={() => {
-                console.log('Saved:', formData);
+                logger.info('Saved:', formData);
                 setIsOpen(false);
               }}
             >
@@ -104,7 +105,7 @@ export function DialogExample() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                console.log('Account deleted');
+                logger.info('Account deleted');
               }}
             >
               Delete Account

@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AdminAnnouncement, AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { logger } from '@mintenance/shared';
 import styles from '../../admin.module.css';
 
 interface CommunicationsClientProps {
@@ -75,7 +76,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       setSuccessAlert({ show: true, message: 'Announcement created successfully!' });
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
-      console.error('Error creating announcement:', error);
+      logger.error('Error creating announcement:', error);
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -104,7 +105,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       setSuccessAlert({ show: true, message: 'Announcement published successfully!' });
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
-      console.error('Error publishing announcement:', error);
+      logger.error('Error publishing announcement:', error);
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -137,7 +138,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       setSuccessAlert({ show: true, message: 'Announcement deleted successfully!' });
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      logger.error('Error deleting announcement:', error);
       setDeleteDialog({ open: false, id: null });
       setAlertDialog({
         open: true,

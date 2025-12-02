@@ -387,7 +387,7 @@ export class InputValidationMiddleware {
     const key = `rate_limit_${identifier}`;
 
     // TODO: Implement proper rate limiting with persistent storage
-    console.warn('Rate limiting should be implemented with persistent storage for production');
+    logger.warn('Rate limiting should be implemented with persistent storage for production');
 
     return {
       allowed: true,

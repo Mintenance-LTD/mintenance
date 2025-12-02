@@ -10,13 +10,13 @@ import { logger } from '@mintenance/shared';
 // Client-side logger wrapper for session management
 const sessionLogger = {
   info: (message: string, data?: unknown) => {
-    logger.info(`[SessionManager] ${message}`, data || undefined);
+    logger.info(`[SessionManager] ${message}`, data ? { data } : undefined);
   },
   error: (message: string, error?: unknown) => {
     logger.error(`[SessionManager] ${message}`, error, { service: 'SessionManager' });
   },
   warn: (message: string, data?: unknown) => {
-    logger.warn(`[SessionManager] ${message}`, data || undefined);
+    logger.warn(`[SessionManager] ${message}`, data ? { data } : undefined);
   }
 };
 

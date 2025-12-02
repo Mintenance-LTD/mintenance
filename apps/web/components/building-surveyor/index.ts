@@ -5,8 +5,8 @@ export {
   SafetyHazardsCard,
   ComplianceFlagsCard,
   InsuranceRiskCard,
-  HomeownerExplanation,
-  ContractorAdvice,
+  HomeownerExplanationCard,
+  ContractorAdviceCard,
 } from './BuildingAssessmentDisplay';
 
 export type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';

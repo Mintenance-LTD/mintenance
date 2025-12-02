@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { theme } from '@/lib/theme';
-import type { User } from '@mintenance/types';
+import type { User, Job, ContractorProfile } from '@mintenance/types';
 import { DiscoverHeader } from './DiscoverHeader';
 import { DiscoverEmptyState } from './DiscoverEmptyState';
 import { CardStack } from './CardStack';
@@ -12,8 +12,8 @@ import { ContractorCard } from './ContractorCard';
 
 interface DiscoverClientProps {
   user: Pick<User, "id" | "role" | "email">;
-  contractors: any[];
-  jobs: any[];
+  contractors: ContractorProfile[];
+  jobs: Job[];
 }
 
 /**
@@ -24,7 +24,7 @@ export function DiscoverClient({ user, contractors, jobs }: DiscoverClientProps)
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const isContractor = user?.role === 'contractor';
-  const items = isContractor ? jobs : contractors;
+  const items: (Job | ContractorProfile)[] = isContractor ? jobs : contractors;
   const hasMoreItems = currentIndex < items.length;
   const remainingCount = items.length - currentIndex;
 
@@ -67,7 +67,7 @@ export function DiscoverClient({ user, contractors, jobs }: DiscoverClientProps)
               onSwipeUp={() => handleSwipe('super_like')}
               onSwipeDown={() => handleSwipe('maybe')}
               renderCard={(item) => 
-                isContractor ? <JobCard job={item} /> : <ContractorCard contractor={item} />
+                isContractor ? <JobCard job={item as Job & { photoUrls?: string[] }} /> : <ContractorCard contractor={item as ContractorProfile} />
               }
             />
 

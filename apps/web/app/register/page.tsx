@@ -9,22 +9,39 @@ import Link from 'next/link';
 import Logo from '../components/Logo';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Mail, Phone, User } from 'lucide-react';
+import {
+  AuthCard,
+  AuthInput,
+  PasswordInput,
+  AuthBrandSide,
+  AuthLink,
+  RoleToggle,
+  Role
+} from '@/components/auth';
 
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';
 
 const registerFormSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  confirmPassword: z.string(),
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   phone: z.string().regex(/^\+?[\d\s-()]+$/, 'Invalid phone number').optional().or(z.literal('')),
   role: z.enum(['homeowner', 'contractor']),
+  acceptTerms: z.boolean().refine(val => val === true, 'You must accept the terms and conditions'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 });
 
 type RegisterFormData = z.infer<typeof registerFormSchema>;
@@ -46,31 +63,30 @@ function RegisterForm() {
     defaultValues: {
       email: '',
       password: '',
+      confirmPassword: '',
       firstName: '',
       lastName: '',
       phone: '',
-      role: (roleParam === 'contractor' || roleParam === 'homeowner' ? roleParam : 'homeowner') as 'homeowner' | 'contractor',
+      role: (roleParam === 'contractor' || roleParam === 'homeowner' ? roleParam : 'homeowner') as Role,
+      acceptTerms: false,
     },
   });
 
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
-  const [passwordFocused, setPasswordFocused] = React.useState(false);
-  const [showPasswordRequirements, setShowPasswordRequirements] = React.useState(false);
 
   const selectedRole = watch('role');
+  const email = watch('email');
   const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  const firstName = watch('firstName');
+  const lastName = watch('lastName');
 
   useEffect(() => {
     if (roleParam === 'contractor' || roleParam === 'homeowner') {
-      setValue('role', roleParam);
+      setValue('role', roleParam as Role);
     }
   }, [roleParam, setValue]);
-
-  // Show password requirements when focused or has content
-  useEffect(() => {
-    setShowPasswordRequirements(passwordFocused || Boolean(password && password.length > 0));
-  }, [passwordFocused, password]);
 
   const onSubmit = async (data: RegisterFormData) => {
     if (!csrfToken) {
@@ -129,249 +145,204 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      {/* Left Side - Enhanced Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary-950 text-white p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/90 via-primary-950/95 to-primary-900/90"></div>
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Left Side - Brand */}
+      <AuthBrandSide
+        title="Join the Network"
+        description={
+          selectedRole === 'homeowner'
+            ? 'Connect with verified professionals for all your home maintenance needs.'
+            : 'Grow your business with quality leads and secure payments.'
+        }
+        role={selectedRole}
+      />
 
-        {/* Tech Grid Pattern */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-
-        {/* Glowing Orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 animate-pulse duration-3000"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
-
-        <div className="relative z-10">
-          <Link href="/" className="flex items-center space-x-3 mb-16 group">
-            <div className="transform transition-transform group-hover:scale-110 duration-300 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-              <Logo />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Mintenance</h1>
-          </Link>
-          <div>
-            <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">
-              Join the Network
-            </h2>
-            <p className="text-xl text-primary-100 mb-10 leading-relaxed max-w-md">
-              {selectedRole === 'homeowner'
-                ? 'Access a network of elite tradespeople for your home.'
-                : 'Connect with quality projects and grow your business.'}
-            </p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
-                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Verified Professionals</p>
-                  <p className="text-primary-300 text-sm">Strict vetting process</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
-                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Secure Payments</p>
-                  <p className="text-primary-300 text-sm">Escrow protection</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 group p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
-                <div className="p-2 bg-secondary-500/20 rounded-lg group-hover:bg-secondary-500/30 transition-colors text-secondary-400">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">AI-Powered Matching</p>
-                  <p className="text-primary-300 text-sm">Find the perfect fit</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-sm text-primary-400 relative z-10 mt-12">
-          <p className="font-medium text-white">© 2025 MINTENANCE LTD</p>
-          <p>Building the future of home maintenance</p>
-        </div>
-      </div>
-
-      {/* Right Side - Registration Form */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 overflow-y-auto">
+      {/* Right Side - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-md py-8">
           {/* Mobile Logo */}
-          <div className="lg:hidden mb-8">
-            <Link href="/" className="flex items-center space-x-2 mb-4">
-              <Logo />
-              <h1 className="text-2xl font-bold text-primary">Mintenance</h1>
+          <div className="lg:hidden mb-8 text-center">
+            <Link href="/" className="inline-flex items-center space-x-2 mb-4">
+              <Logo className="w-8 h-8" />
+              <h1 className="text-2xl font-bold text-[#0066CC]">Mintenance</h1>
             </Link>
           </div>
 
-          {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Get started</h2>
-            <p className="text-base text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="font-semibold text-primary hover:text-primary-700 transition-colors">
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-          {/* Success Alert */}
-          {submitStatus === 'success' && (
-            <Alert className="mb-6 border-green-500 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800">Registration Successful!</AlertTitle>
-              <AlertDescription className="text-green-700">
-                Redirecting to your dashboard...
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Error Alert */}
-          {submitStatus === 'error' && errorMessage && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Registration Failed</AlertTitle>
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <Label>I am a *</Label>
-              <RadioGroup
-                value={selectedRole}
-                onValueChange={(value) => setValue('role', value as 'homeowner' | 'contractor')}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="homeowner" id="homeowner" />
-                  <Label htmlFor="homeowner" className="font-normal cursor-pointer">
-                    Homeowner
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="contractor" id="contractor" />
-                  <Label htmlFor="contractor" className="font-normal cursor-pointer">
-                    Tradesperson
-                  </Label>
-                </div>
-              </RadioGroup>
-              {errors.role && (
-                <p className="text-sm text-red-600">{errors.role.message}</p>
-              )}
+          {/* Card */}
+          <AuthCard>
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+                Create your account
+              </h2>
+              <p className="text-base text-gray-600">
+                Already have an account?{' '}
+                <AuthLink href="/login" variant="primary">
+                  Sign in
+                </AuthLink>
+              </p>
             </div>
 
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First name *</Label>
-                <Input
-                  id="firstName"
+            {/* Success Alert */}
+            {submitStatus === 'success' && (
+              <Alert className="mb-6 border-green-500 bg-green-50">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Registration Successful!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  Redirecting to your dashboard...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error Alert */}
+            {submitStatus === 'error' && errorMessage && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Registration Failed</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Role Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">I am a</label>
+                <RoleToggle
+                  value={selectedRole}
+                  onChange={(role) => setValue('role', role)}
+                  disabled={isSubmitting}
+                />
+                {errors.role && (
+                  <p className="text-sm text-red-600">{errors.role.message}</p>
+                )}
+              </div>
+
+              {/* Name Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <AuthInput
+                  label="First name"
+                  icon={<User className="w-5 h-5" />}
+                  placeholder="John"
+                  autoComplete="given-name"
+                  showSuccess={!!firstName && !errors.firstName}
                   {...register('firstName')}
                   error={errors.firstName?.message}
-                  placeholder="John"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last name *</Label>
-                <Input
-                  id="lastName"
+                <AuthInput
+                  label="Last name"
+                  icon={<User className="w-5 h-5" />}
+                  placeholder="Smith"
+                  autoComplete="family-name"
+                  showSuccess={!!lastName && !errors.lastName}
                   {...register('lastName')}
                   error={errors.lastName?.message}
-                  placeholder="Smith"
                 />
               </div>
-            </div>
 
-            {/* Email Input */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address *</Label>
-              <Input
-                id="email"
+              {/* Email Input */}
+              <AuthInput
+                label="Email address"
                 type="email"
-                {...register('email')}
-                error={errors.email?.message}
+                icon={<Mail className="w-5 h-5" />}
                 placeholder="you@example.com"
                 autoComplete="email"
+                showSuccess={!!email && !errors.email}
+                {...register('email')}
+                error={errors.email?.message}
               />
-            </div>
 
-            {/* Phone Input */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone number</Label>
-              <Input
-                id="phone"
+              {/* Phone Input */}
+              <AuthInput
+                label="Phone number (optional)"
                 type="tel"
+                icon={<Phone className="w-5 h-5" />}
+                placeholder="+1 (555) 000-0000"
+                autoComplete="tel"
                 {...register('phone')}
                 error={errors.phone?.message}
-                placeholder="+44 7700 900000"
-                autoComplete="tel"
+                helperText="We'll only use this for account security"
               />
-            </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
+              {/* Password Input */}
+              <PasswordInput
+                label="Password"
+                placeholder="Create a strong password"
+                autoComplete="new-password"
+                showStrengthMeter
+                showRequirements
                 {...register('password')}
                 error={errors.password?.message}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
+                value={password}
               />
-              {showPasswordRequirements && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-200 animate-in fade-in slide-in-from-top-2">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Password must contain:</p>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    <li className={`flex items-center gap-2 transition-colors ${password && password.length >= 8 ? 'text-green-600' : ''}`}>
-                      <span>{password && password.length >= 8 ? '✓' : '•'}</span>
-                      <span>At least 8 characters</span>
-                    </li>
-                    <li className={`flex items-center gap-2 transition-colors ${password && /[A-Z]/.test(password) && /[a-z]/.test(password) ? 'text-green-600' : ''}`}>
-                      <span>{password && /[A-Z]/.test(password) && /[a-z]/.test(password) ? '✓' : '•'}</span>
-                      <span>One uppercase & lowercase letter</span>
-                    </li>
-                    <li className={`flex items-center gap-2 transition-colors ${password && /\d/.test(password) && /[^a-zA-Z0-9]/.test(password) ? 'text-green-600' : ''}`}>
-                      <span>{password && /\d/.test(password) && /[^a-zA-Z0-9]/.test(password) ? '✓' : '•'}</span>
-                      <span>One number & special character</span>
-                    </li>
-                  </ul>
-                </div>
+
+              {/* Confirm Password Input */}
+              <PasswordInput
+                label="Confirm password"
+                placeholder="Re-enter your password"
+                autoComplete="new-password"
+                {...register('confirmPassword')}
+                error={errors.confirmPassword?.message}
+                value={confirmPassword}
+              />
+
+              {/* Terms Checkbox */}
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <input
+                  type="checkbox"
+                  id="acceptTerms"
+                  {...register('acceptTerms')}
+                  className="mt-1 h-4 w-4 text-[#0066CC] focus:ring-[#0066CC] border-gray-300 rounded"
+                />
+                <label htmlFor="acceptTerms" className="text-sm text-gray-700 cursor-pointer">
+                  I agree to the{' '}
+                  <AuthLink href="/terms" variant="primary" className="underline">
+                    Terms of Service
+                  </AuthLink>{' '}
+                  and{' '}
+                  <AuthLink href="/privacy" variant="primary" className="underline">
+                    Privacy Policy
+                  </AuthLink>
+                </label>
+              </div>
+              {errors.acceptTerms && (
+                <p className="text-sm text-red-600 -mt-2">{errors.acceptTerms.message}</p>
               )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={isSubmitting || csrfLoading}
+                disabled={isSubmitting || csrfLoading || !csrfToken}
+                className="mt-6 bg-[#0066CC] hover:bg-[#0052A3] text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                {isSubmitting ? 'Creating account...' : 'Create account'}
+              </Button>
+            </form>
+
+            {/* Footer Links */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <AuthLink href="/login" variant="primary">
+                  Sign in
+                </AuthLink>
+              </p>
             </div>
+          </AuthCard>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={isSubmitting || csrfLoading}
-              disabled={isSubmitting || csrfLoading || !csrfToken}
-            >
-              {isSubmitting ? 'Creating account...' : 'Create account'}
-            </Button>
-
-            {/* Terms */}
-            <p className="text-xs text-gray-500 text-center leading-relaxed">
-              By signing up, you agree to our{' '}
-              <Link href="/terms" className="font-semibold text-primary hover:text-primary-700 transition-colors">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="font-semibold text-primary hover:text-primary-700 transition-colors">
-                Privacy Policy
-              </Link>
-            </p>
-          </form>
+          {/* Legal Links */}
+          <div className="mt-6 text-center">
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+              <AuthLink href="/terms" variant="muted">Terms</AuthLink>
+              <span>•</span>
+              <AuthLink href="/privacy" variant="muted">Privacy</AuthLink>
+              <span>•</span>
+              <AuthLink href="/help" variant="muted">Help</AuthLink>
+            </div>
+          </div>
         </div>
       </div>
     </div>
