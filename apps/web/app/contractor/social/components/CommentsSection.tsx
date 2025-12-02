@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -56,7 +57,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
         setComments(data.comments || []);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      logger.error('Error fetching comments:', error);
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
       onCommentAdded?.();
       setError(null);
     } catch (error) {
-      console.error('Error adding comment:', error);
+      logger.error('Error adding comment:', error);
       setError(error instanceof Error ? error.message : 'Failed to add comment');
     } finally {
       setSubmitting(false);
@@ -139,7 +140,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
       onCommentAdded?.();
       setDeleteDialog({ open: false, commentId: null });
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      logger.error('Error deleting comment:', error);
       setDeleteDialog({ open: false, commentId: null });
     }
   };
@@ -154,7 +155,7 @@ export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoa
         await fetchComments();
       }
     } catch (error) {
-      console.error('Error liking comment:', error);
+      logger.error('Error liking comment:', error);
     }
   };
 

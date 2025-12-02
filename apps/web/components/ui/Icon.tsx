@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import { logger } from '@mintenance/shared';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
  * Icon Component
- * Migrated to Lucide React for professional, consistent iconography
- * Maintains backward compatibility with existing icon names
+ * Uses Lucide React for professional, consistent iconography
  */
 
 export interface IconProps {
@@ -163,7 +163,7 @@ function getLucideIcon(iconName: string): LucideIcon | null {
   if (!mappedName) {
     // Log missing icon in development to help debug
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-      console.warn(`Icon "${iconName}" not found in ICON_NAME_MAP`);
+      logger.warn(`Icon "${iconName}" not found in ICON_NAME_MAP`);
     }
     return null;
   }
@@ -172,7 +172,7 @@ function getLucideIcon(iconName: string): LucideIcon | null {
   if (!IconComponent) {
     // Log missing Lucide icon in development
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-      console.warn(`Lucide icon "${mappedName}" not found in lucide-react`, {
+      logger.warn(`Lucide icon "${mappedName}" not found in lucide-react`, {
         availableIcons: Object.keys(LucideIcons).slice(0, 10)
       });
     }

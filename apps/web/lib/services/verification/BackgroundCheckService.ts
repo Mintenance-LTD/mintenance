@@ -4,12 +4,42 @@ import { logger } from '@mintenance/shared';
 export type BackgroundCheckStatus = 'pending' | 'in_progress' | 'passed' | 'failed' | 'not_required';
 export type BackgroundCheckProvider = 'checkr' | 'goodhire' | 'sterling' | 'custom';
 
+/**
+ * Background check result data structure
+ */
+export interface BackgroundCheckResultData {
+  criminalRecords?: Array<{
+    type: string;
+    date: string;
+    description: string;
+    disposition?: string;
+  }>;
+  employmentHistory?: Array<{
+    employer: string;
+    position: string;
+    startDate: string;
+    endDate?: string;
+    verified: boolean;
+  }>;
+  education?: Array<{
+    institution: string;
+    degree: string;
+    graduationDate?: string;
+    verified: boolean;
+  }>;
+  creditCheck?: {
+    score?: number;
+    reportDate?: string;
+  };
+  [key: string]: unknown; // Allow additional provider-specific fields
+}
+
 interface BackgroundCheckResult {
   status: BackgroundCheckStatus;
   provider: BackgroundCheckProvider;
   checkId: string;
   completedAt?: Date;
-  result?: Record<string, any>;
+  result?: BackgroundCheckResultData;
 }
 
 /**
@@ -122,7 +152,12 @@ export class BackgroundCheckService {
   /**
    * Checkr integration (placeholder - implement with actual API)
    */
-  private static async initiateCheckrCheck(user: any): Promise<string> {
+  private static async initiateCheckrCheck(user: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<string> {
     // TODO: Implement Checkr API integration
     // For now, return a placeholder ID
     const checkrApiKey = process.env.CHECKR_API_KEY;
@@ -157,7 +192,12 @@ export class BackgroundCheckService {
   /**
    * GoodHire integration (placeholder - implement with actual API)
    */
-  private static async initiateGoodHireCheck(user: any): Promise<string> {
+  private static async initiateGoodHireCheck(user: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<string> {
     // TODO: Implement GoodHire API integration
     const goodHireApiKey = process.env.GOODHIRE_API_KEY;
     if (!goodHireApiKey) {
@@ -169,7 +209,12 @@ export class BackgroundCheckService {
   /**
    * Sterling integration (placeholder - implement with actual API)
    */
-  private static async initiateSterlingCheck(user: any): Promise<string> {
+  private static async initiateSterlingCheck(user: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<string> {
     // TODO: Implement Sterling API integration
     const sterlingApiKey = process.env.STERLING_API_KEY;
     if (!sterlingApiKey) {
@@ -181,7 +226,12 @@ export class BackgroundCheckService {
   /**
    * Custom/placeholder implementation
    */
-  private static async initiateCustomCheck(user: any): Promise<string> {
+  private static async initiateCustomCheck(user: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  }): Promise<string> {
     // For development/testing
     return `custom_${Date.now()}`;
   }
@@ -192,10 +242,14 @@ export class BackgroundCheckService {
   static async updateCheckStatus(
     userId: string,
     status: BackgroundCheckStatus,
-    result?: Record<string, any>
+    result?: BackgroundCheckResultData
   ): Promise<boolean> {
     try {
-      const updateData: Record<string, any> = {
+      const updateData: {
+        background_check_status: BackgroundCheckStatus;
+        background_check_completed_at?: string;
+        background_check_result?: BackgroundCheckResultData;
+      } = {
         background_check_status: status,
       };
 

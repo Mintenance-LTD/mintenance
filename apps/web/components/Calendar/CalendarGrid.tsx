@@ -38,7 +38,7 @@ export function CalendarGrid({
         const dayMonth = dayInfo?.month ?? currentDate.getMonth();
         const dayYear = dayInfo?.year ?? currentDate.getFullYear();
         const dayEvents = day ? getEventsForDay(day, dayMonth, dayYear) : [];
-        const today = day && isCurrentMonth && isToday(day);
+        const today = !!(day && isCurrentMonth && isToday(day));
 
         return (
           <CalendarDay

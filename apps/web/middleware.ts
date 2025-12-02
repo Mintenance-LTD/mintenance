@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyJWT, ConfigManager } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 
+// CRITICAL FIX: Fail-fast initialization to prevent silent failures
+// If ConfigManager fails to initialize, the entire middleware should fail immediately
+// This prevents undefined behavior and ensures security controls are properly enforced
 let configManager: ConfigManager;
 
 try {
   configManager = ConfigManager.getInstance();
+  // Verify configuration is accessible by testing JWT_SECRET availability
+  const jwtSecret = configManager.get('JWT_SECRET');
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET not available in configuration');
+  }
 } catch (error) {
-  logger.error('Middleware configuration error', error, { service: 'middleware' });
-  // configManager will be undefined if this fails
+  logger.error('CRITICAL: Middleware configuration initialization failed - authentication will be unavailable', error, { service: 'middleware' });
+  // Throw error to fail fast and prevent server from starting with broken auth
+  throw new Error('Middleware configuration failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 }
 
 import type { JWTPayload } from '@mintenance/types';
@@ -159,6 +168,10 @@ export async function middleware(request: NextRequest) {
     const nonce = crypto.randomUUID().replace(/-/g, '');
     requestHeaders.set('x-csp-nonce', nonce);
 
+    // 2025 UI Feature Flag Logic
+    const is2025Enabled = is2025FeatureEnabled(request);
+    requestHeaders.set('x-ui-version', is2025Enabled ? '2025' : 'current');
+
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     
     // Set CSP header with nonce
@@ -191,6 +204,84 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
+ * 2025 UI Feature Flag Logic
+ * Controls gradual rollout of the redesigned UI
+ */
+function is2025FeatureEnabled(request: NextRequest): boolean {
+  // 1. Kill switch - emergency disable (highest priority)
+  if (process.env.DISABLE_2025_PAGES === 'true') {
+    return false;
+  }
+
+  // 2. Global feature flag - enable for all users
+  if (process.env.NEXT_PUBLIC_ENABLE_2025_DASHBOARD === 'true') {
+    return true;
+  }
+
+  // 3. User preference cookie - user manually switched
+  const userPreference = request.cookies.get('dashboard-version')?.value;
+  if (userPreference === '2025') {
+    return true;
+  }
+  if (userPreference === 'current') {
+    return false;
+  }
+
+  // 4. Beta features flag - opt-in beta testers
+  if (request.cookies.get('beta-features')?.value === 'true') {
+    return true;
+  }
+
+  // 5. Gradual rollout based on percentage (consistent hashing)
+  const rolloutPercentage = getRolloutPercentage();
+  if (rolloutPercentage > 0) {
+    const userIdentifier = request.cookies.get('session-id')?.value || request.headers.get('x-forwarded-for') || 'anonymous';
+    const hash = simpleHash(userIdentifier);
+    const userPercentile = hash % 100;
+
+    if (userPercentile < rolloutPercentage) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Get rollout percentage from environment variable
+ * @returns number between 0-100
+ */
+function getRolloutPercentage(): number {
+  const percentage = process.env.NEXT_PUBLIC_ROLLOUT_PERCENTAGE;
+  if (!percentage) return 0;
+
+  const parsed = parseInt(percentage, 10);
+  if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+    logger.warn('Invalid NEXT_PUBLIC_ROLLOUT_PERCENTAGE value', {
+      service: 'middleware',
+      value: percentage,
+    });
+    return 0;
+  }
+
+  return parsed;
+}
+
+/**
+ * Simple hash function for consistent user bucketing
+ * Uses basic string hashing for deterministic results
+ */
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Helper function to redirect to login page
  * Checks if route is admin route and redirects to appropriate login page
  */
@@ -200,7 +291,7 @@ function redirectToLogin(request: NextRequest) {
   const loginPath = isAdminRoute ? '/admin/login' : '/login';
   const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set('redirect', pathname);
-  
+
   return NextResponse.redirect(loginUrl);
 }
 

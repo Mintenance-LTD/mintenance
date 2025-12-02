@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 
 interface ContractorViewer {
@@ -37,7 +38,7 @@ export function ContractorViewersList({ jobId }: ContractorViewersListProps) {
         const data = await response.json();
         setViewers(data.viewers || []);
       } catch (err) {
-        console.error('Error fetching viewers:', err);
+        logger.error('Error fetching viewers:', err);
         setError('Failed to load viewers');
       } finally {
         setLoading(false);

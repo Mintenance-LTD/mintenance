@@ -16,6 +16,23 @@ import { ABTestMonitoringService } from './ABTestMonitoringService';
 
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
+/**
+ * Alert metadata structure
+ */
+export interface AlertMetadata {
+  totalOutcomes?: number;
+  violations?: Array<{
+    stratum: string;
+    violation: number;
+    sampleSize: number;
+  }>;
+  yesterdayRate?: number;
+  todayRate?: number;
+  change?: number;
+  recommendations?: string[];
+  [key: string]: unknown; // Allow additional metadata fields
+}
+
 export interface Alert {
   id?: string;
   experimentId: string;
@@ -24,7 +41,7 @@ export interface Alert {
   message: string;
   threshold: number;
   actualValue: number;
-  metadata?: Record<string, any>;
+  metadata?: AlertMetadata;
   acknowledged: boolean;
   acknowledgedBy?: string;
   acknowledgedAt?: string;

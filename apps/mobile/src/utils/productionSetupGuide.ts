@@ -6,7 +6,7 @@
  */
 
 import { productionReadinessOrchestrator } from './productionReadinessOrchestrator';
-import { securityAuditService } from './securityAuditAndPenetrationTesting';
+import { securityAuditService } from './security';
 import { performanceMonitor } from './performanceMonitor';
 import { enhancedErrorAnalytics } from './errorTracking';
 import { monitoringAndAlerting } from './monitoringAndAlerting';

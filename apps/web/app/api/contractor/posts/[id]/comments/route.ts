@@ -4,6 +4,40 @@ import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
+// Type definitions for comments
+interface CommentContractor {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profile_image_url: string | null;
+}
+
+interface CommentRecord {
+  id: string;
+  post_id: string;
+  contractor_id: string;
+  comment_text: string;
+  parent_comment_id: string | null;
+  is_solution?: boolean;
+  likes_count?: number;
+  created_at: string;
+  updated_at: string;
+  contractor?: CommentContractor;
+}
+
+interface FormattedComment {
+  id: string;
+  post_id: string;
+  contractor_id: string;
+  comment_text: string;
+  parent_comment_id: string | null;
+  is_solution: boolean;
+  likes_count: number;
+  created_at: string;
+  updated_at: string;
+  contractor: CommentContractor | null;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -54,7 +88,7 @@ export async function GET(
 
     // Fetch user's comment likes (if there's a likes table for comments)
     // For now, we'll structure comments with nested replies
-    const formattedComments = (comments || []).map((comment: any) => ({
+    const formattedComments: FormattedComment[] = (comments || []).map((comment: CommentRecord) => ({
       id: comment.id,
       post_id: comment.post_id,
       contractor_id: comment.contractor_id,

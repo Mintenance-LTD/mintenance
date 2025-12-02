@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { logger } from '@mintenance/shared';
 
 // Import navigation types
 import type { RootStackParamList, RootTabParamList } from './types';
@@ -111,7 +112,7 @@ const TabNavigator: React.FC = () => {
 
       navigation.navigate(destination, params);
     } catch (error) {
-      console.warn('Navigation error:', error);
+      logger.warn('Navigation error:', error);
       // Fallback to home on navigation errors
       navigation.navigate('HomeTab');
     }

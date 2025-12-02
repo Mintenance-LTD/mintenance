@@ -13,7 +13,14 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { loadClassNames } from './yolo-class-names';
+import { SAM3Service } from './SAM3Service';
+import { SAM3TrainingDataService } from './SAM3TrainingDataService';
 import type { RoboflowDetection } from './types';
+
+interface DetectionAdjustment {
+  original: RoboflowDetection;
+  corrected: RoboflowDetection;
+}
 
 export interface YOLOCorrection {
   id?: string;
@@ -25,8 +32,8 @@ export interface YOLOCorrection {
   correctionsMade?: {
     added?: Array<{ class: string; bbox: { x: number; y: number; width: number; height: number } }>;
     removed?: Array<{ class: string; bbox: { x: number; y: number; width: number; height: number } }>;
-    adjusted?: Array<{ original: any; corrected: any }>;
-    classChanged?: Array<{ original: any; corrected: any }>;
+    adjusted?: Array<DetectionAdjustment>;
+    classChanged?: Array<DetectionAdjustment>;
   };
   correctedBy?: string;
   status?: 'pending' | 'approved' | 'rejected' | 'needs_review';
@@ -113,10 +120,10 @@ export class YOLOCorrectionService {
       // In production, you'd fetch actual image dimensions
       const DEFAULT_IMAGE_WIDTH = 640;
       const DEFAULT_IMAGE_HEIGHT = 640;
-      
+
       // Load class names from data.yaml
       const classNames = this.loadClassNames();
-      
+
       // Convert RoboflowDetection[] to format expected by convertDetectionsToYOLO
       const detectionsForYOLO = input.correctedDetections.map(det => {
         // Handle both formats: RoboflowDetection or { class, bbox }
@@ -130,23 +137,26 @@ export class YOLOCorrectionService {
         // Already in correct format
         return det;
       });
-      
+
       const correctedLabels = convertDetectionsToYOLO(
         detectionsForYOLO,
         DEFAULT_IMAGE_WIDTH,
         DEFAULT_IMAGE_HEIGHT,
         classNames
       );
-      
+
       // Calculate confidence score (average of corrected detections)
       const confidenceScore = input.correctedDetections.length > 0
         ? input.correctedDetections.reduce((sum, d) => {
-            // Handle both formats
-            const conf = 'confidence' in d ? (d.confidence as number) / 100 : (d as any).confidence || 0.5;
-            return sum + conf;
+            // Handle both formats: RoboflowDetection has confidence, { class, bbox } doesn't
+            if ('confidence' in d && typeof d.confidence === 'number') {
+              return sum + (d.confidence / 100);
+            }
+            // Default confidence for detections without explicit confidence
+            return sum + 0.5;
           }, 0) / input.correctedDetections.length
         : 0.5;
-      
+
       // Insert correction
       const { data, error } = await serverSupabase
         .from('yolo_corrections')
@@ -165,18 +175,33 @@ export class YOLOCorrectionService {
         })
         .select('id')
         .single();
-      
+
       if (error) {
         throw new Error(`Failed to submit correction: ${error.message}`);
       }
-      
+
       logger.info('YOLO correction submitted', {
         service: 'YOLOCorrectionService',
         correctionId: data.id,
         assessmentId: input.assessmentId,
         detectionsCount: input.correctedDetections.length,
       });
-      
+
+      // Capture SAM3 masks for this correction asynchronously (non-blocking)
+      this.captureSAM3MasksForCorrection(
+        input.assessmentId,
+        input.imageUrl,
+        input.imageIndex || 0,
+        input.correctedDetections,
+        data.id
+      ).catch(error => {
+        logger.warn('Failed to capture SAM3 masks for correction (non-critical)', {
+          service: 'YOLOCorrectionService',
+          correctionId: data.id,
+          error,
+        });
+      });
+
       return data.id;
     } catch (error) {
       logger.error('Failed to submit YOLO correction', error, {
@@ -382,7 +407,19 @@ export class YOLOCorrectionService {
   /**
    * Map database row to YOLOCorrection
    */
-  private static mapRowToCorrection(row: any): YOLOCorrection {
+  private static mapRowToCorrection(row: {
+    id: string;
+    assessment_id: string;
+    image_url: string;
+    image_index?: number;
+    original_detections?: RoboflowDetection[];
+    corrected_labels?: string;
+    corrections_made?: YOLOCorrection['correctionsMade'];
+    corrected_by?: string;
+    status?: 'pending' | 'approved' | 'rejected' | 'needs_review';
+    confidence_score?: number;
+    correction_quality?: 'expert' | 'verified' | 'user';
+  }): YOLOCorrection {
     return {
       id: row.id,
       assessmentId: row.assessment_id,
@@ -396,6 +433,114 @@ export class YOLOCorrectionService {
       confidenceScore: row.confidence_score,
       correctionQuality: row.correction_quality,
     };
+  }
+
+  /**
+   * Capture SAM3 masks for a user correction (async, non-blocking)
+   * This enriches the training data with precise segmentation ground truth
+   */
+  private static async captureSAM3MasksForCorrection(
+    assessmentId: string,
+    imageUrl: string,
+    imageIndex: number,
+    correctedDetections: CorrectionInput['correctedDetections'],
+    yoloCorrectionId: string
+  ): Promise<void> {
+    try {
+      // Check if SAM3 is available
+      const isSAM3Available = await SAM3Service.healthCheck();
+      if (!isSAM3Available) {
+        logger.debug('SAM3 not available, skipping mask capture', {
+          service: 'YOLOCorrectionService',
+          correctionId: yoloCorrectionId,
+        });
+        return;
+      }
+
+      // Extract unique damage types from corrected detections
+      const damageTypes = new Set<string>();
+      for (const det of correctedDetections) {
+        if ('className' in det) {
+          damageTypes.add(det.className);
+        } else if ('class' in det) {
+          damageTypes.add(det.class);
+        }
+      }
+
+      if (damageTypes.size === 0) {
+        logger.debug('No damage types to segment', {
+          service: 'YOLOCorrectionService',
+          correctionId: yoloCorrectionId,
+        });
+        return;
+      }
+
+      // Run SAM3 segmentation for all damage types
+      const sam3Result = await SAM3Service.segmentDamageTypes(
+        imageUrl,
+        Array.from(damageTypes)
+      );
+
+      if (!sam3Result || !sam3Result.success) {
+        logger.debug('SAM3 segmentation failed', {
+          service: 'YOLOCorrectionService',
+          correctionId: yoloCorrectionId,
+        });
+        return;
+      }
+
+      // Store SAM3 masks linked to this correction
+      const maskIds: string[] = [];
+      for (const [damageType, segmentation] of Object.entries(sam3Result.damage_types)) {
+        if (!segmentation.success || segmentation.num_instances === 0) {
+          continue;
+        }
+
+        const totalAffectedArea = segmentation.masks.reduce((total, mask) => {
+          const maskArea = mask.flat().filter(pixel => pixel > 0).length;
+          return total + maskArea;
+        }, 0);
+
+        const avgConfidence = segmentation.scores.reduce((a, b) => a + b, 0) / segmentation.scores.length;
+        const segmentationQuality =
+          avgConfidence >= 0.9
+            ? 'excellent'
+            : avgConfidence >= 0.7
+            ? 'good'
+            : avgConfidence >= 0.5
+            ? 'fair'
+            : 'poor';
+
+        const maskId = await SAM3TrainingDataService.storeSAM3Mask({
+          assessmentId,
+          imageUrl,
+          imageIndex,
+          damageType,
+          masks: segmentation.masks,
+          boxes: segmentation.boxes,
+          scores: segmentation.scores,
+          numInstances: segmentation.num_instances,
+          totalAffectedArea,
+          yoloCorrectionId,
+          segmentationQuality: segmentationQuality as 'excellent' | 'good' | 'fair' | 'poor',
+        });
+
+        maskIds.push(maskId);
+      }
+
+      logger.info('SAM3 masks captured for correction', {
+        service: 'YOLOCorrectionService',
+        correctionId: yoloCorrectionId,
+        maskCount: maskIds.length,
+      });
+    } catch (error) {
+      // Don't throw - this is non-critical background work
+      logger.warn('Failed to capture SAM3 masks for correction', {
+        service: 'YOLOCorrectionService',
+        correctionId: yoloCorrectionId,
+        error,
+      });
+    }
   }
 }
 

@@ -1,11 +1,14 @@
 /**
  * Tailwind Config Generator
- * 
+ *
  * Generates Tailwind config from design tokens.
  * This ensures Tailwind uses the same values as our design tokens.
+ *
+ * 2025 UI/UX Revamp: Enhanced with Checkatrade-inspired professional design
  */
 
 const { webTokens } = require('@mintenance/design-tokens');
+const { tokens } = require('./lib/design-tokens/index.ts');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -16,10 +19,80 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Colors from design tokens
-      // Colors from design tokens
+      // Colors from unified design tokens
       colors: {
-        // Primary Brand Colors (Deep Navy)
+        // Checkatrade-Inspired Professional Blue (NEW PRIMARY)
+        // Primary brand color: #0066CC
+        'ck-blue': tokens.colors.primary,
+
+        // Alias for primary (for easier usage)
+        blue: tokens.colors.primary,
+
+        // Mintenance Mint Green Accent (NEW SECONDARY)
+        // Secondary brand color: #10B981
+        'ck-mint': tokens.colors.secondary,
+
+        // Alias for secondary (for easier usage)
+        mint: tokens.colors.secondary,
+
+        // Professional Neutrals (NEW)
+        // Main background: #F7F9FC
+        neutral: tokens.colors.neutral,
+
+        // Gray alias (many components use 'gray')
+        gray: tokens.colors.neutral,
+
+        // Semantic Colors (NEW - WCAG AA Compliant)
+        success: tokens.colors.success,
+        warning: tokens.colors.warning,
+        error: tokens.colors.error,
+        info: tokens.colors.info,
+
+        // Aliases for semantic colors
+        green: tokens.colors.success,
+        red: tokens.colors.error,
+        amber: tokens.colors.warning,
+
+        // Brand Teal (Primary) - 2025 Enhanced (LEGACY PRESERVED)
+        teal: {
+          50: '#F0FDFA',
+          100: '#CCFBF1',
+          200: '#99F6E4',
+          300: '#5EEAD4',
+          400: '#2DD4BF',
+          500: '#14B8A6',
+          600: '#0D9488', // Brand Primary
+          700: '#0F766E',
+          800: '#115E59',
+          900: '#134E4A',
+        },
+        // Brand Navy (Secondary) - 2025 Enhanced
+        navy: {
+          50: '#F8FAFC',
+          100: '#F1F5F9',
+          200: '#E2E8F0',
+          300: '#CBD5E1',
+          400: '#94A3B8',
+          500: '#64748B',
+          600: '#475569',
+          700: '#334155',
+          800: '#1E293B', // Brand Secondary - Sidebar
+          900: '#0F172A',
+        },
+        // Brand Emerald (Accent) - 2025 Enhanced - WCAG AA Compliant
+        emerald: {
+          50: '#ECFDF5',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#059669', // Brand Accent (4.92:1 contrast - WCAG AA compliant)
+          600: '#047857',
+          700: '#065F46',
+          800: '#064E3B',
+          900: '#022C22',
+        },
+        // Primary Brand Colors (Deep Navy) - Legacy Support
         primary: {
           50: webTokens.colors.gray25,
           100: webTokens.colors.gray50,
@@ -36,13 +109,13 @@ module.exports = {
           light: webTokens.colors.primaryLight,
           dark: webTokens.colors.primaryDark,
         },
-        // Secondary Brand Colors (Emerald Green)
+        // Secondary Brand Colors (Mint Green) - Legacy Support
         secondary: {
-          50: '#ECFDF5',
-          100: '#D1FAE5',
-          200: '#A7F3D0',
-          300: '#6EE7B7',
-          400: '#34D399',
+          50: '#F0FDF9',
+          100: '#DCFCE7',
+          200: '#BBF7D0',
+          300: '#86EFAC',
+          400: '#4ADE80',
           500: webTokens.colors.secondary,
           600: webTokens.colors.secondaryDark,
           700: '#047857',
@@ -52,7 +125,7 @@ module.exports = {
           light: webTokens.colors.secondaryLight,
           dark: webTokens.colors.secondaryDark,
         },
-        // Accent Colors (Premium Gold)
+        // Accent Colors (Premium Gold) - Legacy Support
         accent: {
           50: '#FFFBEB',
           100: '#FEF3C7',
@@ -68,21 +141,42 @@ module.exports = {
           light: webTokens.colors.accentLight,
           dark: webTokens.colors.accentDark,
         },
-        // Error Colors
+        // Error Colors - 2025 Enhanced
         error: {
+          50: '#FEF2F2',
+          500: '#EF4444',
+          600: '#DC2626',
+          700: '#B91C1C',
           DEFAULT: webTokens.colors.error,
           light: webTokens.colors.errorLight,
           dark: webTokens.colors.errorDark,
         },
-        // Success Colors
+        // Success Colors - 2025 Enhanced
         success: {
+          50: '#ECFDF5',
+          500: '#10B981',
+          600: '#059669',
+          700: '#047857',
           DEFAULT: webTokens.colors.success,
           light: webTokens.colors.successLight,
           dark: webTokens.colors.successDark,
         },
-        // Additional colors from design tokens
-        warning: webTokens.colors.warning,
-        info: webTokens.colors.info,
+        // Warning Colors - 2025 Enhanced
+        warning: {
+          50: '#FFFBEB',
+          500: '#F59E0B',
+          600: '#D97706',
+          700: '#B45309',
+          DEFAULT: webTokens.colors.warning,
+        },
+        // Info Colors - 2025 Enhanced
+        info: {
+          50: '#EFF6FF',
+          500: '#3B82F6',
+          600: '#2563EB',
+          700: '#1D4ED8',
+          DEFAULT: webTokens.colors.info,
+        },
         // Text colors
         text: {
           primary: webTokens.colors.textPrimary,
@@ -192,7 +286,7 @@ module.exports = {
         full: webTokens.borderRadius.full,
       },
 
-      // Shadows from design tokens
+      // Shadows from design tokens - 2025 Enhanced
       boxShadow: {
         sm: webTokens.shadows.sm,
         DEFAULT: webTokens.shadows.base,
@@ -207,7 +301,19 @@ module.exports = {
         'success-glow': webTokens.shadows.successGlow,
         'warning-glow': webTokens.shadows.warningGlow,
         'error-glow': webTokens.shadows.errorGlow,
+        // 2025 Enhanced Shadows
+        'glow': '0 0 20px rgba(13, 148, 136, 0.3)',
+        'glow-hover': '0 0 25px rgba(13, 148, 136, 0.4)',
         none: 'none',
+      },
+
+      // Gradients - 2025 Enhanced
+      backgroundImage: {
+        'gradient-teal-emerald': 'linear-gradient(135deg, #0D9488 0%, #10B981 100%)',
+        'gradient-navy-teal': 'linear-gradient(135deg, #1E293B 0%, #0D9488 100%)',
+        'gradient-subtle': 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)',
+        'gradient-hero': 'linear-gradient(135deg, #0D9488 0%, #10B981 50%, #14B8A6 100%)',
+        'gradient-card-hover': 'linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
       },
 
       // Animation System (preserved)
@@ -236,6 +342,17 @@ module.exports = {
         modal: '1400',
         popover: '1500',
         tooltip: '1600',
+      },
+
+      // Skeleton Shimmer Animation
+      keyframes: {
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.5s ease-in-out infinite',
       },
     },
   },

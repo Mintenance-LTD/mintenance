@@ -14,13 +14,26 @@ export function generateSlug(title: string): string {
 /**
  * Find an article by category and slug
  */
+interface HelpArticle {
+  title: string;
+  content: string;
+  [key: string]: unknown;
+}
+
+interface HelpCategory {
+  id: string;
+  title: string;
+  articles: HelpArticle[];
+  [key: string]: unknown;
+}
+
 export function findArticleBySlug(categoryId: string, slug: string) {
   const { helpCategories } = require('./categories');
   
-  const category = helpCategories.find((cat: any) => cat.id === categoryId);
+  const category = helpCategories.find((cat: HelpCategory) => cat.id === categoryId);
   if (!category) return null;
   
-  const article = category.articles.find((art: any) => 
+  const article = category.articles.find((art: HelpArticle) => 
     generateSlug(art.title) === slug
   );
   
@@ -35,10 +48,10 @@ export function findArticleBySlug(categoryId: string, slug: string) {
 export function getAllArticlesWithSlugs() {
   const { helpCategories } = require('./categories');
   
-  const articles: Array<{ categoryId: string; slug: string; article: any; category: any }> = [];
+  const articles: Array<{ categoryId: string; slug: string; article: HelpArticle; category: HelpCategory }> = [];
   
-  helpCategories.forEach((category: any) => {
-    category.articles.forEach((article: any) => {
+  helpCategories.forEach((category: HelpCategory) => {
+    category.articles.forEach((article: HelpArticle) => {
       articles.push({
         categoryId: category.id,
         slug: generateSlug(article.title),

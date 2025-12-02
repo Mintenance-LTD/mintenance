@@ -3,6 +3,8 @@
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 
+export type CalendarView = 'month' | 'week' | 'day';
+
 interface CalendarHeaderProps {
   month: number;
   year: number;
@@ -10,6 +12,8 @@ interface CalendarHeaderProps {
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
+  view?: CalendarView;
+  onViewChange?: (view: CalendarView) => void;
 }
 
 export function CalendarHeader({
@@ -19,6 +23,8 @@ export function CalendarHeader({
   onPreviousMonth,
   onNextMonth,
   onToday,
+  view = 'month',
+  onViewChange,
 }: CalendarHeaderProps) {
   return (
     <div style={{
@@ -37,7 +43,44 @@ export function CalendarHeader({
         {monthNames[month]} {year}
       </h2>
 
-      <div style={{ display: 'flex', gap: theme.spacing[2] }}>
+      <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
+        {/* View Toggle Buttons */}
+        {onViewChange && (
+          <div style={{ display: 'flex', gap: theme.spacing[1], marginRight: theme.spacing[2] }}>
+            {(['month', 'week', 'day'] as CalendarView[]).map((viewOption) => (
+              <button
+                key={viewOption}
+                onClick={() => onViewChange(viewOption)}
+                type="button"
+                style={{
+                  padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                  backgroundColor: view === viewOption ? theme.colors.primary : theme.colors.backgroundSecondary,
+                  color: view === viewOption ? theme.colors.white : theme.colors.textPrimary,
+                  border: `1px solid ${view === viewOption ? theme.colors.primary : theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'capitalize',
+                }}
+                onMouseEnter={(e) => {
+                  if (view !== viewOption) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (view !== viewOption) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  }
+                }}
+              >
+                {viewOption}
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           onClick={onToday}
           style={{

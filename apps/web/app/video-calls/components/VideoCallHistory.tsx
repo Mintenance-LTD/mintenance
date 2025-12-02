@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -53,7 +54,7 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
             if (error) throw error;
             setCalls(data as DBVideoCall[]);
         } catch (error) {
-            console.error('Error fetching calls:', error);
+            logger.error('Error fetching calls:', error);
         } finally {
             setLoading(false);
         }
@@ -110,7 +111,7 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
                                     <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
                                         {call.metadata?.callPurpose ? (
                                             <span style={{ textTransform: 'capitalize' }}>
-                                                {call.metadata.callPurpose.replace('_', ' ')}
+                                                {String(call.metadata.callPurpose).replace('_', ' ')}
                                             </span>
                                         ) : 'Video Call'}
                                         {call.status === 'active' && (

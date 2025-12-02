@@ -3,7 +3,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { GoogleMapContainer } from '@/components/maps/GoogleMapContainer';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface JobLocationMapProps {
   jobLocation: string;
@@ -20,7 +22,15 @@ interface ContractorMarker {
   profile_image_url?: string;
 }
 
-export function JobLocationMap({ jobLocation, jobId }: JobLocationMapProps) {
+export function JobLocationMap(props: JobLocationMapProps) {
+  return (
+    <ErrorBoundary componentName="JobLocationMap">
+      <JobLocationMapContent {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function JobLocationMapContent({ jobLocation, jobId }: JobLocationMapProps) {
   const [jobCoords, setJobCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyContractors, setNearbyContractors] = useState<ContractorMarker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +69,7 @@ export function JobLocationMap({ jobLocation, jobId }: JobLocationMapProps) {
           setNearbyContractors(contractorsData.contractors || []);
         }
       } catch (err) {
-        console.error('Error geocoding location:', err);
+        logger.error('Error geocoding location:', err);
         setError('Failed to load map location');
       } finally {
         setLoading(false);

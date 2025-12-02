@@ -16,3 +16,6 @@ export const AB_TEST_CONFIG = {
   DELTA_SAFETY_CONSTRUCTION: 0.0005,
 } as const;
 
+// Export DELTA_SAFETY for convenience
+export const DELTA_SAFETY = AB_TEST_CONFIG.DELTA_SAFETY;
+

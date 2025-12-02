@@ -121,7 +121,23 @@ export function CreatePostDialog({ open, onOpenChange, onPostCreated }: CreatePo
     setLoading(true);
 
     try {
-      const payload: any = {
+      const payload: {
+        title: string;
+        content: string;
+        help_category?: string;
+        images?: string[];
+        post_type?: string;
+        skills_used?: string[];
+        materials_used?: string[];
+        project_duration?: number;
+        project_cost?: number;
+        urgency_level?: string;
+        budget_range?: number;
+        item_name?: string;
+        item_condition?: string;
+        rental_price?: number;
+        availability?: string;
+      } = {
         title: title.trim(),
         content: content.trim(),
         images: images.filter(url => url.trim()),

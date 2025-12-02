@@ -6,6 +6,16 @@ import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
 import { requireCSRF } from '@/lib/csrf';
 
+// Type definition for user profile update data
+interface UserProfileUpdateData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string | null;
+  location?: string | null;
+  profile_image_url?: string | null;
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest) {
       const location = formData.get('location') as string;
 
       // Update user profile
-      const updateData: any = {};
+      const updateData: UserProfileUpdateData = {};
       if (firstName) updateData.first_name = sanitizeText(firstName, 50);
       if (lastName) updateData.last_name = sanitizeText(lastName, 50);
       if (email) updateData.email = sanitizeText(email, 255);
@@ -154,7 +164,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Handle JSON update (no file upload)
       const body = await request.json();
-      const updateData: any = {};
+      const updateData: UserProfileUpdateData = {};
 
       if (body.first_name !== undefined) updateData.first_name = sanitizeText(body.first_name, 50);
       if (body.last_name !== undefined) updateData.last_name = sanitizeText(body.last_name, 50);

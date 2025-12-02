@@ -12,6 +12,7 @@ import { MessagingService } from '@/lib/services/MessagingService';
 import type { MessageThread, User } from '@mintenance/types';
 import { ConversationCard } from '@/components/messaging/ConversationCard';
 import { ActiveContractCard } from './ActiveContractCard';
+import { logger } from '@mintenance/shared';
 
 interface ActiveJob {
   id: string;
@@ -85,12 +86,34 @@ export function MessagesClient() {
         const bidsResponse = await fetch(`/api/contractor/bids?status=accepted`);
         if (bidsResponse.ok) {
           const bidsData = await bidsResponse.json();
-          const acceptedBids = bidsData.bids || [];
+          interface JobData {
+            id: string;
+            homeowner_id?: string;
+            title?: string;
+            homeowner?: HomeownerData;
+          }
+
+          interface BidWithJob {
+            jobs?: JobData | JobData[];
+            created_at?: string;
+            updated_at?: string;
+          }
+
+          interface HomeownerData {
+            id: string;
+            first_name?: string;
+            last_name?: string;
+            email?: string;
+            name?: string;
+            profile_image_url?: string | null;
+          }
+
+          const acceptedBids: BidWithJob[] = bidsData.bids || [];
           
           // Get unique homeowners from accepted bids
-          const homeownerJobMap = new Map<string, { jobId: string; jobTitle: string; homeowner: any; bidDate: string }>();
+          const homeownerJobMap = new Map<string, { jobId: string; jobTitle: string; homeowner: HomeownerData; bidDate: string }>();
           
-          acceptedBids.forEach((bid: any) => {
+          acceptedBids.forEach((bid: BidWithJob) => {
             const job = Array.isArray(bid.jobs) ? bid.jobs[0] : bid.jobs;
             if (!job || !job.homeowner_id) return;
             
@@ -133,14 +156,14 @@ export function MessagesClient() {
             participants: [
               {
                 id: currentUser.id,
-                name: currentUser.first_name && currentUser.last_name
+                name: (currentUser.first_name && currentUser.last_name
                   ? `${currentUser.first_name} ${currentUser.last_name}`
-                  : currentUser.email || 'You',
+                  : currentUser.email || 'You') as string,
                 role: currentUser.role || 'contractor',
               },
               {
                 id: homeowner.id,
-                name: homeowner.name,
+                name: (homeowner.name || 'Homeowner') as string,
                 role: 'homeowner',
               },
             ],
@@ -176,7 +199,7 @@ export function MessagesClient() {
           setConversations(sortedConversations);
         }
       } catch (bidsErr) {
-        console.error('Error loading accepted bids:', bidsErr);
+        logger.error('Error loading accepted bids:', bidsErr);
         // Fallback to just existing conversations
         const sortedConversations = [...userConversations].sort((a, b) => {
           const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
@@ -193,9 +216,22 @@ export function MessagesClient() {
           const jobsData = await jobsResponse.json();
           const jobs = jobsData.jobs || [];
 
+          interface ActiveJobData {
+            id: string;
+            title?: string;
+            status?: string;
+            homeowner_id?: string;
+            homeowner?: {
+              first_name?: string;
+              last_name?: string;
+              email?: string;
+              profile_image_url?: string | null;
+            };
+          }
+
           // For each job, fetch contract info
           const jobsWithContracts = await Promise.all(
-            jobs.map(async (job: any) => {
+            jobs.map(async (job: ActiveJobData) => {
               const contractResponse = await fetch(`/api/contracts?job_id=${job.id}`);
               let contract = null;
               if (contractResponse.ok) {
@@ -207,7 +243,7 @@ export function MessagesClient() {
                 id: job.id,
                 title: job.title,
                 homeowner: {
-                  id: job.homeowner_id,
+                  id: job.homeowner_id || '',
                   first_name: job.homeowner?.first_name || '',
                   last_name: job.homeowner?.last_name || '',
                   email: job.homeowner?.email || '',
@@ -221,11 +257,11 @@ export function MessagesClient() {
           setActiveJobs(jobsWithContracts);
         }
       } catch (err) {
-        console.error('Error loading active jobs:', err);
+        logger.error('Error loading active jobs:', err);
         // Don't fail the whole page if jobs fail to load
       }
     } catch (err) {
-      console.error('Error loading messages:', err);
+      logger.error('Error loading messages:', err);
       setError('Failed to load messages');
     } finally {
       setLoading(false);

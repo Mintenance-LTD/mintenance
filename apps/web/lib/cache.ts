@@ -408,7 +408,7 @@ export const getCachedContractorById = unstable_cache(
     if (error) {
       logger.error('Error fetching contractor', error, {
         service: 'cache',
-        contractorId: id,
+        contractorId,
       });
       return null;
     }
@@ -465,7 +465,7 @@ export async function revalidateUserProfile(userId: string) {
   } catch (error) {
     logger.error('Error revalidating user profile', error, {
       service: 'cache',
-      userId: id,
+      userId,
     });
   }
 }

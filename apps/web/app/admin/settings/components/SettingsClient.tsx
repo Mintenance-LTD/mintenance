@@ -31,7 +31,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<Record<string, boolean>>({});
 
-  const handleSave = async (setting: PlatformSetting, newValue: any) => {
+  const handleSave = async (setting: PlatformSetting, newValue: string | number | boolean | null) => {
     const key = setting.setting_key;
     setSaving(prev => ({ ...prev, [key]: true }));
     setErrors(prev => ({ ...prev, [key]: '' }));
@@ -86,8 +86,8 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
     const key = setting.setting_key;
     const [localValue, setLocalValue] = useState(setting.setting_value);
 
-    const handleChange = (value: any) => {
-      setLocalValue(value);
+    const handleChange = (value: string | number | boolean | null) => {
+      setLocalValue(value ?? (setting.setting_type === 'number' ? 0 : setting.setting_type === 'boolean' ? false : ''));
       setErrors(prev => ({ ...prev, [key]: '' }));
     };
 
@@ -105,14 +105,16 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
         processedValue = localValue === true || localValue === 'true';
       } else if (setting.setting_type === 'json') {
         try {
-          processedValue = typeof localValue === 'string' ? JSON.parse(localValue) : localValue;
+          const parsedValue = typeof localValue === 'string' ? JSON.parse(localValue) : localValue;
+          // Convert back to string for handleSave
+          processedValue = JSON.stringify(parsedValue);
         } catch {
           setErrors(prev => ({ ...prev, [key]: 'Invalid JSON' }));
           return;
         }
       }
 
-      handleSave(setting, processedValue);
+      handleSave(setting, processedValue as string | number | boolean | null);
     };
 
     switch (setting.setting_type) {
@@ -139,7 +141,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
           <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center', maxWidth: '400px' }}>
             <Input
               type="number"
-              value={localValue}
+              value={typeof localValue === 'number' ? localValue.toString() : String(localValue || '')}
               onChange={(e) => handleChange(e.target.value)}
               style={{ flex: 1 }}
               className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
@@ -202,7 +204,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
           <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center', maxWidth: '600px' }}>
             <Input
               type="text"
-              value={localValue}
+              value={typeof localValue === 'string' ? localValue : String(localValue || '')}
               onChange={(e) => handleChange(e.target.value)}
               style={{ flex: 1 }}
               className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"

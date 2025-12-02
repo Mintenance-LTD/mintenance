@@ -1,5 +1,6 @@
 import { EmbeddedCheckoutComponent } from '@/components/payments/EmbeddedCheckout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { logger } from '@mintenance/shared';
 
 interface CheckoutPageProps {
   searchParams: {
@@ -52,10 +53,10 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
             contractorId={contractorId}
             quantity={quantity ? parseInt(quantity, 10) : 1}
             onSuccess={() => {
-              console.log('Payment successful!');
+              logger.info('Payment successful!');
             }}
             onError={(error) => {
-              console.error('Payment error:', error);
+              logger.error('Payment error:', error);
             }}
           />
         </CardContent>

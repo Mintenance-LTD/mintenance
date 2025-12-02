@@ -230,7 +230,7 @@ export class ErrorTracker {
         return fallbackEventId;
       }
     } catch (trackingError) {
-      console.error('Failed to track error:', trackingError);
+      logger.error('Failed to track error:', trackingError);
       return '';
     }
   }

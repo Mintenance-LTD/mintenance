@@ -267,6 +267,7 @@ async function getCriticModelPerformance(experimentId: string): Promise<{
     interface CriticModelParameters {
       theta?: number[];
       phi?: number[];
+      n?: number;
       [key: string]: unknown;
     }
 
@@ -278,8 +279,10 @@ async function getCriticModelPerformance(experimentId: string): Promise<{
     const rewardModelNorm = Math.sqrt(theta.reduce((sum: number, val: number) => sum + val * val, 0));
     const safetyModelNorm = Math.sqrt(phi.reduce((sum: number, val: number) => sum + val * val, 0));
 
+    const observations = typeof params.n === 'number' ? params.n : 0;
+
     return {
-      observations: params.n || 0,
+      observations,
       lastUpdated: criticModel.updated_at || null,
       rewardModelNorm,
       safetyModelNorm,

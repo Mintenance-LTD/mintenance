@@ -75,14 +75,18 @@ export async function GET(
     }
 
     // Extract unique contractors and geocode their locations
+    interface ContractorData {
+      id: string;
+      location?: string;
+      first_name?: string;
+      last_name?: string;
+      email?: string;
+      profile_image_url?: string;
+      [key: string]: unknown;
+    }
+
     interface ViewRecord {
-      contractor?: {
-        id: string;
-        location?: string;
-        first_name?: string;
-        last_name?: string;
-        [key: string]: unknown;
-      };
+      contractor?: ContractorData | ContractorData[] | null;
     }
 
     interface ContractorRecord {
@@ -99,7 +103,7 @@ export async function GET(
 
     const contractorMap = new Map<string, ContractorRecord>();
     (views || []).forEach((view: ViewRecord) => {
-      const contractor = view.contractor;
+      const contractor = Array.isArray(view.contractor) ? view.contractor[0] : view.contractor;
       if (contractor && contractor.id && !contractorMap.has(contractor.id)) {
         contractorMap.set(contractor.id, contractor as ContractorRecord);
       }

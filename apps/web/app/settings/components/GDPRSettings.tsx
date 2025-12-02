@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { AlertTriangle, Download, Trash2 } from 'lucide-react';
 
 export function GDPRSettings() {
@@ -27,7 +28,7 @@ export function GDPRSettings() {
                 window.URL.revokeObjectURL(url);
             }
         } catch (error) {
-            console.error('Error exporting data:', error);
+            logger.error('Error exporting data:', error);
         } finally {
             setIsExporting(false);
         }
@@ -49,7 +50,7 @@ export function GDPRSettings() {
                 window.location.href = '/login?deleted=true';
             }
         } catch (error) {
-            console.error('Error deleting account:', error);
+            logger.error('Error deleting account:', error);
         }
     };
 

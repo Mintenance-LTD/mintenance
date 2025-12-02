@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { logger } from '@mintenance/shared';
 import { Upload, Sparkles, CheckCircle, ArrowRight, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -77,7 +78,7 @@ export function AIAssessmentShowcase() {
                     const responseText = await response.text();
                     
                     // Log raw response for debugging
-                    console.error('API Error - Raw Response:', {
+                    logger.error('API Error - Raw Response:', {
                         status: response.status,
                         statusText: response.statusText,
                         contentType: response.headers.get('content-type'),
@@ -86,14 +87,14 @@ export function AIAssessmentShowcase() {
                     });
                     
                     // Try to parse as JSON
-                    let errorData: any = null;
+                    let errorData: { error?: string; details?: string; message?: string } | null = null;
                     if (responseText && responseText.trim()) {
                         try {
                             errorData = JSON.parse(responseText);
                         } catch (jsonError) {
                             // Not valid JSON, use text as error message
                             errorMessage = responseText || response.statusText || errorMessage;
-                            console.error('API Error (invalid JSON):', {
+                            logger.error('API Error (invalid JSON):', {
                                 status: response.status,
                                 statusText: response.statusText,
                                 body: responseText.substring(0, 200),
@@ -110,7 +111,7 @@ export function AIAssessmentShowcase() {
                     }
                     
                     // Log parsed error details for debugging
-                    console.error('API Error Response (Parsed):', {
+                    logger.error('API Error Response (Parsed):', {
                         status: response.status,
                         statusText: response.statusText,
                         error: errorMessage,
@@ -125,7 +126,7 @@ export function AIAssessmentShowcase() {
                     if (!(parseError instanceof Error && parseError.message !== errorMessage)) {
                         errorMessage = response.statusText || errorMessage;
                     }
-                    console.error('API Error (parse failed):', {
+                    logger.error('API Error (parse failed):', {
                         status: response.status,
                         statusText: response.statusText,
                         parseError: parseError instanceof Error ? parseError.message : 'Unknown',
@@ -177,7 +178,7 @@ export function AIAssessmentShowcase() {
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Analysis failed. Please try again.';
             setError(message);
-            console.error('Assessment error:', err);
+            logger.error('Assessment error:', err);
         } finally {
             setIsAnalyzing(false);
         }

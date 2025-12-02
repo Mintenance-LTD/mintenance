@@ -6,7 +6,7 @@
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
-import { measurePerformance } from '../utils/performanceBudgets';
+import { measurePerformance } from '../utils/performance';
 import { sanitizeForSQL } from '../utils/sqlSanitization';
 import {
   SearchFilters,

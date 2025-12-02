@@ -6,6 +6,7 @@ import { Button } from '@/components/ui';
 import Link from 'next/link';
 import { MapPin, Star, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@mintenance/shared';
 
 interface NeighborhoodContractor {
   id: string;
@@ -70,16 +71,33 @@ export function NeighborhoodRecommendations({ userLocation, userCity }: Neighbor
         const { data, error } = await query;
 
         if (error) {
-          console.error('Error fetching neighborhood contractors:', error);
+          logger.error('Error fetching neighborhood contractors:', error);
           setLoading(false);
           return;
         }
 
-        const processedContractors: NeighborhoodContractor[] = (data || [])
-          .map((contractor: any) => {
+        interface ReviewData {
+          rating?: number;
+        }
+
+        interface ContractorWithReviews {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          profile_image_url?: string;
+          is_available?: boolean;
+          availability_status?: string;
+          latitude?: number;
+          longitude?: number;
+          reviews?: ReviewData[];
+          contractor_skills?: Array<{ skill_name: string }>;
+        }
+
+        const processedContractors: NeighborhoodContractor[] = ((data || []) as ContractorWithReviews[])
+          .map((contractor: ContractorWithReviews) => {
             const reviews = contractor.reviews || [];
             const rating = reviews.length > 0
-              ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
+              ? reviews.reduce((sum: number, r: ReviewData) => sum + (r.rating || 0), 0) / reviews.length
               : 0;
 
             // Calculate distance if location available
@@ -107,7 +125,7 @@ export function NeighborhoodRecommendations({ userLocation, userCity }: Neighbor
               rating,
               reviewCount: reviews.length,
               distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-              skills: (contractor.contractor_skills || []).slice(0, 3).map((s: any) => s.skill_name),
+              skills: (contractor.contractor_skills || []).slice(0, 3).map((s: { skill_name: string }) => s.skill_name),
               sameDayAvailable,
             };
           })
@@ -123,7 +141,7 @@ export function NeighborhoodRecommendations({ userLocation, userCity }: Neighbor
 
         setContractors(processedContractors);
       } catch (error) {
-        console.error('Error processing neighborhood contractors:', error);
+        logger.error('Error processing neighborhood contractors:', error);
       } finally {
         setLoading(false);
       }

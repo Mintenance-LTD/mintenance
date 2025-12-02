@@ -66,44 +66,44 @@ function main() {
     .filter(({ lines }) => lines > 300)
     .sort((a, b) => b.lines - a.lines);
 
-  console.log('\n📊 File Size Audit Results\n');
-  console.log('Files over 300 lines:\n');
+  logger.info('\n📊 File Size Audit Results\n');
+  logger.info('Files over 300 lines:\n');
 
   const warnings = results.filter((r) => r.lines >= LIMITS.WARNING && r.lines < LIMITS.ERROR);
   const errors = results.filter((r) => r.lines >= LIMITS.ERROR);
 
   if (errors.length > 0) {
-    console.log('❌ ERROR: Files exceeding 500 lines (MUST REFACTOR):');
+    logger.info('❌ ERROR: Files exceeding 500 lines (MUST REFACTOR):');
     errors.forEach(({ file, lines }) => {
-      console.log(`   ${file}: ${lines} lines`);
+      logger.info(`   ${file}: ${lines} lines`);
     });
-    console.log('');
+    logger.info('');
   }
 
   if (warnings.length > 0) {
-    console.log('⚠️  WARNING: Files approaching 400 lines (should refactor soon):');
+    logger.info('⚠️  WARNING: Files approaching 400 lines (should refactor soon):');
     warnings.forEach(({ file, lines }) => {
-      console.log(`   ${file}: ${lines} lines`);
+      logger.info(`   ${file}: ${lines} lines`);
     });
-    console.log('');
+    logger.info('');
   }
 
   if (results.length === 0) {
-    console.log('✅ All files are under 300 lines!');
+    logger.info('✅ All files are under 300 lines!');
   } else {
     const other = results.filter((r) => r.lines < LIMITS.WARNING);
     if (other.length > 0) {
-      console.log('ℹ️  Files over 300 lines (monitor):');
+      logger.info('ℹ️  Files over 300 lines (monitor):');
       other.forEach(({ file, lines }) => {
-        console.log(`   ${file}: ${lines} lines`);
+        logger.info(`   ${file}: ${lines} lines`);
       });
     }
   }
 
-  console.log(`\nTotal files checked: ${files.length}`);
-  console.log(`Files over 300 lines: ${results.length}`);
-  console.log(`Files over 400 lines: ${warnings.length + errors.length}`);
-  console.log(`Files over 500 lines: ${errors.length}\n`);
+  logger.info(`\nTotal files checked: ${files.length}`);
+  logger.info(`Files over 300 lines: ${results.length}`);
+  logger.info(`Files over 400 lines: ${warnings.length + errors.length}`);
+  logger.info(`Files over 500 lines: ${errors.length}\n`);
 
   if (errors.length > 0) {
     process.exit(1);

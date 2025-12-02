@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -125,7 +126,7 @@ export function VideoCallInterface({ call, currentUserId, onEndCall }: VideoCall
                 };
 
             } catch (error) {
-                console.error('Error initializing call:', error);
+                logger.error('Error initializing call:', error);
                 setConnectionStatus('failed');
             }
         };

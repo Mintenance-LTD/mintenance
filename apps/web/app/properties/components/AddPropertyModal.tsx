@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 
@@ -77,16 +78,24 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
         throw new Error(errorData.error || 'Failed to search addresses');
       }
 
+      interface LocationSuggestionItem {
+        display_name?: string;
+        address?: string;
+        name?: string;
+        place_id?: string;
+        osm_id?: string;
+      }
+
       const data = await response.json();
       if (Array.isArray(data)) {
-        setLocationSuggestions(data.map((item: any) => ({
-          display_name: item.display_name || item.address || item.name,
+        setLocationSuggestions(data.map((item: LocationSuggestionItem) => ({
+          display_name: item.display_name || item.address || item.name || 'Unknown location',
           place_id: item.place_id || item.osm_id || Math.random().toString(),
         })));
         setShowSuggestions(data.length > 0);
       }
     } catch (err) {
-      console.error('Error fetching address suggestions:', err);
+      logger.error('Error fetching address suggestions:', err);
       setLocationSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -171,7 +180,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
       setUploadedImages(data.urls || []);
       return data.urls || [];
     } catch (error) {
-      console.error('Error uploading images:', error);
+      logger.error('Error uploading images:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
       alert(errorMessage);
       return [];
@@ -234,8 +243,9 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
       // Success - close modal and refresh
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create property. Please try again.');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to create property. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -62,7 +62,17 @@ export async function createTokenPair(
   const { accessToken, refreshToken } = await generateTokenPair(user, secret);
 
   // Store refresh token in database with family tracking
-  const insertData: any = {
+  interface RefreshTokenInsert {
+    user_id: string;
+    token_hash: string;
+    expires_at: string;
+    device_info?: DeviceInfo;
+    ip_address?: string;
+    family_id?: string;
+    generation?: number;
+  }
+
+  const insertData: RefreshTokenInsert = {
     user_id: user.id,
     token_hash: hashRefreshToken(refreshToken),
     expires_at: new Date(Date.now() + REFRESH_TTL_SEC_SHORT * 1000).toISOString(), // 7 days
@@ -97,11 +107,84 @@ export async function createTokenPair(
 }
 
 /**
+ * Invalidate entire token family when breach is detected
+ * SECURITY: If a consumed refresh token is reused, it indicates token theft
+ */
+export async function invalidateTokenFamily(familyId: string, reason: string = 'breach_detected'): Promise<void> {
+  logger.error('[SECURITY ALERT] Token family breach detected - invalidating all tokens', {
+    service: 'auth',
+    familyId,
+    reason,
+    severity: 'CRITICAL',
+    action: 'invalidate_token_family',
+  });
+
+  // Revoke all tokens in the family
+  const { error } = await serverSupabase
+    .from('refresh_tokens')
+    .update({
+      revoked_at: new Date().toISOString(),
+      revoked_reason: reason
+    })
+    .eq('family_id', familyId)
+    .is('revoked_at', null);
+
+  if (error) {
+    logger.error('Failed to invalidate token family', error, {
+      service: 'auth',
+      familyId,
+    });
+    throw new Error('Failed to invalidate token family');
+  }
+
+  logger.info('Token family invalidated successfully', {
+    service: 'auth',
+    familyId,
+    reason,
+  });
+}
+
+/**
  * Rotate tokens (invalidate old refresh token, create new pair)
  * Uses atomic PostgreSQL function to prevent race conditions
+ * CRITICAL FIX: Added breach detection for token reuse
  */
 export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
   const tokenHash = hashRefreshToken(oldRefreshToken);
+
+  // SECURITY: Check if token has already been consumed (breach detection)
+  // If a consumed token is reused, it indicates token theft - invalidate entire family
+  const { data: existingToken, error: checkError } = await serverSupabase
+    .from('refresh_tokens')
+    .select('revoked_at, family_id, consumed_at')
+    .eq('token_hash', tokenHash)
+    .eq('user_id', userId)
+    .single();
+
+  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+    logger.error('Failed to check token status for breach detection', checkError, {
+      service: 'auth',
+      userId,
+    });
+  }
+
+  // BREACH DETECTION: If token was already consumed, invalidate entire family
+  if (existingToken?.consumed_at) {
+    logger.error('[SECURITY BREACH] Consumed refresh token reused - possible token theft', {
+      service: 'auth',
+      userId,
+      familyId: existingToken.family_id,
+      consumedAt: existingToken.consumed_at,
+      severity: 'CRITICAL',
+    });
+
+    // Invalidate entire token family to protect user
+    if (existingToken.family_id) {
+      await invalidateTokenFamily(existingToken.family_id, 'token_reuse_detected');
+    }
+
+    throw new Error('Security breach detected: token reuse. All sessions have been invalidated. Please login again.');
+  }
 
   // Use PostgreSQL function for atomic token rotation with row-level locking
   // This prevents race conditions when concurrent requests try to rotate the same token
@@ -110,7 +193,7 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
       p_user_id: userId,
       p_token_hash: tokenHash,
     })
-    .single() as { data: RotateRefreshTokenResult | null; error: any };
+    .single() as { data: RotateRefreshTokenResult | null; error: { code?: string; message?: string } | null };
 
   if (error) {
     logger.error('Token rotation failed', error, {

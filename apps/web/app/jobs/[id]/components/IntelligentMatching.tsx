@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { formatMoney } from '@/lib/utils/currency';
 
 interface MatchedContractor {
@@ -62,7 +63,7 @@ export function IntelligentMatching({ jobId }: IntelligentMatchingProps) {
         const data = await response.json();
         setMatches(data.matches || []);
       } catch (err) {
-        console.error('Error fetching matched contractors:', err);
+        logger.error('Error fetching matched contractors:', err);
         setError('Failed to load matched contractors');
       } finally {
         setLoading(false);

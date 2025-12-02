@@ -2,6 +2,59 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowStatusService } from '../escrow/EscrowStatusService';
 
+// Type definitions for escrow data
+interface EscrowUpdateData {
+  admin_hold_status: string;
+  admin_approved_at?: string;
+  admin_hold_reason?: string;
+  admin_hold_at?: string;
+  admin_hold_by: string;
+  updated_at: string;
+  status?: string;
+  release_blocked_reason?: string | null;
+}
+
+interface UserInfo {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface JobInfo {
+  id: string;
+  title: string;
+  contractor_id: string;
+  homeowner_id: string;
+  contractor?: UserInfo;
+  homeowner?: UserInfo;
+}
+
+interface EscrowRecordFromQuery {
+  id: string;
+  job_id: string;
+  payer_id: string;
+  payee_id: string;
+  amount: number;
+  admin_hold_status: string;
+  admin_hold_reason: string | null;
+  admin_hold_at: string | null;
+  admin_hold_by: string | null;
+  photo_verification_status: string | null;
+  homeowner_approval: boolean;
+  created_at: string;
+  jobs: JobInfo;
+}
+
+interface PhotoUrl {
+  photo_url: string;
+}
+
+interface ApprovalHistoryRecord {
+  action: string;
+  comments: string | null;
+  created_at: string;
+}
+
 export interface EscrowReview {
   id: string;
   escrowId: string;
@@ -113,7 +166,7 @@ export class AdminEscrowHoldService {
       }
 
       // Update admin approval status
-      const updateData: Record<string, any> = {
+      const updateData: EscrowUpdateData = {
         admin_hold_status: 'admin_approved',
         admin_approved_at: new Date().toISOString(),
         admin_hold_by: adminId,
@@ -260,14 +313,15 @@ export class AdminEscrowHoldService {
         throw new Error(`Failed to fetch pending reviews: ${error.message}`);
       }
 
-      return (data || []).map((escrow: any) => {
-        const job = escrow.jobs;
+      return (data || []).map((escrow: unknown) => {
+        const typedEscrow = escrow as EscrowRecordFromQuery;
+        const job = typedEscrow.jobs;
         const contractor = job?.contractor;
         const homeowner = job?.homeowner;
 
         return {
-          id: escrow.id,
-          escrowId: escrow.id,
+          id: typedEscrow.id,
+          escrowId: typedEscrow.id,
           jobId: job?.id || '',
           jobTitle: job?.title || 'Unknown Job',
           contractorId: job?.contractor_id || '',
@@ -278,14 +332,14 @@ export class AdminEscrowHoldService {
           homeownerName: homeowner
             ? `${homeowner.first_name} ${homeowner.last_name}`
             : 'Unknown',
-          amount: escrow.amount || 0,
-          adminHoldStatus: escrow.admin_hold_status as 'pending_review' | 'admin_hold' | 'admin_approved',
-          adminHoldReason: escrow.admin_hold_reason,
-          adminHoldAt: escrow.admin_hold_at,
-          adminHoldBy: escrow.admin_hold_by,
-          photoVerificationStatus: escrow.photo_verification_status,
-          homeownerApproval: escrow.homeowner_approval || false,
-          createdAt: escrow.created_at,
+          amount: typedEscrow.amount || 0,
+          adminHoldStatus: typedEscrow.admin_hold_status as 'pending_review' | 'admin_hold' | 'admin_approved',
+          adminHoldReason: typedEscrow.admin_hold_reason,
+          adminHoldAt: typedEscrow.admin_hold_at,
+          adminHoldBy: typedEscrow.admin_hold_by,
+          photoVerificationStatus: typedEscrow.photo_verification_status,
+          homeownerApproval: typedEscrow.homeowner_approval || false,
+          createdAt: typedEscrow.created_at,
         };
       });
     } catch (error) {
@@ -332,7 +386,7 @@ export class AdminEscrowHoldService {
         throw new Error('Escrow not found');
       }
 
-      const job = (escrow as any).jobs;
+      const job = (escrow as unknown as EscrowRecordFromQuery).jobs;
       const contractor = job?.contractor;
       const homeowner = job?.homeowner;
 
@@ -381,14 +435,14 @@ export class AdminEscrowHoldService {
         photoVerificationStatus: escrow.photo_verification_status,
         homeownerApproval: escrow.homeowner_approval || false,
         createdAt: escrow.created_at,
-        beforePhotos: (beforePhotos || []).map((p: any) => p.photo_url),
-        afterPhotos: (afterPhotos || []).map((p: any) => p.photo_url),
+        beforePhotos: (beforePhotos || []).map((p: PhotoUrl) => p.photo_url),
+        afterPhotos: (afterPhotos || []).map((p: PhotoUrl) => p.photo_url),
         photoVerificationScore: escrow.photo_verification_score,
         beforeAfterComparisonScore: escrow.before_after_comparison_score,
         geolocationVerified: escrow.geolocation_verified || false,
         timestampVerified: escrow.timestamp_verified || false,
         photoQualityPassed: escrow.photo_quality_passed || false,
-        homeownerApprovalHistory: (approvalHistory || []).map((h: any) => ({
+        homeownerApprovalHistory: (approvalHistory || []).map((h: ApprovalHistoryRecord) => ({
           action: h.action,
           comments: h.comments,
           createdAt: h.created_at,

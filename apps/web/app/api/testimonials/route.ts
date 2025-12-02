@@ -2,6 +2,34 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
+// Type definitions for testimonials
+interface ReviewJob {
+  id: string;
+  title: string;
+  category: string;
+  budget: number | null;
+}
+
+interface ReviewRecord {
+  id: string;
+  rating: number;
+  review_text: string | null;
+  title: string | null;
+  is_featured: boolean;
+  is_verified: boolean;
+  created_at: string;
+  job_id: string;
+  reviewer_id: string;
+  jobs: ReviewJob | ReviewJob[] | null;
+}
+
+interface ReviewerRecord {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -78,8 +106,8 @@ export async function GET() {
         }
 
         // Fetch reviewer information separately
-        const reviewerIds = [...new Set((reviews || []).map((r: any) => r.reviewer_id).filter(Boolean))];
-        let reviewerMap = new Map();
+        const reviewerIds = [...new Set((reviews || []).map((r: ReviewRecord) => r.reviewer_id).filter(Boolean))];
+        let reviewerMap = new Map<string, ReviewerRecord>();
         
         if (reviewerIds.length > 0) {
             const { data: reviewers, error: reviewerError } = await serverSupabase
@@ -93,22 +121,22 @@ export async function GET() {
                     error: reviewerError,
                 });
             } else {
-                reviewerMap = new Map((reviewers || []).map((r: any) => [r.id, r]));
+                reviewerMap = new Map((reviewers || []).map((r: ReviewerRecord) => [r.id, r]));
             }
         }
 
         // Transform reviews to testimonial format
-        const testimonials = (reviews || []).map((review: any) => {
-            const reviewer = reviewerMap.get(review.reviewer_id) || {};
-            const job = Array.isArray(review.jobs) ? review.jobs[0] : review.jobs || {};
+        const testimonials = (reviews || []).map((review: ReviewRecord) => {
+            const reviewer = reviewerMap.get(review.reviewer_id) || {} as any;
+            const job = Array.isArray(review.jobs) ? review.jobs[0] : review.jobs || {} as any;
             
             // Calculate savings (simplified - could be enhanced with actual cost comparison)
-            const savings = job.budget 
-                ? `£${Math.round(Number(job.budget) * 0.15)}` // Estimate 15% savings
+            const savings = (job as any).budget 
+                ? `£${Math.round(Number((job as any).budget) * 0.15)}` // Estimate 15% savings
                 : 'Contact for quote';
 
             // Get location from user email domain or default
-            const location = reviewer.email?.split('@')[1]?.includes('co.uk') 
+            const location = (reviewer as any).email?.split('@')[1]?.includes('co.uk') 
                 ? 'UK' 
                 : 'London'; // Default fallback
 

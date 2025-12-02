@@ -1,509 +1,457 @@
 'use client';
 
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Link from 'next/link';
-import Logo from '../components/Logo';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/Textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+  MessageSquare,
+  Clock,
+  HelpCircle,
+  CheckCircle,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+import { MotionButton, MotionDiv, MotionH1, MotionP, MotionA } from '@/components/ui/MotionDiv';
+import { FormField, ValidatedInput, ValidatedTextarea, ValidatedSelect } from '@/components/ui/FormField';
 
-const contactFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  subject: z.string().min(5, 'Subject must be at least 5 characters'),
-  category: z.enum(['general', 'technical', 'billing', 'partnerships', 'press', 'feedback']),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
-  consent: z.boolean().refine((val) => val === true, {
-    message: 'You must agree to the Privacy Policy',
-  }),
-});
+// Animation variants
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
-type ContactFormData = z.infer<typeof contactFormSchema>;
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
 
-export default function ContactPage() {
-  const [showLiveChatDialog, setShowLiveChatDialog] = React.useState(false);
-  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = React.useState('');
-  const [mapError, setMapError] = React.useState(false);
-  const [mapLoading, setMapLoading] = React.useState(true);
+const staggerItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-    reset,
-  } = useForm<ContactFormData>({
-    resolver: zodResolver(contactFormSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      subject: '',
-      category: 'general',
-      message: '',
-      consent: false,
-    },
+export default function ContactPage2025() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: 'general',
+    message: '',
   });
 
-  const category = watch('category');
-  const consent = watch('consent');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
-  const onSubmit = async (data: ContactFormData) => {
-    setSubmitStatus('idle');
-    setErrorMessage('');
-
-    try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      setSubmitStatus('success');
-      reset();
-      
-      setTimeout(() => {
-        setSubmitStatus('idle');
-      }, 5000);
-    } catch (error) {
-      setErrorMessage('Failed to send message. Please try again.');
-      setSubmitStatus('error');
+  const validateField = (field: string, value: string): string | undefined => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) return 'Name is required';
+        if (value.trim().length < 2) return 'Name must be at least 2 characters';
+        return undefined;
+      case 'email':
+        if (!value.trim()) return 'Email is required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
+        return undefined;
+      case 'message':
+        if (!value.trim()) return 'Message is required';
+        if (value.trim().length < 10) return 'Message must be at least 10 characters';
+        return undefined;
+      case 'phone':
+        if (value && !/^\+?[\d\s-()]+$/.test(value)) return 'Please enter a valid phone number';
+        return undefined;
+      default:
+        return undefined;
     }
   };
 
+  const handleFieldBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, formData[field as keyof typeof formData]);
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // If field was touched, validate on change for immediate feedback
+    if (touchedFields[field]) {
+      const error = validateField(field, value);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        if (error) {
+          newErrors[field] = error;
+        } else {
+          delete newErrors[field];
+        }
+        return newErrors;
+      });
+    }
+  };
+
+  const isFieldValid = (field: string): boolean => {
+    return touchedFields[field] && !errors[field] && Boolean(formData[field as keyof typeof formData]);
+  };
+
+  const contactInfo = [
+    {
+      icon: Mail,
+      title: 'Email Us',
+      details: 'support@mintenance.com',
+      description: 'We typically respond within 24 hours',
+    },
+    {
+      icon: Phone,
+      title: 'Call Us',
+      details: '+44 20 1234 5678',
+      description: 'Mon-Fri, 9am-6pm GMT',
+    },
+    {
+      icon: MapPin,
+      title: 'Visit Us',
+      details: '123 Tech Street, London, SW1A 1AA',
+      description: 'By appointment only',
+    },
+    {
+      icon: Clock,
+      title: 'Business Hours',
+      details: 'Monday - Friday',
+      description: '9:00 AM - 6:00 PM GMT',
+    },
+  ];
+
+  const faqs = [
+    {
+      question: 'How do I post a job?',
+      answer: 'Sign up for a free account, click "Post a Job", fill in the details, and submit. You\'ll start receiving bids from qualified contractors immediately.',
+    },
+    {
+      question: 'How are contractors verified?',
+      answer: 'All contractors go through a rigorous verification process including ID checks, license verification, insurance validation, and customer review analysis.',
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept all major credit/debit cards, bank transfers, and digital payment methods. Payments are securely processed through our payment partners.',
+    },
+    {
+      question: 'Is there a fee to use the platform?',
+      answer: 'Posting jobs is free for homeowners. Contractors pay a small service fee only when they win a job. See our pricing page for detailed information.',
+    },
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Mark all fields as touched
+    setTouchedFields({
+      name: true,
+      email: true,
+      message: true,
+      phone: true,
+    });
+
+    // Validate all fields
+    const newErrors: Record<string, string> = {};
+    ['name', 'email', 'message', 'phone'].forEach(field => {
+      const error = validateField(field, formData[field as keyof typeof formData]);
+      if (error) newErrors[field] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error(`Please fix ${Object.keys(newErrors).length} validation error${Object.keys(newErrors).length > 1 ? 's' : ''}`);
+      return;
+    }
+
+    toast.success('Message sent successfully! We\'ll get back to you soon.');
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      subject: 'general',
+      message: '',
+    });
+    setErrors({});
+    setTouchedFields({});
+  };
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center">
-              <Logo />
-              <span className="ml-3 text-xl font-bold text-primary">Mintenance</span>
-            </Link>
-            <Link
-              href="/"
-              className="text-gray-700 hover:text-secondary transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary to-primary-light">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-            Get in Touch
-          </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            We're here to help. Whether you have a question about our platform, need technical support,
-            or want to explore partnership opportunities, our team is ready to assist you.
-          </p>
-        </div>
-      </section>
-
-      {/* Contact Methods */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {/* Email */}
-            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
-              {/* Gradient bar - appears on hover, always visible on large screens */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-2">Email Us</h3>
-              <p className="text-gray-600 mb-4">Our team typically responds within 24 hours</p>
-              <a href="mailto:support@mintenance.co.uk" className="text-secondary hover:underline font-medium">
-                support@mintenance.co.uk
-              </a>
-            </div>
-
-            {/* Phone */}
-            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
-              {/* Gradient bar - appears on hover, always visible on large screens */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-2">Call Us</h3>
-              <p className="text-gray-600 mb-4">Monday-Friday, 9:00 AM - 6:00 PM GMT</p>
-              <a href="tel:+442012345678" className="text-accent hover:underline font-medium">
-                +44 (0) 20 1234 5678
-              </a>
-            </div>
-
-            {/* Live Chat */}
-            <div className="bg-white rounded-xl p-6 text-center shadow-lg border border-gray-200 group relative overflow-hidden">
-              {/* Gradient bar - appears on hover, always visible on large screens */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-primary mb-2">Live Chat</h3>
-              <p className="text-gray-600 mb-4">Chat with our support team in real-time</p>
-              <Dialog open={showLiveChatDialog} onOpenChange={setShowLiveChatDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" className="text-purple-500 hover:text-purple-600">
-                    Start Chat →
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Live Chat Coming Soon</DialogTitle>
-                    <DialogDescription>
-                      Our live chat feature is currently under development.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4 text-center">
-                    <MessageCircle className="w-16 h-16 text-purple-500 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-6">
-                      Our live chat feature is currently under development and will be available soon!
-                    </p>
-                    <p className="text-sm text-gray-500 mb-6">
-                      In the meantime, please reach out to us via email and we'll respond as quickly as possible.
-                    </p>
-                    <a
-                      href="mailto:support@mintenance.co.uk"
-                      className="inline-block"
-                    >
-                      <Button variant="primary">
-                        Email Us: support@mintenance.co.uk
-                      </Button>
-                    </a>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+      <MotionDiv
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center">
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white/20 backdrop-blur-sm p-4 rounded-full inline-block mb-6"
+            >
+              <MessageSquare className="w-12 h-12" />
+            </MotionDiv>
+            <MotionH1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-5xl md:text-6xl font-bold mb-6"
+            >
+              Get in Touch
+            </MotionH1>
+            <MotionP
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-xl md:text-2xl text-teal-100 max-w-3xl mx-auto"
+            >
+              Have questions? We're here to help. Reach out to our team and we'll respond as soon as possible.
+            </MotionP>
           </div>
         </div>
-      </section>
+      </MotionDiv>
 
-      {/* Contact Form */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Contact Form */}
+          <div className="lg:col-span-2">
+            <MotionDiv
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    label="Your Name"
+                    required
+                    error={touchedFields.name ? errors.name : undefined}
+                    success={isFieldValid('name')}
+                    helperText={isFieldValid('name') ? 'Perfect!' : 'Enter your full name'}
+                    htmlFor="contact-name"
+                  >
+                    <ValidatedInput
+                      id="contact-name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                      onBlur={() => handleFieldBlur('name')}
+                      placeholder="John Smith"
+                      error={Boolean(touchedFields.name && errors.name)}
+                      success={isFieldValid('name')}
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Email Address"
+                    required
+                    error={touchedFields.email ? errors.email : undefined}
+                    success={isFieldValid('email')}
+                    helperText={isFieldValid('email') ? 'Email verified' : 'We\'ll respond to this email'}
+                    htmlFor="contact-email"
+                  >
+                    <ValidatedInput
+                      id="contact-email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      onBlur={() => handleFieldBlur('email')}
+                      placeholder="john@example.com"
+                      error={Boolean(touchedFields.email && errors.email)}
+                      success={isFieldValid('email')}
+                    />
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    label="Phone Number"
+                    error={touchedFields.phone ? errors.phone : undefined}
+                    success={isFieldValid('phone')}
+                    helperText="Optional - for urgent matters"
+                    htmlFor="contact-phone"
+                  >
+                    <ValidatedInput
+                      id="contact-phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
+                      onBlur={() => handleFieldBlur('phone')}
+                      placeholder="+44 7700 900000"
+                      error={Boolean(touchedFields.phone && errors.phone)}
+                      success={isFieldValid('phone')}
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Subject"
+                    helperText="Help us route your message"
+                    htmlFor="contact-subject"
+                  >
+                    <ValidatedSelect
+                      id="contact-subject"
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    >
+                      <option value="general">General Inquiry</option>
+                      <option value="support">Technical Support</option>
+                      <option value="billing">Billing Question</option>
+                      <option value="contractor">Contractor Account</option>
+                      <option value="partnership">Partnership</option>
+                      <option value="feedback">Feedback</option>
+                    </ValidatedSelect>
+                  </FormField>
+                </div>
+
+                <FormField
+                  label="Message"
+                  required
+                  error={touchedFields.message ? errors.message : undefined}
+                  success={isFieldValid('message')}
+                  helperText={isFieldValid('message') ? 'Message looks great!' : 'Tell us how we can help (minimum 10 characters)'}
+                  htmlFor="contact-message"
+                >
+                  <ValidatedTextarea
+                    id="contact-message"
+                    value={formData.message}
+                    onChange={(e) => handleFieldChange('message', e.target.value)}
+                    onBlur={() => handleFieldBlur('message')}
+                    placeholder="Tell us how we can help..."
+                    rows={6}
+                    error={Boolean(touchedFields.message && errors.message)}
+                    success={isFieldValid('message')}
+                  />
+                </FormField>
+
+                <MotionButton
+                  type="submit"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-8 py-4 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Send className="w-5 h-5" />
+                  Send Message
+                </MotionButton>
+              </form>
+            </MotionDiv>
+          </div>
+
+          {/* Contact Info Sidebar */}
+          <div className="lg:col-span-1">
+            <MotionDiv
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              {contactInfo.map((info, index) => {
+                const Icon = info.icon;
+                return (
+                  <MotionDiv
+                    key={index}
+                    variants={staggerItem}
+                    whileHover={{ y: -4 }}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all"
+                  >
+                    <div className="bg-teal-100 p-3 rounded-lg inline-block mb-4">
+                      <Icon className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-2">{info.title}</h3>
+                    <p className="text-teal-600 font-medium mb-1">{info.details}</p>
+                    <p className="text-sm text-gray-600">{info.description}</p>
+                  </MotionDiv>
+                );
+              })}
+            </MotionDiv>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="mt-16"
+        >
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-primary mb-4">Send Us a Message</h2>
-            <p className="text-xl text-gray-600">
-              Fill out the form below and we'll get back to you as soon as possible
+            <HelpCircle className="w-12 h-12 text-teal-600 mx-auto mb-4" />
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Find quick answers to common questions. Can't find what you're looking for? Send us a message above.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 md:p-12 group relative overflow-hidden">
-            {/* Gradient bar - appears on hover, always visible on large screens */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-            {submitStatus === 'success' && (
-              <Alert className="mb-6 border-green-500 bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Message Sent Successfully!</AlertTitle>
-                <AlertDescription className="text-green-700">
-                  We'll get back to you within 24 hours.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {submitStatus === 'error' && errorMessage && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    {...register('name')}
-                    error={errors.name?.message}
-                    placeholder="John Smith"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    error={errors.email?.message}
-                    placeholder="john.smith@example.com"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select value={category} onValueChange={(value: ContactFormData['category']) => setValue('category', value)}>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Enquiry</SelectItem>
-                    <SelectItem value="technical">Technical Support</SelectItem>
-                    <SelectItem value="billing">Billing & Payments</SelectItem>
-                    <SelectItem value="partnerships">Partnership Opportunities</SelectItem>
-                    <SelectItem value="press">Press & Media</SelectItem>
-                    <SelectItem value="feedback">Feedback & Suggestions</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="text-sm text-red-600">{errors.category.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
-                <Input
-                  id="subject"
-                  {...register('subject')}
-                  error={errors.subject?.message}
-                  placeholder="How can we help you?"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="message">Message *</Label>
-                <Textarea
-                  id="message"
-                  {...register('message')}
-                  errorText={errors.message?.message}
-                  rows={6}
-                  placeholder="Please provide as much detail as possible..."
-                />
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="consent"
-                  {...register('consent')}
-                  checked={consent}
-                />
-                <Label htmlFor="consent" className="font-normal cursor-pointer text-sm text-gray-600">
-                  I agree to the{' '}
-                  <Link href="/privacy" className="text-secondary hover:underline">
-                    Privacy Policy
-                  </Link>{' '}
-                  and consent to Mintenance contacting me regarding my enquiry. *
-                </Label>
-              </div>
-              {errors.consent && (
-                <p className="text-sm text-red-600">{errors.consent.message}</p>
-              )}
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                loading={isSubmitting}
-                disabled={isSubmitting}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {faqs.map((faq, index) => (
+              <MotionDiv
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all"
               >
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </Button>
-            </form>
+                <div className="flex items-start gap-3 mb-3">
+                  <CheckCircle className="w-5 h-5 text-teal-600 flex-shrink-0 mt-1" />
+                  <h3 className="font-bold text-gray-900">{faq.question}</h3>
+                </div>
+                <p className="text-gray-600 ml-8">{faq.answer}</p>
+              </MotionDiv>
+            ))}
           </div>
-        </div>
-      </section>
 
-      {/* Office Location */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-primary mb-6">Our Office</h2>
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-lg font-semibold text-primary mb-1">Registered Office</h3>
-                    <p className="text-gray-600">
-                      MINTENANCE LTD<br />
-                      Suite 2 J2 Business Park<br />
-                      Bridge Hall Lane<br />
-                      Bury, England<br />
-                      BL9 7NY
-                    </p>
-                  </div>
-                </div>
+          <div className="text-center mt-8">
+            <p className="text-gray-600 mb-4">Still have questions?</p>
+            <MotionA
+              href="/help"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
+            >
+              Visit Help Center
+            </MotionA>
+          </div>
+        </MotionDiv>
 
-                <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-lg font-semibold text-primary mb-1">Opening Hours</h3>
-                    <p className="text-gray-600">
-                      Monday - Friday: 9:00 AM - 6:00 PM<br />
-                      Saturday: 10:00 AM - 2:00 PM<br />
-                      Sunday: Closed
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <svg className="w-6 h-6 text-secondary mr-4 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-lg font-semibold text-primary mb-1">Company Details</h3>
-                    <p className="text-gray-600">
-                      Company No. 16542104<br />
-                      Registered in England and Wales
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Interactive Google Maps */}
-            <div className="rounded-xl h-96 overflow-hidden shadow-lg relative">
-              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && !mapError ? (
-                <>
-                  {mapLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-20">
-                      <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-secondary mb-2"></div>
-                        <p className="text-sm text-gray-600">Loading map...</p>
-                      </div>
-                    </div>
-                  )}
-                  <iframe
-                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK&zoom=15`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="w-full h-full"
-                    title="Mintenance Ltd - Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY"
-                    onLoad={() => setMapLoading(false)}
-                    onError={() => {
-                      setMapError(true);
-                      setMapLoading(false);
-                    }}
-                  />
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <div className="text-center p-8 max-w-md">
-                    <svg
-                      className="w-16 h-16 mx-auto mb-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <p className="text-lg font-semibold text-gray-900 mb-2">Map Unavailable</p>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Suite 2 J2 Business Park<br />
-                      Bridge Hall Lane, Bury, BL9 7NY<br />
-                      United Kingdom
-                    </p>
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=Suite+2+J2+Business+Park+Bridge+Hall+Lane+Bury+BL9+7NY+UK"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-secondary hover:text-secondary-dark font-medium text-sm transition-colors"
-                    >
-                      View on Google Maps
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              )}
-              <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 text-sm z-10">
-                <p className="font-semibold text-gray-900">Suite 2 J2 Business Park</p>
-                <p className="text-gray-600">Bridge Hall Lane, Bury, BL9 7NY</p>
-              </div>
+        {/* Map Placeholder */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.6 }}
+          className="mt-16 bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Find Us</h2>
+          <div className="aspect-video bg-gradient-to-br from-teal-100 to-emerald-100 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <MapPin className="w-16 h-16 text-teal-600 mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">Interactive Map</p>
+              <p className="text-sm text-gray-500">123 Tech Street, London, SW1A 1AA</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* FAQ Quick Links */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-primary mb-6">Looking for Quick Answers?</h2>
-          <p className="text-xl text-gray-600 mb-10">
-            Many common questions are answered in our Help Centre
-          </p>
-          <Link
-            href="/help"
-            className="inline-flex items-center bg-secondary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-secondary-dark transition-colors"
-          >
-            Visit Help Centre
-            <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-primary text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center mb-6">
-            <Logo />
-            <span className="ml-3 text-xl font-bold">Mintenance</span>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm">
-            <Link href="/" className="text-gray-400 hover:text-secondary transition-colors">
-              Home
-            </Link>
-            <Link href="/about" className="text-gray-400 hover:text-secondary transition-colors">
-              About Us
-            </Link>
-            <Link href="/privacy" className="text-gray-400 hover:text-secondary transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-secondary transition-colors">
-              Terms of Service
-            </Link>
-          </div>
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Mintenance Ltd. All rights reserved. Company No. 16542104
-          </p>
-        </div>
-      </footer>
-
+        </MotionDiv>
+      </div>
     </div>
   );
 }

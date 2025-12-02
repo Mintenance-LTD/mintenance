@@ -104,7 +104,7 @@ export class GCPAuthService {
     success: boolean;
     projectId: string;
     method: string;
-    details?: any;
+    details?: { hasAccessToken: boolean };
     error?: string;
   }> {
     try {
@@ -133,7 +133,8 @@ export class GCPAuthService {
           hasAccessToken: !!token.token,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       logger.error('GCP Authentication test failed', error, {
         service: 'GCPAuthService',
       });
@@ -142,7 +143,7 @@ export class GCPAuthService {
         success: false,
         projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || 'unknown',
         method: 'Application Default Credentials',
-        error: error.message,
+        error: err.message,
       };
     }
   }
@@ -170,14 +171,15 @@ export class GCPAuthService {
         success: true,
         buckets: bucketNames,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       logger.error('GCP Storage access test failed', error, {
         service: 'GCPAuthService',
       });
 
       return {
         success: false,
-        error: error.message,
+        error: err.message,
       };
     }
   }
@@ -206,9 +208,10 @@ export class GCPAuthService {
       return {
         success: true,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       // If error is about missing endpoints, that's OK - auth worked
-      if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
+      if (err.message?.includes('not found') || err.message?.includes('does not exist')) {
         logger.info('GCP Vertex AI access test - no resources found (auth OK)', {
           service: 'GCPAuthService',
         });
@@ -221,7 +224,7 @@ export class GCPAuthService {
 
       return {
         success: false,
-        error: error.message,
+        error: err.message,
       };
     }
   }
@@ -230,9 +233,9 @@ export class GCPAuthService {
    * Run all authentication tests
    */
   static async runAllTests(): Promise<{
-    auth: { success: boolean; [key: string]: any };
-    storage: { success: boolean; [key: string]: any };
-    vertexAI: { success: boolean; [key: string]: any };
+    auth: { success: boolean; projectId?: string; method?: string; details?: { hasAccessToken: boolean }; error?: string };
+    storage: { success: boolean; buckets?: string[]; error?: string };
+    vertexAI: { success: boolean; error?: string };
   }> {
     const auth = await this.testAuth();
     const storage = await this.testStorageAccess();

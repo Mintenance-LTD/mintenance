@@ -2,6 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
+import { WeatherService, WeatherForecast } from '../weather/WeatherService';
 import type { AgentResult, AgentContext } from './types';
 
 interface WeatherData {
@@ -315,34 +316,36 @@ export class SchedulingAgent {
    */
   private static async getWeatherForecast(location: string): Promise<WeatherData | null> {
     try {
-      // Use OpenWeatherMap API or similar
-      // For now, return mock data - this should be replaced with actual API call
-      const apiKey = process.env.OPENWEATHER_API_KEY;
-      if (!apiKey) {
-        logger.warn('OpenWeather API key not configured', {
-          service: 'SchedulingAgent',
-        });
-        return null;
-      }
-
-      // Geocode location to get coordinates
-      // Then fetch weather forecast
-      // This is a placeholder - actual implementation would call OpenWeatherMap API
       logger.info('Weather forecast requested', {
         service: 'SchedulingAgent',
         location,
       });
 
-      // Mock weather data for now
+      // Fetch weather forecast using WeatherService
+      const forecasts = await WeatherService.getForecastByLocation(location, 1);
+
+      if (!forecasts || forecasts.length === 0) {
+        logger.warn('No weather forecast available', {
+          service: 'SchedulingAgent',
+          location,
+        });
+        return null;
+      }
+
+      // Get today's forecast
+      const todayForecast = forecasts[0];
+
+      // Transform to WeatherData format
       return {
-        condition: 'rain',
-        temperature: 15,
-        precipitation: 80,
-        windSpeed: 10,
+        condition: todayForecast.conditions,
+        temperature: todayForecast.temperature,
+        precipitation: todayForecast.precipitation,
+        windSpeed: todayForecast.windSpeed,
       };
     } catch (error) {
       logger.error('Error getting weather forecast', error, {
         service: 'SchedulingAgent',
+        location,
       });
       return null;
     }
@@ -381,18 +384,49 @@ export class SchedulingAgent {
     startDate: Date,
     category: string
   ): Promise<Date | null> {
-    // Check weather for next 7 days
-    for (let i = 1; i <= 7; i++) {
-      const checkDate = new Date(startDate);
-      checkDate.setDate(checkDate.getDate() + i);
+    try {
+      // Get 7-day forecast
+      const forecasts = await WeatherService.getForecastByLocation(location, 7);
 
-      const weather = await this.getWeatherForecast(location);
-      if (weather && !this.isBadWeatherForJob(weather, category)) {
-        return checkDate;
+      if (!forecasts || forecasts.length === 0) {
+        logger.warn('No weather forecast available for rescheduling', {
+          service: 'SchedulingAgent',
+          location,
+        });
+        return null;
       }
-    }
 
-    return null;
+      // Find the first day with suitable weather
+      for (let i = 1; i < forecasts.length; i++) {
+        const forecast = forecasts[i];
+        const forecastDate = new Date(forecast.date);
+
+        // Check if this day has good weather for the job category
+        if (WeatherService.isSuitableForOutdoorWork(forecast, category)) {
+          logger.info('Found suitable weather day for rescheduling', {
+            service: 'SchedulingAgent',
+            originalDate: startDate.toISOString(),
+            newDate: forecastDate.toISOString(),
+            weather: forecast,
+          });
+          return forecastDate;
+        }
+      }
+
+      logger.warn('No suitable weather days found in 7-day forecast', {
+        service: 'SchedulingAgent',
+        location,
+        category,
+      });
+      return null;
+    } catch (error) {
+      logger.error('Error finding next good weather day', error, {
+        service: 'SchedulingAgent',
+        location,
+        category,
+      });
+      return null;
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import {
+import { logger } from '@mintenance/shared';
   errorMonitoring,
   withErrorMonitoring,
   useErrorReporting,
@@ -549,7 +550,7 @@ describe('ErrorMonitoringSystem', () => {
       const originalConsoleError = console.error;
       const testError = new Error('Console error test');
 
-      console.error(testError);
+      logger.error(testError);
 
       // Verify error was reported
       const allErrors = errorMonitoring.getAllErrors();

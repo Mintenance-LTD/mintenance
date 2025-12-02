@@ -8,6 +8,7 @@ import { ContextFeatureService } from '../ContextFeatureService';
 import type { AITestResult } from './ABTestTypes';
 import { getSafetyThreshold, normalizePropertyType } from './ABTestUtils';
 import { checkSeedSafeSet } from './ABTestDatabase';
+import { AB_TEST_CONFIG } from './ABTestConfig';
 
 export interface SafeLUCBParams {
   aiResult: AITestResult;
@@ -25,7 +26,7 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
   const { aiResult } = params;
 
   // 1. Check if context is in SEED SAFE SET
-  const seedSafeSet = await checkSeedSafeSet(aiResult.contextFeatures);
+  const seedSafeSet = await checkSeedSafeSet(aiResult.contextFeatures as unknown as Record<string, unknown>);
 
   if (!seedSafeSet.isSafe) {
     return {
@@ -59,7 +60,7 @@ export async function runSafeLUCBPolicy(params: SafeLUCBParams): Promise<{
   // Extract property type from stratum (format: propertyType_ageBin_region_damageCategory)
   const stratumParts = aiResult.cpStratum.split('_');
   const propertyType = stratumParts.length > 0 ? normalizePropertyType(stratumParts[0]) : 'residential';
-  const deltaSafety = params.deltaSafety || getSafetyThreshold(propertyType);
+  const deltaSafety = params.deltaSafety || getSafetyThreshold(propertyType, AB_TEST_CONFIG);
 
   // 4. Call Safe-LUCB critic with stratum and critical hazard info
   const criticDecision = await callSafeLUCBCritic({

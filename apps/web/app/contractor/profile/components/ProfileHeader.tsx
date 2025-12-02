@@ -1,12 +1,29 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { CircularProgress } from '@/components/ui/CircularProgress';
 import { Button } from '@/components/ui/Button';
 
+interface ContractorHeaderData {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  email: string;
+  profile_image_url?: string;
+  admin_verified?: boolean;
+  bio?: string;
+  city?: string;
+  country?: string;
+  company_name?: string;
+  is_available?: boolean;
+  email_verified?: boolean;
+  response_time_label?: string;
+}
+
 interface ProfileHeaderProps {
-  contractor: any;
+  contractor: ContractorHeaderData;
   metrics: {
     profileCompletion: number;
     averageRating: number;
@@ -54,6 +71,7 @@ export function ProfileHeader({
         <div style={{ display: 'flex', gap: theme.spacing[6], flex: 1, minWidth: '260px' }}>
           <div
             style={{
+              position: 'relative',
               width: '120px',
               height: '120px',
               borderRadius: '32px',
@@ -69,10 +87,13 @@ export function ProfileHeader({
             }}
           >
             {contractor.profile_image_url ? (
-              <img
+              <Image
                 src={contractor.profile_image_url}
                 alt={fullName}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                fill
+                className="object-cover"
+                sizes="120px"
+                priority
               />
             ) : (
               <>

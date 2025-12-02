@@ -2,177 +2,140 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchCurrentUser } from '@/lib/auth-client';
-import { theme } from '@/lib/theme';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { PaymentCard } from '@/components/payments/PaymentCard';
-import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
+import { AnimatePresence } from 'framer-motion';;
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
+import { LoadingSpinner, ErrorView } from '@/components/ui';
+import { fadeIn, staggerContainer, staggerItem, cardHover } from '@/lib/animations/variants';
+import { formatMoney } from '@/lib/utils/currency';
+import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import type { EscrowTransaction, User } from '@mintenance/types';
+import { MotionDiv } from '@/components/ui/MotionDiv';
 
-export default function PaymentsPage() {
+interface Transaction {
+  id: string;
+  amount: number;
+  status: 'pending' | 'held' | 'released' | 'refunded' | 'completed';
+  type: 'payment' | 'refund' | 'escrow';
+  created_at: string;
+  updated_at: string;
+  job_title?: string;
+  job_id?: string;
+  contractor_name?: string;
+  contractor_id?: string;
+  release_reason?: string;
+  refund_reason?: string;
+}
+
+export default function PaymentsPage2025() {
   const router = useRouter();
+  const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
-  const [user, setUser] = useState<User | null>(null);
-  const [transactions, setTransactions] = useState<EscrowTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<string>('all');
-  const [alertDialog, setAlertDialog] = useState<{
-    open: boolean;
-    title: string;
-    message: string;
-    onConfirm?: () => void;
-  }>({ open: false, title: '', message: '' });
-  const [refundDialog, setRefundDialog] = useState<{
-    open: boolean;
-    transactionId: string | null;
-    reason: string;
-  }>({ open: false, transactionId: null, reason: '' });
-  const [successAlert, setSuccessAlert] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'refunded'>('all');
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [refundReason, setRefundReason] = useState('');
 
-  // Set page title
+  // Fetch transactions
   useEffect(() => {
-    document.title = 'Payments | Mintenance';
-  }, []);
+    if (!user) return;
 
-  useEffect(() => {
-    loadUserAndPayments();
-  }, []);
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch('/api/payments/history');
+        if (!response.ok) throw new Error('Failed to fetch transactions');
 
-  const loadUserAndPayments = async () => {
-    try {
-      setLoading(true);
-      const currentUser = await fetchCurrentUser();
+        const { payments } = await response.json();
 
-      if (!currentUser) {
-        router.push('/login');
-        return;
+        interface PaymentData {
+          id: string;
+          amount: number;
+          status: string;
+          created_at: string;
+          updated_at?: string;
+          payer?: { id: string; email: string };
+          payee?: { id: string; email: string };
+          job?: { title: string } | null;
+          job_id?: string;
+          job_title?: string;
+          type?: string;
+          transaction_type?: string;
+          reference?: string;
+          contractor_id?: string;
+          contractor_name?: string;
+          release_reason?: string;
+          refund_reason?: string;
+        }
+
+        const transformedTransactions: Transaction[] = (payments || []).map((t: PaymentData) => ({
+          id: t.id,
+          amount: t.amount,
+          status: t.status,
+          type: t.transaction_type || 'payment',
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+          job_title: t.job_title,
+          job_id: t.job_id,
+          contractor_name: t.contractor_name,
+          contractor_id: t.contractor_id,
+          release_reason: t.release_reason,
+          refund_reason: t.refund_reason,
+        }));
+
+        setTransactions(transformedTransactions);
+      } catch (error) {
+        toast.error('Failed to load payment history');
+      } finally {
+        setLoadingTransactions(false);
       }
+    };
 
-      setUser(currentUser);
-      
-      // Fetch from API route instead of client-side service
-      const response = await fetch('/api/payments/history');
-      if (!response.ok) {
-        throw new Error('Failed to load payment history');
-      }
-      const { payments } = await response.json();
-      setTransactions(payments || []);
-    } catch (err) {
-      console.error('Error loading payments:', err);
-      setError('Failed to load payments');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchTransactions();
+  }, [user]);
 
   const handleReleasePayment = async (transactionId: string) => {
     if (!csrfToken) {
-      setAlertDialog({
-        open: true,
-        title: 'Security Error',
-        message: 'Security token not loaded. Please refresh the page.',
-      });
+      toast.error('Security token not loaded. Please refresh.');
       return;
     }
 
-    setAlertDialog({
-      open: true,
-      title: 'Release Payment',
-      message: 'Are you sure you want to release this payment? This action cannot be undone.',
-      onConfirm: async () => {
-        try {
-          const response = await fetch('/api/payments/release-escrow', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-csrf-token': csrfToken,
-            },
-            body: JSON.stringify({
-              escrowTransactionId: transactionId,
-              releaseReason: 'job_completed'
-            }),
-          });
-          
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to release payment');
-          }
-          
-          setSuccessAlert({ show: true, message: 'Payment released successfully!' });
-          setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
-          loadUserAndPayments(); // Refresh the list
-        } catch (error: any) {
-          console.error('Error releasing payment:', error);
-          setAlertDialog({
-            open: true,
-            title: 'Error',
-            message: error.message || 'Failed to release payment',
-          });
-        }
-      },
-    });
+    if (!confirm('Are you sure you want to release this payment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/payments/release-escrow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          escrowTransactionId: transactionId,
+          releaseReason: 'job_completed',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to release payment');
+      }
+
+      toast.success('Payment released successfully!');
+      window.location.reload();
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Failed to release payment');
+    }
   };
 
-  const handleRefundPayment = async (transactionId: string) => {
-    if (!csrfToken) {
-      setAlertDialog({
-        open: true,
-        title: 'Security Error',
-        message: 'Security token not loaded. Please refresh the page.',
-      });
-      return;
-    }
+  const handleRefundPayment = async () => {
+    if (!selectedTransaction || !csrfToken) return;
 
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (!transaction) {
-      setAlertDialog({
-        open: true,
-        title: 'Error',
-        message: 'Transaction not found',
-      });
-      return;
-    }
-
-    setRefundDialog({ open: true, transactionId, reason: '' });
-  };
-
-  const confirmRefund = async () => {
-    if (!refundDialog.transactionId || !refundDialog.reason.trim()) {
-      setAlertDialog({
-        open: true,
-        title: 'Validation Error',
-        message: 'Please provide a reason for the refund',
-      });
-      return;
-    }
-
-    const transaction = transactions.find(t => t.id === refundDialog.transactionId);
-    if (!transaction) {
-      setAlertDialog({
-        open: true,
-        title: 'Error',
-        message: 'Transaction not found',
-      });
+    if (!refundReason.trim()) {
+      toast.error('Please provide a refund reason');
       return;
     }
 
@@ -181,434 +144,357 @@ export default function PaymentsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken!,
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          escrowTransactionId: refundDialog.transactionId,
-          jobId: transaction.jobId,
-          amount: transaction.amount,
-          reason: refundDialog.reason.trim()
+          transactionId: selectedTransaction.id,
+          reason: refundReason,
         }),
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to request refund');
+        throw new Error(data.error || 'Failed to process refund');
       }
-      
-      setSuccessAlert({ show: true, message: 'Refund request submitted successfully!' });
-      setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
-      setRefundDialog({ open: false, transactionId: null, reason: '' });
-      loadUserAndPayments(); // Refresh the list
-    } catch (error: any) {
-      console.error('Error requesting refund:', error);
-      setAlertDialog({
-        open: true,
-        title: 'Error',
-        message: error.message || 'Failed to request refund',
-      });
+
+      toast.success('Refund processed successfully!');
+      setShowRefundModal(false);
+      setRefundReason('');
+      window.location.reload();
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Failed to process refund');
     }
   };
 
-  const handleViewDetails = (transactionId: string) => {
-    router.push(`/payments/${transactionId}`);
-  };
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!loadingUser && !user) {
+      router.push('/login?redirect=/payments');
+    }
+  }, [user, loadingUser, router]);
 
-  const filteredTransactions = transactions.filter(transaction => {
-    if (filter === 'all') return true;
-    return transaction.status === filter;
-  });
-
-  const getStatusCounts = () => {
-    const counts = transactions.reduce((acc, transaction) => {
-      acc[transaction.status] = (acc[transaction.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    return counts;
-  };
-
-  const statusCounts = getStatusCounts();
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalReleased = transactions
-    .filter(t => t.status === 'released')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  if (!user) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.colors.backgroundSecondary
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{
-            fontSize: theme.typography.fontSize['2xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text,
-            marginBottom: theme.spacing.md
-          }}>
-            Access Denied
-          </h1>
-          <p style={{
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing.lg
-          }}>
-            You must be logged in to view payments.
-          </p>
-          <Button
-            onClick={() => router.push('/login')}
-            variant="primary"
-          >
-            Go to Login
-          </Button>
-        </div>
-      </div>
-    );
+  if (loadingUser) {
+    return <LoadingSpinner fullScreen message="Loading..." />;
   }
 
-  const userDisplayName = user.first_name && user.last_name 
-    ? `${user.first_name} ${user.last_name}`.trim() 
+  if (!user) return null;
+
+  const userDisplayName = user.first_name && user.last_name
+    ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
 
+  // Filter transactions
+  const filteredTransactions = transactions.filter((t) => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return t.status === 'pending' || t.status === 'held';
+    if (filter === 'completed') return t.status === 'completed' || t.status === 'released';
+    if (filter === 'refunded') return t.status === 'refunded';
+    return true;
+  });
+
+  // Calculate stats
+  const totalPaid = transactions
+    .filter((t) => t.status === 'completed' || t.status === 'released')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const pendingAmount = transactions
+    .filter((t) => t.status === 'pending' || t.status === 'held')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const refundedAmount = transactions
+    .filter((t) => t.status === 'refunded')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'released':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-600';
+      case 'pending':
+      case 'held':
+        return 'bg-amber-100 text-amber-700 border-amber-600';
+      case 'refunded':
+        return 'bg-rose-100 text-rose-700 border-rose-600';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-600';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'released':
+        return '✅';
+      case 'pending':
+      case 'held':
+        return '⏳';
+      case 'refunded':
+        return '↩️';
+      default:
+        return '📋';
+    }
+  };
+
   return (
-    <HomeownerLayoutShell 
-      currentPath="/payments"
-      userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-      userEmail={user.email}
-    >
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing.lg
-      }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs 
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Payments', current: true }
-          ]}
-          style={{ marginBottom: theme.spacing[4] }}
-        />
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/30 to-gray-50">
+      <UnifiedSidebar
+        userRole={user.role}
+        userInfo={{
+          name: userDisplayName,
+          email: user.email,
+          avatar: (user as any).profile_image_url,
+        }}
+      />
 
-        {/* Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 p-8 -m-8 rounded-2xl mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center shadow-sm">
-                <Icon name="creditCard" size={28} color={theme.colors.primary} />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
-                  Payments & Escrow
-                </h1>
-                <p className="text-base font-medium text-gray-600 leading-relaxed">
-                  Manage your secure payments and escrow transactions
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => router.push('/jobs')}
-                variant="outline"
-                size="sm"
-                leftIcon={<Icon name="briefcase" size={16} />}
-              >
-                View Jobs
-              </Button>
-              <Button
-                onClick={loadUserAndPayments}
-                variant="outline"
-                size="sm"
-                disabled={loading}
-                leftIcon={<Icon name="refresh" size={16} />}
-              >
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
+      <main className="flex flex-col flex-1 ml-[240px]">
+        {/* Hero Header */}
+        <MotionDiv
+          className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-500 text-white"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="max-w-[1600px] mx-auto px-8 py-12">
+            <h1 className="text-4xl font-bold mb-2">Payment History</h1>
+            <p className="text-teal-100 text-lg">View and manage your payments and transactions</p>
 
-        {/* Stats Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: theme.spacing.lg,
-          marginBottom: theme.spacing.lg
-        }}>
-          <div style={{
-            backgroundColor: theme.colors.white,
-            padding: theme.spacing.lg,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: theme.shadows.sm,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.primary,
-              marginBottom: theme.spacing.xs
-            }}>
-              {transactions.length}
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary
-            }}>
-              Total Transactions
-            </div>
-          </div>
-
-          <div style={{
-            backgroundColor: theme.colors.white,
-            padding: theme.spacing.lg,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: theme.shadows.sm,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.success,
-              marginBottom: theme.spacing.xs
-            }}>
-              ${totalAmount.toLocaleString()}
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary
-            }}>
-              Total Volume
-            </div>
-          </div>
-
-          <div style={{
-            backgroundColor: theme.colors.white,
-            padding: theme.spacing.lg,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: theme.shadows.sm,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.info,
-              marginBottom: theme.spacing.xs
-            }}>
-              {statusCounts.held || 0}
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary
-            }}>
-              In Escrow
-            </div>
-          </div>
-
-          <div style={{
-            backgroundColor: theme.colors.white,
-            padding: theme.spacing.lg,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: theme.shadows.sm,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.success,
-              marginBottom: theme.spacing.xs
-            }}>
-              ${totalReleased.toLocaleString()}
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary
-            }}>
-              Released
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing.md,
-          marginBottom: theme.spacing.lg,
-          boxShadow: theme.shadows.sm,
-          display: 'flex',
-          gap: theme.spacing.sm,
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <span style={{
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.text,
-            marginRight: theme.spacing.sm
-          }}>
-            Filter:
-          </span>
-          {['all', 'pending', 'held', 'released', 'refunded'].map(status => (
-            <Button
-              key={status}
-              variant={filter === status ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setFilter(status)}
-              className="capitalize"
-            >
-              {status} {status !== 'all' && statusCounts[status] ? `(${statusCounts[status]})` : ''}
-            </Button>
-          ))}
-        </div>
-
-        {/* Payments Content */}
-        <div style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.lg,
-          boxShadow: theme.shadows.sm,
-          overflow: 'hidden'
-        }}>
-          {loading && (
-            <div style={{
-              padding: theme.spacing.xl,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.lg,
-                color: theme.colors.textSecondary
-              }}>
-                Loading payments...
-              </div>
-            </div>
-          )}
-
-          {successAlert.show && (
-            <Alert className="mb-4 border-green-200 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle className="text-green-800">Success</AlertTitle>
-              <AlertDescription className="text-green-700">
-                {successAlert.message}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {error && (
-            <div style={{
-              padding: theme.spacing.xl,
-              textAlign: 'center'
-            }}>
-              <div style={{
-                color: theme.colors.error,
-                fontSize: theme.typography.fontSize.base,
-                marginBottom: theme.spacing.md
-              }}>
-                {error}
-              </div>
-              <Button
-                onClick={loadUserAndPayments}
-                variant="outline"
-                size="sm"
-              >
-                Try Again
-              </Button>
-            </div>
-          )}
-
-          {!loading && !error && filteredTransactions.length === 0 && (
-            <EmptyState
-              variant="default"
-              icon="creditCard"
-              title={filter === 'all' ? 'No payments yet' : `No ${filter} payments`}
-              description={
-                filter === 'all'
-                  ? 'You haven\'t made any payments yet. Start by posting a job or applying to jobs to begin transacting.'
-                  : `No ${filter} payments found. Try changing the filter to see other transactions.`
-              }
-              actionLabel={filter === 'all' ? 'Browse Jobs' : 'Clear Filter'}
-              onAction={filter === 'all' ? () => router.push('/jobs') : () => setFilter('all')}
-            />
-          )}
-
-          {!loading && !error && filteredTransactions.length > 0 && (
-            <div style={{ padding: theme.spacing.lg }}>
-              {filteredTransactions.map((transaction) => (
-                <PaymentCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  currentUserId={user.id}
-                  onRelease={handleReleasePayment}
-                  onRefund={handleRefundPayment}
-                  onViewDetails={handleViewDetails}
-                />
+            {/* Stats Summary */}
+            <div className="grid grid-cols-4 gap-6 mt-8">
+              {[
+                { label: 'Total Paid', value: formatMoney(totalPaid, 'GBP'), icon: '💰', color: 'emerald' },
+                { label: 'Pending', value: formatMoney(pendingAmount, 'GBP'), icon: '⏳', color: 'amber' },
+                { label: 'Refunded', value: formatMoney(refundedAmount, 'GBP'), icon: '↩️', color: 'rose' },
+                { label: 'Transactions', value: transactions.length, icon: '📋', color: 'blue' },
+              ].map((stat) => (
+                <MotionDiv
+                  key={stat.label}
+                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
+                  variants={staggerItem}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{stat.icon}</span>
+                    <div>
+                      <div className="text-2xl font-bold">{stat.value}</div>
+                      <div className="text-teal-100 text-sm">{stat.label}</div>
+                    </div>
+                  </div>
+                </MotionDiv>
               ))}
             </div>
-          )}
+          </div>
+        </MotionDiv>
+
+        {/* Content */}
+        <div className="max-w-[1600px] mx-auto px-8 py-8 w-full">
+          <div className="flex flex-col gap-6">
+            {/* Filters */}
+            <MotionDiv
+              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+              variants={fadeIn}
+              initial="initial"
+              animate="animate"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-gray-700">Filter:</span>
+                {[
+                  { label: 'All', value: 'all' },
+                  { label: 'Pending', value: 'pending' },
+                  { label: 'Completed', value: 'completed' },
+                  { label: 'Refunded', value: 'refunded' },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setFilter(tab.value as any)}
+                    className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                      filter === tab.value
+                        ? 'bg-teal-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </MotionDiv>
+
+            {/* Transactions List */}
+            {loadingTransactions ? (
+              <LoadingSpinner message="Loading transactions..." />
+            ) : filteredTransactions.length === 0 ? (
+              <MotionDiv
+                className="bg-white rounded-2xl border border-gray-200 p-12 text-center"
+                variants={fadeIn}
+                initial="initial"
+                animate="animate"
+              >
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No transactions found</h3>
+                <p className="text-gray-600">
+                  {filter === 'all' ? 'You have no payment history yet' : `No ${filter} transactions`}
+                </p>
+              </MotionDiv>
+            ) : (
+              <MotionDiv
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                variants={fadeIn}
+                initial="initial"
+                animate="animate"
+              >
+                <div className="divide-y divide-gray-200">
+                  {filteredTransactions.map((transaction) => (
+                    <MotionDiv
+                      key={transaction.id}
+                      className="p-6 hover:bg-gray-50 transition-colors"
+                      variants={cardHover}
+                      initial="rest"
+                      whileHover="hover"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Left: Details */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-2xl">{getStatusIcon(transaction.status)}</span>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">
+                                {transaction.job_title || 'Payment'}
+                              </h3>
+                              {transaction.contractor_name && (
+                                <p className="text-sm text-gray-600">
+                                  To: {transaction.contractor_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                            <div className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {new Date(transaction.created_at).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border-2 ${getStatusColor(transaction.status)}`}>
+                              {transaction.status.toUpperCase()}
+                            </span>
+                          </div>
+
+                          {(transaction.release_reason || transaction.refund_reason) && (
+                            <p className="text-sm text-gray-600 italic">
+                              {transaction.release_reason || transaction.refund_reason}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Right: Amount & Actions */}
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-gray-900 mb-2">
+                            {formatMoney(transaction.amount, 'GBP')}
+                          </div>
+
+                          {transaction.status === 'held' && user.role === 'homeowner' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleReleasePayment(transaction.id)}
+                                className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors"
+                              >
+                                Release
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedTransaction(transaction);
+                                  setShowRefundModal(true);
+                                }}
+                                className="px-4 py-2 bg-rose-600 text-white text-sm rounded-lg hover:bg-rose-700 transition-colors"
+                              >
+                                Refund
+                              </button>
+                            </div>
+                          )}
+
+                          {transaction.job_id && (
+                            <button
+                              onClick={() => router.push(`/jobs/${transaction.job_id}`)}
+                              className="text-sm text-teal-600 hover:text-teal-700 font-medium mt-2"
+                            >
+                              View Job →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </MotionDiv>
+                  ))}
+                </div>
+              </MotionDiv>
+            )}
+          </div>
         </div>
 
-        {/* Alert Dialog */}
-        <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => setAlertDialog({ ...alertDialog, open })}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
-              <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
-                {alertDialog.onConfirm ? 'Cancel' : 'OK'}
-              </AlertDialogCancel>
-              {alertDialog.onConfirm && (
-                <AlertDialogAction onClick={() => {
-                  alertDialog.onConfirm?.();
-                  setAlertDialog({ open: false, title: '', message: '' });
-                }}>
-                  Confirm
-                </AlertDialogAction>
-              )}
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Refund Modal */}
+        <AnimatePresence>
+          {showRefundModal && selectedTransaction && (
+            <MotionDiv
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRefundModal(false)}
+            >
+              <MotionDiv
+                className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Request Refund</h2>
+                <p className="text-gray-600 mb-4">
+                  Refund amount: <span className="font-bold">{formatMoney(selectedTransaction.amount, 'GBP')}</span>
+                </p>
 
-        {/* Refund Dialog */}
-        <Dialog open={refundDialog.open} onOpenChange={(open: boolean) => setRefundDialog({ ...refundDialog, open })}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Refund</DialogTitle>
-              <DialogDescription>
-                Please provide a reason for requesting this refund.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="refund-reason">Reason *</Label>
-                <Input
-                  id="refund-reason"
-                  value={refundDialog.reason}
-                  onChange={(e) => setRefundDialog({ ...refundDialog, reason: e.target.value })}
-                  placeholder="Enter reason for refund..."
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setRefundDialog({ open: false, transactionId: null, reason: '' })}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={confirmRefund}
-                disabled={!refundDialog.reason.trim()}
-              >
-                Submit Refund Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </HomeownerLayoutShell>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Reason for refund <span className="text-rose-600">*</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Please explain why you're requesting a refund..."
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowRefundModal(false);
+                      setRefundReason('');
+                    }}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRefundPayment}
+                    disabled={!refundReason.trim()}
+                    className="px-6 py-3 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Request Refund
+                  </button>
+                </div>
+              </MotionDiv>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
   );
 }

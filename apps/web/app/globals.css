@@ -5,6 +5,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   MOTION ACCESSIBILITY
+   European Accessibility Act Compliance (2025)
+   WCAG 2.1 Level AA (Guideline 2.3.3)
+   ============================================ */
+
+/**
+ * Respect user's reduced motion preference
+ * Disables all animations and transitions when user has prefers-reduced-motion enabled
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Specifically disable custom animations */
+  .float-animation,
+  .pulse-animation,
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-slide-in-right,
+  .animate-slide-down,
+  .animate-shimmer,
+  .animate-pulse-slow {
+    animation: none !important;
+  }
+}
+
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;

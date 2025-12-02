@@ -109,10 +109,12 @@ export async function GET(request: NextRequest) {
       service: 'ab-test-metrics-api',
     });
 
+    const errorMessage = error instanceof Error ? error.message : undefined;
+
     return NextResponse.json(
       {
         error: 'Failed to retrieve metrics',
-        message: error.message,
+        ...(errorMessage && { message: errorMessage }),
       },
       { status: 500 }
     );

@@ -1,4 +1,19 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
+
+interface UserInfo {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface ContractInfo {
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+  contractor_signed_at: string | null;
+  homeowner_signed_at: string | null;
+}
 
 interface JobWithRelations {
   id: string;
@@ -9,24 +24,16 @@ interface JobWithRelations {
   created_at: string;
   contractor_id: string | null;
   homeowner_id: string;
-  contractor: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  } | null;
-  homeowner: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  } | null;
-  contract: {
-    start_date: string | null;
-    end_date: string | null;
-    status: string;
-    contractor_signed_at: string | null;
-    homeowner_signed_at: string | null;
-  } | null;
+  contractor: UserInfo | UserInfo[] | null;
+  homeowner: UserInfo | UserInfo[] | null;
+  contract: ContractInfo | ContractInfo[] | null;
 }
+
+// Helper to normalize joined data (Supabase can return object or array)
+const getFirst = <T>(data: T | T[] | null | undefined): T | null => {
+  if (!data) return null;
+  return Array.isArray(data) ? data[0] || null : data;
+};
 
 /**
  * Fetch jobs with all related data in a single optimized query
@@ -64,7 +71,7 @@ export async function fetchJobsWithRelations(
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching homeowner jobs:', error);
+      logger.error('Error fetching homeowner jobs:', error);
       return [];
     }
 
@@ -97,7 +104,7 @@ export async function fetchJobsWithRelations(
       .order('created_at', { ascending: false });
 
     if (assignedError) {
-      console.error('Error fetching assigned jobs:', assignedError);
+      logger.error('Error fetching assigned jobs:', assignedError);
     }
 
     // Get jobs where contractor has bids
@@ -107,7 +114,7 @@ export async function fetchJobsWithRelations(
       .eq('contractor_id', userId);
 
     if (bidsError) {
-      console.error('Error fetching bids:', bidsError);
+      logger.error('Error fetching bids:', bidsError);
     }
 
     const bidJobIds = bids?.map(b => b.job_id).filter(Boolean) || [];
@@ -140,7 +147,7 @@ export async function fetchJobsWithRelations(
         .order('created_at', { ascending: false });
 
       if (bidJobsError) {
-        console.error('Error fetching jobs with bids:', bidJobsError);
+        logger.error('Error fetching jobs with bids:', bidJobsError);
       }
 
       bidJobs = (jobsWithBids || []) as JobWithRelations[];
@@ -181,7 +188,7 @@ export async function fetchContractsForJobs(
     .in('job_id', jobIds);
 
   if (error) {
-    console.error('Error fetching contracts:', error);
+    logger.error('Error fetching contracts:', error);
     return new Map();
   }
 
@@ -229,7 +236,7 @@ export async function fetchMeetingsForUser(userId: string): Promise<any[]> {
     return data || [];
   } catch (error) {
     // Table might not exist
-    console.log('contractor_meetings table not found, using jobs scheduled_date instead');
+    logger.info('contractor_meetings table not found, using jobs scheduled_date instead');
     return [];
   }
 }

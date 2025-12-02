@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 
 interface PullToRefreshProps {
   children: React.ReactNode;
@@ -66,7 +67,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         try {
           await onRefresh();
         } catch (error) {
-          console.error('Refresh failed:', error);
+          logger.error('Refresh failed:', error);
         } finally {
           setIsRefreshing(false);
           setPullDistance(0);

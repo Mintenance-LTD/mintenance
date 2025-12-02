@@ -176,7 +176,7 @@ const notifyUpdate = () => {
 export const setupInstallPrompt = () => {
   if (typeof window === 'undefined') return;
 
-  window.addEventListener('beforeinstallprompt', (e: any) => {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
 

@@ -48,7 +48,7 @@ const body = await request.json();
         service: 'help_articles',
         articleTitle,
         category,
-        userId,
+        userId: userId || undefined,
       });
       // Don't fail the request if tracking fails
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

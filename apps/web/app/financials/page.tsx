@@ -83,12 +83,26 @@ export default async function FinancialsPage() {
       .order('created_at', { ascending: false })
   ]);
 
+  interface InvoiceWithJob {
+    id: string;
+    invoice_number: string;
+    title: string;
+    total_amount: number;
+    status: string;
+    invoice_date: string;
+    due_date: string;
+    paid_date?: string;
+    job_id: string;
+    contractor?: { id: string; first_name: string; last_name: string } | Array<{ id: string; first_name: string; last_name: string }>;
+    job?: { id: string; homeowner_id: string } | Array<{ id: string; homeowner_id: string }>;
+  }
+
   // Extract data and handle errors gracefully
   const paymentsList = paymentsResult.data || [];
   const subscriptionsList = subscriptionsResult.data || [];
   const jobsList = jobsResult.data || [];
   // Filter invoices to only show those for jobs owned by this homeowner
-  const invoicesList = ((invoicesResult.data || []) as any[]).filter((invoice: any) => {
+  const invoicesList = ((invoicesResult.data || []) as InvoiceWithJob[]).filter((invoice: InvoiceWithJob) => {
     const job = Array.isArray(invoice.job) ? invoice.job[0] : invoice.job;
     return job?.homeowner_id === user.id;
   });

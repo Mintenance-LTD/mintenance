@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@mintenance/shared';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -81,7 +82,7 @@ export function ContractorForm({ onSubmit, defaultValues }: ContractorFormProps)
       setSubmitStatus('success');
     } catch (error) {
       setSubmitStatus('error');
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error);
     }
   };
 

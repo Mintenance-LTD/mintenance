@@ -9,6 +9,7 @@ import { StatusBadge, BadgeStatus } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
+import { logger } from '@mintenance/shared';
 
 interface ConnectionRequest {
   id: string;
@@ -58,7 +59,7 @@ export function ConnectionsClient({
         setConnectionRequests(connectionRequests.filter(req => req.id !== requestId));
       }
     } catch (error) {
-      console.error('Failed to accept connection:', error);
+      logger.error('Failed to accept connection:', error);
     }
   };
 
@@ -74,7 +75,7 @@ export function ConnectionsClient({
         setConnectionRequests(connectionRequests.filter(req => req.id !== requestId));
       }
     } catch (error) {
-      console.error('Failed to decline connection:', error);
+      logger.error('Failed to decline connection:', error);
     }
   };
 

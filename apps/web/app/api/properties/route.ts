@@ -4,6 +4,16 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 
+// Type definition for property insert data
+interface PropertyInsertData {
+  owner_id: string;
+  property_name: string;
+  address: string;
+  property_type: string;
+  is_primary: boolean;
+  photos?: string[];
+}
+
 /**
  * Get all properties for the current user
  * GET /api/properties
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the property
-    const insertData: any = {
+    const insertData: PropertyInsertData = {
       owner_id: user.id,
       property_name: property_name.trim(),
       address: address.trim(),

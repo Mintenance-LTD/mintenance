@@ -142,8 +142,9 @@ export function PhotoUploadDialog({ open, onOpenChange, onUpload }: PhotoUploadD
       setPreviews([]);
       reset();
       onOpenChange(false);
-    } catch (uploadError: any) {
-      setError(uploadError.message || 'Failed to upload photos. Please try again.');
+    } catch (uploadError) {
+      const errorMessage = uploadError instanceof Error ? uploadError.message : 'Failed to upload photos. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

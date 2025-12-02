@@ -60,14 +60,14 @@ const CACHE_LIMITS = {
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  logger.info('[SW] Installing service worker...');
 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
+      logger.info('[SW] Caching static assets');
       return cache.addAll(STATIC_CACHE_URLS);
     }).then(() => {
-      console.log('[SW] Service worker installed');
+      logger.info('[SW] Service worker installed');
       return self.skipWaiting();
     })
   );
@@ -75,20 +75,20 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  logger.info('[SW] Activating service worker...');
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
+            logger.info('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[SW] Service worker activated');
+      logger.info('[SW] Service worker activated');
       return self.clients.claim();
     })
   );
@@ -153,11 +153,11 @@ async function cacheFirst(request) {
   const cached = await cache.match(request);
 
   if (cached) {
-    console.log('[SW] Cache hit:', request.url);
+    logger.info('[SW] Cache hit:', request.url);
     return cached;
   }
 
-  console.log('[SW] Cache miss, fetching:', request.url);
+  logger.info('[SW] Cache miss, fetching:', request.url);
 
   try {
     const response = await fetch(request);
@@ -168,7 +168,7 @@ async function cacheFirst(request) {
 
     return response;
   } catch (error) {
-    console.error('[SW] Fetch failed:', error);
+    logger.error('[SW] Fetch failed:', error);
 
     // Return offline page for navigation requests
     if (request.mode === 'navigate') {
@@ -196,12 +196,12 @@ async function networkFirst(request) {
 
     return response;
   } catch (error) {
-    console.log('[SW] Network failed, trying cache:', request.url);
+    logger.info('[SW] Network failed, trying cache:', request.url);
 
     const cached = await cache.match(request);
 
     if (cached) {
-      console.log('[SW] Returning cached response');
+      logger.info('[SW] Returning cached response');
       return cached;
     }
 
@@ -232,12 +232,12 @@ async function staleWhileRevalidate(request) {
 
   // Return cached response immediately if available
   if (cached) {
-    console.log('[SW] Returning stale cache, revalidating:', request.url);
+    logger.info('[SW] Returning stale cache, revalidating:', request.url);
     return cached;
   }
 
   // Wait for network if no cache
-  console.log('[SW] No cache, waiting for network:', request.url);
+  logger.info('[SW] No cache, waiting for network:', request.url);
   return fetchPromise;
 }
 
@@ -253,7 +253,7 @@ async function trimCache(cacheName, maxItems) {
   const keys = await cache.keys();
 
   if (keys.length > maxItems) {
-    console.log(`[SW] Trimming cache ${cacheName}: ${keys.length} -> ${maxItems}`);
+    logger.info(`[SW] Trimming cache ${cacheName}: ${keys.length} -> ${maxItems}`);
     const itemsToDelete = keys.slice(0, keys.length - maxItems);
     await Promise.all(itemsToDelete.map((key) => cache.delete(key)));
   }
@@ -269,7 +269,7 @@ setInterval(() => {
 // ============================================================================
 
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
+  logger.info('[SW] Background sync:', event.tag);
 
   if (event.tag === 'sync-data') {
     event.waitUntil(syncData());
@@ -278,15 +278,15 @@ self.addEventListener('sync', (event) => {
 
 async function syncData() {
   try {
-    console.log('[SW] Syncing offline data...');
+    logger.info('[SW] Syncing offline data...');
 
     // Get pending requests from IndexedDB or cache
     // Send them to the server
     // Clear pending queue
 
-    console.log('[SW] Data synced successfully');
+    logger.info('[SW] Data synced successfully');
   } catch (error) {
-    console.error('[SW] Sync failed:', error);
+    logger.error('[SW] Sync failed:', error);
     throw error;
   }
 }
@@ -296,7 +296,7 @@ async function syncData() {
 // ============================================================================
 
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
+  logger.info('[SW] Push notification received');
 
   const data = event.data ? event.data.json() : {};
 
@@ -316,7 +316,7 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
+  logger.info('[SW] Notification clicked');
 
   event.notification.close();
 
@@ -329,7 +329,10 @@ self.addEventListener('notificationclick', (event) => {
 // LOGGING & DEBUGGING
 // ============================================================================
 
-console.log('[SW] Service worker loaded', {
+logger.info('[SW] Service worker loaded', {
+  version: CACHE_VERSION,
+  cacheName: CACHE_NAME,
+});
   version: CACHE_VERSION,
   cacheName: CACHE_NAME,
 });

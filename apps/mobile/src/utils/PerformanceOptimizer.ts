@@ -35,7 +35,7 @@ class PerformanceOptimizerService {
     metric.duration = metric.endTime - metric.startTime;
 
     if (metric.duration > 100) {
-      console.warn(`🐌 Slow operation: ${name} took ${metric.duration}ms`);
+      logger.warn(`🐌 Slow operation: ${name} took ${metric.duration}ms`);
     }
 
     this.metrics.delete(name);

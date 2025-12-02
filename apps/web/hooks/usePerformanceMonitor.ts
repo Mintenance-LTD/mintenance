@@ -1,6 +1,34 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
+
+/**
+ * First Input Delay entry type
+ */
+interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: number;
+  processingEnd: number;
+  duration: number;
+  cancelable: boolean;
+  target: EventTarget | null;
+}
+
+/**
+ * Layout Shift entry type
+ */
+interface LayoutShiftEntry extends PerformanceEntry {
+  value: number;
+  hadRecentInput: boolean;
+  lastInputTime: number;
+  sources: LayoutShiftAttribution[];
+}
+
+interface LayoutShiftAttribution {
+  node?: Node;
+  previousRect: DOMRectReadOnly;
+  currentRect: DOMRectReadOnly;
+}
 
 interface PerformanceMetrics {
   fcp: number | null; // First Contentful Paint
@@ -79,7 +107,7 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
     // First Input Delay
     const fidObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      const fidEntry = entries[0] as any;
+      const fidEntry = entries[0] as PerformanceEventTiming | undefined;
       if (fidEntry && fidEntry.processingStart !== undefined) {
         updateMetrics({ fid: fidEntry.processingStart - fidEntry.startTime });
       }
@@ -89,8 +117,8 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
     // Cumulative Layout Shift
     let clsValue = 0;
     const clsObserver = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry: any) => {
+      const entries = list.getEntries() as LayoutShiftEntry[];
+      entries.forEach((entry: LayoutShiftEntry) => {
         if (!entry.hadRecentInput) {
           clsValue += entry.value;
         }
@@ -110,7 +138,7 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
   const measureCustomMetrics = useCallback(() => {
     if (!enableCustomMetrics || typeof window === 'undefined') return;
 
-    const navigation = performance.getEntriesByType('navigation')[0] as any;
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
     if (navigation) {
       updateMetrics({
         ttfb: navigation.responseStart - navigation.requestStart,
@@ -124,22 +152,22 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
   const measureResourceTiming = useCallback(() => {
     if (!enableResourceTiming || typeof window === 'undefined') return;
 
-    const resources = performance.getEntriesByType('resource');
+    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
     const resourceMetrics = {
       totalResources: resources.length,
-      totalSize: resources.reduce((sum, resource: any) => sum + (resource.transferSize || 0), 0),
-      slowResources: resources.filter((resource: any) => resource.duration > 1000).length,
-      failedResources: resources.filter((resource: any) => resource.transferSize === 0).length,
+      totalSize: resources.reduce((sum, resource) => sum + (resource.transferSize || 0), 0),
+      slowResources: resources.filter((resource) => resource.duration > 1000).length,
+      failedResources: resources.filter((resource) => resource.transferSize === 0).length,
     };
 
     // You can extend this to track specific resource types
-    const jsResources = resources.filter((resource: any) => resource.name.endsWith('.js'));
-    const cssResources = resources.filter((resource: any) => resource.name.endsWith('.css'));
-    const imageResources = resources.filter((resource: any) => 
+    const jsResources = resources.filter((resource) => resource.name.endsWith('.js'));
+    const cssResources = resources.filter((resource) => resource.name.endsWith('.css'));
+    const imageResources = resources.filter((resource) => 
       /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(resource.name)
     );
 
-    console.log('Resource Metrics:', {
+    logger.info('Resource Metrics:', {
       ...resourceMetrics,
       jsResources: jsResources.length,
       cssResources: cssResources.length,
@@ -199,19 +227,18 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
     const score = getPerformanceScore();
     
     console.group('Performance Metrics');
-    console.log('Overall Score:', score.overall);
-    console.log('Web Vitals:', {
+    logger.info('Overall Score:', score.overall);
+    logger.info('Web Vitals:', {
       FCP: metrics.fcp ? `${metrics.fcp.toFixed(2)}ms` : 'N/A',
       LCP: metrics.lcp ? `${metrics.lcp.toFixed(2)}ms` : 'N/A',
       FID: metrics.fid ? `${metrics.fid.toFixed(2)}ms` : 'N/A',
       CLS: metrics.cls ? metrics.cls.toFixed(3) : 'N/A',
     });
-    console.log('Navigation Timing:', {
+    logger.info('Navigation Timing:', {
       TTFB: metrics.ttfb ? `${metrics.ttfb.toFixed(2)}ms` : 'N/A',
       DOMContentLoaded: metrics.domContentLoaded ? `${metrics.domContentLoaded.toFixed(2)}ms` : 'N/A',
       LoadComplete: metrics.loadComplete ? `${metrics.loadComplete.toFixed(2)}ms` : 'N/A',
     });
-    console.groupEnd();
 
     return { metrics, score };
   }, [metrics, getPerformanceScore]);
@@ -245,7 +272,7 @@ export const useComponentPerformance = (componentName: string) => {
       const endTime = performance.now();
       setRenderTime(endTime - startTime);
       
-      console.log(`Component ${componentName} performance:`, {
+      logger.info(`Component ${componentName} performance:`, {
         mountTime: startTime,
         renderTime: endTime - startTime,
       });

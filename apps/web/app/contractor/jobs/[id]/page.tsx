@@ -11,6 +11,9 @@ import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancement
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import { JobProgressBar } from './components/JobProgressBar';
+import { JobPhotoUpload } from './components/JobPhotoUpload';
+import { CompanyInfoCard } from './components/CompanyInfoCard';
 
 // Helper function to get Lucide icon component from icon name
 function getStatusIconComponent(iconName: string): LucideIcon {
@@ -62,6 +65,46 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     .select('id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date')
     .eq('job_id', resolvedParams.id)
     .single();
+
+  // Fetch job progress
+  const { data: jobProgress } = await serverSupabase
+    .from('job_progress')
+    .select('progress_percentage, days_remaining, estimated_completion_date')
+    .eq('job_id', resolvedParams.id)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  // Fetch job milestones for progress calculation
+  const { data: milestones } = await serverSupabase
+    .from('job_milestones')
+    .select('id, status')
+    .eq('job_id', resolvedParams.id);
+
+  // Calculate progress: completed milestones / total milestones
+  const totalMilestones = milestones?.length || 0;
+  const completedMilestones = milestones?.filter((m) => m.status === 'completed').length || 0;
+  const progressPercentage = jobProgress?.progress_percentage || (totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0);
+
+  // Fetch contractor profile for company info
+  const { data: contractorProfile } = await serverSupabase
+    .from('users')
+    .select('id, company_name, skills, portfolio_images, profile_image_url')
+    .eq('id', user.id)
+    .single();
+
+  // Calculate profile completion (simplified - can be enhanced)
+  const profileCompletion = contractorProfile
+    ? Math.round(
+        ((contractorProfile.company_name ? 25 : 0) +
+          (contractorProfile.skills?.length > 0 ? 25 : 0) +
+          (contractorProfile.portfolio_images?.length > 0 ? 25 : 0) +
+          (contractorProfile.profile_image_url ? 25 : 0))
+      )
+    : 0;
+
+  const contractorSkills = (contractorProfile?.skills as string[]) || [];
+  const portfolioImages = (contractorProfile?.portfolio_images as string[]) || [];
 
   // Determine contract status for scheduling
   // Contract is accepted if status is 'accepted' OR both parties have signed
@@ -203,6 +246,15 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 </div>
               </div>
             </Card>
+
+            {/* Progress Bar */}
+            {totalMilestones > 0 && (
+              <JobProgressBar
+                current={completedMilestones}
+                total={totalMilestones}
+                label="Job Progress"
+              />
+            )}
 
             {/* Job Details Card */}
             <Card padding="lg" hover={false}>
@@ -482,6 +534,22 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 contractorId={user.id}
               />
             )}
+
+            {/* Photo Upload with Map */}
+            <JobPhotoUpload
+              jobId={resolvedParams.id}
+              latitude={job.latitude}
+              longitude={job.longitude}
+              location={job.location}
+            />
+
+            {/* Company Info Card */}
+            <CompanyInfoCard
+              contractorId={user.id}
+              profileCompletion={profileCompletion}
+              skills={contractorSkills}
+              portfolioImages={portfolioImages}
+            />
 
             {/* Job Progress Card */}
             <Card padding="lg" hover={false}>

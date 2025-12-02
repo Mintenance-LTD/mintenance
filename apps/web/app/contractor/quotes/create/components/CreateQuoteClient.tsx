@@ -111,10 +111,10 @@ export function CreateQuoteClient() {
         tone: 'success',
         message: status === 'draft' ? 'Quote saved as draft.' : 'Quote sent successfully.',
       });
-    } catch (error: any) {
+    } catch (error) {
       setFeedback({
         tone: 'error',
-        message: error.message || 'Something went wrong while saving your quote.',
+        message: error instanceof Error ? error.message : 'Something went wrong while saving your quote.',
       });
     } finally {
       setIsSubmitting(false);

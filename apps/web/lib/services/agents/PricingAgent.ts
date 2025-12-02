@@ -5,6 +5,17 @@ import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import type { AgentResult, AgentContext } from './types';
 import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
 
+interface PricingFactors {
+  complexityFactor?: number;
+  locationFactor?: number;
+  contractorTierFactor?: number;
+  marketDemandFactor?: number;
+  sampleSize?: number;
+  method?: string;
+  budget?: number;
+  category?: string;
+}
+
 interface PricingRecommendation {
   id?: string;
   recommendedMinPrice: number;
@@ -18,7 +29,7 @@ interface PricingRecommendation {
   competitivenessLevel: 'too_low' | 'competitive' | 'premium' | 'too_high';
   confidenceScore: number; // 0-1
   reasoning: string;
-  factors: Record<string, any>;
+  factors: PricingFactors;
 }
 
 interface MarketAnalysis {
@@ -32,6 +43,37 @@ interface MarketAnalysis {
   acceptedBids: number;
   acceptanceRate: number;
   sampleSize: number;
+}
+
+interface BidWithAmount {
+  amount: number;
+}
+
+interface BidWithJob {
+  amount: number;
+  jobs: {
+    category?: string;
+    location?: string;
+    budget?: number;
+  };
+}
+
+interface ContractorPricingPattern {
+  contractor_id: string;
+  avg_bid_amount: number;
+  total_bids_count: number;
+  accepted_bids_count: number;
+  acceptance_rate: number;
+  pricing_style: string;
+  category_patterns: Record<string, CategoryPattern>;
+  patterns_learned_from_bids: number;
+  last_analyzed_at: string;
+}
+
+interface CategoryPattern {
+  totalBids: number;
+  acceptedBids: number;
+  avgPrice: number;
 }
 
 /**
@@ -335,10 +377,10 @@ export class PricingAgent {
           return null;
         }
 
-        return this.calculateMarketStatistics(categoryBids.map((b: any) => b.amount));
+        return this.calculateMarketStatistics(categoryBids.map((b: BidWithAmount) => b.amount));
       }
 
-      const amounts = acceptedBids.map((b: any) => b.amount).filter((a: number) => a && a > 0);
+      const amounts = acceptedBids.map((b: BidWithAmount) => b.amount).filter((a: number) => a && a > 0);
 
       if (amounts.length < 3) {
         return null;
@@ -477,12 +519,37 @@ export class PricingAgent {
 
   /**
    * Calculate location factor (cost of living, demand)
+   * Enhanced with UK regional pricing data and postcode-level accuracy
    */
   private static async calculateLocationFactor(location: string): Promise<number> {
-    // Simplified - can be enhanced with real location data
-    // For now, return 1.0 (no adjustment)
-    // In production, this would use geocoding and cost-of-living data
-    return 1.0;
+    try {
+      const { LocationPricingService } = await import('../location/LocationPricingService');
+      const locationFactor = await LocationPricingService.getLocationFactor(location);
+
+      // Validate factor is within expected range
+      if (locationFactor < 0.8 || locationFactor > 1.5) {
+        logger.warn('Location factor out of expected range, using default', {
+          service: 'PricingAgent',
+          location,
+          factor: locationFactor,
+        });
+        return 1.0;
+      }
+
+      logger.info('Location factor calculated', {
+        service: 'PricingAgent',
+        location,
+        factor: locationFactor,
+      });
+
+      return locationFactor;
+    } catch (error) {
+      logger.error('Error calculating location factor, using default', error, {
+        service: 'PricingAgent',
+        location,
+      });
+      return 1.0; // Safe fallback
+    }
   }
 
   /**
@@ -635,7 +702,9 @@ export class PricingAgent {
       factors.push('contractor tier premium');
     }
     if (locationFactor !== 1.0) {
-      factors.push('location adjustments');
+      const locationAdjustment = ((locationFactor - 1) * 100).toFixed(0);
+      const direction = locationFactor > 1.0 ? 'higher' : 'lower';
+      factors.push(`${Math.abs(Number(locationAdjustment))}% ${direction} for location`);
     }
 
     let reasoning = `Based on ${marketAnalysis.sampleSize} similar accepted bids, `;
@@ -725,7 +794,8 @@ export class PricingAgent {
         return { success: false, error: 'Bid not found' };
       }
 
-      const job = (bid as any).jobs;
+      const typedBid = bid as BidWithJob;
+      const job = typedBid.jobs;
 
       // Extract keys for memory
       const keys = await this.extractPricingKeys(
@@ -929,7 +999,7 @@ export class PricingAgent {
   /**
    * Get contractor pricing pattern
    */
-  static async getContractorPricingPattern(contractorId: string): Promise<any> {
+  static async getContractorPricingPattern(contractorId: string): Promise<ContractorPricingPattern | null> {
     try {
       const { data: pattern } = await serverSupabase
         .from('contractor_pricing_patterns')
@@ -937,7 +1007,7 @@ export class PricingAgent {
         .eq('contractor_id', contractorId)
         .single();
 
-      return pattern;
+      return pattern as ContractorPricingPattern | null;
     } catch (error) {
       logger.error('Error fetching contractor pricing pattern', error, {
         service: 'PricingAgent',

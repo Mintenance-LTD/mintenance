@@ -12,6 +12,10 @@ import { initializeMemorySystem, triggerSelfModification, getLearnedFeatureExtra
 
 const AGENT_NAME = 'building-surveyor';
 
+// Type for learned feature extractor - use the class type from LearnedFeatureExtractor
+import type { LearnedFeatureExtractor as LearnedFeatureExtractorClass } from './LearnedFeatureExtractor';
+type LearnedFeatureExtractor = LearnedFeatureExtractorClass;
+
 /**
  * Learn from repair outcome
  * Compares original assessment with actual repair outcome to improve future assessments
@@ -22,7 +26,7 @@ export async function learnFromRepairOutcome(
   actualCost?: number,
   actualUrgency?: UrgencyLevel,
   useLearnedFeatures: boolean = false,
-  learnedFeatureExtractor: any = null
+  learnedFeatureExtractor: LearnedFeatureExtractor | null | undefined = null
 ): Promise<void> {
   try {
     // Get original assessment
@@ -124,7 +128,7 @@ export async function learnFromProgression(
   originalAssessmentId: string,
   followUpAssessmentId: string,
   useLearnedFeatures: boolean = false,
-  learnedFeatureExtractor: any = null
+  learnedFeatureExtractor: LearnedFeatureExtractor | null | undefined = null
 ): Promise<void> {
   try {
     // Get both assessments

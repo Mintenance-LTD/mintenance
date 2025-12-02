@@ -488,7 +488,7 @@ export class MonitoringAndAlerting {
       critical: '🚨'
     }[alert.severity];
 
-    console.warn(`${emoji} ALERT [${alert.severity.toUpperCase()}]: ${alert.message}`);
+    logger.warn(`${emoji} ALERT [${alert.severity.toUpperCase()}]: ${alert.message}`);
   }
 
   /**

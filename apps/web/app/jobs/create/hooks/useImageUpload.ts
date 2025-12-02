@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@mintenance/shared';
 
 interface ImagePreview {
   file: File;
@@ -103,7 +104,9 @@ export function useImageUpload({
       setUploadedImages(urls);
       return urls;
     } catch (error) {
-      console.error('Error uploading images:', error);
+      logger.error('Error uploading images', error, {
+        service: 'image-upload',
+      });
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Failed to upload images. Please try again.';

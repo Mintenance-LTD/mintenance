@@ -5,6 +5,12 @@
 
 import { logger } from '@mintenance/shared';
 
+// Web Performance API types
+interface LayoutShift extends PerformanceEntry {
+  hadRecentInput: boolean;
+  value: number;
+}
+
 export interface PerformanceMetric {
   name: string;
   value: number;

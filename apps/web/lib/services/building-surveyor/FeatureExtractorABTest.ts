@@ -345,7 +345,7 @@ export class FeatureExtractorABTest {
    */
   private static calculateMetrics(
     variant: 'learned' | 'handcrafted',
-    results: any[]
+    results: Array<{ overall_accuracy?: number; extraction_time_ms?: number }>
   ): ABTestMetrics {
     if (results.length === 0) {
       return {

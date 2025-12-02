@@ -81,8 +81,9 @@ export default function AdminForgotPasswordPage() {
       } else {
         throw new Error(responseData.error || 'Failed to send reset email. Please try again.');
       }
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to send reset email. Please try again.');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset email. Please try again.';
+      setErrorMessage(errorMessage);
       setSubmitStatus('error');
     }
   };

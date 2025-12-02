@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { formatMoney } from '@/lib/utils/currency';
 
 interface JobAnalysisResult {
@@ -93,7 +94,9 @@ export function SmartJobAnalysis({
           setShowSuggestions(true);
         }
       } catch (error) {
-        console.error('Error analyzing job:', error);
+        logger.error('Error analyzing job', error, {
+          service: 'smart-job-analysis',
+        });
       } finally {
         setLoading(false);
       }

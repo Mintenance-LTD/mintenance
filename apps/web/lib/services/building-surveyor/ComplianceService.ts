@@ -25,7 +25,13 @@ export class ComplianceService {
   /**
    * Process compliance issues from AI response
    */
-  static processCompliance(issues: any[]): ComplianceResult {
+  static processCompliance(issues: Array<{
+    issue?: string;
+    regulation?: string;
+    severity?: string;
+    description?: string;
+    recommendation?: string;
+  }>): ComplianceResult {
     const processedIssues = issues.map((issue) => ({
       issue: issue.issue || 'unknown_issue',
       regulation: issue.regulation,
@@ -46,10 +52,10 @@ export class ComplianceService {
   /**
    * Normalize compliance severity
    */
-  private static normalizeComplianceSeverity(severity: any): ComplianceSeverity {
+  private static normalizeComplianceSeverity(severity: string | undefined | null): ComplianceSeverity {
     const valid: ComplianceSeverity[] = ['info', 'warning', 'violation'];
-    if (valid.includes(severity)) {
-      return severity;
+    if (severity && valid.includes(severity as ComplianceSeverity)) {
+      return severity as ComplianceSeverity;
     }
     const s = String(severity).toLowerCase();
     if (s.includes('violation') || s.includes('non-compliant')) {

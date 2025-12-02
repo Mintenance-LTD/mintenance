@@ -7,6 +7,18 @@ import { gdprEmailSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 
+// Type definitions for GDPR export
+interface ExportDataRow {
+  table_name: string;
+  data: Record<string, unknown>;
+}
+
+interface FormattedExportData {
+  user_id: string;
+  export_date: string;
+  data: Record<string, Record<string, unknown>[]>;
+}
+
 export async function POST(request: NextRequest) {
   try {
     
@@ -112,10 +124,10 @@ export async function POST(request: NextRequest) {
       .eq('id', dsrRequest.id);
 
     // Format export data
-    const formattedData = {
+    const formattedData: FormattedExportData = {
       user_id: user.id,
       export_date: new Date().toISOString(),
-      data: exportData.reduce((acc: any, row: any) => {
+      data: (exportData as ExportDataRow[]).reduce((acc: Record<string, Record<string, unknown>[]>, row: ExportDataRow) => {
         if (!acc[row.table_name]) {
           acc[row.table_name] = [];
         }

@@ -2,6 +2,29 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 
 /**
+ * Verified portfolio item from contractor_posts table
+ */
+export interface VerifiedPortfolioItem {
+  id: string;
+  contractor_id: string;
+  post_type: 'portfolio';
+  image_url?: string;
+  media_urls?: string[];
+  description?: string;
+  title?: string;
+  skills_demonstrated?: string[];
+  materials_used?: string[];
+  project_duration?: string;
+  project_cost?: number;
+  is_verified: boolean;
+  verified_by?: string;
+  verified_at?: string;
+  created_at: string;
+  updated_at?: string;
+  [key: string]: unknown; // Allow additional fields from database
+}
+
+/**
  * Service for portfolio verification
  */
 export class PortfolioVerificationService {
@@ -84,7 +107,7 @@ export class PortfolioVerificationService {
   /**
    * Get verified portfolio items for a contractor
    */
-  static async getVerifiedPortfolio(contractorId: string): Promise<any[]> {
+  static async getVerifiedPortfolio(contractorId: string): Promise<VerifiedPortfolioItem[]> {
     try {
       const { data, error } = await serverSupabase
         .from('contractor_posts')

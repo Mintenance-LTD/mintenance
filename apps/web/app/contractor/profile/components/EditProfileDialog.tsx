@@ -33,12 +33,46 @@ function getSkillIconComponent(iconName: string): LucideIcon {
   return iconMap[iconName] || Briefcase; // Default to Briefcase if not found
 }
 
+interface ContractorData {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  bio?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  company_name?: string;
+  license_number?: string;
+  is_available?: boolean;
+  profile_image_url?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+}
+
+interface ProfileFormData {
+  firstName: string;
+  lastName: string;
+  bio: string;
+  city: string;
+  country: string;
+  phone: string;
+  companyName?: string;
+  licenseNumber?: string;
+  isAvailable: boolean;
+  profileImage?: File | null;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  skills?: Array<{ skill_name: string; skill_icon: string }>;
+}
+
 interface EditProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contractor: any;
+  contractor: ContractorData;
   skills: Array<{ skill_name: string }>;
-  onSave: (data: any) => Promise<void>;
+  onSave: (data: ProfileFormData) => Promise<void>;
 }
 
 export function EditProfileDialog({ open, onOpenChange, contractor, skills, onSave }: EditProfileDialogProps) {
@@ -533,11 +567,11 @@ export function EditProfileDialog({ open, onOpenChange, contractor, skills, onSa
       </Dialog>
 
       {/* Delete Account Modal */}
-      {showDeleteModal && (
+      {showDeleteModal && contractor?.id && (
         <DeleteAccountModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
-          userId={contractor?.id}
+          userId={contractor.id}
         />
       )}
     </>

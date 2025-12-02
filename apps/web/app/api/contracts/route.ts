@@ -5,6 +5,49 @@ import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
+// Type definitions for contracts
+interface ContractTerms {
+  [key: string]: string | number | boolean | null;
+}
+
+interface ContractCreateData {
+  job_id: string;
+  contractor_id: string;
+  homeowner_id: string;
+  title: string;
+  description: string;
+  amount: number;
+  start_date: string | null;
+  end_date: string | null;
+  terms: ContractTerms;
+  contractor_company_name: string;
+  contractor_license_registration: string;
+  contractor_license_type: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ContractUpdateData {
+  title?: string;
+  description?: string;
+  amount?: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  terms?: ContractTerms;
+  status?: string;
+  updated_at: string;
+}
+
+interface MessagePayload {
+  job_id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  message_type: string;
+  read: boolean;
+}
+
 const createContractSchema = z.object({
   job_id: z.string().uuid(),
   title: z.string().min(1).max(255).optional(),
@@ -12,7 +55,7 @@ const createContractSchema = z.object({
   amount: z.number().positive(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
-  terms: z.record(z.string(), z.any()).optional(),
+  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   contractor_company_name: z.string().min(1),
   contractor_license_registration: z.string().min(1),
   contractor_license_type: z.string().optional(),
@@ -24,7 +67,7 @@ const updateContractSchema = z.object({
   amount: z.number().positive().optional(),
   start_date: z.string().datetime().optional(),
   end_date: z.string().datetime().optional(),
-  terms: z.record(z.string(), z.any()).optional(),
+  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -224,7 +267,7 @@ export async function POST(request: NextRequest) {
       });
       
       // Create contract submission message using 'content' column (schema uses 'content', not 'message_text')
-      const messagePayload: any = {
+      const messagePayload: MessagePayload = {
         job_id: job_id,
         sender_id: user.id,
         receiver_id: job.homeowner_id,
@@ -352,7 +395,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updateData: any = {
+    const updateData: ContractUpdateData = {
       updated_at: new Date().toISOString(),
     };
 
@@ -361,7 +404,7 @@ export async function PUT(request: NextRequest) {
     if (parsed.data.amount !== undefined) updateData.amount = parsed.data.amount;
     if (parsed.data.start_date !== undefined) updateData.start_date = parsed.data.start_date || null;
     if (parsed.data.end_date !== undefined) updateData.end_date = parsed.data.end_date || null;
-    if (parsed.data.terms !== undefined) updateData.terms = parsed.data.terms;
+    if (parsed.data.terms !== undefined) updateData.terms = parsed.data.terms as ContractTerms;
 
     // Update status based on who is editing
     if (user.role === 'contractor' && contract.status === 'pending_homeowner') {

@@ -33,6 +33,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { logger } from '@mintenance/shared';
 
 interface RevenueDashboardClientProps {
   revenueMetrics: RevenueMetrics | null;
@@ -83,7 +84,7 @@ export function RevenueDashboardClient({
       setArpc(data.arpc);
       setTrends(data.trends);
     } catch (error) {
-      console.error('Error fetching revenue data:', error);
+      logger.error('Error fetching revenue data:', error);
     } finally {
       setLoading(false);
     }
@@ -151,7 +152,7 @@ export function RevenueDashboardClient({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting revenue:', error);
+      logger.error('Error exporting revenue:', error);
       setErrorDialog({ open: true, message: 'Failed to export revenue data' });
     }
   };
@@ -438,7 +439,7 @@ export function RevenueDashboardClient({
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(props: any) => `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`}
+                  label={(props: { name: string; percent?: number }) => `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"

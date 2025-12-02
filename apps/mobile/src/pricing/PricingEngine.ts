@@ -11,7 +11,7 @@
 
 import { logger } from '../utils/logger';
 import { circuitBreakerManager } from '../utils/circuitBreaker';
-import { measurePerformance } from '../utils/performanceBudgets';
+import { measurePerformance } from '../utils/performance';
 import { ComplexityAnalyzer } from './complexity/ComplexityAnalyzer';
 import {
   MarketRateCalculator,

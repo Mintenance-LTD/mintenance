@@ -17,7 +17,7 @@ import { performanceMonitor } from './performanceMonitor';
 import { WebOptimizations } from './webOptimizations/';
 import { monitoringAndAlerting } from './monitoringAndAlerting';
 import { enhancedErrorAnalytics } from './errorTracking';
-import { securityAuditService } from './securityAuditAndPenetrationTesting';
+import { securityAuditService } from './security';
 import { apiProtectionService } from './ApiProtection';
 import { Platform } from 'react-native';
 

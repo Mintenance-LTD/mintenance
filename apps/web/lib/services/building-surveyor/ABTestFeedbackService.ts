@@ -8,7 +8,8 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { CriticModule } from './critic';
-import { ContextFeatureService } from './ContextFeatureService';
+import { ContextFeatureService, type ContextFeatures } from './ContextFeatureService';
+import type { Phase1BuildingAssessment } from './types';
 
 export interface FeedbackData {
   assessmentId: string;
@@ -52,7 +53,7 @@ export class ABTestFeedbackService {
       }
 
       // 2. Get context features from decision
-      const contextFeatures = decision.context_features as Record<string, any>;
+      const contextFeatures = decision.context_features as ContextFeatures | null;
       if (!contextFeatures) {
         logger.warn('No context features found in decision', {
           service: 'ABTestFeedbackService',
@@ -142,23 +143,26 @@ export class ABTestFeedbackService {
       .single();
 
     const trueClass = assessment?.damage_type || 'unknown';
-    const assessmentData = assessment?.assessment_data as any;
+    const assessmentData = assessment?.assessment_data as Phase1BuildingAssessment | null;
     const predictedClass = assessmentData?.damageAssessment?.damageType || 'unknown';
 
-    // Insert or update outcome
-    await serverSupabase.from('ab_outcomes').upsert({
-      decision_id: params.decisionId,
-      assessment_id: params.assessmentId,
-      experiment_id: decision.experiment_id,
-      assignment_id: decision.assignment_id,
-      arm_id: decision.arm_id,
-      reward: params.reward,
-      sfn: params.safetyViolation,
-      true_class: trueClass,
-      predicted_class: predictedClass,
-      validated_by: params.validatedBy,
-      validated_at: new Date().toISOString(),
+    const { error: logError } = await serverSupabase.rpc('log_ab_outcome', {
+      p_decision_id: params.decisionId,
+      p_assessment_id: params.assessmentId,
+      p_experiment_id: decision.experiment_id,
+      p_assignment_id: decision.assignment_id,
+      p_arm_id: decision.arm_id,
+      p_reward: params.reward,
+      p_sfn: params.safetyViolation,
+      p_true_class: trueClass,
+      p_predicted_class: predictedClass,
+      p_validated_by: params.validatedBy,
+      p_validated_at: new Date().toISOString(),
     });
+
+    if (logError) {
+      throw logError;
+    }
   }
 
   /**
@@ -175,42 +179,52 @@ export class ABTestFeedbackService {
     let processed = 0;
     let skipped = 0;
     let errors = 0;
+    let cursor = 0;
+    const CONCURRENCY = Math.min(5, assessmentIds.length || 1);
 
-    for (const assessmentId of assessmentIds) {
-      try {
-        // Get assessment validation status
-        const { data: assessment } = await serverSupabase
-          .from('building_assessments')
-          .select('validation_status, damage_type, assessment_data')
-          .eq('id', assessmentId)
-          .single();
+    const worker = async () => {
+      while (cursor < assessmentIds.length) {
+        const currentIndex = cursor++;
+        const assessmentId = assessmentIds[currentIndex];
+        try {
+          const { data: assessment, error: assessmentError } = await serverSupabase
+            .from('building_assessments')
+            .select('validation_status, damage_type, assessment_data')
+            .eq('id', assessmentId)
+            .single();
 
-        if (!assessment) {
-          skipped++;
-          continue;
+          if (assessmentError || !assessment) {
+            skipped++;
+            continue;
+          }
+
+          const isCorrect = assessment.validation_status === 'validated';
+          const hasSafetyViolation = this.determineSafetyViolation({
+            validation_status: assessment.validation_status,
+            damage_type: assessment.damage_type,
+            assessment_data: assessment.assessment_data as Phase1BuildingAssessment | null,
+          });
+
+          await this.collectFeedback(
+            assessmentId,
+            validatedBy,
+            isCorrect,
+            hasSafetyViolation
+          );
+
+          processed++;
+        } catch (error) {
+          logger.error('Error processing feedback for assessment', {
+            service: 'ABTestFeedbackService',
+            assessmentId,
+            error,
+          });
+          errors++;
         }
-
-        // Determine if correct and has safety violation
-        const isCorrect = assessment.validation_status === 'validated';
-        const hasSafetyViolation = this.determineSafetyViolation(assessment);
-
-        await this.collectFeedback(
-          assessmentId,
-          validatedBy,
-          isCorrect,
-          hasSafetyViolation
-        );
-
-        processed++;
-      } catch (error) {
-        logger.error('Error processing feedback for assessment', {
-          service: 'ABTestFeedbackService',
-          assessmentId,
-          error,
-        });
-        errors++;
       }
-    }
+    };
+
+    await Promise.all(Array.from({ length: CONCURRENCY }).map(() => worker()));
 
     return { processed, skipped, errors };
   }
@@ -218,7 +232,11 @@ export class ABTestFeedbackService {
   /**
    * Determine if assessment had safety violation (SFN)
    */
-  private static determineSafetyViolation(assessment: any): boolean {
+  private static determineSafetyViolation(assessment: {
+    validation_status?: string;
+    damage_type?: string;
+    assessment_data?: Phase1BuildingAssessment | null;
+  }): boolean {
     // SFN occurs if:
     // 1. Assessment was rejected (incorrect)
     // 2. AND the damage type is safety-critical
@@ -228,16 +246,48 @@ export class ABTestFeedbackService {
       return false; // Only rejected assessments can have SFN
     }
 
+    const damageType = assessment.damage_type?.toLowerCase() || '';
+    const isCriticalDamage = this.isCriticalDamageType(damageType);
+
+    const assessmentData = assessment.assessment_data;
+    const hazards = assessmentData?.safetyHazards?.hazards ?? [];
+    const hasCriticalHazards =
+      assessmentData?.safetyHazards?.hasCriticalHazards ||
+      hazards.some(
+        hazard =>
+          ['high', 'critical'].includes(hazard.severity) &&
+          ['immediate', 'urgent'].includes(hazard.urgency)
+      );
+
+    const complianceViolation = assessmentData?.compliance?.requiresProfessionalInspection ||
+      assessmentData?.compliance?.complianceIssues?.some(issue => issue.severity === 'violation');
+
+    const lowConfidenceCritical =
+      isCriticalDamage &&
+      typeof assessmentData?.damageAssessment?.confidence === 'number' &&
+      assessmentData.damageAssessment.confidence < 40;
+
+    return isCriticalDamage || hasCriticalHazards || complianceViolation || lowConfidenceCritical;
+  }
+
+  private static isCriticalDamageType(damageType: string): boolean {
+    if (!damageType) {
+      return false;
+    }
+
     const criticalTypes = [
       'structural_failure',
       'electrical_hazard',
       'fire_hazard',
+      'gas_leak',
+      'carbon_monoxide',
+      'roof_collapse',
+      'foundation_crack',
       'asbestos',
       'mold_toxicity',
+      'lead_paint',
     ];
 
-    const damageType = assessment.damage_type?.toLowerCase() || '';
     return criticalTypes.some(type => damageType.includes(type));
   }
 }
-

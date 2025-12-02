@@ -16,18 +16,19 @@ export { BusinessAnalyticsService } from './BusinessAnalyticsService';
 export { FinancialManagementService } from './FinancialManagementService';
 export { ScheduleManagementService } from './ScheduleManagementService';
 export { ResourceManagementService } from './ResourceManagementService';
-export { MarketingManagementService } from './MarketingManagementService';
-export { ClientManagementService } from './ClientManagementService';
-export { GoalManagementService } from './GoalManagementService';
-
 // Import all services for unified interface
 import { BusinessAnalyticsService } from './BusinessAnalyticsService';
 import { FinancialManagementService } from './FinancialManagementService';
 import { ScheduleManagementService } from './ScheduleManagementService';
 import { ResourceManagementService } from './ResourceManagementService';
-import { MarketingManagementService } from './MarketingManagementService';
-import { ClientManagementService } from './ClientManagementService';
-import { GoalManagementService } from './GoalManagementService';
+import { MarketingManagementService } from '../marketing-management';
+import { ClientManagementService } from '../client-management';
+import { GoalManagementService } from '../goal-management';
+
+// Re-export for backward compatibility
+export { MarketingManagementService } from '../marketing-management';
+export { ClientManagementService } from '../client-management';
+export { GoalManagementService } from '../goal-management';
 
 /**
  * Unified Contractor Business Suite Interface

@@ -16,7 +16,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { theme } from '@/lib/theme';
-import type { User } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
+import type { User, Job } from '@mintenance/types';
 import { DiscoverHeader } from './DiscoverHeader';
 import { DiscoverEmptyState } from './DiscoverEmptyState';
 import { CardStack } from './CardStack';
@@ -33,10 +34,53 @@ interface SwipeHistory {
   action: 'like' | 'pass' | 'super_like' | 'maybe';
 }
 
+interface ContractorData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  company_name?: string;
+  bio?: string;
+  profile_image_url?: string;
+  email_verified?: boolean;
+  rating?: number;
+  total_jobs_completed?: number;
+  city?: string;
+  is_available?: boolean;
+  latitude?: number;
+  longitude?: number;
+  contractor_skills?: Array<{ skill_name: string }>;
+}
+
+interface JobData {
+  id: string;
+  title?: string;
+  description?: string;
+  budget?: number;
+  category?: string;
+  city?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  photos?: string[];
+  photoUrls?: string[];
+  status?: 'posted' | 'assigned' | 'in_progress' | 'completed';
+  created_at?: string;
+  updated_at?: string;
+  homeowner_id?: string;
+  contractor_id?: string;
+  homeowner?: {
+    id: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    city?: string;
+  };
+}
+
 interface DiscoverClientProps {
   user: Pick<User, "id" | "role" | "email">;
-  contractors: any[];
-  jobs: any[];
+  contractors: ContractorData[];
+  jobs: JobData[];
   contractorLocation?: { latitude: number; longitude: number } | null;
   contractorSkills?: string[];
 }
@@ -58,7 +102,7 @@ export function DiscoverClient({
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isContractor = user?.role === 'contractor';
-  const items = isContractor ? jobs : contractors;
+  const items: (JobData | ContractorData)[] = isContractor ? jobs : contractors;
   const hasMoreItems = currentIndex < items.length;
   const remainingCount = items.length - currentIndex;
   const progressPercentage = items.length > 0
@@ -134,7 +178,7 @@ export function DiscoverClient({
         setTimeout(() => setShowMatchModal(false), 3000);
       }
     } catch (err) {
-      console.error('Error saving swipe:', err);
+      logger.error('Error saving swipe:', err);
       setError(err instanceof Error ? err.message : 'Failed to save action');
 
       // Rollback: restore previous index
@@ -281,11 +325,11 @@ export function DiscoverClient({
               renderCard={(item) =>
                 isContractor
                   ? <JobCard
-                    job={item}
+                    job={item as unknown as Job & { photoUrls?: string[] }}
                     contractorLocation={contractorLocation}
                     contractorSkills={contractorSkills}
                   />
-                  : <ContractorCard contractor={item} />
+                  : <ContractorCard contractor={item as ContractorData} />
               }
             />
 

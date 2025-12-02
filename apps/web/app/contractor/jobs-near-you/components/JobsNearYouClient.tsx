@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 import { formatMoney } from '@/lib/utils/currency';
+import { logger } from '@mintenance/shared';
 
 interface ContractorLocation {
   latitude?: number | null;
@@ -123,7 +124,7 @@ export function JobsNearYouClient({
           setSavedJobIds(new Set(jobIds));
         }
       } catch (error) {
-        console.error('Error loading saved jobs:', error);
+        logger.error('Error loading saved jobs:', error);
       }
     }
     loadSavedJobs();
@@ -161,7 +162,7 @@ export function JobsNearYouClient({
             }
           }
         } catch (error) {
-          console.error('Error geocoding contractor location:', error);
+          logger.error('Error geocoding contractor location:', error);
         }
       }
     }
@@ -218,7 +219,7 @@ export function JobsNearYouClient({
             }
           }
         } catch (error) {
-          console.error(`Error geocoding job ${job.id}:`, error);
+          logger.error(`Error geocoding job ${job.id}:`, error);
         }
       }
 
@@ -267,7 +268,7 @@ export function JobsNearYouClient({
         }
       }
     } catch (error) {
-      console.error('Error saving/unsaving job:', error);
+      logger.error('Error saving/unsaving job:', error);
     } finally {
       setSavingJobId(null);
     }

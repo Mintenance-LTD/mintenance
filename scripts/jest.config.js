@@ -15,7 +15,7 @@ module.exports = {
   
   // Transform configuration
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
+    '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,

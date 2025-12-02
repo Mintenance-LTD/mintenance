@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { logger } from '@mintenance/shared';
 
 interface ShareModalProps {
   postId: string;
@@ -33,7 +34,7 @@ export function ShareModal({ postId, postTitle, shareLink, onClose }: ShareModal
         setTimeout(() => setCopied(false), 2000);
       }
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      logger.error('Failed to copy link:', error);
     }
   };
 
@@ -47,7 +48,11 @@ export function ShareModal({ postId, postTitle, shareLink, onClose }: ShareModal
         });
       } catch (error) {
         // User cancelled or error occurred
-        console.log('Share cancelled or failed:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.info('Share cancelled or failed', {
+          service: 'share-modal',
+          error: errorMessage,
+        });
       }
     }
   };

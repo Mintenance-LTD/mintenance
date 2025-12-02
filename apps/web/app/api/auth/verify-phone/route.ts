@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { PhoneVerificationService } from '@/lib/services/verification/PhoneVerificationService';
 import { requireCSRF } from '@/lib/csrf';
-import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+
+// Type for verification response
+interface VerificationResponse {
+  message: string;
+  expiresIn?: number;
+  devCode?: string;
+}
 
 const sendCodeSchema = z.object({
   action: z.literal('send'),
@@ -84,7 +90,7 @@ export async function POST(request: NextRequest) {
       }
 
       // In development mode, return the code so it can be displayed to the user
-      const response: any = { 
+      const response: VerificationResponse = { 
         message: 'Verification code sent successfully',
         expiresIn: 5, // minutes
       };

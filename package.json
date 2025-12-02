@@ -12,7 +12,7 @@
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "npm run build -w packages/shared && npm run build -w packages/types && npm run build -w packages/auth && npm run build -w @mintenance/design-tokens && npm run build -w @mintenance/api-client",
+    "build:packages": "npm run build -w @mintenance/types && npm run build -w @mintenance/shared && npm run build -w @mintenance/auth && npm run build -w @mintenance/design-tokens && npm run build -w @mintenance/api-client",
     "build:apps": "npm run build -w @mintenance/web && npm run build -w @mintenance/mobile",
     "build:web": "npm run build -w @mintenance/web",
     "build:mobile": "npm run build -w @mintenance/mobile",
@@ -31,6 +31,7 @@
     "deploy:verify": "node scripts/verify-deployment.js",
     "test:payment": "tsx scripts/test-payment-flow.ts",
     "verify:database": "tsx scripts/verify-database.ts",
+    "validate:schema": "tsx scripts/validate-schema-2025.ts",
     "test:gcp-auth": "tsx scripts/test-gcp-auth.ts",
     "test:scripts": "jest --config scripts/jest.config.js",
     "create:gcp-buckets": "tsx scripts/create-gcp-buckets.ts",
@@ -52,10 +53,6 @@
   ],
   "author": "Mintenance Team",
   "license": "MIT",
-  "engines": {
-    "node": "20.x",
-    "npm": ">=9.0.0"
-  },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/jest": "^30.0.0",
@@ -73,7 +70,13 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~5.0.5"
+    "@expo/metro-runtime": "~5.0.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/qrcode": "^1.5.6",
+    "@types/speakeasy": "^2.0.10",
+    "bcryptjs": "^3.0.3",
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0"
   },
   "overrides": {
     "react-native": "0.81.5",

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 interface VideoCallHistoryProps {
   userId: string;
@@ -35,7 +36,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
       });
       setCalls(callHistory);
     } catch (error) {
-      console.error('Failed to load call history:', error);
+      logger.error('Failed to load call history:', error);
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
       await VideoCallService.cancelCall(callId);
       loadCalls(); // Refresh the list
     } catch (error) {
-      console.error('Failed to cancel call:', error);
+      logger.error('Failed to cancel call:', error);
       alert('Failed to cancel call. Please try again.');
     }
   };

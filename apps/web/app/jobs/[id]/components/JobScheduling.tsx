@@ -51,7 +51,13 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
     setError(null);
 
     try {
-      const scheduleData: any = {
+      interface JobScheduleData {
+        scheduled_start_date: string;
+        scheduled_end_date?: string;
+        scheduled_duration_hours?: number;
+      }
+
+      const scheduleData: JobScheduleData = {
         scheduled_start_date: new Date(startDate).toISOString(),
       };
 

@@ -25,6 +25,9 @@ export interface BuildingSurveyorConfig {
     // Memory & Learning
     useTitans: boolean;
 
+    // Hybrid Inference
+    useHybridInference: boolean;
+
     // A/B Testing
     abTest: {
         sfnRateThreshold: number;
@@ -86,6 +89,9 @@ export function loadBuildingSurveyorConfig(): BuildingSurveyorConfig {
 
         // Memory & Learning
         useTitans: process.env.USE_TITANS === 'true',
+
+        // Hybrid Inference (default: false until models are trained)
+        useHybridInference: process.env.USE_HYBRID_INFERENCE === 'true',
 
         // A/B Testing
         abTest: {

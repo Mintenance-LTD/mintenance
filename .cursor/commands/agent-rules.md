@@ -2,17 +2,51 @@
 
 # AGENTS.md
 
+---
+alwaysApply: true
+---
+# AGENTS.md
+
 ## Purpose
 
 This document defines coding standards, architectural constraints, and expectations for AI agents working on this codebase. Following these guidelines ensures consistency, maintainability, and alignment with project goals.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+### Web App (apps/web)
+- **Framework**: Next.js 16 (App Router)
 - **UI Library**: React 19
-- **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS
-- **Runtime**: Node.js
+- **Language**: TypeScript 5 (strict mode)
+- **Styling**: Tailwind CSS 3.4 + Radix UI + Shadcn UI
+- **Database**: Supabase (PostgreSQL) with @supabase/ssr
+- **State Management**: TanStack Query 5.32
+- **Forms**: React Hook Form 7.66 + Zod 3.23
+- **Payments**: Stripe 15.4
+- **Cloud**: Google Cloud Platform (AI Platform, Storage, Vision)
+- **Caching**: Upstash Redis
+- **Runtime**: Node.js 20.x
+
+### Mobile App (apps/mobile)
+- **Framework**: Expo SDK ~54 with React Native 0.82
+- **UI Library**: React 19
+- **Language**: TypeScript 5.9 (strict mode)
+- **Navigation**: React Navigation 7
+- **State Management**: TanStack Query 5.32 + React Context
+- **Animations**: React Native Reanimated 4.1 + Gesture Handler
+- **Maps**: React Native Maps
+- **Monitoring**: Sentry React Native 7.6
+
+### Shared Packages (packages/*)
+- `@mintenance/types` - TypeScript type definitions
+- `@mintenance/auth` - Authentication utilities (JWT, password validation)
+- `@mintenance/shared` - Shared utilities and logger
+- `@mintenance/shared-ui` - Shared UI components (web/native)
+- `@mintenance/design-tokens` - Design system tokens
+- `@mintenance/api-client` - API client wrapper
+
+### Architecture
+- **Monorepo**: npm workspaces (apps/*, packages/*)
+- **Package Manager**: npm >= 9.0.0
 
 ## Style & Conventions
 
@@ -24,26 +58,23 @@ This document defines coding standards, architectural constraints, and expectati
 - **No any types**: Use `unknown` or proper types instead
 - **Explicit return types**: Always declare return types for functions
 - **Interface over Type**: Prefer `interface` for object shapes, `type` for unions/intersections
-
-```typescript
+- **Import types from shared packages**: Use `@mintenance/types` when available
+pescript
 // ✅ DO
-interface UserProps {
-  id: string;
-  name: string;
-  email: string;
+import type { User } from '@mintenance/types';
+
+interface UserCardProps {
+  user: User;
 }
 
-function getUser(id: string): Promise<UserProps> {
+function getUser(id: string): Promise<User> {
   // implementation
 }
 
 // ❌ DON'T
 function getUser(id: any) {
   // implementation
-}
-```
-
-#### Naming Conventions
+}#### Naming Conventions
 
 - **Files**: kebab-case (user-profile.tsx, api-client.ts)
 - **Components**: PascalCase (UserProfile, NavigationBar)
@@ -51,8 +82,7 @@ function getUser(id: any) {
 - **Constants**: SCREAMING_SNAKE_CASE (API_BASE_URL, MAX_RETRY_COUNT)
 - **Types/Interfaces**: PascalCase (UserData, ApiResponse)
 - **Private properties**: prefix with underscore (_internalState)
-
-```typescript
+escript
 // ✅ DO
 const API_ENDPOINT = 'https://api.example.com';
 const userData = await fetchUserData();
@@ -64,21 +94,19 @@ interface ApiResponse<T> {
 
 // ❌ DON'T
 const api_endpoint = 'https://api.example.com';
-const UserData = await fetchUserData();
-```
-
-### React 19 Conventions
+const UserData = await fetchUserData();### React 19 Conventions
 
 #### Component Structure
 
 - **Use function components**: No class components
 - **Server Components by default**: Use 'use client' only when necessary
 - **Named exports for components**: Avoid default exports except for pages
+ript
+// ✅ DO - Server Component (default in Next.js 16)
+import type { User } from '@mintenance/types';
 
-```typescript
-// ✅ DO - Server Component (default in Next.js 15)
 interface UserCardProps {
-  user: UserProps;
+  user: User;
 }
 
 export function UserCard({ user }: UserCardProps) {
@@ -94,10 +122,11 @@ export function UserCard({ user }: UserCardProps) {
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 export function Counter() {
   const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>Count: {count}</button>;
+  return <Button onClick={() => setCount(count + 1)}>Count: {count}</Button>;
 }
 
 // ❌ DON'T - Unnecessary client component
@@ -105,19 +134,548 @@ export function Counter() {
 
 export function StaticCard({ title }: { title: string }) {
   return <div>{title}</div>;
-}
-```
-
-#### Hooks Best Practices
+}#### Hooks Best Practices
 
 - **Custom hooks**: Prefix with `use` (useUserData, useDebounce)
 - **Hook dependencies**: Always include all dependencies in arrays
 - **Avoid inline functions in JSX**: Extract to separate functions or useCallback
-
-```typescript
+ript
 // ✅ DO
 function useUserData(userId: string) {
-  const [user, setUser] = useState<UserProps | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  
+  useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, [userId]); // All dependencies listed
+  
+  return user;
+}
+
+// ❌ DON'T
+function useUserData(userId: string) {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, []); // Missing userId dependency
+  
+  return user;
+}### Next.js 16 App Router
+
+#### File Structure
+
+- **Route groups**: Use (group-name) for organization without affecting URLs
+- **Private folders**: Prefix with `_` to exclude from routing
+- **Colocation**: Keep related components near their routes
+
+Naming Conventions
+Files: kebab-case (user-profile.tsx, api-client.ts)
+Components: PascalCase (UserProfile, NavigationBar)
+Functions/Variables: camelCase (getUserData, isAuthenticated)
+Constants: SCREAMING_SNAKE_CASE (API_BASE_URL, MAX_RETRY_COUNT)
+Types/Interfaces: PascalCase (UserData, ApiResponse)
+Private properties: prefix with underscore (internalState)
+
+// ✅ DO
+const API_ENDPOINT = 'https://api.example.com';
+const userData = await fetchUserData();
+
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+}
+
+// ❌ DON'T
+const api_endpoint = 'https://api.example.com';
+const UserData = await fetchUserData(); Use loading.tsx and Suspense boundaries
+- **Error handling**: Implement error.tsx boundaries
+
+// ✅ DO - Server Component data fetching with Supabase
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { User } from '@mintenance/types';
+
+export default async function UserPage({ params }: { params: { id: string } }) {
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .select('*')
+    .eq('id', params.id)
+    .single();
+
+  if (error) throw new Error(`Failed to fetch user: ${error.message}`);
+
+  return <UserProfile user={user as User} />;
+}
+
+// ❌ DON'T - Using client-side fetching unnecessarily
+'use client';
+import { useEffect, useState } from 'react';
+
+export default function UserPage({ params }: { params: { id: string } }) {
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    fetch(`/api/users/${params.id}`)
+      .then(res => res.json())
+      .then(setUser);
+  }, [params.id]);
+
+  return user ? <UserProfile user={user} /> : <div>Loading...</div>;
+}#### Server Actions
+
+- **Use 'use server'**: Mark server-only functions
+- **Return serializable data**: No functions, classes, or Date objects
+- **Validation**: Always validate input on the server with Zod
+pt
+// ✅ DO
+'use server';
+
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
+const userSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+export async function createUser(formData: FormData) {
+  const data = userSchema.parse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+  });
+
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .insert(data)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create user: ${error.message}`);
+
+  revalidatePath('/users');
+  
+  return { success: true, userId: user.id };
+}
+
+// ❌ DON'T - Missing validation
+'use server';
+
+export async function createUser(formData: FormData) {
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .insert({
+      name: formData.get('name'), // No validation!
+      email: formData.get('email'),
+    })
+    .select()
+    .single();
+  
+  return user; // Returning database model directly
+}### Tailwind CSS
+
+#### Class Organization
+
+- **Order**: Layout → Spacing → Sizing → Typography → Visual → State
+- **Use cn() helper**: For conditional classes
+- **Use design tokens**: Import from `@mintenance/design-tokens`
+- **Avoid arbitrary values**: Use theme values when possible
+escript
+import { cn } from '@/lib/utils';
+import { webTokens } from '@mintenance/design-tokens';
+
+// ✅ DO
+<div className={cn(
+  "flex items-center justify-between", // Layout
+  "gap-4 p-4", // Spacing
+  "w-full max-w-md", // Sizing
+  "text-lg font-semibold", // Typography
+  "bg-white rounded-lg shadow-sm", // Visual
+  "hover:bg-gray-50 focus:outline-none focus:ring-2", // State
+  isActive && "ring-2 ring-blue-500"
+)} />
+
+// ❌ DON'T - Random order, arbitrary values
+<div className="bg-white text-lg hover:bg-gray-50 rounded-lg w-full p-4 flex shadow-sm items-center focus:outline-none gap-4 justify-between font-semibold max-w-md focus:ring-2" style={{ padding: '17px' }} />#### Component Styling
+
+- **Extract repeated patterns**: Create reusable components
+- **Use design tokens**: From `@mintenance/design-tokens`
+- **Mobile-first**: Start with mobile, add md:, lg: breakpoints
+- **Use Radix UI + Shadcn UI**: For accessible components
+ipt
+// ✅ DO
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+export function ActionButton({ variant = 'primary', children }: ButtonProps) {
+  return (
+    <Button 
+      variant={variant}
+      className={cn(
+        "px-4 py-2 rounded-md font-medium transition-colors",
+        "focus:outline-none focus:ring-2 focus:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed"
+      )}
+    >
+      {children}
+    </Button>
+  );
+}
+
+// ❌ DON'T - Inline repeated styles everywhere
+<button className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md">
+  Click me
+</button>## Architectural Constraints
+
+### Project Structure
+
+React 19 Conventions
+Component Structure
+Use function components: No class components
+Server Components by default: Use 'use client' only when necessary
+Named exports for components: Avoid default exports except for pages
+
+// ✅ DO - Server Component (default in Next.js 16)
+import type { User } from '@mintenance/types';
+
+interface UserCardProps {
+  user: User;
+}
+
+export function UserCard({ user }: UserCardProps) {
+  return (
+    <div className="rounded-lg border p-4">
+      <h2 className="text-xl font-semibold">{user.name}</h2>
+      <p className="text-gray-600">{user.email}</p>
+    </div>
+  );
+}
+
+// ✅ DO - Client Component (when needed)
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  return <Button onClick={() => setCount(count + 1)}>Count: {count}</Button>;
+}
+
+// ❌ DON'T - Unnecessary client component
+'use client'; // Not needed if no interactivity
+
+export function StaticCard({ title }: { title: string }) {
+  return <div>{title}</div>;
+}rn <UserList users={users} />;
+}
+
+// ❌ DON'T - Mix concerns
+export default async function UsersPage() {
+  const { data: users } = await serverSupabase
+    .from('users')
+    .select('*');
+  
+  return (
+    <div>
+      {users.map(user => (
+        <div key={user.id}>
+          {user.name} - {user.email}
+          <button onClick={() => {
+            fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+          }}>
+            Delete
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+#### State Management
+
+- **Server state**: Use TanStack Query for caching
+- **URL state**: Store in searchParams when possible
+- **Local state**: useState for component-local state
+- **Global state**: Context API or Zustand (avoid Redux unless necessary)
+ript
+// ✅ DO - TanStack Query for client-side data
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.users.detail(userId),
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// ✅ DO - URL state for filters
+export default function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { category?: string; sort?: string };
+}) {
+  const products = await fetchProducts({
+    category: searchParams.category,
+    sort: searchParams.sort,
+  });
+
+  return <ProductList products={products} />;
+}
+
+// ❌ DON'T - Client state for URL-worthy data
+'use client';
+
+export default function ProductsPage() {
+  const [category, setCategory] = useState('all');
+  const [products, setProducts] = useState([]);
+  
+  // This should be in URL and fetched server-side
+}#### Error Handling
+
+- **Always handle errors**: Don't leave try-catch empty
+- **User-friendly messages**: Show meaningful errors
+- **Logging**: Log errors using `@mintenance/shared` logger
+t
+// ✅ DO
+import { logger } from '@mintenance/shared';
+
+try {
+  const data = await fetchUserData(userId);
+  return data;
+} catch (error) {
+  logger.error('Failed to fetch user data', { userId, error });
+  
+  if (error instanceof ApiError) {
+    throw new Error(`Unable to load user: ${error.message}`);
+  }
+  
+  throw new Error('An unexpected error occurred. Please try again.');
+}
+
+// ❌ DON'T
+try {
+  const data = await fetchUserData(userId);
+  return data;
+} catch (error) {
+  // Silent failure
+}## Specific Dos and Don'ts
+
+### Performance
+
+✅ **DO**
+
+- Use Server Components by default
+- Implement proper loading states with Suspense
+- Optimize images with `next/image`
+- Lazy load heavy components
+- Minimize client-side JavaScript
+- Use TanStack Query for efficient data caching
+
+import Image from 'next/image';
+import { Suspense } from 'react';
+
+export default function ProfilePage() {
+  return (
+    <div>
+      <Image
+        src="/avatar.jpg"
+        alt="User avatar"
+        width={200}
+        height={200}
+        priority
+      />
+      
+      <Suspense fallback={<LoadingSkeleton />}>
+        <UserPosts userId={userId} />
+      </Suspense>
+    </div>
+  );
+}❌ **DON'T**
+
+- Add 'use client' without checking if needed
+- Use `<img>` tags directly
+- Fetch data client-side when server-side is possible
+- Import large libraries in client components
+- Skip caching for frequently accessed data
+
+### Accessibility
+
+✅ **DO**
+
+- Use semantic HTML
+- Add ARIA labels when necessary
+- Ensure keyboard navigation
+- Maintain color contrast ratios
+- Use Radix UI primitives for accessible components
+
+<button
+  type="button"
+  aria-label="Close dialog"
+  onClick={onClose}
+  className="focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  <XIcon className="h-5 w-5" aria-hidden="true" />
+</button>
+❌ **DON'T**
+
+- Use div/span for interactive elements
+- Forget alt text on images
+- Remove focus indicators
+- Skip ARIA labels for icon-only buttons
+
+### Security
+
+✅ **DO**
+
+- Validate all user input with Zod
+- Sanitize data before rendering (use DOMPurify)
+- Use environment variables for secrets
+- Implement proper authentication checks
+- Use Supabase RLS (Row Level Security)
+
+'use server';
+
+import { z } from 'zod';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+const window = new JSDOM('').window;
+const purify = DOMPurify(window as unknown as Window);
+
+const userInputSchema = z.object({
+  email: z.string().email(),
+  bio: z.string().max(500),
+});
+
+export async function submitForm(input: unknown) {
+  const validated = userInputSchema.parse(input);
+  
+  // Sanitize HTML content
+  const sanitizedBio = purify.sanitize(validated.bio);
+  
+  // Now safe to use validated and sanitized data
+  return { success: true };
+}❌ **DON'T**
+
+- Trust client-side validation alone
+- Expose API keys in client code
+- Use dangerouslySetInnerHTML without sanitization
+- Skip server-side validation
+- Disable Supabase RLS policies
+
+### Testing
+
+✅ **DO**
+
+- Write unit tests for utilities
+- Test components with user interactions
+- Use TypeScript to catch errors early
+- Test error states
+- Use Playwright for E2E tests (web)
+- Use Jest for unit tests
+cript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+describe('LoginForm', () => {
+  it('should show error on invalid email', async () => {
+    render(<LoginForm />);
+    
+    const emailInput = screen.getByLabelText('Email');
+    await userEvent.type(emailInput, 'invalid-email');
+    
+    const submitButton = screen.getByRole('button', { name: /submit/i });
+    await userEvent.click(submitButton);
+    
+    expect(screen.getByText('Invalid email address')).toBeInTheDocument();
+  });
+});## Monorepo Patterns
+
+### Shared Packages
+
+- **Import from shared packages**: `@mintenance/types`, `@mintenance/auth`, `@mintenance/shared`, `@mintenance/shared-ui`, `@mintenance/design-tokens`
+- **Use workspace dependencies**: `"@mintenance/types": "file:../../packages/types"`
+- **Build shared packages**: Run `npm run build:packages` before building apps
+- **File paths**: Use `@/` alias for app-specific imports, package names for shared packages
+cript
+// ✅ DO - Import from shared packages
+import type { User, Contractor } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
+import { webTokens } from '@mintenance/design-tokens';
+import { validatePassword } from '@mintenance/auth';
+
+// ✅ DO - App-specific imports
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+// ❌ DON'T - Relative paths for shared packages
+import { User } from '../../../packages/types';## Additional Guidelines
+
+### Comments
+
+- **Explain WHY, not WHAT**: Code should be self-documenting
+- **Document complex logic**: Add comments for non-obvious behavior
+- **JSDoc for public APIs**: Use JSDoc for exported functions
+ript
+// ✅ DO
+/**
+ * Calculates the total price including tax and discounts.
+ * @param items - Array of cart items
+ * @param taxRate - Tax rate as decimal (e.g., 0.08 for 8%)
+ * @returns Total price in cents to avoid floating point errors
+ */
+export function calculateTotal(items: CartItem[], taxRate: number): number {
+  // Using cents to avoid floating point arithmetic issues
+  const subtotal = items.reduce((sum, item) => sum + item.priceInCents * item.quantity, 0);
+  return Math.round(subtotal * (1 + taxRate));
+}
+
+// ❌ DON'T
+// This function calculates the total
+export function calculateTotal(items: CartItem[], taxRate: number): number {
+  // Loop through items
+  const subtotal = items.reduce((sum, item) => sum + item.priceInCents * item.quantity, 0);
+  // Return total
+  return Math.round(subtotal * (1 + taxRate));
+}### Git Commits
+
+- **Use conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`
+- **Keep commits atomic and focused**
+- **Write clear, descriptive messages**
+
+## Resources
+
+- [Next.js 16 Documentation](https://nextjs.org/docs)
+- [React 19 Documentation](https://react.dev)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Supabase Documentation](https://supabase.com/docs)
+- [TanStack Query Documentation](https://tanstack.com/query/latest)
+- [Expo Documentation](https://docs.expo.dev)
+- [Radix UI Documentation](https://www.radix-ui.com)
+- [Shadcn UI Documentation](https://ui.shadcn.com)
+
+---
+
+Change EAS config → Document in eas-cli-config/
+Update dependencies → Document in web-dependencies/
+Fix an issue → Document what worked and what didn't
+
+Hooks Best Practices
+Custom hooks: Prefix with use (useUserData, useDebounce)
+Hook dependencies: Always include all dependencies in arrays
+Avoid inline functions in JSX: Extract to separate functions or useCallback
+
+// ✅ DO
+function useUserData(userId: string) {
+  const [user, setUser] = useState<User | null>(null);
   
   useEffect(() => {
     fetchUser(userId).then(setUser);
@@ -136,17 +694,13 @@ function useUserData(userId: string) {
   
   return user;
 }
-```
 
-### Next.js 15 App Router
+Next.js 16 App Router
+File Structure
+Route groups: Use (group-name) for organization without affecting URLs
+Private folders: Prefix with _ to exclude from routing
+Colocation: Keep related components near their routes
 
-#### File Structure
-
-- **Route groups**: Use (group-name) for organization without affecting URLs
-- **Private folders**: Prefix with `_` to exclude from routing
-- **Colocation**: Keep related components near their routes
-
-```
 app/
 ├── (auth)/
 │   ├── login/
@@ -160,23 +714,28 @@ app/
 └── api/
     └── users/
         └── route.ts
-```
 
-#### Data Fetching
+Data Fetching
+Server Components: Fetch directly in components using Supabase
+Use Supabase server client: serverSupabase from lib/api/supabaseServer.ts
+Use fetch with caching: Leverage Next.js cache by default
+Streaming: Use loading.tsx and Suspense boundaries
+Error handling: Implement error.tsx boundaries   
 
-- **Server Components**: Fetch directly in components
-- **Use fetch with caching**: Leverage Next.js cache by default
-- **Streaming**: Use loading.tsx and Suspense boundaries
-- **Error handling**: Implement error.tsx boundaries
+// ✅ DO - Server Component data fetching with Supabase
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { User } from '@mintenance/types';
 
-```typescript
-// ✅ DO - Server Component data fetching
 export default async function UserPage({ params }: { params: { id: string } }) {
-  const user = await fetch(`https://api.example.com/users/${params.id}`, {
-    next: { revalidate: 3600 } // Cache for 1 hour
-  }).then(res => res.json());
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .select('*')
+    .eq('id', params.id)
+    .single();
 
-  return <UserProfile user={user} />;
+  if (error) throw new Error(`Failed to fetch user: ${error.message}`);
+
+  return <UserProfile user={user as User} />;
 }
 
 // ❌ DON'T - Using client-side fetching unnecessarily
@@ -187,27 +746,25 @@ export default function UserPage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState(null);
   
   useEffect(() => {
-    fetch(`https://api.example.com/users/${params.id}`)
+    fetch(`/api/users/${params.id}`)
       .then(res => res.json())
       .then(setUser);
   }, [params.id]);
 
   return user ? <UserProfile user={user} /> : <div>Loading...</div>;
 }
-```
 
-#### Server Actions
+Server Actions
+Use 'use server': Mark server-only functions
+Return serializable data: No functions, classes, or Date objects
+Validation: Always validate input on the server with Zod
 
-- **Use 'use server'**: Mark server-only functions
-- **Return serializable data**: No functions, classes, or Date objects
-- **Validation**: Always validate input on the server
-
-```typescript
 // ✅ DO
 'use server';
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 const userSchema = z.object({
   name: z.string().min(1),
@@ -220,7 +777,14 @@ export async function createUser(formData: FormData) {
     email: formData.get('email'),
   });
 
-  const user = await db.user.create({ data });
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .insert(data)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create user: ${error.message}`);
+
   revalidatePath('/users');
   
   return { success: true, userId: user.id };
@@ -230,27 +794,27 @@ export async function createUser(formData: FormData) {
 'use server';
 
 export async function createUser(formData: FormData) {
-  const user = await db.user.create({
-    data: {
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .insert({
       name: formData.get('name'), // No validation!
       email: formData.get('email'),
-    }
-  });
+    })
+    .select()
+    .single();
   
   return user; // Returning database model directly
 }
-```
 
-### Tailwind CSS
+Tailwind CSS
+Class Organization
+Order: Layout → Spacing → Sizing → Typography → Visual → State
+Use cn() helper: For conditional classes
+Use design tokens: Import from @mintenance/design-tokens
+Avoid arbitrary values: Use theme values when possible
 
-#### Class Organization
-
-- **Order**: Layout → Spacing → Sizing → Typography → Visual → State
-- **Use cn() helper**: For conditional classes
-- **Avoid arbitrary values**: Use theme values when possible
-
-```typescript
 import { cn } from '@/lib/utils';
+import { webTokens } from '@mintenance/design-tokens';
 
 // ✅ DO
 <div className={cn(
@@ -265,32 +829,29 @@ import { cn } from '@/lib/utils';
 
 // ❌ DON'T - Random order, arbitrary values
 <div className="bg-white text-lg hover:bg-gray-50 rounded-lg w-full p-4 flex shadow-sm items-center focus:outline-none gap-4 justify-between font-semibold max-w-md focus:ring-2" style={{ padding: '17px' }} />
-```
 
-#### Component Styling
+Component Styling
+Extract repeated patterns: Create reusable components
+Use design tokens: From @mintenance/design-tokens
+Mobile-first: Start with mobile, add md:, lg: breakpoints
+Use Radix UI + Shadcn UI: For accessible components
 
-- **Extract repeated patterns**: Create reusable components
-- **Use CSS variables**: For theme-aware colors
-- **Mobile-first**: Start with mobile, add md:, lg: breakpoints
-
-```typescript
 // ✅ DO
-const buttonVariants = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700",
-  secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
-  ghost: "bg-transparent hover:bg-gray-100",
-};
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export function Button({ variant = 'primary', children }: ButtonProps) {
+export function ActionButton({ variant = 'primary', children }: ButtonProps) {
   return (
-    <button className={cn(
-      "px-4 py-2 rounded-md font-medium transition-colors",
-      "focus:outline-none focus:ring-2 focus:ring-offset-2",
-      "disabled:opacity-50 disabled:cursor-not-allowed",
-      buttonVariants[variant]
-    )}>
+    <Button 
+      variant={variant}
+      className={cn(
+        "px-4 py-2 rounded-md font-medium transition-colors",
+        "focus:outline-none focus:ring-2 focus:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed"
+      )}
+    >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -298,44 +859,53 @@ export function Button({ variant = 'primary', children }: ButtonProps) {
 <button className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md">
   Click me
 </button>
-```
 
-## Architectural Constraints
+Architectural Constraints
+Project Structure
+apps/
+├── web/                    # Next.js 16 App Router
+│   ├── app/               # App Router routes
+│   │   ├── (auth)/       # Route group
+│   │   ├── (dashboard)/  # Route group
+│   │   └── api/          # API routes
+│   ├── components/       # Shared components
+│   │   ├── ui/          # Base UI components (Shadcn)
+│   │   └── features/    # Feature-specific components
+│   └── lib/              # Utilities and helpers
+│       ├── utils.ts     # General utilities
+│       ├── api-client.ts # API client
+│       └── validations.ts # Zod schemas
+├── mobile/                # Expo React Native app
+│   ├── app/              # Expo Router
+│   ├── components/      # React Native components
+│   └── lib/             # Mobile utilities
+└── packages/             # Shared packages
+    ├── types/           # TypeScript types
+    ├── auth/            # Auth utilities
+    ├── shared/          # Shared utilities
+    ├── shared-ui/       # Shared UI components
+    ├── design-tokens/   # Design system
+    └── api-client/      # API client wrapper
 
-### Project Structure
+    Design Patterns
+Separation of Concerns
+Presentation vs Logic: Keep business logic separate from UI
+Server vs Client: Minimize client-side JavaScript
+Data layer: Centralize API calls and data fetching
+Use TanStack Query: For client-side data fetching and caching
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (auth)/            # Route group
-│   ├── (dashboard)/       # Route group
-│   └── api/               # API routes
-├── components/            # Shared components
-│   ├── ui/               # Base UI components
-│   └── features/         # Feature-specific components
-├── lib/                   # Utilities and helpers
-│   ├── utils.ts          # General utilities
-│   ├── api-client.ts     # API client
-│   └── validations.ts    # Zod schemas
-├── hooks/                 # Custom React hooks
-├── types/                 # TypeScript type definitions
-└── config/               # Configuration files
-```
-
-### Design Patterns
-
-#### Separation of Concerns
-
-- **Presentation vs Logic**: Keep business logic separate from UI
-- **Server vs Client**: Minimize client-side JavaScript
-- **Data layer**: Centralize API calls and data fetching
-
-```typescript
 // ✅ DO - Separate concerns
 // lib/api/users.ts
-export async function fetchUsers(): Promise<UserProps[]> {
-  const response = await fetch('https://api.example.com/users');
-  return response.json();
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { User } from '@mintenance/types';
+
+export async function fetchUsers(): Promise<User[]> {
+  const { data, error } = await serverSupabase
+    .from('users')
+    .select('*');
+
+  if (error) throw new Error(`Failed to fetch users: ${error.message}`);
+  return data as User[];
 }
 
 // app/users/page.tsx
@@ -348,8 +918,9 @@ export default async function UsersPage() {
 
 // ❌ DON'T - Mix concerns
 export default async function UsersPage() {
-  const response = await fetch('https://api.example.com/users');
-  const users = await response.json();
+  const { data: users } = await serverSupabase
+    .from('users')
+    .select('*');
   
   return (
     <div>
@@ -366,65 +937,31 @@ export default async function UsersPage() {
     </div>
   );
 }
-```
 
-#### Composition over Inheritance
+State Management
+Server state: Use TanStack Query for caching
+URL state: Store in searchParams when possible
+Local state: useState for component-local state
+Global state: Context API or Zustand (avoid Redux unless necessary)
 
-- **Use composition**: Build complex components from simpler ones
-- **Props drilling**: Avoid deep nesting; use composition or context
+// ✅ DO - TanStack Query for client-side data
+'use client';
 
-```typescript
-// ✅ DO
-export function Card({ children, className }: CardProps) {
-  return (
-    <div className={cn("rounded-lg border bg-white p-6", className)}>
-      {children}
-    </div>
-  );
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.users.detail(userId),
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 }
 
-export function CardHeader({ children }: CardHeaderProps) {
-  return <div className="mb-4">{children}</div>;
-}
-
-export function CardTitle({ children }: CardTitleProps) {
-  return <h3 className="text-xl font-semibold">{children}</h3>;
-}
-
-// Usage
-<Card>
-  <CardHeader>
-    <CardTitle>User Profile</CardTitle>
-  </CardHeader>
-  <CardContent>...</CardContent>
-</Card>
-
-// ❌ DON'T - Inheritance or complex props
-export class BaseCard extends React.Component {
-  // Don't use classes
-}
-
-export function Card({ 
-  title, 
-  subtitle, 
-  content, 
-  footer, 
-  headerAction,
-  showDivider,
-  // ...20 more props
-}: ComplexCardProps) {
-  // Too many props, use composition
-}
-```
-
-#### State Management
-
-- **Server state**: Use React Query or SWR for caching
-- **URL state**: Store in searchParams when possible
-- **Local state**: useState for component-local state
-- **Global state**: Context API or Zustand (avoid Redux unless necessary)
-
-```typescript
 // ✅ DO - URL state for filters
 export default function ProductsPage({
   searchParams,
@@ -448,21 +985,20 @@ export default function ProductsPage() {
   
   // This should be in URL and fetched server-side
 }
-```
 
-#### Error Handling
+Error Handling
+Always handle errors: Don't leave try-catch empty
+User-friendly messages: Show meaningful errors
+Logging: Log errors using @mintenance/shared logger
 
-- **Always handle errors**: Don't leave try-catch empty
-- **User-friendly messages**: Show meaningful errors
-- **Logging**: Log errors for debugging
-
-```typescript
 // ✅ DO
+import { logger } from '@mintenance/shared';
+
 try {
   const data = await fetchUserData(userId);
   return data;
 } catch (error) {
-  console.error('Failed to fetch user data:', error);
+  logger.error('Failed to fetch user data', { userId, error });
   
   if (error instanceof ApiError) {
     throw new Error(`Unable to load user: ${error.message}`);
@@ -478,21 +1014,17 @@ try {
 } catch (error) {
   // Silent failure
 }
-```
 
-## Specific Dos and Don'ts
+Specific Dos and Don'ts
+Performance
+✅ DO
+Use Server Components by default
+Implement proper loading states with Suspense
+Optimize images with next/image
+Lazy load heavy components
+Minimize client-side JavaScript
+Use TanStack Query for efficient data caching
 
-### Performance
-
-✅ **DO**
-
-- Use Server Components by default
-- Implement proper loading states with Suspense
-- Optimize images with `next/image`
-- Lazy load heavy components
-- Minimize client-side JavaScript
-
-```typescript
 import Image from 'next/image';
 import { Suspense } from 'react';
 
@@ -513,25 +1045,21 @@ export default function ProfilePage() {
     </div>
   );
 }
-```
 
-❌ **DON'T**
+❌ DON'T
+Add 'use client' without checking if needed
+Use <img> tags directly
+Fetch data client-side when server-side is possible
+Import large libraries in client components
+Skip caching for frequently accessed data
+Accessibility
+✅ DO
+Use semantic HTML
+Add ARIA labels when necessary
+Ensure keyboard navigation
+Maintain color contrast ratios
+Use Radix UI primitives for accessible components
 
-- Add 'use client' without checking if needed
-- Use `<img>` tags directly
-- Fetch data client-side when server-side is possible
-- Import large libraries in client components
-
-### Accessibility
-
-✅ **DO**
-
-- Use semantic HTML
-- Add ARIA labels when necessary
-- Ensure keyboard navigation
-- Maintain color contrast ratios
-
-```typescript
 <button
   type="button"
   aria-label="Close dialog"
@@ -540,55 +1068,60 @@ export default function ProfilePage() {
 >
   <XIcon className="h-5 w-5" aria-hidden="true" />
 </button>
-```
 
-❌ **DON'T**
+❌ DON'T
+Use div/span for interactive elements
+Forget alt text on images
+Remove focus indicators
+Skip ARIA labels for icon-only buttons
 
-- Use div/span for interactive elements
-- Forget alt text on images
-- Remove focus indicators
+Security
+✅ DO
+Validate all user input with Zod
+Sanitize data before rendering (use DOMPurify)
+Use environment variables for secrets
+Implement proper authentication checks
+Use Supabase RLS (Row Level Security)
 
-### Security
-
-✅ **DO**
-
-- Validate all user input
-- Sanitize data before rendering
-- Use environment variables for secrets
-- Implement proper authentication checks
-
-```typescript
 'use server';
 
 import { z } from 'zod';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+const window = new JSDOM('').window;
+const purify = DOMPurify(window as unknown as Window);
 
 const userInputSchema = z.object({
   email: z.string().email(),
-  age: z.number().min(13).max(120),
+  bio: z.string().max(500),
 });
 
 export async function submitForm(input: unknown) {
   const validated = userInputSchema.parse(input);
-  // Now safe to use validated data
+  
+  // Sanitize HTML content
+  const sanitizedBio = purify.sanitize(validated.bio);
+  
+  // Now safe to use validated and sanitized data
+  return { success: true };
 }
-```
 
-❌ **DON'T**
+❌ DON'T
+Trust client-side validation alone
+Expose API keys in client code
+Use dangerouslySetInnerHTML without sanitization
+Skip server-side validation
+Disable Supabase RLS policies
+Testing
+✅ DO
+Write unit tests for utilities
+Test components with user interactions
+Use TypeScript to catch errors early
+Test error states
+Use Playwright for E2E tests (web)
+Use Jest for unit tests
 
-- Trust client-side validation alone
-- Expose API keys in client code
-- Use dangerouslySetInnerHTML without sanitization
-
-### Testing
-
-✅ **DO**
-
-- Write unit tests for utilities
-- Test components with user interactions
-- Use TypeScript to catch errors early
-- Test error states
-
-```typescript
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -605,17 +1138,33 @@ describe('LoginForm', () => {
     expect(screen.getByText('Invalid email address')).toBeInTheDocument();
   });
 });
-```
 
-## Additional Guidelines
+Monorepo Patterns
+Shared Packages
+Import from shared packages: @mintenance/types, @mintenance/auth, @mintenance/shared, @mintenance/shared-ui, @mintenance/design-tokens
+Use workspace dependencies: "@mintenance/types": "file:../../packages/types"
+Build shared packages: Run npm run build:packages before building apps
+File paths: Use @/ alias for app-specific imports, package names for shared packages
 
-### Comments
+// ✅ DO - Import from shared packages
+import type { User, Contractor } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
+import { webTokens } from '@mintenance/design-tokens';
+import { validatePassword } from '@mintenance/auth';
 
-- **Explain WHY, not WHAT**: Code should be self-documenting
-- **Document complex logic**: Add comments for non-obvious behavior
-- **JSDoc for public APIs**: Use JSDoc for exported functions
+// ✅ DO - App-specific imports
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-```typescript
+// ❌ DON'T - Relative paths for shared packages
+import { User } from '../../../packages/types';
+
+dditional Guidelines
+Comments
+Explain WHY, not WHAT: Code should be self-documenting
+Document complex logic: Add comments for non-obvious behavior
+JSDoc for public APIs: Use JSDoc for exported functions
+
 // ✅ DO
 /**
  * Calculates the total price including tax and discounts.
@@ -637,18 +1186,18 @@ export function calculateTotal(items: CartItem[], taxRate: number): number {
   // Return total
   return Math.round(subtotal * (1 + taxRate));
 }
-```
 
-### Git Commits
+Git Commits
+Use conventional commits: feat:, fix:, docs:, chore:
+Keep commits atomic and focused
+Write clear, descriptive messages
 
-- **Use conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`
-- **Keep commits atomic and focused**
-- **Write clear, descriptive messages**
-
-## Resources
-
-- [Next.js 15 Documentation](https://nextjs.org/docs)
-- [React 19 Documentation](https://react.dev)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
+This file:
+- Uses the `.mdc` frontmatter format with `alwaysApply: true`
+- Updates Next.js 15 → 16
+- Includes project-specific tech stack (Supabase, TanStack Query, etc.)
+- Includes monorepo structure and shared packages
+- Uses Supabase examples instead of generic fetch
+- Includes design tokens guidance
+- Includes mobile app conventions
+- Matches actual dependency versions from your package.json

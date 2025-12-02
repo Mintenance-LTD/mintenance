@@ -6,6 +6,40 @@ export interface ExportFile {
   filename: string;
 }
 
+// Type definitions for export data
+interface ExportableUser {
+  id: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  company_name?: string;
+  admin_verified?: boolean;
+  created_at: string;
+}
+
+interface RevenueMetrics {
+  totalRevenue?: number;
+  mrr?: number;
+}
+
+interface RevenueTrend {
+  date: string;
+  revenue?: number;
+  subscriptions?: number;
+  transactionFees?: number;
+}
+
+interface SecurityEvent {
+  created_at: string;
+  event_type?: string;
+  severity?: string;
+  ip_address?: string;
+  endpoint?: string;
+  details?: string;
+  resolved?: boolean;
+}
+
 /**
  * Service for exporting data to various formats
  */
@@ -13,7 +47,7 @@ export class ExportService {
   /**
    * Export users to CSV or PDF
    */
-  static async exportUsers(users: any[], format: 'csv' | 'pdf'): Promise<ExportFile> {
+  static async exportUsers(users: ExportableUser[], format: 'csv' | 'pdf'): Promise<ExportFile> {
     if (format === 'csv') {
       return this.exportUsersToCSV(users);
     } else {
@@ -24,7 +58,7 @@ export class ExportService {
   /**
    * Export users to CSV
    */
-  private static exportUsersToCSV(users: any[]): ExportFile {
+  private static exportUsersToCSV(users: ExportableUser[]): ExportFile {
     const headers = ['ID', 'Email', 'First Name', 'Last Name', 'Role', 'Company Name', 'Verified', 'Created At'];
     const rows = users.map(user => [
       user.id,
@@ -52,7 +86,7 @@ export class ExportService {
   /**
    * Export users to PDF
    */
-  private static exportUsersToPDF(users: any[]): ExportFile {
+  private static exportUsersToPDF(users: ExportableUser[]): ExportFile {
     // Simple PDF generation using HTML to PDF conversion
     // For production, consider using a library like pdfkit or puppeteer
     const html = `
@@ -114,8 +148,8 @@ export class ExportService {
    * Export revenue data to CSV
    */
   static async exportRevenue(data: {
-    metrics: any;
-    trends: any[];
+    metrics: RevenueMetrics;
+    trends: RevenueTrend[];
     dateRange: { start: Date; end: Date };
   }, format: 'csv' | 'pdf'): Promise<ExportFile> {
     if (format === 'csv') {
@@ -126,8 +160,8 @@ export class ExportService {
   }
 
   private static exportRevenueToCSV(data: {
-    metrics: any;
-    trends: any[];
+    metrics: RevenueMetrics;
+    trends: RevenueTrend[];
     dateRange: { start: Date; end: Date };
   }): ExportFile {
     const headers = ['Date', 'Revenue', 'Subscriptions', 'Transaction Fees'];
@@ -154,8 +188,8 @@ export class ExportService {
   }
 
   private static exportRevenueToPDF(data: {
-    metrics: any;
-    trends: any[];
+    metrics: RevenueMetrics;
+    trends: RevenueTrend[];
     dateRange: { start: Date; end: Date };
   }): ExportFile {
     const html = `
@@ -213,7 +247,7 @@ export class ExportService {
   /**
    * Export security events to CSV
    */
-  static async exportSecurityEvents(events: any[]): Promise<ExportFile> {
+  static async exportSecurityEvents(events: SecurityEvent[]): Promise<ExportFile> {
     const headers = ['Date', 'Type', 'Severity', 'IP Address', 'Endpoint', 'Details', 'Resolved'];
     const rows = events.map(event => [
       new Date(event.created_at).toLocaleString('en-GB'),

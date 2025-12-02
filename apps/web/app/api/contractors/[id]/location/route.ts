@@ -90,7 +90,7 @@ export async function POST(  request: NextRequest,
       logger.error('Error updating location', locationError, {
         service: 'contractor_locations',
         contractorId,
-        jobId,
+        job_id,
       });
       return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
     }

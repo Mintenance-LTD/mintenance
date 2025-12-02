@@ -55,7 +55,12 @@ export async function POST(
     }
 
     // Update contract with signature
-    const updateData: any = {
+    const updateData: {
+      updated_at: string;
+      contractor_signed_at?: string;
+      homeowner_signed_at?: string;
+      status?: string;
+    } = {
       updated_at: new Date().toISOString(),
     };
 
@@ -176,7 +181,12 @@ export async function POST(
 
       // Update job with contract dates and schedule on both calendars
       if (updatedContract.start_date || updatedContract.end_date) {
-        const jobUpdateData: Record<string, any> = {
+        const jobUpdateData: {
+          updated_at: string;
+          scheduled_date?: string;
+          scheduled_start_date?: string;
+          scheduled_end_date?: string;
+        } = {
           updated_at: new Date().toISOString(),
         };
 

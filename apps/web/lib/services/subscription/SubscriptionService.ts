@@ -374,15 +374,16 @@ export class SubscriptionService {
       let currentSubscription: Stripe.Subscription;
       try {
         currentSubscription = await stripe.subscriptions.retrieve(existingStripeSubscriptionId);
-      } catch (stripeError: any) {
+      } catch (stripeError: unknown) {
+        const err = stripeError as Error & { code?: string };
         logger.error('Failed to retrieve Stripe subscription', {
           service: 'SubscriptionService',
           contractorId,
           subscriptionId: existingStripeSubscriptionId,
-          error: stripeError.message,
-          stripeErrorCode: stripeError.code,
+          error: err.message,
+          stripeErrorCode: err.code,
         });
-        throw new Error(`Failed to retrieve subscription: ${stripeError.message || 'Subscription not found'}`);
+        throw new Error(`Failed to retrieve subscription: ${err.message || 'Subscription not found'}`);
       }
 
       // Check if subscription is in a state that allows updates
@@ -431,16 +432,17 @@ export class SubscriptionService {
           proration_behavior: 'always_invoice', // Charge/credit for prorated amount
           expand: ['latest_invoice.payment_intent'],
         });
-      } catch (updateError: any) {
+      } catch (updateError: unknown) {
+        const err = updateError as Error & { code?: string; type?: string };
         logger.error('Failed to update Stripe subscription', {
           service: 'SubscriptionService',
           contractorId,
           subscriptionId: existingStripeSubscriptionId,
-          error: updateError.message,
-          stripeErrorCode: updateError.code,
-          stripeErrorType: updateError.type,
+          error: err.message,
+          stripeErrorCode: err.code,
+          stripeErrorType: err.type,
         });
-        throw new Error(`Failed to update subscription: ${updateError.message || 'Unknown error'}`);
+        throw new Error(`Failed to update subscription: ${err.message || 'Unknown error'}`);
       }
 
       // Get payment intent if invoice requires payment

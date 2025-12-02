@@ -23,6 +23,9 @@ class OfflineManagerClass {
   private readonly CHUNK_SIZE = 50; // process actions in manageable chunks
   private syncInProgress = false;
   private retryTimer: any = null;
+  // CRITICAL FIX: Memory leak prevention
+  // syncListeners array must be properly cleaned up to prevent indefinite growth
+  // Use the unsubscribe function returned by onSyncStatusChange() to cleanup
   private syncListeners: ((
     status: SyncStatus,
     pendingCount: number
@@ -416,12 +419,31 @@ class OfflineManagerClass {
     }
   }
 
+  /**
+   * Subscribe to sync status changes
+   * CRITICAL FIX: Returns unsubscribe function to prevent memory leaks
+   *
+   * Usage:
+   * ```typescript
+   * useEffect(() => {
+   *   const unsubscribe = OfflineManager.onSyncStatusChange((status, count) => {
+   *     console.log('Sync status:', status, count);
+   *   });
+   *
+   *   // IMPORTANT: Always cleanup on unmount to prevent memory leak
+   *   return unsubscribe;
+   * }, []);
+   * ```
+   *
+   * @param callback - Function to call when sync status changes
+   * @returns Unsubscribe function - MUST be called on component unmount
+   */
   onSyncStatusChange(
     callback: (status: SyncStatus, pendingCount: number) => void
   ): () => void {
     this.syncListeners.push(callback);
 
-    // Return unsubscribe function
+    // Return unsubscribe function to allow proper cleanup
     return () => {
       const index = this.syncListeners.indexOf(callback);
       if (index > -1) {

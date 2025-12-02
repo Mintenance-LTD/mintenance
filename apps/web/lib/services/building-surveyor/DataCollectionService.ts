@@ -665,10 +665,15 @@ export class DataCollectionService {
     try {
       const validatedAssessments = await this.getValidatedAssessments(limit, 0);
       
+      interface AssessmentImage {
+        image_url: string;
+        image_index?: number;
+      }
+
       if (format === 'jsonl') {
         // JSONL format for fine-tuning
         const lines = validatedAssessments.map((assessment) => {
-          const images = (assessment.images || []).map((img: any) => ({
+          const images = (assessment.images || []).map((img: AssessmentImage) => ({
             type: 'image_url',
             image_url: img.image_url,
           }));
@@ -707,7 +712,7 @@ export class DataCollectionService {
         return JSON.stringify(
           validatedAssessments.map((assessment) => ({
             assessment_id: assessment.id,
-            images: (assessment.images || []).map((img: any) => img.image_url),
+            images: (assessment.images || []).map((img: AssessmentImage) => img.image_url),
             assessment: assessment.assessment_data,
             metadata: {
               damage_type: assessment.damage_type,
@@ -740,7 +745,7 @@ export class DataCollectionService {
     damageTypeMatch: boolean;
     severityMatch: boolean;
     confidenceDelta: number;
-    details: Record<string, any>;
+    details: Record<string, string | number | boolean>;
   }> {
     try {
       // Get original GPT-4 assessment

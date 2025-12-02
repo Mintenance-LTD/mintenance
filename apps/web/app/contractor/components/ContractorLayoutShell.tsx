@@ -290,7 +290,7 @@ export function ContractorLayoutShell({ children, contractor, email, userId, ini
             {mounted && (pathname === '/contractor/dashboard-enhanced') ? (
               <>
                 <Link
-                  href="/contractor/bid"
+                  href="/contractor/jobs"
                   suppressHydrationWarning
                   style={{
                     display: 'inline-flex',

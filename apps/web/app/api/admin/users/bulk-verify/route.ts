@@ -97,7 +97,15 @@ const admin = await getCurrentUserFromCookies();
           action === 'approve' ? 'approved' : 'rejected',
           reason || null,
           verificationScore,
-          automatedCheck.checks,
+          (() => {
+            const checksPassed: Record<string, boolean> = {};
+            if (automatedCheck.checks && Array.isArray(automatedCheck.checks)) {
+              automatedCheck.checks.forEach((check: { name: string; passed: boolean }) => {
+                checksPassed[check.name] = check.passed;
+              });
+            }
+            return checksPassed;
+          })(),
           previousStatus,
           newStatus
         );

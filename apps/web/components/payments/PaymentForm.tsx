@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { FeeCalculator } from './FeeCalculator';
 import { PaymentService } from '@/lib/services/PaymentService';
+import { logger } from '@mintenance/shared';
+import { FormField, ValidatedInput } from '@/components/ui/FormField';
 
 interface PaymentFormProps {
   jobId: string;
@@ -46,6 +48,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   });
   const [processing, setProcessing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   const parsedAmount = Number.parseFloat(amount);
   const amountNum = Number.isNaN(parsedAmount) ? 0 : parsedAmount;
@@ -76,27 +80,88 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     }));
   };
 
+  const validateField = (field: string, value: string): string | undefined => {
+    switch (field) {
+      case 'amount':
+        if (!value || parseFloat(value) <= 0) return 'Please enter a valid payment amount';
+        if (parseFloat(value) < 1) return 'Minimum payment is £1.00';
+        if (parseFloat(value) > 10000) return 'Maximum payment is £10,000.00';
+        return undefined;
+      case 'cardNumber':
+        if (!value) return 'Card number is required';
+        const digits = value.replace(/\s/g, '');
+        if (digits.length < 13) return 'Please enter a valid card number (13-19 digits)';
+        if (digits.length > 19) return 'Card number is too long';
+        return undefined;
+      case 'expiryDate':
+        if (!value) return 'Expiry date is required';
+        if (value.length < 5) return 'Please enter a valid expiry date (MM/YY)';
+        const [month, year] = value.split('/').map(Number);
+        if (month < 1 || month > 12) return 'Invalid month';
+        const currentYear = new Date().getFullYear() % 100;
+        const currentMonth = new Date().getMonth() + 1;
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+          return 'Card has expired';
+        }
+        return undefined;
+      case 'cvc':
+        if (!value) return 'CVC is required';
+        if (value.length < 3) return 'CVC must be 3-4 digits';
+        return undefined;
+      case 'cardholderName':
+        if (!value.trim()) return 'Cardholder name is required';
+        if (value.trim().length < 2) return 'Please enter a valid name';
+        return undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  const handleFieldBlur = (field: string, value: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, value);
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
+  };
+
+  const isFieldValid = (field: string, value: string): boolean => {
+    return touchedFields[field] && !errors[field] && Boolean(value);
+  };
+
   const validateForm = () => {
-    if (!amount || amountNum <= 0) {
-      onError('Please enter a valid payment amount');
+    const newErrors: Record<string, string> = {};
+    const newTouchedFields: Record<string, boolean> = {};
+
+    const fields = [
+      { name: 'amount', value: amount },
+      { name: 'cardNumber', value: cardNumber },
+      { name: 'expiryDate', value: expiryDate },
+      { name: 'cvc', value: cvc },
+      { name: 'cardholderName', value: cardholderName },
+    ];
+
+    fields.forEach(({ name, value }) => {
+      newTouchedFields[name] = true;
+      const error = validateField(name, value);
+      if (error) newErrors[name] = error;
+    });
+
+    setTouchedFields(newTouchedFields);
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      onError(firstError);
       return false;
     }
-    if (!cardNumber || cardNumber.replace(/\s/g, '').length < 13) {
-      onError('Please enter a valid card number');
-      return false;
-    }
-    if (!expiryDate || expiryDate.length < 5) {
-      onError('Please enter a valid expiry date (MM/YY)');
-      return false;
-    }
-    if (!cvc || cvc.length < 3) {
-      onError('Please enter a valid CVC');
-      return false;
-    }
-    if (!cardholderName.trim()) {
-      onError('Please enter the cardholder name');
-      return false;
-    }
+
     return true;
   };
 
@@ -151,7 +216,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
       onSuccess(client_secret);
     } catch (error: unknown) {
-      console.error('Payment error:', error);
+      logger.error('Payment error:', error);
       const fallbackMessage = 'Payment failed. Please try again.';
       const message = error instanceof Error ? error.message ?? fallbackMessage : fallbackMessage;
       onError(message);
@@ -250,14 +315,32 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           </h3>
 
           <div style={{ marginBottom: theme.spacing.md }}>
-            <Input
-              type="text"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-              placeholder="1234 5678 9012 3456"
-              maxLength={19}
+            <FormField
+              label="Card Number"
               required
-            />
+              error={touchedFields.cardNumber ? errors.cardNumber : undefined}
+              success={isFieldValid('cardNumber', cardNumber)}
+              helperText={isFieldValid('cardNumber', cardNumber) ? 'Card number valid' : 'Enter your 13-19 digit card number'}
+              htmlFor="payment-cardNumber"
+            >
+              <ValidatedInput
+                id="payment-cardNumber"
+                type="text"
+                value={cardNumber}
+                onChange={(e) => {
+                  const formatted = formatCardNumber(e.target.value);
+                  setCardNumber(formatted);
+                  if (touchedFields.cardNumber) {
+                    handleFieldBlur('cardNumber', formatted);
+                  }
+                }}
+                onBlur={() => handleFieldBlur('cardNumber', cardNumber)}
+                placeholder="1234 5678 9012 3456"
+                maxLength={19}
+                error={Boolean(touchedFields.cardNumber && errors.cardNumber)}
+                success={isFieldValid('cardNumber', cardNumber)}
+              />
+            </FormField>
           </div>
 
           <div
@@ -286,13 +369,30 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             />
           </div>
 
-          <Input
-            type="text"
-            value={cardholderName}
-            onChange={(e) => setCardholderName(e.target.value)}
-            placeholder="Cardholder name"
+          <FormField
+            label="Cardholder Name"
             required
-          />
+            error={touchedFields.cardholderName ? errors.cardholderName : undefined}
+            success={isFieldValid('cardholderName', cardholderName)}
+            helperText={isFieldValid('cardholderName', cardholderName) ? 'Name confirmed' : 'Enter name as it appears on card'}
+            htmlFor="payment-cardholderName"
+          >
+            <ValidatedInput
+              id="payment-cardholderName"
+              type="text"
+              value={cardholderName}
+              onChange={(e) => {
+                setCardholderName(e.target.value);
+                if (touchedFields.cardholderName) {
+                  handleFieldBlur('cardholderName', e.target.value);
+                }
+              }}
+              onBlur={() => handleFieldBlur('cardholderName', cardholderName)}
+              placeholder="John Smith"
+              error={Boolean(touchedFields.cardholderName && errors.cardholderName)}
+              success={isFieldValid('cardholderName', cardholderName)}
+            />
+          </FormField>
         </Card>
 
         {/* Billing Address (Advanced) */}

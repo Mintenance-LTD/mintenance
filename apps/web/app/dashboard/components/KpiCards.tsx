@@ -54,11 +54,11 @@ export const KpiCards = React.memo(function KpiCards({ metrics }: KpiCardsProps)
             )}
 
             {/* Trend with Sparkline */}
-            {metric.trend && (
+            {metric.trend && metric.trend.direction !== 'neutral' && (
               <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                 <div className="flex items-center gap-2">
                   <TrendSparkline 
-                    direction={metric.trend.direction} 
+                    direction={metric.trend.direction as 'up' | 'down'} 
                     color={metric.trend.direction === 'up' ? theme.colors.secondary : theme.colors.error}
                   />
                 </div>

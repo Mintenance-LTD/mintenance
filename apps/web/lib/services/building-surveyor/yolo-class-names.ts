@@ -5,8 +5,6 @@
  * This matches the 71 classes defined in "Building Defect Detection 7.v2i.yolov11/data.yaml"
  */
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -94,14 +92,16 @@ const DEFAULT_CLASS_NAMES = [
  */
 export function loadClassNames(dataYamlPath?: string): string[] {
   try {
-    // Try to load from data.yaml if path provided
-    if (dataYamlPath) {
+    // Try to load from data.yaml if path provided (server-side only)
+    if (dataYamlPath && typeof window === 'undefined') {
+      // Dynamic import for Node.js modules (server-side only)
+      const { readFileSync } = require('fs');
       const yamlContent = readFileSync(dataYamlPath, 'utf-8');
       const namesMatch = yamlContent.match(/names:\s*\n((?:- .+\n?)+)/);
       if (namesMatch) {
         const names = namesMatch[1]
           .split('\n')
-          .map((line) => line.replace(/^-\s+/, '').trim())
+          .map((line: string) => line.replace(/^-\s+/, '').trim())
           .filter(Boolean);
         if (names.length > 0) {
           logger.info('Loaded class names from data.yaml', {

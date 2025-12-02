@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { theme } from '@/lib/theme';
 import Logo from '@/app/components/Logo';
@@ -24,7 +25,7 @@ export default function MeetingsPage() {
                 const user = await fetchCurrentUser();
                 setCurrentUser(user);
             } catch (error) {
-                console.error('Failed to load user:', error);
+                logger.error('Failed to load user:', error);
             }
         };
 

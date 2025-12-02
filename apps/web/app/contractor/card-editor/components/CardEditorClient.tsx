@@ -10,12 +10,21 @@ import { Button } from '@/components/ui/Button';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { StatusBadge } from '@/components/ui/Badge.unified';
 
-export function CardEditorClient({ profile: initialProfile }: { profile: any }) {
+interface ContractorCardProfile {
+  id: string;
+  company_name?: string;
+  bio?: string;
+  hourly_rate?: number;
+  years_experience?: number;
+  is_available?: boolean;
+}
+
+export function CardEditorClient({ profile: initialProfile }: { profile: ContractorCardProfile }) {
   const router = useRouter();
   const [companyName, setCompanyName] = useState(initialProfile.company_name || '');
   const [bio, setBio] = useState(initialProfile.bio || '');
-  const [hourlyRate, setHourlyRate] = useState(initialProfile.hourly_rate || '');
-  const [yearsExperience, setYearsExperience] = useState(initialProfile.years_experience || '');
+  const [hourlyRate, setHourlyRate] = useState(initialProfile.hourly_rate?.toString() || '');
+  const [yearsExperience, setYearsExperience] = useState(initialProfile.years_experience?.toString() || '');
   const [availability, setAvailability] = useState(initialProfile.is_available ? 'available' : 'busy');
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

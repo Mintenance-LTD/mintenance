@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@mintenance/shared';
 
 interface LocationSuggestion {
   display_name: string;
@@ -70,7 +71,7 @@ export function useLocationSearch({
       setSuggestions(data);
       setShowSuggestions(data.length > 0);
     } catch (error) {
-      console.error('Error searching addresses:', error);
+      logger.error('Error searching addresses:', error);
       setSuggestions([]);
       setShowSuggestions(false);
       // Don't show error to user - just silently fail (autocomplete is optional)
@@ -128,7 +129,7 @@ export function useLocationSearch({
           setShowSuggestions(false);
           setSuggestions([]);
         } catch (error) {
-          console.error('Error getting address:', error);
+          logger.error('Error getting address:', error);
           throw error;
         } finally {
           setIsDetectingLocation(false);

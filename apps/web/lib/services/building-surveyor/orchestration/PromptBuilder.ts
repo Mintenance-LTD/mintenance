@@ -204,7 +204,10 @@ Return a JSON object with the following structure:
         context?: AssessmentContext,
         roboflowDetections?: RoboflowDetection[],
         visionAnalysis?: VisionAnalysisSummary | null
-    ): any[] {
+    ): Array<{
+        role: string;
+        content: string | Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }>;
+    }> {
         const systemPrompt = this.buildSystemPrompt();
         const evidenceSummary = this.buildEvidenceSummary(
             roboflowDetections || [],

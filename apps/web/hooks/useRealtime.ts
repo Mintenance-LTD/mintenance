@@ -1,21 +1,28 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export interface RealtimeConfig {
+/**
+ * Payload for realtime database changes
+ */
+export type RealtimePayload<T extends Record<string, unknown> = Record<string, unknown>> = 
+  RealtimePostgresChangesPayload<T>;
+
+export interface RealtimeConfig<T extends Record<string, unknown> = Record<string, unknown>> {
   table: string;
   schema?: string;
   filter?: string;
-  onInsert?: (payload: any) => void;
-  onUpdate?: (payload: any) => void;
-  onDelete?: (payload: any) => void;
-  onError?: (error: any) => void;
+  onInsert?: (payload: RealtimePayload<T>) => void;
+  onUpdate?: (payload: RealtimePayload<T>) => void;
+  onDelete?: (payload: RealtimePayload<T>) => void;
+  onError?: (error: Error) => void;
 }
 
 export interface RealtimeStatus {
@@ -56,7 +63,7 @@ export function useRealtime(config?: RealtimeConfig) {
     const finalConfig = customConfig || configRef.current;
     
     if (!finalConfig) {
-      console.error('No configuration provided for realtime subscription');
+      logger.error('No configuration provided for realtime subscription');
       return;
     }
 
@@ -150,10 +157,25 @@ export function useRealtime(config?: RealtimeConfig) {
 }
 
 /**
+ * User presence data
+ */
+interface PresenceUserData {
+  id?: string;
+  name?: string;
+  avatar?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Presence state map
+ */
+type PresenceState = Record<string, PresenceUserData[]>;
+
+/**
  * Hook for realtime presence (track online users)
  */
 export function useRealtimePresence(roomId: string) {
-  const [presenceState, setPresenceState] = useState<Record<string, any>>({});
+  const [presenceState, setPresenceState] = useState<PresenceState>({});
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -167,14 +189,14 @@ export function useRealtimePresence(roomId: string) {
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
+        const state = channel.presenceState() as PresenceState;
         setPresenceState(state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('User joined:', key, newPresences);
+        logger.info('User joined:', { key, newPresences });
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('User left:', key, leftPresences);
+        logger.info('User left:', { key, leftPresences });
       })
       .subscribe();
 
@@ -185,7 +207,7 @@ export function useRealtimePresence(roomId: string) {
     };
   }, [roomId]);
 
-  const trackPresence = useCallback((userData: any) => {
+  const trackPresence = useCallback((userData: PresenceUserData) => {
     if (channelRef.current) {
       channelRef.current.track(userData);
     }
@@ -206,10 +228,22 @@ export function useRealtimePresence(roomId: string) {
 }
 
 /**
+ * Broadcast message structure
+ */
+interface BroadcastMessage {
+  id?: string;
+  type?: string;
+  content?: string;
+  timestamp?: number;
+  senderId?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Hook for realtime broadcast (send and receive messages)
  */
-export function useRealtimeBroadcast(channelName: string) {
-  const [messages, setMessages] = useState<any[]>([]);
+export function useRealtimeBroadcast<T extends BroadcastMessage = BroadcastMessage>(channelName: string) {
+  const [messages, setMessages] = useState<T[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -217,7 +251,7 @@ export function useRealtimeBroadcast(channelName: string) {
 
     channel
       .on('broadcast', { event: 'message' }, (payload) => {
-        setMessages(prev => [...prev, payload.payload]);
+        setMessages(prev => [...prev, payload.payload as T]);
       })
       .subscribe();
 
@@ -228,7 +262,7 @@ export function useRealtimeBroadcast(channelName: string) {
     };
   }, [channelName]);
 
-  const send = useCallback((message: any) => {
+  const send = useCallback((message: T) => {
     if (channelRef.current) {
       channelRef.current.send({
         type: 'broadcast',

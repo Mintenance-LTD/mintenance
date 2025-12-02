@@ -4,6 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 
+// Type definitions for post operations
+interface PostUpdateData {
+  updated_at: string;
+  title?: string;
+  content?: string;
+  images?: string[];
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -125,7 +133,7 @@ export async function PATCH(
     }
 
     // Build update payload
-    const updateData: any = {
+    const updateData: PostUpdateData = {
       updated_at: new Date().toISOString(),
     };
 

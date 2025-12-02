@@ -7,7 +7,9 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { PostgrestError } from '@supabase/supabase-js';
 import type { SelfModificationEvent } from '../ml-engine/memory/types';
+import { AssessmentAccuracyMetrics } from './AssessmentAccuracyMetrics';
 
 export interface TitansEffectivenessMetrics {
   totalModifications: number;
@@ -34,6 +36,18 @@ export interface TitansAnalysisResult {
 }
 
 /**
+ * Titans state record from database
+ */
+interface TitansStateRecord {
+  id: string;
+  agent_name: string;
+  projections_jsonb?: Record<string, number[][]>;
+  context_memory_jsonb?: unknown[];
+  last_updated: string;
+  [key: string]: unknown; // Allow additional database fields
+}
+
+/**
  * Analyzes effectiveness of Self-Modifying Titans
  */
 export class TitansEffectivenessAnalyzer {
@@ -49,6 +63,11 @@ export class TitansEffectivenessAnalyzer {
     endDate?: Date
   ): Promise<TitansAnalysisResult> {
     try {
+      const period = {
+        start: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default: 30 days
+        end: endDate || new Date(),
+      };
+
       // Get Titans state history
       const stateHistory = await this.getStateHistory(agentName, startDate, endDate);
       
@@ -60,13 +79,24 @@ export class TitansEffectivenessAnalyzer {
       
       // Generate recommendations
       const recommendations = this.generateRecommendations(metrics, modifications);
+
+      // Persist snapshot for reporting dashboards
+      this.persistAnalysisSnapshot({
+        agentName,
+        period,
+        metrics,
+        recommendations,
+      }).catch((error) => {
+        logger.warn('Failed to persist Titans analysis snapshot', {
+          service: 'TitansEffectivenessAnalyzer',
+          agentName,
+          error,
+        });
+      });
       
       return {
         agentName,
-        period: {
-          start: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default: 30 days
-          end: endDate || new Date(),
-        },
+        period,
         metrics,
         recommendations,
       };
@@ -86,7 +116,7 @@ export class TitansEffectivenessAnalyzer {
     agentName: string,
     startDate?: Date,
     endDate?: Date
-  ): Promise<any[]> {
+  ): Promise<TitansStateRecord[]> {
     let query = serverSupabase
       .from(this.TABLE_NAME)
       .select('*')
@@ -106,7 +136,7 @@ export class TitansEffectivenessAnalyzer {
       throw new Error(`Failed to fetch Titans state history: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []) as TitansStateRecord[];
   }
 
   /**
@@ -133,11 +163,14 @@ export class TitansEffectivenessAnalyzer {
     const { data, error } = await query;
 
     if (error) {
-      // Table might not exist yet, return empty array
-      logger.warn('Modifications table not found, returning empty array', {
-        service: 'TitansEffectivenessAnalyzer',
-      });
-      return [];
+      if (this.isMissingTableError(error)) {
+        logger.warn('Modifications table not found, returning empty array', {
+          service: 'TitansEffectivenessAnalyzer',
+        });
+        return [];
+      }
+
+      throw new Error(`Failed to fetch self-modification events: ${error.message}`);
     }
 
     return (data || []) as SelfModificationEvent[];
@@ -147,7 +180,10 @@ export class TitansEffectivenessAnalyzer {
    * Calculate effectiveness metrics
    */
   private static calculateMetrics(
-    stateHistory: any[],
+    stateHistory: Array<{
+      projections_jsonb?: Record<string, number[][]>;
+      context_memory_jsonb?: unknown[];
+    }>,
     modifications: SelfModificationEvent[]
   ): TitansEffectivenessMetrics {
     const totalModifications = modifications.length;
@@ -216,8 +252,8 @@ export class TitansEffectivenessAnalyzer {
    * Calculate L2 norm of projection matrix differences
    */
   private static calculateProjectionDifference(
-    projections1: any,
-    projections2: any
+    projections1: Record<string, number[][]>,
+    projections2: Record<string, number[][]>
   ): number {
     let totalDiff = 0;
     let totalElements = 0;
@@ -324,18 +360,56 @@ export class TitansEffectivenessAnalyzer {
     withoutTitans: { averageAccuracy: number; totalAssessments: number };
     improvement: number;
   }> {
-    // This would compare assessments with Titans enabled vs disabled
-    // For now, return placeholder structure
-    const withTitans = await this.analyze(agentName, period.start, period.end);
-    
+    const [titansAnalysis, accuracyComparison] = await Promise.all([
+      this.analyze(agentName, period.start, period.end),
+      AssessmentAccuracyMetrics.compareConfigurations(period),
+    ]);
+
+    const baselineAccuracy = accuracyComparison.baseline.overallAccuracy;
+    const titansAccuracy = accuracyComparison.withTitans.overallAccuracy;
+    const totalAssessments = accuracyComparison.baseline.validatedAssessments;
+
     return {
-      withTitans: withTitans.metrics,
+      withTitans: titansAnalysis.metrics,
       withoutTitans: {
-        averageAccuracy: 0.75, // Would be fetched from baseline data
-        totalAssessments: 0,
+        averageAccuracy: baselineAccuracy,
+        totalAssessments,
       },
-      improvement: withTitans.metrics.accuracyImprovement,
+      improvement: titansAccuracy - baselineAccuracy,
     };
+  }
+
+  private static async persistAnalysisSnapshot(params: {
+    agentName: string;
+    period: { start: Date; end: Date };
+    metrics: TitansEffectivenessMetrics;
+    recommendations: string[];
+  }): Promise<void> {
+    const { error: insertError } = await serverSupabase.from('titans_effectiveness_reports').insert({
+      agent_name: params.agentName,
+      period_start: params.period.start.toISOString(),
+      period_end: params.period.end.toISOString(),
+      metrics: params.metrics,
+      recommendations: params.recommendations,
+    });
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    const { error: refreshError } = await serverSupabase.rpc('refresh_titans_effectiveness_latest_mv');
+
+    if (refreshError) {
+      throw refreshError;
+    }
+  }
+
+  private static isMissingTableError(error: PostgrestError): boolean {
+    if (!error) return false;
+    return (
+      error.code === '42P01' ||
+      (typeof error.message === 'string' && error.message.toLowerCase().includes('does not exist'))
+    );
   }
 }
 

@@ -1,13 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react';
 
+interface JobWithPhotos {
+  photos?: Array<string | { url: string }>;
+  title?: string;
+  category?: string;
+  created_at?: string;
+}
+
+interface PostWithImages {
+  images?: Array<string | { url: string }>;
+  title?: string;
+  help_category?: string;
+  created_at?: string;
+}
+
 interface ProfileGalleryProps {
-  completedJobs: any[];
-  posts: any[];
+  completedJobs: JobWithPhotos[];
+  posts: PostWithImages[];
   onAddPhotos?: () => void;
 }
 
@@ -16,7 +31,7 @@ export function ProfileGallery({ completedJobs, posts, onAddPhotos }: ProfileGal
 
   // Extract all photos from jobs and posts
   const jobPhotos = completedJobs?.flatMap(job => 
-    Array.isArray(job.photos) ? job.photos.map((photo: any) => ({
+    Array.isArray(job.photos) ? job.photos.map((photo: string | { url: string }) => ({
       url: typeof photo === 'string' ? photo : photo.url,
       title: job.title,
       category: job.category,
@@ -25,7 +40,7 @@ export function ProfileGallery({ completedJobs, posts, onAddPhotos }: ProfileGal
   ) || [];
 
   const postPhotos = posts?.flatMap(post => 
-    Array.isArray(post.images) ? post.images.map((img: any) => ({
+    Array.isArray(post.images) ? post.images.map((img: string | { url: string }) => ({
       url: typeof img === 'string' ? img : img.url,
       title: post.title,
       category: post.help_category || 'Showcase',
@@ -120,17 +135,13 @@ export function ProfileGallery({ completedJobs, posts, onAddPhotos }: ProfileGal
                 border: `1px solid ${theme.colors.border}`,
               }}
             >
-              <img
+              <Image
                 src={photo.url || 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400'}
                 alt={photo.title}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                loading="lazy"
               />
               <div style={{
                 position: 'absolute',

@@ -143,7 +143,7 @@ function createMockSupabase() {
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
     },
     from: (table: string) => {
-      console.warn(`[Supabase: MOCK] Query to table: ${table}`);
+      logger.warn(`[Supabase: MOCK] Query to table: ${table}`);
       return {
         select: () => createQueryChain(),
         insert: async () => ({ data: null, error: mockError }),

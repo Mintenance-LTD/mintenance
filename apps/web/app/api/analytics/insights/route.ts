@@ -5,8 +5,10 @@ import { ContractorAnalyticsService } from '@/lib/services/ContractorAnalyticsSe
 import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
+  let userId: string | undefined;
   try {
     const user = await getCurrentUserFromCookies();
+    userId = user?.id;
 
     if (!user || user.role !== 'contractor') {
       return NextResponse.json(
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     logger.error('Error fetching analytics insights', error, {
       service: 'analytics',
-      userId: user.id,
+      userId,
     });
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch insights';
     return NextResponse.json(

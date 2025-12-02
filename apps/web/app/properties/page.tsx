@@ -2,22 +2,17 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
-import { Icon } from '@/components/ui/Icon';
-import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { PageHeader } from '@/components/layouts/PageHeader';
-import { AddPropertyButton } from './components/AddPropertyButton';
-import { PropertyCard } from './components/PropertyCard';
-import { PropertiesEmptyState } from './components/PropertiesEmptyState';
-import { getCachedUserProperties, getCachedUser } from '@/lib/cache';
+import { getCachedUser } from '@/lib/cache';
+import { PropertiesClient2025 } from './components/PropertiesClient2025';
 
-export default async function PropertiesPage() {
+export default async function PropertiesPage2025() {
   const user = await getCurrentUserFromCookies();
 
   if (!user) {
     redirect('/login?redirect=/properties');
   }
 
-  // Fetch properties with caching (300s revalidation - properties change infrequently)
+  // Fetch properties
   const properties = await unstable_cache(
     async () => {
       const { data, error } = await serverSupabase
@@ -32,12 +27,12 @@ export default async function PropertiesPage() {
     { revalidate: 300 }
   )();
 
-  // Fetch jobs for each property to calculate stats (cached 60s)
+  // Fetch jobs for stats
   const jobs = await unstable_cache(
     async () => {
       const { data } = await serverSupabase
         .from('jobs')
-        .select('id, property_id, status, budget, scheduled_date, created_at')
+        .select('id, property_id, status, budget, scheduled_date, created_at, category')
         .eq('homeowner_id', user.id);
       return data || [];
     },
@@ -55,61 +50,48 @@ export default async function PropertiesPage() {
       new Date(b.scheduled_date || b.created_at).getTime() - new Date(a.scheduled_date || a.created_at).getTime()
     )[0];
     const lastServiceDate = lastJob
-      ? new Date(lastJob.scheduled_date || lastJob.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      ? new Date(lastJob.scheduled_date || lastJob.created_at).toISOString()
       : null;
 
+    // Recent job categories
+    const recentCategories = propertyJobs
+      .slice(0, 5)
+      .map(j => j.category)
+      .filter(Boolean);
+
     return {
-      ...property,
+      id: property.id,
+      property_name: property.property_name,
+      address: property.address,
+      property_type: property.property_type,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      square_footage: property.square_footage,
+      year_built: property.year_built,
+      is_primary: property.is_primary,
+      created_at: property.created_at,
       activeJobs,
       completedJobs,
       totalSpent,
       lastServiceDate,
+      recentCategories,
     };
   });
-
-  const totalActiveJobs = propertiesWithStats.reduce((sum, p) => sum + p.activeJobs, 0);
-  const totalSpent = propertiesWithStats.reduce((sum, p) => sum + p.totalSpent, 0);
 
   const userDisplayName = user.first_name && user.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
 
-  // Fetch user profile for avatar (cached 300s)
   const userProfile = await getCachedUser(user.id);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <UnifiedSidebar
-        userRole="homeowner"
-        userInfo={{
-          name: userDisplayName,
-          email: userProfile?.email || user.email,
-          avatar: userProfile?.profile_image_url,
-        }}
-      />
-
-      <main className="flex flex-col flex-1 ml-[240px]">
-        <PageHeader
-          title="My Properties"
-          darkBackground={true}
-          actions={<AddPropertyButton />}
-          userName={userDisplayName}
-          userAvatar={userProfile?.profile_image_url}
-        />
-
-        <div style={{ padding: '32px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
-          {/* Properties List */}
-          {propertiesWithStats.length === 0 ? (
-            <PropertiesEmptyState />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {propertiesWithStats.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+    <PropertiesClient2025
+      properties={propertiesWithStats}
+      userInfo={{
+        name: userDisplayName,
+        email: userProfile?.email || user.email,
+        avatar: userProfile?.profile_image_url,
+      }}
+    />
   );
 }

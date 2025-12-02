@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@mintenance/shared';
 
 interface MigrationResult {
   success: boolean;
@@ -48,7 +49,7 @@ class MigrationRunner {
         .sort();
       return files;
     } catch (error) {
-      console.error('Error reading migrations directory:', error);
+      logger.error('Error reading migrations directory:', error);
       return [];
     }
   }
@@ -67,7 +68,7 @@ class MigrationRunner {
         .single();
 
       if (!tableExists) {
-        console.log('📋 Creating migrations table...');
+        logger.info('📋 Creating migrations table...');
         await this.createMigrationsTable();
         return [];
       }
@@ -78,13 +79,13 @@ class MigrationRunner {
         .order('applied_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching applied migrations:', error);
+        logger.error('Error fetching applied migrations:', error);
         return [];
       }
 
       return data?.map(row => row.filename) || [];
     } catch (error) {
-      console.error('Error checking applied migrations:', error);
+      logger.error('Error checking applied migrations:', error);
       return [];
     }
   }
@@ -147,7 +148,7 @@ class MigrationRunner {
     const startTime = Date.now();
     
     try {
-      console.log(`🔄 Applying migration: ${filename}`);
+      logger.info(`🔄 Applying migration: ${filename}`);
       
       // Read migration file
       const migrationPath = join(this.migrationsDir, filename);
@@ -174,11 +175,11 @@ class MigrationRunner {
         });
       
       if (recordError) {
-        console.warn(`⚠️  Migration applied but failed to record: ${recordError.message}`);
+        logger.warn(`⚠️  Migration applied but failed to record: ${recordError.message}`);
       }
       
       const duration = Date.now() - startTime;
-      console.log(`✅ Migration applied successfully: ${filename} (${duration}ms)`);
+      logger.info(`✅ Migration applied successfully: ${filename} (${duration}ms)`);
       
       return {
         success: true,
@@ -190,7 +191,7 @@ class MigrationRunner {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      console.error(`❌ Migration failed: ${filename} - ${errorMessage}`);
+      logger.error(`❌ Migration failed: ${filename} - ${errorMessage}`);
       
       return {
         success: false,
@@ -209,18 +210,18 @@ class MigrationRunner {
     const results: MigrationResult[] = [];
     
     if (status.pending.length === 0) {
-      console.log('✅ No pending migrations');
+      logger.info('✅ No pending migrations');
       return results;
     }
     
-    console.log(`📋 Found ${status.pending.length} pending migrations`);
+    logger.info(`📋 Found ${status.pending.length} pending migrations`);
     
     for (const migration of status.pending) {
       const result = await this.applyMigration(migration);
       results.push(result);
       
       if (!result.success) {
-        console.error(`❌ Stopping migration process due to failure: ${migration}`);
+        logger.error(`❌ Stopping migration process due to failure: ${migration}`);
         break;
       }
     }
@@ -284,7 +285,7 @@ class MigrationRunner {
         };
       }
       
-      console.log(`🔄 Rolling back migration: ${lastMigration.filename}`);
+      logger.info(`🔄 Rolling back migration: ${lastMigration.filename}`);
       
       const { error } = await this.supabase.rpc('exec_sql', { 
         sql: lastMigration.rollback_sql 
@@ -300,7 +301,7 @@ class MigrationRunner {
         .delete()
         .eq('filename', lastMigration.filename);
       
-      console.log(`✅ Migration rolled back: ${lastMigration.filename}`);
+      logger.info(`✅ Migration rolled back: ${lastMigration.filename}`);
       
       return {
         success: true,
@@ -333,14 +334,14 @@ async function main() {
     switch (command) {
       case 'status':
         const status = await runner.getStatus();
-        console.log('📊 Migration Status:');
-        console.log(`  Applied: ${status.applied.length}`);
-        console.log(`  Pending: ${status.pending.length}`);
-        console.log(`  Failed: ${status.failed.length}`);
+        logger.info('📊 Migration Status:');
+        logger.info(`  Applied: ${status.applied.length}`);
+        logger.info(`  Pending: ${status.pending.length}`);
+        logger.info(`  Failed: ${status.failed.length}`);
         
         if (status.pending.length > 0) {
-          console.log('\n📋 Pending migrations:');
-          status.pending.forEach(migration => console.log(`  - ${migration}`));
+          logger.info('\n📋 Pending migrations:');
+          status.pending.forEach(migration => logger.info(`  - ${migration}`));
         }
         break;
         
@@ -361,16 +362,16 @@ async function main() {
         break;
         
       default:
-        console.log('Usage:');
-        console.log('  npm run migrate status          - Show migration status');
-        console.log('  npm run migrate apply           - Apply all pending migrations');
-        console.log('  npm run migrate apply <file>    - Apply specific migration');
-        console.log('  npm run migrate rollback        - Rollback last migration');
+        logger.info('Usage:');
+        logger.info('  npm run migrate status          - Show migration status');
+        logger.info('  npm run migrate apply           - Apply all pending migrations');
+        logger.info('  npm run migrate apply <file>    - Apply specific migration');
+        logger.info('  npm run migrate rollback        - Rollback last migration');
         process.exit(1);
     }
     
   } catch (error) {
-    console.error('❌ Migration runner error:', error);
+    logger.error('❌ Migration runner error:', error);
     process.exit(1);
   }
 }

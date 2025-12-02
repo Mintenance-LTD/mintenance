@@ -15,6 +15,17 @@ import type { RoboflowDetection, VisionAnalysisSummary } from './types';
 import type { DamageTypeSegmentation } from './SAM3Service';
 
 /**
+ * Scene graph node attributes
+ */
+export interface SceneNodeAttributes {
+  source?: 'roboflow' | 'sam3' | 'gpt4_vision';
+  imageUrl?: string;
+  numInstances?: number;
+  damageType?: string;
+  [key: string]: unknown; // Allow additional attributes
+}
+
+/**
  * Scene graph node representing an entity in the scene
  */
 export interface SceneNode {
@@ -28,7 +39,7 @@ export interface SceneNode {
     width: number;
     height: number;
   };
-  attributes?: Record<string, any>;
+  attributes?: SceneNodeAttributes;
 }
 
 /**

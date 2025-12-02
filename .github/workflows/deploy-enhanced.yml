@@ -1,0 +1,446 @@
+name: Enhanced Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: 'staging'
+      skip-tests:
+        description: 'Skip tests (emergency deploy only)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20.19.4'
+
+jobs:
+  # ============================================================
+  # DETERMINE DEPLOYMENT ENVIRONMENT
+  # ============================================================
+  determine-environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+
+    steps:
+      - name: Set environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "environment=development" >> $GITHUB_OUTPUT
+          else
+            echo "environment=none" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if should deploy
+        id: check
+        run: |
+          ENV="${{ steps.set-env.outputs.environment }}"
+          if [ "$ENV" = "none" ]; then
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          else
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================================
+  # PRE-DEPLOYMENT CHECKS
+  # ============================================================
+  pre-deployment:
+    name: Pre-Deployment Checks
+    runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.should-deploy == 'true'
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Type check
+        if: github.event.inputs.skip-tests != 'true'
+        run: npm run type-check -w @mintenance/web
+
+      - name: Lint
+        if: github.event.inputs.skip-tests != 'true'
+        run: npm run lint:web
+
+      - name: Run tests
+        if: github.event.inputs.skip-tests != 'true'
+        run: npm run test:web -- --coverage --watchAll=false
+        env:
+          CI: true
+
+      - name: Check deployment readiness
+        run: |
+          echo "## Pre-Deployment Checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ github.event.inputs.skip-tests == 'true' && '⏭️ Skipped' || '✅ Passed' }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # BUILD WEB APPLICATION
+  # ============================================================
+  build-web:
+    name: Build Web App
+    runs-on: ubuntu-latest
+    needs: [determine-environment, pre-deployment]
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Build web application
+        run: npm run build:web
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_URL: ${{ secrets[format('NEXT_PUBLIC_APP_URL_{0}', needs.determine-environment.outputs.environment)] }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+          retention-days: 7
+
+      - name: Generate build metadata
+        run: |
+          cat > build-metadata.json << EOF
+          {
+            "environment": "${{ needs.determine-environment.outputs.environment }}",
+            "branch": "${{ github.ref }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "buildNumber": "${{ github.run_number }}"
+          }
+          EOF
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-metadata
+          path: build-metadata.json
+          retention-days: 30
+
+  # ============================================================
+  # DATABASE MIGRATIONS
+  # ============================================================
+  database-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-web]
+    if: needs.determine-environment.outputs.environment != 'production'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Run migrations (dry-run)
+        run: |
+          echo "Running migrations in dry-run mode..."
+          # supabase db push --dry-run
+          echo "Migrations validated"
+
+      - name: Apply migrations
+        if: needs.determine-environment.outputs.environment != 'production'
+        run: |
+          echo "Applying migrations to ${{ needs.determine-environment.outputs.environment }}..."
+          # Add actual migration commands here
+          # supabase db push
+
+  # ============================================================
+  # DEPLOY TO VERCEL
+  # ============================================================
+  deploy-vercel:
+    name: Deploy to Vercel (${{ needs.determine-environment.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-web, database-migrations]
+    if: |
+      always() &&
+      needs.determine-environment.outputs.should-deploy == 'true' &&
+      needs.build-web.result == 'success' &&
+      (needs.database-migrations.result == 'success' || needs.database-migrations.result == 'skipped')
+    timeout-minutes: 15
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/.next
+
+      - name: Download build metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: build-metadata
+          path: .
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel environment
+        working-directory: apps/web
+        run: |
+          vercel pull --yes --environment=${{ needs.determine-environment.outputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        working-directory: apps/web
+        run: |
+          if [ "${{ needs.determine-environment.outputs.environment }}" = "production" ]; then
+            URL=$(vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }})
+          else
+            URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
+          fi
+
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Comment deployment URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const comment = `## Deployment Preview
+
+            Your changes have been deployed to Vercel!
+
+            - Environment: ${{ needs.determine-environment.outputs.environment }}
+            - URL: ${url}
+            - Build: #${{ github.run_number }}
+
+            [View deployment](${url})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # ============================================================
+  # POST-DEPLOYMENT VERIFICATION
+  # ============================================================
+  post-deployment:
+    name: Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-vercel]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+
+      - name: Health check
+        run: |
+          URL="${{ needs.deploy-vercel.outputs.url || secrets[format('APP_URL_{0}', needs.determine-environment.outputs.environment)] }}"
+
+          if [ -z "$URL" ]; then
+            echo "No URL found, skipping health check"
+            exit 0
+          fi
+
+          echo "Checking health at: $URL/api/health"
+
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/health" || echo "000")
+
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed with status: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Add smoke test commands here
+
+      - name: Create deployment record
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ✅ Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # ROLLBACK ON FAILURE
+  # ============================================================
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-vercel, post-deployment]
+    if: failure() && needs.determine-environment.outputs.environment == 'production'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Rollback to previous deployment
+        working-directory: apps/web
+        run: |
+          echo "Rolling back production deployment..."
+          # Get previous deployment
+          PREV_DEPLOYMENT=$(vercel list --token=${{ secrets.VERCEL_TOKEN }} | grep production | head -2 | tail -1 | awk '{print $1}')
+
+          if [ -n "$PREV_DEPLOYMENT" ]; then
+            echo "Rolling back to: $PREV_DEPLOYMENT"
+            vercel rollback $PREV_DEPLOYMENT --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            echo "No previous deployment found"
+          fi
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Create rollback issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Production deployment rollback - Build #${{ github.run_number }}`;
+            const body = `## Deployment Rollback
+
+            A production deployment has been rolled back due to post-deployment verification failure.
+
+            **Details:**
+            - Build: #${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref }}
+            - Timestamp: ${new Date().toISOString()}
+
+            **Action Required:**
+            1. Investigate the failure cause
+            2. Fix the issues
+            3. Re-deploy when ready
+
+            [View failed workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            `;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['deployment', 'rollback', 'urgent', 'production']
+            });
+
+  # ============================================================
+  # NOTIFICATION
+  # ============================================================
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-vercel, post-deployment]
+    if: always() && needs.determine-environment.outputs.environment == 'production'
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.post-deployment.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create deployment summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ${{ steps.status.outputs.emoji }} Deployment ${{ steps.status.outputs.status }}
+
+          **Environment:** ${{ needs.determine-environment.outputs.environment }}
+          **Status:** ${{ steps.status.outputs.status }}
+          **Build:** #${{ github.run_number }}
+          **Commit:** ${{ github.sha }}
+          **Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          EOF

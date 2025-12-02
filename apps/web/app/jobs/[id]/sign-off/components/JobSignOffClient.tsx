@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card.unified';
 import { SignaturePad } from '@/components/ui/SignaturePad';
@@ -57,7 +58,10 @@ export function JobSignOffClient({ jobId, jobTitle, contractorName, currentUserR
                     .getPublicUrl(fileName);
                 signatureUrl = publicUrl;
             } else {
-                console.warn('Signature upload failed, falling back to base64 (or handle error appropriately)', uploadError);
+                logger.warn('Signature upload failed, falling back to base64', {
+                  service: 'job-sign-off',
+                  error: uploadError?.message || String(uploadError),
+                });
                 // In a real app, we might want to stop here. For now, we proceed.
             }
 
@@ -85,9 +89,12 @@ export function JobSignOffClient({ jobId, jobTitle, contractorName, currentUserR
                 router.push(`/jobs/${jobId}`);
             }, 2000);
 
-        } catch (err: any) {
-            console.error('Error signing off job:', err);
-            setError(err.message || 'Failed to submit sign-off.');
+        } catch (err) {
+            logger.error('Error signing off job', err instanceof Error ? err : new Error(String(err)), {
+              service: 'job-sign-off',
+              jobId,
+            });
+            setError(err instanceof Error ? err.message : 'Failed to submit sign-off.');
         } finally {
             setIsSubmitting(false);
         }

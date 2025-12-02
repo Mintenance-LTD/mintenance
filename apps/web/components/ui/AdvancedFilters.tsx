@@ -15,8 +15,13 @@ export interface FilterOption {
   placeholder?: string;
 }
 
+/**
+ * Filter value types based on filter type
+ */
+export type FilterValue = string | string[] | number | boolean | Date | null | undefined | { min?: number; max?: number };
+
 export interface FilterValues {
-  [key: string]: any;
+  [key: string]: FilterValue;
 }
 
 interface AdvancedFiltersProps {
@@ -62,7 +67,7 @@ export function AdvancedFilters({
     key => values[key] !== null && values[key] !== undefined && values[key] !== ''
   ).length;
 
-  const handleFilterChange = (filterId: string, value: any) => {
+  const handleFilterChange = (filterId: string, value: FilterValue) => {
     setLocalValues(prev => ({ ...prev, [filterId]: value }));
   };
 
@@ -89,7 +94,7 @@ export function AdvancedFilters({
       case 'select':
         return (
           <select
-            value={value || ''}
+            value={(value as string) || ''}
             onChange={(e) => handleFilterChange(filter.id, e.target.value)}
             style={{
               width: '100%',
@@ -125,7 +130,7 @@ export function AdvancedFilters({
             }}
           >
             {filter.options?.map(option => {
-              const selectedValues = value || [];
+              const selectedValues = (Array.isArray(value) ? value : []) as string[];
               const isSelected = selectedValues.includes(option.value);
               
               return (
@@ -158,14 +163,17 @@ export function AdvancedFilters({
           </div>
         );
 
-      case 'range':
+      case 'range': {
+        const rangeValue = (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) 
+          ? (value as { min?: number; max?: number }) 
+          : { min: undefined, max: undefined };
         return (
           <div style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}>
             <input
               type="number"
               placeholder={`Min ${filter.min || ''}`}
-              value={value?.min || ''}
-              onChange={(e) => handleFilterChange(filter.id, { ...value, min: e.target.value })}
+              value={rangeValue.min || ''}
+              onChange={(e) => handleFilterChange(filter.id, { ...rangeValue, min: e.target.value ? Number(e.target.value) : undefined })}
               style={{
                 flex: 1,
                 padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -180,8 +188,8 @@ export function AdvancedFilters({
             <input
               type="number"
               placeholder={`Max ${filter.max || ''}`}
-              value={value?.max || ''}
-              onChange={(e) => handleFilterChange(filter.id, { ...value, max: e.target.value })}
+              value={rangeValue.max || ''}
+              onChange={(e) => handleFilterChange(filter.id, { ...rangeValue, max: e.target.value ? Number(e.target.value) : undefined })}
               style={{
                 flex: 1,
                 padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
@@ -194,12 +202,13 @@ export function AdvancedFilters({
             />
           </div>
         );
+      }
 
       case 'date':
         return (
           <input
             type="date"
-            value={value || ''}
+            value={(value instanceof Date ? value.toISOString().split('T')[0] : String(value || ''))}
             onChange={(e) => handleFilterChange(filter.id, e.target.value)}
             style={{
               width: '100%',
@@ -218,7 +227,7 @@ export function AdvancedFilters({
           <input
             type="text"
             placeholder={filter.placeholder || 'Enter value...'}
-            value={value || ''}
+            value={String(value || '')}
             onChange={(e) => handleFilterChange(filter.id, e.target.value)}
             style={{
               width: '100%',
@@ -244,7 +253,7 @@ export function AdvancedFilters({
           >
             <input
               type="checkbox"
-              checked={value || false}
+              checked={Boolean(value)}
               onChange={(e) => handleFilterChange(filter.id, e.target.checked)}
               style={{ cursor: 'pointer' }}
             />

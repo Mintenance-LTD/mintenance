@@ -1,71 +1,61 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import { AnimatePresence } from 'framer-motion';;
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { Button } from '@/components/ui';
-import { Icon } from '@/components/ui/Icon';
-import { theme } from '@/lib/theme';
-import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
+import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
+import { JobCreationWizard2025 } from './components/JobCreationWizard2025';
+import { DragDropUpload2025 } from './components/DragDropUpload2025';
 import { SmartJobAnalysis } from './components/SmartJobAnalysis';
-import { getSkillIcon } from '@/lib/skills/skill-icon-mapping';
-import Link from 'next/link';
-import { BuildingAssessmentDisplay } from '@/components/building-surveyor';
-import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useCSRF } from '@/lib/hooks/useCSRF';
+import { fadeIn, slideInFromRight } from '@/lib/animations/variants';
 import { useLocationSearch } from './hooks/useLocationSearch';
 import { useImageUpload } from './hooks/useImageUpload';
 import { validateJobForm, isFormValid, type JobFormData } from './utils/validation';
 import { submitJob } from './utils/submitJob';
-import { VerificationBanner } from './components/VerificationBanner';
+import { useCSRF } from '@/lib/hooks/useCSRF';
+import toast from 'react-hot-toast';
+import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { UnifiedButton } from '@/components/ui';
 
 const jobCategories = [
-  { label: 'Handyman', value: 'handyman' },
-  { label: 'Plumbing', value: 'plumbing' },
-  { label: 'Electrical', value: 'electrical' },
-  { label: 'Painting & Decorating', value: 'painting' },
-  { label: 'Carpentry', value: 'carpentry' },
-  { label: 'Cleaning', value: 'cleaning' },
-  { label: 'Gardening', value: 'gardening' },
-  { label: 'Roofing', value: 'roofing' },
-  { label: 'Heating & Gas', value: 'heating' },
-  { label: 'Flooring', value: 'flooring' },
+  { label: 'Handyman', value: 'handyman', icon: '🔧' },
+  { label: 'Plumbing', value: 'plumbing', icon: '🚰' },
+  { label: 'Electrical', value: 'electrical', icon: '⚡' },
+  { label: 'Painting & Decorating', value: 'painting', icon: '🎨' },
+  { label: 'Carpentry', value: 'carpentry', icon: '🔨' },
+  { label: 'Cleaning', value: 'cleaning', icon: '🧹' },
+  { label: 'Gardening', value: 'gardening', icon: '🌱' },
+  { label: 'Roofing', value: 'roofing', icon: '🏠' },
+  { label: 'Heating & Gas', value: 'heating', icon: '🔥' },
+  { label: 'Flooring', value: 'flooring', icon: '📐' },
 ];
 
-// Available contractor skills (same as contractor profile)
+const urgencyLevels = [
+  { label: 'Low', value: 'low', color: 'blue', description: 'Can wait a few weeks' },
+  { label: 'Medium', value: 'medium', color: 'amber', description: 'Within 1-2 weeks' },
+  { label: 'High', value: 'high', color: 'orange', description: 'Within a few days' },
+  { label: 'Emergency', value: 'emergency', color: 'rose', description: 'Needs immediate attention' },
+];
+
 const availableSkills = [
-  'General Contracting',
-  'Kitchen Remodeling',
-  'Bathroom Renovation',
-  'Plumbing',
-  'Electrical Work',
-  'Carpentry',
-  'Tiling',
-  'Painting',
-  'Flooring',
-  'Roofing',
-  'HVAC',
-  'Landscaping',
-  'Masonry',
-  'Drywall',
-  'Window Installation',
-  'Door Installation',
-  'Deck Building',
-  'Fence Installation',
-  'Concrete Work',
-  'Insulation',
-  'Siding',
-  'Gutters',
-  'General Maintenance',
-  'Home Inspection',
-  'Demolition',
+  'General Contracting', 'Kitchen Remodeling', 'Bathroom Renovation',
+  'Plumbing', 'Electrical Work', 'Carpentry', 'Tiling', 'Painting',
+  'Flooring', 'Roofing', 'HVAC', 'Landscaping', 'Masonry', 'Drywall',
+  'Window Installation', 'Door Installation', 'Deck Building',
+  'Fence Installation', 'Concrete Work', 'Insulation', 'Siding',
+  'Gutters', 'General Maintenance', 'Home Inspection', 'Demolition',
 ].sort();
 
-export default function CreateJobPage() {
+export default function CreateJobPage2025() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
+  const { csrfToken } = useCSRF();
+  const [currentStep, setCurrentStep] = useState(0);
+
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
     description: '',
@@ -76,28 +66,14 @@ export default function CreateJobPage() {
     requiredSkills: [],
     property_id: searchParams?.get('property_id') || '',
   });
+
   const [properties, setProperties] = useState<Array<{ id: string; property_name: string | null; address: string | null }>>([]);
   const [loadingProperties, setLoadingProperties] = useState(false);
-  const [showSkillsDropdown, setShowSkillsDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
-  const handleToggleSkill = (skill: string) => {
-    if (formData.requiredSkills.includes(skill)) {
-      setFormData({ ...formData, requiredSkills: formData.requiredSkills.filter(s => s !== skill) });
-    } else {
-      if (formData.requiredSkills.length >= 10) {
-        setValidationErrors({ ...validationErrors, requiredSkills: 'Maximum 10 skills allowed' });
-        return;
-      }
-      setFormData({ ...formData, requiredSkills: [...formData.requiredSkills, skill] });
-      setValidationErrors({ ...validationErrors, requiredSkills: '' });
-    }
-    setShowSkillsDropdown(false);
-  };
+  const [assessment, setAssessment] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Use extracted hooks
   const locationSearch = useLocationSearch({
     location: formData.location,
     onLocationSelect: (address) => setFormData(prev => ({ ...prev, location: address })),
@@ -105,31 +81,11 @@ export default function CreateJobPage() {
 
   const imageUpload = useImageUpload({
     maxImages: 10,
-    onError: (error) => setAlertDialog({ open: true, title: 'Upload Error', message: error }),
+    onError: (error) => toast.error(error),
   });
-  
-  // Alert Dialog state
-  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string; onConfirm?: () => void; onCancel?: () => void }>({
-    open: false,
-    title: '',
-    message: '',
-  });
-  
-  // Building Surveyor AI Assessment
-  const [assessment, setAssessment] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [assessmentError, setAssessmentError] = useState<string>('');
 
-  const [verificationStatus, setVerificationStatus] = React.useState<{
-    emailVerified: boolean;
-    phoneVerified: boolean;
-    canPostJobs: boolean;
-    missingRequirements: string[];
-  } | null>(null);
-  const { csrfToken } = useCSRF();
-
-  // Fetch properties when user is loaded
-  React.useEffect(() => {
+  // Fetch properties
+  useEffect(() => {
     if (user && user.role === 'homeowner') {
       setLoadingProperties(true);
       fetch('/api/properties')
@@ -137,7 +93,6 @@ export default function CreateJobPage() {
         .then(data => {
           if (data.properties) {
             setProperties(data.properties);
-            // If property_id is in URL and we have properties, auto-select it and fill location
             const urlPropertyId = searchParams?.get('property_id');
             if (urlPropertyId && data.properties.length > 0) {
               const selectedProperty = data.properties.find((p: { id: string }) => p.id === urlPropertyId);
@@ -156,1185 +111,538 @@ export default function CreateJobPage() {
     }
   }, [user, searchParams]);
 
-  // Check verification status
-  React.useEffect(() => {
-    if (user && user.role === 'homeowner') {
-      fetch('/api/auth/verification-status')
-        .then(res => res.json())
-        .then(data => setVerificationStatus(data))
-        .catch(() => {});
-    }
-  }, [user]);
-
-  // Redirect if not logged in or not a homeowner
-  React.useEffect(() => {
+  // Redirect if not authorized
+  useEffect(() => {
     if (!loadingUser && (!user || user.role !== 'homeowner')) {
       router.push('/login');
     }
   }, [user, loadingUser, router]);
 
-  // Location and image upload logic now handled by hooks
-
-  // AI Building Surveyor Assessment
+  // AI Assessment
   const handleAIAssessment = async () => {
     if (imageUpload.imagePreviews.length === 0) {
-      setAssessmentError('Please upload photos first');
+      toast.error('Please upload photos first');
       return;
     }
 
     setIsAnalyzing(true);
-    setAssessmentError('');
-
     try {
-      // Upload images first if not already uploaded
       let imageUrls = imageUpload.uploadedImages;
       if (imageUrls.length === 0) {
         imageUrls = await imageUpload.uploadImages();
         if (imageUrls.length === 0) {
-          throw new Error('Failed to upload images for assessment');
+          throw new Error('Failed to upload images');
         }
       }
 
-      // Call assessment API
       const response = await fetch('/api/building-surveyor/assess', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrls: imageUrls.slice(0, 4), // Limit to 4 images
-          context: {
-            location: formData.location,
-            propertyType: 'residential',
-          },
+          images: imageUrls,
+          jobDescription: formData.description,
+          jobCategory: formData.category,
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Assessment failed');
-      }
+      if (!response.ok) throw new Error('Assessment failed');
 
-      const assessmentData = await response.json();
-      setAssessment(assessmentData);
+      const result = await response.json();
+      setAssessment(result.assessment);
+      toast.success('AI assessment complete!');
     } catch (error) {
-      console.error('Error assessing damage:', error);
-      setAssessmentError(
-        error instanceof Error ? error.message : 'Failed to assess damage. Please try again.'
-      );
+      toast.error('Failed to analyze images');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Pre-fill form with assessment data
-  const handleUseAssessment = () => {
-    if (!assessment) return;
-
-    const damageType = assessment.damageAssessment.damageType.replace(/_/g, ' ');
-    const location = assessment.damageAssessment.location.replace(/_/g, ' ');
-
-    // Map damage type to category
-    const categoryMap: Record<string, string> = {
-      water_damage: 'plumbing',
-      electrical_issue: 'electrical',
-      structural_crack: 'handyman',
-      roof_damage: 'roofing',
-      damp: 'handyman',
-      plumbing_issue: 'plumbing',
-    };
-    const suggestedCategory =
-      categoryMap[assessment.damageAssessment.damageType] || 'handyman';
-
-    // Map urgency to form urgency
-    const urgencyMap: Record<string, 'low' | 'medium' | 'high'> = {
-      immediate: 'high',
-      urgent: 'high',
-      soon: 'medium',
-      planned: 'low',
-      monitor: 'low',
-    };
-    const suggestedUrgency =
-      urgencyMap[assessment.urgency.urgency] || 'medium';
-
-    // Build description
-    const description = `${assessment.homeownerExplanation.whatIsIt}\n\n${assessment.homeownerExplanation.whatToDo}`;
-
-    // Update form
-    setFormData({
-      ...formData,
-      title: `${damageType} - ${location}`,
-      description: description,
-      category: suggestedCategory,
-      urgency: suggestedUrgency,
-      budget: assessment.contractorAdvice.estimatedCost.recommended.toString(),
-    });
-  };
-
-  // Location detection now handled by useLocationSearch hook
-
-  const validate = () => {
-    // Use validation utility
+  const handleSubmit = async () => {
     const errors = validateJobForm(formData, imageUpload.uploadedImages);
-    setValidationErrors(errors);
-    return isFormValid(errors);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!validate()) {
+    if (!isFormValid(errors)) {
+      setValidationErrors(errors);
+      toast.error('Please fix validation errors');
       return;
     }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Upload images first if any
-      let photoUrls: string[] = [];
-      if (imageUpload.imagePreviews.length > 0) {
-        photoUrls = await imageUpload.uploadImages();
-        if (photoUrls.length === 0 && imageUpload.imagePreviews.length > 0) {
-          // If upload failed but user selected images, ask them
-          setAlertDialog({
-            open: true,
-            title: 'Image Upload Failed',
-            message: 'Failed to upload some images. Continue without images?',
-            onConfirm: async () => {
-              setAlertDialog({ open: false, title: '', message: '' });
-              await handleJobSubmission([]);
-            },
-            onCancel: () => {
-              setAlertDialog({ open: false, title: '', message: '' });
-              setIsSubmitting(false);
-            },
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      await handleJobSubmission(photoUrls);
-    } catch (err) {
-      console.error('Error creating job:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create job');
-      setIsSubmitting(false);
-    }
-  };
 
-  const handleJobSubmission = async (photoUrls: string[]) => {
     setIsSubmitting(true);
     try {
-      if (!csrfToken) {
-        throw new Error('Security token not available. Please refresh the page.');
+      let imageUrls = imageUpload.uploadedImages;
+      if (imageUpload.imagePreviews.length > 0 && imageUrls.length === 0) {
+        imageUrls = await imageUpload.uploadImages();
       }
 
       const result = await submitJob({
         formData,
-        photoUrls,
-        csrfToken,
+        photoUrls: imageUrls,
+        csrfToken: csrfToken || '',
       });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create job');
-      }
-
-      if (result.jobId) {
-        router.push(`/jobs/${result.jobId}`);
-      } else {
-        throw new Error('Job creation succeeded but no job ID returned');
-      }
-    } catch (err) {
-      console.error('Error creating job:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create job');
+      toast.success('Job posted successfully!');
+      router.push(`/jobs/${result.jobId}`);
+    } catch (error) {
+      toast.error((error as Error).message || 'Failed to post job');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   if (loadingUser) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
-        <div>Loading...</div>
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!user || user.role !== 'homeowner') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
-        <div style={{
-          backgroundColor: theme.colors.white,
-          padding: theme.spacing[8],
-          borderRadius: theme.borderRadius.xl,
-          border: `1px solid ${theme.colors.border}`,
-          textAlign: 'center',
-          maxWidth: '500px',
-        }}>
-          <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[4],
-          }}>
-            Access Denied
-          </h2>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[6],
-          }}>
-            {!user 
-              ? 'You must be logged in to create a job.'
-              : 'Only homeowners can create jobs.'}
-          </p>
-          <Link href={!user ? `/login?redirect=/jobs/create` : '/dashboard'} style={{ textDecoration: 'none' }}>
-            <Button variant="primary">
-              {!user ? 'Go to Login' : 'Go to Dashboard'}
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
-  // Show verification requirement if not verified
-  if (verificationStatus && !verificationStatus.canPostJobs) {
-    return (
-      <HomeownerLayoutShell
-        currentPath="/jobs/create"
-        userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-        userEmail={user.email}
-      >
-        <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          padding: theme.spacing[6],
-        }}>
-          <VerificationBanner verificationStatus={verificationStatus} />
-        </div>
-      </HomeownerLayoutShell>
-    );
-  }
+  const userDisplayName = user.first_name && user.last_name
+    ? `${user.first_name} ${user.last_name}`.trim()
+    : user.email;
+
+  const wizardSteps = [
+    { label: 'Basics', icon: '📝' },
+    { label: 'Details', icon: '📋' },
+    { label: 'Photos', icon: '📸' },
+    { label: 'Review', icon: '✅' },
+  ];
 
   return (
-    <HomeownerLayoutShell
-      currentPath="/jobs/create"
-      userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-      userEmail={user.email}
-    >
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[6]
-      }}>
-        {/* Header with Back Button */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: theme.spacing[4]
-        }}>
-          <div>
-            <h1 style={{
-              margin: 0,
-              marginBottom: theme.spacing[1],
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Post a New Job
-            </h1>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              Fill in the details below to create a new job posting
-            </p>
-          </div>
-          <Link href="/jobs" style={{ textDecoration: 'none' }}>
-            <Button variant="secondary">
-              <Icon name="arrowLeft" size={16} color={theme.colors.textPrimary} />
+    <ErrorBoundary componentName="CreateJobPage">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/30 to-gray-50">
+      <UnifiedSidebar
+        userRole="homeowner"
+        userInfo={{
+          name: userDisplayName,
+          email: user.email,
+          avatar: (user as any).profile_image_url,
+        }}
+      />
+
+      <main className="flex flex-col flex-1 ml-[240px]">
+        {/* Hero Header */}
+        <MotionDiv
+          className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-500 text-white"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="max-w-[1200px] mx-auto px-8 py-12">
+            <UnifiedButton
+              onClick={() => router.back()}
+              variant="ghost"
+              size="sm"
+              ariaLabel="Go back to jobs list"
+              className="text-teal-100 hover:text-white hover:bg-white/10 mb-6"
+              leftIcon={
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              }
+            >
               Back to Jobs
-            </Button>
-          </Link>
-        </div>
+            </UnifiedButton>
 
-        {/* Form Card */}
-        <form onSubmit={handleSubmit}>
-          <div style={{
-            backgroundColor: theme.colors.white,
-            borderRadius: theme.borderRadius.xl,
-            border: `1px solid ${theme.colors.border}`,
-            padding: theme.spacing[6],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[6]
-          }}>
-            {/* Title */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Job Title *
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Fix leaking kitchen tap"
-                style={{
-                  width: '100%',
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: `1px solid ${validationErrors.title ? theme.colors.error : theme.colors.border}`,
-                  fontSize: theme.typography.fontSize.base,
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-              />
-              {validationErrors.title && (
-                <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                  {validationErrors.title}
-                </p>
-              )}
-            </div>
+            <h1 className="text-4xl font-bold mb-2">Post a New Job</h1>
+            <p className="text-teal-100 text-lg">Get competitive quotes from verified contractors</p>
+          </div>
+        </MotionDiv>
 
-            {/* Description */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Description *
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Provide details about the work needed..."
-                rows={6}
-                style={{
-                  width: '100%',
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: `1px solid ${validationErrors.description ? theme.colors.error : theme.colors.border}`,
-                  fontSize: theme.typography.fontSize.base,
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  outline: 'none',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.2s'
-                }}
-              />
-              {validationErrors.description && (
-                <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                  {validationErrors.description}
-                </p>
-              )}
-              <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                {formData.description.length}/500 characters
-              </p>
-              
-              {/* Smart Job Analysis */}
-              <SmartJobAnalysis
-                title={formData.title}
-                description={formData.description}
-                location={formData.location}
-                imageUrls={imageUpload.uploadedImages}
-                onCategorySelect={(category) => {
-                  setFormData({ ...formData, category });
-                }}
-                onBudgetSelect={(budget) => {
-                  setFormData({ ...formData, budget: budget.toString() });
-                }}
-                onUrgencySelect={(urgency) => {
-                  setFormData({ ...formData, urgency });
-                }}
-              />
-            </div>
-
-            {/* Photos Upload */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Photos (Optional)
-              </label>
-              <p style={{
-                margin: 0,
-                marginBottom: theme.spacing[2],
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
-                Add photos to help contractors understand the work needed. Up to 10 photos, max 5MB each.
-              </p>
-
-              {/* Image Upload Input */}
-              <input
-                type="file"
-                id="job-photos"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                multiple
-                onChange={imageUpload.handleImageSelect}
-                style={{ display: 'none' }}
-              />
-              <label
-                htmlFor="job-photos"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: `2px dashed ${theme.colors.border}`,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.textPrimary,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                }}
-              >
-                <Icon name="camera" size={20} color={theme.colors.primary} />
-                {imageUpload.imagePreviews.length === 0 ? 'Add Photos' : `Add More Photos (${imageUpload.imagePreviews.length}/10)`}
-              </label>
-
-              {/* Image Previews */}
-              {imageUpload.imagePreviews.length > 0 && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                  gap: theme.spacing[3],
-                  marginTop: theme.spacing[4],
-                }}>
-                  {imageUpload.imagePreviews.map((preview, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        position: 'relative',
-                        aspectRatio: '1',
-                        borderRadius: theme.borderRadius.lg,
-                        overflow: 'hidden',
-                        border: `1px solid ${theme.colors.border}`,
-                        backgroundColor: theme.colors.backgroundSecondary,
-                      }}
-                    >
-                      <img
-                        src={preview.preview}
-                        alt={`Preview ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => imageUpload.removeImage(index)}
-                        style={{
-                          position: 'absolute',
-                          top: theme.spacing[1],
-                          right: theme.spacing[1],
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: theme.borderRadius.full,
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          border: 'none',
-                          color: 'white',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: theme.typography.fontWeight.bold,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.8)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-                        }}
-                      >
-                        ×
-                      </button>
-                      {imageUpload.isUploading && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          padding: theme.spacing[1],
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          color: 'white',
-                          fontSize: '10px',
-                          textAlign: 'center',
-                        }}>
-                          Uploading...
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* AI Assessment Button */}
-              {imageUpload.imagePreviews.length > 0 && !assessment && (
-                <div style={{ marginTop: theme.spacing[4] }}>
-                  <button
-                    type="button"
-                    onClick={handleAIAssessment}
-                    disabled={isAnalyzing || imageUpload.isUploading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      backgroundColor: isAnalyzing ? theme.colors.border : '#10B981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: theme.borderRadius.lg,
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isAnalyzing) {
-                        e.currentTarget.style.backgroundColor = '#059669';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isAnalyzing) {
-                        e.currentTarget.style.backgroundColor = '#10B981';
-                      }
-                    }}
-                  >
-                    <Icon name="sparkles" size={20} color="white" />
-                    {isAnalyzing ? 'Analyzing Damage...' : 'Analyze with AI Building Surveyor'}
-                  </button>
-                  {assessmentError && (
-                    <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[2] }}>
-                      {assessmentError}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Assessment Results */}
-              {assessment && (
-                <div style={{ marginTop: theme.spacing[6] }}>
-                  <BuildingAssessmentDisplay
-                    assessment={assessment}
-                    onUseAssessment={handleUseAssessment}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Property Selection (Optional) */}
-            {properties.length > 0 && (
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                  marginBottom: theme.spacing[2]
-                }}>
-                  Property (Optional)
-                </label>
-                <p style={{
-                  margin: 0,
-                  marginBottom: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                }}>
-                  Link this job to a property for better organization
-                </p>
-                <select
-                  value={formData.property_id}
-                  onChange={(e) => {
-                    const selectedProperty = properties.find(p => p.id === e.target.value);
-                    setFormData({
-                      ...formData,
-                      property_id: e.target.value,
-                      location: selectedProperty?.address || formData.location,
-                    });
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${theme.colors.border}`,
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                    cursor: 'pointer',
-                  }}
+        {/* Wizard Content */}
+        <div className="max-w-[1200px] mx-auto px-8 py-8 w-full">
+          <JobCreationWizard2025
+            currentStep={currentStep}
+            totalSteps={wizardSteps.length}
+            onStepChange={setCurrentStep}
+          >
+            <AnimatePresence mode="wait">
+              {/* Step 0: Basics */}
+              {currentStep === 0 && (
+                <MotionDiv
+                  key="step-0"
+                  variants={slideInFromRight}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="space-y-6"
                 >
-                  <option value="">No property selected</option>
-                  {properties.map((property) => (
-                    <option key={property.id} value={property.id}>
-                      {property.property_name || 'Unnamed Property'} {property.address ? `- ${property.address}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {formData.property_id && (
-                  <Link
-                    href={`/properties/${formData.property_id}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[1],
-                      marginTop: theme.spacing[2],
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.primary,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    <Icon name="externalLink" size={14} color={theme.colors.primary} />
-                    View property details
-                  </Link>
-                )}
-              </div>
-            )}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Tell us about your project</h2>
 
-            {/* Location */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Location *
-              </label>
-              <div style={{ position: 'relative', display: 'flex', gap: theme.spacing[2] }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    onFocus={() => {
-                      if (locationSearch.suggestions.length > 0) {
-                        // Suggestions are managed by hook
-                      }
-                    }}
-                    onBlur={() => {
-                      // Delay to allow clicking on suggestions
-                      setTimeout(() => locationSearch.clearSuggestions(), 200);
-                    }}
-                    placeholder="e.g., London, SW1A 1AA"
-                    style={{
-                      width: '100%',
-                      padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                      borderRadius: theme.borderRadius.lg,
-                      border: `1px solid ${validationErrors.location ? theme.colors.error : theme.colors.border}`,
-                      fontSize: theme.typography.fontSize.base,
-                      color: theme.colors.textPrimary,
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                  />
-                  
-                  {/* Autocomplete Dropdown */}
-                  {locationSearch.showSuggestions && locationSearch.suggestions.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      marginTop: theme.spacing[1],
-                      backgroundColor: theme.colors.surface,
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: theme.borderRadius.lg,
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                      zIndex: 1000,
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                    }}>
-                      {locationSearch.isLoading && (
-                        <div style={{
-                          padding: theme.spacing[4],
-                          textAlign: 'center',
-                          color: theme.colors.textSecondary,
-                          fontSize: theme.typography.fontSize.sm,
-                        }}>
-                          Searching...
-                        </div>
-                      )}
-                      {!locationSearch.isLoading && locationSearch.suggestions.map((suggestion) => (
-                        <div
-                          key={suggestion.place_id}
-                          onClick={() => locationSearch.handleLocationSelect(suggestion.display_name)}
-                          onMouseDown={(e) => e.preventDefault()} // Prevent input blur
-                          style={{
-                            padding: theme.spacing[3],
-                            cursor: 'pointer',
-                            fontSize: theme.typography.fontSize.sm,
-                            color: theme.colors.textPrimary,
-                            borderBottom: `1px solid ${theme.colors.border}`,
-                            transition: 'background-color 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
+                  {/* Property Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Property
+                    </label>
+                    <select
+                      value={formData.property_id}
+                      onChange={(e) => {
+                        const property = properties.find(p => p.id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          property_id: e.target.value,
+                          location: property?.address || formData.location,
+                        });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">Select a property</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.property_name || p.address}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Job Title */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Job Title <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Fix leaking kitchen faucet"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
+                    {validationErrors.title && (
+                      <p className="text-rose-600 text-sm mt-1">{validationErrors.title}</p>
+                    )}
+                  </div>
+
+                  {/* Category Grid */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Category <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {jobCategories.map(cat => (
+                        <MotionButton
+                          key={cat.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, category: cat.value })}
+                          aria-label={`Select ${cat.label} category`}
+                          aria-pressed={formData.category === cat.value}
+                          className={`p-4 rounded-xl border-2 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                            formData.category === cat.value
+                              ? 'border-teal-600 bg-teal-50'
+                              : 'border-gray-200 hover:border-teal-300 bg-white'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                         >
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: theme.spacing[2],
-                          }}>
-                            <Icon name="mapPin" size={16} color={theme.colors.textSecondary} style={{ marginTop: '2px' }} />
-                            <span>{suggestion.display_name}</span>
-                          </div>
-                        </div>
+                          <div className="text-3xl mb-2" aria-hidden="true">{cat.icon}</div>
+                          <div className="text-sm font-medium text-gray-900">{cat.label}</div>
+                        </MotionButton>
                       ))}
                     </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      locationSearch.detectCurrentLocation();
-                    } catch (error) {
-                      setAlertDialog({
-                        open: true,
-                        title: 'Location Error',
-                        message: error instanceof Error ? error.message : 'Unable to retrieve your location. Please enter it manually.',
-                      });
-                    }
-                  }}
-                  disabled={locationSearch.isDetectingLocation}
-                  style={{
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.primary,
-                    color: 'white',
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    cursor: locationSearch.isDetectingLocation ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                    whiteSpace: 'nowrap',
-                    opacity: locationSearch.isDetectingLocation ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!locationSearch.isDetectingLocation) {
-                      e.currentTarget.style.backgroundColor = '#1E293B';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.colors.primary;
-                  }}
-                >
-                  <Icon name="mapPin" size={16} color="white" />
-                  {locationSearch.isDetectingLocation ? 'Detecting...' : 'Use My Location'}
-                </button>
-              </div>
-              {validationErrors.location && (
-                <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                  {validationErrors.location}
-                </p>
-              )}
-            </div>
+                  </div>
 
-            {/* Category and Urgency */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing[4] }}>
-              {/* Category */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                  marginBottom: theme.spacing[2]
-                }}>
-                  Category *
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${validationErrors.category ? theme.colors.error : theme.colors.border}`,
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.2s'
-                  }}
-                >
-                  <option value="">Select category</option>
-                  {jobCategories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-                {validationErrors.category && (
-                  <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                    {validationErrors.category}
-                  </p>
-                )}
-              </div>
-
-              {/* Urgency */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                  marginBottom: theme.spacing[2]
-                }}>
-                  Urgency *
-                </label>
-                <select
-                  value={formData.urgency}
-                  onChange={(e) => setFormData({ ...formData, urgency: e.target.value as 'low' | 'medium' | 'high' })}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${theme.colors.border}`,
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.2s'
-                  }}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Required Skills */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Required Contractor Skills (Optional) ({formData.requiredSkills.length}/10)
-              </label>
-              <p style={{
-                margin: 0,
-                marginBottom: theme.spacing[2],
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-              }}>
-                Select skills required for this job. Only contractors with matching skills will see this job in their "Jobs Near You" feed.
-              </p>
-              
-              {/* Selected Skills Chips */}
-              {formData.requiredSkills.length > 0 && (
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: theme.spacing[2],
-                  marginBottom: theme.spacing[3],
-                }}>
-                  {formData.requiredSkills.map((skill) => (
-                    <div
-                      key={skill}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[1],
-                        padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                        backgroundColor: theme.colors.primary,
-                        color: 'white',
-                        borderRadius: theme.borderRadius.full,
-                        fontSize: theme.typography.fontSize.sm,
-                        fontWeight: theme.typography.fontWeight.medium,
+                  {/* Location */}
+                  <div className="relative">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Location <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter address or postcode"
+                      value={formData.location}
+                      onChange={(e) => {
+                        setFormData({ ...formData, location: e.target.value });
+                        locationSearch.searchAddresses(e.target.value);
                       }}
-                    >
-                      <Icon name={getSkillIcon(skill)} size={14} color="white" />
-                      <span>{skill}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSkill(skill)}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.2)',
-                          border: 'none',
-                          borderRadius: theme.borderRadius.full,
-                          width: '18px',
-                          height: '18px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          padding: 0,
-                          marginLeft: theme.spacing[1],
-                        }}
-                      >
-                        <Icon name="x" size={12} color="white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Skill Selection Dropdown */}
-              <div style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowSkillsDropdown(!showSkillsDropdown)}
-                  disabled={formData.requiredSkills.length >= 10}
-                  style={{
-                    width: '100%',
-                    padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                    borderRadius: theme.borderRadius.lg,
-                    border: `1px solid ${validationErrors.requiredSkills ? theme.colors.error : theme.colors.border}`,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    color: theme.colors.textPrimary,
-                    cursor: formData.requiredSkills.length >= 10 ? 'not-allowed' : 'pointer',
-                    opacity: formData.requiredSkills.length >= 10 ? 0.6 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: theme.typography.fontSize.base,
-                  }}
-                >
-                  <span>{formData.requiredSkills.length >= 10 ? 'Maximum skills reached' : 'Add Required Skill'}</span>
-                  <Icon name="chevronDown" size={16} color={theme.colors.textSecondary} />
-                </button>
-
-                {showSkillsDropdown && (
-                  <>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: theme.spacing[1],
-                        backgroundColor: theme.colors.surface,
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: theme.borderRadius.lg,
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                        maxHeight: '300px',
-                        overflowY: 'auto',
-                        zIndex: 1000,
-                        padding: theme.spacing[2],
-                      }}
-                    >
-                      {availableSkills
-                        .filter(skill => !formData.requiredSkills.includes(skill))
-                        .map((skill) => (
-                          <button
-                            key={skill}
-                            type="button"
-                            onClick={() => handleToggleSkill(skill)}
-                            style={{
-                              width: '100%',
-                              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                              textAlign: 'left',
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              borderRadius: theme.borderRadius.md,
-                              fontSize: theme.typography.fontSize.sm,
-                              color: theme.colors.textPrimary,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: theme.spacing[2],
-                              transition: 'background-color 0.2s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <Icon name={getSkillIcon(skill)} size={16} color={theme.colors.textSecondary} />
-                            <span>{skill}</span>
-                          </button>
-                        ))}
-                      {availableSkills.filter(skill => !formData.requiredSkills.includes(skill)).length === 0 && (
-                        <div style={{
-                          padding: theme.spacing[4],
-                          textAlign: 'center',
-                          color: theme.colors.textSecondary,
-                          fontSize: theme.typography.fontSize.sm,
-                        }}>
-                          All available skills selected
-                        </div>
-                      )}
-                    </div>
-                    {/* Backdrop to close dropdown */}
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 999,
-                      }}
-                      onClick={() => setShowSkillsDropdown(false)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
-                  </>
-                )}
-              </div>
-              {validationErrors.requiredSkills && (
-                <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                  {validationErrors.requiredSkills}
-                </p>
+                    {locationSearch.suggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        {locationSearch.suggestions.map((suggestion, index) => (
+                          <UnifiedButton
+                            key={index}
+                            onClick={() => {
+                              setFormData({ ...formData, location: suggestion.display_name });
+                              locationSearch.handleLocationSelect(suggestion.display_name);
+                              locationSearch.clearSuggestions();
+                            }}
+                            variant="ghost"
+                            size="md"
+                            fullWidth
+                            ariaLabel={`Select location: ${suggestion.display_name}`}
+                            className="justify-start rounded-none first:rounded-t-xl last:rounded-b-xl"
+                          >
+                            {suggestion.display_name}
+                          </UnifiedButton>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-6">
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(1)}
+                      disabled={!formData.title || !formData.category || !formData.location}
+                      variant="primary"
+                      size="lg"
+                    >
+                      Continue to Details →
+                    </UnifiedButton>
+                  </div>
+                </MotionDiv>
               )}
-            </div>
 
-            {/* Budget */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[2]
-              }}>
-                Budget (£) *
-              </label>
-              <input
-                type="number"
-                value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                placeholder="e.g., 150"
-                min="0"
-                step="0.01"
-                style={{
-                  width: '100%',
-                  padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.lg,
-                  border: `1px solid ${validationErrors.budget ? theme.colors.error : theme.colors.border}`,
-                  fontSize: theme.typography.fontSize.base,
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
-              />
-              {validationErrors.budget && (
-                <p style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm, marginTop: theme.spacing[1] }}>
-                  {validationErrors.budget}
-                </p>
+              {/* Step 1: Details */}
+              {currentStep === 1 && (
+                <MotionDiv
+                  key="step-1"
+                  variants={slideInFromRight}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Details</h2>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description <span className="text-rose-600">*</span>
+                    </label>
+                    <textarea
+                      rows={6}
+                      placeholder="Describe the work needed in detail..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
+                    />
+                  </div>
+
+                  {/* Urgency */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Urgency</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {urgencyLevels.map(level => (
+                        <MotionButton
+                          key={level.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, urgency: level.value as 'low' | 'medium' | 'high' })}
+                          aria-label={`Select ${level.label} urgency: ${level.description}`}
+                          aria-pressed={formData.urgency === level.value}
+                          className={`p-4 rounded-xl border-2 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                            formData.urgency === level.value
+                              ? `border-${level.color}-600 bg-${level.color}-50`
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <div className="font-semibold text-gray-900 mb-1">{level.label}</div>
+                          <div className="text-xs text-gray-600">{level.description}</div>
+                        </MotionButton>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Budget */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Budget (GBP)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">£</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={formData.budget}
+                        onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-6">
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(0)}
+                      variant="outline"
+                      size="lg"
+                    >
+                      ← Back
+                    </UnifiedButton>
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(2)}
+                      disabled={!formData.description}
+                      variant="primary"
+                      size="lg"
+                    >
+                      Continue to Photos →
+                    </UnifiedButton>
+                  </div>
+                </MotionDiv>
               )}
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div style={{
-                padding: theme.spacing[3],
-                borderRadius: theme.borderRadius.lg,
-                backgroundColor: `${theme.colors.error}15`,
-                color: theme.colors.error,
-                fontSize: theme.typography.fontSize.sm
-              }}>
-                {error}
-              </div>
-            )}
+              {/* Step 2: Photos */}
+              {currentStep === 2 && (
+                <MotionDiv
+                  key="step-2"
+                  variants={slideInFromRight}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Photos</h2>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center' }}>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={isSubmitting}
-                style={{ minWidth: '200px' }}
-              >
-                {isSubmitting ? 'Posting...' : 'Post Job'}
-              </Button>
-              <Link href="/jobs" style={{ textDecoration: 'none' }}>
-                <Button variant="secondary" disabled={isSubmitting}>
-                  Cancel
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </form>
-      </div>
-      
-      {/* Alert Dialog */}
-      <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => {
-        if (!open) {
-          setAlertDialog({ open: false, title: '', message: '' });
-          if (alertDialog.onCancel) {
-            alertDialog.onCancel();
-          }
-        }
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            {alertDialog.onCancel && (
-              <AlertDialogCancel onClick={alertDialog.onCancel}>
-                Cancel
-              </AlertDialogCancel>
-            )}
-            {alertDialog.onConfirm ? (
-              <AlertDialogAction onClick={alertDialog.onConfirm}>
-                Continue
-              </AlertDialogAction>
-            ) : (
-              <AlertDialogAction onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
-                OK
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </HomeownerLayoutShell>
+                  <DragDropUpload2025
+                    images={imageUpload.uploadedImages}
+                    onImagesChange={(files) => {
+                      // Create a mock event object for handleImageSelect
+                      const mockEvent = {
+                        target: {
+                          files: files as unknown as FileList,
+                        },
+                      } as React.ChangeEvent<HTMLInputElement>;
+                      imageUpload.handleImageSelect(mockEvent);
+                    }}
+                    onRemoveImage={(index) => {
+                      imageUpload.removeImage(index);
+                    }}
+                    maxImages={10}
+                  />
+
+                  {imageUpload.imagePreviews.length > 0 && (
+                    <UnifiedButton
+                      onClick={handleAIAssessment}
+                      disabled={isAnalyzing}
+                      loading={isAnalyzing}
+                      ariaLabel={isAnalyzing ? "Analyzing photos with AI" : "Get AI assessment of uploaded photos"}
+                      variant="primary"
+                      size="lg"
+                      fullWidth
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      leftIcon={
+                        !isAnalyzing && (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                        )
+                      }
+                    >
+                      {isAnalyzing ? 'Analyzing...' : 'Get AI Assessment'}
+                    </UnifiedButton>
+                  )}
+
+                  {assessment && (
+                    <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-teal-900 mb-2">AI Analysis Complete</h3>
+                      <p className="text-teal-700">Assessment data available for review.</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between pt-6">
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(1)}
+                      variant="outline"
+                      size="lg"
+                    >
+                      ← Back
+                    </UnifiedButton>
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(3)}
+                      variant="primary"
+                      size="lg"
+                    >
+                      Review & Submit →
+                    </UnifiedButton>
+                  </div>
+                </MotionDiv>
+              )}
+
+              {/* Step 3: Review */}
+              {currentStep === 3 && (
+                <MotionDiv
+                  key="step-3"
+                  variants={slideInFromRight}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Review Your Job</h2>
+
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 mb-1">Title</h3>
+                      <p className="text-lg font-bold text-gray-900">{formData.title}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-500 mb-1">Category</h3>
+                        <p className="text-gray-900 capitalize">{formData.category}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-500 mb-1">Urgency</h3>
+                        <p className="text-gray-900 capitalize">{formData.urgency}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-500 mb-1">Budget</h3>
+                        <p className="text-gray-900 font-semibold">£{formData.budget || '0'}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 mb-1">Location</h3>
+                      <p className="text-gray-900">{formData.location}</p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 mb-1">Description</h3>
+                      <p className="text-gray-900 whitespace-pre-wrap">{formData.description}</p>
+                    </div>
+
+                    {imageUpload.imagePreviews.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-500 mb-2">Photos ({imageUpload.imagePreviews.length})</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {imageUpload.imagePreviews.map((previewItem, index) => (
+                            <div key={index} className="relative w-full h-24 rounded-lg overflow-hidden">
+                              <Image
+                                src={previewItem.preview}
+                                alt={`Preview ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                                loading="lazy"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between pt-6">
+                    <UnifiedButton
+                      onClick={() => setCurrentStep(2)}
+                      variant="outline"
+                      size="lg"
+                    >
+                      ← Back
+                    </UnifiedButton>
+                    <UnifiedButton
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      loading={isSubmitting}
+                      ariaLabel={isSubmitting ? "Posting job..." : "Post job"}
+                      variant="primary"
+                      size="xl"
+                      className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-lg hover:shadow-xl"
+                    >
+                      {isSubmitting ? 'Posting...' : 'Post Job'}
+                    </UnifiedButton>
+                  </div>
+                </MotionDiv>
+              )}
+            </AnimatePresence>
+          </JobCreationWizard2025>
+        </div>
+      </main>
+    </div>
+    </ErrorBoundary>
   );
 }
-

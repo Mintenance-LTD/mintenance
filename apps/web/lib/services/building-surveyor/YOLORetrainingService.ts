@@ -297,14 +297,20 @@ export class YOLORetrainingService {
         return undefined;
       }
 
+      interface FileWithMtime {
+        name: string;
+        path: string;
+        mtime: Date;
+      }
+      
       const files = fs.readdirSync(modelsDir)
         .filter((f: string) => f.startsWith('yolov11-continuous-') && f.endsWith('.onnx'))
-        .map((f: string) => ({
+        .map((f: string): FileWithMtime => ({
           name: f,
           path: join(modelsDir, f),
           mtime: fs.statSync(join(modelsDir, f)).mtime,
         }))
-        .sort((a: any, b: any) => b.mtime - a.mtime);
+        .sort((a: FileWithMtime, b: FileWithMtime) => b.mtime.getTime() - a.mtime.getTime());
 
       return files.length > 0 ? files[0].path : undefined;
     } catch (error) {

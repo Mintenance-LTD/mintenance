@@ -35,8 +35,9 @@ export default function CorrectAssessmentPage() {
         const data = await response.json();
         
         // Get images
-        const images = data.images || [];
-        setImageUrls(images.map((img: any) => img.image_url));
+        interface AssessmentImage { image_url: string; image_index?: number }
+        const images: AssessmentImage[] = data.images || [];
+        setImageUrls(images.map((img: AssessmentImage) => img.image_url));
         
         // Get original detections
         const assessmentData = data.assessment_data || {};

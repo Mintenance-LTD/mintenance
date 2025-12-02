@@ -64,8 +64,29 @@ export default async function JobTrackingPage() {
     contractor: Array.isArray(selectedJobRaw.contractor) ? selectedJobRaw.contractor[0] : selectedJobRaw.contractor
   } : undefined;
 
+  interface SenderData {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url?: string;
+  }
+
+  interface JobMessage {
+    id: string;
+    content: string;
+    created_at: string;
+    sender_id: string;
+    sender?: SenderData | SenderData[];
+  }
+
+  // Helper to normalize sender (Supabase can return object or array)
+  const getSender = (sender: SenderData | SenderData[] | undefined): SenderData | undefined => {
+    if (!sender) return undefined;
+    return Array.isArray(sender) ? sender[0] : sender;
+  };
+
   // Fetch messages for selected job
-  let messages: any[] = [];
+  let messages: JobMessage[] = [];
   if (selectedJob) {
     const { data: messagesData } = await serverSupabase
       .from('messages')
@@ -635,33 +656,36 @@ export default async function JobTrackingPage() {
                                     gap: theme.spacing[3]
                                   }}>
                                     <div style={{ position: 'relative' }}>
-                                      {message.sender?.profile_image_url ? (
-                                        <div style={{
-                                          backgroundImage: `url(${message.sender.profile_image_url})`,
-                                          backgroundSize: 'cover',
-                                          backgroundPosition: 'center',
-                                          aspectRatio: '1',
-                                          width: '32px',
-                                          height: '32px',
-                                          borderRadius: '50%'
-                                        }} />
-                                      ) : (
-                                        <div style={{
-                                          backgroundColor: theme.colors.primary,
-                                          aspectRatio: '1',
-                                          width: '32px',
-                                          height: '32px',
-                                          borderRadius: '50%',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          color: 'white',
-                                          fontWeight: 'bold',
-                                          fontSize: theme.typography.fontSize.sm
-                                        }}>
-                                          {message.sender?.first_name?.[0] || 'U'}
-                                        </div>
-                                      )}
+                                      {(() => {
+                                        const sender = getSender(message.sender);
+                                        return sender?.profile_image_url ? (
+                                          <div style={{
+                                            backgroundImage: `url(${sender.profile_image_url})`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            aspectRatio: '1',
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%'
+                                          }} />
+                                        ) : (
+                                          <div style={{
+                                            backgroundColor: theme.colors.primary,
+                                            aspectRatio: '1',
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white',
+                                            fontWeight: 'bold',
+                                            fontSize: theme.typography.fontSize.sm
+                                          }}>
+                                            {sender?.first_name?.[0] || 'U'}
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                     <div style={{
                                       minWidth: 0,
@@ -677,7 +701,7 @@ export default async function JobTrackingPage() {
                                             color: theme.colors.textPrimary,
                                             margin: 0
                                           }}>
-                                            {message.sender?.first_name} {message.sender?.last_name}
+                                            {getSender(message.sender)?.first_name} {getSender(message.sender)?.last_name}
                                           </p>
                                         </div>
                                         <p style={{

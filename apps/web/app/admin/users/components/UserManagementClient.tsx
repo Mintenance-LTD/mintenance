@@ -11,6 +11,7 @@ import { UserDetailDialog } from './UserDetailDialog';
 import { BulkActionDialog } from './BulkActionDialog';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Checkbox } from '@/components/ui/checkbox';
+import { logger } from '@mintenance/shared';
 
 interface User {
   id: string;
@@ -87,7 +88,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
@@ -191,7 +192,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
       setBulkRejectReason('');
       fetchUsers(pagination.page);
     } catch (error) {
-      console.error('Error performing bulk action:', error);
+      logger.error('Error performing bulk action:', error);
       alert(error instanceof Error ? error.message : 'Failed to perform bulk action');
     } finally {
       setBulkActionLoading(false);
@@ -222,7 +223,7 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting users:', error);
+      logger.error('Error exporting users:', error);
       alert('Failed to export users');
     }
   };

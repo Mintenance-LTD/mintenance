@@ -1,11 +1,12 @@
 // Web UI Component Library
 // Cross-platform compatible components adapted from mobile designs
 
-export { Button } from './Button';
-export type { ButtonProps } from './Button';
+// Legacy components - use Unified* versions instead
+// export { Button } from './Button';
+// export type { ButtonProps } from './Button';
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
-export type { CardProps } from './Card';
+// export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
+// export type { CardProps } from './Card';
 
 export { Input } from './Input';
 export type { InputProps } from './Input';
@@ -131,3 +132,78 @@ export { Icon, IconFilled } from './Icon';
 export type { IconProps } from './Icon';
 
 export { GradientCard } from './GradientCard';
+
+export { StandardCard } from './StandardCard';
+export type { StandardCardProps } from './StandardCard';
+
+export { IconContainer } from './IconContainer';
+export type { IconContainerProps } from './IconContainer';
+
+// ============================================
+// UNIFIED DESIGN SYSTEM COMPONENTS
+// ============================================
+
+// UnifiedButton - Consistent button component using design tokens
+export { default as UnifiedButton, ButtonGroup, IconButton } from './UnifiedButton';
+export type { ButtonProps } from './UnifiedButton';
+
+// Button components from UnifiedButton (for backwards compatibility)
+export { default as Button } from './UnifiedButton';
+
+// UnifiedCard - Consistent card component using design tokens
+export {
+  default as UnifiedCard,
+  CardGrid,
+  StatCard,
+  ActionCard,
+} from './UnifiedCard';
+export type {
+  CardProps,
+  CardHeaderProps,
+  CardTitleProps,
+  CardDescriptionProps,
+  CardContentProps,
+  CardFooterProps,
+} from './UnifiedCard';
+
+// Card components from UnifiedCard (no duplicates)
+export {
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from './UnifiedCard';
+
+// Card component from UnifiedCard (for backwards compatibility)
+export { default as Card } from './UnifiedCard';
+
+// StandardHeading - Typography hierarchy enforcement
+export {
+  default as StandardHeading,
+  PageTitle,
+  SectionHeading,
+  SubsectionHeading,
+  CardHeading,
+  HeadingGroup,
+  SupportingText,
+} from './StandardHeading';
+export type { StandardHeadingProps } from './StandardHeading';
+
+// ============================================
+// FEATURE ACCESS SYSTEM COMPONENTS
+// ============================================
+
+// FeatureGate - Feature access control components
+export {
+  FeatureGate,
+  FeatureButton,
+  FeatureBadge,
+  withFeatureAccess,
+} from './FeatureGate';
+
+// Paywall - Subscription upgrade prompts
+export {
+  Paywall,
+  PaywallBanner,
+} from './Paywall';

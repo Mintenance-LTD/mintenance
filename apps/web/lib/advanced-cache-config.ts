@@ -3,8 +3,60 @@
  * Multi-layer caching with intelligent invalidation
  */
 
-import { QueryClient, QueryClientConfig, Query } from '@tanstack/react-query';
+import { QueryClient, QueryClientConfig } from '@tanstack/react-query';
 import { logger } from './logger';
+
+/**
+ * Query error with HTTP response information
+ */
+interface QueryError extends Error {
+  response?: {
+    status: number;
+    statusText?: string;
+    data?: unknown;
+  };
+}
+
+/**
+ * Base filters for list queries
+ */
+interface BaseListFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Contractor list filters
+ */
+export interface ContractorListFilters extends BaseListFilters {
+  skills?: string[];
+  minRating?: number;
+  maxDistance?: number;
+  availability?: string;
+  verified?: boolean;
+}
+
+/**
+ * Job list filters
+ */
+export interface JobListFilters extends BaseListFilters {
+  status?: string;
+  category?: string;
+  minBudget?: number;
+  maxBudget?: number;
+  urgency?: string;
+}
+
+/**
+ * Memory cache entry with typed data
+ */
+interface MemoryCacheEntry<T = unknown> {
+  data: T;
+  timestamp: number;
+}
 
 // Cache duration constants
 export const CACHE_TIME = {
@@ -48,9 +100,10 @@ export const queryClientConfig: QueryClientConfig = {
       gcTime: CACHE_TIME.MEDIUM, // was cacheTime in v4
 
       // Retry configuration
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error) => {
         // Don't retry on 4xx errors (client errors)
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
+        const queryError = error as QueryError;
+        if (queryError?.response?.status && queryError.response.status >= 400 && queryError.response.status < 500) {
           return false;
         }
         // Retry up to 3 times for other errors
@@ -68,7 +121,7 @@ export const queryClientConfig: QueryClientConfig = {
       refetchOnReconnect: true,
 
       // Enable placeholder data from cache while fetching
-      placeholderData: (previousData: any) => previousData,
+      placeholderData: <T>(previousData: T | undefined): T | undefined => previousData,
 
       // Structural sharing to avoid unnecessary re-renders
       structuralSharing: true,
@@ -76,7 +129,7 @@ export const queryClientConfig: QueryClientConfig = {
 
     mutations: {
       // Retry mutations only on network errors
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error) => {
         if (error?.message?.includes('NetworkError')) {
           return failureCount < RETRY_CONFIG.DEFAULT;
         }
@@ -104,7 +157,7 @@ export function createOptimizedQueryClient(): QueryClient {
         totalQueries: queries.length,
         activeQueries: queries.filter(q => q.isActive()).length,
         staleQueries: queries.filter(q => q.isStale()).length,
-        fetchingQueries: queries.filter(q => (q.state as any).isFetching).length,
+        fetchingQueries: queries.filter(q => q.state.fetchStatus === 'fetching').length,
       });
     }, 60000); // Every minute
   }
@@ -120,7 +173,7 @@ export const queryKeys = {
   contractors: {
     all: ['contractors'] as const,
     lists: () => [...queryKeys.contractors.all, 'list'] as const,
-    list: (filters?: any) => [...queryKeys.contractors.lists(), filters] as const,
+    list: (filters?: ContractorListFilters) => [...queryKeys.contractors.lists(), filters] as const,
     details: () => [...queryKeys.contractors.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.contractors.details(), id] as const,
     search: (query: string) => [...queryKeys.contractors.all, 'search', query] as const,
@@ -130,7 +183,7 @@ export const queryKeys = {
   jobs: {
     all: ['jobs'] as const,
     lists: () => [...queryKeys.jobs.all, 'list'] as const,
-    list: (filters?: any) => [...queryKeys.jobs.lists(), filters] as const,
+    list: (filters?: JobListFilters) => [...queryKeys.jobs.lists(), filters] as const,
     details: () => [...queryKeys.jobs.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.jobs.details(), id] as const,
     myJobs: (userId: string) => [...queryKeys.jobs.all, 'my', userId] as const,
@@ -240,7 +293,7 @@ export class CachePrefetcher {
   /**
    * Prefetch contractors list
    */
-  async prefetchContractors(filters?: any) {
+  async prefetchContractors(filters?: ContractorListFilters): Promise<void> {
     await this.queryClient.prefetchQuery({
       queryKey: queryKeys.contractors.list(filters),
       queryFn: () => {
@@ -254,7 +307,7 @@ export class CachePrefetcher {
   /**
    * Prefetch contractor details
    */
-  async prefetchContractor(id: string) {
+  async prefetchContractor(id: string): Promise<void> {
     await this.queryClient.prefetchQuery({
       queryKey: queryKeys.contractors.detail(id),
       queryFn: () => {
@@ -267,7 +320,7 @@ export class CachePrefetcher {
   /**
    * Prefetch jobs list
    */
-  async prefetchJobs(filters?: any) {
+  async prefetchJobs(filters?: JobListFilters): Promise<void> {
     await this.queryClient.prefetchQuery({
       queryKey: queryKeys.jobs.list(filters),
       queryFn: () => {
@@ -338,7 +391,7 @@ export class OptimisticUpdater {
  * Multi-layer cache manager
  */
 export class MultiLayerCacheManager {
-  private memoryCache: Map<string, { data: any; timestamp: number }> = new Map();
+  private memoryCache: Map<string, MemoryCacheEntry> = new Map();
   private readonly MEMORY_CACHE_TTL = CACHE_TIME.SHORT;
 
   constructor(private queryClient: QueryClient) {}

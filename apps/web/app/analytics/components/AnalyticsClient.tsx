@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TrendingUp, TrendingDown, DollarSign, Briefcase, Award, Users, Clock, Lightbulb, AlertCircle, CheckCircle2, Target } from 'lucide-react';
 import type { PerformanceInsight } from '@/lib/services/ContractorAnalyticsService';
 import { cn } from '@/lib/utils';
+import { logger } from '@mintenance/shared';
 
 interface AnalyticsClientProps {
   initialData: {
@@ -43,7 +44,7 @@ export function AnalyticsClient({ initialData, contractorId }: AnalyticsClientPr
         const data = await response.json();
         setInsights(data.insights || []);
       } catch (error) {
-        console.error('Failed to load insights:', error);
+        logger.error('Failed to load insights:', error);
         // Don't show error to user, just log it - insights are optional
         setInsights([]);
       } finally {

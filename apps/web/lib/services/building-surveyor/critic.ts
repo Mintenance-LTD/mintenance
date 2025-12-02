@@ -15,6 +15,16 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContextFeatureService } from './ContextFeatureService';
+import { wilsonScoreUpper } from './ab-test/ABTestMathUtils';
+
+interface FNRResult {
+  fnr: number; // Point estimate of FNR (0-1)
+  fnrUpperBound: number; // Wilson score upper bound (95% confidence)
+  sampleSize: number; // Number of automated decisions in stratum
+  confidence: number; // Confidence level (0-1)
+  shouldEscalate: boolean; // True if FNR upper bound exceeds threshold OR sample size too small
+  reason?: string; // Human-readable explanation
+}
 
 interface CriticContext {
   context: number[]; // d_eff = 12 dimensional context vector
@@ -125,13 +135,24 @@ export class CriticModule {
 
     // FNR constraint: Check False Negative Rate if stratum is provided
     if (stratum) {
-      const fnr = await this.getFNR(stratum);
-      const FNR_THRESHOLD = 0.05; // 5% maximum FNR
-      
-      if (fnr >= FNR_THRESHOLD) {
+      const fnrResult = await this.getFNRWithFallback(stratum);
+
+      // Log FNR metadata for monitoring
+      logger.info('FNR check with statistical validation', {
+        service: 'CriticModule',
+        stratum,
+        stratumUsed: fnrResult.stratumUsed,
+        fallbackLevel: fnrResult.fallbackLevel,
+        fnr: fnrResult.fnr,
+        fnrUpperBound: fnrResult.fnrUpperBound,
+        sampleSize: fnrResult.sampleSize,
+        shouldEscalate: fnrResult.shouldEscalate,
+      });
+
+      if (fnrResult.shouldEscalate) {
         return {
           arm: 'escalate',
-          reason: `FNR (${(fnr * 100).toFixed(2)}%) exceeds threshold (${FNR_THRESHOLD * 100}%)`,
+          reason: fnrResult.reason || 'FNR constraint violated',
           safetyUcb,
           rewardUcb,
           safetyThreshold: delta_safety,
@@ -256,15 +277,15 @@ export class CriticModule {
         .single();
 
       if (data && data.parameters) {
-        const params = data.parameters as any;
+        const params = data.parameters as Partial<ModelParameters>;
         this.modelCache = {
-          theta: params.theta || this.initializeTheta(),
-          phi: params.phi || this.initializePhi(),
-          A: params.A || this.initializeCovariance(),
-          B: params.B || this.initializeCovariance(),
-          beta: params.beta || this.DEFAULT_BETA,
-          gamma: params.gamma || this.DEFAULT_GAMMA,
-          n: params.n || 0,
+          theta: (Array.isArray(params.theta) ? params.theta : undefined) || this.initializeTheta(),
+          phi: (Array.isArray(params.phi) ? params.phi : undefined) || this.initializePhi(),
+          A: (Array.isArray(params.A) && Array.isArray(params.A[0]) ? params.A : undefined) || this.initializeCovariance(),
+          B: (Array.isArray(params.B) && Array.isArray(params.B[0]) ? params.B : undefined) || this.initializeCovariance(),
+          beta: typeof params.beta === 'number' ? params.beta : this.DEFAULT_BETA,
+          gamma: typeof params.gamma === 'number' ? params.gamma : this.DEFAULT_GAMMA,
+          n: typeof params.n === 'number' ? params.n : 0,
         };
         this.lastModelUpdate = now;
         return this.modelCache;
@@ -733,50 +754,216 @@ export class CriticModule {
   // ============================================================================
 
   /**
-   * Get False Negative Rate for a stratum
-   * 
+   * Get False Negative Rate with statistical validation for a stratum
+   *
+   * Implements Wilson score confidence intervals for small samples (n < 100)
+   * and validates sample size sufficiency (escalates if n < 10).
+   *
    * @param stratum - Mondrian stratum identifier
-   * @returns FNR (0-1) for the stratum
+   * @returns FNRResult with confidence intervals and escalation flag
    */
-  static async getFNR(stratum: string): Promise<number> {
-    // Check cache first
-    const cached = this.fnrCache.get(stratum);
-    const now = Date.now();
-    if (cached && now - cached.lastUpdated < this.FNR_CACHE_TTL) {
-      return cached.fnr;
-    }
-
+  static async getFNR(stratum: string): Promise<FNRResult> {
     try {
       // Load from database
       const { data, error } = await serverSupabase
         .from('ab_critic_fnr_tracking')
-        .select('fnr')
+        .select('false_negatives, total_automated')
         .eq('stratum', stratum)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 is "not found" - that's OK, return 0
-        logger.warn('Failed to load FNR from database', {
+      // Handle "not found" error (PGRST116)
+      if (error && error.code === 'PGRST116') {
+        return {
+          fnr: 0,
+          fnrUpperBound: 1.0, // Conservative: assume 100% FNR upper bound when no data
+          sampleSize: 0,
+          confidence: 0.95,
+          shouldEscalate: true,
+          reason: 'No data available for stratum - escalating for safety',
+        };
+      }
+
+      // Handle other database errors
+      if (error) {
+        logger.error('Database error loading FNR', {
           service: 'CriticModule',
           stratum,
           error,
         });
+        return {
+          fnr: 0,
+          fnrUpperBound: 1.0,
+          sampleSize: 0,
+          confidence: 0.95,
+          shouldEscalate: true,
+          reason: 'Database error - escalating for safety',
+        };
       }
 
-      const fnr = data?.fnr ? parseFloat(data.fnr.toString()) : 0;
-      
-      // Update cache
-      this.fnrCache.set(stratum, { fnr, lastUpdated: now });
-      
-      return fnr;
+      const falseNegatives = data?.false_negatives || 0;
+      const totalAutomated = data?.total_automated || 0;
+
+      // Sample size validation
+      if (totalAutomated < 10) {
+        logger.warn('Insufficient sample size for FNR estimation', {
+          service: 'CriticModule',
+          stratum,
+          sampleSize: totalAutomated,
+        });
+        return {
+          fnr: totalAutomated > 0 ? falseNegatives / totalAutomated : 0,
+          fnrUpperBound: 1.0,
+          sampleSize: totalAutomated,
+          confidence: 0.95,
+          shouldEscalate: true,
+          reason: `Insufficient sample size (n=${totalAutomated}) - need at least 10 observations`,
+        };
+      }
+
+      // Compute point estimate
+      const fnr = falseNegatives / totalAutomated;
+
+      // Compute Wilson score upper bound for 95% confidence
+      const fnrUpperBound = wilsonScoreUpper(falseNegatives, totalAutomated, 0.95);
+
+      // Check if should escalate (5% threshold)
+      const FNR_THRESHOLD = 0.05;
+      const shouldEscalate = fnrUpperBound >= FNR_THRESHOLD;
+
+      logger.debug('FNR computed with confidence interval', {
+        service: 'CriticModule',
+        stratum,
+        fnr,
+        fnrUpperBound,
+        sampleSize: totalAutomated,
+        shouldEscalate,
+      });
+
+      return {
+        fnr,
+        fnrUpperBound,
+        sampleSize: totalAutomated,
+        confidence: 0.95,
+        shouldEscalate,
+        reason: shouldEscalate
+          ? `FNR upper bound (${(fnrUpperBound * 100).toFixed(2)}%) exceeds threshold (${FNR_THRESHOLD * 100}%)`
+          : undefined,
+      };
     } catch (error) {
-      logger.error('Error loading FNR', {
+      logger.error('Unexpected error computing FNR', {
         service: 'CriticModule',
         stratum,
         error,
       });
-      return 0; // Conservative: assume no FNR if we can't load
+      // Conservative: escalate on error
+      return {
+        fnr: 0,
+        fnrUpperBound: 1.0,
+        sampleSize: 0,
+        confidence: 0.95,
+        shouldEscalate: true,
+        reason: 'Unexpected error - escalating for safety',
+      };
     }
+  }
+
+  /**
+   * Get FNR with hierarchical fallback
+   *
+   * Implements fallback hierarchy for sparse strata:
+   * 1. Specific stratum (e.g., "region:west|severity:high")
+   * 2. Parent stratum (e.g., "region:west")
+   * 3. Grandparent stratum (e.g., "global")
+   * 4. Global default (if no data exists)
+   *
+   * @param stratum - Mondrian stratum identifier (e.g., "region:west|severity:high")
+   * @returns FNRResult with metadata about which stratum was used
+   */
+  static async getFNRWithFallback(stratum: string): Promise<
+    FNRResult & { stratumUsed: string; fallbackLevel: number }
+  > {
+    // Try specific stratum first
+    const specificResult = await this.getFNR(stratum);
+    if (specificResult.sampleSize >= 10) {
+      return {
+        ...specificResult,
+        stratumUsed: stratum,
+        fallbackLevel: 0,
+      };
+    }
+
+    // Parse stratum to get parent (remove last component)
+    const stratumParts = stratum.split('|');
+    if (stratumParts.length > 1) {
+      // Try parent stratum (e.g., "region:west|severity:high" -> "region:west")
+      const parentStratum = stratumParts.slice(0, -1).join('|');
+      const parentResult = await this.getFNR(parentStratum);
+      if (parentResult.sampleSize >= 10) {
+        logger.info('Using parent stratum FNR due to insufficient specific data', {
+          service: 'CriticModule',
+          specificStratum: stratum,
+          parentStratum,
+          specificSampleSize: specificResult.sampleSize,
+          parentSampleSize: parentResult.sampleSize,
+        });
+        return {
+          ...parentResult,
+          stratumUsed: parentStratum,
+          fallbackLevel: 1,
+        };
+      }
+
+      // Try grandparent stratum if parent also insufficient
+      if (stratumParts.length > 2) {
+        const grandparentStratum = stratumParts.slice(0, -2).join('|');
+        const grandparentResult = await this.getFNR(grandparentStratum);
+        if (grandparentResult.sampleSize >= 10) {
+          logger.info('Using grandparent stratum FNR due to insufficient parent data', {
+            service: 'CriticModule',
+            specificStratum: stratum,
+            grandparentStratum,
+            specificSampleSize: specificResult.sampleSize,
+            grandparentSampleSize: grandparentResult.sampleSize,
+          });
+          return {
+            ...grandparentResult,
+            stratumUsed: grandparentStratum,
+            fallbackLevel: 2,
+          };
+        }
+      }
+    }
+
+    // Try global stratum as final fallback
+    const globalResult = await this.getFNR('global');
+    if (globalResult.sampleSize >= 10) {
+      logger.warn('Using global stratum FNR due to insufficient hierarchical data', {
+        service: 'CriticModule',
+        specificStratum: stratum,
+        specificSampleSize: specificResult.sampleSize,
+        globalSampleSize: globalResult.sampleSize,
+      });
+      return {
+        ...globalResult,
+        stratumUsed: 'global',
+        fallbackLevel: 3,
+      };
+    }
+
+    // No sufficient data at any level - return specific result with escalation flag
+    logger.error('Insufficient data at all stratum levels', {
+      service: 'CriticModule',
+      stratum,
+      specificSampleSize: specificResult.sampleSize,
+      globalSampleSize: globalResult.sampleSize,
+    });
+    return {
+      ...specificResult,
+      shouldEscalate: true,
+      reason: 'Insufficient data at all stratum levels - escalating for safety',
+      stratumUsed: stratum,
+      fallbackLevel: 0,
+    };
   }
 
   /**
@@ -853,7 +1040,7 @@ export class CriticModule {
   /**
    * Load FNR statistics from database
    */
-  private static async loadFNR(stratum: string): Promise<number> {
+  private static async loadFNR(stratum: string): Promise<FNRResult> {
     return this.getFNR(stratum);
   }
 }

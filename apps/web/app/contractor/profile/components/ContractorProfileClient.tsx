@@ -12,14 +12,57 @@ import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { ContractorDataPrivacy } from './ContractorDataPrivacy';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 
+interface ContractorData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  bio?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  company_name?: string;
+  license_number?: string;
+  is_available?: boolean;
+  profile_image_url?: string;
+  rating?: number;
+  total_jobs_completed?: number;
+  admin_verified?: boolean;
+  created_at?: string;
+}
+
+interface ReviewData {
+  id: string;
+  rating: number;
+  review_text?: string;
+  created_at: string;
+  reviewer_id: string;
+}
+
+interface JobData {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+}
+
+interface PostData {
+  id: string;
+  title?: string;
+  content: string;
+  images?: string[];
+  created_at: string;
+}
+
 interface ContractorProfileClientProps {
-  contractor: any;
+  contractor: ContractorData;
   skills: Array<{ skill_name: string; skill_icon?: string | null }>;
-  reviews: any[];
-  completedJobs: any[];
-  posts: any[];
+  reviews: ReviewData[];
+  completedJobs: JobData[];
+  posts: PostData[];
   metrics: {
     profileCompletion: number;
     averageRating: number;
@@ -51,7 +94,22 @@ export function ContractorProfileClient({
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const { csrfToken } = useCSRF();
 
-  const handleSaveProfile = async (data: any) => {
+  const handleSaveProfile = async (data: {
+    firstName: string;
+    lastName: string;
+    bio: string;
+    city: string;
+    country: string;
+    phone: string;
+    companyName?: string;
+    licenseNumber?: string;
+    isAvailable: boolean;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    profileImage?: File | null;
+    skills?: Array<{ skill_name: string; skill_icon: string }>;
+  }) => {
     try {
       if (!csrfToken) {
         throw new Error('Security token not available. Please refresh the page.');
@@ -113,11 +171,15 @@ export function ContractorProfileClient({
 
           if (!skillsResponse.ok) {
             const skillsError = await skillsResponse.json();
-            console.warn('Failed to update skills:', skillsError.message || 'Unknown error');
+            logger.warn('Failed to update skills:', skillsError.message || 'Unknown error');
             // Don't throw - profile update succeeded, skills update is secondary
           }
         } catch (skillsError) {
-          console.warn('Error updating skills:', skillsError);
+          const errorMessage = skillsError instanceof Error ? skillsError.message : String(skillsError);
+          logger.warn('Error updating skills', {
+            service: 'contractor-profile',
+            error: errorMessage,
+          });
           // Don't throw - profile update succeeded, skills update is secondary
         }
       }

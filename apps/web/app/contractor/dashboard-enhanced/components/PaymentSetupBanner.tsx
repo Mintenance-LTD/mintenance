@@ -9,7 +9,7 @@ interface PaymentSetupBannerProps {
 
 export function PaymentSetupBanner({ contractorId, pendingAmount = 0, pendingEscrows = 0 }: PaymentSetupBannerProps) {
   return (
-    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-4 mb-6 shadow-sm">
+    <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border-l-4 border-amber-500 rounded-lg p-4 mb-6 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
           <div className="flex-shrink-0 mt-0.5">

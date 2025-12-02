@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   Dialog,
   DialogContent,
@@ -66,7 +67,7 @@ export function JobDetailsDialog({
       setIsOpen(false);
       setBidAmount('');
     } catch (error) {
-      console.error('Error submitting bid:', error);
+      logger.error('Error submitting bid:', error);
     } finally {
       setIsSubmitting(false);
     }

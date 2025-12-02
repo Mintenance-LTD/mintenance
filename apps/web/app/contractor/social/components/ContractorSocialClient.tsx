@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -75,7 +76,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
         setPosts(data.posts || []);
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      logger.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
@@ -156,7 +157,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
         ),
       );
     } catch (error) {
-      console.error('Error liking post:', error);
+      logger.error('Error liking post:', error);
       setNotification({ tone: 'warning', message: 'Failed to update like. Please try again.' });
     } finally {
       setLikingPostId(null);
@@ -201,7 +202,7 @@ export function ContractorSocialClient({ posts: initialPosts, currentUserId }: {
         });
       }
     } catch (error) {
-      console.error('Error sharing post:', error);
+      logger.error('Error sharing post:', error);
       setNotification({ tone: 'warning', message: 'Failed to share post' });
     } finally {
       setSharingPostId(null);

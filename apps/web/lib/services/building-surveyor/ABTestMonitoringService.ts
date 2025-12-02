@@ -358,8 +358,17 @@ export class ABTestMonitoringService {
         };
       }
 
-      const controlOutcomes = outcomes.filter(o => (o.ab_arms as any)?.name === 'control');
-      const treatmentOutcomes = outcomes.filter(o => (o.ab_arms as any)?.name === 'treatment');
+      // Handle Supabase join result: ab_arms can be array or single object
+      const getArmName = (arm: unknown): string | null => {
+        if (!arm) return null;
+        if (Array.isArray(arm)) {
+          return (arm[0] as { name?: string })?.name || null;
+        }
+        return (arm as { name?: string })?.name || null;
+      };
+
+      const controlOutcomes = outcomes.filter(o => getArmName(o.ab_arms) === 'control');
+      const treatmentOutcomes = outcomes.filter(o => getArmName(o.ab_arms) === 'treatment');
 
       const controlSfnCount = controlOutcomes.filter(o => o.sfn === true).length;
       const treatmentSfnCount = treatmentOutcomes.filter(o => o.sfn === true).length;

@@ -91,11 +91,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     });
 
     // Remove style and border properties from props to prevent them from being spread
-    const { style: _, ...propsWithoutStyle } = props as any;
+    const { style: _, ...propsWithoutStyle } = props as Record<string, unknown>;
 
     // Clean ALL border-related properties from props (including any that might come from React Hook Form)
     // This ensures no border shorthand properties slip through to the SharedInput component
-    const cleanedProps: any = {};
+    const cleanedProps: Record<string, unknown> = {};
     const borderProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
     Object.keys(propsWithoutStyle).forEach(key => {
       // Also check if the value itself is an object with border properties (nested styles)
@@ -105,12 +105,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return;
       }
       // If value is an object with a style property, clean it too
-      if (value && typeof value === 'object' && 'style' in value && typeof value.style === 'object') {
-        const cleanedValue = { ...value };
-        const cleanedNestedStyle: any = {};
-        Object.keys(value.style).forEach(styleKey => {
+      if (value && typeof value === 'object' && 'style' in value && typeof (value as Record<string, unknown>).style === 'object') {
+        const cleanedValue = { ...(value as Record<string, unknown>) };
+        const cleanedNestedStyle: Record<string, unknown> = {};
+        const styleObj = (value as Record<string, unknown>).style as Record<string, unknown>;
+        Object.keys(styleObj).forEach(styleKey => {
           if (!borderProps.includes(styleKey)) {
-            cleanedNestedStyle[styleKey] = value.style[styleKey];
+            cleanedNestedStyle[styleKey] = styleObj[styleKey];
           }
         });
         cleanedValue.style = cleanedNestedStyle;

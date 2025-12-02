@@ -13,9 +13,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
+  const jobId = resolvedParams.id;
+  
   try {
-    const resolvedParams = await params;
-    const jobId = resolvedParams.id;
 
     const user = await getCurrentUserFromCookies();
     if (!user) {

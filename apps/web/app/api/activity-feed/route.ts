@@ -5,6 +5,30 @@ import { logger } from '@mintenance/shared';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// ✅ TYPE SAFETY: Proper interfaces for database records
+interface JobRecord {
+    id: string;
+    title: string;
+    category: string;
+    status: string;
+    updated_at: string;
+    city: string;
+    homeowner_id: string;
+    contractor_id?: string;
+}
+
+interface BidRecord {
+    job_id: string;
+    created_at: string;
+}
+
+interface UserRecord {
+    id: string;
+    first_name: string;
+    last_name: string;
+    city?: string;
+}
+
 /**
  * Public API endpoint to fetch live activity feed for the landing page
  * Returns recent job activities: completed jobs, hired contractors, quotes received
@@ -18,7 +42,7 @@ export async function GET() {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         // Fetch recent completed jobs - try 1 hour, then 24 hours, then 7 days
-        let completedJobs: any[] | null = null;
+        let completedJobs: JobRecord[] | null = null;
         let timeWindow = oneHourAgo;
         
         for (const window of [oneHourAgo, oneDayAgo, sevenDaysAgo]) {
@@ -39,14 +63,14 @@ export async function GET() {
                 .limit(10);
             
             if (!error && data && data.length > 0) {
-                completedJobs = data;
+                completedJobs = data as JobRecord[];
                 timeWindow = window;
                 break;
             }
         }
 
         // Fetch recently assigned jobs (hired) - try same windows
-        let hiredJobs: any[] | null = null;
+        let hiredJobs: JobRecord[] | null = null;
         for (const window of [oneHourAgo, oneDayAgo, sevenDaysAgo]) {
             const { data, error } = await serverSupabase
                 .from('jobs')
@@ -66,13 +90,13 @@ export async function GET() {
                 .limit(10);
             
             if (!error && data && data.length > 0) {
-                hiredJobs = data;
+                hiredJobs = data as JobRecord[];
                 break;
             }
         }
 
         // Fetch jobs with multiple bids (quotes received) - try same windows
-        let jobsWithBids: any[] | null = null;
+        let jobsWithBids: BidRecord[] | null = null;
         for (const window of [oneHourAgo, oneDayAgo, sevenDaysAgo]) {
             const { data, error } = await serverSupabase
                 .from('bids')
@@ -85,7 +109,7 @@ export async function GET() {
                 .limit(20);
             
             if (!error && data && data.length > 0) {
-                jobsWithBids = data;
+                jobsWithBids = data as BidRecord[];
                 break;
             }
         }
@@ -95,18 +119,18 @@ export async function GET() {
         const contractorIds = new Set<string>();
         const jobIds = new Set<string>();
 
-        completedJobs?.forEach((job: any) => {
+        completedJobs?.forEach((job: JobRecord) => {
             if (job.homeowner_id) homeownerIds.add(job.homeowner_id);
             if (job.id) jobIds.add(job.id);
         });
 
-        hiredJobs?.forEach((job: any) => {
+        hiredJobs?.forEach((job: JobRecord) => {
             if (job.homeowner_id) homeownerIds.add(job.homeowner_id);
             if (job.contractor_id) contractorIds.add(job.contractor_id);
             if (job.id) jobIds.add(job.id);
         });
 
-        jobsWithBids?.forEach((bid: any) => {
+        jobsWithBids?.forEach((bid: BidRecord) => {
             if (bid.job_id) jobIds.add(bid.job_id);
         });
 
@@ -117,7 +141,7 @@ export async function GET() {
             .select('id, first_name, last_name')
             .in('id', allUserIds) : { data: [] };
 
-        const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+        const userMap = new Map((users || []).map((u: UserRecord) => [u.id, u]));
 
         // Fetch job information for bids
         const { data: bidJobs } = jobIds.size > 0 ? await serverSupabase
@@ -125,11 +149,11 @@ export async function GET() {
             .select('id, title, category, city, homeowner_id')
             .in('id', Array.from(jobIds)) : { data: [] };
 
-        const jobMap = new Map((bidJobs || []).map((j: any) => [j.id, j]));
+        const jobMap = new Map((bidJobs || []).map((j: Pick<JobRecord, 'id' | 'title' | 'category' | 'city' | 'homeowner_id'>) => [j.id, j as JobRecord]));
 
         // Group bids by job_id to count quotes
         const quotesByJob = new Map<string, number>();
-        jobsWithBids?.forEach((bid: any) => {
+        jobsWithBids?.forEach((bid: BidRecord) => {
             const jobId = bid.job_id;
             quotesByJob.set(jobId, (quotesByJob.get(jobId) || 0) + 1);
         });
@@ -144,9 +168,9 @@ export async function GET() {
         }> = [];
 
         // Add completed jobs
-        completedJobs?.forEach((job: any) => {
-            const homeowner = userMap.get(job.homeowner_id) || {};
-            const name = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Someone';
+        completedJobs?.forEach((job: JobRecord) => {
+            const homeowner = userMap.get(job.homeowner_id) as UserRecord | undefined;
+            const name = `${homeowner?.first_name || ''} ${homeowner?.last_name || ''}`.trim() || 'Someone';
             const firstName = name.split(' ')[0];
             const location = job.city || 'UK';
             const category = job.category || 'project';
@@ -161,9 +185,9 @@ export async function GET() {
         });
 
         // Add hired jobs
-        hiredJobs?.forEach((job: any) => {
-            const homeowner = userMap.get(job.homeowner_id) || {};
-            const name = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Someone';
+        hiredJobs?.forEach((job: JobRecord) => {
+            const homeowner = userMap.get(job.homeowner_id) as UserRecord | undefined;
+            const name = `${homeowner?.first_name || ''} ${homeowner?.last_name || ''}`.trim() || 'Someone';
             const firstName = name.split(' ')[0];
             const location = job.city || 'UK';
             const category = job.category || 'contractor';
@@ -181,15 +205,15 @@ export async function GET() {
         });
 
         // Add quotes received (only jobs with 3+ quotes)
-        jobsWithBids?.forEach((bid: any) => {
-            const job = jobMap.get(bid.job_id);
+        jobsWithBids?.forEach((bid: BidRecord) => {
+            const job = jobMap.get(bid.job_id) as JobRecord | undefined;
             if (!job) return;
             
             const quoteCount = quotesByJob.get(job.id) || 0;
             if (quoteCount < 3) return; // Only show if 3+ quotes
 
-            const homeowner = userMap.get(job.homeowner_id) || {};
-            const name = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Someone';
+            const homeowner = userMap.get(job.homeowner_id) as UserRecord | undefined;
+            const name = `${homeowner?.first_name || ''} ${homeowner?.last_name || ''}`.trim() || 'Someone';
             const firstName = name.split(' ')[0];
             const location = job.city || 'UK';
             
@@ -208,15 +232,15 @@ export async function GET() {
 
         // Calculate active users count (users who have activity in last hour)
         const activeUserIds = new Set<string>();
-        completedJobs?.forEach((job: any) => {
+        completedJobs?.forEach((job: JobRecord) => {
             if (job.homeowner_id) activeUserIds.add(job.homeowner_id);
         });
-        hiredJobs?.forEach((job: any) => {
+        hiredJobs?.forEach((job: JobRecord) => {
             if (job.homeowner_id) activeUserIds.add(job.homeowner_id);
             if (job.contractor_id) activeUserIds.add(job.contractor_id);
         });
-        jobsWithBids?.forEach((bid: any) => {
-            const job = jobMap.get(bid.job_id);
+        jobsWithBids?.forEach((bid: BidRecord) => {
+            const job = jobMap.get(bid.job_id) as JobRecord | undefined;
             if (job?.homeowner_id) activeUserIds.add(job.homeowner_id);
         });
 
@@ -231,7 +255,7 @@ export async function GET() {
             .gte('updated_at', oneDayAgoForCount.toISOString())
             .limit(100);
         
-        recentJobs24h?.forEach((job: any) => {
+        recentJobs24h?.forEach((job: Pick<JobRecord, 'homeowner_id' | 'contractor_id'>) => {
             if (job.homeowner_id) activeUserIds24h.add(job.homeowner_id);
             if (job.contractor_id) activeUserIds24h.add(job.contractor_id);
         });

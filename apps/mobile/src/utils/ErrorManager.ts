@@ -92,7 +92,7 @@ class ErrorManagerService {
   }
 
   private logError(errorInfo: ErrorInfo): void {
-    console.error('Error:', errorInfo);
+    logger.error('Error:', errorInfo);
     
     try {
       captureException(new Error(errorInfo.message), {
@@ -102,7 +102,7 @@ class ErrorManagerService {
         },
       });
     } catch (e) {
-      console.warn('Failed to log error:', e);
+      logger.warn('Failed to log error:', e);
     }
   }
 }

@@ -18,6 +18,18 @@ export { PromptBuilder } from './orchestration/PromptBuilder';
 export { getConfig, loadBuildingSurveyorConfig, validateConfig, resetConfig } from './config/BuildingSurveyorConfig';
 export { extractHandcraftedFeatures } from './utils/FeatureExtractionUtils';
 
+// Export Hybrid Inference System
+export { HybridInferenceService, CONFIDENCE_THRESHOLDS } from './HybridInferenceService';
+export type {
+  HybridInferenceResult,
+  InferenceRoute,
+} from './HybridInferenceService';
+export { InternalDamageClassifier } from './InternalDamageClassifier';
+export type {
+  InternalPrediction,
+  ModelInfo
+} from './InternalDamageClassifier';
+
 // Re-export types
 export type * from './types';
 

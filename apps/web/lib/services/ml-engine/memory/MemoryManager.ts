@@ -292,25 +292,32 @@ export class MemoryManager {
       .order('created_at', { ascending: false })
       .limit(100);
 
+    // Define type for update history records
+    interface UpdateHistoryRecord {
+      frequency_compliance: number | null;
+      error_reduction: number | null;
+      update_duration_ms: number | null;
+    }
+
     // Calculate update frequency compliance
     const expectedUpdates = updateHistory?.filter(
-      (uh: any) => uh.frequency_compliance !== null
+      (uh: UpdateHistoryRecord) => uh.frequency_compliance !== null
     ).length || 0;
     const compliantUpdates = updateHistory?.filter(
-      (uh: any) => uh.frequency_compliance && uh.frequency_compliance >= 95
+      (uh: UpdateHistoryRecord) => uh.frequency_compliance && uh.frequency_compliance >= 95
     ).length || 0;
     const compliance = expectedUpdates > 0
       ? (compliantUpdates / expectedUpdates) * 100
       : 100;
 
     // Calculate average error reduction
-    const errorReductions = updateHistory?.map((uh: any) => uh.error_reduction || 0) || [];
+    const errorReductions = updateHistory?.map((uh: UpdateHistoryRecord) => uh.error_reduction || 0) || [];
     const avgErrorReduction = errorReductions.length > 0
       ? errorReductions.reduce((a: number, b: number) => a + b, 0) / errorReductions.length
       : 0;
 
     // Calculate average update latency
-    const latencies = updateHistory?.map((uh: any) => uh.update_duration_ms || 0) || [];
+    const latencies = updateHistory?.map((uh: UpdateHistoryRecord) => uh.update_duration_ms || 0) || [];
     const avgLatency = latencies.length > 0
       ? latencies.reduce((a: number, b: number) => a + b, 0) / latencies.length
       : 0;

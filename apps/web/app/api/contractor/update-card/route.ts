@@ -51,7 +51,22 @@ export async function POST(request: NextRequest) {
     const validatedData = updateCardSchema.parse(body);
 
     // Prepare update object
-    const updateData: any = {};
+    const updateData: {
+      business_name?: string;
+      tagline?: string;
+      phone?: string;
+      email?: string;
+      website?: string | null;
+      address?: string;
+      bio?: string;
+      specialties?: string[];
+      social_media?: {
+        facebook?: string;
+        instagram?: string;
+        linkedin?: string;
+        twitter?: string;
+      };
+    } = {};
 
     if (validatedData.businessName !== undefined) {
       updateData.business_name = validatedData.businessName;

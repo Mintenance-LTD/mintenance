@@ -87,7 +87,7 @@ export class AdminCommunicationService {
     }
   ): Promise<AdminAnnouncement | null> {
     try {
-      const updateData: any = {
+      const updateData: Partial<AdminAnnouncement> & { updated_at: string; published_at?: string } = {
         ...updates,
         updated_at: new Date().toISOString(),
       };

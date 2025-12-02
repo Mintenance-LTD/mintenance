@@ -19,13 +19,13 @@ let errors = [];
 
 function log(message, level = 'info') {
     if (level === 'error') {
-        console.error(`❌ ${message}`);
+        logger.error(`❌ ${message}`);
     } else if (level === 'success') {
-        console.log(`✅ ${message}`);
+        logger.info(`✅ ${message}`);
     } else if (level === 'warn') {
-        console.log(`⚠️  ${message}`);
+        logger.info(`⚠️  ${message}`);
     } else if (VERBOSE || level === 'info') {
-        console.log(`ℹ️  ${message}`);
+        logger.info(`ℹ️  ${message}`);
     }
 }
 
@@ -130,16 +130,16 @@ function fixRouteFile(filePath) {
 }
 
 function main() {
-    console.log('🔧 Next.js 15 API Route Fixer\n');
+    logger.info('🔧 Next.js 15 API Route Fixer\n');
 
     if (DRY_RUN) {
-        console.log('🌵 DRY RUN MODE - No files will be modified\n');
+        logger.info('🌵 DRY RUN MODE - No files will be modified\n');
     }
 
     const apiDir = path.join(__dirname, 'app', 'api');
 
     if (!fs.existsSync(apiDir)) {
-        console.error('❌ API directory not found:', apiDir);
+        logger.error('❌ API directory not found:', apiDir);
         process.exit(1);
     }
 
@@ -147,32 +147,32 @@ function main() {
 
     const routeFiles = findRouteFiles(apiDir);
 
-    console.log(`\n📁 Found ${routeFiles.length} route files\n`);
+    logger.info(`\n📁 Found ${routeFiles.length} route files\n`);
 
     routeFiles.forEach(fixRouteFile);
 
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 Summary:');
-    console.log('='.repeat(60));
-    console.log(`Total files processed: ${filesProcessed}`);
-    console.log(`Files modified: ${filesModified}`);
-    console.log(`Files skipped: ${filesSkipped}`);
-    console.log(`Errors: ${errors.length}`);
+    logger.info('\n' + '='.repeat(60));
+    logger.info('📊 Summary:');
+    logger.info('='.repeat(60));
+    logger.info(`Total files processed: ${filesProcessed}`);
+    logger.info(`Files modified: ${filesModified}`);
+    logger.info(`Files skipped: ${filesSkipped}`);
+    logger.info(`Errors: ${errors.length}`);
 
     if (errors.length > 0) {
-        console.log('\n❌ Errors encountered:');
+        logger.info('\n❌ Errors encountered:');
         errors.forEach(({ file, error }) => {
-            console.log(`  - ${path.basename(file)}: ${error}`);
+            logger.info(`  - ${path.basename(file)}: ${error}`);
         });
     }
 
     if (DRY_RUN) {
-        console.log('\n💡 Run without --dry-run to apply changes');
+        logger.info('\n💡 Run without --dry-run to apply changes');
     } else if (filesModified > 0) {
-        console.log('\n✅ Files have been modified. Run "npx next build" to verify.');
+        logger.info('\n✅ Files have been modified. Run "npx next build" to verify.');
     }
 
-    console.log('='.repeat(60) + '\n');
+    logger.info('='.repeat(60) + '\n');
 }
 
 main();

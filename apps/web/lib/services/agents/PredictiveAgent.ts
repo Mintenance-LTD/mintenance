@@ -3,11 +3,22 @@ import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
 import { NoShowReminderService } from '../notifications/NoShowReminderService';
-import { DisputeWorkflowService } from '../disputes/DisputeWorkflowService';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from './AdaptiveUpdateEngine';
 import type { AgentResult, AgentContext, RiskPrediction } from './types';
 import type { ContinuumMemoryConfig } from '../ml-engine/memory/types';
+
+// Job type for risk analysis
+interface JobForRisk {
+  id: string;
+  status: string;
+  contractor_id?: string | null;
+  homeowner_id: string;
+  scheduled_start_date?: string;
+  budget?: number;
+  category?: string;
+  created_at?: string;
+}
 
 /**
  * Predictive agent that predicts job risks and applies preventive actions
@@ -214,7 +225,7 @@ export class PredictiveAgent {
         .single();
 
       // Extract features for memory keys
-      const keys = await this.extractRiskKeys(jobId, contractorId, 'no-show', job);
+      const keys = await this.extractRiskKeys(jobId, contractorId, 'no-show', job as JobForRisk | null);
 
       // Query all memory levels for risk probabilities
       const memoryProbabilities: number[] = [];
@@ -341,7 +352,7 @@ export class PredictiveAgent {
    */
   private static async predictDisputeRisk(
     jobId: string,
-    job: any
+    job: JobForRisk
   ): Promise<AgentResult | null> {
     try {
       await this.initializeMemorySystem();
@@ -415,7 +426,7 @@ export class PredictiveAgent {
   /**
    * Calculate rule-based dispute risk (fallback)
    */
-  private static async calculateRuleBasedDisputeRisk(job: any): Promise<{
+  private static async calculateRuleBasedDisputeRisk(job: JobForRisk): Promise<{
     riskScore: number;
     factors: string[];
   }> {
@@ -459,7 +470,7 @@ export class PredictiveAgent {
    */
   private static async predictDelayRisk(
     jobId: string,
-    job: any
+    job: JobForRisk
   ): Promise<AgentResult | null> {
     try {
       if (!job.contractor_id) {
@@ -527,18 +538,19 @@ export class PredictiveAgent {
     jobId: string,
     contractorId: string,
     riskType: 'no-show' | 'dispute' | 'delay' | 'quality',
-    job?: any
+    job?: JobForRisk | null
   ): Promise<number[]> {
     const keys: number[] = [];
 
     // Get job details if not provided
-    if (!job) {
-      const { data: jobData } = await serverSupabase
+    let jobData = job;
+    if (!jobData) {
+      const { data: fetchedJob } = await serverSupabase
         .from('jobs')
         .select('id, budget, category, scheduled_start_date, contractor_id, homeowner_id')
         .eq('id', jobId)
         .single();
-      job = jobData;
+      jobData = fetchedJob as JobForRisk | null;
     }
 
     // Get contractor features
@@ -558,12 +570,12 @@ export class PredictiveAgent {
     // Normalize features to 0-1 range
     keys.push((contractor?.rating || 0) / 5); // Rating
     keys.push(Math.min((contractor?.total_jobs_completed || 0) / 100, 1)); // Experience
-    keys.push(Math.min((job?.budget || 0) / 5000, 1)); // Budget
-    keys.push(job?.category ? 1 : 0); // Has category
+    keys.push(Math.min((jobData?.budget || 0) / 5000, 1)); // Budget
+    keys.push(jobData?.category ? 1 : 0); // Has category
 
     // Timing factors
-    if (job?.scheduled_start_date) {
-      const scheduledDate = new Date(job.scheduled_start_date);
+    if (jobData?.scheduled_start_date) {
+      const scheduledDate = new Date(jobData.scheduled_start_date);
       const now = new Date();
       const hoursUntilStart = (scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60);
       keys.push(Math.min(Math.max(hoursUntilStart / 168, 0), 1)); // Normalize to 0-1 (1 week)

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 /**
  * Call-to-action section encouraging user registration
@@ -8,7 +9,7 @@ export function CTASection() {
     <section className="py-20 bg-gradient-to-r from-secondary to-secondary-dark">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="flex items-center justify-center gap-4 mb-6">
-          <img src="/assets/icon.png" alt="Mintenance" className="w-16 h-16" />
+          <Image src="/assets/icon.png" alt="Mintenance" width={64} height={64} priority />
         </div>
         <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
           Ready to Get Started?

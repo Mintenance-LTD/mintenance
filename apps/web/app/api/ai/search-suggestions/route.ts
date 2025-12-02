@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,8 +100,9 @@ async function getLocationSuggestions(partialQuery: string, limit: number) {
 
 interface SearchSuggestion {
   text: string;
+  type?: 'query' | 'category' | 'location';
+  popularity?: number;
   relevanceScore?: number;
-  [key: string]: unknown;
 }
 
 function rankSuggestions(suggestions: SearchSuggestion[], partialQuery: string): SearchSuggestion[] {
@@ -123,5 +125,5 @@ function calculateSuggestionRelevance(suggestion: SearchSuggestion, partialQuery
   if (suggestionLower.includes(queryLower)) {
     return 0.8;
   }
-  return suggestion.popularity * 0.1;
+  return (suggestion.popularity || 0) * 0.1;
 }

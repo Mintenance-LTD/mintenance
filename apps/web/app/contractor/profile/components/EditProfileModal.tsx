@@ -7,11 +7,54 @@ import { PlacesAutocomplete } from '@/components/ui/PlacesAutocomplete';
 import { getSkillIcon } from '@/lib/skills/skill-icon-mapping';
 import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
 
+/**
+ * Contractor data for profile editing
+ */
+interface ContractorData {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  bio?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  company_name?: string;
+  license_number?: string;
+  is_available?: boolean;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  profile_image_url?: string;
+  selected_skills?: string[];
+}
+
+/**
+ * Data submitted when saving the profile
+ */
+interface ProfileSaveData {
+  firstName: string;
+  lastName: string;
+  bio: string;
+  city: string;
+  country: string;
+  phone: string;
+  companyName: string;
+  licenseNumber: string;
+  isAvailable: boolean;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  profileImage?: File | null;
+  profileImageUrl?: string;
+  selectedSkills?: string[];
+  skills?: Array<{ skill_name: string; skill_icon: string }>;
+}
+
 interface EditProfileModalProps {
-  contractor: any;
+  contractor: ContractorData | null;
   skills: Array<{ skill_name: string }>;
   onClose: () => void;
-  onSave: (data: any) => Promise<void>;
+  onSave: (data: ProfileSaveData) => Promise<void>;
 }
 
 /**
@@ -1121,11 +1164,11 @@ export function EditProfileModal({ contractor, skills, onClose, onSave }: EditPr
       </div>
 
       {/* Delete Account Modal */}
-      {showDeleteModal && (
+      {showDeleteModal && contractor?.id && (
         <DeleteAccountModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
-          userId={contractor?.id}
+          userId={contractor.id}
         />
       )}
     </>

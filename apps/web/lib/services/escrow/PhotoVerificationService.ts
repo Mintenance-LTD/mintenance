@@ -39,7 +39,7 @@ export interface ValidationResult {
   requirements: {
     minPhotos: number;
     requiredAngles: string[];
-    categorySpecific: Record<string, any>;
+    categorySpecific: Record<string, string[]>;
   };
 }
 
@@ -501,7 +501,12 @@ export class PhotoVerificationService {
       const userPrompt = `Compare these before and after photos. Are they from the same location?
       Job location: ${jobLocation.lat}, ${jobLocation.lng}`;
 
-      const messages: any[] = [
+      interface ChatMessage {
+        role: 'system' | 'user' | 'assistant';
+        content: string | Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }>;
+      }
+
+      const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
         {
           role: 'user',

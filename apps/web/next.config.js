@@ -9,6 +9,7 @@ if (process.env.NODE_ENV !== 'test') {
       require('dotenv').config({ path: envPath });
     }
   } catch (error) {
+    // Use console.error for build-time errors (logger not available in config)
     if (error instanceof Error && error.message) {
       console.error(error.message);
     }
@@ -19,9 +20,6 @@ if (process.env.NODE_ENV !== 'test') {
 
 const nextConfig = {
   poweredByHeader: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -50,6 +48,10 @@ const nextConfig = {
     // Turbopack disabled due to HMR issues with @hookform/resolvers
     // Use --no-turbo flag in dev script to ensure webpack is used
   },
+
+  // Empty turbopack config to silence Next.js 16 warning
+  // We're using webpack explicitly via --webpack flag
+  turbopack: {},
 
   webpack: (config, { isServer }) => {
     config.resolve.modules = [

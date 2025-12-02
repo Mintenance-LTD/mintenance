@@ -5,6 +5,8 @@ import { validateRequest } from '@/lib/validation/validator';
 import { loginSchema } from '@/lib/validation/schemas';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { MFAService } from '@/lib/mfa/mfa-service';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 // Route segment config to ensure proper error handling
 export const dynamic = 'force-dynamic';
@@ -108,10 +110,66 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         email,
         reason: result.error
       });
-      
+
       return NextResponse.json(
         { error: result.error || 'Invalid email or password' },
         { status: 401 }
+      );
+    }
+
+    // Check if user has MFA enabled
+    const { data: userData } = await serverSupabase
+      .from('users')
+      .select('mfa_enabled')
+      .eq('id', result.user.id)
+      .single();
+
+    const mfaEnabled = userData?.mfa_enabled || false;
+
+    // Check for trusted device cookie
+    const cookieHeader = request.headers.get('cookie');
+    const trustedDeviceMatch = cookieHeader?.match(/mintenance-trusted-device=([^;]+)/);
+    const trustedDeviceToken = trustedDeviceMatch?.[1];
+
+    let isTrustedDevice = false;
+    if (trustedDeviceToken && mfaEnabled) {
+      const validatedUserId = await MFAService.validateTrustedDevice(trustedDeviceToken);
+      isTrustedDevice = validatedUserId === result.user.id;
+
+      if (isTrustedDevice) {
+        logger.info('Login from trusted device, skipping MFA', {
+          service: 'auth',
+          userId: result.user.id,
+        });
+      }
+    }
+
+    // If MFA is enabled and not a trusted device, create pre-MFA session
+    if (mfaEnabled && !isTrustedDevice) {
+      const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                        request.headers.get('x-real-ip') ||
+                        undefined;
+      const userAgent = request.headers.get('user-agent') || undefined;
+
+      const preMfaSession = await MFAService.createPreMFASession(
+        result.user.id,
+        ipAddress,
+        userAgent
+      );
+
+      logger.info('MFA required for login', {
+        service: 'auth',
+        userId: result.user.id,
+        email: result.user.email,
+      });
+
+      return NextResponse.json(
+        {
+          requiresMfa: true,
+          preMfaToken: preMfaSession.sessionToken,
+          message: 'MFA verification required',
+        },
+        { status: 200 }
       );
     }
 

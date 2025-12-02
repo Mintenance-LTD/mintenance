@@ -10,7 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { QuoteLineItems, QuoteLineItem } from './QuoteLineItems';
-import { logger } from '@/lib/logger';
+import { logger } from '@mintenance/shared';
 
 interface BidSubmissionClientProps {
   job: {
@@ -147,7 +147,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
         statusText: response.statusText,
       });
 
-      let responseData: any = {};
+      let responseData: Record<string, unknown> = {};
       let responseText = '';
 
       try {
@@ -188,9 +188,11 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
           const errorMsg = statusMessages[response.status] || `Request failed with status ${response.status}: ${response.statusText || 'Unknown error'}`;
           throw new Error(errorMsg);
         }
-      } catch (readError: any) {
+      } catch (readError: unknown) {
         // If we can't read the response at all
-        logger.error('Error reading response', readError);
+        logger.error('Error reading response', readError, {
+          service: 'bid-submission',
+        });
         if (!response.ok) {
           const statusMessages: Record<number, string> = {
             400: 'Invalid request. Please check your bid details.',
@@ -238,11 +240,13 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
           throw new Error(defaultMessage);
         }
 
-        // console.error('>>> RESPONSE NOT EMPTY - Keys found:', responseDataKeys.length);
-
         // Handle validation errors with details (Zod validation)
+        interface ValidationError {
+          path?: string[];
+          message?: string;
+        }
         if (responseData.details && Array.isArray(responseData.details)) {
-          const errorMessages = responseData.details.map((err: any) => {
+          const errorMessages = (responseData.details as ValidationError[]).map((err: ValidationError) => {
             if (err.path && err.path.length > 0) {
               const field = err.path[0];
               if (field === 'proposalText') {
@@ -257,25 +261,22 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
             }
             return err.message || 'Invalid input';
           });
-          const combinedError = errorMessages.join('. ') || responseData.error || 'Validation failed';
+          const combinedError: string = errorMessages.join('. ') || (typeof responseData.error === 'string' ? responseData.error : '') || 'Validation failed';
           throw new Error(combinedError);
         }
 
         // Try different error message fields
-        const errorFromError = responseData.error;
-        const errorFromMessage = responseData.message;
-        const errorFromDetail = responseData.detail;
-        const errorIfString = typeof responseData === 'string' && responseData.trim() ? responseData : '';
+        const errorFromError = typeof responseData.error === 'string' ? responseData.error : '';
+        const errorFromMessage = typeof responseData.message === 'string' ? responseData.message : '';
+        const errorFromDetail = typeof responseData.detail === 'string' ? responseData.detail : '';
 
-        const errorMessage = errorFromError || errorFromMessage || errorFromDetail || errorIfString;
+        const errorMessage = errorFromError || errorFromMessage || errorFromDetail || 'Validation failed';
 
         // Log primitive values
         // Error message extraction debug removed
 
         // Check if we have a valid, non-empty error message
         const hasValidErrorMessage = typeof errorMessage === 'string' && errorMessage.trim().length > 0;
-
-        // console.error('>>> Has Valid Error Message:', hasValidErrorMessage);
 
         if (!hasValidErrorMessage) {
           const defaultMessage = getStatusMessage(response.status);
@@ -297,11 +298,13 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
 
       setFeedback({
         type: 'success',
-        message: responseData.message || (responseData.updated ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.')
+        message: (responseData.message as string) || (responseData.updated ? 'Your bid has been updated successfully.' : 'Your bid has been submitted successfully.')
       });
       setTimeout(() => router.push('/contractor/bid'), 1200);
-    } catch (error: any) {
-      logger.error('Bid submission error', error);
+    } catch (error: unknown) {
+      logger.error('Bid submission error', error, {
+        service: 'bid-submission',
+      });
 
       // Handle network errors
       if (error instanceof TypeError && error.message?.includes('fetch')) {
@@ -310,7 +313,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
       }
 
       // Extract meaningful error message
-      let errorMessage = error?.message || error?.toString() || '';
+      let errorMessage = (error instanceof Error ? error.message : String(error)) || '';
 
       // If we still have the generic "Failed to submit bid" message, something went wrong
       // This should never happen with our error handling above, but just in case...

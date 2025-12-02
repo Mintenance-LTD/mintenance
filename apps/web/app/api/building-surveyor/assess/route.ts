@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
                 compliance_score: 80,
                 insurance_risk_score: 50,
                 urgency: 'monitor',
-                assessment_data: abResult.aiResult as Record<string, unknown>,
+                assessment_data: abResult.aiResult as unknown as Record<string, unknown>,
                 validation_status: 'validated', // Auto-validated by Safe-LUCB
                 created_at: new Date().toISOString(),
               });
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       assessment.decisionResult?.decision === 'automate' && 
       !shadowModeEnabled;
 
-    if (shouldAutomate) {
+    if (shouldAutomate && assessment.decisionResult) {
       // Automated decision - return immediately
       logger.info('Automated assessment (Safe-LUCB)', {
         service: 'building-surveyor-api',
@@ -328,12 +328,13 @@ export async function POST(request: NextRequest) {
     // Return user-friendly error
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to assess building damage. Please try again.';
+    const isUnauthorized = error instanceof Error && error.message.includes('Unauthorized');
 
     return NextResponse.json(
       {
         error: errorMessage,
       },
-      { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+      { status: isUnauthorized ? 401 : 500 }
     );
   }
 }

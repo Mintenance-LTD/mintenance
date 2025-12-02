@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
 
     const { jobId, escrowTransactionId, amount, reason } = parsed.data;
 
-    // Idempotency check - prevent duplicate refunds
+    // Get MFA token from header if present
+    const mfaToken = request.headers.get('x-mfa-token');
+
+    // Idempotency check - prevent duplicate refunds (with distributed locking)
     const idempotencyKey = getIdempotencyKeyFromRequest(
       request,
       'refund_payment',
@@ -67,7 +70,8 @@ export async function POST(request: NextRequest) {
       escrowTransactionId
     );
 
-    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'refund_payment');
+    // Use distributed locking for idempotency check
+    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'refund_payment', true);
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info('Duplicate refund request detected, returning cached result', {
         service: 'payments',
@@ -76,6 +80,19 @@ export async function POST(request: NextRequest) {
         escrowTransactionId,
       });
       return NextResponse.json(idempotencyCheck.cachedResult);
+    }
+
+    // Check if lock contention occurred
+    if (idempotencyCheck === null && !idempotencyCheck?.cachedResult) {
+      logger.warn('Lock contention detected for refund', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+      });
+      return NextResponse.json(
+        { error: 'Request is being processed. Please wait and try again.' },
+        { status: 409 }
+      );
     }
 
     // Verify job ownership
@@ -144,7 +161,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!escrow.payment_intent_id) {
+    if (!escrow.stripe_payment_intent_id) {
       return NextResponse.json(
         { error: 'No payment intent ID found' },
         { status: 400 }
@@ -156,9 +173,110 @@ export async function POST(request: NextRequest) {
       ? Math.min(Math.round(amount * 100), Math.round(escrow.amount * 100))
       : Math.round(escrow.amount * 100);
 
+    const refundAmountDollars = refundAmount / 100;
+
+    // MFA requirement check for high-risk refunds
+    const { requiresMFA, HighRiskOperation } = await import('@/lib/payments/high-risk-checks');
+    const mfaCheck = await requiresMFA(
+      HighRiskOperation.REFUND,
+      refundAmountDollars,
+      user.id
+    );
+
+    if (mfaCheck.required) {
+      // Validate MFA token if provided
+      if (!mfaToken) {
+        logger.warn('MFA required for refund but no token provided', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: refundAmountDollars,
+          riskScore: mfaCheck.riskScore,
+        });
+
+        return NextResponse.json(
+          {
+            error: 'MFA verification required',
+            reason: mfaCheck.reason,
+            riskScore: mfaCheck.riskScore,
+            mfaRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Validate the MFA token
+      const { validateMFAForPayment } = await import('@/lib/payments/high-risk-checks');
+      const mfaValidation = await validateMFAForPayment(
+        user.id,
+        mfaToken,
+        HighRiskOperation.REFUND
+      );
+
+      if (!mfaValidation.valid) {
+        logger.warn('Invalid MFA token for refund', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: refundAmountDollars,
+        });
+
+        return NextResponse.json(
+          {
+            error: 'MFA verification failed',
+            reason: mfaValidation.reason,
+            mfaRequired: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      logger.info('MFA validated successfully for refund', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        amount: refundAmountDollars,
+      });
+    }
+
+    // Monitor refund for anomalies
+    const { PaymentMonitoringService } = await import('@/lib/monitoring/payment-monitor');
+    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
+      userId: user.id,
+      amount: refundAmountDollars,
+      currency: 'usd',
+      type: 'refund',
+      metadata: {
+        jobId,
+        escrowTransactionId,
+        ip: request.headers.get('x-forwarded-for') || undefined,
+      },
+    });
+
+    // Block if high risk
+    if (anomalyCheck.blockedReasons.length > 0) {
+      logger.warn('Refund blocked due to security concerns', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        amount: refundAmountDollars,
+        riskScore: anomalyCheck.riskScore,
+        blockedReasons: anomalyCheck.blockedReasons,
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Refund blocked for security reasons',
+          reasons: anomalyCheck.blockedReasons,
+          riskScore: anomalyCheck.riskScore,
+        },
+        { status: 403 }
+      );
+    }
+
     // Create Stripe refund
     const refund = await stripe.refunds.create({
-      payment_intent: escrow.payment_intent_id,
+      payment_intent: escrow.stripe_payment_intent_id,
       amount: refundAmount,
       reason: reason ? 'requested_by_customer' : undefined,
       metadata: {
@@ -225,18 +343,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    logger.error('Error processing refund', error, { service: 'payments' });
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
-    }
+    // Use sanitized error handling
+    const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
+    const errorResponse = createPaymentErrorResponse(error, {
+      operation: 'refund_payment',
+      userId: user?.id,
+      jobId: body?.jobId,
+      escrowTransactionId: body?.escrowTransactionId,
+      amount: body?.amount,
+      ip: request.headers.get('x-forwarded-for') || undefined,
+    });
 
     return NextResponse.json(
-      { error: 'Failed to process refund' },
-      { status: 500 }
+      {
+        error: errorResponse.error,
+        code: errorResponse.code,
+        retryable: errorResponse.retryable
+      },
+      { status: errorResponse.status }
     );
   }
 }

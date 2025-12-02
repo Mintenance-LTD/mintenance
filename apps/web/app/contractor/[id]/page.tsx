@@ -280,7 +280,7 @@ export default async function ContractorPublicProfilePage(props: {
               Skills & Expertise
             </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2] }}>
-              {contractor.contractor_skills.map((skill: any, index: number) => (
+              {contractor.contractor_skills.map((skill: { skill_name: string }, index: number) => (
                 <span
                   key={index}
                   style={{
@@ -317,7 +317,7 @@ export default async function ContractorPublicProfilePage(props: {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-              {reviews.map((review: any) => (
+              {reviews.map((review: { id: string; rating: number; review_text?: string; created_at: string; reviewer?: { first_name?: string; last_name?: string }; job?: { title: string }; comment?: string }) => (
                 <div
                   key={review.id}
                   style={{
@@ -424,7 +424,7 @@ export default async function ContractorPublicProfilePage(props: {
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
               gap: theme.spacing[4],
             }}>
-              {posts?.map((post: any) => (
+              {posts?.map((post: { id: string; images?: string[]; title?: string; post_type?: string; project_duration?: string; project_cost?: number }) => (
                 post.images && Array.isArray(post.images) && post.images.length > 0 && (
                   <div
                     key={post.id}
