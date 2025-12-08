@@ -54,7 +54,7 @@
   "author": "Mintenance Team",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
+    "@playwright/test": "^1.57.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "dotenv": "^17.2.3",
