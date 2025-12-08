@@ -216,7 +216,7 @@ jobs:
           supabase db diff --local > schema-diff.sql
 
       - name: Upload schema diff
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: schema-diff
           path: schema-diff.sql
@@ -317,7 +317,7 @@ jobs:
           EOF
 
       - name: Upload performance report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-report
           path: performance-report.md
