@@ -66,7 +66,7 @@
     "expo-local-authentication": "~15.0.0",
     "expo-location": "~18.0.0",
     "expo-notifications": "~0.32.13",
-    "expo-splash-screen": "~0.29.0",
+    "expo-splash-screen": "~31.0.12",
     "expo-sqlite": "~15.0.0",
     "expo-status-bar": "~2.0.0",
     "expo-system-ui": "~4.0.0",
