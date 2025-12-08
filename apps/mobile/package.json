@@ -96,7 +96,7 @@
     "eslint-config-expo": "~8.0.0",
     "expo-secure-store": "~14.0.0",
     "jest": "^30.2.0",
-    "jest-expo": "~52.0.0",
+    "jest-expo": "~54.0.14",
     "react-test-renderer": "18.3.1",
     "typescript": "~5.3.3"
   },
