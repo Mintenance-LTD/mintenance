@@ -81,7 +81,7 @@
         "zod": "^3.23.4"
     },
     "devDependencies": {
-        "@googlemaps/js-api-loader": "^1.16.6",
+        "@googlemaps/js-api-loader": "^2.0.2",
         "@tailwindcss/container-queries": "^0.1.1",
         "@types/bcryptjs": "^2.4.6",
         "@types/canvas-confetti": "^1.9.0",
