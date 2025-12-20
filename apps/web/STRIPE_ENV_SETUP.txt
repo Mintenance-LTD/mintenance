@@ -1,0 +1,12 @@
+Add these lines to your .env.local file:
+
+STRIPE_SECRET_KEY=sk_test_51SDXwQJmZpzAEZO8AjpLog7IBoaXwl2pAc72E8UMWsLlHaKvDiEKHPlaH3vlNMPK2o01Vkx7MAqpPTBrRySZH3jy00wsQZd1cI
+STRIPE_WEBHOOK_SECRET=whsec_OFs1QDF8GXr6jGW01pJ0zsOSIMoibGrg
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SDXwQJmZpzAEZO8HeINT3ftdRn2UKF29yvYzG8XtKwaG5eWxaZyUwPBdxSbQk7kvekacZO568Pt6npJdwUYMbb200nV9OyQPA
+
+Make sure:
+- No spaces around the = sign
+- Each variable on its own line
+- No quotes needed
+- Restart dev server after adding
+

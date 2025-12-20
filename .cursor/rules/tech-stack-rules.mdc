@@ -1,0 +1,547 @@
+---
+alwaysApply: true
+---
+
+You are an expert full-stack developer working on the Mintenance platform - a contractor discovery marketplace monorepo with Next.js 16 web app and Expo React Native mobile app.
+
+# Tech Stack
+
+## Web App (apps/web)
+- **Framework**: Next.js 16 (App Router) with React 19
+- **Language**: TypeScript 5 (strict mode)
+- **Styling**: Tailwind CSS 4.1 + Radix UI + Shadcn UI
+- **Database**: Supabase (PostgreSQL) with @supabase/ssr
+- **State Management**: TanStack Query (React Query) 5.90
+- **Forms**: React Hook Form 7.66 + Zod 4.1
+- **Payments**: Stripe 19.0
+- **Cloud**: Google Cloud Platform (AI Platform, Storage, Vision)
+- **Caching**: Upstash Redis
+
+## Mobile App (apps/mobile)
+- **Framework**: Expo SDK ~54 with React Native 0.82
+- **Language**: TypeScript 5.9 (strict mode)
+- **Navigation**: React Navigation 7 (Stack, Tabs, Drawer)
+- **State Management**: TanStack Query 5.90 + React Context
+- **Animations**: React Native Reanimated 4.1 + Gesture Handler
+- **Maps**: React Native Maps
+- **Monitoring**: Sentry React Native 7.6
+
+## Shared Packages (packages/*)
+- `@mintenance/types` - TypeScript type definitions
+- `@mintenance/auth` - Authentication utilities (JWT, password validation)
+- `@mintenance/shared` - Shared utilities and logger
+- `@mintenance/shared-ui` - Shared UI components (web/native)
+- `@mintenance/design-tokens` - Design system tokens
+- `@mintenance/api-client` - API client wrapper
+
+## Architecture
+- **Monorepo**: npm workspaces (apps/*, packages/*)
+- **Node.js**: 20.x
+- **Package Manager**: npm >= 9.0.0
+
+# Code Style and Structure
+
+## File Organization
+- Use kebab-case for directories (e.g., `components/auth-wizard`, `lib/api-client`)
+- Favor named exports for components (avoid default exports except for Next.js pages)
+- Structure files: exported component, subcomponents, helpers, static content, types
+- Keep files under 500 lines - split into smaller modules if approaching 400 lines
+
+## TypeScript Usage
+- Use TypeScript 5 with strict mode enabled
+- Prefer `interface` over `type` for object shapes
+- Avoid enums; use const maps or union types instead
+- Use functional components with TypeScript interfaces
+- Import types from `@mintenance/types` when available
+- Always declare explicit return types for functions
+
+## Naming Conventions
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`, `canSubmit`)
+- Use camelCase for variables and functions
+- Use PascalCase for components and interfaces
+- Use SCREAMING_SNAKE_CASE for constants
+- Use lowercase with dashes for directories and files
+
+# Next.js 16 App Router Patterns
+
+## Server Components (Default)
+- **Always prefer Server Components** - they're the default in Next.js 16
+- Fetch data directly in Server Components using async/await
+- Use Supabase server client from `lib/api/supabaseServer.ts` or `lib/database.ts`
+- Leverage Next.js caching with `fetch` options: `next: { revalidate: 3600 }`
+- Use `loading.tsx` and `error.tsx` for streaming and error boundaries
+
+```typescript
+// ✅ DO - Server Component data fetching
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { User } from '@mintenance/types';
+
+export default async function UserPage({ params }: { params: { id: string } }) {
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .select('*')
+    .eq('id', params.id)
+    .single();
+
+  if (error) throw new Error(`Failed to fetch user: ${error.message}`);
+
+  return <UserProfile user={user as User} />;
+}
+```
+
+## Client Components (Minimal Usage)
+- **Minimize 'use client'** - only use when absolutely necessary
+- Use 'use client' only for:
+  - Interactive components (buttons, forms with state)
+  - Browser APIs (localStorage, window, etc.)
+  - React hooks (useState, useEffect, etc.)
+- Never use 'use client' for data fetching - use Server Components or API routes
+- Wrap client components in Suspense with fallback when needed
+
+```typescript
+// ✅ DO - Small, isolated client component
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  return <Button onClick={() => setCount(count + 1)}>Count: {count}</Button>;
+}
+
+// ❌ DON'T - Unnecessary client component
+'use client'; // Not needed if no interactivity
+
+export function StaticCard({ title }: { title: string }) {
+  return <div>{title}</div>;
+}
+```
+
+## Server Actions
+- Use 'use server' for server-only functions
+- Always validate input with Zod schemas
+- Return serializable data (no functions, classes, or Date objects)
+- Use `revalidatePath` or `revalidateTag` to update cache
+
+```typescript
+// ✅ DO
+'use server';
+
+import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
+const userSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+export async function createUser(formData: FormData) {
+  const data = userSchema.parse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+  });
+
+  const { data: user, error } = await serverSupabase
+    .from('users')
+    .insert(data)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create user: ${error.message}`);
+
+  revalidatePath('/users');
+  return { success: true, userId: user.id };
+}
+```
+
+## Route Structure
+- Use route groups: `(auth)/`, `(dashboard)/` for organization
+- Use private folders: `_components/` to exclude from routing
+- Colocate related components near their routes
+- API routes: `app/api/*/route.ts`
+
+# Data Fetching Patterns
+
+## Server-Side (Next.js)
+- Fetch directly in Server Components using Supabase
+- Use `serverSupabase` from `lib/api/supabaseServer.ts` for server-side operations
+- Use `supabase` from `lib/supabase.ts` for client-side operations (with SSR support)
+- Leverage Next.js cache: `fetch(url, { next: { revalidate: 3600 } })`
+
+## Client-Side (TanStack Query)
+- Use TanStack Query for client-side data fetching and caching
+- Configure query client in `lib/react-query-client.ts`
+- Use query keys factory pattern for consistency
+- Implement error handling and retry logic
+
+```typescript
+// ✅ DO - TanStack Query with query keys
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.users.detail(userId),
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+```
+
+## Supabase Patterns
+- **Server-side**: Use `serverSupabase` from `lib/api/supabaseServer.ts` (service role key)
+- **Client-side**: Use `supabase` from `lib/supabase.ts` (anon key with SSR)
+- Always handle errors and type responses
+- Use Row Level Security (RLS) policies in Supabase
+- Import types from `@mintenance/types` for database types
+
+```typescript
+// ✅ DO - Server-side Supabase query
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import type { User } from '@mintenance/types';
+
+export async function getUser(userId: string): Promise<User> {
+  const { data, error } = await serverSupabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw new Error(`Failed to fetch user: ${error.message}`);
+  return data as User;
+}
+```
+
+# Styling and UI
+
+## Design Tokens
+- **Always use design tokens** from `@mintenance/design-tokens`
+- Import `webTokens` for web app: `import { webTokens } from '@mintenance/design-tokens'`
+- Import `mobileTokens` for mobile app: `import { mobileTokens } from '@mintenance/design-tokens'`
+- Use theme from `lib/theme.ts` (web) or design-system tokens (mobile)
+- Never hardcode colors, spacing, or typography values
+
+```typescript
+// ✅ DO - Use design tokens
+import { webTokens } from '@mintenance/design-tokens';
+import { theme } from '@/lib/theme';
+
+export function Button() {
+  return (
+    <button
+      style={{
+        backgroundColor: theme.colors.primary,
+        padding: theme.spacing[4],
+        fontSize: theme.typography.fontSize.base,
+      }}
+    >
+      Click me
+    </button>
+  );
+}
+
+// ❌ DON'T - Hardcode values
+<button style={{ backgroundColor: '#0F172A', padding: '16px' }}>
+  Click me
+</button>
+```
+
+## Tailwind CSS
+- Use Tailwind CSS 4.1 with design tokens (configured in `tailwind.config.js`)
+- Tailwind config automatically uses `@mintenance/design-tokens`
+- Use `cn()` utility from `lib/utils` for conditional classes
+- Follow mobile-first responsive design
+- Use semantic color classes: `text-primary`, `bg-secondary`, etc.
+
+```typescript
+// ✅ DO - Tailwind with design tokens
+import { cn } from '@/lib/utils';
+
+export function Card({ className, children }: CardProps) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl border border-border bg-white p-6',
+        'shadow-sm hover:shadow-md transition-shadow',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+## Radix UI + Shadcn UI
+- Use Radix UI primitives for accessible components
+- Use Shadcn UI components from `components/ui/`
+- Customize Shadcn components to use design tokens
+- Ensure all interactive elements are keyboard accessible
+
+## Shared UI Components
+- Use shared UI components from `@mintenance/shared-ui`
+- Import platform-specific versions: `.web` for web, `.native` for mobile
+- Avoid importing `.native` files in web app (handled by webpack config)
+
+# Forms and Validation
+
+## React Hook Form + Zod
+- Use React Hook Form 7.66 for form state management
+- Use Zod 4.1 for schema validation
+- Use `@hookform/resolvers/zod` for Zod integration
+- Always validate on both client and server
+
+```typescript
+// ✅ DO - React Hook Form with Zod
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+});
+
+type UserFormData = z.infer<typeof userSchema>;
+
+export function UserForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<UserFormData>({
+    resolver: zodResolver(userSchema),
+  });
+
+  const onSubmit = async (data: UserFormData) => {
+    // Server action or API call
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Form fields */}
+    </form>
+  );
+}
+```
+
+# Mobile App (Expo React Native)
+
+## Expo SDK ~54
+- Follow Expo's official documentation: https://docs.expo.dev/
+- Use Expo managed workflow for streamlined development
+- Use `expo-constants` for environment variables
+- Use `expo-updates` for over-the-air (OTA) updates
+
+## React Navigation 7
+- Use React Navigation for routing and navigation
+- Follow stack, tab, and drawer navigator patterns
+- Use deep linking with `expo-linking`
+- Implement proper navigation types with TypeScript
+
+## Safe Area Management
+- Use `SafeAreaProvider` from `react-native-safe-area-context`
+- Wrap top-level components with `SafeAreaView`
+- Use `SafeAreaScrollView` for scrollable content
+- Never hardcode padding for safe areas
+
+```typescript
+// ✅ DO - Safe area handling
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+
+export function App() {
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }}>
+        <NavigationContainer>
+          {/* Navigation */}
+        </NavigationContainer>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+```
+
+## Mobile Design Tokens
+- Use `mobileTokens` from `@mintenance/design-tokens`
+- Use `createNormalize` for font scaling
+- Use numeric values for spacing (React Native uses numbers, not strings)
+- Use React Native shadow objects for shadows
+
+```typescript
+// ✅ DO - Mobile design tokens
+import { mobileTokens, createNormalize } from '@mintenance/design-tokens';
+import { PixelRatio, Dimensions } from 'react-native';
+
+const normalize = createNormalize(
+  Dimensions.get('window').width,
+  () => PixelRatio.getFontScale(),
+  (size: number) => PixelRatio.roundToNearestPixel(size)
+);
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: normalize(mobileTokens.typography.rawFontSize.xl),
+    color: mobileTokens.colors.primary,
+    padding: mobileTokens.spacing[4], // 16 (number)
+  },
+});
+```
+
+## Mobile State Management
+- Use TanStack Query for data fetching (same as web)
+- Use React Context for global state
+- Use `useReducer` for complex state logic
+- Implement offline-first patterns with TanStack Query
+
+## Mobile Performance
+- Minimize `useState` and `useEffect` usage
+- Use `React.memo` for expensive components
+- Use `useMemo` and `useCallback` appropriately
+- Optimize images with `expo-image`
+- Implement code splitting with React Suspense
+
+# Error Handling
+
+## Server-Side
+- Always handle errors in Server Components and API routes
+- Return meaningful error messages
+- Log errors using `@mintenance/shared` logger
+- Use error boundaries (`error.tsx`) for error recovery
+
+## Client-Side
+- Handle errors in TanStack Query with error states
+- Display user-friendly error messages
+- Implement retry logic for transient errors
+- Use Sentry for error tracking (mobile: Sentry React Native)
+
+```typescript
+// ✅ DO - Error handling
+import { logger } from '@mintenance/shared';
+
+export async function fetchUser(userId: string) {
+  try {
+    const { data, error } = await serverSupabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      logger.error('Failed to fetch user', { userId, error });
+      throw new Error(`Failed to fetch user: ${error.message}`);
+    }
+
+    return data;
+  } catch (error) {
+    logger.error('Unexpected error', { userId, error });
+    throw error;
+  }
+}
+```
+
+# Authentication
+
+## Supabase Auth
+- Use `@mintenance/auth` package for authentication utilities
+- Use Supabase auth for user authentication
+- Implement server-side auth checks in API routes
+- Use `@supabase/ssr` for server-side rendering support
+
+## Password Validation
+- Use `PasswordValidator` from `@mintenance/auth`
+- Follow password history requirements
+- Implement account lockout after failed attempts
+- Use bcryptjs for password hashing
+
+# Monorepo Patterns
+
+## Shared Packages
+- Import from shared packages: `@mintenance/types`, `@mintenance/auth`, `@mintenance/shared`, `@mintenance/shared-ui`, `@mintenance/design-tokens`
+- Use workspace dependencies: `"@mintenance/types": "file:../../packages/types"`
+- Build shared packages before building apps: `npm run build:packages`
+
+## File Paths
+- Use `@/` alias for app-specific imports (configured in `tsconfig.json`)
+- Use package names for shared package imports: `@mintenance/types`
+- Avoid relative paths for shared packages
+
+# Performance Optimization
+
+## Web
+- Minimize client-side JavaScript
+- Use Server Components by default
+- Implement proper loading states with Suspense
+- Optimize images with `next/image` (WebP format, lazy loading)
+- Use dynamic imports for non-critical components
+
+## Mobile
+- Minimize bundle size with code splitting
+- Use Expo's AppLoading and SplashScreen
+- Optimize images with `expo-image`
+- Implement offline-first patterns
+- Profile performance with React Native tools
+
+# Testing
+
+## Web
+- Use Jest for unit tests
+- Use Playwright for E2E tests
+- Test Server Components and API routes
+- Test client components with React Testing Library
+
+## Mobile
+- Use Jest and React Native Testing Library
+- Test components and hooks
+- Test navigation flows
+- Use Expo's testing tools
+
+# Security
+
+## Environment Variables
+- Use `.env.local` for local development
+- Never commit secrets to version control
+- Validate environment variables at runtime
+- Use `lib/env.ts` for environment validation
+
+## Input Validation
+- Always validate input on the server
+- Use Zod schemas for validation
+- Sanitize user inputs
+- Implement rate limiting for API routes
+
+## Database
+- Use Row Level Security (RLS) in Supabase
+- Never expose service role key in client code
+- Use parameterized queries (Supabase handles this)
+- Implement proper error handling
+
+# Key Conventions
+
+1. **Server Components First**: Always prefer Server Components over Client Components
+2. **Design Tokens**: Always use design tokens from `@mintenance/design-tokens`
+3. **Type Safety**: Use TypeScript strict mode and import types from `@mintenance/types`
+4. **Error Handling**: Always handle errors and log them using `@mintenance/shared` logger
+5. **Monorepo**: Use shared packages for common functionality
+6. **Performance**: Minimize client-side JavaScript and use Server Components
+7. **Accessibility**: Ensure all interactive elements are keyboard accessible
+8. **Testing**: Write tests for critical functionality
+9. **Security**: Always validate input on the server and use RLS in Supabase
+10. **Documentation**: Document complex logic and non-obvious behavior
+
+# References
+
+- Next.js 16 Docs: https://nextjs.org/docs
+- React 19 Docs: https://react.dev
+- Expo Docs: https://docs.expo.dev
+- Supabase Docs: https://supabase.com/docs
+- TanStack Query Docs: https://tanstack.com/query/latest
+- Radix UI Docs: https://www.radix-ui.com
+- Shadcn UI Docs: https://ui.shadcn.com

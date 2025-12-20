@@ -1,0 +1,269 @@
+0001: import { Alert } from 'react-native';
+0002: import { logger } from './logger';
+0003: 
+0004: 
+0005: export interface AppError extends Error {
+0006:   code?: string;
+0007:   statusCode?: number;
+0008:   userMessage?: string;
+0009: }
+0010: 
+0011: export class ErrorHandler {
+0012:   static handle(error: any, context?: string): void {
+0013:     logger.error(`Error in ${context || 'unknown context'}:`, error);
+0014: 
+0015:     // Extract user-friendly message
+0016:     const userMessage = this.getUserMessage(error);
+0017:     
+0018:     // Show alert to user
+0019:     Alert.alert('Error', userMessage);
+0020: 
+0021:     // In production, send to error reporting service
+0022:     if (!__DEV__) {
+0023:       this.reportError(error, context);
+0024:     }
+0025:   }
+0026: 
+0027:   static getUserMessage(error: any): string {
+0028:     // Custom user message
+0029:     if (error.userMessage) {
+0030:       return error.userMessage;
+0031:     }
+0032: 
+0033:     // Handle Supabase specific error codes first
+0034:     const errorCode = error?.code || error?.error_code;
+0035:     
+0036:     // Supabase/PostgreSQL specific errors
+0037:     switch (errorCode) {
+0038:       case 'PGRST301':
+0039:       case 'PGRST116':
+0040:         return 'The requested item was not found.';
+0041:       case 'PGRST204':
+0042:         return 'You do not have permission to perform this action.';
+0043:       case '23505': // unique_violation
+0044:         return 'A record with these details already exists.';
+0045:       case '23503': // foreign_key_violation
+0046:         return 'Cannot perform this action because the item is being used elsewhere.';
+0047:       case '23514': // check_violation
+0048:         return 'The provided data is invalid.';
+0049:       case 'invalid_credentials':
+0050:         return 'Invalid email or password. Please check your credentials and try again.';
+0051:       case 'email_not_confirmed':
+0052:         return 'Please check your email and confirm your account before signing in.';
+0053:       case 'weak_password':
+0054:         return 'Password must be at least 8 characters long.';
+0055:       case 'email_address_invalid':
+0056:         return 'Please enter a valid email address.';
+0057:       case 'signup_disabled':
+0058:         return 'Account registration is currently disabled.';
+0059:     }
+0060: 
+0061:     // Message-based error detection for backward compatibility
+0062:     if (error.message) {
+0063:       const message = error.message.toLowerCase();
+0064:       
+0065:       if (message.includes('invalid login credentials')) {
+0066:         return 'Invalid email or password. Please check your credentials and try again.';
+0067:       }
+0068:       if (message.includes('email not confirmed')) {
+0069:         return 'Please check your email and confirm your account before signing in.';
+0070:       }
+0071:       if (message.includes('network request failed') || message.includes('fetch')) {
+0072:         return 'Network connection failed. Please check your internet connection and try again.';
+0073:       }
+0074:       if (message.includes('duplicate key')) {
+0075:         return 'This record already exists.';
+0076:       }
+0077:       if (message.includes('foreign key')) {
+0078:         return 'Cannot delete this item because it is being used elsewhere.';
+0079:       }
+0080:       if (message.includes('not found') || message.includes('pgrst116')) {
+0081:         return 'The requested item was not found.';
+0082:       }
+0083:       if (message.includes('permission denied') || message.includes('row-level security') || message.includes('policy')) {
+0084:         return 'You do not have permission to perform this action.';
+0085:       }
+0086:       if (message.includes('password')) {
+0087:         return 'Password must be at least 8 characters long.';
+0088:       }
+0089:       if (message.includes('email')) {
+0090:         return 'Please enter a valid email address.';
+0091:       }
+0092:     }
+0093: 
+0094:     // Network errors
+0095:     if (error.code === 'NETWORK_ERROR' || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+0096:       return 'Please check your internet connection and try again.';
+0097:     }
+0098: 
+0099:     // HTTP status codes
+0100:     switch (error.statusCode) {
+0101:       case 400:
+0102:         return 'Invalid request. Please check your input and try again.';
+0103:       case 401:
+0104:         return 'Please log in to continue.';
+0105:       case 403:
+0106:         return 'You do not have permission to perform this action.';
+0107:       case 404:
+0108:         return 'The requested item was not found.';
+0109:       case 409:
+0110:         return 'This action conflicts with the current state. Please refresh and try again.';
+0111:       case 422:
+0112:         return 'The provided data is invalid. Please check and try again.';
+0113:       case 429:
+0114:         return 'Too many requests. Please wait a moment and try again.';
+0115:       case 500:
+0116:         return 'Server error. Please try again later.';
+0117:       case 503:
+0118:         return 'Service temporarily unavailable. Please try again later.';
+0119:     }
+0120: 
+0121:     // Generic fallback
+0122:     return 'An unexpected error occurred. Please try again.';
+0123:   }
+0124: 
+0125:   static reportError(error: any, context?: string): void {
+0126:     // Import Sentry dynamically to avoid circular dependencies
+0127:     import('../config/sentry').then(({ captureException }) => {
+0128:       captureException(error, { context });
+0129:     }).catch(() => {
+0130:       // Fallback if Sentry fails
+0131:       logger.error('Error reporting failed:', error, context);
+0132:     });
+0133:   }
+0134: 
+0135:   static async handleAsync<T>(
+0136:     promise: Promise<T>,
+0137:     context?: string
+0138:   ): Promise<[T | null, AppError | null]> {
+0139:     try {
+0140:       const result = await promise;
+0141:       return [result, null];
+0142:     } catch (error) {
+0143:       const appError = error as AppError;
+0144:       if (context) {
+0145:         logger.error(`Error in ${context}:`, appError);
+0146:       }
+0147:       return [null, appError];
+0148:     }
+0149:   }
+0150: 
+0151:   static createError(
+0152:     message: string,
+0153:     code?: string,
+0154:     userMessage?: string
+0155:   ): AppError {
+0156:     const error = new Error(message) as AppError;
+0157:     error.code = code;
+0158:     error.userMessage = userMessage;
+0159:     return error;
+0160:   }
+0161: 
+0162:   static isNetworkError(error: any): boolean {
+0163:     const offline = (typeof navigator !== 'undefined' && (navigator as any).onLine === false);
+0164:     return error.code === 'NETWORK_ERROR' || 
+0165:            error.message?.toLowerCase?.().includes('network') ||
+0166:            offline;
+0167:   }
+0168: 
+0169:   static isAuthError(error: any): boolean {
+0170:     return error.statusCode === 401 || 
+0171:            error.code === '42501' ||
+0172:            error.message?.includes('permission denied');
+0173:   }
+0174: 
+0175:   static isValidationError(error: any): boolean {
+0176:     return error.statusCode === 400 ||
+0177:            error.statusCode === 422 ||
+0178:            error.message?.includes('validation');
+0179:   }
+0180: 
+0181:   // Validation helpers
+0182:   static validateEmail(email: string): void {
+0183:     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+0184:       throw this.createError('Invalid email format', 'VALIDATION_ERROR', 'Please enter a valid email address.');
+0185:     }
+0186:   }
+0187: 
+0188:   static validatePassword(password: string): void {
+0189:     if (!password || password.length < 8) {
+0190:       throw this.createError('Password too short', 'VALIDATION_ERROR', 'Password must be at least 8 characters long.');
+0191:     }
+0192:   }
+0193: 
+0194:   static validateRequired(value: any, fieldName: string): void {
+0195:     if (!value || (typeof value === 'string' && !value.trim())) {
+0196:       throw this.createError(`${fieldName} is required`, 'VALIDATION_ERROR', `${fieldName} is required.`);
+0197:     }
+0198:   }
+0199: 
+0200:   static validateRequiredFields(data: Record<string, any>, requiredFields: string[]): void {
+0201:     for (const field of requiredFields) {
+0202:       this.validateRequired(data[field], field);
+0203:     }
+0204:   }
+0205: 
+0206:   // Retry mechanism for network operations
+0207:   static async withRetry<T>(
+0208:     operation: () => Promise<T>,
+0209:     options: {
+0210:       maxAttempts?: number;
+0211:       delay?: number;
+0212:       backoff?: boolean;
+0213:       context?: string;
+0214:     } = {}
+0215:   ): Promise<T> {
+0216:     const { maxAttempts = 3, delay = 1000, backoff = true, context } = options;
+0217:     
+0218:     let lastError: any;
+0219:     
+0220:     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+0221:       try {
+0222:         return await operation();
+0223:       } catch (error) {
+0224:         lastError = error;
+0225:         
+0226:         // Don't retry if it's not a network error or server error
+0227:         if (!this.shouldRetry(error)) {
+0228:           throw error;
+0229:         }
+0230:         
+0231:         if (attempt === maxAttempts) {
+0232:           logger.error(`Operation failed after ${maxAttempts} attempts`, { context, error });
+0233:           throw error;
+0234:         }
+0235:         
+0236:         const retryDelay = backoff ? delay * Math.pow(2, attempt - 1) : delay;
+0237:         logger.warn(`Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`, { context, error: error.message });
+0238:         
+0239:         await new Promise(resolve => setTimeout(resolve, retryDelay));
+0240:       }
+0241:     }
+0242:     
+0243:     throw lastError;
+0244:   }
+0245: 
+0246:   static shouldRetry(error: any): boolean {
+0247:     // Retry network errors and server errors
+0248:     if (this.isNetworkError(error)) return true;
+0249:     if (error.statusCode >= 500) return true;
+0250:     
+0251:     // Retry specific Supabase errors that might be temporary
+0252:     const retryableCodes = ['PGRST301', 'PGRST116']; // Sometimes these are temporary
+0253:     if (retryableCodes.includes(error.code)) return true;
+0254:     
+0255:     return false;
+0256:   }
+0257: }
+0258: 
+0259: // Utility function for component error handling
+0260: export const handleError = (error: any, context?: string) => {
+0261:   ErrorHandler.handle(error, context);
+0262: };
+0263: 
+0264: // Utility function for async operations with error handling
+0265: export const safeAsync = <T>(promise: Promise<T>, context?: string) => {
+0266:   return ErrorHandler.handleAsync(promise, context);
+0267: };
+0268: 
+0269: export default ErrorHandler;

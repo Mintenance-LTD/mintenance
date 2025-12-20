@@ -1,0 +1,37 @@
+{
+  "name": "@mintenance/design-tokens",
+  "version": "1.0.0",
+  "description": "Shared design tokens (colors, typography, spacing, shadows) for Mintenance web and mobile applications",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mintenance-LTD/mintenance.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "design-tokens",
+    "design-system",
+    "tokens",
+    "theme"
+  ],
+  "author": "Mintenance Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5",
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

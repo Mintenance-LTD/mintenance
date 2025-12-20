@@ -1,0 +1,383 @@
+/**
+ * Mintenance Design System - Airbnb Inspired
+ * Based on actual Airbnb design patterns with teal theme
+ *
+ * NOTE: This file is deprecated. Use professional-design-system.css instead.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================
+   TYPOGRAPHY SYSTEM
+   ========================================== */
+
+@layer base {
+  /* Airbnb uses Circular, we'll use system fonts with similar weights */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply text-gray-900;
+  }
+
+  /* Headings follow Airbnb's hierarchy */
+  h1 { @apply text-[32px] leading-[36px] font-semibold tracking-tight; }
+  h2 { @apply text-[26px] leading-[30px] font-semibold tracking-tight; }
+  h3 { @apply text-[22px] leading-[26px] font-semibold; }
+  h4 { @apply text-[18px] leading-[22px] font-semibold; }
+  h5 { @apply text-[16px] leading-[20px] font-semibold; }
+  h6 { @apply text-[14px] leading-[18px] font-semibold; }
+
+  /* Body text with Airbnb line-heights */
+  p { @apply text-[15px] leading-[20px] text-gray-700; }
+
+  /* Small text */
+  .text-small { @apply text-[13px] leading-[18px]; }
+  .text-tiny { @apply text-[12px] leading-[16px]; }
+}
+
+/* ==========================================
+   COLOR SYSTEM (Teal Theme)
+   ========================================== */
+
+:root {
+  /* Primary - Teal */
+  --color-primary: 14 184 166; /* teal-500 */
+  --color-primary-hover: 13 148 136; /* teal-600 */
+  --color-primary-light: 204 251 241; /* teal-100 */
+
+  /* Semantic Colors */
+  --color-success: 34 197 94; /* green-500 */
+  --color-error: 239 68 68; /* red-500 */
+  --color-warning: 251 191 36; /* amber-400 */
+  --color-info: 59 130 246; /* blue-500 */
+
+  /* Grays */
+  --color-gray-50: 249 250 251;
+  --color-gray-100: 243 244 246;
+  --color-gray-200: 229 231 235;
+  --color-gray-300: 209 213 219;
+  --color-gray-400: 156 163 175;
+  --color-gray-500: 107 114 128;
+  --color-gray-600: 75 85 99;
+  --color-gray-700: 55 65 81;
+  --color-gray-800: 31 41 55;
+  --color-gray-900: 17 24 39;
+
+  /* Shadows (Airbnb uses very subtle shadows) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Border Radius (Airbnb is generous with borders) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* ==========================================
+   SPACING SYSTEM (8px Grid)
+   ========================================== */
+
+.space-system {
+  /* Airbnb uses 8px base unit */
+  --space-1: 8px;   /* 8 */
+  --space-2: 16px;  /* 16 */
+  --space-3: 24px;  /* 24 */
+  --space-4: 32px;  /* 32 */
+  --space-5: 40px;  /* 40 */
+  --space-6: 48px;  /* 48 */
+  --space-8: 64px;  /* 64 */
+  --space-10: 80px; /* 80 */
+  --space-12: 96px; /* 96 */
+}
+
+/* ==========================================
+   COMPONENT PATTERNS
+   ========================================== */
+
+/* Card - Airbnb Style */
+.card-airbnb {
+  @apply bg-white rounded-xl border border-gray-200;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-airbnb:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* Button - Primary (Teal) */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold text-white bg-teal-500 hover:bg-teal-600;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Button - Secondary */
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold text-gray-900 bg-white border border-gray-300 hover:border-gray-400;
+  transition: all 0.15s ease-in-out;
+}
+
+/* Input - Airbnb Style */
+.input-airbnb {
+  @apply w-full px-4 py-3 rounded-xl border border-gray-300 text-[15px] leading-[20px];
+  transition: all 0.2s ease-in-out;
+}
+
+.input-airbnb:focus {
+  @apply outline-none border-gray-900 ring-2 ring-gray-900 ring-opacity-5;
+}
+
+/* Image Container - Maintains aspect ratio */
+.image-container {
+  @apply relative overflow-hidden rounded-xl;
+  padding-bottom: 66.66%; /* 3:2 aspect ratio like Airbnb */
+}
+
+.image-container img {
+  @apply absolute inset-0 w-full h-full object-cover;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.image-container:hover img {
+  transform: scale(1.05);
+}
+
+/* ==========================================
+   LISTING CARD (Property/Job Card)
+   ========================================== */
+
+.listing-card {
+  @apply cursor-pointer;
+}
+
+.listing-card-image {
+  @apply relative rounded-xl overflow-hidden;
+  padding-bottom: 66.66%; /* 3:2 ratio */
+}
+
+.listing-card-image img {
+  @apply absolute inset-0 w-full h-full object-cover;
+  transition: transform 0.25s ease-out;
+}
+
+.listing-card:hover .listing-card-image img {
+  transform: scale(1.04);
+}
+
+.listing-card-favorite {
+  @apply absolute top-3 right-3 p-2 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease-in-out;
+}
+
+.listing-card-favorite:hover {
+  transform: scale(1.1);
+}
+
+.listing-card-content {
+  @apply pt-3;
+}
+
+.listing-card-title {
+  @apply text-[15px] font-semibold text-gray-900 line-clamp-1;
+}
+
+.listing-card-subtitle {
+  @apply text-[15px] text-gray-600 line-clamp-1 mt-1;
+}
+
+.listing-card-price {
+  @apply text-[15px] font-semibold text-gray-900 mt-2;
+}
+
+.listing-card-rating {
+  @apply flex items-center gap-1 text-[14px] font-semibold text-gray-900 mt-1;
+}
+
+/* ==========================================
+   SEARCH BAR (Hero Search)
+   ========================================== */
+
+.search-bar-hero {
+  @apply flex items-center bg-white rounded-full shadow-lg;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.search-bar-hero:focus-within {
+  box-shadow: var(--shadow-xl);
+}
+
+.search-field {
+  @apply flex-1 px-6 py-4 border-r border-gray-200;
+}
+
+.search-field:last-of-type {
+  @apply border-r-0;
+}
+
+.search-field label {
+  @apply block text-[12px] font-semibold text-gray-900 mb-1;
+}
+
+.search-field input {
+  @apply w-full text-[14px] text-gray-700 outline-none border-none p-0 bg-transparent;
+}
+
+.search-button {
+  @apply flex items-center justify-center w-12 h-12 bg-teal-500 hover:bg-teal-600 rounded-full m-2;
+  transition: all 0.2s ease-in-out;
+}
+
+.search-button:hover {
+  transform: scale(1.05);
+}
+
+/* ==========================================
+   ANIMATIONS & MICRO-INTERACTIONS
+   ========================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+
+.hover-lift {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Truncate text */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================== */
+
+/* Airbnb breakpoints:
+   - Mobile: < 744px
+   - Tablet: 744px - 1127px
+   - Desktop: >= 1128px
+   - Large: >= 1440px
+*/
+
+@media (max-width: 743px) {
+  .search-bar-hero {
+    @apply flex-col rounded-2xl;
+  }
+
+  .search-field {
+    @apply border-r-0 border-b;
+  }
+
+  h1 { @apply text-[26px] leading-[30px]; }
+  h2 { @apply text-[22px] leading-[26px]; }
+}
+
+@media (min-width: 1440px) {
+  .container-xl {
+    max-width: 1280px;
+  }
+}
+
+/* ==========================================
+   SCROLLBAR UTILITIES
+   ========================================== */
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}

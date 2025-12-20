@@ -1,0 +1,289 @@
+name: Mintenance CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-checks:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: TypeScript compilation check
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: Bundle analysis
+        run: |
+          npm install -g @expo/cli
+          expo export --platform android --output-dir dist
+        continue-on-error: true
+
+      - name: Security audit
+        run: npm audit --audit-level high
+
+  # mobile-testing:
+  #   name: Mobile E2E Testing
+  #   runs-on: macos-latest
+  #   needs: quality-checks
+  #   if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v6
+  #       with:
+  #         node-version: '18'
+  #         cache: 'npm'
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Setup Java for Android
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '11'
+  #
+  #     - name: Setup Android SDK
+  #       uses: android-actions/setup-android@v2
+  #       with:
+  #         api-level: 34
+  #         build-tools: 34.0.0
+  #
+  #     - name: Create Android Emulator
+  #       run: |
+  #         echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-34;google_apis;x86_64"
+  #         echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test -k "system-images;android-34;google_apis;x86_64"
+  #
+  #     - name: Start Android Emulator
+  #       run: |
+  #         $ANDROID_HOME/emulator/emulator -avd test -no-snapshot -no-window -camera-back none -camera-front none -selinux permissive -qemu -m 2048 &
+  #         adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d '\r') ]]; do sleep 1; done; input keyevent 82'
+  #
+  #     - name: Run Detox E2E tests
+  #       run: |
+  #         npm run e2e:build:android
+  #         npm run e2e:test:android
+  #       env:
+  #         DETOX_CONFIGURATION: android.emu.debug
+  #
+  # NOTE: Uncomment this job when Detox E2E testing is configured
+
+  # build-staging:
+  #   name: Build Staging Apps
+  #   runs-on: ubuntu-latest
+  #   needs: quality-checks
+  #   if: github.ref == 'refs/heads/develop'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v6
+  #       with:
+  #         node-version: '18'
+  #         cache: 'npm'
+  #
+  #     - name: Setup Expo
+  #       uses: expo/expo-github-action@v8
+  #       with:
+  #         expo-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Build staging Android
+  #       run: eas build --platform android --profile staging --non-interactive
+  #       env:
+  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  #
+  #     - name: Build staging iOS
+  #       run: eas build --platform ios --profile staging --non-interactive
+  #       env:
+  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  #
+  # NOTE: Uncomment when EAS is configured with EXPO_TOKEN secret
+
+  # build-production:
+  #   name: Build Production Apps
+  #   runs-on: ubuntu-latest
+  #   needs: quality-checks
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v6
+  #       with:
+  #         node-version: '18'
+  #         cache: 'npm'
+  #
+  #     - name: Setup Expo
+  #       uses: expo/expo-github-action@v8
+  #       with:
+  #         expo-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Build production Android
+  #       run: eas build --platform android --profile production --non-interactive
+  #       env:
+  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  #
+  #     - name: Build production iOS
+  #       run: eas build --platform ios --profile production --non-interactive
+  #       env:
+  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+  #
+  #     - name: Submit to app stores (manual approval required)
+  #       run: |
+  #         echo "Production builds completed. Manual app store submission required."
+  #         echo "Run: eas submit --platform android --latest"
+  #         echo "Run: eas submit --platform ios --latest"
+  #
+  # NOTE: Uncomment when EAS is configured with EXPO_TOKEN secret
+
+  performance-monitoring:
+    name: Performance & Security Monitoring
+    runs-on: ubuntu-latest
+    needs: quality-checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run performance tests
+        run: npm run test -- --testPathPattern=performance
+        continue-on-error: true
+
+      - name: Bundle size analysis
+        run: |
+          npm install -g @expo/cli
+          expo export --platform android --output-dir dist
+          du -sh dist/
+          echo "Bundle size analysis completed"
+        continue-on-error: true
+
+      - name: Dependency vulnerability scan
+        run: |
+          npm audit --json > audit-results.json || true
+          cat audit-results.json
+        continue-on-error: true
+
+      - name: License compliance check
+        run: |
+          npm install -g license-checker
+          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC' --summary
+        continue-on-error: true
+
+  pr-quality-gate:
+    name: PR Quality Gate
+    runs-on: ubuntu-latest
+    needs: [quality-checks, performance-monitoring]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [ "${{ needs.quality-checks.result }}" != "success" ] || \
+             [ "${{ needs.performance-monitoring.result }}" != "success" ]; then
+            echo "❌ Quality checks failed - PR cannot be merged"
+            exit 1
+          else
+            echo "✅ All quality checks passed - PR ready for review"
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const qualityChecks = '${{ needs.quality-checks.result }}';
+            const performanceMonitoring = '${{ needs.performance-monitoring.result }}';
+
+            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+
+            const comment = `## 🔍 CI/CD Pipeline Results
+
+            ${statusEmoji(qualityChecks)} **Code Quality & Testing**: ${qualityChecks}
+            ${statusEmoji(performanceMonitoring)} **Performance & Security**: ${performanceMonitoring}
+
+            ---
+
+            ${qualityChecks === 'success' && performanceMonitoring === 'success'
+              ? '✅ **All checks passed!** This PR is ready for review and merge.'
+              : '❌ **Some checks failed.** Please review the failed jobs and fix the issues.'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # notify:
+  #   name: Slack Notification
+  #   runs-on: ubuntu-latest
+  #   needs: quality-checks
+  #   if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  #
+  #   steps:
+  #     - name: Notify team
+  #       uses: 8398a7/action-slack@v3
+  #       with:
+  #         status: ${{ job.status }}
+  #         channel: '#mintenance-deployments'
+  #         webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+  #         fields: repo,message,commit,author,action,eventName,ref,workflow
+  #
+  # NOTE: Uncomment when SLACK_WEBHOOK secret is configured

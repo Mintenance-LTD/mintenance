@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "logLevel": "info",
+  "alertThresholds": {
+    "criticalEvents": 3,
+    "highSeverityEvents": 10
+  }
+}

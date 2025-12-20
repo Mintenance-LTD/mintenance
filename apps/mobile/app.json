@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Mintenance",
+    "slug": "mintenance",
+    "version": "1.2.4",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0EA5E9"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mintenance.app",
+      "buildNumber": "16"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0EA5E9"
+      },
+      "package": "com.mintenance.app",
+      "versionCode": 16
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "mintenance",
+    "updates": {
+      "url": "https://u.expo.dev/671d1323-6979-465f-91db-e61471746ab3"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "671d1323-6979-465f-91db-e61471746ab3"
+      }
+    }
+  }
+}
+

@@ -1,0 +1,90 @@
+name: Visual Regression Testing
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+  push:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright with dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Build web app
+        run: npm run build:web
+        env:
+          NODE_ENV: production
+        continue-on-error: true
+
+      - name: Start web server
+        run: npm run start:web &
+        env:
+          NODE_ENV: production
+          PORT: 3000
+        continue-on-error: true
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 -t 60000
+        continue-on-error: true
+
+      - name: Run visual regression tests
+        run: npx playwright test --project=chromium --grep @visual
+        env:
+          CI: true
+        continue-on-error: true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: visual-regression-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: visual-regression-screenshots
+          path: test-results/**/*.png
+          retention-days: 30
+
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Visual Regression Tests Failed**\n\nVisual differences detected. Please review the screenshots in the artifacts.'
+            });

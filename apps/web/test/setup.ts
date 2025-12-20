@@ -1,0 +1,137 @@
+/**
+ * Vitest Global Setup Configuration
+ * Sets up the test environment, mocks, and utilities
+ */
+
+import '@testing-library/jest-dom';
+import { expect, afterEach, beforeEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+// Extend Vitest's expect with Testing Library matchers
+expect.extend(matchers);
+
+// Cleanup after each test
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+beforeEach(() => {
+  // Reset all mocks before each test
+  vi.resetAllMocks();
+});
+
+// Mock Next.js modules
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => '/test-path',
+  useSearchParams: () => new URLSearchParams(),
+  redirect: vi.fn(),
+}));
+
+vi.mock('next/headers', () => ({
+  cookies: () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+  }),
+  headers: () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+  }),
+}));
+
+// Mock environment variables
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-characters-long';
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+process.env.STRIPE_SECRET_KEY = 'sk_test_test';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
+
+// Mock crypto for consistent testing
+const mockCrypto = {
+  randomUUID: () => `test-uuid-${Date.now()}`,
+  randomBytes: (size: number) => Buffer.alloc(size, 'test'),
+  getRandomValues: (arr: Uint8Array) => {
+    for (let i = 0; i < arr.length; i++) {
+      arr[i] = Math.floor(Math.random() * 256);
+    }
+    return arr;
+  },
+};
+
+Object.defineProperty(global, 'crypto', {
+  value: mockCrypto,
+  writable: true,
+});
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() {
+    return [];
+  }
+  unobserve() {}
+} as any;
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+} as any;
+
+// Mock fetch
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+  } as Response)
+);
+
+// Suppress console errors in tests (unless debugging)
+const originalError = console.error;
+console.error = (...args: any[]) => {
+  // Ignore specific React warnings in tests
+  if (
+    typeof args[0] === 'string' &&
+    (args[0].includes('Warning: ReactDOM.render') ||
+      args[0].includes('Warning: useLayoutEffect') ||
+      args[0].includes('Warning: An update to') ||
+      args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
+  ) {
+    return;
+  }
+  originalError.call(console, ...args);
+};

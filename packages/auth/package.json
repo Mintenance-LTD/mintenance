@@ -1,0 +1,35 @@
+{
+    "name": "@mintenance/auth",
+    "version": "1.2.3",
+    "description": "Shared authentication utilities for Mintenance apps",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Mintenance-LTD/mintenance.git"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rimraf dist"
+    },
+    "dependencies": {
+        "@mintenance/types": "file:../types",
+        "bcryptjs": "^3.0.2",
+        "jose": "^6.1.0"
+    },
+    "devDependencies": {
+        "@types/bcryptjs": "^3.0.0",
+        "@types/jsdom": "^27.0.0",
+        "typescript": "^5"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

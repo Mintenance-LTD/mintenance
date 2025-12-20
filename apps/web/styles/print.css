@@ -1,0 +1,279 @@
+/**
+ * Print-friendly styles for reports and dashboards
+ * These styles are applied only when printing or exporting to PDF
+ */
+
+@media print {
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+
+  /* Reset and base styles */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Hide elements that shouldn't print */
+  .no-print,
+  button,
+  nav,
+  .sidebar,
+  header button,
+  .export-menu,
+  .date-range-picker,
+  .filter-controls,
+  input[type="search"],
+  .search-bar {
+    display: none !important;
+  }
+
+  /* Links */
+  a,
+  a:visited {
+    text-decoration: underline;
+    color: #000;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 90%;
+    color: #666;
+  }
+
+  a[href^="#"]:after,
+  a[href^="javascript:"]:after {
+    content: "";
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    color: #000;
+  }
+
+  h1 {
+    font-size: 24pt;
+    margin-bottom: 12pt;
+  }
+
+  h2 {
+    font-size: 18pt;
+    margin-top: 16pt;
+    margin-bottom: 8pt;
+  }
+
+  h3 {
+    font-size: 14pt;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: avoid;
+    margin: 12pt 0;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 8pt;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: 600;
+    color: #000;
+  }
+
+  /* Cards */
+  .card,
+  .metric-card,
+  .kpi-card {
+    border: 1px solid #ddd;
+    padding: 12pt;
+    margin-bottom: 12pt;
+    page-break-inside: avoid;
+    background: #fff !important;
+  }
+
+  /* Charts (replace with static images or tables) */
+  .chart,
+  .graph,
+  canvas,
+  svg {
+    page-break-inside: avoid;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Lists */
+  ul,
+  ol {
+    margin: 8pt 0;
+    padding-left: 20pt;
+  }
+
+  li {
+    margin-bottom: 4pt;
+  }
+
+  /* Images */
+  img {
+    max-width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+  }
+
+  /* Status badges */
+  .badge,
+  .status-badge {
+    border: 1px solid #ddd;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+    font-size: 10pt;
+    display: inline-block;
+  }
+
+  /* Grid layouts - convert to blocks for printing */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    width: 100% !important;
+    margin-bottom: 12pt;
+  }
+
+  /* Specific dashboard elements */
+  .dashboard-header {
+    margin-bottom: 16pt;
+    border-bottom: 2pt solid #000;
+    padding-bottom: 8pt;
+  }
+
+  .kpi-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12pt;
+    margin-bottom: 16pt;
+  }
+
+  .metric-value {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #000;
+  }
+
+  .metric-label {
+    font-size: 11pt;
+    color: #666;
+  }
+
+  /* Footer for printed pages */
+  .print-footer {
+    position: fixed;
+    bottom: 10mm;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10pt;
+    color: #666;
+    border-top: 1pt solid #ddd;
+    padding-top: 8pt;
+  }
+
+  /* Print metadata */
+  .print-meta {
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 12pt;
+  }
+
+  /* Ensure proper spacing */
+  section {
+    margin-bottom: 16pt;
+  }
+
+  /* Remove background colors */
+  * {
+    background-color: transparent !important;
+  }
+
+  table th,
+  .card,
+  .metric-card {
+    background-color: #f9f9f9 !important;
+  }
+
+  /* Optimize fonts for printing */
+  body,
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Print-specific utility classes (always available) */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .print-only {
+    display: block;
+  }
+}
+
+.screen-only {
+  display: block;
+}
+
+@media print {
+  .screen-only {
+    display: none !important;
+  }
+}
+

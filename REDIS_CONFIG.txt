@@ -1,0 +1,15 @@
+# Redis Configuration for Mintenance
+# Add these to your .env.local or .env.production file
+
+# Upstash Redis Configuration
+UPSTASH_REDIS_REST_URL="https://infinite-duck-27013.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="AWmFAAIncDIzM2M0ZDcxMWU2ZjE0NGYyODU2YjI3MDY1MzgyZGQ1OHAyMjcwMTM"
+
+# Optional: Enable TLS for production security
+UPSTASH_REDIS_REST_TLS=true
+
+# Instructions:
+# 1. Copy these variables to your .env.local file for development
+# 2. Copy these variables to your production environment (Vercel, etc.)
+# 3. Run: npm run test:redis to validate the connection
+# 4. Deploy your app - Redis will now work in production!

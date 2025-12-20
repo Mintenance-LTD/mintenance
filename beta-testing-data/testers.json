@@ -1,0 +1,28 @@
+{
+  "phase1": [
+    {
+      "id": "1756219808762",
+      "name": "Alex Developer",
+      "email": "alex@team.com",
+      "role": "homeowner",
+      "phase": 1,
+      "addedDate": "2025-08-28T08:50:00.000Z",
+      "status": "invited",
+      "notes": "Internal team member - UI/UX feedback",
+      "testingSessions": []
+    },
+    {
+      "id": "1756219808767",
+      "name": "Sam Tester",
+      "email": "sam@team.com",
+      "role": "contractor",
+      "phase": 1,
+      "addedDate": "2025-08-28T08:50:00.000Z",
+      "status": "invited",
+      "notes": "QA team member - Technical testing",
+      "testingSessions": []
+    }
+  ],
+  "phase2": [],
+  "phase3": []
+}

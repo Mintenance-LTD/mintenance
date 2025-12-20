@@ -1,0 +1,455 @@
+name: ML Training Pipeline - Building Surveyor
+
+on:
+  # Automated triggers
+  schedule:
+    - cron: '0 2 * * 0' # Weekly on Sunday at 2 AM UTC
+
+  # Manual triggers
+  workflow_dispatch:
+    inputs:
+      training_mode:
+        description: 'Training Mode'
+        required: true
+        default: 'incremental'
+        type: choice
+        options:
+          - incremental
+          - full
+          - experimental
+
+      model_type:
+        description: 'Model Type'
+        required: true
+        default: 'yolo'
+        type: choice
+        options:
+          - yolo
+          - sam3
+          - gpt4v
+          - ensemble
+
+      dataset_version:
+        description: 'Dataset Version (leave empty for latest)'
+        required: false
+        type: string
+
+      deploy_environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - canary
+          - production
+          - none
+
+  # Triggered by data collection milestones
+  repository_dispatch:
+    types: [training-threshold-reached, manual-validation-batch]
+
+env:
+  PYTHON_VERSION: '3.10'
+  NODE_VERSION: '20.19.4'
+  TRAINING_ARTIFACT_RETENTION: 90
+  MIN_VALIDATION_SAMPLES: 100
+  MIN_CONFIDENCE_THRESHOLD: 0.85
+  MAX_FALSE_NEGATIVE_RATE: 0.05
+
+jobs:
+  # Job 1: Data Validation and Preparation
+  data-preparation:
+    name: Prepare Training Data
+    runs-on: ubuntu-latest
+
+    outputs:
+      dataset_id: ${{ steps.dataset.outputs.id }}
+      dataset_version: ${{ steps.dataset.outputs.version }}
+      sample_count: ${{ steps.dataset.outputs.count }}
+      quality_score: ${{ steps.quality.outputs.score }}
+      proceed_with_training: ${{ steps.validation.outputs.proceed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-ml.txt
+          pip install ultralytics roboflow supervision
+
+      - name: Authenticate with Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          echo "Authenticating with Supabase..."
+          python scripts/ml/auth_supabase.py
+
+      - name: Fetch validated assessments
+        id: dataset
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/ml/fetch_training_data.py \
+            --output-dir /tmp/training-data \
+            --min-samples ${{ env.MIN_VALIDATION_SAMPLES }} \
+            --include-corrections \
+            --include-sam3-masks
+
+          # Get dataset metadata
+          DATASET_ID=$(python -c "import uuid; print(str(uuid.uuid4()))")
+          DATASET_VERSION=$(date +%Y%m%d-%H%M%S)
+          SAMPLE_COUNT=$(find /tmp/training-data -name "*.jpg" | wc -l)
+
+          echo "id=$DATASET_ID" >> $GITHUB_OUTPUT
+          echo "version=$DATASET_VERSION" >> $GITHUB_OUTPUT
+          echo "count=$SAMPLE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Data quality checks
+        id: quality
+        run: |
+          python scripts/ml/validate_dataset.py \
+            --data-dir /tmp/training-data \
+            --check-labels \
+            --check-images \
+            --check-balance \
+            --output-report /tmp/quality-report.json
+
+          QUALITY_SCORE=$(jq -r '.overall_score' /tmp/quality-report.json)
+          echo "score=$QUALITY_SCORE" >> $GITHUB_OUTPUT
+
+      - name: Validate training criteria
+        id: validation
+        run: |
+          PROCEED="false"
+
+          if [ "${{ steps.dataset.outputs.count }}" -ge "${{ env.MIN_VALIDATION_SAMPLES }}" ]; then
+            if [ "$(echo "${{ steps.quality.outputs.score }} >= 0.8" | bc)" -eq 1 ]; then
+              PROCEED="true"
+            fi
+          fi
+
+          echo "proceed=$PROCEED" >> $GITHUB_OUTPUT
+
+      - name: Upload dataset artifact
+        if: steps.validation.outputs.proceed == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: training-dataset-${{ steps.dataset.outputs.version }}
+          path: /tmp/training-data
+          retention-days: ${{ env.TRAINING_ARTIFACT_RETENTION }}
+
+      - name: Generate data report
+        if: always()
+        run: |
+          python scripts/ml/generate_data_report.py \
+            --dataset-id ${{ steps.dataset.outputs.id }} \
+            --version ${{ steps.dataset.outputs.version }} \
+            --sample-count ${{ steps.dataset.outputs.count }} \
+            --quality-score ${{ steps.quality.outputs.score }} \
+            --output /tmp/data-report.html
+
+      - name: Upload data report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: data-report-${{ steps.dataset.outputs.version }}
+          path: /tmp/data-report.html
+
+  # Job 2: Model Training
+  model-training:
+    name: Train Models
+    needs: data-preparation
+    if: needs.data-preparation.outputs.proceed_with_training == 'true'
+    runs-on: [self-hosted, gpu] # Use GPU runner for training
+
+    strategy:
+      matrix:
+        model_type: [yolo, sam3]
+
+    outputs:
+      model_version: ${{ steps.training.outputs.version }}
+      metrics: ${{ steps.evaluation.outputs.metrics }}
+      model_path: ${{ steps.training.outputs.path }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup CUDA environment
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: '11.8.0'
+
+      - name: Setup Python with CUDA
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ML dependencies
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+          pip install -r requirements-ml-${{ matrix.model_type }}.txt
+
+      - name: Download training dataset
+        uses: actions/download-artifact@v3
+        with:
+          name: training-dataset-${{ needs.data-preparation.outputs.dataset_version }}
+          path: /tmp/training-data
+
+      - name: Configure training
+        run: |
+          python scripts/ml/configure_training.py \
+            --model-type ${{ matrix.model_type }} \
+            --mode ${{ github.event.inputs.training_mode || 'incremental' }} \
+            --dataset-path /tmp/training-data \
+            --output-config /tmp/training-config.yaml
+
+      - name: Run training
+        id: training
+        run: |
+          if [ "${{ matrix.model_type }}" = "yolo" ]; then
+            python scripts/ml/train_yolo.py \
+              --config /tmp/training-config.yaml \
+              --data-yaml /tmp/training-data/data.yaml \
+              --epochs 100 \
+              --batch-size 16 \
+              --imgsz 640 \
+              --device 0 \
+              --project /tmp/training-runs \
+              --name yolo-${{ needs.data-preparation.outputs.dataset_version }}
+          elif [ "${{ matrix.model_type }}" = "sam3" ]; then
+            python scripts/ml/train_sam3.py \
+              --config /tmp/training-config.yaml \
+              --data-dir /tmp/training-data \
+              --epochs 50 \
+              --batch-size 8 \
+              --output-dir /tmp/training-runs/sam3-${{ needs.data-preparation.outputs.dataset_version }}
+          fi
+
+          MODEL_VERSION="${{ matrix.model_type }}-${{ needs.data-preparation.outputs.dataset_version }}"
+          MODEL_PATH="/tmp/training-runs/${{ matrix.model_type }}-${{ needs.data-preparation.outputs.dataset_version }}/weights/best.pt"
+
+          echo "version=$MODEL_VERSION" >> $GITHUB_OUTPUT
+          echo "path=$MODEL_PATH" >> $GITHUB_OUTPUT
+
+      - name: Evaluate model
+        id: evaluation
+        run: |
+          python scripts/ml/evaluate_model.py \
+            --model-type ${{ matrix.model_type }} \
+            --model-path ${{ steps.training.outputs.path }} \
+            --test-data /tmp/training-data/test \
+            --output-metrics /tmp/metrics.json
+
+          METRICS=$(cat /tmp/metrics.json | jq -c .)
+          echo "metrics=$METRICS" >> $GITHUB_OUTPUT
+
+      - name: Check safety criteria
+        run: |
+          python scripts/ml/check_safety_criteria.py \
+            --metrics /tmp/metrics.json \
+            --max-fnr ${{ env.MAX_FALSE_NEGATIVE_RATE }} \
+            --min-confidence ${{ env.MIN_CONFIDENCE_THRESHOLD }}
+
+      - name: Package model
+        run: |
+          python scripts/ml/package_model.py \
+            --model-path ${{ steps.training.outputs.path }} \
+            --model-type ${{ matrix.model_type }} \
+            --version ${{ steps.training.outputs.version }} \
+            --metrics /tmp/metrics.json \
+            --output /tmp/model-package.tar.gz
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-${{ steps.training.outputs.version }}
+          path: /tmp/model-package.tar.gz
+          retention-days: ${{ env.TRAINING_ARTIFACT_RETENTION }}
+
+      - name: Upload to model registry
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-west-2
+        run: |
+          aws s3 cp /tmp/model-package.tar.gz \
+            s3://mintenance-ml-models/${{ matrix.model_type }}/${{ steps.training.outputs.version }}/model.tar.gz
+
+          aws s3 cp /tmp/metrics.json \
+            s3://mintenance-ml-models/${{ matrix.model_type }}/${{ steps.training.outputs.version }}/metrics.json
+
+  # Job 3: A/B Testing Setup
+  ab-testing:
+    name: Setup A/B Testing
+    needs: model-training
+    if: github.event.inputs.deploy_environment != 'none'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure A/B test
+        run: |
+          node scripts/ml/configure_ab_test.js \
+            --model-version ${{ needs.model-training.outputs.model_version }} \
+            --environment ${{ github.event.inputs.deploy_environment }} \
+            --traffic-split 10 \
+            --duration-days 7 \
+            --success-metrics fnr,precision,user-satisfaction
+
+      - name: Deploy A/B test configuration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node scripts/ml/deploy_ab_config.js \
+            --config /tmp/ab-test-config.json \
+            --environment ${{ github.event.inputs.deploy_environment }}
+
+      - name: Setup monitoring alerts
+        run: |
+          node scripts/ml/setup_monitoring.js \
+            --model-version ${{ needs.model-training.outputs.model_version }} \
+            --alert-channel slack \
+            --metrics fnr,latency,error-rate
+
+  # Job 4: Deployment
+  deployment:
+    name: Deploy Models
+    needs: [model-training, ab-testing]
+    if: github.event.inputs.deploy_environment != 'none'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.deploy_environment }}
+
+    strategy:
+      matrix:
+        region: [eu-west-2, us-east-1]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup deployment tools
+        run: |
+          curl -fsSL https://get.pulumi.com | sh
+          pip install boto3 kubernetes
+
+      - name: Download model artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: model-${{ needs.model-training.outputs.model_version }}
+          path: /tmp/models
+
+      - name: Deploy to inference service
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ matrix.region }}
+          DEPLOY_ENV: ${{ github.event.inputs.deploy_environment }}
+        run: |
+          python scripts/ml/deploy_model.py \
+            --model-package /tmp/models/model-package.tar.gz \
+            --environment $DEPLOY_ENV \
+            --region ${{ matrix.region }} \
+            --deployment-strategy ${{ github.event.inputs.deploy_environment == 'production' && 'blue-green' || 'canary' }} \
+            --canary-percentage 10 \
+            --health-check-url https://api.mintenance.com/health/ml
+
+      - name: Update Edge Functions
+        if: github.event.inputs.deploy_environment == 'production'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          node scripts/ml/update_edge_functions.js \
+            --model-version ${{ needs.model-training.outputs.model_version }} \
+            --edge-config production
+
+      - name: Run smoke tests
+        run: |
+          npm run test:ml:smoke -- \
+            --environment ${{ github.event.inputs.deploy_environment }} \
+            --model-version ${{ needs.model-training.outputs.model_version }}
+
+      - name: Verify deployment
+        run: |
+          python scripts/ml/verify_deployment.py \
+            --environment ${{ github.event.inputs.deploy_environment }} \
+            --model-version ${{ needs.model-training.outputs.model_version }} \
+            --region ${{ matrix.region }} \
+            --min-latency-ms 100 \
+            --max-latency-ms 500
+
+  # Job 5: Monitoring and Rollback
+  monitoring:
+    name: Monitor Deployment
+    needs: deployment
+    if: github.event.inputs.deploy_environment == 'production'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Monitor metrics
+        run: |
+          python scripts/ml/monitor_deployment.py \
+            --model-version ${{ needs.model-training.outputs.model_version }} \
+            --duration-minutes 30 \
+            --check-interval 60 \
+            --alert-threshold-fnr 0.1 \
+            --alert-threshold-latency 1000 \
+            --output /tmp/monitoring-report.json
+
+      - name: Check for anomalies
+        id: anomaly-check
+        run: |
+          ANOMALIES=$(python scripts/ml/detect_anomalies.py \
+            --metrics /tmp/monitoring-report.json \
+            --baseline-metrics s3://mintenance-ml-models/baselines/latest.json)
+
+          if [ "$ANOMALIES" != "none" ]; then
+            echo "anomalies_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "anomalies_detected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rollback if needed
+        if: steps.anomaly-check.outputs.anomalies_detected == 'true'
+        run: |
+          python scripts/ml/rollback_deployment.py \
+            --environment production \
+            --reason "Anomalies detected in production metrics" \
+            --rollback-to-version ${{ secrets.LAST_STABLE_MODEL_VERSION }}
+
+      - name: Send notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            ML Pipeline Status: ${{ job.status }}
+            Model Version: ${{ needs.model-training.outputs.model_version }}
+            Environment: ${{ github.event.inputs.deploy_environment }}
+            Anomalies: ${{ steps.anomaly-check.outputs.anomalies_detected }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

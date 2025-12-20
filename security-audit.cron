@@ -1,0 +1,8 @@
+# Daily security audit
+00 02 * * * cd C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean && node scripts/security-audit.js
+
+# Weekly comprehensive security audit
+00 03 * * 0 cd C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean && node scripts/security-audit.js --comprehensive
+
+# Monthly full security audit
+00 04 1 * * cd C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean && node scripts/security-audit.js --full-audit

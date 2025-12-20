@@ -1,0 +1,76 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Ramp up load"
+    - duration: 180
+      arrivalRate: 100
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 10
+      name: "Ramp down"
+  processor: "./processor.js"
+  plugins:
+    expect: {}
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Critical User Flows"
+    weight: 100
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      
+      - get:
+          url: "/login"
+          expect:
+            - statusCode: 200
+      
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ $randomEmail }}"
+            password: "TestPassword123!"
+          expect:
+            - statusCode: [200, 401]
+      
+      - get:
+          url: "/api/jobs"
+          expect:
+            - statusCode: [200, 401]
+      
+      - get:
+          url: "/contractors"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+
+  - name: "API Endpoints"
+    weight: 50
+    flow:
+      - get:
+          url: "/api/jobs"
+          expect:
+            - statusCode: [200, 401]
+      
+      - get:
+          url: "/api/contractor/profile-data"
+          expect:
+            - statusCode: [200, 401, 403]
+      
+      - get:
+          url: "/api/analytics/insights"
+          expect:
+            - statusCode: [200, 401, 403]
+      
+      - think: 1
+

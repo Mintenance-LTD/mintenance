@@ -1,0 +1,30 @@
+{
+  "version": "1.1.0",
+  "last_updated": "2025-12-05",
+  "description": "Optimized weights for Bayesian fusion of multi-modal damage detection",
+  "weights": {
+    "sam3": 0.45,
+    "gpt4": 0.35,
+    "sceneGraph": 0.20
+  },
+  "variances": {
+    "sam3": 0.05,
+    "gpt4": 0.10,
+    "sceneGraph": 0.08
+  },
+  "confidence_thresholds": {
+    "high": 0.85,
+    "medium": 0.65,
+    "low": 0.45
+  },
+  "optimization_metrics": {
+    "training_samples": 0,
+    "validation_accuracy": 0,
+    "last_optimization": null
+  },
+  "notes": {
+    "sam3": "Text-prompted concept segmentation - highest weight due to precision",
+    "gpt4": "Semantic understanding and reasoning - strong but slightly lower weight",
+    "sceneGraph": "Structural relationships - supportive evidence with lowest weight"
+  }
+}

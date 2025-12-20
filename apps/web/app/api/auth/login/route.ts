@@ -1,0 +1,283 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authManager } from '@/lib/auth-manager';
+import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { loginSchema } from '@/lib/validation/schemas';
+import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
+import { MFAService } from '@/lib/mfa/mfa-service';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
+// Route segment config to ensure proper error handling
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Export route handler with comprehensive error handling
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    // CSRF protection
+    try {
+      await requireCSRF(request);
+    } catch (csrfError) {
+      logger.warn('CSRF validation failed', {
+        service: 'auth',
+        error: csrfError instanceof Error ? csrfError.message : 'Unknown CSRF error',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+    
+    // Rate limiting check
+    let rateLimitResult;
+    try {
+      rateLimitResult = await checkLoginRateLimit(request);
+    } catch (rateLimitError) {
+      logger.error('Rate limit check failed', rateLimitError, { 
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      // Fail closed: deny request when rate limiting is unavailable (security-first)
+      return NextResponse.json(
+        {
+          error: 'Rate limiting service unavailable. Please try again later.',
+        },
+        {
+          status: 503, // Service Unavailable
+          headers: {
+            'Retry-After': '60', // Suggest retry after 60 seconds
+          }
+        }
+      );
+    }
+
+    if (!rateLimitResult.allowed) {
+      const headers = createRateLimitHeaders(rateLimitResult);
+      logger.warn('Login rate limit exceeded', {
+        service: 'auth',
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers
+        }
+      );
+    }
+
+    // Validate and sanitize input using Zod schema
+    let validation;
+    try {
+      validation = await validateRequest(request, loginSchema);
+    } catch (validationError) {
+      logger.error('Request validation error', validationError, { service: 'auth' });
+      return NextResponse.json(
+        { error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
+    
+    if ('headers' in validation) {
+      // Validation failed - return error response
+      return validation;
+    }
+
+    const { email, password, rememberMe } = validation.data;
+
+    // Delegate authentication and cookie handling to AuthManager
+    let result;
+    try {
+      result = await authManager.login({ email, password }, rememberMe || false);
+    } catch (authError) {
+      logger.error('AuthManager login error', authError, { service: 'auth', email });
+      return NextResponse.json(
+        { error: 'Authentication service error. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    if (!result.success || !result.user) {
+      logger.warn('Login failed', {
+        service: 'auth',
+        email,
+        reason: result.error
+      });
+
+      return NextResponse.json(
+        { error: result.error || 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has MFA enabled
+    const { data: userData } = await serverSupabase
+      .from('users')
+      .select('mfa_enabled')
+      .eq('id', result.user.id)
+      .single();
+
+    const mfaEnabled = userData?.mfa_enabled || false;
+
+    // Check for trusted device cookie
+    const cookieHeader = request.headers.get('cookie');
+    const trustedDeviceMatch = cookieHeader?.match(/mintenance-trusted-device=([^;]+)/);
+    const trustedDeviceToken = trustedDeviceMatch?.[1];
+
+    let isTrustedDevice = false;
+    if (trustedDeviceToken && mfaEnabled) {
+      const validatedUserId = await MFAService.validateTrustedDevice(trustedDeviceToken);
+      isTrustedDevice = validatedUserId === result.user.id;
+
+      if (isTrustedDevice) {
+        logger.info('Login from trusted device, skipping MFA', {
+          service: 'auth',
+          userId: result.user.id,
+        });
+      }
+    }
+
+    // If MFA is enabled and not a trusted device, create pre-MFA session
+    if (mfaEnabled && !isTrustedDevice) {
+      const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                        request.headers.get('x-real-ip') ||
+                        undefined;
+      const userAgent = request.headers.get('user-agent') || undefined;
+
+      const preMfaSession = await MFAService.createPreMFASession(
+        result.user.id,
+        ipAddress,
+        userAgent
+      );
+
+      logger.info('MFA required for login', {
+        service: 'auth',
+        userId: result.user.id,
+        email: result.user.email,
+      });
+
+      return NextResponse.json(
+        {
+          requiresMfa: true,
+          preMfaToken: preMfaSession.sessionToken,
+          message: 'MFA verification required',
+        },
+        { status: 200 }
+      );
+    }
+
+    // Record successful login (for rate limiting)
+    try {
+      recordSuccessfulLogin(request);
+    } catch (recordError) {
+      // Log but don't fail the login if rate limit recording fails
+      logger.warn('Failed to record successful login', { error: recordError, service: 'auth' });
+    }
+
+    logger.info('User logged in successfully', {
+      service: 'auth',
+      userId: result.user.id,
+      email: result.user.email
+    });
+
+    // Create response
+    const response = NextResponse.json(
+      {
+        message: 'Login successful',
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          role: result.user.role,
+          firstName: result.user.first_name,
+          lastName: result.user.last_name,
+          emailVerified: result.user.email_verified
+        }
+      },
+      { status: 200 }
+    );
+
+    // Add cookie headers from auth result
+    if (result.cookieHeaders) {
+      result.cookieHeaders.forEach((value: string, key: string) => {
+        response.headers.append(key, value);
+      });
+    }
+
+    // Add rate limit headers to successful response
+    const headers = createRateLimitHeaders(rateLimitResult);
+    Object.entries(headers).forEach(([key, value]) => {
+      response.headers.set(key, String(value));
+    });
+
+    return response;
+
+  } catch (error) {
+    // Log error details for debugging (server-side only)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : String(error);
+    
+    // Log error (logger should always work, but handle gracefully if it doesn't)
+    try {
+      if (logger && typeof logger.error === 'function') {
+        logger.error('Login error', error, { service: 'auth' });
+      } else {
+        // If logger is unavailable, use stderr as fallback
+        process.stderr.write(
+          `[CRITICAL] Logger unavailable during login error: ${errorMessage}\nStack: ${errorStack}\n`
+        );
+      }
+    } catch (loggerError) {
+      // If logger itself fails, use stderr as absolute fallback
+      process.stderr.write(
+        `[CRITICAL] Logger failed during login error handling: ${errorMessage}\n` +
+        `Stack: ${errorStack}\n` +
+        `Logger error: ${loggerError instanceof Error ? loggerError.message : String(loggerError)}\n`
+      );
+    }
+
+    // Handle CSRF validation errors specifically
+    if (error instanceof Error && error.message === 'CSRF validation failed') {
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+    
+    // Log the actual error for debugging (should already be logged above)
+    // This is a safety net in case the logger call above didn't work
+    try {
+      logger.error('Login route error details', error, {
+        service: 'auth',
+        message: errorMessage,
+        stack: errorStack?.substring(0, 500), // Limit stack trace length
+        type: error?.constructor?.name || typeof error
+      });
+    } catch {
+      // If logger fails again, silently continue - we've already logged to stderr above
+    }
+
+    // Always return JSON, never HTML - this is critical
+    return NextResponse.json(
+      { 
+        error: 'An unexpected error occurred. Please try again.',
+        // Include error message in development for debugging
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: errorMessage.substring(0, 200) // Limit length
+        })
+      },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+  }
+}

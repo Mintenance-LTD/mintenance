@@ -1,0 +1,23 @@
+{
+  "name": "@mintenance/ai-core",
+  "version": "1.0.0",
+  "description": "Shared AI services and types for Mintenance platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "openai": "^4.20.1",
+    "@google-cloud/vision": "^4.0.2",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8"
+  }
+}
