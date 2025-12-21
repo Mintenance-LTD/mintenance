@@ -2,16 +2,28 @@
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';;
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 // REMOVED: import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { SocialFeedCard2025 } from './components/SocialFeedCard2025';
 import { LoadingSpinner } from '@/components/ui';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import toast from 'react-hot-toast';
 import { redirect } from 'next/navigation';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+// Dynamic import for social feed card - not critical for initial page load
+const SocialFeedCard2025 = dynamic(() => import('./components/SocialFeedCard2025').then(mod => ({ default: mod.SocialFeedCard2025 })), {
+  loading: () => (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 animate-pulse">
+      <div className="h-24 bg-gray-200 rounded mb-4"></div>
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    </div>
+  ),
+  ssr: false,
+});
 
 interface SocialPost {
   id: string;

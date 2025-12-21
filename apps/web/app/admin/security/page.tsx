@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AreaChart, BarChart } from '@tremor/react';
+import dynamic from 'next/dynamic';
 import {
   Shield,
   AlertTriangle,
@@ -21,6 +21,18 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+
+// Dynamic imports for Tremor charts - lazy load heavy charting library
+const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
+  loading: () => <ChartSkeleton height="256px" />,
+  ssr: false,
+});
+
+const BarChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.BarChart })), {
+  loading: () => <ChartSkeleton height="256px" />,
+  ssr: false,
+});
 
 // Animation variants
 const fadeIn = {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { AreaChart, DonutChart } from '@tremor/react';
+import dynamic from 'next/dynamic';
 import {
   CreditCard,
   DollarSign,
@@ -19,6 +19,18 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+
+// Dynamic imports for Tremor charts - lazy load heavy charting library
+const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
+  loading: () => <ChartSkeleton height="240px" />,
+  ssr: false,
+});
+
+const DonutChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.DonutChart })), {
+  loading: () => <ChartSkeleton height="240px" />,
+  ssr: false,
+});
 
 // Animation variants
 const fadeIn = {

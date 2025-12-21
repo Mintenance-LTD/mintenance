@@ -1,12 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { supabase } from '@/lib/supabase';
+
+// Dynamic imports for Tremor charts - lazy load heavy charting library
+const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
+  loading: () => <ChartSkeleton height="280px" />,
+  ssr: false,
+});
+
+const BarChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.BarChart })), {
+  loading: () => <ChartSkeleton height="280px" />,
+  ssr: false,
+});
+
+const DonutChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.DonutChart })), {
+  loading: () => <ChartSkeleton height="280px" />,
+  ssr: false,
+});
+
+const LineChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.LineChart })), {
+  loading: () => <ChartSkeleton height="280px" />,
+  ssr: false,
+});
 
 export default function AnalyticsPage2025() {
   const { user } = useCurrentUser();

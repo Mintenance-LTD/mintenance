@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
   TrendingUp,
@@ -16,8 +17,24 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import { AreaChart, DonutChart, BarChart } from '@tremor/react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+
+// Dynamic imports for Tremor charts - lazy load heavy charting library
+const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
+  loading: () => <ChartSkeleton height="288px" />,
+  ssr: false,
+});
+
+const DonutChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.DonutChart })), {
+  loading: () => <ChartSkeleton height="288px" />,
+  ssr: false,
+});
+
+const BarChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.BarChart })), {
+  loading: () => <ChartSkeleton height="288px" />,
+  ssr: false,
+});
 
 // Animation variants
 const fadeIn = {

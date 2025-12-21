@@ -1,10 +1,20 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { AIMonitoringClient } from './components/AIMonitoringClient';
+import { DashboardSkeleton } from '@/components/ui/ChartSkeleton';
+
+// Dynamic import for heavy AI monitoring component with Tremor charts
+const AIMonitoringClient = dynamic(
+  () => import('./components/AIMonitoringClient').then(mod => ({ default: mod.AIMonitoringClient })),
+  {
+    loading: () => <DashboardSkeleton />,
+    ssr: false, // AI monitoring dashboard doesn't need SSR
+  }
+);
 
 export default function AIMonitoringPage() {
   const { user } = useCurrentUser();

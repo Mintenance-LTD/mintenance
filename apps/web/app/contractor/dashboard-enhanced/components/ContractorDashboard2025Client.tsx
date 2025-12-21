@@ -2,14 +2,15 @@
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 // REMOVED: import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { ContractorMetricCard2025 } from './ContractorMetricCard2025';
 import { ContractorWelcomeHero2025 } from './ContractorWelcomeHero2025';
-import { AreaChart, ProgressBar, LineChart } from '@tremor/react';
 import { fadeIn, staggerContainer, staggerItem, cardHover } from '@/lib/animations/variants';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import {
   KpiCard,
   QuickActionsCard,
@@ -35,6 +36,22 @@ import {
   MapPin,
   Star,
 } from 'lucide-react';
+
+// Dynamic imports for Tremor charts - lazy load heavy charting library
+const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
+  loading: () => <ChartSkeleton height="200px" />,
+  ssr: false,
+});
+
+const ProgressBar = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.ProgressBar })), {
+  loading: () => <div className="h-2 bg-gray-200 rounded animate-pulse"></div>,
+  ssr: false,
+});
+
+const LineChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.LineChart })), {
+  loading: () => <ChartSkeleton height="200px" />,
+  ssr: false,
+});
 
 interface ContractorDashboard2025ClientProps {
   data: {
