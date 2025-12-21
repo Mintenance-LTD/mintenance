@@ -10,29 +10,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication and admin role
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // TODO: Add admin role check when role system is implemented
-    // For now, allow all authenticated users to view cache stats
-    // if (user.role !== 'admin') {
-    //   return NextResponse.json(
-    //     { error: 'Admin access required' },
-    //     { status: 403 }
-    //   );
-    // }
+    // Secure admin authentication with database verification
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     // Get cache statistics
     const metrics = AIResponseCache.exportMetrics();
