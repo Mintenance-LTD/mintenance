@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyJWT, ConfigManager } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
+import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
 
 // CRITICAL FIX: Fail-fast initialization to prevent silent failures
 // If ConfigManager fails to initialize, the entire middleware should fail immediately
@@ -78,16 +79,73 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Skip middleware for static files and webhook endpoints only
-  // SECURITY: All other API routes should have authentication and CSRF validation
+  // Skip middleware for static files only
+  // SECURITY: All API routes including webhooks should go through rate limiting
   const isStaticFile = /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
 
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/webhooks') || // Webhooks have their own signature validation
     isStaticFile // Only skip for actual static file extensions
   ) {
     return NextResponse.next();
+  }
+
+  // ============================================================================
+  // RATE LIMITING FOR ALL API ROUTES
+  // ============================================================================
+  if (pathname.startsWith('/api/')) {
+    try {
+      // Perform rate limit check
+      const rateLimitResult = await checkRateLimit(request);
+
+      if (!rateLimitResult.allowed) {
+        logger.warn('API rate limit exceeded', {
+          service: 'middleware',
+          pathname,
+          tier: rateLimitResult.tier,
+          remaining: rateLimitResult.remaining,
+        });
+
+        // Return 429 Too Many Requests
+        return new NextResponse(
+          JSON.stringify({
+            error: 'Too Many Requests',
+            message: 'Rate limit exceeded. Please try again later.',
+            retryAfter: rateLimitResult.retryAfter,
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              ...createRateLimitHeaders(rateLimitResult),
+            },
+          }
+        );
+      }
+
+      // Add rate limit headers to successful responses for API routes
+      const requestHeaders = new Headers(request.headers);
+      Object.entries(createRateLimitHeaders(rateLimitResult)).forEach(([key, value]) => {
+        requestHeaders.set(key, value);
+      });
+
+      // Special handling for webhook endpoints (skip auth but apply rate limiting)
+      if (pathname.startsWith('/api/webhooks')) {
+        return NextResponse.next({ request: { headers: requestHeaders } });
+      }
+
+      // Continue with normal API processing (auth will be checked below for non-public routes)
+    } catch (error) {
+      logger.error('Rate limiting failed in middleware', error, {
+        service: 'middleware',
+        pathname,
+      });
+
+      // In production, fail closed for security
+      if (process.env.NODE_ENV === 'production') {
+        return new NextResponse('Service Unavailable', { status: 503 });
+      }
+    }
   }
 
   try {
