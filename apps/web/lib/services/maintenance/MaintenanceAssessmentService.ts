@@ -9,6 +9,7 @@ import { serverSupabase } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { openai } from '@/lib/openai-client';
 import crypto from 'crypto';
+import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 
 export interface MaintenanceAssessment {
   id: string;
@@ -369,17 +370,31 @@ export class MaintenanceAssessmentService {
         time_estimate, materials, tools, safety_notes, immediate_actions, confidence
       `;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: images[0] } }
-          ]
-        }],
-        max_tokens: 500
-      });
+      // Use cache for GPT-4 Vision responses
+      // Cache key includes image URL and user description for uniqueness
+      const cacheInput = {
+        imageUrl: images[0],
+        description: options.userDescription || '',
+        prompt,
+      };
+
+      const response = await AIResponseCache.get(
+        'maintenance-assessment',
+        cacheInput,
+        async () => {
+          return await openai.chat.completions.create({
+            model: "gpt-4-vision-preview",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: images[0] } }
+              ]
+            }],
+            max_tokens: 500
+          });
+        }
+      );
 
       const gptResult = JSON.parse(response.choices[0].message.content || '{}');
 

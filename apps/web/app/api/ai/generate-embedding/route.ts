@@ -3,6 +3,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { openai } from '@/lib/openai-client';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 
 /**
  * Generate embeddings using OpenAI API
@@ -80,90 +81,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call OpenAI API with timeout and retry logic
-    const timeoutMs = 30000; // 30 seconds
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    // Use cache to avoid redundant API calls
+    // Cache key includes text and model for consistency
+    const cacheInput = { text, model };
 
-    try {
-      const response = await openai.embeddings.create(
-        {
-          model,
-          input: text,
-          encoding_format: 'float',
-        },
-        {
-          signal: controller.signal as any,
+    const result = await AIResponseCache.get(
+      'embeddings',
+      cacheInput,
+      async () => {
+        // Call OpenAI API with timeout and retry logic
+        const timeoutMs = 30000; // 30 seconds
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const response = await openai.embeddings.create(
+            {
+              model,
+              input: text,
+              encoding_format: 'float',
+            },
+            {
+              signal: controller.signal as any,
+            }
+          );
+
+          clearTimeout(timeout);
+
+          // Extract embedding from response
+          const embedding = response.data[0]?.embedding;
+
+          if (!embedding || !Array.isArray(embedding)) {
+            throw new Error('Invalid embedding response from OpenAI');
+          }
+
+          return {
+            embedding,
+            model,
+            usage: response.usage,
+          };
+        } finally {
+          clearTimeout(timeout);
         }
-      );
-
-      clearTimeout(timeout);
-
-      // Extract embedding from response
-      const embedding = response.data[0]?.embedding;
-
-      if (!embedding || !Array.isArray(embedding)) {
-        throw new Error('Invalid embedding response from OpenAI');
       }
+    );
 
-      const duration = Date.now() - startTime;
-      logger.info('Embedding generated successfully', {
-        service: 'ai_embedding',
-        model,
-        textLength: text.length,
-        embeddingDimension: embedding.length,
-        durationMs: duration,
-      });
+    const duration = Date.now() - startTime;
+    logger.info('Embedding generated successfully', {
+      service: 'ai_embedding',
+      model,
+      textLength: text.length,
+      embeddingDimension: result.embedding.length,
+      durationMs: duration,
+      cached: duration < 50, // Cached responses are typically <50ms
+    });
 
-      return NextResponse.json({
-        embedding,
-        model,
-        usage: response.usage,
-      });
-
-    } catch (apiError: any) {
-      clearTimeout(timeout);
-
-      // Handle timeout
-      if (apiError.name === 'AbortError') {
-        logger.error('Embedding generation timeout', {
-          service: 'ai_embedding',
-          model,
-          textLength: text.length,
-          timeoutMs,
-        });
-        return NextResponse.json(
-          { error: 'Request timeout - embedding generation took too long' },
-          { status: 504 }
-        );
-      }
-
-      // Handle rate limiting
-      if (apiError.status === 429) {
-        logger.warn('OpenAI rate limit exceeded', {
-          service: 'ai_embedding',
-          error: apiError.message,
-        });
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        );
-      }
-
-      // Handle invalid API key
-      if (apiError.status === 401) {
-        logger.error('Invalid OpenAI API key', {
-          service: 'ai_embedding',
-        });
-        return NextResponse.json(
-          { error: 'Invalid API configuration' },
-          { status: 503 }
-        );
-      }
-
-      // Re-throw for generic error handler
-      throw apiError;
-    }
+    return NextResponse.json(result);
 
   } catch (error: any) {
     const duration = Date.now() - startTime;
