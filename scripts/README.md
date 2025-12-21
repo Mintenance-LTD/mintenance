@@ -84,7 +84,134 @@ You can now deploy the payment API endpoints to production.
 
 ---
 
-### 2. **Deployment Verification** (`verify-deployment.js`)
+### 2. **RLS Policies Test Suite** (`test-rls-policies.sql`)
+
+🔐 **CRITICAL SECURITY TEST** - Tests Row Level Security policies across 32 tables to ensure multi-tenant data isolation and prevent cross-tenant data leakage.
+
+**Prerequisites:**
+```bash
+# Ensure RLS migration has been applied
+npx supabase db diff --local
+```
+
+**Usage:**
+```bash
+# Via Supabase CLI (Recommended)
+npx supabase db execute --file scripts/test-rls-policies.sql
+
+# Or via psql
+psql -h localhost -U postgres -d mintenance -f scripts/test-rls-policies.sql
+```
+
+**What It Tests:**
+- ✅ RLS enabled on all 32 critical tables
+- ✅ Financial data isolation (escrow_transactions, contractor_payout_accounts)
+- ✅ Authentication security (refresh_tokens - MOST CRITICAL)
+- ✅ User data privacy (jobs, bids, messages, notifications, reviews)
+- ✅ Cross-tenant access blocking (users CANNOT see other users' data)
+- ✅ Admin override capabilities
+- ✅ AI/ML table security
+- ✅ System table access control
+- ✅ Edge cases (NULL user_id, invalid user_id)
+- ✅ Query performance with RLS
+
+**Critical Tests:**
+1. **Refresh Token Isolation** - Users CANNOT see other users' tokens (prevents account takeover)
+2. **Escrow Transaction Privacy** - Third parties CANNOT see financial transactions
+3. **Message Privacy** - Third parties CANNOT read private messages
+4. **Payout Account Security** - Contractors CANNOT see others' payout accounts
+5. **Bid Privacy** - Contractors CANNOT see competitors' bids
+
+**Expected Output:**
+```sql
+==================================
+RLS POLICIES COMPREHENSIVE TEST
+==================================
+
+1. Creating test users...
+✓ Test users created successfully
+
+2. Creating test data...
+✓ Test data created successfully
+
+3. Verifying RLS is enabled on all critical tables...
+
+ Table Name              | RLS Status
+-------------------------+------------------
+ bids                    | ✓ ENABLED
+ contractor_locations    | ✓ ENABLED
+ contractor_payout_accounts | ✓ ENABLED
+ escrow_transactions     | ✓ ENABLED
+ jobs                    | ✓ ENABLED
+ messages                | ✓ ENABLED
+ notifications           | ✓ ENABLED
+ refresh_tokens          | ✓ ENABLED
+ reviews                 | ✓ ENABLED
+ security_events         | ✓ ENABLED
+ yolo_corrections        | ✓ ENABLED
+ ... (and 21 more tables)
+
+4. Testing Financial Tables RLS Policies...
+✓ PASS: Payer can see their escrow transactions (1 records)
+✓ PASS: Cross-tenant access blocked for escrow transactions
+✓ PASS: Contractor can see their payout account (1 records)
+✓ PASS: Cross-contractor access blocked for payout accounts
+
+5. Testing Authentication Tables RLS Policies...
+✓ PASS: User can see their own refresh tokens (1 records)
+✓ PASS: Cross-user access blocked for refresh tokens (CRITICAL SECURITY PASS)
+
+6. Testing User Data Tables RLS Policies...
+✓ PASS: Homeowner can see their own jobs (2 records)
+✓ PASS: Public can see open jobs (2 records)
+✓ PASS: Cross-tenant access blocked for draft jobs
+✓ PASS: Contractor can see their own bids (1 records)
+✓ PASS: Cross-contractor access blocked for bids
+✓ PASS: Sender can see their messages (1 records)
+✓ PASS: Receiver can see their messages (1 records)
+✓ PASS: Third party cannot see private messages (CRITICAL SECURITY PASS)
+
+7. Testing Admin Override Capabilities...
+✓ PASS: Admin can see all data (escrow: 1, jobs: 3, messages: 1)
+
+8. Testing System Tables RLS Policies...
+✓ PASS: Non-admin cannot see security events
+✓ INFO: Admin can see 0 security events
+
+9. Testing AI/ML Tables RLS Policies...
+✓ PASS: Non-admin cannot see retraining jobs
+
+10. Testing Edge Cases...
+✓ PASS: Unauthenticated users can see open jobs (2) but not drafts
+
+==================================
+TEST SUMMARY REPORT
+==================================
+
+All RLS policies are working correctly!
+✅ All tests PASSED
+```
+
+**If ANY test fails:**
+- ❌ **DO NOT DEPLOY to production**
+- Review the failure details
+- Check policy definitions in migration file
+- Fix the issue and re-test
+- Document the fix
+
+**Documentation:**
+- Testing Guide: `docs/RLS_TESTING_GUIDE.md`
+- Test Report Template: `docs/RLS_TEST_REPORT.md`
+- Security Findings: `docs/RLS_SECURITY_FINDINGS.md`
+- Summary: `docs/RLS_TESTING_SUMMARY.md`
+
+**Companion TypeScript Tests:**
+- Location: `apps/web/__tests__/rls-policies.test.ts`
+- Run via: `cd apps/web && npm test __tests__/rls-policies.test.ts`
+
+---
+
+### 3. **Deployment Verification** (`verify-deployment.js`)
 
 Verifies the production deployment is working correctly.
 
