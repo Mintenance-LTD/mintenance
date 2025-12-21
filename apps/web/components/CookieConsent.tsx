@@ -11,16 +11,6 @@ interface CookiePreferences {
 }
 
 export default function CookieConsent() {
-  // #region agent log
-  const log = (message: string, data?: any) => {
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CookieConsent.tsx:14',message,data:{...data,isServer:typeof window==='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  };
-  // #endregion
-
-  // #region agent log
-  log('CookieConsent render start', {});
-  // #endregion
-
   const [showBanner, setShowBanner] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -30,35 +20,19 @@ export default function CookieConsent() {
     marketing: false,
   });
 
-  // #region agent log
-  log('CookieConsent useState calls completed', { showBanner, mounted });
-  // #endregion
-
   useEffect(() => {
-    // #region agent log
-    log('CookieConsent useEffect start', {});
-    // #endregion
     setMounted(true);
     // Check if user has already made a choice
     if (typeof window !== 'undefined') {
       const cookieConsent = localStorage.getItem('mintenance_cookie_consent');
-      // #region agent log
-      log('CookieConsent localStorage check', { hasConsent: !!cookieConsent });
-      // #endregion
       if (!cookieConsent) {
         // Show banner after a short delay for better UX
         const timer = setTimeout(() => {
-          // #region agent log
-          log('CookieConsent setTimeout callback - setting showBanner', {});
-          // #endregion
           setShowBanner(true);
         }, 1000);
         return () => clearTimeout(timer);
       }
     }
-    // #region agent log
-    log('CookieConsent useEffect end', {});
-    // #endregion
   }, []);
 
   // Don't render anything until mounted to prevent hydration issues

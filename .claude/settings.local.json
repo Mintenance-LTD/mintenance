@@ -69,7 +69,8 @@
       "Bash(iconv:*)",
       "Bash(npm run test:run:*)",
       "Read(//c/Users/Djodjo.Nkouka.ERICCOLE/Downloads/**)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(comm:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import { logger } from './src/utils/logger';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { config } from './src/config/environment';
 
 // Initialize Sentry for error tracking
 import * as Sentry from '@sentry/react-native';
@@ -170,14 +172,28 @@ export default function App() {
 
   logger.debug('Rendering full app with navigation', { service: 'app' });
 
+  // Get Stripe publishable key from config
+  const stripePublishableKey = config.stripePublishableKey;
+
+  // If no Stripe key, log warning but continue (payment features won't work)
+  if (!stripePublishableKey) {
+    logger.warn('Stripe publishable key not configured - payment features will be disabled', { service: 'app' });
+  }
+
   return (
     <ErrorBoundary>
-      <QueryProvider>
-        <AuthProvider>
-          <AppNavigator />
-          <StatusBar style="auto" />
-        </AuthProvider>
-      </QueryProvider>
+      <StripeProvider
+        publishableKey={stripePublishableKey || 'pk_test_placeholder'}
+        merchantIdentifier="merchant.com.mintenance.app"
+        urlScheme="mintenance"
+      >
+        <QueryProvider>
+          <AuthProvider>
+            <AppNavigator />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </QueryProvider>
+      </StripeProvider>
     </ErrorBoundary>
   );
 }

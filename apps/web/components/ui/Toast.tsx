@@ -38,32 +38,12 @@ interface ToastProviderProps {
 }
 
 export function ToastProvider({ children }: ToastProviderProps) {
-  // #region agent log
-  const log = (message: string, data?: any) => {
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Toast.tsx:41',message,data:{...data,isServer:typeof window==='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  };
-  // #endregion
-
-  // #region agent log
-  log('ToastProvider render start', { isServer: typeof window === 'undefined' });
-  // #endregion
-
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // #region agent log
-  log('ToastProvider useState called', { toastsLength: toasts.length });
-  // #endregion
-
   useEffect(() => {
-    // #region agent log
-    log('ToastProvider useEffect - component mounted', {});
-    // #endregion
   }, []);
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    // #region agent log
-    log('showToast called', { toastType: toast.type });
-    // #endregion
     const id = `toast-${Date.now()}-${Math.random()}`;
     const newToast: Toast = { ...toast, id };
     

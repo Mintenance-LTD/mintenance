@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { isTestUser } from '@/lib/utils/userUtils';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    // Use secure admin middleware with database verification
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const searchParams = request.nextUrl.searchParams;
     const role = searchParams.get('role'); // 'contractor', 'homeowner', or null for all

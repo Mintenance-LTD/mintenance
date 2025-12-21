@@ -1,408 +1,395 @@
-/**
- * PaymentService
- * 
- * Handles Stripe payment processing, escrow, and payment management.
- * Uses unified API client for API calls, Supabase for direct database operations.
- */
-
+import { supabase } from '../lib/supabase';
 import { logger } from '../utils/logger';
-import { supabase } from '../config/supabase';
-import { mobileApiClient } from '../utils/mobileApiClient';
-import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
+import { API_BASE_URL } from '../config/environment';
 
-export interface PaymentIntent {
+interface PaymentMethod {
   id: string;
-  amount: number;
-  currency: string;
-  status: 'requires_payment_method' | 'requires_confirmation' | 'requires_action' | 'processing' | 'succeeded' | 'canceled';
-  clientSecret: string;
-  metadata: {
-    jobId?: string;
-    contractorId?: string;
-    clientId?: string;
-    description?: string;
-  };
-}
-
-export interface PaymentMethod {
-  id: string;
-  type: 'card' | 'bank_account' | 'paypal';
+  type: string;
   card?: {
     brand: string;
     last4: string;
-    expMonth: number;
-    expYear: number;
-  };
-  bankAccount?: {
-    bankName: string;
-    last4: string;
-    routingNumber: string;
+    expiryMonth: number;
+    expiryYear: number;
   };
   isDefault: boolean;
+  createdAt: string;
 }
 
-export interface EscrowPayment {
-  id: string;
-  jobId: string;
-  contractorId: string;
-  clientId: string;
-  amount: number;
-  currency: string;
-  status: 'pending' | 'held' | 'released' | 'disputed' | 'refunded';
-  paymentIntentId: string;
-  releaseConditions: string[];
-  createdAt: Date;
-  releasedAt?: Date;
-  disputeReason?: string;
+interface CreatePaymentIntentResponse {
+  clientSecret?: string;
+  error?: string;
 }
 
-export interface PaymentHistory {
-  id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  description: string;
-  type: 'payment' | 'refund' | 'escrow_release' | 'dispute';
-  jobId?: string;
-  contractorId?: string;
-  clientId?: string;
-  createdAt: Date;
-  metadata?: any;
+interface CreateSetupIntentResponse {
+  setupIntentClientSecret?: string;
+  error?: string;
 }
 
 export class PaymentService {
   /**
-   * Create a payment intent for a job
+   * Create a payment intent for a job payment
    */
   static async createPaymentIntent(
-    amount: number,
-    currency: string = 'usd',
-    metadata: PaymentIntent['metadata']
-  ): Promise<PaymentIntent> {
-    try {
-      const data = await mobileApiClient.post<PaymentIntent>('/api/payments/create-intent', {
-        amount: Math.round(amount * 100), // Convert to cents
-        currency,
-        metadata,
-      });
-      logger.info('Payment intent created', { intentId: data.id });
-      return data;
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to create payment intent', { error: apiError });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Confirm a payment intent
-   */
-  static async confirmPaymentIntent(
-    paymentIntentId: string,
-    paymentMethodId?: string
-  ): Promise<PaymentIntent> {
-    try {
-      const data = await mobileApiClient.post<PaymentIntent>('/api/payments/confirm-intent', {
-        paymentIntentId,
-        paymentMethodId,
-      });
-      logger.info('Payment intent confirmed', { intentId: paymentIntentId });
-      return data;
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to confirm payment intent', { error: apiError });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Create an escrow payment
-   */
-  static async createEscrowPayment(
     jobId: string,
-    contractorId: string,
-    clientId: string,
     amount: number,
-    currency: string = 'usd',
-    releaseConditions: string[] = []
-  ): Promise<EscrowPayment> {
+    paymentMethodId?: string
+  ): Promise<CreatePaymentIntentResponse> {
     try {
-      // Create payment intent
-      const paymentIntent = await this.createPaymentIntent(amount, currency, {
-        jobId,
-        contractorId,
-        clientId,
-        description: `Escrow payment for job ${jobId}`,
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/create-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({
+          jobId,
+          amount,
+          paymentMethodId,
+        }),
       });
 
-      // Create escrow record
-    const { data, error } = await supabase
-        .from('escrow_payments')
-        .insert({
-          job_id: jobId,
-          contractor_id: contractorId,
-          client_id: clientId,
-          amount,
-          currency,
-          status: 'pending',
-          payment_intent_id: paymentIntent.id,
-          release_conditions: releaseConditions,
-          created_at: new Date().toISOString(),
-        })
-      .select()
-      .single();
+      const data = await response.json();
 
-    if (error) throw error;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment intent');
+      }
 
-      logger.info('Escrow payment created', { escrowId: data.id });
+      return { clientSecret: data.clientSecret };
+    } catch (error) {
+      logger.error('Failed to create payment intent', { error, jobId, amount });
+      return { error: error instanceof Error ? error.message : 'Failed to create payment' };
+    }
+  }
+
+  /**
+   * Create a setup intent for adding a new payment method
+   */
+  static async createSetupIntent(): Promise<CreateSetupIntentResponse> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/create-setup-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create setup intent');
+      }
+
+      return { setupIntentClientSecret: data.clientSecret };
+    } catch (error) {
+      logger.error('Failed to create setup intent', { error });
+      return { error: error instanceof Error ? error.message : 'Failed to setup payment method' };
+    }
+  }
+
+  /**
+   * Save a payment method to the user's account
+   */
+  static async savePaymentMethod(
+    paymentMethodId: string,
+    setAsDefault: boolean = false
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/save-method`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({
+          paymentMethodId,
+          setAsDefault,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save payment method');
+      }
+
+      logger.info('Payment method saved successfully', { paymentMethodId });
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to save payment method', { error, paymentMethodId });
       return {
-        id: data.id,
-        jobId: data.job_id,
-        contractorId: data.contractor_id,
-        clientId: data.client_id,
-        amount: data.amount,
-        currency: data.currency,
-        status: data.status,
-        paymentIntentId: data.payment_intent_id,
-        releaseConditions: data.release_conditions,
-        createdAt: new Date(data.created_at),
-        releasedAt: data.released_at ? new Date(data.released_at) : undefined,
-        disputeReason: data.dispute_reason,
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to save payment method',
+      };
+    }
+  }
+
+  /**
+   * Get user's saved payment methods
+   */
+  static async getPaymentMethods(): Promise<{
+    methods?: PaymentMethod[];
+    error?: string;
+  }> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/methods`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch payment methods');
+      }
+
+      return { methods: data.methods };
+    } catch (error) {
+      logger.error('Failed to fetch payment methods', { error });
+      return { error: error instanceof Error ? error.message : 'Failed to fetch payment methods' };
+    }
+  }
+
+  /**
+   * Delete a payment method
+   */
+  static async deletePaymentMethod(
+    paymentMethodId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/methods/${paymentMethodId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete payment method');
+      }
+
+      logger.info('Payment method deleted successfully', { paymentMethodId });
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to delete payment method', { error, paymentMethodId });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete payment method',
+      };
+    }
+  }
+
+  /**
+   * Set a payment method as default
+   */
+  static async setDefaultPaymentMethod(
+    paymentMethodId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/methods/${paymentMethodId}/default`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to set default payment method');
+      }
+
+      logger.info('Default payment method updated', { paymentMethodId });
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to set default payment method', { error, paymentMethodId });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to set default payment method',
+      };
+    }
+  }
+
+  /**
+   * Process a payment for a job (with 3D Secure support)
+   */
+  static async processJobPayment(
+    jobId: string,
+    amount: number,
+    paymentMethodId: string,
+    saveForFuture: boolean = false
+  ): Promise<{
+    success: boolean;
+    paymentIntentId?: string;
+    requiresAction?: boolean;
+    clientSecret?: string;
+    error?: string;
+  }> {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/process-job-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({
+          jobId,
+          amount,
+          paymentMethodId,
+          saveForFuture,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process payment');
+      }
+
+      // Check if 3D Secure is required
+      if (data.requiresAction) {
+        logger.info('Payment requires 3D Secure authentication', { jobId });
+        return {
+          success: false,
+          requiresAction: true,
+          clientSecret: data.clientSecret,
+          paymentIntentId: data.paymentIntentId,
+        };
+      }
+
+      logger.info('Payment processed successfully', { jobId, amount });
+      return {
+        success: true,
+        paymentIntentId: data.paymentIntentId,
       };
     } catch (error) {
-      logger.error('Failed to create escrow payment', error);
-      throw error;
+      logger.error('Failed to process job payment', { error, jobId, amount });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to process payment',
+      };
     }
   }
 
   /**
-   * Release escrow payment
-   */
-  static async releaseEscrowPayment(
-    escrowId: string,
-    reason: string = 'Job completed successfully'
-  ): Promise<void> {
-    try {
-      // Get escrow payment (Supabase direct call - appropriate)
-      const { data: escrowData, error: fetchError } = await supabase
-        .from('escrow_payments')
-        .select('*')
-        .eq('id', escrowId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Release payment via Stripe API (use unified client)
-      await mobileApiClient.post('/api/payments/release-escrow', {
-        escrowId,
-        reason,
-      });
-
-      // Update escrow status (Supabase direct call - appropriate)
-      const { error: updateError } = await supabase
-        .from('escrow_payments')
-        .update({
-          status: 'released',
-          released_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowId);
-
-      if (updateError) throw updateError;
-
-      logger.info('Escrow payment released', { escrowId });
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to release escrow payment', { error: apiError, escrowId });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Dispute escrow payment
-   */
-  static async disputeEscrowPayment(
-    escrowId: string,
-    reason: string
-  ): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('escrow_payments')
-      .update({
-          status: 'disputed',
-          dispute_reason: reason,
-        updated_at: new Date().toISOString(),
-      })
-        .eq('id', escrowId);
-
-      if (error) throw error;
-
-      logger.info('Escrow payment disputed', { escrowId, reason });
-    } catch (error) {
-      logger.error('Failed to dispute escrow payment', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Refund payment
-   */
-  static async refundPayment(
-    paymentIntentId: string,
-    amount?: number,
-    reason?: string
-  ): Promise<void> {
-    try {
-      await mobileApiClient.post('/api/payments/refund', {
-        paymentIntentId,
-        amount: amount ? Math.round(amount * 100) : undefined,
-        reason,
-      });
-      logger.info('Payment refunded', { paymentIntentId, amount, reason });
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to refund payment', { error: apiError, paymentIntentId });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Get user's payment methods
-   */
-  static async getPaymentMethods(userId: string): Promise<PaymentMethod[]> {
-    try {
-      const data = await mobileApiClient.get<{ paymentMethods: PaymentMethod[] }>(`/api/payments/methods?userId=${userId}`);
-      return data.paymentMethods;
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to get payment methods', { error: apiError, userId });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Add payment method
-   */
-  static async addPaymentMethod(
-    userId: string,
-    paymentMethodId: string,
-    isDefault: boolean = false
-  ): Promise<PaymentMethod> {
-    try {
-      const data = await mobileApiClient.post<{ paymentMethod: PaymentMethod }>('/api/payments/add-method', {
-        userId,
-        paymentMethodId,
-        isDefault,
-      });
-      logger.info('Payment method added', { userId, paymentMethodId });
-      return data.paymentMethod;
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to add payment method', { error: apiError, userId });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Remove payment method
-   */
-  static async removePaymentMethod(paymentMethodId: string): Promise<void> {
-    try {
-      await mobileApiClient.post('/api/payments/remove-method', {
-        paymentMethodId,
-      });
-      logger.info('Payment method removed', { paymentMethodId });
-    } catch (error) {
-      const apiError = parseError(error);
-      logger.error('Failed to remove payment method', { error: apiError, paymentMethodId });
-      throw new Error(getUserFriendlyMessage(apiError));
-    }
-  }
-
-  /**
-   * Get payment history
+   * Get payment history for a user
    */
   static async getPaymentHistory(
-    userId: string,
-    limit: number = 50,
+    limit: number = 20,
     offset: number = 0
-  ): Promise<PaymentHistory[]> {
+  ): Promise<{
+    payments?: any[];
+    total?: number;
+    error?: string;
+  }> {
     try {
-      const { data, error } = await supabase
-        .from('payment_history')
-        .select('*')
-        .or(`contractor_id.eq.${userId},client_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
 
-    if (error) throw error;
+      const response = await fetch(
+        `${API_BASE_URL}/api/payments/history?limit=${limit}&offset=${offset}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+          },
+        }
+      );
 
-      return data.map((item: any) => ({
-        id: item.id,
-        amount: item.amount,
-        currency: item.currency,
-        status: item.status,
-        description: item.description,
-        type: item.type,
-        jobId: item.job_id,
-        contractorId: item.contractor_id,
-        clientId: item.client_id,
-        createdAt: new Date(item.created_at),
-        metadata: item.metadata,
-      }));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch payment history');
+      }
+
+      return {
+        payments: data.payments,
+        total: data.total,
+      };
     } catch (error) {
-      logger.error('Failed to get payment history', error);
-      throw error;
+      logger.error('Failed to fetch payment history', { error });
+      return { error: error instanceof Error ? error.message : 'Failed to fetch payment history' };
     }
   }
 
   /**
-   * Get escrow payments for a job
+   * Request a refund for a payment
    */
-  static async getJobEscrowPayments(jobId: string): Promise<EscrowPayment[]> {
+  static async requestRefund(
+    paymentId: string,
+    reason: string
+  ): Promise<{ success: boolean; refundId?: string; error?: string }> {
     try {
-    const { data, error } = await supabase
-        .from('escrow_payments')
-      .select('*')
-        .eq('job_id', jobId)
-        .order('created_at', { ascending: false });
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Not authenticated');
+      }
 
-      if (error) throw error;
+      const response = await fetch(`${API_BASE_URL}/api/payments/${paymentId}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
 
-      return data.map((item: any) => ({
-        id: item.id,
-        jobId: item.job_id,
-        contractorId: item.contractor_id,
-        clientId: item.client_id,
-        amount: item.amount,
-        currency: item.currency,
-        status: item.status,
-        paymentIntentId: item.payment_intent_id,
-        releaseConditions: item.release_conditions,
-        createdAt: new Date(item.created_at),
-        releasedAt: item.released_at ? new Date(item.released_at) : undefined,
-        disputeReason: item.dispute_reason,
-      }));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to request refund');
+      }
+
+      logger.info('Refund requested successfully', { paymentId, refundId: data.refundId });
+      return {
+        success: true,
+        refundId: data.refundId,
+      };
     } catch (error) {
-      logger.error('Failed to get job escrow payments', error);
-      throw error;
+      logger.error('Failed to request refund', { error, paymentId });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to request refund',
+      };
     }
-  }
-
-  /**
-   * Calculate platform fee
-   */
-  static calculatePlatformFee(amount: number): number {
-    const platformFeeRate = 0.029; // 2.9%
-    const fixedFee = 0.30; // $0.30
-    return Math.round((amount * platformFeeRate + fixedFee) * 100) / 100;
-  }
-
-  /**
-   * Calculate contractor payout
-   */
-  static calculateContractorPayout(amount: number): number {
-    const platformFee = this.calculatePlatformFee(amount);
-    return Math.round((amount - platformFee) * 100) / 100;
   }
 }

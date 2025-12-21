@@ -92,22 +92,25 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
   const youWillReceive = totalAmount - platformFee;
 
   // Update amount when line items change (only in advanced mode with line items)
-  // This prevents infinite loops by only updating when we have line items
+  // FIX: Removed 'amount' from dependency array to prevent infinite loop
+  // The effect already checks if amount !== newAmount before updating,
+  // so including 'amount' as a dependency would cause the effect to re-run
+  // every time it updates 'amount', creating an infinite loop.
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:88', message: 'useEffect triggered for amount update', data: { lineItemsLength: lineItems.length, subtotal, totalAmount, currentAmount: amount, shouldUpdate: lineItems.length > 0 && subtotal > 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-    // #endregion
-    
     // Only auto-update amount when using advanced mode with line items
     // This prevents conflicts between manual amount input and line item calculations
     if (lineItems.length > 0 && subtotal > 0) {
       const newAmount = totalAmount.toFixed(2);
       // Only update if different to avoid unnecessary re-renders
+      // Note: We can safely read 'amount' here without including it in deps
+      // because we're only using it for comparison, not deriving state from it
       if (amount !== newAmount) {
         setAmount(newAmount);
       }
     }
-  }, [totalAmount, lineItems.length, subtotal, amount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally excluding 'amount' from deps to prevent infinite loop
+  }, [totalAmount, lineItems.length, subtotal]);
 
   const addLineItem = () => {
     setLineItems([
@@ -133,16 +136,9 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
     const newLineItems = lineItems.filter((item) => item.id !== id);
     setLineItems(newLineItems);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:127', message: 'Line item removed', data: { removedId: id, remainingCount: newLineItems.length, willSwitchToAmount: newLineItems.length === 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-    // #endregion
-
     // When all line items are removed, reset to manual amount input mode
     if (newLineItems.length === 0 && amount && parseFloat(amount) > 0) {
       // Keep the current amount but don't change it - user can edit manually
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:134', message: 'All line items removed, keeping manual amount', data: { currentAmount: amount }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-      // #endregion
     }
   };
 
@@ -193,82 +189,28 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
   };
 
   const handleSubmit = async () => {
-    // #region agent log
-    console.log('[BID_SUBMIT] handleSubmit called - FUNCTION START', { 
-      amount, 
-      descriptionLength: description?.length,
-      estimatedDuration, 
-      proposedStartDate, 
-      submitting,
-      totalAmount,
-      subtotal,
-      taxAmount,
-      jobBudget: job.budget,
-      timestamp: new Date().toISOString()
-    });
-    try {
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:143', message: 'handleSubmit called', data: { amount, descriptionLength: description?.length, estimatedDuration, proposedStartDate, submitting, totalAmount, subtotal, taxAmount, jobBudget: job.budget }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'button-debug', hypothesisId: 'A' }) }).catch(() => {});
-    } catch (logErr) {
-      console.error('[BID_SUBMIT] Log fetch error:', logErr);
-    }
-    // #endregion
-    
-    console.log('[BID_SUBMIT] Starting validation checks...', { amount, description: description?.substring(0, 50) });
-    
     if (!amount || !description) {
-      // #region agent log
-      console.error('[BID_SUBMIT] ❌ Validation failed: missing amount or description', { hasAmount: !!amount, hasDescription: !!description, amount, descriptionLength: description?.length });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:155', message: 'Validation failed: missing fields', data: { hasAmount: !!amount, hasDescription: !!description }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'button-debug', hypothesisId: 'B' }) }).catch(() => {});
-      } catch {}
-      // #endregion
       toast.error('Please provide a bid amount and proposal description');
       return;
     }
-    
-    console.log('[BID_SUBMIT] ✅ Amount and description check passed');
 
     const bidAmount = parseFloat(amount);
     if (isNaN(bidAmount) || bidAmount <= 0) {
-      // #region agent log
-      console.log('[BID_SUBMIT] Validation failed: invalid bid amount', { amount, bidAmount, isNaN: isNaN(bidAmount), isPositive: bidAmount > 0 });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:152', message: 'Validation failed: invalid amount', data: { amount, bidAmount, isNaN: isNaN(bidAmount), isPositive: bidAmount > 0 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-      } catch {}
-      // #endregion
       toast.error('Please enter a valid bid amount');
       return;
     }
 
     if (description.trim().length < 50) {
-      // #region agent log
-      console.log('[BID_SUBMIT] Validation failed: description too short', { length: description.trim().length });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:158', message: 'Validation failed: description too short', data: { length: description.trim().length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-      } catch {}
-      // #endregion
       toast.error(`Proposal must be at least 50 characters (currently ${description.trim().length})`);
       return;
     }
 
     if (!estimatedDuration || typeof estimatedDuration !== 'number' || estimatedDuration < 1) {
-      // #region agent log
-      console.log('[BID_SUBMIT] Validation failed: invalid duration', { estimatedDuration, type: typeof estimatedDuration });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:163', message: 'Validation failed: invalid duration', data: { estimatedDuration, type: typeof estimatedDuration }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-      } catch {}
-      // #endregion
       toast.error('Please enter a valid estimated duration (at least 1 day)');
       return;
     }
 
     if (!proposedStartDate) {
-      // #region agent log
-      console.log('[BID_SUBMIT] Validation failed: missing start date', { proposedStartDate });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:168', message: 'Validation failed: missing start date', data: { proposedStartDate }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-      } catch {}
-      // #endregion
       toast.error('Please select a proposed start date');
       return;
     }
@@ -277,18 +219,11 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
     if (job.budget) {
       const jobBudget = parseFloat(job.budget);
       if (!isNaN(jobBudget) && totalAmount > jobBudget) {
-        // #region agent log
-        console.log('[BID_SUBMIT] Validation failed: bid exceeds budget', { totalAmount, jobBudget });
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:177', message: 'Validation failed: bid exceeds budget', data: { totalAmount, jobBudget, difference: totalAmount - jobBudget, hasLineItems: lineItems.length > 0, taxAmount }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-        } catch {}
-        // #endregion
-        
         const excess = totalAmount - jobBudget;
         const maxBaseAmount = taxRate > 0 ? (jobBudget / (1 + taxRate / 100)).toFixed(2) : jobBudget.toFixed(2);
-        
+
         let errorMsg = `❌ Your total bid amount (£${totalAmount.toFixed(2)}) exceeds the job budget (£${jobBudget.toFixed(2)}) by £${excess.toFixed(2)}.`;
-        
+
         if (taxAmount > 0) {
           errorMsg += `\n\nThis includes ${taxRate}% tax (£${taxAmount.toFixed(2)}).`;
           errorMsg += `\n💡 Maximum base amount (before tax): £${maxBaseAmount}`;
@@ -297,54 +232,24 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
           errorMsg += `\n\nThis includes ${lineItems.length} line item(s).`;
         }
         errorMsg += `\n\nPlease adjust your bid amount to stay within the budget.`;
-        
-        // Show a prominent error toast
-        toast.error(errorMsg, { 
-          duration: 10000, // 10 seconds
+
+        toast.error(errorMsg, {
+          duration: 10000,
           style: {
             maxWidth: '500px',
-            whiteSpace: 'pre-line', // Allow line breaks
+            whiteSpace: 'pre-line',
             fontSize: '14px',
             padding: '16px',
           },
           icon: '⚠️',
         });
-        
-        // Also log to console for debugging
-        console.error('[BID_SUBMIT] ❌ Budget validation failed!');
-        console.error('  Total Bid Amount: £' + totalAmount.toFixed(2));
-        console.error('  Job Budget: £' + jobBudget.toFixed(2));
-        console.error('  Excess Amount: £' + excess.toFixed(2));
-        console.error('  Line Items Count:', lineItems.length);
-        console.error('  Tax Amount: £' + taxAmount.toFixed(2));
-        console.error('  Tax Rate:', taxRate + '%');
-        
+
         return;
       }
     }
 
-    console.log('[BID_SUBMIT] ✅ All validations passed, proceeding with submission');
-    console.log('[BID_SUBMIT] Submission data:', {
-      jobId: job.id,
-      totalAmount,
-      subtotal,
-      taxAmount,
-      taxRate,
-      bidAmount: parseFloat(amount),
-      proposalTextLength: description.trim().length,
-      estimatedDuration,
-      proposedStartDate,
-      lineItemsCount: lineItems.length,
-      jobBudget: job.budget,
-    });
-
     try {
       setSubmitting(true);
-      console.log('[BID_SUBMIT] setSubmitting(true) called');
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:269', message: 'Bid submission starting - all validations passed', data: { jobId: job.id, bidAmount: totalAmount, descriptionLength: description.trim().length, estimatedDuration, proposedStartDate, lineItemsCount: lineItems.length, subtotal, taxAmount, totalAmount, jobBudget: job.budget }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'D' }) }).catch(() => {});
-      // #endregion
 
       const quoteData = {
         lineItems: lineItems.length > 0 ? lineItems.map(({ description, quantity, unitPrice, total }) => ({
@@ -361,17 +266,17 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
       };
 
       const csrfHeaders = await getCsrfHeaders();
-      
+
       // Ensure estimatedDuration is a number
-      const durationValue = estimatedDuration !== '' && typeof estimatedDuration === 'number' 
-        ? estimatedDuration 
+      const durationValue = estimatedDuration !== '' && typeof estimatedDuration === 'number'
+        ? estimatedDuration
         : undefined;
-      
+
       // Ensure proposedStartDate is a valid string
-      const startDateValue = proposedStartDate && proposedStartDate.trim() !== '' 
-        ? proposedStartDate.trim() 
+      const startDateValue = proposedStartDate && proposedStartDate.trim() !== ''
+        ? proposedStartDate.trim()
         : undefined;
-      
+
       const requestPayload = {
         jobId: job.id,
         bidAmount: totalAmount,
@@ -380,35 +285,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
         ...(durationValue !== undefined && { estimatedDuration: durationValue }),
         ...(startDateValue !== undefined && { proposedStartDate: startDateValue }),
       };
-      
-      // #region agent log
-      console.log('[BID_SUBMIT] Request payload prepared', { 
-        jobId: requestPayload.jobId, 
-        bidAmount: requestPayload.bidAmount, 
-        proposalTextLength: requestPayload.proposalText.length,
-        estimatedDuration: requestPayload.estimatedDuration,
-        proposedStartDate: requestPayload.proposedStartDate,
-        hasLineItems: !!requestPayload.lineItems,
-        lineItemsCount: requestPayload.lineItems?.length || 0,
-      });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:249', message: 'Request payload prepared', data: { jobId: requestPayload.jobId, bidAmount: requestPayload.bidAmount, proposalTextLength: requestPayload.proposalText.length, estimatedDuration: requestPayload.estimatedDuration, proposedStartDate: requestPayload.proposedStartDate, hasLineItems: !!requestPayload.lineItems }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'D' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
-      // #region agent log
-      console.log('[BID_SUBMIT] Making API request to /api/contractor/submit-bid', {
-        url: '/api/contractor/submit-bid',
-        method: 'POST',
-        hasCsrfHeaders: !!csrfHeaders,
-        requestPayloadKeys: Object.keys(requestPayload),
-      });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:325', message: 'Making API request', data: { url: '/api/contractor/submit-bid', method: 'POST', hasCsrfHeaders: !!csrfHeaders, requestPayloadKeys: Object.keys(requestPayload) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'D' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
-      console.log('[BID_SUBMIT] Fetch call starting...');
+
       const response = await fetch('/api/contractor/submit-bid', {
         method: 'POST',
         headers: {
@@ -418,48 +295,16 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
         body: JSON.stringify(requestPayload),
       });
       
-      console.log('[BID_SUBMIT] ✅ API response received', { 
-        status: response.status, 
-        statusText: response.statusText, 
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:340', message: 'API response received', data: { status: response.status, statusText: response.statusText, ok: response.ok }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'E' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
       if (!response.ok) {
-        console.error('[BID_SUBMIT] ❌ API returned non-OK status:', response.status, response.statusText);
         let errorData;
         try {
           errorData = await response.json();
-          // Log full error response including debug info if available
-          console.error('[BID_SUBMIT] 🔍 Full error response:', JSON.stringify(errorData, null, 2));
-          if (errorData.debug) {
-            console.error('[BID_SUBMIT] 🔍 Database error debug info:', errorData.debug);
-            console.error('[BID_SUBMIT] 🔍 Error code:', errorData.debug.code);
-            console.error('[BID_SUBMIT] 🔍 Error message:', errorData.debug.message);
-            console.error('[BID_SUBMIT] 🔍 Error details:', errorData.debug.details);
-            console.error('[BID_SUBMIT] 🔍 Error hint:', errorData.debug.hint);
-          }
         } catch (jsonError) {
-          // If response is not JSON, use status text
-          console.error('[BID_SUBMIT] Failed to parse error response as JSON:', jsonError);
           throw new Error(`Failed to submit bid: ${response.statusText || 'Unknown error'}`);
         }
-        
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:392', message: 'API error response - full details with debug', data: { status: response.status, error: errorData.error, details: errorData.details, debug: errorData.debug, fullErrorData: errorData }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-schema-fix', hypothesisId: 'E' }) }).catch(() => {});
-        } catch {}
-        // #endregion
-        
-        // Provide detailed error message to user
+
         let errorMessage = errorData.error || errorData.errorMessages?.[0] || 'Failed to submit bid';
-        
+
         // Enhance budget-related error messages
         if (errorMessage.includes('cannot exceed job budget') || errorMessage.includes('exceeds job budget')) {
           const excessMatch = errorMessage.match(/£(\d+\.?\d*).*£(\d+\.?\d*)/);
@@ -475,84 +320,28 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
             }
           }
         }
-        
-        // #region agent log
-        console.log('[BID_SUBMIT] API error - throwing error with message', { errorMessage, originalError: errorData.error });
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:305', message: 'API error - enhanced error message', data: { errorMessage, originalError: errorData.error, details: errorData.details }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'E' }) }).catch(() => {});
-        } catch {}
-        // #endregion
-        
+
         throw new Error(errorMessage);
       }
 
-      console.log('[BID_SUBMIT] ✅ Response is OK, parsing JSON...');
       const data = await response.json();
-      console.log('[BID_SUBMIT] ✅ Success response parsed:', { 
-        message: data.message, 
-        bidId: data.bid?.id,
-        hasBid: !!data.bid 
-      });
-      
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:427', message: 'Bid submitted successfully', data: { message: data.message, bidId: data.bid?.id }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'F' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
-      console.log('[BID_SUBMIT] Showing success toast...');
       toast.success(data.message || 'Bid submitted successfully!');
-      console.log('[BID_SUBMIT] Success toast shown');
-      
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:443', message: 'Scheduling redirect', data: { redirectPath: '/contractor/bid', delay: 1200 }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'F' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
-      console.log('[BID_SUBMIT] Setting timeout for redirect...');
+
       setTimeout(() => {
-        console.log('[BID_SUBMIT] Executing redirect to /contractor/bid');
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:452', message: 'Executing redirect', data: { redirectPath: '/contractor/bid' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'post-budget-fix', hypothesisId: 'F' }) }).catch(() => {});
-        } catch {}
-        // #endregion
         router.push('/contractor/bid');
       }, 1200);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit bid';
-      
-      // #region agent log
-      console.error('[BID_SUBMIT] Error caught', { error, errorMessage });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:270', message: 'Bid submission error', data: { errorMessage, errorType: error instanceof Error ? error.constructor.name : typeof error, errorStack: error instanceof Error ? error.stack : undefined }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'E' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-      
-      // Show error toast with longer duration for important errors
+
       const isBudgetError = errorMessage.includes('exceeds') || errorMessage.includes('budget');
-      toast.error(errorMessage, { 
+      toast.error(errorMessage, {
         duration: isBudgetError ? 8000 : 5000,
         style: {
           maxWidth: '500px',
         },
       });
-      
-      // #region agent log
-      console.log('[BID_SUBMIT] Error toast shown', { errorMessage, isBudgetError });
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:365', message: 'Error toast displayed', data: { errorMessage, isBudgetError }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'E' }) }).catch(() => {});
-      } catch {}
-      // #endregion
     } finally {
       setSubmitting(false);
-      // #region agent log
-      console.log('[BID_SUBMIT] handleSubmit completed, setSubmitting(false) called');
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:276', message: 'handleSubmit finished', data: { submittingNow: false }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'G' }) }).catch(() => {});
-      } catch {}
-      // #endregion
     }
   };
 
@@ -699,12 +488,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                 <div className="flex items-center justify-between pb-4 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900">Your Quote</h2>
                   <button
-                    onClick={() => {
-                      // #region agent log
-                      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx:403', message: 'Toggle quote mode', data: { currentMode: showAdvanced ? 'advanced' : 'simple', newMode: showAdvanced ? 'simple' : 'advanced', lineItemsCount: lineItems.length, currentAmount: amount }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'C' }) }).catch(() => {});
-                      // #endregion
-                      setShowAdvanced(!showAdvanced);
-                    }}
+                    onClick={() => setShowAdvanced(!showAdvanced)}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-200 transition-all flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

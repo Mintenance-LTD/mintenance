@@ -254,14 +254,8 @@ export class RealAIAnalysisService {
       }
 
       const data = await response.json();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RealAIAnalysisService.ts:140',message:'OpenAI response structure check',data:{hasData:!!data,hasChoices:!!data.choices,choicesIsArray:Array.isArray(data.choices),choicesLength:data.choices?.length,hasFirstChoice:!!data.choices?.[0],hasMessage:!!data.choices?.[0]?.message,hasContent:!!data.choices?.[0]?.message?.content},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       const content = data.choices?.[0]?.message?.content;
       if (!content) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RealAIAnalysisService.ts:145',message:'Missing content in OpenAI response',data:{dataKeys:Object.keys(data||{}),choicesType:typeof data.choices,choicesValue:data.choices},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         throw new Error('OpenAI API returned empty or invalid response');
       }
 

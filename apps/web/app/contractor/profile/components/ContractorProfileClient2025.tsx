@@ -113,9 +113,10 @@ export function ContractorProfileClient2025({
   const [showAddSkillModal, setShowAddSkillModal] = useState(false);
   const [showAddPortfolioModal, setShowAddPortfolioModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentSkills, setCurrentSkills] = useState(skills);
   const coverPhotoRef = useRef<HTMLInputElement>(null);
   const profilePhotoRef = useRef<HTMLInputElement>(null);
-  
+
   // Form state for profile editing
   const [formData, setFormData] = useState({
     first_name: contractor.first_name || '',
@@ -191,85 +192,11 @@ export function ContractorProfileClient2025({
       formDataToSend.append('companyName', (formData.company_name || '').trim());
       const bioValue = (formData.bio || '').trim();
       formDataToSend.append('bio', bioValue);
-
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'contractor/profile/components/ContractorProfileClient2025.tsx:175',
-            message: 'Bio value being sent',
-            data: {
-              bioValue,
-              bioLength: bioValue.length,
-              originalBio: contractor.bio,
-              formDataBio: formData.bio,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'F',
-          }),
-        }).catch(() => {});
-      } catch {}
-      // #endregion
       formDataToSend.append('city', (contractor.city || '').trim());
       formDataToSend.append('country', (contractor.country || '').trim());
       const phoneValue = (contractor.phone || '').trim();
       formDataToSend.append('phone', phoneValue);
-
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'contractor/profile/components/ContractorProfileClient2025.tsx:165',
-            message: 'Phone value being sent',
-            data: {
-              phoneValue,
-              phoneLength: phoneValue.length,
-              hasPhone: !!phoneValue,
-              originalPhone: contractor.phone,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'E',
-          }),
-        }).catch(() => {});
-      } catch {}
-      // #endregion
       formDataToSend.append('isAvailable', 'true');
-
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'contractor/profile/components/ContractorProfileClient2025.tsx:152',
-            message: 'Sending profile update',
-            data: {
-              firstName: formData.first_name,
-              lastName: formData.last_name,
-              companyName: formData.company_name,
-              bio: formData.bio,
-              city: contractor.city,
-              country: contractor.country,
-              phone: contractor.phone,
-              firstNameLength: formData.first_name?.length || 0,
-              lastNameLength: formData.last_name?.length || 0,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'A',
-          }),
-        }).catch(() => {});
-      } catch {}
-      // #endregion
 
       const response = await fetch('/api/contractor/update-profile', {
         method: 'POST',
@@ -280,52 +207,7 @@ export function ContractorProfileClient2025({
         body: formDataToSend,
       });
 
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'contractor/profile/components/ContractorProfileClient2025.tsx:180',
-            message: 'Profile update response',
-            data: {
-              status: response.status,
-              statusText: response.statusText,
-              ok: response.ok,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'A',
-          }),
-        }).catch(() => {});
-      } catch {}
-      // #endregion
-
       const data = await response.json();
-
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'contractor/profile/components/ContractorProfileClient2025.tsx:195',
-            message: 'Profile update response data',
-            data: {
-              success: data.success,
-              error: data.error,
-              details: data.details,
-              hasValidationErrors: !!data.details,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'A',
-          }),
-        }).catch(() => {});
-      } catch {}
-      // #endregion
 
       if (!response.ok) {
         let errorMessage = data.error || 'Failed to update profile';

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { validateImageUpload, MAX_FILE_SIZES } from '@/lib/utils/fileValidation';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,9 +11,7 @@ const supabase = createClient(
 );
 
 // File upload security configuration
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = MAX_FILE_SIZES.jobPhoto; // 10MB with magic number validation
 const MAX_FILES = 10; // Maximum 10 photos per job
 
 /**
@@ -80,30 +79,36 @@ export async function POST(request: NextRequest) {
     const failedFiles: string[] = [];
 
     for (const file of photoFiles) {
-      // File size validation
-      if (file.size > MAX_FILE_SIZE) {
+      // SECURITY: Validate file using magic number (actual file content)
+      // This prevents malicious files disguised as images
+      const validation = await validateImageUpload(file, MAX_FILE_SIZE);
+
+      if (!validation.valid) {
+        logger.warn('[SECURITY] File upload blocked', {
+          fileName: file.name,
+          declaredType: file.type,
+          error: validation.error,
+          userId: user.id,
+        });
+
         return NextResponse.json(
-          { error: 'Each photo must be less than 5MB' },
+          { error: validation.error || 'Invalid file' },
           { status: 400 }
         );
       }
 
-      // File type validation - MIME type
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        return NextResponse.json(
-          { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.' },
-          { status: 400 }
-        );
+      // Log warnings if MIME type or extension mismatch detected
+      if (validation.warnings && validation.warnings.length > 0) {
+        logger.warn('[SECURITY] File validation warnings', {
+          fileName: file.name,
+          warnings: validation.warnings,
+          detectedType: validation.detectedType,
+          userId: user.id,
+        });
       }
 
-      // File extension validation
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        return NextResponse.json(
-          { error: 'Invalid file extension. Only jpg, jpeg, png, webp, and gif are allowed.' },
-          { status: 400 }
-        );
-      }
+      // Get file extension from detected type (not from filename!)
+      const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
 
       // SECURITY: Sanitize filename to prevent path traversal attacks
       // Remove any path separators, special characters, and ensure safe filename

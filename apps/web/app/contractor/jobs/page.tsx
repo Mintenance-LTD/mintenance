@@ -104,48 +104,7 @@ export default function ContractorJobsPage2025() {
             break;
         }
 
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'contractor/jobs/page.tsx:107',
-              message: 'Fetching jobs',
-              data: { endpoint, filter, categoryFilter, userId: user?.id },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'A',
-            }),
-          }).catch(() => {});
-        } catch {}
-        // #endregion
-
         const response = await fetch(endpoint);
-
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'contractor/jobs/page.tsx:130',
-              message: 'Response received',
-              data: {
-                endpoint,
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok,
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'A',
-            }),
-          }).catch(() => {});
-        } catch {}
-        // #endregion
         
         if (!response.ok) {
           let errorMessage = 'Failed to fetch jobs';
@@ -160,32 +119,6 @@ export default function ContractorJobsPage2025() {
         }
 
         const data = await response.json();
-
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              location: 'contractor/jobs/page.tsx:145',
-              message: 'Data parsed',
-              data: {
-                filter,
-                hasViews: !!data.views,
-                hasSavedJobs: !!data.savedJobs,
-                hasJobs: !!data.jobs,
-                viewsCount: data.views?.length || 0,
-                savedJobsCount: data.savedJobs?.length || 0,
-                jobsCount: data.jobs?.length || 0,
-              },
-              timestamp: Date.now(),
-              sessionId: 'debug-session',
-              runId: 'run1',
-              hypothesisId: 'A',
-            }),
-          }).catch(() => {});
-        } catch {}
-        // #endregion
 
         interface JobApiResponse {
           id: string;

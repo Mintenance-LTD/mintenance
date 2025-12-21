@@ -78,13 +78,7 @@ const { query, filters, limit = 20 } = await request.json();
     let contractorResults: SearchResult[] = [];
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/ai/search/route.ts:38',message:'API URL configuration check',data:{hasNextPublicApiUrl:!!process.env.NEXT_PUBLIC_API_URL,nextPublicApiUrl:process.env.NEXT_PUBLIC_API_URL,willUseFallback:!process.env.NEXT_PUBLIC_API_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/ai/search/route.ts:41',message:'Final API URL being used',data:{apiBaseUrl,embeddingUrl:`${apiBaseUrl}/api/ai/generate-embedding`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
 
       // Add timeout protection to embedding generation
       const controller = new AbortController();

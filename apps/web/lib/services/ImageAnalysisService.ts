@@ -179,10 +179,6 @@ export class ImageAnalysisService {
       const imageResults = await Promise.all(
         validatedImageUrls.map(async (imageUrl) => {
           try {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ImageAnalysisService.ts:179',message:'Image URL format check for Google Vision',data:{imageUrl,isHttpUrl:imageUrl.startsWith('http://')||imageUrl.startsWith('https://'),isGcsUrl:imageUrl.startsWith('gs://'),isDataUrl:imageUrl.startsWith('data:')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
-
             // Process all three API calls in parallel for this image
             const [labelResult, objectResult, textResult] = await Promise.all([
               // Label Detection with timeout and error handling

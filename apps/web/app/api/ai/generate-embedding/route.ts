@@ -80,10 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api/ai/generate-embedding/route.ts:45',message:'Generating embedding with OpenAI',data:{hasOpenAIKey:!!process.env.OPENAI_API_KEY,usingMock:false,model,textLength:text.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-
     // Call OpenAI API with timeout and retry logic
     const timeoutMs = 30000; // 30 seconds
     const controller = new AbortController();

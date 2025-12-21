@@ -9,13 +9,6 @@ import type { Job } from '@mintenance/types';
 /**
  * Configure React Query client with production-ready settings
  */
-// #region agent log
-if (typeof window !== 'undefined') {
-  fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'react-query-client.ts:12',message:'queryClient instantiated on client',data:{isServer:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-} else {
-  fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'react-query-client.ts:12',message:'queryClient instantiated on SERVER',data:{isServer:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-}
-// #endregion
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

@@ -22,31 +22,7 @@ export async function POST(
     const paramsResolved = await params;
     jobId = paramsResolved.id;
     bidId = paramsResolved.bidId;
-    
-    // #region agent log
-    try {
-      const logData = {
-        location: 'accept/route.ts:24',
-        message: 'Accept bid - params received',
-        data: {
-          jobId,
-          bidId,
-          paramsKeys: Object.keys(paramsResolved),
-          paramsFull: paramsResolved,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
-    
+
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
@@ -97,70 +73,12 @@ export async function POST(
     }
 
     // Verify the bid exists and belongs to this job
-    // #region agent log
-    try {
-      const logData = {
-        location: 'accept/route.ts:95',
-        message: 'Accept bid - querying database',
-        data: {
-          bidId,
-          jobId,
-          queryingBid: true,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
-    
     const { data: bid, error: bidError } = await serverSupabase
       .from('bids')
       .select('id, job_id, contractor_id, status, amount')
       .eq('id', bidId)
       .eq('job_id', jobId)
       .single();
-
-    // #region agent log
-    try {
-      const logData = {
-        location: 'accept/route.ts:110',
-        message: 'Accept bid - database query result',
-        data: {
-          bidId,
-          jobId,
-          bidFound: !!bid,
-          bidError: bidError ? {
-            message: bidError.message,
-            code: bidError.code,
-            details: bidError.details,
-            hint: bidError.hint,
-          } : null,
-          bidData: bid ? {
-            id: bid.id,
-            job_id: bid.job_id,
-            contractor_id: bid.contractor_id,
-            status: bid.status,
-          } : null,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
 
     if (bidError || !bid) {
       logger.error('Failed to fetch bid', bidError, {

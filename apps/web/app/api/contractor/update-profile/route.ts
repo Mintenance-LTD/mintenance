@@ -226,37 +226,6 @@ export async function POST(request: NextRequest) {
 
     // Parse form data
     const formData = await request.formData();
-    
-    // #region agent log
-    try {
-      const logData = {
-        location: 'api/contractor/update-profile/route.ts:141',
-        message: 'Parsing form data',
-        data: {
-          hasFirstName: formData.has('firstName'),
-          hasLastName: formData.has('lastName'),
-          hasBio: formData.has('bio'),
-          hasCity: formData.has('city'),
-          hasCountry: formData.has('country'),
-          hasPhone: formData.has('phone'),
-          hasCompanyName: formData.has('companyName'),
-          hasIsAvailable: formData.has('isAvailable'),
-          firstNameValue: formData.get('firstName'),
-          lastNameValue: formData.get('lastName'),
-          isAvailableValue: formData.get('isAvailable'),
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'A',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
 
     // Helper to convert empty strings to undefined for optional fields
     const getOptionalField = (value: FormDataEntryValue | null): string | undefined => {
@@ -276,32 +245,6 @@ export async function POST(request: NextRequest) {
       isAvailable: formData.get('isAvailable') === 'true',
     };
 
-    // #region agent log
-    try {
-      const logData = {
-        location: 'api/contractor/update-profile/route.ts:165',
-        message: 'Raw data before validation',
-        data: {
-          firstName: rawData.firstName,
-          lastName: rawData.lastName,
-          firstNameLength: rawData.firstName.length,
-          lastNameLength: rawData.lastName.length,
-          isAvailable: rawData.isAvailable,
-          isAvailableType: typeof rawData.isAvailable,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
-
     // Extract coordinates and address if provided from Places Autocomplete
     const latitudeStr = formData.get('latitude') as string | null;
     const longitudeStr = formData.get('longitude') as string | null;
@@ -316,28 +259,6 @@ export async function POST(request: NextRequest) {
       validatedData = profileUpdateSchema.parse(rawData);
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        // #region agent log
-        try {
-          const logData = {
-            location: 'api/contractor/update-profile/route.ts:195',
-            message: 'Validation failed',
-            data: {
-              errors: validationError.issues,
-              rawData,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'run1',
-            hypothesisId: 'C',
-          };
-          await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(logData),
-          }).catch(() => {});
-        } catch {}
-        // #endregion
-
         logger.warn('Profile update validation failed', {
           service: 'contractor',
           userId: user.id,
@@ -368,29 +289,6 @@ export async function POST(request: NextRequest) {
     
     // Normalize phone to UK format required by database constraint
     const normalizedPhone = normalizePhoneToUKFormat(validatedData.phone);
-    
-    // #region agent log
-    try {
-      const logData = {
-        location: 'api/contractor/update-profile/route.ts:310',
-        message: 'Phone normalization',
-        data: {
-          originalPhone: validatedData.phone,
-          normalizedPhone,
-          phoneType: typeof validatedData.phone,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'D',
-      };
-      await fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logData),
-      }).catch(() => {});
-    } catch {}
-    // #endregion
 
     // Validate normalized phone format matches database constraint
     if (normalizedPhone && !/^(\+44|0)[0-9]{10}$/.test(normalizedPhone)) {

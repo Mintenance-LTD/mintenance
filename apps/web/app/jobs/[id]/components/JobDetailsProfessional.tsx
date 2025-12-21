@@ -572,21 +572,9 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
 
     setAccepting(true);
     try {
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailsProfessional.tsx:550',message:'Accept bid - client request',data:{bidId:bid.id,jobId:jobId,bidStatus:bid.status,contractorId:bid.contractor.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      } catch {}
-      // #endregion
-      
       const csrfHeaders = await getCsrfHeaders();
       const apiUrl = `/api/jobs/${jobId}/bids/${bid.id}/accept`;
-      
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailsProfessional.tsx:558',message:'Accept bid - API URL constructed',data:{apiUrl,bidId:bid.id,jobId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      } catch {}
-      // #endregion
-      
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -594,22 +582,10 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
           ...csrfHeaders,
         },
       });
-      
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailsProfessional.tsx:570',message:'Accept bid - response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      } catch {}
-      // #endregion
 
       if (!response.ok) {
         const data = await response.json();
-        
-        // #region agent log
-        try {
-          fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailsProfessional.tsx:575',message:'Accept bid - error response',data:{status:response.status,error:data.error,message:data.message,requiresPaymentSetup:data.requiresPaymentSetup},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        } catch {}
-        // #endregion
-        
+
         // Handle specific error cases with better messages
         if (data.requiresPaymentSetup) {
           const contractorId = data.contractorId || bid.contractor.id;

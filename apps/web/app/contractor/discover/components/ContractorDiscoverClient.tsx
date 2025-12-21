@@ -284,10 +284,6 @@ export function ContractorDiscoverClient({
   // Use stored coordinates from database and calculate distances
   useEffect(() => {
     // Jobs should already have latitude and longitude from the database
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:262', message: 'Processing jobs to extract coordinates', data: { availableJobsCount: availableJobs.length, sampleJob: availableJobs[0] ? { id: availableJobs[0].id, title: availableJobs[0].title, hasLatitude: !!(availableJobs[0] as any).latitude, hasLongitude: !!(availableJobs[0] as any).longitude, latitude: (availableJobs[0] as any).latitude, longitude: (availableJobs[0] as any).longitude, hasLat: !!(availableJobs[0] as any).lat, hasLng: !!(availableJobs[0] as any).lng } : null }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-    // #endregion
-    
     const jobsWithCoords = availableJobs.map(job => {
       const lat = (job as any).latitude || (job as any).lat;
       const lng = (job as any).longitude || (job as any).lng;
@@ -310,10 +306,6 @@ export function ContractorDiscoverClient({
         distance,
       };
     });
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:287', message: 'Jobs with coordinates processed', data: { total: jobsWithCoords.length, withCoords: jobsWithCoords.filter(j => j.lat && j.lng).length, withoutCoords: jobsWithCoords.filter(j => !j.lat || !j.lng).length, sample: jobsWithCoords.slice(0, 3).map(j => ({ id: j.id, title: j.title, lat: j.lat, lng: j.lng, hasLat: !!j.lat, hasLng: !!j.lng })) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-    // #endregion
 
     console.log('[CLIENT] Jobs with coordinates:', {
       total: jobsWithCoords.length,
@@ -379,10 +371,6 @@ export function ContractorDiscoverClient({
   const updateMapMarkers = () => {
     if (!mapRef.current) return;
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:348', message: 'updateMapMarkers called', data: { filteredJobsByRadiusCount: filteredJobsByRadius.length, jobsWithCoords: filteredJobsByRadius.slice(0, 3).map(j => ({ id: j.id, title: j.title, hasLat: !!j.lat, hasLng: !!j.lng, lat: j.lat, lng: j.lng })), mapRefExists: !!mapRef.current }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'B' }) }).catch(() => {});
-    // #endregion
-
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
@@ -432,10 +420,6 @@ export function ContractorDiscoverClient({
     let markersCreated = 0;
     filteredJobsByRadius.forEach(job => {
       if (job.lat && job.lng) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:397', message: 'Creating marker for job', data: { jobId: job.id, jobTitle: job.title, lat: job.lat, lng: job.lng, hasMapRef: !!mapRef.current }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'C' }) }).catch(() => {});
-        // #endregion
-        
         const marker = new google.maps.Marker({
           position: { lat: job.lat, lng: job.lng },
           map: mapRef.current,
@@ -502,16 +486,8 @@ export function ContractorDiscoverClient({
 
         markersRef.current.push(marker);
         bounds.extend({ lat: job.lat, lng: job.lng });
-      } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:462', message: 'Job skipped - missing coordinates', data: { jobId: job.id, jobTitle: job.title, hasLat: !!job.lat, hasLng: !!job.lng, lat: job.lat, lng: job.lng }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'C' }) }).catch(() => {});
-        // #endregion
       }
     });
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/discover/components/ContractorDiscoverClient.tsx:470', message: 'Markers creation complete', data: { totalJobsProcessed: filteredJobsByRadius.length, markersCreated, markersInRef: markersRef.current.length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'D' }) }).catch(() => {});
-    // #endregion
 
     // Fit map to markers
     if (markersRef.current.length > 0) {

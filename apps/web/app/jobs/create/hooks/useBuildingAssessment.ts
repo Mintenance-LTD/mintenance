@@ -77,15 +77,8 @@ export function useBuildingAssessment({
       ageOfProperty?: number;
     }
   ): Promise<BuildingAssessmentResult | null> => {
-    // #region agent log
-    console.log('[DEBUG] assessBuilding called', { imageCount: imageUrls?.length || 0, hasContext: !!context, imageUrls });
-    // #endregion
-    
     if (!imageUrls || imageUrls.length === 0) {
       const error = 'No images provided for assessment';
-      // #region agent log
-      console.log('[DEBUG] No images provided, returning early');
-      // #endregion
       setAssessmentError(error);
       if (onError) onError(error);
       return null;
@@ -95,9 +88,6 @@ export function useBuildingAssessment({
     setAssessmentError(null);
 
     try {
-      // #region agent log
-      console.log('[DEBUG] Starting building assessment', { imageCount: imageUrls.length, hasContext: !!context, imageUrls: imageUrls.slice(0, 2) });
-      // #endregion
       const response = await fetch('/api/building-surveyor/assess', {
         method: 'POST',
         headers: {
@@ -116,12 +106,6 @@ export function useBuildingAssessment({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // #region agent log
-        const logData = {location:'useBuildingAssessment.ts:107',message:'API response not ok',data:{status:response.status,statusText:response.statusText,errorData,hasError:!!errorData.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-        console.log('[DEBUG] Frontend API error:', logData);
-        // Try to send to debug endpoint (may fail due to CORS, that's ok)
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(logData),mode:'no-cors'}).catch(()=>{});
-        // #endregion
         // Use the error message from API if available, otherwise create a user-friendly one
         const errorMessage = errorData.error || 
           (response.status === 401 ? 'Authentication failed. Please check your API key configuration.' :

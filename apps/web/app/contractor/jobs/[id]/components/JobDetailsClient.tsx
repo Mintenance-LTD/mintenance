@@ -234,7 +234,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                   <ul className="space-y-2">
                     {(() => {
                       const requirements = job.requirements;
-                      
+
                       // Safe check for split function - avoid using 'in' operator on primitives
                       const hasSplitMethod = (val: unknown): val is string => {
                         if (typeof val !== 'string') return false;
@@ -246,15 +246,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                           return false;
                         }
                       };
-                      
-                      // #region agent log
-                      try {
-                        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx:235', message: 'Processing job.requirements', data: { requirementsType: typeof requirements, isArray: Array.isArray(requirements), isString: typeof requirements === 'string', hasSplitMethod: hasSplitMethod(requirements), constructor: requirements?.constructor?.name, valuePreview: String(requirements).substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-                      } catch (logError) {
-                        // Ignore logging errors
-                      }
-                      // #endregion
-                      
+
                       // Handle various types of requirements
                       if (Array.isArray(requirements)) {
                         return requirements;
@@ -262,12 +254,6 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                       
                       if (hasSplitMethod(requirements)) {
                         try {
-                          // #region agent log
-                          try {
-                            fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx:263', message: 'Splitting requirements string', data: { requirementsLength: (requirements as string).length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-                          } catch {}
-                          // #endregion
-                          
                           // Double-check before calling split - convert to string to ensure it's a primitive
                           const reqString = String(requirements);
                           if (typeof reqString.split === 'function') {
@@ -277,11 +263,6 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                             return [reqString];
                           }
                         } catch (splitError) {
-                          // #region agent log
-                          try {
-                            fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx:257', message: 'Error splitting requirements', data: { error: splitError instanceof Error ? splitError.message : String(splitError) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-                          } catch {}
-                          // #endregion
                           // Fallback: treat as single requirement
                           return [String(requirements)];
                         }

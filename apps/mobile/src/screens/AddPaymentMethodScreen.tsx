@@ -6,140 +6,94 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-
-interface FormData {
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  cardholderName: string;
-  billingAddress: string;
-  city: string;
-  state: string;
-  zipCode: string;
-}
+import { PaymentService } from '../services/PaymentService';
+import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 const AddPaymentMethodScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
+  const { createPaymentMethod } = useStripe();
+
   const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'paypal'>('card');
-  const [formData, setFormData] = useState<FormData>({
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardholderName: '',
-    billingAddress: '',
-    city: '',
-    state: '',
-    zipCode: '',
-  });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<FormData>>({});
-
-  const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
-
-    if (paymentType === 'card') {
-      if (!formData.cardNumber || formData.cardNumber.replace(/\s/g, '').length < 13) {
-        newErrors.cardNumber = 'Please enter a valid card number';
-      }
-      if (!formData.expiryDate || !/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-        newErrors.expiryDate = 'Please enter date in MM/YY format';
-      }
-      if (!formData.cvv || formData.cvv.length < 3) {
-        newErrors.cvv = 'Please enter a valid CVV';
-      }
-      if (!formData.cardholderName.trim()) {
-        newErrors.cardholderName = 'Please enter cardholder name';
-      }
-      if (!formData.billingAddress.trim()) {
-        newErrors.billingAddress = 'Please enter billing address';
-      }
-      if (!formData.city.trim()) {
-        newErrors.city = 'Please enter city';
-      }
-      if (!formData.state.trim()) {
-        newErrors.state = 'Please enter state';
-      }
-      if (!formData.zipCode.trim()) {
-        newErrors.zipCode = 'Please enter ZIP code';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    const formatted = cleaned.replace(/(\d{4})(?=\d)/g, '$1 ');
-    return formatted.slice(0, 19); // Max 16 digits + 3 spaces
-  };
-
-  const formatExpiryDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
-    }
-    return cleaned;
-  };
-
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    let formattedValue = value;
-
-    if (field === 'cardNumber') {
-      formattedValue = formatCardNumber(value);
-    } else if (field === 'expiryDate') {
-      formattedValue = formatExpiryDate(value);
-    } else if (field === 'cvv') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 4);
-    } else if (field === 'zipCode') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 5);
-    }
-
-    setFormData(prev => ({ ...prev, [field]: formattedValue }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
+  const [cardComplete, setCardComplete] = useState(false);
+  const [cardBrand, setCardBrand] = useState<string>('');
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to add a payment method');
       return;
     }
 
-    setLoading(true);
-    try {
-      // Simulate API call to add payment method
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    if (paymentType === 'card') {
+      if (!cardComplete) {
+        Alert.alert('Error', 'Please complete your card information');
+        return;
+      }
 
-      Alert.alert(
-        'Payment Method Added',
-        'Your payment method has been successfully added.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to add payment method. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
+      setLoading(true);
+      try {
+        // Create payment method using Stripe
+        const { paymentMethod, error } = await createPaymentMethod({
+          paymentMethodType: 'Card',
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (!paymentMethod) {
+          throw new Error('Failed to create payment method');
+        }
+
+        logger.info('Payment method created via Stripe', {
+          paymentMethodId: paymentMethod.id,
+          brand: paymentMethod.Card?.brand,
+        });
+
+        // Save payment method to backend
+        await PaymentService.addPaymentMethod(
+          user.id,
+          paymentMethod.id,
+          true // Set as default for first card
+        );
+
+        Alert.alert(
+          'Success',
+          'Your payment method has been added successfully.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } catch (error: any) {
+        logger.error('Failed to add payment method', error);
+        Alert.alert(
+          'Error',
+          error.message || 'Failed to add payment method. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    } else if (paymentType === 'paypal') {
+      // PayPal integration would go here
+      Alert.alert('Coming Soon', 'PayPal integration is coming soon!');
+    } else if (paymentType === 'bank') {
+      // Bank account integration would go here
+      Alert.alert('Coming Soon', 'Bank account linking is coming soon!');
     }
   };
 
