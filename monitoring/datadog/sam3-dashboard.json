@@ -1,0 +1,295 @@
+{
+  "title": "SAM3 Presence Detection - Production Rollout Dashboard",
+  "description": "Monitor SAM3 presence detection performance and rollout metrics",
+  "widgets": [
+    {
+      "id": 1,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.false_positive_rate{env:production}",
+            "display_type": "line",
+            "style": {
+              "palette": "green",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "False Positive Rate Reduction",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value", "sum"],
+        "yaxis": {
+          "label": "Rate (%)",
+          "scale": "linear",
+          "min": "0",
+          "max": "100"
+        }
+      },
+      "layout": { "x": 0, "y": 0, "width": 4, "height": 2 }
+    },
+    {
+      "id": 2,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.yolo_skip_rate{env:production}",
+            "display_type": "bars",
+            "style": {
+              "palette": "blue",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "YOLO Skip Rate (Cost Savings)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "yaxis": {
+          "label": "Skip Rate (%)",
+          "scale": "linear",
+          "min": "0",
+          "max": "100"
+        },
+        "markers": [
+          {
+            "value": "y = 60",
+            "display_type": "ok dashed",
+            "label": "Target: 60%"
+          }
+        ]
+      },
+      "layout": { "x": 4, "y": 0, "width": 4, "height": 2 }
+    },
+    {
+      "id": 3,
+      "definition": {
+        "type": "query_value",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.false_negative_rate{env:production}",
+            "aggregator": "avg",
+            "conditional_formats": [
+              {
+                "comparator": "<=",
+                "value": 3,
+                "palette": "white_on_green"
+              },
+              {
+                "comparator": ">",
+                "value": 3,
+                "palette": "white_on_yellow"
+              },
+              {
+                "comparator": ">",
+                "value": 5,
+                "palette": "white_on_red"
+              }
+            ]
+          }
+        ],
+        "title": "False Negative Rate",
+        "title_size": "16",
+        "title_align": "left",
+        "precision": 2,
+        "unit": "%",
+        "custom_unit": "%"
+      },
+      "layout": { "x": 8, "y": 0, "width": 2, "height": 1 }
+    },
+    {
+      "id": 4,
+      "definition": {
+        "type": "query_value",
+        "requests": [
+          {
+            "q": "avg:sam3.rollout.percentage{env:production}",
+            "aggregator": "last"
+          }
+        ],
+        "title": "Current Rollout %",
+        "title_size": "16",
+        "title_align": "left",
+        "precision": 0,
+        "custom_unit": "%"
+      },
+      "layout": { "x": 10, "y": 0, "width": 2, "height": 1 }
+    },
+    {
+      "id": 5,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.inference_time{env:production}.as_count()",
+            "display_type": "line",
+            "style": {
+              "palette": "orange"
+            }
+          },
+          {
+            "q": "p95:sam3.presence_detection.inference_time{env:production}.as_count()",
+            "display_type": "line",
+            "style": {
+              "palette": "red"
+            }
+          }
+        ],
+        "title": "SAM3 Inference Performance",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "yaxis": {
+          "label": "Time (ms)",
+          "scale": "linear"
+        },
+        "markers": [
+          {
+            "value": "y = 1000",
+            "display_type": "warning dashed",
+            "label": "1s threshold"
+          }
+        ]
+      },
+      "layout": { "x": 0, "y": 2, "width": 6, "height": 2 }
+    },
+    {
+      "id": 6,
+      "definition": {
+        "type": "heatmap",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.confidence_score{env:production} by {damage_type}"
+          }
+        ],
+        "title": "Confidence by Damage Type",
+        "title_size": "16",
+        "title_align": "left"
+      },
+      "layout": { "x": 6, "y": 2, "width": 6, "height": 2 }
+    },
+    {
+      "id": 7,
+      "definition": {
+        "type": "toplist",
+        "requests": [
+          {
+            "q": "top(sum:sam3.presence_detection.errors{env:production} by {error_type}.as_count(), 10, 'sum', 'desc')"
+          }
+        ],
+        "title": "Top Errors",
+        "title_size": "16",
+        "title_align": "left"
+      },
+      "layout": { "x": 8, "y": 1, "width": 4, "height": 1 }
+    },
+    {
+      "id": 8,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "sum:sam3.compute.saved{env:production}.as_count()",
+            "display_type": "area",
+            "style": {
+              "palette": "green"
+            }
+          }
+        ],
+        "title": "Cumulative Compute Saved",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": false,
+        "yaxis": {
+          "label": "GPU Hours Saved",
+          "scale": "linear"
+        }
+      },
+      "layout": { "x": 0, "y": 4, "width": 4, "height": 2 }
+    },
+    {
+      "id": 9,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.requests{env:production,group:control}.as_count()",
+            "display_type": "line",
+            "style": {
+              "palette": "blue"
+            },
+            "metadata": [
+              {
+                "alias": "Control (No SAM3)"
+              }
+            ]
+          },
+          {
+            "q": "avg:sam3.presence_detection.requests{env:production,group:treatment}.as_count()",
+            "display_type": "line",
+            "style": {
+              "palette": "purple"
+            },
+            "metadata": [
+              {
+                "alias": "Treatment (With SAM3)"
+              }
+            ]
+          }
+        ],
+        "title": "A/B Test Traffic Distribution",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true
+      },
+      "layout": { "x": 4, "y": 4, "width": 4, "height": 2 }
+    },
+    {
+      "id": 10,
+      "definition": {
+        "type": "query_table",
+        "requests": [
+          {
+            "q": "avg:sam3.presence_detection.accuracy{env:production} by {model_version}",
+            "aggregator": "avg",
+            "limit": 10,
+            "order": "desc"
+          }
+        ],
+        "title": "Model Version Performance",
+        "title_size": "16",
+        "title_align": "left",
+        "has_search_bar": "auto"
+      },
+      "layout": { "x": 8, "y": 4, "width": 4, "height": 2 }
+    },
+    {
+      "id": 11,
+      "definition": {
+        "type": "log_stream",
+        "logset": "sam3-service",
+        "query": "service:sam3 status:error",
+        "columns": ["timestamp", "level", "message", "error"],
+        "title": "Recent Errors",
+        "title_size": "16",
+        "title_align": "left",
+        "message_display": "expanded-md",
+        "show_date_column": true,
+        "show_message_column": true
+      },
+      "layout": { "x": 0, "y": 6, "width": 12, "height": 2 }
+    }
+  ],
+  "template_variables": [],
+  "layout_type": "free",
+  "is_read_only": false,
+  "notify_list": [],
+  "id": "sam3-presence-detection-rollout"
+}

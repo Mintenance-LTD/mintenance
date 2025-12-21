@@ -1,0 +1,479 @@
+name: Deploy SAM3 Service
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+    paths:
+      - 'apps/sam3-service/**'
+      - '.github/workflows/deploy-sam3-service.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      rollout_percentage:
+        description: 'Traffic percentage for rollout'
+        required: true
+        default: '5'
+        type: choice
+        options:
+          - '5'
+          - '20'
+          - '50'
+          - '100'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: mintenance/sam3-service
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    name: Test SAM3 Service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd apps/sam3-service
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run tests
+        run: |
+          cd apps/sam3-service
+          pytest test_presence_detection.py -v --cov=. --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./apps/sam3-service/coverage.xml
+          flags: sam3-service
+          fail_ci_if_error: false
+
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.docker.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ github.event.inputs.environment || 'staging' }}-{{date 'YYYYMMDD'}}-{{sha}}
+
+      - name: Build and push Docker image
+        id: docker
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/sam3-service
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: ${{ needs.build.outputs.image-tag }}
+          args: --severity-threshold=high
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/staging' || github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging-sam3.mintenance.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Deploy to ECS
+        run: |
+          # Update ECS service with new image
+          aws ecs update-service \
+            --cluster mintenance-staging \
+            --service sam3-service \
+            --force-new-deployment \
+            --task-definition sam3-service-staging:${{ github.sha }}
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster mintenance-staging \
+            --services sam3-service
+
+      - name: Update Feature Flags
+        run: |
+          curl -X PATCH https://api.launchdarkly.com/api/v2/flags/default/sam3-presence-detection \
+            -H "Authorization: ${{ secrets.LAUNCHDARKLY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "patch": [
+                {
+                  "op": "replace",
+                  "path": "/environments/staging/rollout/percentage",
+                  "value": ${{ github.event.inputs.rollout_percentage || 100 }}
+                }
+              ]
+            }'
+
+      - name: Run smoke tests
+        run: |
+          cd apps/sam3-service
+          python -m pytest tests/smoke_tests.py \
+            --base-url=https://staging-sam3.mintenance.com \
+            --timeout=30
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://sam3.mintenance.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Deploy with Blue-Green Strategy
+        id: deploy
+        run: |
+          # Get current active environment
+          CURRENT=$(aws elbv2 describe-target-groups \
+            --target-group-arns ${{ secrets.SAM3_TARGET_GROUP_ARN }} \
+            --query 'TargetGroups[0].Tags[?Key==`Environment`].Value' \
+            --output text)
+
+          if [ "$CURRENT" = "blue" ]; then
+            NEW_ENV="green"
+          else
+            NEW_ENV="blue"
+          fi
+
+          echo "Deploying to $NEW_ENV environment"
+          echo "new_env=$NEW_ENV" >> $GITHUB_OUTPUT
+
+          # Update inactive environment
+          aws ecs update-service \
+            --cluster mintenance-prod \
+            --service sam3-service-$NEW_ENV \
+            --force-new-deployment \
+            --task-definition sam3-service-prod:${{ github.sha }}
+
+          # Wait for deployment
+          aws ecs wait services-stable \
+            --cluster mintenance-prod \
+            --services sam3-service-$NEW_ENV
+
+      - name: Run health checks
+        run: |
+          for i in {1..10}; do
+            if curl -f https://sam3-${{ steps.deploy.outputs.new_env }}.mintenance.com/health; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 10
+          done
+
+      - name: Update Feature Flags for Gradual Rollout
+        run: |
+          PERCENTAGE=${{ github.event.inputs.rollout_percentage || '5' }}
+
+          curl -X PATCH https://api.launchdarkly.com/api/v2/flags/default/sam3-presence-detection \
+            -H "Authorization: ${{ secrets.LAUNCHDARKLY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "patch": [
+                {
+                  "op": "replace",
+                  "path": "/environments/production/on",
+                  "value": true
+                },
+                {
+                  "op": "replace",
+                  "path": "/environments/production/fallthrough/rollout/variations",
+                  "value": [
+                    {
+                      "variation": 0,
+                      "weight": '$((100 - PERCENTAGE * 1000))'
+                    },
+                    {
+                      "variation": 1,
+                      "weight": '$((PERCENTAGE * 1000))'
+                    }
+                  ]
+                }
+              ]
+            }'
+
+      - name: Switch traffic (if 100% rollout)
+        if: github.event.inputs.rollout_percentage == '100'
+        run: |
+          # Update ALB listener to point to new target group
+          aws elbv2 modify-listener \
+            --listener-arn ${{ secrets.SAM3_LISTENER_ARN }} \
+            --default-actions Type=forward,TargetGroupArn=${{ secrets.SAM3_TARGET_GROUP_ARN_NEW }}
+
+          echo "Traffic switched to ${{ steps.deploy.outputs.new_env }} environment"
+
+  monitoring-setup:
+    name: Setup Monitoring & Alerts
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure DataDog Monitoring
+        run: |
+          # Create custom metrics
+          curl -X POST "https://api.datadoghq.eu/api/v2/metrics" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: ${{ secrets.DD_API_KEY }}" \
+            -H "DD-APPLICATION-KEY: ${{ secrets.DD_APP_KEY }}" \
+            -d @- <<EOF
+          {
+            "data": {
+              "type": "metrics",
+              "attributes": {
+                "metrics": [
+                  {
+                    "metric": "sam3.presence_detection.false_positive_rate",
+                    "type": "gauge",
+                    "unit": "percent",
+                    "description": "False positive rate for SAM3 presence detection"
+                  },
+                  {
+                    "metric": "sam3.presence_detection.yolo_skip_rate",
+                    "type": "gauge",
+                    "unit": "percent",
+                    "description": "Rate of YOLO inference skipped due to no damage detected"
+                  },
+                  {
+                    "metric": "sam3.presence_detection.inference_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                    "description": "Time taken for SAM3 presence detection"
+                  },
+                  {
+                    "metric": "sam3.presence_detection.false_negative_rate",
+                    "type": "gauge",
+                    "unit": "percent",
+                    "description": "False negative rate for SAM3 presence detection"
+                  }
+                ]
+              }
+            }
+          }
+          EOF
+
+      - name: Create DataDog Monitors
+        run: |
+          # False Negative Alert
+          curl -X POST "https://api.datadoghq.eu/api/v1/monitor" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: ${{ secrets.DD_API_KEY }}" \
+            -H "DD-APPLICATION-KEY: ${{ secrets.DD_APP_KEY }}" \
+            -d @- <<EOF
+          {
+            "name": "[SAM3] High False Negative Rate",
+            "type": "metric alert",
+            "query": "avg(last_5m):avg:sam3.presence_detection.false_negative_rate{env:production} > 5",
+            "message": "@slack-mintenance-alerts SAM3 false negative rate exceeded 5%! Immediate rollback may be required.\n\nCurrent rate: {{value}}%\n\nCheck dashboard: https://app.datadoghq.eu/dashboard/sam3-presence-detection",
+            "tags": ["service:sam3", "team:ai", "severity:critical"],
+            "options": {
+              "thresholds": {
+                "critical": 5,
+                "warning": 3
+              },
+              "notify_no_data": false,
+              "notify_audit": true,
+              "require_full_window": false,
+              "include_tags": true,
+              "escalation_message": "False negative rate still high after 10 minutes. Triggering automatic rollback.",
+              "renotify_interval": 10
+            }
+          }
+          EOF
+
+          # Performance Degradation Alert
+          curl -X POST "https://api.datadoghq.eu/api/v1/monitor" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: ${{ secrets.DD_API_KEY }}" \
+            -H "DD-APPLICATION-KEY: ${{ secrets.DD_APP_KEY }}" \
+            -d @- <<EOF
+          {
+            "name": "[SAM3] Inference Time Degradation",
+            "type": "metric alert",
+            "query": "avg(last_10m):avg:sam3.presence_detection.inference_time{env:production} > 3000",
+            "message": "@slack-mintenance-alerts SAM3 inference time exceeding 3 seconds!\n\nCurrent avg: {{value}}ms",
+            "tags": ["service:sam3", "team:ai", "severity:warning"],
+            "options": {
+              "thresholds": {
+                "critical": 5000,
+                "warning": 3000
+              }
+            }
+          }
+          EOF
+
+      - name: Create Sentry Alerts
+        run: |
+          curl -X POST "https://sentry.io/api/0/projects/${{ secrets.SENTRY_ORG }}/sam3-service/alerts/rules/" \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "name": "SAM3 Error Rate Alert",
+            "conditions": [
+              {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "value": 10,
+                "interval": "5m"
+              }
+            ],
+            "actions": [
+              {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#mintenance-alerts"
+              }
+            ],
+            "actionMatch": "all",
+            "frequency": 5
+          }
+          EOF
+
+  rollback:
+    name: Automatic Rollback
+    runs-on: ubuntu-latest
+    needs: monitoring-setup
+    if: failure()
+    steps:
+      - name: Rollback Feature Flag
+        run: |
+          curl -X PATCH https://api.launchdarkly.com/api/v2/flags/default/sam3-presence-detection \
+            -H "Authorization: ${{ secrets.LAUNCHDARKLY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "patch": [
+                {
+                  "op": "replace",
+                  "path": "/environments/production/on",
+                  "value": false
+                }
+              ]
+            }'
+
+      - name: Rollback Deployment
+        run: |
+          aws ecs update-service \
+            --cluster mintenance-prod \
+            --service sam3-service \
+            --task-definition sam3-service-prod:PREVIOUS \
+            --force-new-deployment
+
+      - name: Notify Team
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "⚠️ SAM3 Service Deployment Rollback",
+              attachments: [{
+                color: "danger",
+                text: "Automatic rollback triggered for SAM3 service deployment\n*Commit:* ${{ github.sha }}\n*Reason:* ${{ job.status }}"
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
