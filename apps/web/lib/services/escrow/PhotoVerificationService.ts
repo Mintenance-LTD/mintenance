@@ -288,9 +288,21 @@ export class PhotoVerificationService {
         isRecent = timestamp >= expectedTimeWindow.start && timestamp <= expectedTimeWindow.end;
       } else {
         // Check if photo is recent (within MAX_TIMESTAMP_AGE_HOURS)
-        const ageHours = (Date.now() - timestamp.getTime()) / (1000 * 60 * 60);
-        isRecent = ageHours <= this.MAX_TIMESTAMP_AGE_HOURS;
-        timeDifference = Date.now() - timestamp.getTime();
+        const now = Date.now();
+        const ageHours = (now - timestamp.getTime()) / (1000 * 60 * 60);
+
+        // Reject future timestamps (security: prevents timestamp manipulation)
+        if (timestamp.getTime() > now) {
+          return {
+            verified: false,
+            timestamp,
+            isRecent: false,
+            timeDifference: timestamp.getTime() - now,
+          };
+        }
+
+        isRecent = ageHours <= this.MAX_TIMESTAMP_AGE_HOURS && ageHours >= 0;
+        timeDifference = now - timestamp.getTime();
       }
 
       return {

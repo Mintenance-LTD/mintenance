@@ -148,9 +148,36 @@ export type Env = z.infer<typeof envSchema>;
 /**
  * Validate environment variables
  * Throws an error with detailed information if validation fails
+ * In test mode, uses relaxed validation with safe defaults
  */
 function validateEnv(): Env {
   try {
+    // In test mode, use safeParse and provide defaults for missing values
+    if (process.env.NODE_ENV === 'test') {
+      const result = envSchema.safeParse(process.env);
+      if (!result.success) {
+        // Return with safe test defaults instead of throwing
+        logger.warn('Using test environment defaults', {
+          service: 'env-validation',
+        });
+      }
+      // Use parsed values if available, otherwise the schema will use defaults
+      const parsed = result.success ? result.data : envSchema.parse({
+        ...process.env,
+        // Provide minimal defaults for test mode
+        JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-that-is-exactly-64-characters-long-for-testing-only',
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key',
+        STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
+        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_mock',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
+      });
+      logger.info('Environment variables validated successfully (test mode)', {
+        service: 'env-validation',
+      });
+      return parsed;
+    }
+
     const parsed = envSchema.parse(process.env);
 
     // Additional runtime checks

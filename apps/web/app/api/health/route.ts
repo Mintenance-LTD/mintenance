@@ -1,37 +1,55 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
+import { logger } from '@mintenance/shared';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Health check endpoint for monitoring
- * Returns service status and configuration check
+ *
+ * Public Response: Minimal status (healthy/degraded) only
+ * Server Logs: Full diagnostic details
+ *
+ * Security: Does not expose internal configuration details
  */
 export async function GET() {
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.2.4',
-    environment: env.NODE_ENV,
-    services: {
-      database: checkDatabase(),
-      redis: checkRedis(),
-      ai: checkAI(),
-      payments: checkPayments(),
-    },
+  const services = {
+    database: checkDatabase(),
+    redis: checkRedis(),
+    ai: checkAI(),
+    payments: checkPayments(),
   };
 
-  const allHealthy = Object.values(health.services).every((s) => s.status === 'ok');
+  const allHealthy = Object.values(services).every((s) => s.status === 'ok');
+  const hasCriticalError = Object.values(services).some((s) => s.status === 'error');
 
-  return NextResponse.json(health, {
-    status: allHealthy ? 200 : 503,
+  // Log full details server-side for debugging
+  logger.info('Health check performed', {
+    service: 'health',
+    status: allHealthy ? 'healthy' : hasCriticalError ? 'unhealthy' : 'degraded',
+    services,
+    environment: env.NODE_ENV,
+    version: process.env.npm_package_version || '1.2.4',
   });
+
+  // Public response - minimal information only
+  const publicStatus = allHealthy ? 'healthy' : hasCriticalError ? 'unhealthy' : 'degraded';
+
+  return NextResponse.json(
+    {
+      status: publicStatus,
+      timestamp: new Date().toISOString(),
+    },
+    {
+      status: allHealthy ? 200 : hasCriticalError ? 503 : 200,
+    }
+  );
 }
 
 function checkDatabase() {
   return {
     status: env.SUPABASE_SERVICE_ROLE_KEY ? 'ok' : 'error',
-    message: env.SUPABASE_SERVICE_ROLE_KEY ? 'Connected' : 'Not configured',
+    configured: !!env.SUPABASE_SERVICE_ROLE_KEY,
   };
 }
 
@@ -39,7 +57,7 @@ function checkRedis() {
   const hasRedis = env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN;
   return {
     status: hasRedis ? 'ok' : 'warning',
-    message: hasRedis ? 'Connected' : 'Not configured (rate limiting degraded)',
+    configured: hasRedis,
   };
 }
 
@@ -47,7 +65,7 @@ function checkAI() {
   const hasOpenAI = !!env.OPENAI_API_KEY;
   return {
     status: hasOpenAI ? 'ok' : 'warning',
-    message: hasOpenAI ? 'Configured' : 'Not configured (AI features disabled)',
+    configured: hasOpenAI,
   };
 }
 
@@ -55,6 +73,6 @@ function checkPayments() {
   const hasStripe = env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET;
   return {
     status: hasStripe ? 'ok' : 'error',
-    message: hasStripe ? 'Configured' : 'Not configured',
+    configured: hasStripe,
   };
 }

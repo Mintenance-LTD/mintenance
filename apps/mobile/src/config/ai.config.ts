@@ -1,15 +1,22 @@
 /**
- * AI Service Configuration
+ * AI Service Configuration - MOBILE CLIENT
  *
- * ⚠️ SECURITY CRITICAL: These API keys should ONLY be used server-side
- * For React Native: These will be undefined and services will use fallback logic
- * For Next.js API routes: These will be available via process.env
+ * ⚠️ SECURITY: This file runs in React Native mobile client
+ * - NO API keys or secrets allowed (removed all process.env references)
+ * - All AI operations MUST go through Next.js API routes
+ * - Server-side keys never exposed to client bundle
+ *
+ * Mobile app calls: /api/ai/analyze, /api/ai/damage-assessment, etc.
+ * Server handles: OpenAI, AWS, Google Cloud API calls with proper secrets
  */
 
 export const aiConfig = {
-  // OpenAI Configuration
+  // Client-side configuration ONLY
+  // No API keys - all AI calls routed through server
+
+  // OpenAI Configuration (models mobile app can request from server)
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
+    apiKey: '', // ⛔ SECURITY: Never set API keys in mobile code
     models: {
       vision: 'gpt-4-vision-preview',
       chat: 'gpt-4-turbo-preview',
@@ -23,33 +30,33 @@ export const aiConfig = {
     temperature: 0.1, // Low temperature for consistent, factual responses
   },
 
-  // AWS Configuration
+  // AWS Configuration (mobile doesn't access AWS directly)
   aws: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-    region: process.env.AWS_REGION || 'us-east-1',
+    accessKeyId: '', // ⛔ SECURITY: Server-side only
+    secretAccessKey: '', // ⛔ SECURITY: Server-side only
+    region: 'us-east-1',
     services: {
       rekognition: true,
       textract: false,
     },
   },
 
-  // Google Cloud Configuration
+  // Google Cloud Configuration (mobile doesn't access GCP directly)
   googleCloud: {
-    apiKey: process.env.GOOGLE_CLOUD_API_KEY || '',
+    apiKey: '', // ⛔ SECURITY: Server-side only
     services: {
       vision: true,
       nlp: false,
     },
   },
 
-  // Feature flags
+  // Feature flags (client-side safe - no secrets)
   features: {
-    enableRealAI: true, // Set to false to use mock data
-    enableOpenAI: !!process.env.OPENAI_API_KEY,
-    enableAWS: !!process.env.AWS_ACCESS_KEY_ID,
-    enableGoogleCloud: !!process.env.GOOGLE_CLOUD_API_KEY,
-    fallbackToMock: true, // Fallback to mock if all APIs fail
+    enableRealAI: true, // Mobile calls server API for real AI features
+    enableOpenAI: true, // Server determines actual availability
+    enableAWS: true, // Server determines actual availability
+    enableGoogleCloud: true, // Server determines actual availability
+    fallbackToMock: true, // Fallback to mock if server AI fails
   },
 
   // Cost controls
@@ -61,26 +68,23 @@ export const aiConfig = {
 };
 
 /**
- * Check if any AI service is configured
+ * Check if any AI service is enabled (mobile calls server for actual AI)
  */
 export const isAIConfigured = (): boolean => {
-  return aiConfig.features.enableOpenAI ||
-         aiConfig.features.enableAWS ||
-         aiConfig.features.enableGoogleCloud;
+  return aiConfig.features.enableRealAI;
 };
 
 /**
  * Get configured AI service name for logging
  */
 export const getConfiguredAIService = (): string => {
-  if (aiConfig.features.enableOpenAI) return 'OpenAI GPT-4 Vision';
-  if (aiConfig.features.enableAWS) return 'AWS Rekognition';
-  if (aiConfig.features.enableGoogleCloud) return 'Google Cloud Vision';
-  return 'Enhanced Rule-based Analysis (Mock)';
+  // Mobile app doesn't access AI services directly
+  // All AI features go through Next.js API routes
+  return 'Server-side AI (OpenAI/AWS/Google Cloud via API)';
 };
 
 /**
- * Validate AI configuration
+ * Validate AI configuration (mobile version - no API keys expected)
  */
 export const validateAIConfig = (): {
   isValid: boolean;
@@ -90,54 +94,47 @@ export const validateAIConfig = (): {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check if at least one AI service is configured for production
-  if (!isAIConfigured() && process.env.NODE_ENV === 'production') {
-    warnings.push('No AI service configured - using mock analysis only');
+  // SECURITY CHECK: Ensure no API keys were accidentally added to mobile code
+  if (aiConfig.openai.apiKey && aiConfig.openai.apiKey !== '') {
+    errors.push('⛔ SECURITY VIOLATION: OpenAI API key detected in mobile code!');
+  }
+  if (aiConfig.aws.accessKeyId && aiConfig.aws.accessKeyId !== '') {
+    errors.push('⛔ SECURITY VIOLATION: AWS access key detected in mobile code!');
+  }
+  if (aiConfig.aws.secretAccessKey && aiConfig.aws.secretAccessKey !== '') {
+    errors.push('⛔ SECURITY VIOLATION: AWS secret key detected in mobile code!');
+  }
+  if (aiConfig.googleCloud.apiKey && aiConfig.googleCloud.apiKey !== '') {
+    errors.push('⛔ SECURITY VIOLATION: Google Cloud API key detected in mobile code!');
   }
 
-  // Validate OpenAI configuration
-  if (aiConfig.features.enableOpenAI) {
-    if (!aiConfig.openai.apiKey.startsWith('sk-')) {
-      errors.push('Invalid OpenAI API key format');
-    }
-  }
-
-  // Validate AWS configuration
-  if (aiConfig.features.enableAWS) {
-    if (!aiConfig.aws.accessKeyId || !aiConfig.aws.secretAccessKey) {
-      errors.push('Incomplete AWS credentials');
-    }
+  if (errors.length > 0) {
+    throw new Error(
+      'API keys detected in mobile bundle! This is a critical security issue. ' +
+      'Remove all process.env references from mobile code.'
+    );
   }
 
   return {
-    isValid: errors.length === 0,
+    isValid: true,
     errors,
     warnings,
   };
 };
 
-// Log AI configuration status (development only)
-if (process.env.NODE_ENV === 'development') {
-  const { logger } = require('../utils/logger');
-  logger.info('AI Configuration loaded', {
-    primaryService: getConfiguredAIService(),
-    openAIEnabled: aiConfig.features.enableOpenAI,
-    awsEnabled: aiConfig.features.enableAWS,
-    googleCloudEnabled: aiConfig.features.enableGoogleCloud,
-    fallbackToMock: aiConfig.features.fallbackToMock,
-  });
-
+// Validate configuration at module load (mobile-specific)
+try {
   const validation = validateAIConfig();
   if (!validation.isValid) {
-    logger.warn('AI Configuration validation failed', {
+    const { logger } = require('../utils/logger');
+    logger.error('⛔ AI Configuration security validation failed', {
       errors: validation.errors,
     });
   }
-  if (validation.warnings.length > 0) {
-    logger.warn('AI Configuration warnings', {
-      warnings: validation.warnings,
-    });
-  }
+} catch (error) {
+  // Fatal error if API keys detected in mobile bundle
+  console.error('FATAL SECURITY ERROR:', error);
+  throw error;
 }
 
 export default aiConfig;

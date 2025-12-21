@@ -15,9 +15,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ImageAnalysisService } from '../ImageAnalysisService';
 import type { ImageAnnotatorClient } from '@google-cloud/vision';
 
-// Mock dependencies
+// Create mock client instance
+const mockClient = {
+  labelDetection: vi.fn(),
+  objectLocalization: vi.fn(),
+  textDetection: vi.fn(),
+};
+
+// Mock dependencies - Vitest 4.x compatible pattern
 vi.mock('@google-cloud/vision', () => ({
-  ImageAnnotatorClient: vi.fn(),
+  ImageAnnotatorClient: vi.fn(() => mockClient),
 }));
 
 vi.mock('@/lib/config/google-vision.config', () => ({
@@ -46,21 +53,14 @@ vi.mock('@mintenance/shared', () => ({
 }));
 
 describe('ImageAnalysisService', () => {
-  let mockClient: any;
-
   beforeEach(() => {
     vi.clearAllMocks();
     ImageAnalysisService.clearCache();
 
-    // Mock Vision API client
-    mockClient = {
-      labelDetection: vi.fn(),
-      objectLocalization: vi.fn(),
-      textDetection: vi.fn(),
-    };
-
-    const { ImageAnnotatorClient } = require('@google-cloud/vision');
-    vi.mocked(ImageAnnotatorClient).mockReturnValue(mockClient);
+    // Reset mock implementations for each test
+    mockClient.labelDetection.mockReset();
+    mockClient.objectLocalization.mockReset();
+    mockClient.textDetection.mockReset();
   });
 
   afterEach(() => {
