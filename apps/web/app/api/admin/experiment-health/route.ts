@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { getExperimentHealth } from '@/lib/monitoring/experimentHealth';
 import { logger } from '@mintenance/shared';
 
@@ -13,12 +13,9 @@ const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     // Get experiment ID from query params or env
     const searchParams = request.nextUrl.searchParams;

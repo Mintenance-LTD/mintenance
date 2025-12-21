@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -18,6 +19,10 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
     try {
+        const auth = await requireAdmin(request);
+        if (isAdminError(auth)) return auth.error;
+        const user = auth.user;
+
         // Get time range from query params
         const searchParams = request.nextUrl.searchParams;
         const days = parseInt(searchParams.get('days') || '30');

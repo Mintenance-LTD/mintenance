@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminCommunicationService } from '@/lib/services/admin/AdminCommunicationService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
@@ -13,11 +13,9 @@ export async function PUT(
   // CSRF protection
   await requireCSRF(request);
   try {
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { id } = await params;
     const body = await request.json();
@@ -53,11 +51,9 @@ export async function DELETE(
   // CSRF protection
   await requireCSRF(request);
   try {
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { id } = await params;
 

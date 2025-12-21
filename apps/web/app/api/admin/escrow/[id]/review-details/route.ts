@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { logger } from '@mintenance/shared';
 
@@ -8,11 +8,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'admin') {
-      logger.warn('Unauthorized attempt to fetch review details', { userId: user?.id });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { id: escrowId } = await params;
 

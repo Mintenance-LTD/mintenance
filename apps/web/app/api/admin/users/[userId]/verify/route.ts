@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { VerificationService } from '@/lib/services/admin/VerificationService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
@@ -13,17 +13,17 @@ const verifySchema = z.object({
   reason: z.string().optional(),
 });
 
-export async function POST(  request: NextRequest,
+export async function POST(
+  request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // CSRF protection
     await requireCSRF(request);
-    const admin = await getCurrentUserFromCookies();
 
-    if (!admin || admin.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const admin = auth.user;
 
     const { userId } = await params;
     const body = await request.json();

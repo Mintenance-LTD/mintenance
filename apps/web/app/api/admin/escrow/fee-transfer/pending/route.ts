@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { logger } from '@mintenance/shared';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 
@@ -9,10 +9,9 @@ import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '100', 10);

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ContinuousLearningService, getLearningPipelineSummary } from '@/lib/services/building-surveyor/ContinuousLearningService';
@@ -137,19 +138,9 @@ interface DashboardData {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check admin authentication
-    const supabase = serverSupabase;
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check admin role (simplified - in production would check users table)
-    // const isAdmin = await checkAdminRole(user.id);
-    // if (!isAdmin) {
-    //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    // }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     // Get query parameters
     const { searchParams } = new URL(request.url);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { securityMonitor } from '@/lib/security-monitor';
 import { IPBlockingService } from '@/lib/services/admin/IPBlockingService';
@@ -9,16 +9,9 @@ import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     // Get timeframe from query params
     const { searchParams } = new URL(request.url);
@@ -218,16 +211,9 @@ export async function POST(request: NextRequest) {
     // CSRF protection
     await requireCSRF(request);
 
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const body = await request.json();
     const { action, eventId } = body;

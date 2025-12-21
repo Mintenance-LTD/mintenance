@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { redirect } from 'next/navigation';
 import { RevenueAnalytics } from '@/lib/services/revenue/RevenueAnalytics';
 import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { searchParams } = new URL(request.url);
     const startDateParam = searchParams.get('startDate');

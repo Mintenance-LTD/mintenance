@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
@@ -14,17 +14,16 @@ export async function POST(
 ) {
   let assessmentId: string | undefined;
   let userId: string | undefined;
-  
+
   try {
     // CSRF protection
     await requireCSRF(request);
     const { id } = await params;
     assessmentId = id;
 
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
     userId = user.id;
 
     const body = await request.json();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AgentAnalytics } from '@/lib/services/agents/AgentAnalytics';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 
 /**
  * GET /api/admin/ai-monitoring/agents
@@ -12,26 +12,9 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Authentication & Authorization check
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      logger.warn('Unauthorized attempt to access AI monitoring agents - no user', {
-        service: 'AIMonitoringAPI',
-        endpoint: '/api/admin/ai-monitoring/agents',
-      });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (user.role !== 'admin') {
-      logger.warn('Forbidden attempt to access AI monitoring agents - non-admin user', {
-        service: 'AIMonitoringAPI',
-        endpoint: '/api/admin/ai-monitoring/agents',
-        userId: user.id,
-        userRole: user.role,
-      });
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const agents = await AgentAnalytics.getAllAgentsOverview();
 

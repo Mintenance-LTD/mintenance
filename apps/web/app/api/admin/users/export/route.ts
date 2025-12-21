@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') as 'csv' | 'pdf' || 'csv';
