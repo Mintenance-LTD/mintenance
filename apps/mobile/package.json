@@ -69,7 +69,7 @@
     "expo-location": "~18.0.0",
     "expo-notifications": "~0.29.0",
     "expo-splash-screen": "~0.29.0",
-    "expo-sqlite": "~15.0.0",
+    "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~2.0.0",
     "expo-system-ui": "~4.0.0",
     "expo-updates": "~0.26.0",
