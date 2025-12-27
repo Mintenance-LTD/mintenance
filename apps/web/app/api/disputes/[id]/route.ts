@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
+import { handleAPIError, UnauthorizedError, BadRequestError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -11,14 +12,14 @@ export async function GET(
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view dispute');
     }
 
     const { id: disputeId } = await params;
 
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(disputeId)) {
-      return NextResponse.json({ error: 'Invalid dispute ID format' }, { status: 400 });
+      throw new BadRequestError('Invalid dispute ID format');
     }
 
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
@@ -31,18 +32,17 @@ export async function GET(
 
     if (error || !dispute) {
       // Don't reveal if dispute exists or not - return generic error
-      return NextResponse.json({ error: 'Dispute not found or access denied' }, { status: 404 });
+      throw new NotFoundError('Dispute not found or access denied');
     }
 
     // Additional admin check if needed
     if (user.role !== 'admin' && dispute.contractor_id !== user.id && dispute.client_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to view this dispute');
     }
 
     return NextResponse.json(dispute);
   } catch (error) {
-    logger.error('Error fetching dispute', error, { service: 'disputes' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

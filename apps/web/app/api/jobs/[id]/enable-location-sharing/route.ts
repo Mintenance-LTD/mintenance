@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function POST(  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -14,11 +15,11 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to enable location sharing');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can enable location sharing' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can enable location sharing');
     }
 
     const body = await request.json();
@@ -32,11 +33,11 @@ export async function POST(  request: NextRequest,
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to enable location sharing for this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to enable location sharing for this job');
     }
 
     // Update or create location sharing record
@@ -86,10 +87,7 @@ export async function POST(  request: NextRequest,
         : 'Location sharing disabled.',
     });
   } catch (error) {
-    logger.error('Unexpected error in enable location sharing', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

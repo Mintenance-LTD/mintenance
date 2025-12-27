@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EmailService } from '@/lib/email-service';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Validation schema
 const sendQuoteSchema = z.object({
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       logger.warn('Unauthorized send quote attempt', { service: 'contractor' });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is a contractor
@@ -31,12 +32,16 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         role: user.role
       });
-      return NextResponse.json({ error: 'Only contractors can send quotes' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can send quotes');
     }
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = sendQuoteSchema.parse(body);
+    const validation = sendQuoteSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request data');
+    }
+    const validatedData = validation.data;
 
     // Verify quote exists and belongs to contractor
     const { data: quote, error: quoteError } = await serverSupabase
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
         quoteId: validatedData.quoteId,
         contractorId: user.id
       });
-      return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+      throw new NotFoundError('Quote not found');
     }
 
     // Check if quote is already sent
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
         quoteId: validatedData.quoteId,
         currentStatus: quote.status
       });
-      return NextResponse.json({ error: `Quote is already ${quote.status}` }, { status: 400 });
+      throw new BadRequestError(`Quote is already ${quote.status}`);
     }
 
     // Update quote status to sent
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         quoteId: validatedData.quoteId
       });
-      return NextResponse.json({ error: 'Failed to send quote' }, { status: 500 });
+      throw new InternalServerError('Failed to send quote');
     }
 
     // Send email notification to client
@@ -111,18 +116,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      logger.warn('Invalid send quote data', {
-        service: 'contractor',
-        errors: error.issues
-      });
-      return NextResponse.json({
-        error: 'Invalid request data',
-        details: error.issues
-      }, { status: 400 });
-    }
-
-    logger.error('Unexpected error in send-quote', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

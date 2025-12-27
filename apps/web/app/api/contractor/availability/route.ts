@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { data: availability, error } = await serverSupabase
@@ -17,8 +19,8 @@ export async function GET(request: NextRequest) {
       .order('day_of_week', { ascending: true });
 
     if (error) {
-      console.error('Error fetching availability:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('Error fetching availability', error);
+      throw new InternalServerError('Failed to fetch availability');
     }
 
     // Transform to client format (day names instead of numbers)
@@ -34,8 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ availability: transformedAvailability });
   } catch (error) {
-    console.error('Error in availability API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -44,17 +45,14 @@ export async function PUT(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const body = await request.json();
     const { availability } = body; // Array of availability objects
 
     if (!Array.isArray(availability)) {
-      return NextResponse.json(
-        { error: 'Invalid availability data' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid availability data');
     }
 
     // Delete existing availability
@@ -80,14 +78,13 @@ export async function PUT(request: NextRequest) {
         .insert(availabilityRecords);
 
       if (insertError) {
-        console.error('Error updating availability:', insertError);
-        return NextResponse.json({ error: insertError.message }, { status: 500 });
+        logger.error('Error updating availability', insertError);
+        throw new InternalServerError('Failed to update availability');
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in update availability API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

@@ -8,6 +8,7 @@ import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view jobs');
     }
 
     const url = new URL(request.url);
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      throw new BadRequestError('Invalid query parameters');
     }
 
     const { limit, cursor, status } = parsed.data;
@@ -185,7 +186,7 @@ export async function GET(request: NextRequest) {
         service: 'jobs',
         userId: user.id
       });
-      return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 });
+      throw error || new Error('Failed to load jobs');
     }
 
     const rows = jobsData as unknown as JobRow[];
@@ -314,10 +315,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ jobs: items, nextCursor });
   } catch (err) {
-    logger.error('Failed to load jobs', err, {
-      service: 'jobs'
-    });
-    return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 });
+    return handleAPIError(err);
   }
 }
 
@@ -328,7 +326,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to create jobs');
     }
 
     // Rate limiting: 10 jobs per hour per user (TEMPORARILY DISABLED FOR TESTING)
@@ -345,21 +343,7 @@ export async function POST(request: NextRequest) {
           retryAfter: rateLimitResult.retryAfter,
         });
 
-        return NextResponse.json(
-          {
-            error: 'Too many job creation requests. Please try again later.',
-            retryAfter: rateLimitResult.retryAfter,
-          },
-          {
-            status: 429,
-            headers: {
-              'X-RateLimit-Limit': '10',
-              'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-              'X-RateLimit-Reset': Math.ceil(rateLimitResult.resetTime / 1000).toString(),
-              'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
-            },
-          }
-        );
+        throw new RateLimitError('Too many job creation requests. Please try again later.');
       }
     }
 
@@ -372,38 +356,39 @@ export async function POST(request: NextRequest) {
       const verificationStatus = await HomeownerVerificationService.isFullyVerified(user.id);
 
       if (!verificationStatus.canPostJobs) {
-        return NextResponse.json(
-          {
-            error: 'Phone verification required',
-            message: 'Please verify your phone number before posting jobs',
-            verificationStatus,
-          },
-          { status: 403 }
-        );
+        throw new ForbiddenError('Phone verification required. Please verify your phone number before posting jobs');
       }
     }
 
     const body = await request.json();
     const parsed = createJobSchema.safeParse(body);
-    
+
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors;
-      // Convert field errors object to a readable string message
-      const errorMessages = Object.entries(fieldErrors)
-        .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-        .join('; ');
       logger.error('Job creation validation failed', {
         service: 'jobs',
         userId: user.id,
         errors: fieldErrors,
       });
-      return NextResponse.json({ 
-        error: errorMessages || 'Validation failed',
-        details: fieldErrors 
-      }, { status: 400 });
+      throw new BadRequestError('Validation failed');
     }
 
     const payload = parsed.data;
+
+    // BUSINESS RULE: Jobs over £500 MUST have images
+    if (payload.budget && payload.budget > 500) {
+      const hasImages = payload.photoUrls && payload.photoUrls.length > 0;
+
+      if (!hasImages) {
+        logger.warn('Job creation rejected: Budget >£500 requires images', {
+          service: 'jobs',
+          userId: user.id,
+          budget: payload.budget,
+          photoCount: 0,
+        });
+        throw new BadRequestError('Jobs with a budget over £500 must include at least one photo');
+      }
+    }
 
     // SECURITY: Validate photo URLs to prevent SSRF attacks
     if (payload.photoUrls && payload.photoUrls.length > 0) {
@@ -414,10 +399,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           invalidUrls: urlValidation.invalid,
         });
-        return NextResponse.json(
-          { error: `Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
-          { status: 400 }
-        );
+        throw new BadRequestError(`Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
       }
       // Replace with validated URLs
       payload.photoUrls = urlValidation.valid;
@@ -546,7 +528,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         errorDetails: error,
       });
-      return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+      throw new InternalServerError('Failed to create job');
     }
 
     // Calculate and update serious buyer score
@@ -641,16 +623,20 @@ export async function POST(request: NextRequest) {
           if (apiKey) {
             // Handle both string and { lat, lng } formats
             if (typeof job.location === 'string') {
-              const encodedAddress = encodeURIComponent(job.location);
-              const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
-              
-              const geocodeResponse = await fetch(geocodeUrl);
-              const geocodeData = await geocodeResponse.json();
-              
-              if (geocodeData.status === 'OK' && geocodeData.results && geocodeData.results.length > 0) {
-                const location = geocodeData.results[0].geometry.location;
-                jobLat = location.lat;
-                jobLng = location.lng;
+              try {
+                // Use timeout wrapper to prevent hanging geocoding requests
+                const { geocodeWithTimeout } = await import('@/lib/utils/api-timeout');
+                const geocodeResult = await geocodeWithTimeout(job.location, apiKey, 5000);
+
+                jobLat = geocodeResult.latitude;
+                jobLng = geocodeResult.longitude;
+              } catch (geocodeError) {
+                logger.warn('Geocoding failed or timed out, continuing without coordinates', {
+                  service: 'jobs',
+                  error: geocodeError,
+                  location: job.location,
+                });
+                // Continue without coordinates - not a critical failure
               }
             } else if (typeof job.location === 'object' && job.location !== null && 'lat' in job.location && 'lng' in job.location) {
               jobLat = job.location.lat;
@@ -817,9 +803,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ job }, { status: 201 });
   } catch (err) {
-    logger.error('Failed to create job', err, {
-      service: 'jobs'
-    });
-    return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -17,12 +18,12 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(contractId)) {
-      return NextResponse.json({ error: 'Invalid contract ID format' }, { status: 400 });
+      throw new BadRequestError('Invalid contract ID format');
     }
 
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
@@ -35,7 +36,7 @@ export async function POST(
 
     if (contractError || !contract) {
       // Don't reveal if contract exists or not - return generic error
-      return NextResponse.json({ error: 'Contract not found or access denied' }, { status: 404 });
+      throw new NotFoundError('Contract not found or access denied');
     }
 
     // Verify user is authorized to sign
@@ -43,15 +44,15 @@ export async function POST(
     const isHomeowner = user.role === 'homeowner' && contract.homeowner_id === user.id;
 
     if (!isContractor && !isHomeowner) {
-      return NextResponse.json({ error: 'Not authorized to sign this contract' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to sign this contract');
     }
 
     // Check if already signed
     if (isContractor && contract.contractor_signed_at) {
-      return NextResponse.json({ error: 'Contractor has already signed this contract' }, { status: 400 });
+      throw new BadRequestError('Contractor has already signed this contract');
     }
     if (isHomeowner && contract.homeowner_signed_at) {
-      return NextResponse.json({ error: 'Homeowner has already signed this contract' }, { status: 400 });
+      throw new BadRequestError('Homeowner has already signed this contract');
     }
 
     // Update contract with signature
@@ -95,7 +96,7 @@ export async function POST(
         contractId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to sign contract' }, { status: 500 });
+      throw new InternalServerError('Failed to sign contract');
     }
 
     // Notify the other party that they need to sign (if contract is not yet fully accepted)
@@ -239,9 +240,7 @@ export async function POST(
         : 'Contract signed. Waiting for other party to sign.',
     });
   } catch (error) {
-    logger.error('Unexpected error in accept contract', error, { service: 'contracts' });
-    // SECURITY: Don't expose error details to client
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

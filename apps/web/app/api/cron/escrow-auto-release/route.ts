@@ -7,6 +7,7 @@ import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-04-10',
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
         service: 'escrow-auto-release',
         error: fetchError.message,
       });
-      return NextResponse.json({ error: 'Failed to fetch eligible escrows' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch eligible escrows');
     }
 
     if (!eligibleEscrows || eligibleEscrows.length === 0) {
@@ -295,13 +296,7 @@ export async function GET(request: NextRequest) {
       results,
     });
   } catch (error) {
-    logger.error('Error in escrow auto-release cron', error, {
-      service: 'escrow-auto-release',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

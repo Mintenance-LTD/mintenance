@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { cookies } from 'next/headers';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,10 +41,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    logger.error('Logout error', error, { service: 'auth' });
-    return NextResponse.json(
-      { error: 'An unexpected error occurred during logout' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

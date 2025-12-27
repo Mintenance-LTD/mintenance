@@ -3,7 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { errorResponse, successResponse, ErrorCodes } from '@/lib/utils/api-response';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * DELETE /api/notifications/[id]
@@ -26,15 +26,15 @@ export async function DELETE(
 
     // Get authenticated user
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user) {
-      return errorResponse('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
+      throw new UnauthorizedError('Authentication required to delete notifications');
     }
 
     const { id } = await params;
 
     if (!id) {
-      return errorResponse('Notification ID is required', ErrorCodes.VALIDATION_ERROR, 400);
+      throw new BadRequestError('Notification ID is required');
     }
 
     // Verify notification belongs to user before deleting
@@ -45,11 +45,11 @@ export async function DELETE(
       .single();
 
     if (fetchError || !notification) {
-      return errorResponse('Notification not found', ErrorCodes.NOT_FOUND, 404);
+      throw new NotFoundError('Notification not found');
     }
 
     if (notification.user_id !== user.id) {
-      return errorResponse('Unauthorized', ErrorCodes.FORBIDDEN, 403);
+      throw new ForbiddenError('You do not have permission to delete this notification');
     }
 
     // Delete notification
@@ -65,19 +65,11 @@ export async function DELETE(
         userId: user.id,
         notificationId: id,
       });
-      return errorResponse(
-        'Failed to delete notification',
-        ErrorCodes.PROCESSING_ERROR,
-        500,
-        { notificationId: id }
-      );
+      throw deleteError;
     }
 
-    return successResponse({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error in DELETE /api/notifications/[id]', error, {
-      service: 'notifications',
-    });
-    return errorResponse('Internal server error', ErrorCodes.INTERNAL_ERROR, 500);
+    return handleAPIError(error);
   }
 }

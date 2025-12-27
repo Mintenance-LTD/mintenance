@@ -5,6 +5,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
 
 const submitAssessmentSchema = z.object({
   answers: z.array(
@@ -24,14 +25,11 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can access personality assessments' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can access personality assessments');
     }
 
     // Check if contractor already has results
@@ -65,10 +63,7 @@ export async function GET(request: NextRequest) {
     const questions = await PersonalityAssessmentService.getAssessmentQuestions();
 
     if (questions.length === 0) {
-      return NextResponse.json(
-        { error: 'Assessment questions not available' },
-        { status: 503 }
-      );
+      throw new BadRequestError('Assessment questions not available');
     }
 
     return NextResponse.json({
@@ -83,11 +78,7 @@ export async function GET(request: NextRequest) {
       estimatedMinutes: 10,
     });
   } catch (error) {
-    logger.error('Error fetching personality assessment', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -101,14 +92,11 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can submit personality assessments' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can submit personality assessments');
     }
 
     const validation = await validateRequest(request, submitAssessmentSchema);
@@ -125,10 +113,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to submit assessment' },
-        { status: 400 }
-      );
+      throw new BadRequestError(result.error || 'Failed to submit assessment');
     }
 
     return NextResponse.json({
@@ -153,10 +138,6 @@ export async function POST(request: NextRequest) {
       },
     }, { status: 201 });
   } catch (error) {
-    logger.error('Personality assessment submission error', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

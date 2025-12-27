@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * Get contractors near a job location
@@ -20,10 +21,7 @@ export async function GET(
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view nearby contractors');
     }
 
     // Verify user owns the job
@@ -34,17 +32,11 @@ export async function GET(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Not authorized to view contractors for this job');
     }
 
     // Fetch contractors who viewed this job
@@ -68,10 +60,7 @@ export async function GET(
         jobId,
         userId: user.id,
       });
-      return NextResponse.json(
-        { error: 'Failed to fetch contractors' },
-        { status: 500 }
-      );
+      throw viewsError;
     }
 
     // Extract unique contractors and geocode their locations
@@ -172,13 +161,7 @@ export async function GET(
       contractors: contractorsWithDistance,
     });
   } catch (error) {
-    logger.error('Error in nearby-contractors route', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

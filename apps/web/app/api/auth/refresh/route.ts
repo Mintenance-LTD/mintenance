@@ -4,6 +4,7 @@ import { rotateTokens, setAuthCookie } from '@/lib/auth';
 import { verifyToken } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * Token Refresh API
@@ -21,10 +22,7 @@ export async function POST(request: NextRequest) {
 
     if (!currentToken) {
       logger.warn('Token refresh failed: No active session', { service: 'auth' });
-      return NextResponse.json(
-        { error: 'No active session' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('No active session');
     }
 
     // Verify current token to get user info
@@ -32,10 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (!payload || !payload.sub) {
       logger.warn('Token refresh failed: Invalid token', { service: 'auth' });
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Invalid token');
     }
 
     // Check if token is about to expire (less than 15 minutes remaining)
@@ -77,18 +72,10 @@ export async function POST(request: NextRequest) {
         service: 'auth',
         userId: payload.sub
       });
-
-      return NextResponse.json(
-        { error: 'Missing refresh token. Please sign in again.' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Missing refresh token. Please sign in again.');
     }
   } catch (error) {
-    logger.error('Token refresh error', error, { service: 'auth' });
-    return NextResponse.json(
-      { error: 'Failed to refresh token' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -101,19 +88,13 @@ export async function GET() {
     const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
 
     if (!currentToken) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Not authenticated');
     }
 
     const payload = await verifyToken(currentToken);
-    
+
     if (!payload || !payload.exp) {
-      return NextResponse.json(
-        { authenticated: false },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Invalid token');
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -125,9 +106,6 @@ export async function GET() {
       needsRefresh: timeUntilExpiry < 15 * 60,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to check token status' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

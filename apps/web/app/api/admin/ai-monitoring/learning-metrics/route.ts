@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AgentAnalytics } from '@/lib/services/agents/AgentAnalytics';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/admin/ai-monitoring/learning-metrics
@@ -20,25 +21,13 @@ export async function GET(request: NextRequest) {
     const agentName = searchParams.get('agentName');
 
     if (!agentName) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'agentName query parameter is required',
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('agentName query parameter is required');
     }
 
     const learningData = await AgentAnalytics.getLearningProgress(agentName);
 
     if (!learningData) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'No learning data available for this agent',
-        },
-        { status: 404 }
-      );
+      throw new NotFoundError('No learning data available for this agent');
     }
 
     return NextResponse.json({
@@ -47,16 +36,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('Error fetching learning metrics', error, {
-      service: 'AIMonitoringAPI',
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch learning metrics',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

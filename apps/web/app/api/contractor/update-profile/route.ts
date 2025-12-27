@@ -6,6 +6,7 @@ import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
 import { requireCSRF } from '@/lib/csrf-validator';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 // Type definition for profile update data
 interface ProfileUpdateData {
@@ -194,20 +195,11 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         endpoint: '/api/contractor/update-profile',
       });
-      return rateLimitResult.response!;
+      throw new RateLimitError('Too many profile updates. Please try again later');
     }
 
     // CSRF protection - prevent cross-site attacks
-    if (!(await requireCSRF(request))) {
-      logger.warn('CSRF validation failed for profile update', {
-        service: 'contractor',
-        endpoint: '/api/contractor/update-profile',
-      });
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
+    await requireCSRF(request);
 
     // Get current user
     const user = await getCurrentUserFromCookies();
@@ -218,10 +210,7 @@ export async function POST(request: NextRequest) {
         endpoint: '/api/contractor/update-profile',
         userId: user?.id,
       });
-      return NextResponse.json(
-        { error: 'Unauthorized. Must be logged in as contractor.' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required. Must be logged in as contractor');
     }
 
     // Parse form data
@@ -265,19 +254,13 @@ export async function POST(request: NextRequest) {
           validationErrors: validationError.issues,
           rawData,
         });
-        return NextResponse.json(
-          { error: 'Invalid input data', details: validationError.issues },
-          { status: 400 }
-        );
+        throw new BadRequestError('Invalid input data');
       }
       logger.error('Unexpected validation error', validationError, {
         service: 'contractor',
         userId: user.id,
       });
-      return NextResponse.json(
-        { error: 'Invalid input data' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid input data');
     }
 
     // Sanitize text inputs
@@ -298,10 +281,7 @@ export async function POST(request: NextRequest) {
         originalPhone: validatedData.phone,
         normalizedPhone,
       });
-      return NextResponse.json(
-        { error: 'Invalid phone number format. Please use UK format (e.g., +44 1234 567890 or 01234 567890)' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid phone number format. Please use UK format (e.g., +44 1234 567890 or 01234 567890)');
     }
 
     const phone = normalizedPhone || null;
@@ -320,10 +300,7 @@ export async function POST(request: NextRequest) {
           fileType: profileImageFile.type,
           fileName: profileImageFile.name,
         });
-        return NextResponse.json(
-          { error: 'Invalid image type. Only JPEG, PNG, and WebP images are allowed.' },
-          { status: 400 }
-        );
+        throw new BadRequestError('Invalid image type. Only JPEG, PNG, and WebP images are allowed');
       }
 
       // Validate file extension
@@ -335,10 +312,7 @@ export async function POST(request: NextRequest) {
           fileExtension: fileExt,
           fileName: profileImageFile.name,
         });
-        return NextResponse.json(
-          { error: 'Invalid file extension. Only jpg, jpeg, png, and webp are allowed.' },
-          { status: 400 }
-        );
+        throw new BadRequestError('Invalid file extension. Only jpg, jpeg, png, and webp are allowed');
       }
 
       // Validate file size
@@ -349,10 +323,7 @@ export async function POST(request: NextRequest) {
           fileSize: profileImageFile.size,
           maxSize: MAX_IMAGE_SIZE,
         });
-        return NextResponse.json(
-          { error: 'Profile image must be less than 5MB' },
-          { status: 400 }
-        );
+        throw new BadRequestError('Profile image must be less than 5MB');
       }
 
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -373,10 +344,7 @@ export async function POST(request: NextRequest) {
           fileName: profileImageFile.name,
           filePath,
         });
-        return NextResponse.json(
-          { error: 'Failed to upload profile image' },
-          { status: 500 }
-        );
+        throw uploadError;
       }
 
       // Get public URL
@@ -488,25 +456,12 @@ export async function POST(request: NextRequest) {
         errorHint: error.hint,
         updateData: Object.keys(updateData),
       });
-      return NextResponse.json(
-        { 
-          error: 'Failed to update profile',
-          details: error.message || 'Database update failed'
-        },
-        { status: 500 }
-      );
+      throw error;
     }
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    logger.error('Profile update error', error, {
-      service: 'contractor',
-      endpoint: '/api/contractor/update-profile',
-    });
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

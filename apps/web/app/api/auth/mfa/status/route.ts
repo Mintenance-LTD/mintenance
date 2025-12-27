@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromHeaders } from '@/lib/auth';
 import { MFAService } from '@/lib/mfa/mfa-service';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,10 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const user = getCurrentUserFromHeaders(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Get MFA status
@@ -30,13 +28,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       data: mfaStatus,
     });
   } catch (error) {
-    logger.error('Failed to get MFA status', error, {
-      service: 'mfa',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to get MFA status' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

@@ -17,6 +17,14 @@ import { BudgetDisplay } from '@/components/jobs/BudgetDisplay';
 import { CategoryIcon } from '@/components/jobs/CategoryIcon';
 import type { Job, User } from '@mintenance/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import toast from 'react-hot-toast';
+
+interface PaymentDetails {
+  platformFee: number;
+  stripeFee: number;
+  totalAmount: number;
+  contractorPayout: number;
+}
 
 function JobPaymentPageContent() {
   const router = useRouter();
@@ -25,6 +33,7 @@ function JobPaymentPageContent() {
 
   const [user, setUser] = useState<User | null>(null);
   const [job, setJob] = useState<Job | null>(null);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<'summary' | 'payment' | 'confirmation'>('summary');
@@ -55,14 +64,15 @@ function JobPaymentPageContent() {
       }
 
       // Verify user has permission to pay for this job
-      const canPayForJob =
+      // Only homeowners can make payments
+      const isHomeowner = currentUser.role === 'homeowner';
+      const isJobOwner =
         (jobData as any).homeownerId === currentUser.id ||
-        (jobData as any).homeowner_id === currentUser.id ||
-        (jobData as any).contractorId === currentUser.id ||
-        (jobData as any).contractor_id === currentUser.id;
+        (jobData as any).homeowner_id === currentUser.id;
 
-      if (!canPayForJob) {
-        setError('You do not have permission to make payments for this job');
+      if (!isHomeowner || !isJobOwner) {
+        setError('Only the job owner (homeowner) can make payments for this job');
+        router.push(`/jobs/${jobId}`);
         return;
       }
 
@@ -84,6 +94,22 @@ function JobPaymentPageContent() {
       };
 
       setJob(normalized);
+
+      // SECURITY: Fetch payment details from server (fees calculated server-side)
+      const paymentDetailsResponse = await fetch(`/api/jobs/${jobId}/payment-details`);
+      if (paymentDetailsResponse.ok) {
+        const detailsData = await paymentDetailsResponse.json();
+        setPaymentDetails({
+          platformFee: detailsData.fees.platformFee,
+          stripeFee: detailsData.fees.stripeFee,
+          totalAmount: detailsData.fees.totalAmount,
+          contractorPayout: detailsData.fees.contractorPayout,
+        });
+      } else {
+        logger.error('Failed to fetch payment details from server');
+        setError('Failed to calculate payment details');
+        return;
+      }
     } catch (err) {
       logger.error('Error loading job details:', err);
       setError('Failed to load job details');
@@ -105,11 +131,37 @@ function JobPaymentPageContent() {
         );
       }
 
-      alert('Payment successful! Funds are now held securely in escrow.');
-      router.push('/payments');
+      // UX FIX: Use toast instead of alert for better user experience
+      toast.success('Payment successful! Funds are now held securely in escrow.', {
+        duration: 5000,
+        icon: '✅',
+        position: 'top-center',
+      });
+
+      // Delay navigation to allow user to see success message
+      setTimeout(() => {
+        router.push('/payments');
+      }, 1500);
     } catch (error) {
       logger.error('Error creating escrow transaction:', error);
-      alert('Payment processed but escrow creation failed. Please contact support.');
+
+      // CRITICAL ERROR: Use prominent toast notification
+      toast.error(
+        'Payment processed but escrow creation failed. Please contact support immediately.',
+        {
+          duration: 10000,
+          icon: '⚠️',
+          position: 'top-center',
+          style: {
+            background: '#FEE2E2',
+            color: '#991B1B',
+            border: '2px solid #DC2626',
+            padding: '16px',
+            fontSize: '16px',
+            fontWeight: '600',
+          },
+        }
+      );
     }
   };
 
@@ -145,8 +197,17 @@ function JobPaymentPageContent() {
     ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
 
-  const platformFee = job.budget * 0.05;
-  const totalAmount = job.budget + platformFee;
+  // SECURITY: Use server-calculated fees (prevents client-side manipulation)
+  if (!paymentDetails) {
+    return (
+      <HomeownerPageWrapper>
+        <LoadingSpinner size="large" />
+      </HomeownerPageWrapper>
+    );
+  }
+
+  const platformFee = paymentDetails.platformFee;
+  const totalAmount = paymentDetails.totalAmount;
 
   return (
     <HomeownerPageWrapper>

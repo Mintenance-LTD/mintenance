@@ -6,6 +6,7 @@ import { IPBlockingService } from '@/lib/services/admin/IPBlockingService';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,8 +82,8 @@ export async function GET(request: NextRequest) {
           warning: 'Security metrics function not available. Showing basic data only.'
         });
       }
-      
-      return NextResponse.json({ error: 'Failed to fetch security metrics' }, { status: 500 });
+
+      throw new InternalServerError('Failed to fetch security metrics');
     }
 
     // Get recent security events
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
           warning: 'Security events table not available. Some features may be limited.'
         });
       }
-      return NextResponse.json({ error: 'Failed to fetch recent events' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch recent events');
     }
 
     // Get top offending IPs
@@ -155,7 +156,7 @@ export async function GET(request: NextRequest) {
           warning: 'Security events table not available. Some features may be limited.'
         });
       }
-      return NextResponse.json({ error: 'Failed to fetch IP data' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch IP data');
     }
 
     // Calculate top IPs
@@ -196,13 +197,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Security dashboard error', error, {
-      service: 'admin_security',
-    });
-    return NextResponse.json(
-      { error: 'Failed to load security dashboard' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -231,7 +226,7 @@ export async function POST(request: NextRequest) {
           eventId,
           userId: user.id,
         });
-        return NextResponse.json({ error: 'Failed to resolve event' }, { status: 500 });
+        throw new InternalServerError('Failed to resolve event');
       }
 
       // Log admin activity
@@ -252,7 +247,7 @@ export async function POST(request: NextRequest) {
       const { ipAddress, reason, expiresAt } = body;
       
       if (!ipAddress || !reason) {
-        return NextResponse.json({ error: 'IP address and reason are required' }, { status: 400 });
+        throw new BadRequestError('IP address and reason are required');
       }
 
       // Block IP using IPBlockingService
@@ -268,7 +263,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!blocked) {
-        return NextResponse.json({ error: 'Failed to block IP address' }, { status: 500 });
+        throw new InternalServerError('Failed to block IP address');
       }
 
       // Log admin activity
@@ -302,13 +297,13 @@ export async function POST(request: NextRequest) {
       const { ipAddress } = body;
       
       if (!ipAddress) {
-        return NextResponse.json({ error: 'IP address is required' }, { status: 400 });
+        throw new BadRequestError('IP address is required');
       }
 
       const unblocked = await IPBlockingService.unblockIP(ipAddress);
 
       if (!unblocked) {
-        return NextResponse.json({ error: 'Failed to unblock IP address' }, { status: 500 });
+        throw new InternalServerError('Failed to unblock IP address');
       }
 
       // Log admin activity
@@ -326,15 +321,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'IP unblocked successfully' });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    throw new BadRequestError('Invalid action');
 
   } catch (error) {
-    logger.error('Security dashboard action error', error, {
-      service: 'admin_security',
-    });
-    return NextResponse.json(
-      { error: 'Failed to perform security action' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

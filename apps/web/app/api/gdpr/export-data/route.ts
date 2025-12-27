@@ -6,6 +6,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { gdprEmailSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definitions for GDPR export
 interface ExportDataRow {
@@ -24,10 +25,10 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-// Authenticate user
+    // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to export data');
     }
 
     // Validate request body
@@ -43,21 +44,21 @@ export async function POST(request: NextRequest) {
     try {
       sanitizedEmail = sanitizeEmail(email);
     } catch (error) {
-      logger.warn('Invalid email format in export request', { 
+      logger.warn('Invalid email format in export request', {
         service: 'gdpr',
         userId: user.id,
         email: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      throw new BadRequestError('Invalid email format');
     }
 
     if (sanitizedEmail !== user.email) {
-      logger.warn('Email mismatch in export request', { 
+      logger.warn('Email mismatch in export request', {
         service: 'gdpr',
         userId: user.id,
         providedEmail: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Email does not match your account' }, { status: 400 });
+      throw new BadRequestError('Email does not match your account');
     }
 
     // Check if user already has a pending export request
@@ -70,9 +71,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingRequest) {
-      return NextResponse.json({ 
-        error: 'You already have a pending data export request' 
-      }, { status: 400 });
+      throw new BadRequestError('You already have a pending data export request');
     }
 
     // Create DSR request
@@ -93,9 +92,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         requestType: 'portability'
       });
-      return NextResponse.json({ 
-        error: 'Failed to create data export request' 
-      }, { status: 500 });
+      throw new InternalServerError('Failed to create data export request');
     }
 
     // Export user data
@@ -108,9 +105,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         requestId: dsrRequest.id
       });
-      return NextResponse.json({ 
-        error: 'Failed to export user data' 
-      }, { status: 500 });
+      throw new InternalServerError('Failed to export user data');
     }
 
     // Update DSR request status
@@ -149,10 +144,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('GDPR export error', error, { service: 'gdpr' });
-    return NextResponse.json(
-      { error: 'Failed to export user data' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

@@ -8,6 +8,7 @@ import { adminSettingUpdateSchema, adminSettingCreateSchema } from '@/lib/valida
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import { requireCSRF } from '@/lib/csrf';
 import { checkAdminRateLimit } from '@/lib/rate-limiting/admin-gdpr';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type for sensitive value sanitization
 type SanitizableValue = string | number | boolean | Record<string, unknown> | unknown[] | null | undefined;
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
+      throw new UnauthorizedError('Admin access required');
     }
 
     const category = request.nextUrl.searchParams.get('category');
@@ -36,8 +37,7 @@ export async function GET(request: NextRequest) {
     const settings = await PlatformSettingsService.getAllSettings();
     return NextResponse.json({ settings });
   } catch (error) {
-    logger.error('Error fetching platform settings', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
+      throw new UnauthorizedError('Admin access required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -76,13 +76,13 @@ export async function PUT(request: NextRequest) {
         userId: user.id,
         key,
       });
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 403 });
+      throw new ForbiddenError('Admin access required');
     }
 
     // Get existing setting to validate value type matches
     const existing = await PlatformSettingsService.getSetting(key);
     if (!existing) {
-      return NextResponse.json({ error: 'Setting not found' }, { status: 404 });
+      throw new NotFoundError('Setting not found');
     }
 
     // Validate value type matches setting type
@@ -90,33 +90,25 @@ export async function PUT(request: NextRequest) {
     const expectedType = existing.setting_type;
     
     if (expectedType === 'number' && valueType !== 'number') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected ${expectedType}, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected ${expectedType}, got ${valueType}`);
     }
-    
+
     if (expectedType === 'boolean' && valueType !== 'boolean') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected ${expectedType}, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected ${expectedType}, got ${valueType}`);
     }
-    
+
     if (expectedType === 'string' && valueType !== 'string') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected ${expectedType}, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected ${expectedType}, got ${valueType}`);
     }
-    
+
     if ((expectedType === 'json' || expectedType === 'array') && valueType !== 'object') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected object/array, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected object/array, got ${valueType}`);
     }
 
     const updated = await PlatformSettingsService.updateSetting(key, value, user.id);
 
     if (!updated) {
-      return NextResponse.json({ error: 'Failed to update setting' }, { status: 500 });
+      throw new InternalServerError('Failed to update setting');
     }
 
     // Sanitize sensitive values before logging
@@ -137,8 +129,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    logger.error('Error updating platform setting', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -150,7 +141,7 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 401 });
+      throw new UnauthorizedError('Admin access required');
     }
 
     // SECURITY: Verify admin role from database for sensitive operations
@@ -161,7 +152,7 @@ export async function POST(request: NextRequest) {
         service: 'admin',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Unauthorized - admin access required' }, { status: 403 });
+      throw new ForbiddenError('Admin access required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -176,27 +167,19 @@ export async function POST(request: NextRequest) {
     // Validate value type matches declared type
     const valueType = typeof value;
     if (type === 'number' && valueType !== 'number') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected number, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected number, got ${valueType}`);
     }
-    
+
     if (type === 'boolean' && valueType !== 'boolean') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected boolean, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected boolean, got ${valueType}`);
     }
-    
+
     if (type === 'string' && valueType !== 'string') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected string, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected string, got ${valueType}`);
     }
-    
+
     if ((type === 'json' || type === 'array') && valueType !== 'object') {
-      return NextResponse.json({ 
-        error: `Invalid value type. Expected object/array, got ${valueType}` 
-      }, { status: 400 });
+      throw new BadRequestError(`Invalid value type. Expected object/array, got ${valueType}`);
     }
 
     const created = await PlatformSettingsService.createSetting(
@@ -210,7 +193,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!created) {
-      return NextResponse.json({ error: 'Failed to create setting' }, { status: 500 });
+      throw new InternalServerError('Failed to create setting');
     }
 
     // Log admin activity
@@ -226,8 +209,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(created);
   } catch (error) {
-    logger.error('Error creating platform setting', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -269,16 +270,7 @@ export async function GET() {
         });
 
     } catch (error) {
-        logger.error('Activity feed API error', error, {
-            service: 'activity-feed-api',
-        });
-        
-        // Return empty array for graceful degradation
-        return NextResponse.json({
-            activities: [],
-            activeUserCount: 0,
-            hasRealData: false,
-        });
+        return handleAPIError(error);
     }
 }
 

@@ -5,6 +5,7 @@ import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, Supabase Cron)
 export async function GET(request: NextRequest) {
@@ -72,10 +73,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error in no-show reminders cron', error, {
-      service: 'cron',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,9 +12,9 @@ const supabase = createClient(
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required to view followers');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         contractorId,
       });
-      return NextResponse.json({ error: 'Failed to fetch followers list' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch followers list');
     }
 
     interface ContractorData {
@@ -90,17 +91,14 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       followers: formattedFollowers,
       total: formattedFollowers.length,
       limit,
-      offset 
+      offset
     });
   } catch (error) {
-    logger.error('Error in GET /api/contractor/followers', error, {
-      service: 'contractor_followers',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

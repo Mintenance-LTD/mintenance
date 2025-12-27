@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definitions for post operations
 interface PostUpdateData {
@@ -28,7 +29,7 @@ export async function GET(
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const postId = id;
@@ -52,7 +53,7 @@ export async function GET(
       .single();
 
     if (postError || !post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      throw new NotFoundError('Post not found');
     }
 
     // Increment views_count (track unique views)
@@ -97,7 +98,7 @@ export async function GET(
     logger.error('Error in GET /api/contractor/posts/[id]', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 
@@ -109,7 +110,7 @@ export async function PATCH(
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { id } = await params;
@@ -125,11 +126,11 @@ export async function PATCH(
       .single();
 
     if (fetchError || !existingPost) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      throw new NotFoundError('Post not found');
     }
 
     if (existingPost.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'You can only edit your own posts' }, { status: 403 });
+      throw new ForbiddenError('You can only edit your own posts');
     }
 
     // Build update payload
@@ -139,14 +140,14 @@ export async function PATCH(
 
     if (title !== undefined) {
       if (title.trim().length === 0) {
-        return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
+        throw new BadRequestError('Title cannot be empty');
       }
       updateData.title = title.trim();
     }
 
     if (content !== undefined) {
       if (content.trim().length === 0) {
-        return NextResponse.json({ error: 'Content cannot be empty' }, { status: 400 });
+        throw new BadRequestError('Content cannot be empty');
       }
       updateData.content = content.trim();
     }
@@ -179,7 +180,7 @@ export async function PATCH(
         postId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to update post', details: updateError.message }, { status: 500 });
+      throw new InternalServerError('Failed to update post');
     }
 
     // Fetch user's like status
@@ -218,7 +219,7 @@ export async function PATCH(
     logger.error('Error in PATCH /api/contractor/posts/[id]', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 
@@ -230,7 +231,7 @@ export async function DELETE(
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { id } = await params;
@@ -244,11 +245,11 @@ export async function DELETE(
       .single();
 
     if (fetchError || !existingPost) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      throw new NotFoundError('Post not found');
     }
 
     if (existingPost.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'You can only delete your own posts' }, { status: 403 });
+      throw new ForbiddenError('You can only delete your own posts');
     }
 
     // Soft delete: set is_active = false
@@ -264,7 +265,7 @@ export async function DELETE(
         postId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to delete post', details: deleteError.message }, { status: 500 });
+      throw new InternalServerError('Failed to delete post');
     }
 
     return NextResponse.json({ message: 'Post deleted successfully' });
@@ -272,6 +273,6 @@ export async function DELETE(
     logger.error('Error in DELETE /api/contractor/posts/[id]', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }

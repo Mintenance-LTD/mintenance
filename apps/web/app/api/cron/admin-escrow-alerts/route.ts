@@ -3,6 +3,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Cron endpoint for sending admin alerts for escrows pending review
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       logger.warn('No admin users found', {
         service: 'admin-escrow-alerts',
       });
-      return NextResponse.json({ error: 'No admins found' }, { status: 500 });
+      throw new InternalServerError('No admins found');
     }
 
     // Send alerts to admins
@@ -88,13 +89,7 @@ export async function GET(request: NextRequest) {
       results,
     });
   } catch (error) {
-    logger.error('Error in admin escrow alert cron', error, {
-      service: 'admin-escrow-alerts',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

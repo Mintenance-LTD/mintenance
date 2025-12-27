@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const bodySchema = z.object({
   amount: z.number().int().positive(),
@@ -19,15 +20,12 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid payload', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid payload');
     }
 
     const { amount, jobId, contractorId, currency } = parsed.data;
@@ -48,24 +46,24 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         error: jobError?.message,
       });
-      return NextResponse.json({ error: 'Job not found or access denied' }, { status: 404 });
+      throw new NotFoundError('Job not found or access denied');
     }
 
     const isAdmin = user.role === 'admin';
     if (!isAdmin && jobData.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Only the homeowner can initiate payment checkout' }, { status: 403 });
+      throw new ForbiddenError('Only the homeowner can initiate payment checkout');
     }
 
     if (!jobData.contractor_id) {
-      return NextResponse.json({ error: 'Job does not have an assigned contractor' }, { status: 400 });
+      throw new BadRequestError('Job does not have an assigned contractor');
     }
 
     if (jobData.contractor_id !== contractorId) {
-      return NextResponse.json({ error: 'Contractor does not match job assignment' }, { status: 400 });
+      throw new BadRequestError('Contractor does not match job assignment');
     }
 
     if (amount <= 0) {
-      return NextResponse.json({ error: 'Amount must be greater than zero' }, { status: 400 });
+      throw new BadRequestError('Amount must be greater than zero');
     }
 
     const metadata = {
@@ -93,11 +91,11 @@ export async function POST(request: NextRequest) {
         jobId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to create payment intent' }, { status: 502 });
+      throw new InternalServerError('Failed to create payment intent');
     }
 
     if (!paymentIntent?.client_secret) {
-      return NextResponse.json({ error: 'Payment provider did not return a client secret' }, { status: 502 });
+      throw new InternalServerError('Payment provider did not return a client secret');
     }
 
     return NextResponse.json({
@@ -110,6 +108,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     logger.error('Failed to create checkout session', err, { service: 'payments' });
     // SECURITY: Don't expose error details to client
-    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    throw new InternalServerError('Failed to create checkout session');
   }
 }

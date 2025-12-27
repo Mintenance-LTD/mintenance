@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/jobs/[id]/confirm-completion
@@ -24,7 +25,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to confirm completion');
     }
 
     // Idempotency check - prevent duplicate confirmations
@@ -47,7 +48,7 @@ export async function POST(
     }
 
     if (user.role !== 'homeowner') {
-      return NextResponse.json({ error: 'Only homeowners can confirm completion' }, { status: 403 });
+      throw new ForbiddenError('Only homeowners can confirm completion');
     }
 
     // Fetch the job
@@ -62,39 +63,27 @@ export async function POST(
         service: 'jobs',
         jobId,
       });
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Verify user is the homeowner
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Only the job owner can confirm completion' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only the job owner can confirm completion');
     }
 
     // Verify job is in completed status
     if (job.status !== 'completed') {
-      return NextResponse.json(
-        { error: `Cannot confirm completion - job status is ${job.status}. Contractor must mark the job as completed first.` },
-        { status: 400 }
-      );
+      throw new BadRequestError(`Cannot confirm completion - job status is ${job.status}. Contractor must mark the job as completed first`);
     }
 
     // Check if already confirmed
     if (job.completion_confirmed_by_homeowner) {
-      return NextResponse.json(
-        { error: 'Job completion has already been confirmed' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Job completion has already been confirmed');
     }
 
     // Verify contractor exists
     if (!job.contractor_id) {
-      return NextResponse.json(
-        { error: 'No contractor assigned to this job' },
-        { status: 400 }
-      );
+      throw new BadRequestError('No contractor assigned to this job');
     }
 
     // Update job to mark completion as confirmed
@@ -112,7 +101,7 @@ export async function POST(
         service: 'jobs',
         jobId,
       });
-      return NextResponse.json({ error: 'Failed to confirm completion' }, { status: 500 });
+      throw updateError;
     }
 
     // Notify contractor that homeowner confirmed completion
@@ -239,13 +228,6 @@ export async function POST(
 
     return NextResponse.json(responseData);
   } catch (error) {
-    logger.error('Unexpected error in confirm completion', error, {
-      jobId,
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

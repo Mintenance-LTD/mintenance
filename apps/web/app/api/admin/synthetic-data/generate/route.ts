@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { SyntheticDataService } from '@/lib/services/building-surveyor/SyntheticDataService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/admin/synthetic-data/generate
@@ -23,10 +24,7 @@ export async function POST(request: NextRequest) {
     const { imageUrls, variationsPerImage = 2, includeEdgeCases = true } = body;
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      return NextResponse.json(
-        { error: 'imageUrls array is required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('imageUrls array is required');
     }
 
     // Generate synthetic data
@@ -49,18 +47,7 @@ export async function POST(request: NextRequest) {
       assessments: syntheticAssessments,
     });
   } catch (error: unknown) {
-    logger.error('Error generating synthetic data', error, {
-      service: 'synthetic-data-api',
-    });
-
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate synthetic data';
-
-    return NextResponse.json(
-      {
-        error: errorMessage,
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/user/delete-account
@@ -23,18 +24,12 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await request.json();
     if (!body.confirm) {
-      return NextResponse.json(
-        { error: 'Account deletion must be confirmed' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Account deletion must be confirmed');
     }
 
     // Log the deletion request for GDPR compliance
@@ -85,11 +80,7 @@ export async function POST(request: NextRequest) {
       message: 'Account deleted successfully',
     });
   } catch (error) {
-    logger.error('Error deleting user account', error);
-    return NextResponse.json(
-      { error: 'Failed to delete account' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

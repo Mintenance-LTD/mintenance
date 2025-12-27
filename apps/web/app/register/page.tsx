@@ -135,7 +135,9 @@ function RegisterForm() {
 
       setSubmitStatus('success');
       setTimeout(() => {
-        router.push('/dashboard');
+        // Redirect based on user role
+        const redirectPath = data.role === 'contractor' ? '/contractor/dashboard-enhanced' : '/dashboard';
+        router.push(redirectPath);
         router.refresh();
       }, 1500);
     } catch (err) {

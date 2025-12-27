@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/escrow/:id/status
@@ -15,15 +16,14 @@ export async function GET(
     const { id: escrowId } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view escrow status');
     }
 
     const status = await EscrowStatusService.getCurrentStatus(escrowId);
 
     return NextResponse.json({ success: true, data: status });
   } catch (error) {
-    logger.error('Error getting escrow status', error, { service: 'escrow-status' });
-    return NextResponse.json({ error: 'Failed to get status' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

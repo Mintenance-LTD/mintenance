@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,10 +8,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ plans });
   } catch (err) {
-    return NextResponse.json(
-      { error: 'Failed to get subscription plans', details: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(err);
   }
 }
 

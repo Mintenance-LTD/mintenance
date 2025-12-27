@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { TrendSparkline } from '@/components/ui/TrendSparkline';
 import { theme } from '@/lib/theme';

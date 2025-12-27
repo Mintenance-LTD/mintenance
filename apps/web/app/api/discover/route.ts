@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { ContractorSummary } from '@mintenance/types/src/contracts';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to discover contractors');
     }
 
     const params = new URL(request.url).searchParams;
@@ -26,9 +27,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ contractors, nextCursor: null, filters });
   } catch (err) {
-    logger.error('discover GET error', err, {
-      service: 'discover',
-    });
-    return NextResponse.json({ error: 'Failed to load contractors' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Shield, Brain, CheckCircle, Phone, Mail, Award, Briefcase, FileCheck } from 'lucide-react';
 

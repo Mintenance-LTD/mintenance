@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { PayoutTierService } from '@/lib/services/payment/PayoutTierService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can check payout tier' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can check payout tier');
     }
 
     const tier = await PayoutTierService.calculateTier(user.id);
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Error calculating payout tier', error, { service: 'payments' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

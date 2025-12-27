@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { DisputeWorkflowService } from '@/lib/services/disputes/DisputeWorkflowService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 const createDisputeSchema = z.object({
   escrowId: z.string().uuid(),
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to create dispute');
     }
 
     const validation = await validateRequest(request, createDisputeSchema);
@@ -39,11 +40,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+      throw new NotFoundError('Escrow not found');
     }
 
     if (escrow.contractor_id !== user.id && escrow.client_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to create dispute for this escrow');
     }
 
     // Update escrow to disputed status
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
         escrowId,
         error: disputeError.message,
       });
-      return NextResponse.json({ error: 'Failed to create dispute' }, { status: 500 });
+      throw new InternalServerError('Failed to create dispute');
     }
 
     // Set priority and SLA
@@ -81,8 +82,7 @@ export async function POST(request: NextRequest) {
       disputeId: escrowId,
     });
   } catch (error) {
-    logger.error('Error creating dispute', error, { service: 'disputes' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

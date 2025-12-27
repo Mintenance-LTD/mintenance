@@ -75,71 +75,86 @@ export default async function DashboardPage2025() {
 
   const totalSpent = kpiData.jobsData.totalRevenue;
 
-  // Get contractor information for jobs
-  const jobsWithContractors = await Promise.all(
-    activeJobs.map(async (job) => {
-      // Fetch job photos/attachments
-      const { data: jobPhotos } = await serverSupabase
-        .from('job_attachments')
-        .select('file_url, file_type')
-        .eq('job_id', job.id)
-        .eq('file_type', 'image')
-        .order('uploaded_at', { ascending: false })
-        .limit(1);
+  // PERFORMANCE FIX: Batch queries instead of N+1
+  // Collect all job and contractor IDs
+  const jobIds = activeJobs.map(j => j.id);
+  const contractorIds = activeJobs
+    .map(j => j.contractor_id)
+    .filter((id): id is string => id !== null && id !== undefined);
 
-      const photoUrl = jobPhotos && jobPhotos.length > 0 ? jobPhotos[0].file_url : null;
+  // Batch query 1: Get all job photos at once
+  const { data: allJobPhotos } = await serverSupabase
+    .from('job_attachments')
+    .select('job_id, file_url, file_type, uploaded_at')
+    .in('job_id', jobIds)
+    .eq('file_type', 'image')
+    .order('uploaded_at', { ascending: false });
 
-      if (!job.contractor_id) {
-        // Get bid count for jobs without contractors
-        const { count } = await serverSupabase
-          .from('bids')
-          .select('*', { count: 'exact', head: true })
-          .eq('job_id', job.id);
+  // Batch query 2: Get all bid counts at once
+  const { data: allBidCounts } = await serverSupabase
+    .from('bids')
+    .select('job_id')
+    .in('job_id', jobIds);
 
-        return {
-          id: job.id,
-          title: job.title || 'Untitled Job',
-          status: job.status,
-          budget: job.budget || 0,
-          category: typeof job.category === 'string' ? job.category : undefined,
-          progress: 0,
-          bidsCount: count || 0,
-          scheduledDate: typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
-          photoUrl,
-        };
-      }
-
-      // Get contractor details
-      const { data: contractor } = await serverSupabase
+  // Batch query 3: Get all contractors at once
+  const { data: allContractors } = contractorIds.length > 0
+    ? await serverSupabase
         .from('users')
-        .select('first_name, last_name, profile_image_url')
-        .eq('id', job.contractor_id)
-        .single();
+        .select('id, first_name, last_name, profile_image_url')
+        .in('id', contractorIds)
+    : { data: [] };
 
-      // Get job progress
-      const { data: progressData } = await serverSupabase
-        .from('job_progress')
-        .select('progress_percentage')
-        .eq('job_id', job.id)
-        .single();
+  // Batch query 4: Get all job progress at once
+  const { data: allJobProgress } = await serverSupabase
+    .from('job_progress')
+    .select('job_id, progress_percentage')
+    .in('job_id', jobIds);
 
-      return {
-        id: job.id,
-        title: job.title || 'Untitled Job',
-        status: job.status,
-        budget: job.budget || 0,
-        category: typeof job.category === 'string' ? job.category : undefined,
-        contractor: contractor ? {
-          name: `${contractor.first_name} ${contractor.last_name}`.trim(),
-          image: contractor.profile_image_url,
-        } : undefined,
-        progress: progressData?.progress_percentage ? parseFloat(progressData.progress_percentage.toString()) : 0,
-        bidsCount: 0,
-        scheduledDate: typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
-        photoUrl,
-      };
-    })
+  // Create lookup maps for O(1) access
+  const photoMap = new Map<string, string>();
+  allJobPhotos?.forEach(photo => {
+    if (!photoMap.has(photo.job_id)) {
+      photoMap.set(photo.job_id, photo.file_url);
+    }
+  });
+
+  const bidCountMap = new Map<string, number>();
+  allBidCounts?.forEach(bid => {
+    const current = bidCountMap.get(bid.job_id) || 0;
+    bidCountMap.set(bid.job_id, current + 1);
+  });
+
+  const contractorMap = new Map(
+    allContractors?.map(c => [c.id, c]) || []
   );
+
+  const progressMap = new Map(
+    allJobProgress?.map(p => [p.job_id, p.progress_percentage]) || []
+  );
+
+  // Map data in memory (no more queries!)
+  const jobsWithContractors = activeJobs.map(job => {
+    const contractor = job.contractor_id ? contractorMap.get(job.contractor_id) : undefined;
+    const progress = progressMap.get(job.id);
+    const photoUrl = photoMap.get(job.id) || null;
+    const bidsCount = bidCountMap.get(job.id) || 0;
+
+    return {
+      id: job.id,
+      title: job.title || 'Untitled Job',
+      status: job.status,
+      budget: job.budget || 0,
+      category: typeof job.category === 'string' ? job.category : undefined,
+      contractor: contractor ? {
+        name: `${contractor.first_name} ${contractor.last_name}`.trim(),
+        image: contractor.profile_image_url,
+      } : undefined,
+      progress: progress ? parseFloat(progress.toString()) : 0,
+      bidsCount: job.contractor_id ? 0 : bidsCount,
+      scheduledDate: typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
+      photoUrl,
+    };
+  });
 
   // Prepare timeline events
   const recentActivity = [

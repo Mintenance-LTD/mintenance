@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorrectionService';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -26,17 +27,18 @@ export async function POST(
     const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // TODO: Check if user has permission to approve (admin/expert role)
     // For now, allow any authenticated user
 
     const body = await request.json().catch(() => ({}));
-    const validated = approveSchema.parse(body);
+    const validation = approveSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request');
+    }
+    const validated = validation.data;
 
     await YOLOCorrectionService.approveCorrection(
       id,
@@ -49,22 +51,7 @@ export async function POST(
       message: 'Correction approved',
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    logger.error('Failed to approve correction', error, {
-      service: 'YOLOCorrectionsAPI',
-      correctionId: 'unknown',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to approve correction' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

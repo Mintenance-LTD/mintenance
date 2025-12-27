@@ -159,3 +159,155 @@ Before ANY code is written or modified:
 - [ ] Impact on other components is understood
 
 This is NOT optional. These rules ensure code quality, prevent regressions, and maintain consistency across the entire mintenance platform.
+
+## QUALITY ENFORCEMENT RULES
+
+### NO SHORTCUTS POLICY
+- NEVER assume success without verification
+- ALWAYS run actual commands/tests to verify claims
+- NEVER report "would work" - only report "did work"
+- ALWAYS show actual output/results, not theoretical outcomes
+- NEVER mark tasks complete without evidence
+
+### VERIFICATION REQUIREMENTS
+Before ANY status report:
+- [ ] Run the actual test/build/command
+- [ ] Capture and show REAL output
+- [ ] Verify with multiple methods when possible
+- [ ] Check edge cases, not just happy path
+- [ ] Document any failures honestly
+
+### BANNED PHRASES (without proof)
+NEVER use these without actual verification:
+- "should work"
+- "would fix"
+- "appears to be"
+- "likely resolves"
+- "seems correct"
+- "looks good"
+- "probably works"
+
+ALWAYS use evidence-based language:
+- "verified by running X, output: [actual output]"
+- "test output shows Y: [actual results]"
+- "confirmed with Z: [specific evidence]"
+- "ran [command], result: [actual result]"
+
+## MANDATORY VERIFICATION PROTOCOL
+
+For ANY claim about code/system state:
+1. Use Read tool to show actual code (with line numbers)
+2. Use Bash tool to run actual commands (show full output)
+3. Use Grep/Glob to prove file existence (show results)
+4. Use testing tools to verify functionality (show test output)
+
+**NEVER rely on assumptions or memory**
+**ALWAYS verify with actual file/command output**
+
+### AGENT OUTPUT REQUIREMENTS
+
+ALL agent responses MUST include:
+- **Evidence**: Actual file paths, line numbers, code snippets
+- **Verification**: Commands run and their output
+- **Limitations**: What was NOT checked
+- **Confidence**: Low/Medium/High with justification
+
+**Example of GOOD agent report:**
+✅ "Found 3 instances in [auth.ts:42](auth.ts#L42), verified by grep output: [shows actual grep results]"
+✅ "Ran `npm test`, all 47 tests passed: [shows test summary]"
+✅ "Checked 5 files, found issue in 2: [lists specific files and line numbers]"
+
+**Example of BAD agent report:**
+❌ "Should be fixed" (no evidence, no verification)
+❌ "All tests pass" (didn't actually run tests)
+❌ "No issues found" (didn't show what was checked)
+❌ "Implementation complete" (didn't verify functionality)
+
+## ANTI-BIAS RULES
+
+### Completeness Bias Prevention
+- NEVER report "all tests pass" without running them and showing output
+- NEVER claim "no issues found" without thorough scan and listing what was checked
+- NEVER say "implementation complete" without verification of functionality
+- ALWAYS list what was NOT checked, untested scenarios, potential edge cases
+
+### Optimism Bias Prevention
+- Report failures FIRST, successes second
+- Assume code is broken until proven working
+- List risks before benefits
+- Show actual errors in full, don't summarize or hide them
+- Highlight what could still go wrong
+
+### Shortcut Detection
+If you're tempted to:
+- Skip a verification step → STOP, run it anyway
+- Assume based on file name → STOP, read the actual file
+- Mark complete based on plan → STOP, verify actual outcome
+- Summarize errors → STOP, show full error output
+- Say "looks good" → STOP, define what "good" means and verify it
+
+## POST-TASK AUDIT (MANDATORY)
+
+After EVERY task, before marking complete:
+
+### Audit Questions (answer with evidence):
+1. **What EXACTLY did I change?** (show diffs with git diff or file comparison)
+2. **What did I run to verify?** (show command output verbatim)
+3. **What could still be broken?** (list untested scenarios)
+4. **What assumptions did I make?** (list and challenge each one)
+5. **What would prove me wrong?** (then run that test)
+
+### Audit Checklist:
+- [ ] Re-read original request - did I answer it precisely?
+- [ ] Run relevant tests - show actual output (not summary)
+- [ ] Check for side effects - verify related code still works
+- [ ] Look for edge cases - test at least one explicitly
+- [ ] Verify file changes - use git diff or Read tool to confirm
+- [ ] List what was NOT verified - be explicit about gaps
+
+### Evidence Requirements
+Every completion report MUST include:
+1. **Commands Run**: Exact commands with full output
+2. **Files Modified**: List with git diff or before/after comparison
+3. **Tests Executed**: Test names and results (pass/fail counts)
+4. **Verification Method**: How you confirmed it works
+5. **Remaining Risks**: What could still fail
+6. **Not Tested**: Scenarios that were NOT verified
+
+### Example of COMPLETE Task Report:
+```
+✅ Task: Fix authentication bug in login flow
+
+Evidence:
+- Modified: apps/web/src/lib/auth.ts (lines 42-56)
+- Verified with: git diff apps/web/src/lib/auth.ts
+- Ran: npm test -- auth.test.ts
+- Result: 12/12 tests passed
+- Edge cases tested: empty password, SQL injection, XSS
+- Not tested: rate limiting, OAuth flows
+- Remaining risk: Password reset flow not verified
+
+Commands executed:
+$ npm test -- auth.test.ts
+PASS apps/web/src/__tests__/auth.test.ts
+  ✓ validates email format (23 ms)
+  ✓ rejects empty password (18 ms)
+  [... full output ...]
+
+$ git diff apps/web/src/lib/auth.ts
+[shows actual diff]
+```
+
+## FAILURE REPORTING REQUIREMENTS
+
+When something doesn't work:
+1. Show the FULL error message (not summarized)
+2. Show the exact command that failed
+3. Show relevant file contents that may be causing issue
+4. List what you tried that didn't work
+5. Explain what you don't understand
+6. Ask for clarification rather than guessing
+
+NEVER say "there's an error" - ALWAYS show the actual error.
+NEVER say "it failed" - ALWAYS show why it failed.
+NEVER hide errors to appear more competent.

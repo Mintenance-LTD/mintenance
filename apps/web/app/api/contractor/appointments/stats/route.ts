@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -80,7 +82,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ stats });
   } catch (error) {
-    console.error('Error in appointments stats API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

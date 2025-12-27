@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function POST(  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -14,11 +15,11 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to request location');
     }
 
     if (user.role !== 'homeowner') {
-      return NextResponse.json({ error: 'Only homeowners can request location sharing' }, { status: 403 });
+      throw new ForbiddenError('Only homeowners can request location sharing');
     }
 
     // Verify job exists and belongs to homeowner
@@ -29,19 +30,19 @@ export async function POST(  request: NextRequest,
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to request location for this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to request location for this job');
     }
 
     if (!job.contractor_id) {
-      return NextResponse.json({ error: 'No contractor assigned to this job' }, { status: 400 });
+      throw new BadRequestError('No contractor assigned to this job');
     }
 
     if (job.status !== 'assigned' && job.status !== 'in_progress') {
-      return NextResponse.json({ error: 'Job must be assigned or in progress to request location' }, { status: 400 });
+      throw new BadRequestError('Job must be assigned or in progress to request location');
     }
 
     // Create notification for contractor
@@ -64,7 +65,7 @@ export async function POST(  request: NextRequest,
         homeownerId: user.id,
         contractorId: job.contractor_id,
       });
-      return NextResponse.json({ error: 'Failed to send location request' }, { status: 500 });
+      throw notificationError;
     }
 
     return NextResponse.json({
@@ -73,10 +74,7 @@ export async function POST(  request: NextRequest,
       status: 'pending',
     });
   } catch (error) {
-    logger.error('Unexpected error in request location', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

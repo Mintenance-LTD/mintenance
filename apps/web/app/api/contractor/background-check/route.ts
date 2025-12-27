@@ -5,6 +5,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
 const initiateCheckSchema = z.object({
   provider: z.enum(['checkr', 'goodhire', 'sterling', 'custom']).optional().default('checkr'),
@@ -16,11 +17,11 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can initiate background checks' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can initiate background checks');
     }
 
     const validation = await validateRequest(request, initiateCheckSchema);
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     const result = await BackgroundCheckService.initiateCheck(user.id, provider);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      throw new BadRequestError(result.error || 'Failed to initiate background check');
     }
 
     return NextResponse.json({
@@ -41,8 +42,7 @@ export async function POST(request: NextRequest) {
       checkId: result.checkId,
     });
   } catch (error) {
-    logger.error('Background check initiation error', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -50,19 +50,18 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const status = await BackgroundCheckService.getCheckStatus(user.id);
 
     if (!status) {
-      return NextResponse.json({ error: 'Background check status not found' }, { status: 404 });
+      throw new NotFoundError('Background check status not found');
     }
 
     return NextResponse.json(status);
   } catch (error) {
-    logger.error('Error fetching background check status', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

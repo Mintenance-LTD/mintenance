@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/auth/resend-verification
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to resend verification');
     }
 
     // Get user's email from database
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         error: fetchError?.message,
       });
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      throw new NotFoundError('User not found');
     }
 
     // Check if already verified
@@ -42,10 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!userData.email) {
-      return NextResponse.json(
-        { error: 'Email address not found' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Email address not found');
     }
 
     // Resend confirmation email via Supabase Auth Admin API
@@ -58,10 +56,7 @@ export async function POST(request: NextRequest) {
         hasUrl: !!supabaseUrl,
         hasKey: !!supabaseServiceKey,
       });
-      return NextResponse.json(
-        { error: 'Server configuration error. Please contact support.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Server configuration error. Please contact support.');
     }
 
     try {
@@ -173,15 +168,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
   } catch (error) {
-    logger.error('Error resending email verification', error, {
-      service: 'auth',
-      method: request.method,
-      url: request.url,
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

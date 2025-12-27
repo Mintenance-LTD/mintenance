@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user - security fix: use authenticated user instead of query param
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view notification count');
     }
 
     const { count, error } = await serverSupabase
@@ -23,14 +24,11 @@ export async function GET(request: NextRequest) {
         service: 'notifications',
         userId: user.id,
       });
-      return NextResponse.json({ count: 0 });
+      throw error;
     }
 
     return NextResponse.json({ count: count || 0 });
   } catch (error) {
-    logger.error('Unread count API error', error, {
-      service: 'notifications',
-    });
-    return NextResponse.json({ count: 0 });
+    return handleAPIError(error);
   }
 }

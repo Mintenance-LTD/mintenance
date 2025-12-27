@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -14,7 +15,7 @@ async function getContractorMetrics(context: Params) {
     const { id } = await context.params;
     if (!id) {
       logger.warn('Contractor ID missing in request', { service: 'contractors' });
-      return NextResponse.json({ error: 'Contractor id missing' }, { status: 400 });
+      throw new BadRequestError('Contractor id missing');
     }
 
     // Fetch all relevant data in parallel
@@ -182,6 +183,6 @@ async function getContractorMetrics(context: Params) {
     return NextResponse.json({ metrics });
   } catch (err) {
     logger.error('Failed to load contractor metrics', err, { service: 'contractors' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }

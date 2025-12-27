@@ -7,6 +7,7 @@ import { AdminNotificationService } from '@/lib/services/admin/AdminNotification
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 const bulkVerifySchema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(100),
@@ -27,19 +28,14 @@ export async function POST(request: NextRequest) {
     const validation = bulkVerifySchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ 
-        error: 'Invalid request body', 
-        details: validation.error.issues 
-      }, { status: 400 });
+      throw new BadRequestError('Invalid request body');
     }
 
     const { userIds, action, reason } = validation.data;
 
     // Require reason for bulk rejection
     if (action === 'reject' && !reason) {
-      return NextResponse.json({ 
-        error: 'Reason is required when rejecting verifications' 
-      }, { status: 400 });
+      throw new BadRequestError('Reason is required when rejecting verifications');
     }
 
     const results = {
@@ -172,8 +168,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Unexpected error in bulk verification', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

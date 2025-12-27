@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Validation schema
 const deleteQuoteSchema = z.object({
@@ -20,7 +21,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!user) {
       logger.warn('Unauthorized delete quote attempt', { service: 'contractor' });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is a contractor
@@ -30,12 +31,16 @@ export async function DELETE(request: NextRequest) {
         userId: user.id,
         role: user.role
       });
-      return NextResponse.json({ error: 'Only contractors can delete quotes' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can delete quotes');
     }
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = deleteQuoteSchema.parse(body);
+    const validation = deleteQuoteSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request data');
+    }
+    const validatedData = validation.data;
 
     // Verify quote exists and belongs to contractor
     const { data: quote, error: quoteError } = await serverSupabase
@@ -51,7 +56,7 @@ export async function DELETE(request: NextRequest) {
         quoteId: validatedData.quoteId,
         contractorId: user.id
       });
-      return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+      throw new NotFoundError('Quote not found');
     }
 
     // Prevent deletion of accepted quotes
@@ -60,7 +65,7 @@ export async function DELETE(request: NextRequest) {
         service: 'contractor',
         quoteId: validatedData.quoteId
       });
-      return NextResponse.json({ error: 'Cannot delete accepted quotes' }, { status: 400 });
+      throw new BadRequestError('Cannot delete accepted quotes');
     }
 
     // Delete the quote
@@ -75,7 +80,7 @@ export async function DELETE(request: NextRequest) {
         service: 'contractor',
         quoteId: validatedData.quoteId
       });
-      return NextResponse.json({ error: 'Failed to delete quote' }, { status: 500 });
+      throw new InternalServerError('Failed to delete quote');
     }
 
     logger.info('Quote deleted successfully', {
@@ -90,18 +95,6 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      logger.warn('Invalid delete quote data', {
-        service: 'contractor',
-        errors: error.issues
-      });
-      return NextResponse.json({
-        error: 'Invalid request data',
-        details: error.issues
-      }, { status: 400 });
-    }
-
-    logger.error('Unexpected error in delete-quote', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

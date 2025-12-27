@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { AIMatchingService } from '@/lib/services/AIMatchingService';
 import type { MatchingCriteria } from '@/lib/services/matching/types';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * Get intelligently matched contractors for a job
@@ -20,10 +21,7 @@ export async function GET(
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view matched contractors');
     }
 
     // Fetch job details
@@ -34,18 +32,12 @@ export async function GET(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Job not found');
     }
 
     // Verify user owns the job
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Not authorized to view matches for this job');
     }
 
     // Geocode job location to get coordinates
@@ -174,14 +166,7 @@ export async function GET(
     });
 
   } catch (error) {
-    logger.error('Error getting matched contractors', error, {
-      service: 'jobs',
-      jobId,
-    });
-    return NextResponse.json(
-      { error: 'Failed to get matched contractors' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

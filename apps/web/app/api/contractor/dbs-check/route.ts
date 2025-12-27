@@ -5,6 +5,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
 
 const initiateCheckSchema = z.object({
   dbsType: z.enum(['basic', 'standard', 'enhanced']),
@@ -21,14 +22,11 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can initiate DBS checks' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can initiate DBS checks');
     }
 
     const validation = await validateRequest(request, initiateCheckSchema);
@@ -45,10 +43,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to initiate DBS check' },
-        { status: 400 }
-      );
+      throw new BadRequestError(result.error || 'Failed to initiate DBS check');
     }
 
     return NextResponse.json({
@@ -59,11 +54,7 @@ export async function POST(request: NextRequest) {
       provider,
     }, { status: 201 });
   } catch (error) {
-    logger.error('DBS check initiation error', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -75,14 +66,11 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can access DBS check status' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can access DBS check status');
     }
 
     const status = await DBSCheckService.getCheckStatus(user.id);
@@ -111,10 +99,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching DBS check status', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

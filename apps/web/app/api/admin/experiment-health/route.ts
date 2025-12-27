@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { getExperimentHealth } from '@/lib/monitoring/experimentHealth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 
@@ -22,10 +23,7 @@ export async function GET(request: NextRequest) {
     const experimentId = searchParams.get('experimentId') || AB_TEST_EXPERIMENT_ID;
 
     if (!experimentId) {
-      return NextResponse.json(
-        { error: 'A/B testing not configured - no experiment ID' },
-        { status: 503 }
-      );
+      throw new BadRequestError('A/B testing not configured - no experiment ID');
     }
 
     // Get experiment health
@@ -33,14 +31,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(health);
   } catch (error) {
-    logger.error('Error fetching experiment health', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch experiment health',
-        experimentId: AB_TEST_EXPERIMENT_ID || null,
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

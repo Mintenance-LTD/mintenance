@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * Batch fetch service areas for multiple contractors
@@ -20,18 +21,12 @@ const body = await request.json();
     const { contractorIds } = body;
 
     if (!Array.isArray(contractorIds) || contractorIds.length === 0) {
-      return NextResponse.json(
-        { error: 'contractorIds must be a non-empty array' },
-        { status: 400 }
-      );
+      throw new BadRequestError('contractorIds must be a non-empty array');
     }
 
     // Limit to prevent abuse
     if (contractorIds.length > 100) {
-      return NextResponse.json(
-        { error: 'Maximum 100 contractors per request' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Maximum 100 contractors per request');
     }
 
     logger.info('Fetching service areas for contractors', {
@@ -92,14 +87,7 @@ const body = await request.json();
       },
     });
   } catch (error) {
-    logger.error('Error in service-areas-batch API', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    
-    return NextResponse.json(
-      { error: 'Failed to fetch service areas' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/jobs/[id]/pricing-recommendation
@@ -14,12 +15,12 @@ export async function GET(
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required for pricing recommendations');
     }
 
     // Only contractors can get pricing recommendations
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can get pricing recommendations' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can get pricing recommendations');
     }
 
     const { id: jobId } = await params;
@@ -37,7 +38,7 @@ export async function GET(
     );
 
     if (!recommendation) {
-      return NextResponse.json({ error: 'Failed to generate pricing recommendation' }, { status: 500 });
+      throw new Error('Failed to generate pricing recommendation');
     }
 
     return NextResponse.json({
@@ -45,10 +46,7 @@ export async function GET(
       recommendation,
     });
   } catch (error) {
-    logger.error('Error getting pricing recommendation', error, {
-      service: 'pricing-recommendation',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

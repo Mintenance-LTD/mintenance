@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * API route to proxy reverse geocoding requests to Nominatim
  * Converts GPS coordinates to readable addresses
  */
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const lat = searchParams.get('lat');
-  const lon = searchParams.get('lon');
-
-  if (!lat || !lon) {
-    return NextResponse.json(
-      { error: 'Latitude and longitude are required' },
-      { status: 400 }
-    );
-  }
-
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const lat = searchParams.get('lat');
+    const lon = searchParams.get('lon');
+
+    if (!lat || !lon) {
+      throw new BadRequestError('Latitude and longitude are required');
+    }
     // Proxy request to Nominatim for reverse geocoding
     const nominatimUrl = new URL('https://nominatim.openstreetmap.org/reverse');
     nominatimUrl.searchParams.set('format', 'json');
@@ -46,15 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error reverse geocoding from Nominatim', error, {
-      service: 'geocoding',
-      lat,
-      lon,
-    });
-    return NextResponse.json(
-      { error: 'Failed to get address from location. Please try again.' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

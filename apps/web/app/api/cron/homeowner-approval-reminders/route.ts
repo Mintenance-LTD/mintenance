@@ -3,6 +3,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Cron endpoint for sending homeowner approval reminders
@@ -47,11 +48,10 @@ export async function GET(request: NextRequest) {
       .limit(100);
 
     if (fetchError) {
-      logger.error('Error fetching escrows awaiting approval', {
+      logger.error('Error fetching escrows awaiting approval', fetchError, {
         service: 'homeowner-approval-reminders',
-        error: fetchError.message,
       });
-      return NextResponse.json({ error: 'Failed to fetch escrows' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch escrows');
     }
 
     if (!escrows || escrows.length === 0) {
@@ -93,13 +93,7 @@ export async function GET(request: NextRequest) {
       results,
     });
   } catch (error) {
-    logger.error('Error in homeowner approval reminder cron', error, {
-      service: 'homeowner-approval-reminders',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

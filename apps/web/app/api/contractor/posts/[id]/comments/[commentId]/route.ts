@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definition for comment update data
 interface CommentUpdateData {
@@ -27,7 +28,7 @@ export async function PATCH(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { commentId } = await params;
@@ -42,11 +43,11 @@ export async function PATCH(
       .single();
 
     if (fetchError || !existingComment) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      throw new NotFoundError('Comment not found');
     }
 
     if (existingComment.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'You can only edit your own comments' }, { status: 403 });
+      throw new ForbiddenError('You can only edit your own comments');
     }
 
     // Build update payload
@@ -56,10 +57,10 @@ export async function PATCH(
 
     if (comment_text !== undefined) {
       if (comment_text.trim().length === 0) {
-        return NextResponse.json({ error: 'Comment text cannot be empty' }, { status: 400 });
+        throw new BadRequestError('Comment text cannot be empty');
       }
       if (comment_text.length > 2000) {
-        return NextResponse.json({ error: 'Comment text must be 2000 characters or less' }, { status: 400 });
+        throw new BadRequestError('Comment text must be 2000 characters or less');
       }
       updateData.comment_text = comment_text.trim();
     }
@@ -78,7 +79,7 @@ export async function PATCH(
           updateData.solution_verified_by = user.id;
         }
       } else {
-        return NextResponse.json({ error: 'Only post author or comment author can mark as solution' }, { status: 403 });
+        throw new ForbiddenError('Only post author or comment author can mark as solution');
       }
     }
 
@@ -104,7 +105,7 @@ export async function PATCH(
         commentId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to update comment', details: updateError.message }, { status: 500 });
+      throw new InternalServerError('Failed to update comment');
     }
 
     const formattedComment = {
@@ -130,7 +131,7 @@ export async function PATCH(
     logger.error('Error in PATCH /api/contractor/posts/[id]/comments/[commentId]', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 
@@ -144,7 +145,7 @@ export async function DELETE(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { commentId } = await params;
@@ -157,11 +158,11 @@ export async function DELETE(
       .single();
 
     if (fetchError || !existingComment) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      throw new NotFoundError('Comment not found');
     }
 
     if (existingComment.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'You can only delete your own comments' }, { status: 403 });
+      throw new ForbiddenError('You can only delete your own comments');
     }
 
     // Delete comment (cascade will handle nested replies via database constraints)
@@ -176,7 +177,7 @@ export async function DELETE(
         commentId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to delete comment', details: deleteError.message }, { status: 500 });
+      throw new InternalServerError('Failed to delete comment');
     }
 
     // The trigger should automatically update comments_count on contractor_posts
@@ -185,7 +186,7 @@ export async function DELETE(
     logger.error('Error in DELETE /api/contractor/posts/[id]/comments/[commentId]', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

@@ -14,6 +14,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Heart, Star, Search, X, ChevronLeft, ChevronRight, Check, Shield } from 'lucide-react';
 import '@/styles/airbnb-system.css';
 
@@ -207,10 +208,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   className = '',
 }) => {
   const [params, setParams] = useState<SearchParams>({});
+  const router = useRouter();
 
   const handleSearch = useCallback(() => {
+    // Build search query parameters
+    const searchParams = new URLSearchParams();
+    if (params.service) searchParams.set('service', params.service);
+    if (params.location) searchParams.set('location', params.location);
+    if (params.date) searchParams.set('date', params.date);
+
+    // Navigate to contractors search page with query parameters
+    router.push(`/contractors?${searchParams.toString()}`);
+
+    // Also call the onSearch callback for any custom handling
     onSearch(params);
-  }, [params, onSearch]);
+  }, [params, onSearch, router]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

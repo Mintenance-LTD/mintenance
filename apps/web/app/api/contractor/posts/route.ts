@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
+
+    const supabase = await createServerSupabaseClient();
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -23,84 +21,111 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const location = searchParams.get('location');
     const sort = searchParams.get('sort') || 'newest';
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const followingOnly = searchParams.get('following') === 'true';
 
-    // Build query
-    let query = supabase
-      .from('contractor_posts')
-      .select(`
-        *,
-        contractor:contractor_id (
-          id,
-          first_name,
-          last_name,
-          profile_image_url,
-          city,
-          country
-        )
-      `)
-      .eq('is_active', true)
-      .eq('is_flagged', false);
+    let posts: any[] = [];
+    let postsError: any = null;
 
-    // Filter by post type
-    if (postType && postType !== 'all') {
-      query = query.eq('post_type', postType);
-    }
+    // SECURITY FIX: Use secure RPC function for search queries
+    if (search && search.trim().length > 0) {
+      const sanitizedSearch = search.substring(0, 100).trim();
 
-    // Filter by following only
-    if (followingOnly) {
-      // Get list of contractors the user is following
-      const { data: following } = await supabase
-        .from('contractor_follows')
-        .select('following_id')
-        .eq('follower_id', user.id);
+      // Use secure full-text search RPC function
+      const { data, error } = await supabase.rpc('search_contractor_posts', {
+        search_text: sanitizedSearch,
+        post_type_filter: (postType && postType !== 'all') ? postType : null,
+        is_active_filter: true,
+        is_flagged_filter: false,
+        limit_count: limit,
+        offset_count: offset,
+        sort_by: sort === 'relevance' ? 'relevance' : sort,
+      });
 
-      const followingIds = following?.map(f => f.following_id) || [];
-      if (followingIds.length > 0) {
-        query = query.in('contractor_id', followingIds);
-      } else {
-        // User follows no one, return empty array
-        return NextResponse.json({ posts: [], total: 0 });
+      posts = data || [];
+      postsError = error;
+
+      // Filter by following if needed
+      if (followingOnly && !postsError && posts.length > 0) {
+        const { data: following } = await supabase
+          .from('contractor_follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+
+        const followingIds = new Set(following?.map(f => f.following_id) || []);
+        if (followingIds.size > 0) {
+          posts = posts.filter(p => followingIds.has(p.contractor_id));
+        } else {
+          posts = [];
+        }
       }
+    } else {
+      // No search - use regular query builder
+      let query = supabase
+        .from('contractor_posts')
+        .select(`
+          *,
+          contractor:contractor_id (
+            id,
+            first_name,
+            last_name,
+            profile_image_url,
+            city,
+            country
+          )
+        `)
+        .eq('is_active', true)
+        .eq('is_flagged', false);
+
+      // Filter by post type
+      if (postType && postType !== 'all') {
+        query = query.eq('post_type', postType);
+      }
+
+      // Filter by following only
+      if (followingOnly) {
+        const { data: following } = await supabase
+          .from('contractor_follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+
+        const followingIds = following?.map(f => f.following_id) || [];
+        if (followingIds.length > 0) {
+          query = query.in('contractor_id', followingIds);
+        } else {
+          return NextResponse.json({ posts: [], total: 0 });
+        }
+      }
+
+      // Apply sorting
+      switch (sort) {
+        case 'popular':
+          query = query.order('likes_count', { ascending: false });
+          break;
+        case 'most_commented':
+          query = query.order('comments_count', { ascending: false });
+          break;
+        case 'newest':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error } = await query;
+      posts = data || [];
+      postsError = error;
     }
-
-    // Search filter (title or content)
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
-    }
-
-    // Location filter (city) - Note: This filters by contractor's city, not post location
-    // For more precise location filtering, we'd need to join users table differently
-    // For now, we'll skip this filter as nested field filtering doesn't work well with Supabase
-    // TODO: Implement location filtering via separate query or postgres function
-
-    // Apply sorting
-    switch (sort) {
-      case 'popular':
-        query = query.order('likes_count', { ascending: false });
-        break;
-      case 'most_commented':
-        query = query.order('comments_count', { ascending: false });
-        break;
-      case 'newest':
-      default:
-        query = query.order('created_at', { ascending: false });
-        break;
-    }
-
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
-
-    const { data: posts, error: postsError } = await query;
 
     if (postsError) {
       logger.error('Error fetching posts', postsError, {
         service: 'contractor_posts',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
+      throw postsError;
     }
 
     // Fetch user's likes
@@ -159,26 +184,25 @@ export async function GET(request: NextRequest) {
       posts: formattedPosts,
       total: formattedPosts.length,
       limit,
-      offset 
+      offset
     });
   } catch (error) {
-    logger.error('Error in GET /api/contractor/posts', error, {
-      service: 'contractor_posts',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
-    
+
+    const user = await getCurrentUserFromCookies();
+
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
+
+    const supabase = await createServerSupabaseClient();
 
     const body = await request.json();
     const { 
@@ -197,13 +221,13 @@ const user = await getCurrentUserFromCookies();
     } = body;
 
     if (!title || !content) {
-      return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
+      throw new BadRequestError('Title and content are required');
     }
 
     // Validate post_type
     const validPostTypes = ['work_showcase', 'help_request', 'tip_share', 'equipment_share', 'referral_request'];
     if (!validPostTypes.includes(post_type)) {
-      return NextResponse.json({ error: `Invalid post_type. Must be one of: ${validPostTypes.join(', ')}` }, { status: 400 });
+      throw new BadRequestError(`Invalid post_type. Must be one of: ${validPostTypes.join(', ')}`);
     }
 
     // Create post
@@ -247,7 +271,7 @@ const user = await getCurrentUserFromCookies();
         service: 'contractor_posts',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to create post', details: postError.message }, { status: 500 });
+      throw postError;
     }
 
     const formattedPost = {
@@ -274,10 +298,7 @@ const user = await getCurrentUserFromCookies();
 
     return NextResponse.json({ post: formattedPost }, { status: 201 });
   } catch (error) {
-    logger.error('Error in POST /api/contractor/posts', error, {
-      service: 'contractor_posts',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

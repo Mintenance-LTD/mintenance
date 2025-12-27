@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, NotFoundError, ConflictError } from '@/lib/errors/api-error';
 
 /**
  * Get saved jobs for contractor or save a job
@@ -14,11 +15,11 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view saved jobs');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can view saved jobs' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can view saved jobs');
     }
 
     // Fetch saved jobs with full job data for this contractor
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
         service: 'saved_jobs',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch saved jobs' }, { status: 500 });
+      throw savedJobsError;
     }
 
     // Extract job IDs for backward compatibility
@@ -69,26 +70,23 @@ export async function GET(request: NextRequest) {
       savedJobs: savedJobs || []
     });
   } catch (error) {
-    logger.error('Unexpected error in GET /api/contractor/saved-jobs', error, {
-      service: 'saved_jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+
+    const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to save jobs');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can save jobs' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can save jobs');
     }
 
     // Check subscription requirement
@@ -102,7 +100,7 @@ const user = await getCurrentUserFromCookies();
     const { jobId } = body;
 
     if (!jobId || typeof jobId !== 'string') {
-      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+      throw new BadRequestError('Job ID is required');
     }
 
     // Verify job exists
@@ -113,7 +111,7 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Check if already saved
@@ -125,7 +123,7 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (existing) {
-      return NextResponse.json({ error: 'Job already saved' }, { status: 409 });
+      throw new ConflictError('Job already saved');
     }
 
     // Save the job
@@ -143,7 +141,7 @@ const user = await getCurrentUserFromCookies();
         userId: user.id,
         jobId,
       });
-      return NextResponse.json({ error: 'Failed to save job' }, { status: 500 });
+      throw saveError;
     }
 
     // Get job details for notification
@@ -174,10 +172,7 @@ const user = await getCurrentUserFromCookies();
 
     return NextResponse.json({ success: true, message: 'Job saved successfully' });
   } catch (error) {
-    logger.error('Unexpected error in POST /api/contractor/saved-jobs', error, {
-      service: 'saved_jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -185,21 +180,22 @@ export async function DELETE(request: NextRequest) {
   try {
     // CSRF protection
     await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to unsave jobs');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can unsave jobs' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can unsave jobs');
     }
 
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
 
     if (!jobId) {
-      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+      throw new BadRequestError('Job ID is required');
     }
 
     // Delete the saved job
@@ -215,15 +211,12 @@ export async function DELETE(request: NextRequest) {
         userId: user.id,
         jobId,
       });
-      return NextResponse.json({ error: 'Failed to unsave job' }, { status: 500 });
+      throw deleteError;
     }
 
     return NextResponse.json({ success: true, message: 'Job unsaved successfully' });
   } catch (error) {
-    logger.error('Unexpected error in DELETE /api/contractor/saved-jobs', error, {
-      service: 'saved_jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

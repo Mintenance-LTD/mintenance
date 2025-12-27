@@ -1,0 +1,2783 @@
+{
+  "timestamp": "2025-12-22T09:47:26.149Z",
+  "summary": {
+    "filesScanned": 1414,
+    "filesWithIssues": 182,
+    "totalIssues": 203,
+    "errors": 138,
+    "warnings": 65
+  },
+  "issuesByType": {
+    "nonSemanticClick": {
+      "count": 99,
+      "files": [
+        "apps\\web\\lib\\hooks\\queries\\__test-component.tsx",
+        "apps\\web\\components\\ui\\StandardCard.tsx",
+        "apps\\web\\components\\ui\\Paywall.tsx",
+        "apps\\web\\components\\ui\\MotionDiv.tsx",
+        "apps\\web\\components\\ui\\Modal.tsx",
+        "apps\\web\\components\\ui\\MobileNavigation.tsx",
+        "apps\\web\\components\\ui\\GradientCard.tsx",
+        "apps\\web\\components\\ui\\Card.unified.tsx",
+        "apps\\web\\components\\project-timeline\\TimelineView.tsx",
+        "apps\\web\\components\\professional\\index.tsx",
+        "apps\\web\\components\\onboarding\\WelcomeModal.tsx",
+        "apps\\web\\components\\notifications\\NotificationDropdown.tsx",
+        "apps\\web\\components\\messaging\\ConversationCard.tsx",
+        "apps\\web\\components\\landing\\AIAssessmentShowcase.tsx",
+        "apps\\web\\components\\contractor\\StandardCard.tsx",
+        "apps\\web\\components\\contractor\\MetricCard.tsx",
+        "apps\\web\\components\\contractor\\DBSCheckModal.tsx",
+        "apps\\web\\components\\cards\\PropertyCard.tsx",
+        "apps\\web\\components\\cards\\JobCard.tsx",
+        "apps\\web\\components\\cards\\ContractorCard.tsx",
+        "apps\\web\\components\\airbnb-system\\index.tsx",
+        "apps\\web\\components\\admin\\AdminMetricCard.tsx",
+        "apps\\web\\components\\admin\\AdminCard.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\video-calls-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\help-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\find-contractors-page.tsx",
+        "apps\\web\\app\\properties\\components\\AddPropertyModal.tsx",
+        "apps\\web\\app\\profile\\components\\LocationInput.tsx",
+        "apps\\web\\app\\notifications\\components\\NotificationsClient.tsx",
+        "apps\\web\\app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
+        "apps\\web\\app\\jobs\\[id]\\components\\PhotoGallery.tsx",
+        "apps\\web\\app\\jobs\\[id]\\components\\JobDetailsAirbnb.tsx",
+        "apps\\web\\app\\jobs\\[id]\\components\\BuildingAssessmentDisplay.tsx",
+        "apps\\web\\app\\jobs\\[id]\\components\\BidListClient.tsx",
+        "apps\\web\\app\\dashboard\\components\\HomeownerDashboardProfessional.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorsBrowseProfessional.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
+        "apps\\web\\app\\contractor\\subscription\\components\\SubscriptionExpiredReminder.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\ShareModal.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\CreatePostModal.tsx",
+        "apps\\web\\app\\contractor\\scheduling\\components\\SchedulingClient.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\SkillsManagementModal.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\SkillsManagementDialog.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\PhotoUploadModal.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\EditProfileModal.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\EditProfileDialog.tsx",
+        "apps\\web\\app\\contractor\\messages\\components\\CreateContractModal.tsx",
+        "apps\\web\\app\\contractor\\messages\\components\\ActiveContractCard.tsx",
+        "apps\\web\\app\\contractor\\invoices\\components\\InvoiceManagementClient.tsx",
+        "apps\\web\\app\\contractor\\gallery\\components\\ContractorGalleryClient.tsx",
+        "apps\\web\\app\\contractor\\finance\\page.tsx",
+        "apps\\web\\app\\contractor\\escrow\\status\\components\\EscrowStatusDashboardClient.tsx",
+        "apps\\web\\app\\contractor\\discover\\components\\LocationPromptModal.tsx",
+        "apps\\web\\app\\contractor\\discover\\components\\ContractorDiscoverClient.tsx",
+        "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+        "apps\\web\\app\\contractor\\customers\\components\\MessagesSidebar.tsx",
+        "apps\\web\\app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
+        "apps\\web\\app\\contractor\\components\\ModernContractorLayout.tsx",
+        "apps\\web\\app\\ai-search\\components\\AISearchClient.tsx",
+        "apps\\web\\app\\admin\\users\\components\\UserDetailModal.tsx"
+      ],
+      "wcag": "4.1.2 Level A",
+      "message": "2 non-semantic element(s) with onClick handlers",
+      "type": "warning"
+    },
+    "outlineNone": {
+      "count": 12,
+      "files": [
+        "apps\\web\\lib\\a11y\\focus-styles.ts",
+        "apps\\web\\components\\ErrorBoundary.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorsBrowseClient.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorCard.tsx"
+      ],
+      "wcag": "2.4.7 Level AA",
+      "message": "1 instance(s) of focus outline removal",
+      "type": "warning"
+    },
+    "inputWithoutLabel": {
+      "count": 390,
+      "files": [
+        "apps\\web\\components\\CookieConsent.tsx",
+        "apps\\web\\components\\video-call\\VideoCallScheduler.tsx",
+        "apps\\web\\components\\ui\\PlacesAutocomplete.tsx",
+        "apps\\web\\components\\ui\\AdvancedFilters.tsx",
+        "apps\\web\\components\\search\\AdvancedSearchFilters.tsx",
+        "apps\\web\\components\\project-timeline\\MilestoneEditor.tsx",
+        "apps\\web\\components\\payments\\PaymentForm.tsx",
+        "apps\\web\\components\\modals\\PaymentMethodModal.tsx",
+        "apps\\web\\components\\layouts\\UnifiedSidebar.tsx",
+        "apps\\web\\components\\layouts\\PageHeader.tsx",
+        "apps\\web\\components\\layouts\\Header.tsx",
+        "apps\\web\\components\\landing\\QuickQuoteWidget.tsx",
+        "apps\\web\\components\\jobs\\JobDetailsDialog.tsx",
+        "apps\\web\\components\\examples\\FeatureAccessExamples.tsx",
+        "apps\\web\\components\\examples\\DialogExamples.tsx",
+        "apps\\web\\components\\examples\\ContractorFormExample.tsx",
+        "apps\\web\\components\\escrow\\PhotoUploadWizard.tsx",
+        "apps\\web\\components\\design-system\\DesignSystemShowcase.tsx",
+        "apps\\web\\components\\contractor\\DBSCheckModal.tsx",
+        "apps\\web\\components\\airbnb-system\\index.tsx",
+        "apps\\web\\components\\account\\DeleteAccountModal.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\help-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\contractor-verification-page.tsx",
+        "apps\\web\\app\\_archive\\pre-2025\\contact-page.tsx",
+        "apps\\web\\app\\video-calls\\components\\VideoCallScheduler.tsx",
+        "apps\\web\\app\\verify-phone\\components\\VerifyPhoneClient.tsx",
+        "apps\\web\\app\\settings\\page.tsx",
+        "apps\\web\\app\\settings\\security\\mfa\\page.tsx",
+        "apps\\web\\app\\scheduling\\meetings\\components\\MeetingScheduler.tsx",
+        "apps\\web\\app\\register\\page.tsx",
+        "apps\\web\\app\\register\\enhanced-register.tsx",
+        "apps\\web\\app\\properties\\[id]\\edit\\components\\PropertyEditClient.tsx",
+        "apps\\web\\app\\properties\\components\\AddPropertyModal.tsx",
+        "apps\\web\\app\\properties\\components\\AddPropertyDialog.tsx",
+        "apps\\web\\app\\properties\\add\\page.tsx",
+        "apps\\web\\app\\profile\\page.tsx",
+        "apps\\web\\app\\profile\\components\\ProfilePictureSection.tsx",
+        "apps\\web\\app\\profile\\components\\LocationInput.tsx",
+        "apps\\web\\app\\payments\\[transactionId]\\page.tsx",
+        "apps\\web\\app\\payment-methods\\page.tsx",
+        "apps\\web\\app\\messages\\page.tsx",
+        "apps\\web\\app\\messages\\components\\ConversationList2025.tsx",
+        "apps\\web\\app\\jobs\\[id]\\review\\page.tsx",
+        "apps\\web\\app\\jobs\\[id]\\payment\\components\\StripePaymentElement2025.tsx",
+        "apps\\web\\app\\jobs\\[id]\\edit\\page.tsx",
+        "apps\\web\\app\\jobs\\[id]\\components\\JobScheduling.tsx",
+        "apps\\web\\app\\jobs\\quick-create\\page.tsx",
+        "apps\\web\\app\\jobs\\create\\page.tsx",
+        "apps\\web\\app\\jobs\\create\\components\\BudgetRangeSelector.tsx",
+        "apps\\web\\app\\jobs\\components\\SmartJobFilters2025.tsx",
+        "apps\\web\\app\\jobs\\components\\JobsFilters.tsx",
+        "apps\\web\\app\\homeowner\\escrow\\approve\\components\\HomeownerApprovalClient.tsx",
+        "apps\\web\\app\\help\\page.tsx",
+        "apps\\web\\app\\find-contractors\\components\\FindContractorsClient.tsx",
+        "apps\\web\\app\\favorites\\page.tsx",
+        "apps\\web\\app\\faq\\page.tsx",
+        "apps\\web\\app\\disputes\\create\\page.tsx",
+        "apps\\web\\app\\dashboard\\components\\NewsletterSignup.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorsBrowseProfessional.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorsBrowseClient.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorsBrowseAirbnb.tsx",
+        "apps\\web\\app\\contractors\\components\\ContractorFilters.tsx",
+        "apps\\web\\app\\contractor\\verification\\page.tsx",
+        "apps\\web\\app\\contractor\\tools\\page.tsx",
+        "apps\\web\\app\\contractor\\team\\page.tsx",
+        "apps\\web\\app\\contractor\\subscription\\payment-methods\\components\\PaymentMethodForm.tsx",
+        "apps\\web\\app\\contractor\\social\\page.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\ShareModal.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\ShareDialog.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\CreatePostModal.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\CreatePostDialog.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\ContractorSocialClient.tsx",
+        "apps\\web\\app\\contractor\\social\\components\\CommentsSection.tsx",
+        "apps\\web\\app\\contractor\\settings\\page.tsx",
+        "apps\\web\\app\\contractor\\scheduling\\components\\SchedulingClient.tsx",
+        "apps\\web\\app\\contractor\\reviews\\page.tsx",
+        "apps\\web\\app\\contractor\\resources\\page.tsx",
+        "apps\\web\\app\\contractor\\quotes\\page.tsx",
+        "apps\\web\\app\\contractor\\quotes\\create\\components\\CreateQuoteClient.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\PhotoUploadModal.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\PhotoUploadDialog.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\EditProfileModal.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\EditProfileDialog.tsx",
+        "apps\\web\\app\\contractor\\profile\\components\\ContractorProfileClient2025.tsx",
+        "apps\\web\\app\\contractor\\portfolio\\page.tsx",
+        "apps\\web\\app\\contractor\\messages\\components\\MessagesClient.tsx",
+        "apps\\web\\app\\contractor\\messages\\components\\CreateContractModal.tsx",
+        "apps\\web\\app\\contractor\\messages\\components\\CreateContractDialog.tsx",
+        "apps\\web\\app\\contractor\\marketing\\page.tsx",
+        "apps\\web\\app\\contractor\\jobs\\[id]\\components\\JobPhotoUpload.tsx",
+        "apps\\web\\app\\contractor\\jobs\\components\\JobsTableFilters.tsx",
+        "apps\\web\\app\\contractor\\invoices\\components\\InvoiceManagementClient.tsx",
+        "apps\\web\\app\\contractor\\finance\\page.tsx",
+        "apps\\web\\app\\contractor\\finance\\components\\FinancePageClient.tsx",
+        "apps\\web\\app\\contractor\\expenses\\page.tsx",
+        "apps\\web\\app\\contractor\\documents\\page.tsx",
+        "apps\\web\\app\\contractor\\discover\\components\\LocationPromptModal.tsx",
+        "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\NewsletterSignup.tsx",
+        "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\DashboardSearchHeader.tsx",
+        "apps\\web\\app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
+        "apps\\web\\app\\contractor\\crm\\components\\CRMDashboardClient.tsx",
+        "apps\\web\\app\\contractor\\components\\ProfessionalContractorLayout.tsx",
+        "apps\\web\\app\\contractor\\components\\ModernContractorLayout.tsx",
+        "apps\\web\\app\\contractor\\components\\ContractorLayoutShell.tsx",
+        "apps\\web\\app\\contractor\\certifications\\page.tsx",
+        "apps\\web\\app\\contractor\\certifications\\components\\AddCertificationModal.tsx",
+        "apps\\web\\app\\contractor\\card-editor\\components\\CardEditorClient.tsx",
+        "apps\\web\\app\\contractor\\calendar\\page.tsx",
+        "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\QuoteLineItems.tsx",
+        "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient2025.tsx",
+        "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
+        "apps\\web\\app\\contact\\page.tsx",
+        "apps\\web\\app\\components\\landing\\ProductionLandingPage.tsx",
+        "apps\\web\\app\\components\\landing\\HeroSectionFixed.tsx",
+        "apps\\web\\app\\components\\landing\\HeroSection.tsx",
+        "apps\\web\\app\\components\\landing\\Footer2025.tsx",
+        "apps\\web\\app\\components\\landing\\AirbnbLandingPage.tsx",
+        "apps\\web\\app\\blog\\page.tsx",
+        "apps\\web\\app\\auth\\mfa-verify\\page.tsx",
+        "apps\\web\\app\\ai-search\\components\\AISearchClient.tsx",
+        "apps\\web\\app\\admin\\users\\page.tsx",
+        "apps\\web\\app\\admin\\users\\components\\UserManagementClient.tsx",
+        "apps\\web\\app\\admin\\system-settings\\page.tsx",
+        "apps\\web\\app\\admin\\settings\\components\\SettingsClient.tsx",
+        "apps\\web\\app\\admin\\security\\page.tsx",
+        "apps\\web\\app\\admin\\revenue\\page.tsx",
+        "apps\\web\\app\\admin\\revenue\\components\\RevenueDashboardClient.tsx",
+        "apps\\web\\app\\admin\\payments\\fees\\components\\FeeTransferManagementClient.tsx",
+        "apps\\web\\app\\admin\\communications\\page.tsx",
+        "apps\\web\\app\\admin\\building-assessments\\page.tsx",
+        "apps\\web\\app\\admin\\audit-logs\\page.tsx",
+        "apps\\web\\app\\admin\\(auth)\\register\\page.tsx",
+        "apps\\web\\app\\admin\\(auth)\\login\\page.tsx",
+        "apps\\web\\app\\admin\\(auth)\\forgot-password\\page.tsx"
+      ],
+      "wcag": "3.3.2 Level A",
+      "message": "3 form input(s) missing label or aria-label",
+      "type": "error"
+    },
+    "autoplayVideo": {
+      "count": 5,
+      "files": [
+        "apps\\web\\components\\video-call\\VideoCallInterface.tsx",
+        "apps\\web\\components\\onboarding\\FeatureAnnouncement.tsx",
+        "apps\\web\\app\\video-calls\\components\\VideoCallInterface.tsx"
+      ],
+      "wcag": "2.2.2 Level A",
+      "message": "2 video(s) with autoplay",
+      "type": "error"
+    }
+  },
+  "fileIssues": [
+    {
+      "file": "apps\\web\\lib\\hooks\\queries\\__test-component.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\lib\\a11y\\focus-styles.ts",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "outlineNone",
+          "count": 1,
+          "message": "1 instance(s) of focus outline removal",
+          "wcag": "2.4.7 Level AA",
+          "recommendation": "Provide visible focus indicators for keyboard navigation"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ErrorBoundary.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "outlineNone",
+          "count": 1,
+          "message": "1 instance(s) of focus outline removal",
+          "wcag": "2.4.7 Level AA",
+          "recommendation": "Provide visible focus indicators for keyboard navigation"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\CookieConsent.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                          type=\"checkbox\"\r..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\video-call\\VideoCallScheduler.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n            type=\"text\"\n            value={..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\video-call\\VideoCallInterface.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "autoplayVideo",
+          "count": 2,
+          "message": "2 video(s) with autoplay",
+          "wcag": "2.2.2 Level A",
+          "recommendation": "Remove autoplay or provide pause controls"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\StandardCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\PlacesAutocomplete.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n        ref={inputRef}\r\n        type=\"text..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\Paywall.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\MotionDiv.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\Modal.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\MobileNavigation.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\GradientCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\Card.unified.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\ui\\AdvancedFilters.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"checkbox\"\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\search\\AdvancedSearchFilters.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                  type=\"number\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\project-timeline\\TimelineView.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\project-timeline\\MilestoneEditor.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"text\"\n              val..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\professional\\index.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\payments\\PaymentForm.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 7,
+          "message": "7 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n            type=\"number\"\n            value..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\onboarding\\WelcomeModal.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\onboarding\\FeatureAnnouncement.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "autoplayVideo",
+          "count": 1,
+          "message": "1 video(s) with autoplay",
+          "wcag": "2.2.2 Level A",
+          "recommendation": "Remove autoplay or provide pause controls"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\notifications\\NotificationDropdown.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\modals\\PaymentMethodModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                                type=\"text\"..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\messaging\\ConversationCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\layouts\\UnifiedSidebar.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                                id=\"sidebar..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\layouts\\PageHeader.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                                type=\"text\"..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\layouts\\Header.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            id=\"header-search\"\n            ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\landing\\QuickQuoteWidget.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                        type=\"text\"\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\landing\\AIAssessmentShowcase.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\jobs\\JobDetailsDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                        id=\"bidAmount\"\n    ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\examples\\FeatureAccessExamples.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n            type=\"number\"\r\n            val..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\examples\\DialogExamples.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                id=\"email\"\n                ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\examples\\ContractorFormExample.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n          id=\"email\"\n          type=\"email\"..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\escrow\\PhotoUploadWizard.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n          type=\"file\"\n          accept={pho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\design-system\\DesignSystemShowcase.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\contractor\\StandardCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\contractor\\MetricCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\contractor\\DBSCheckModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                              type=\"radio\"..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\cards\\PropertyCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\cards\\JobCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\cards\\ContractorCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\airbnb-system\\index.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n          id=\"service\"\n          type=\"text..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 5,
+          "message": "5 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\admin\\AdminMetricCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\admin\\AdminCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\components\\account\\DeleteAccountModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n            id=\"confirmation\"\n            t..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\video-calls-page.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\help-page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"search\"\n              v..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\find-contractors-page.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 4,
+          "message": "4 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\contractor-verification-page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  type=\"number\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\_archive\\pre-2025\\contact-page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                    id=\"email\"\n            ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\video-calls\\components\\VideoCallScheduler.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                                type=\"datet..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\video-calls\\components\\VideoCallInterface.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "autoplayVideo",
+          "count": 2,
+          "message": "2 video(s) with autoplay",
+          "wcag": "2.2.2 Level A",
+          "recommendation": "Remove autoplay or provide pause controls"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\verify-phone\\components\\VerifyPhoneClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                  type=\"tel\"\n              ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\settings\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 17,
+          "message": "17 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                            type=\"file\"\r\n ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\settings\\security\\mfa\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                id=\"verificationCode\"\n     ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\scheduling\\meetings\\components\\MeetingScheduler.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                                type=\"datet..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\register\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                  type=\"checkbox\"\r\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\register\\enhanced-register.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                id=\"email\"\n                ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\properties\\[id]\\edit\\components\\PropertyEditClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 9,
+          "message": "9 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"text\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\properties\\components\\AddPropertyModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"text\"\n              id=..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\properties\\components\\AddPropertyDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"file\"\n              id=..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\properties\\add\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 8,
+          "message": "8 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"text\"\r\n              v..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\profile\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"text\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\profile\\components\\ProfilePictureSection.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"file\"\n              acc..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\profile\\components\\LocationInput.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            type=\"text\"\n            value={..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\payments\\[transactionId]\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"number\"\r\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\payment-methods\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 9,
+          "message": "9 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                      type=\"text\"\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\notifications\\components\\NotificationsClient.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\messages\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"text\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\messages\\components\\ConversationList2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            type=\"text\"\n            placeho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\review\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                      type=\"file\"\r\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\payment\\components\\StripePaymentElement2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"email\"\r\n            ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\edit\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 13,
+          "message": "13 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"text\"\r\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\components\\PhotoGallery.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 3,
+          "message": "3 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\components\\JobScheduling.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              id=\"duration-hours\"\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\components\\JobDetailsAirbnb.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 4,
+          "message": "4 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\components\\BuildingAssessmentDisplay.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\[id]\\components\\BidListClient.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\quick-create\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  type=\"text\"\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\create\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                      type=\"text\"\r\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\create\\components\\BudgetRangeSelector.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"number\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\components\\SmartJobFilters2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            type=\"text\"\n            placeho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\jobs\\components\\JobsFilters.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            type=\"text\"\n            placeho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\homeowner\\escrow\\approve\\components\\HomeownerApprovalClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"checkbox\"\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\help\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\find-contractors\\components\\FindContractorsClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\favorites\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\faq\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"text\"\r\n              v..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\disputes\\create\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"file\"\n              mul..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\dashboard\\components\\NewsletterSignup.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"email\"\n              va..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\dashboard\\components\\HomeownerDashboardProfessional.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorsBrowseProfessional.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  type=\"text\"\n             ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 3,
+          "message": "3 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorsBrowseClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              id={searchInputId}\r\n        ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "outlineNone",
+          "count": 7,
+          "message": "7 instance(s) of focus outline removal",
+          "wcag": "2.4.7 Level AA",
+          "recommendation": "Provide visible focus indicators for keyboard navigation"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorsBrowseAirbnb.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"checkbox\"\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorFilters.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n            type=\"range\"\n            min=\"5..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractors\\components\\ContractorCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "outlineNone",
+          "count": 3,
+          "message": "3 instance(s) of focus outline removal",
+          "wcag": "2.4.7 Level AA",
+          "recommendation": "Provide visible focus indicators for keyboard navigation"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\verification\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                          type=\"file\"\r\n   ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\tools\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"text\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\team\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"text\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\subscription\\payment-methods\\components\\PaymentMethodForm.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\r\n                id=\"date\"\r\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\subscription\\components\\SubscriptionExpiredReminder.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                          type=\"file\"\r\n   ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\ShareModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\ShareDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                id=\"share-link\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\CreatePostModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 9,
+          "message": "9 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\CreatePostDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 9,
+          "message": "9 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              id=\"title\"\n              type..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\ContractorSocialClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"text\"\n              val..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\social\\components\\CommentsSection.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                  type=\"text\"\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\settings\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 15,
+          "message": "15 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                            type=\"file\"\r\n ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\scheduling\\components\\SchedulingClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 9,
+          "message": "9 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                      type=\"checkbox\"\n     ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\reviews\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"text\"\r\n              p..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\resources\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n            type=\"text\"\r\n            value..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\quotes\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"search\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\quotes\\create\\components\\CreateQuoteClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\r\n              label=\"Client email *\"\r\n    ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\SkillsManagementModal.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 3,
+          "message": "3 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\SkillsManagementDialog.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\PhotoUploadModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                id=\"photo-upload-input\"\n   ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\PhotoUploadDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                id=\"photo-upload-input\"\n   ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\EditProfileModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                      id=\"profile-image-inp..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 4,
+          "message": "4 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\EditProfileDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                        id=\"profile-image-i..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\profile\\components\\ContractorProfileClient2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 7,
+          "message": "7 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n          ref={coverPhotoRef}\r\n          t..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\portfolio\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 4,
+          "message": "4 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"text\"\r\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\messages\\components\\MessagesClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"text\"\r\n              p..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\messages\\components\\CreateContractModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"text\"\n              val..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\messages\\components\\CreateContractDialog.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              id=\"amount\"\n              typ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\messages\\components\\ActiveContractCard.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\marketing\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"text\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\jobs\\[id]\\components\\JobPhotoUpload.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"file\"\r\n              m..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\jobs\\components\\JobsTableFilters.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"text\"\n              pla..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\invoices\\components\\InvoiceManagementClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"text\"\r\n             ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\gallery\\components\\ContractorGalleryClient.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 3,
+          "message": "3 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\finance\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                  type=\"text\"\r\n           ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\finance\\components\\FinancePageClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"search\"\n              p..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\expenses\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                type=\"text\"\r\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\escrow\\status\\components\\EscrowStatusDashboardClient.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\documents\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"text\"\r\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\discover\\components\\LocationPromptModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                      id=\"manual-address\"\r..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\discover\\components\\ContractorDiscoverClient.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\NewsletterSignup.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"email\"\n              va..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\DashboardSearchHeader.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n            type=\"text\"\n            placeho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\customers\\components\\MessagesSidebar.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n              type=\"text\"\n              pla..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\crm\\components\\CRMDashboardClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n          type=\"text\"\n          placeholder..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\components\\ProfessionalContractorLayout.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  type=\"search\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\components\\ModernContractorLayout.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                id=\"search-field\"\n         ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 1,
+          "message": "1 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\components\\ContractorLayoutShell.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\r\n                    name=\"query\"\r\n        ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\certifications\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                  type=\"text\"\r\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\certifications\\components\\AddCertificationModal.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 6,
+          "message": "6 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"text\"\r\n              r..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\card-editor\\components\\CardEditorClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              label=\"Hourly Rate (£)\"\n     ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\calendar\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                          type=\"checkbox\"\r..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\QuoteLineItems.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 3,
+          "message": "3 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                type=\"number\"\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 7,
+          "message": "7 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                            type=\"number\"\r..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                label=\"Total amount (£) *\"\n..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\contact\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"checkbox\"\r\n     ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\components\\landing\\ProductionLandingPage.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  id=\"location-input\"\n     ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\components\\landing\\HeroSectionFixed.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"text\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\components\\landing\\HeroSection.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                    type=\"text\"\n           ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\components\\landing\\Footer2025.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n                    type=\"email\"\r\n        ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\components\\landing\\AirbnbLandingPage.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                      type=\"text\"\n         ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\blog\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\auth\\mfa-verify\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              ref={inputRef}\n              ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\ai-search\\components\\AISearchClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        },
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\users\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                  type=\"text\"\n             ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\users\\components\\UserManagementClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n            type=\"text\"\n            placeho..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\users\\components\\UserDetailModal.tsx",
+      "issues": [
+        {
+          "type": "warning",
+          "pattern": "nonSemanticClick",
+          "count": 2,
+          "message": "2 non-semantic element(s) with onClick handlers",
+          "wcag": "4.1.2 Level A",
+          "recommendation": "Use <button> or add role=\"button\" and keyboard handlers"
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\system-settings\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 28,
+          "message": "28 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                        type=\"text\"\n       ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\settings\\components\\SettingsClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n              type=\"number\"\n              v..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\security\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\revenue\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\revenue\\components\\RevenueDashboardClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\r\n              type=\"date\"\r\n              v..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\payments\\fees\\components\\FeeTransferManagementClient.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                      type=\"checkbox\"\n     ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\communications\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\building-assessments\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\audit-logs\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<input\n                type=\"text\"\n               ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\(auth)\\register\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 5,
+          "message": "5 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                  id=\"firstName\"\n          ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\(auth)\\login\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 2,
+          "message": "2 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                id=\"email\"\n                ..."
+        }
+      ]
+    },
+    {
+      "file": "apps\\web\\app\\admin\\(auth)\\forgot-password\\page.tsx",
+      "issues": [
+        {
+          "type": "error",
+          "pattern": "inputWithoutLabel",
+          "count": 1,
+          "message": "1 form input(s) missing label or aria-label",
+          "wcag": "3.3.2 Level A",
+          "example": "<Input\n                  id=\"email\"\n              ..."
+        }
+      ]
+    }
+  ]
+}

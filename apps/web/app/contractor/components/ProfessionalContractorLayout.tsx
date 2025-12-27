@@ -32,6 +32,7 @@ import {
   User,
   HelpCircle,
   PoundSterling,
+  Leaf,
 } from 'lucide-react';
 
 type ContractorSummary = {
@@ -260,7 +261,7 @@ export function ProfessionalContractorLayout({
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-64 bg-slate-900 z-50
+          fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0
           ${isMobile && !isMobileOpen ? '-translate-x-full' : 'translate-x-0'}
@@ -268,17 +269,19 @@ export function ProfessionalContractorLayout({
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+          <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
-              <span className="text-white font-semibold text-lg">Mintenance</span>
+              <img
+                src="/assets/mintenance-leaf-icon.png"
+                alt="Mintenance"
+                className="w-8 h-8"
+              />
+              <span className="text-gray-900 font-semibold text-lg">Mintenance</span>
             </Link>
             {isMobile && (
               <button
                 onClick={() => setIsMobileOpen(false)}
-                className="lg:hidden text-slate-400 hover:text-white"
+                className="lg:hidden text-gray-500 hover:text-gray-900"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -301,7 +304,7 @@ export function ProfessionalContractorLayout({
             {navSections.map((section) => (
               <div key={section.name} className="mb-6">
                 <div className="px-3 mb-2">
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {section.name}
                   </h3>
                 </div>
@@ -320,8 +323,8 @@ export function ProfessionalContractorLayout({
                                 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all
                                 ${
                                   itemActive
-                                    ? 'bg-teal-500/10 text-teal-400'
-                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-teal-50 text-teal-600'
+                                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                                 }
                               `}
                             >
@@ -356,8 +359,8 @@ export function ProfessionalContractorLayout({
                                           flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all
                                           ${
                                             isActive(child.href)
-                                              ? 'bg-teal-500/10 text-teal-400 font-medium'
-                                              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                              ? 'bg-teal-50 text-teal-600 font-medium'
+                                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                           }
                                         `}
                                       >
@@ -376,8 +379,8 @@ export function ProfessionalContractorLayout({
                               flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all
                               ${
                                 itemActive
-                                  ? 'bg-teal-500/10 text-teal-400'
-                                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                  ? 'bg-teal-50 text-teal-600'
+                                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                               }
                             `}
                           >
@@ -399,11 +402,11 @@ export function ProfessionalContractorLayout({
           </nav>
 
           {/* User Profile */}
-          <div className="border-t border-slate-800 p-4">
+          <div className="border-t border-gray-200 p-4">
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
               >
                 {contractor?.profile_image_url ? (
                   <img
@@ -417,11 +420,11 @@ export function ProfessionalContractorLayout({
                   </div>
                 )}
                 <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-white text-sm font-medium truncate">{contractorFullName}</p>
-                  <p className="text-slate-400 text-xs truncate">{contractor?.company_name || email}</p>
+                  <p className="text-gray-900 text-sm font-medium truncate">{contractorFullName}</p>
+                  <p className="text-gray-500 text-xs truncate">{contractor?.company_name || email}</p>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform ${
+                  className={`w-4 h-4 text-gray-500 transition-transform ${
                     showUserMenu ? 'rotate-180' : ''
                   }`}
                 />
@@ -433,11 +436,11 @@ export function ProfessionalContractorLayout({
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 rounded-lg shadow-xl border border-slate-700 py-2"
+                    className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2"
                   >
                     <Link
                       href="/contractor/profile"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       <User className="w-4 h-4" />
@@ -445,7 +448,7 @@ export function ProfessionalContractorLayout({
                     </Link>
                     <Link
                       href="/settings"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       <Settings className="w-4 h-4" />
@@ -453,16 +456,16 @@ export function ProfessionalContractorLayout({
                     </Link>
                     <Link
                       href="/help"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       <HelpCircle className="w-4 h-4" />
                       Help Center
                     </Link>
-                    <div className="border-t border-slate-700 my-2" />
+                    <div className="border-t border-gray-200 my-2" />
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -477,11 +480,7 @@ export function ProfessionalContractorLayout({
 
       {/* Main Content */}
       <div
-        className={`
-          flex-1 flex flex-col min-h-screen
-          ${mounted && !isMobile ? 'lg:ml-64' : ''}
-          transition-all duration-300
-        `}
+        className="flex-1 flex flex-col min-h-screen lg:ml-64 transition-all duration-300"
       >
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">

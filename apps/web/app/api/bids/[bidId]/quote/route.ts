@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view quote');
     }
 
     // Fetch bid with quote_id
@@ -41,7 +42,7 @@ export async function GET(
         bidId,
         error: bidError?.message,
       });
-      return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
+      throw new NotFoundError('Bid not found');
     }
 
     // Verify user has access to this bid
@@ -50,7 +51,7 @@ export async function GET(
     const isHomeowner = user.id === job?.homeowner_id;
 
     if (!isContractor && !isHomeowner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to view this quote');
     }
 
     // If no quote_id, return basic bid info
@@ -79,7 +80,7 @@ export async function GET(
         quoteId: bid.quote_id,
         error: quoteError?.message,
       });
-      return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+      throw new NotFoundError('Quote not found');
     }
 
     return NextResponse.json({
@@ -108,14 +109,7 @@ export async function GET(
       hasQuote: true,
     });
   } catch (error) {
-    logger.error('Unexpected error fetching quote by bid ID', {
-      service: 'bids',
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

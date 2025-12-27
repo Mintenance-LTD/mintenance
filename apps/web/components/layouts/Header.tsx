@@ -59,13 +59,18 @@ export function Header({
       </div>
 
       {/* Center Section - Search */}
-      <div style={{ flex: 1, maxWidth: '500px', margin: '0 2rem' }}>
+      <div style={{ flex: 1, maxWidth: '500px', margin: '0 2rem' }} role="search">
         <div style={{ position: 'relative' }}>
+          <label htmlFor="header-search" className="sr-only">
+            Search
+          </label>
           <input
+            id="header-search"
             type="text"
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search"
             style={{
               ...designSystem.components.input.base,
               paddingLeft: '2.5rem',
@@ -80,7 +85,7 @@ export function Header({
             transform: 'translateY(-50%)',
             color: '#6b7280',
             fontSize: '1rem',
-          }}>
+          }} aria-hidden="true">
             🔍
           </div>
         </div>
@@ -100,6 +105,8 @@ export function Header({
         }}>
           {/* Quick Actions */}
           <button
+            aria-label="Quick actions"
+            title="Quick actions"
             style={{
               padding: '0.5rem',
               borderRadius: '0.5rem',
@@ -121,11 +128,13 @@ export function Header({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            ⚡
+            <span aria-hidden="true">⚡</span>
           </button>
 
           {/* Notifications */}
           <button
+            aria-label="Notifications, 3 unread"
+            title="Notifications"
             style={{
               padding: '0.5rem',
               borderRadius: '0.5rem',
@@ -148,9 +157,11 @@ export function Header({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            🔔
+            <span aria-hidden="true">🔔</span>
             {/* Notification Badge */}
-            <span style={{
+            <span
+              aria-label="3 unread notifications"
+              style={{
               position: 'absolute',
               top: '-0.25rem',
               right: '-0.25rem',

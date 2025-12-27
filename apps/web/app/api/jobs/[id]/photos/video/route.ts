@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,7 +30,7 @@ export async function POST(
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to upload video');
     }
 
     // Verify user is contractor for this job
@@ -40,27 +41,27 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.contractor_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to upload video for this job');
     }
 
     const formData = await request.formData();
     const videoFile = formData.get('video') as File | null;
 
     if (!videoFile) {
-      return NextResponse.json({ error: 'Video file is required' }, { status: 400 });
+      throw new BadRequestError('Video file is required');
     }
 
     // Validate file
     if (videoFile.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'Video must be less than 100MB' }, { status: 400 });
+      throw new BadRequestError('Video must be less than 100MB');
     }
 
     if (!ALLOWED_VIDEO_TYPES.includes(videoFile.type)) {
-      return NextResponse.json({ error: 'Invalid video type. Only MP4, WebM, and QuickTime are allowed.' }, { status: 400 });
+      throw new BadRequestError('Invalid video type. Only MP4, WebM, and QuickTime are allowed.');
     }
 
     const fileExt = videoFile.name.split('.').pop()?.toLowerCase() || 'mp4';
@@ -84,12 +85,12 @@ export async function POST(
 
     if (uploadError) {
       logger.error('Upload error', uploadError);
-      return NextResponse.json({ error: 'Failed to upload video' }, { status: 500 });
+      throw uploadError;
     }
 
     const { data: urlData } = supabase.storage.from('Job-storage').getPublicUrl(fileName);
     if (!urlData?.publicUrl) {
-      return NextResponse.json({ error: 'Failed to get video URL' }, { status: 500 });
+      throw new Error('Failed to get video URL');
     }
 
     // Save metadata
@@ -107,7 +108,6 @@ export async function POST(
       url: urlData.publicUrl,
     });
   } catch (error) {
-    logger.error('Error uploading video', error);
-    return NextResponse.json({ error: 'Failed to upload video' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

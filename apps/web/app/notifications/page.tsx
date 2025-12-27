@@ -42,8 +42,10 @@ export default function NotificationsPage2025() {
         });
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch notifications');
+          const errorData = await response.json().catch(() => ({
+            error: { message: 'Failed to fetch notifications' }
+          }));
+          throw new Error(errorData.error?.message || 'Failed to fetch notifications');
         }
 
         const data = await response.json();
@@ -98,8 +100,10 @@ export default function NotificationsPage2025() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to mark as read');
+        const errorData = await response.json().catch(() => ({
+          error: { message: 'Failed to mark as read' }
+        }));
+        throw new Error(errorData.error?.message || 'Failed to mark as read');
       }
 
       setNotifications((prev) =>
@@ -122,8 +126,10 @@ export default function NotificationsPage2025() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to mark all as read');
+        const errorData = await response.json().catch(() => ({
+          error: { message: 'Failed to mark all as read' }
+        }));
+        throw new Error(errorData.error?.message || 'Failed to mark all as read');
       }
 
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -147,8 +153,10 @@ export default function NotificationsPage2025() {
           credentials: 'include',
         }).then(async (response) => {
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Failed to delete notification ${n.id}`);
+            const errorData = await response.json().catch(() => ({
+              error: { message: `Failed to delete notification ${n.id}` }
+            }));
+            throw new Error(errorData.error?.message || `Failed to delete notification ${n.id}`);
           }
           return response;
         })

@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Track a view for a help article
@@ -16,10 +17,7 @@ const body = await request.json();
     const { articleTitle, category } = body;
 
     if (!articleTitle || !category) {
-      return NextResponse.json(
-        { error: 'Article title and category are required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Article title and category are required');
     }
 
     // Get current user (optional - can be null for anonymous views)
@@ -50,19 +48,12 @@ const body = await request.json();
         category,
         userId: userId || undefined,
       });
-      // Don't fail the request if tracking fails
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      throw new InternalServerError('Failed to track help article view');
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error in track-view endpoint', error, {
-      service: 'help_articles',
-    });
-    return NextResponse.json(
-      { error: 'Failed to track view' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

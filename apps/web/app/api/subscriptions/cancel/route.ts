@@ -4,6 +4,7 @@ import { SubscriptionService } from '@/lib/services/subscription/SubscriptionSer
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
 import { z } from 'zod';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const cancelSubscriptionSchema = z.object({
   cancelAtPeriodEnd: z.boolean().optional().default(true),
@@ -13,12 +14,12 @@ export async function POST(request: NextRequest) {
   try {
     // Validate CSRF
     if (!(await requireCSRF(request))) {
-      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
+      throw new ForbiddenError('CSRF token validation failed');
     }
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await request.json();
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     const subscription = await SubscriptionService.getContractorSubscription(user.id);
 
     if (!subscription || !subscription.stripeSubscriptionId) {
-      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+      throw new NotFoundError('No active subscription found');
     }
 
     // Cancel subscription
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!success) {
-      return NextResponse.json({ error: 'Failed to cancel subscription' }, { status: 500 });
+      throw new InternalServerError('Failed to cancel subscription');
     }
 
     logger.info('Subscription canceled', {

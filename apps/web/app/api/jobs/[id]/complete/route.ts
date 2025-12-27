@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PaymentEnforcement } from '@/lib/services/payment/PaymentEnforcement';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
     const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to complete job');
     }
 
     const jobId = id;
@@ -28,23 +29,17 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Verify user is the contractor assigned to this job
     if (job.contractor_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Only the assigned contractor can complete this job' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only the assigned contractor can complete this job');
     }
 
     // Verify job is in a completable state
     if (job.status !== 'in_progress' && job.status !== 'assigned') {
-      return NextResponse.json(
-        { error: `Job cannot be completed from ${job.status} status` },
-        { status: 400 }
-      );
+      throw new BadRequestError(`Job cannot be completed from ${job.status} status`);
     }
 
     // Enforce platform payment - check if payment exists
@@ -84,7 +79,7 @@ export async function POST(
         jobId,
         error: updateError.message,
       });
-      return NextResponse.json({ error: 'Failed to complete job' }, { status: 500 });
+      throw updateError;
     }
 
     // Create notification for homeowner
@@ -109,7 +104,7 @@ export async function POST(
     // Calculate auto-release date for escrow (async, don't block)
     if (job.contractor_id) {
       const { EscrowReleaseAgent } = await import('@/lib/services/agents/EscrowReleaseAgent');
-      
+
       // Get escrow transaction for this job
       const { data: escrow } = await serverSupabase
         .from('escrow_transactions')
@@ -143,15 +138,7 @@ export async function POST(
       message: 'Job marked as completed',
     });
   } catch (err) {
-    logger.error('Error completing job', {
-      service: 'jobs',
-      error: err instanceof Error ? err.message : String(err),
-    });
-
-    return NextResponse.json(
-      { error: 'Internal server error', details: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(err);
   }
 }
 

@@ -74,12 +74,37 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     refetchJob();
   }, [jobId, refetchJob]);
 
-  // Load AI analysis when job data is available
+  // REQUEST CANCELLATION FIX: Load AI analysis when job data is available with cleanup
   useEffect(() => {
-    if (user?.role === 'contractor' && job?.photos && job.photos.length > 0) {
-      loadAIAnalysis(job);
-    }
-  }, [user, job, loadAIAnalysis]);
+    let isCancelled = false;
+
+    const loadAnalysis = async () => {
+      if (user?.role === 'contractor' && job?.photos && job.photos.length > 0 && !isCancelled) {
+        try {
+          setAiLoading(true);
+          const analysis = await AIAnalysisService.analyzeJobPhotos(job);
+          if (!isCancelled) {
+            setAiAnalysis(analysis);
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            logger.error('Failed to load AI analysis:', error);
+          }
+        } finally {
+          if (!isCancelled) {
+            setAiLoading(false);
+          }
+        }
+      }
+    };
+
+    loadAnalysis();
+
+    // Cleanup: cancel pending request on unmount
+    return () => {
+      isCancelled = true;
+    };
+  }, [user, job]);
 
   return {
     // State

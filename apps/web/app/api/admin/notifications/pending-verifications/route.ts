@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AdminNotificationService } from '@/lib/services/admin/AdminNotificationService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * Endpoint to send pending verification notifications
@@ -21,13 +22,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      message: 'Pending verification notifications sent' 
+      message: 'Pending verification notifications sent'
     });
   } catch (error) {
-    logger.error('Error sending pending verification notifications', error);
-    return NextResponse.json({ 
-      error: 'Failed to send notifications' 
-    }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

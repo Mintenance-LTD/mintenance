@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function POST(  request: NextRequest,
   { params }: { params: Promise<{ id: string; bidId: string }> }
@@ -14,11 +15,11 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to reject bids');
     }
 
     if (user.role !== 'homeowner') {
-      return NextResponse.json({ error: 'Only homeowners can reject bids' }, { status: 403 });
+      throw new ForbiddenError('Only homeowners can reject bids');
     }
 
     // Verify the job belongs to this homeowner
@@ -33,11 +34,11 @@ export async function POST(  request: NextRequest,
         service: 'jobs',
         jobId,
       });
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to reject bids for this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to reject bids for this job');
     }
 
     // Verify the bid exists and belongs to this job
@@ -54,11 +55,11 @@ export async function POST(  request: NextRequest,
         bidId,
         jobId,
       });
-      return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
+      throw new NotFoundError('Bid not found');
     }
 
     if (bid.status === 'rejected') {
-      return NextResponse.json({ error: 'Bid has already been rejected' }, { status: 400 });
+      throw new BadRequestError('Bid has already been rejected');
     }
 
     // Reject the bid
@@ -73,7 +74,7 @@ export async function POST(  request: NextRequest,
         bidId,
         jobId,
       });
-      return NextResponse.json({ error: 'Failed to reject bid' }, { status: 500 });
+      throw rejectError;
     }
 
     logger.info('Bid rejected successfully', {
@@ -88,10 +89,7 @@ export async function POST(  request: NextRequest,
       message: 'Bid rejected successfully',
     });
   } catch (error) {
-    logger.error('Unexpected error in reject bid', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

@@ -1,25 +1,57 @@
 /**
  * Notification Service
- * 
+ *
  * Handles push notifications, in-app notifications, and notification preferences.
  * Integrates with Expo Notifications and Firebase for cross-platform support.
+ * Includes background notification handling and deep linking support.
  */
 
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 
-// Configure notification behavior
+// Storage keys for notification queue
+const NOTIFICATION_QUEUE_KEY = '@mintenance/notification_queue';
+const LAST_NOTIFICATION_ID_KEY = '@mintenance/last_notification_id';
+
+// Configure notification behavior for foreground, background, and killed states
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data;
+    const type = data?.type as NotificationData['type'] | undefined;
+    const priority = data?.priority || 'normal';
+
+    // Determine notification behavior based on type and priority
+    let shouldShowAlert = true;
+    let shouldPlaySound = true;
+    let shouldSetBadge = true;
+
+    // Quiet notifications for low priority items
+    if (priority === 'low') {
+      shouldPlaySound = false;
+    }
+
+    // Always update badge count
+    shouldSetBadge = true;
+
+    logger.info('Handling notification in foreground', {
+      type,
+      priority,
+      shouldShowAlert,
+      shouldPlaySound,
+    });
+
+    return {
+      shouldShowAlert,
+      shouldPlaySound,
+      shouldSetBadge,
+    };
+  },
 });
 
 export interface NotificationData {
@@ -49,8 +81,32 @@ export interface NotificationPreferences {
   };
 }
 
+export interface QueuedNotification {
+  id: string;
+  notification: Notifications.Notification;
+  receivedAt: string;
+  processed: boolean;
+}
+
+export interface DeepLinkParams {
+  screen: string;
+  params?: Record<string, any>;
+}
+
+// Type for navigation reference (set externally)
+type NavigationRef = {
+  navigate: (screen: string, params?: any) => void;
+  reset: (state: any) => void;
+  isReady: () => boolean;
+} | null;
+
 export class NotificationService {
   private static expoPushToken: string | null = null;
+  private static navigationRef: NavigationRef = null;
+  private static notificationQueue: QueuedNotification[] = [];
+  private static receivedListener: Notifications.Subscription | null = null;
+  private static responseListener: Notifications.Subscription | null = null;
+  private static isInitialized: boolean = false;
 
   /**
    * Initialize push notifications and request permissions
@@ -236,6 +292,7 @@ export class NotificationService {
         type,
         userId,
         priority: 'normal',
+        read: false,
       });
 
       logger.info('Push notification sent successfully', { userId, type });
@@ -543,28 +600,477 @@ export class NotificationService {
   }
 
   /**
-   * Set up notification listeners
+   * Set navigation reference for deep linking
    */
-  static setupNotificationListeners(): void {
-    // Handle notification received while app is foregrounded
-    Notifications.addNotificationReceivedListener(notification => {
-      logger.info('Notification received', { notification });
-    });
+  static setNavigationRef(navRef: NavigationRef): void {
+    this.navigationRef = navRef;
+    logger.info('Navigation reference set for notifications');
 
-    // Handle notification tap
-    Notifications.addNotificationResponseReceivedListener(response => {
-      logger.info('Notification tapped', { response });
-      // Handle navigation based on notification data
-      this.handleNotificationTap(response.notification.request.content.data);
+    // BUGFIX: Process any queued notifications that were waiting for navigation
+    this.processQueuedNotifications().catch(error => {
+      logger.error('Failed to process queued notifications after navigation ready', error);
     });
   }
 
   /**
-   * Handle notification tap navigation
+   * Process queued notifications
+   */
+  private static async processQueuedNotifications(): Promise<void> {
+    try {
+      const queuedNotifications = await this.getQueuedNotifications();
+
+      if (queuedNotifications.length === 0) {
+        return;
+      }
+
+      logger.info(`Processing ${queuedNotifications.length} queued notifications`);
+
+      for (const notification of queuedNotifications) {
+        try {
+          // Create a response object compatible with handleNotificationResponse
+          const response = {
+            notification,
+            actionIdentifier: Notifications.DEFAULT_ACTION_IDENTIFIER,
+          };
+
+          await this.handleNotificationResponse(response);
+        } catch (error) {
+          logger.error('Failed to process queued notification', error);
+        }
+      }
+
+      // Clear the queue after processing
+      await AsyncStorage.removeItem(this.NOTIFICATION_QUEUE_KEY);
+    } catch (error) {
+      logger.error('Failed to process notification queue', error);
+    }
+  }
+
+  /**
+   * Set up notification listeners for foreground, background, and killed states
+   */
+  static setupNotificationListeners(): void {
+    if (this.isInitialized) {
+      logger.warn('Notification listeners already initialized');
+      return;
+    }
+
+    // Load queued notifications from previous sessions
+    this.loadNotificationQueue().catch(error => {
+      logger.error('Failed to load notification queue', error);
+    });
+
+    // Handle notification received while app is in foreground
+    this.receivedListener = Notifications.addNotificationReceivedListener(
+      async (notification) => {
+        logger.info('Notification received in foreground', {
+          title: notification.request.content.title,
+          type: notification.request.content.data?.type,
+        });
+
+        // Queue notification for processing
+        await this.queueNotification(notification);
+
+        // Update badge count
+        await this.updateBadgeCount();
+      }
+    );
+
+    // Handle notification response (user tapped notification)
+    // Works when app is in foreground, background, or killed state
+    this.responseListener = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        const notification = response.notification;
+        const data = notification.request.content.data;
+
+        logger.info('Notification response received', {
+          actionIdentifier: response.actionIdentifier,
+          type: data?.type,
+          data,
+        });
+
+        // Mark as read
+        if (data?.notificationId) {
+          await this.markAsRead(data.notificationId).catch(error => {
+            logger.error('Failed to mark notification as read', error);
+          });
+        }
+
+        // Handle the tap with deep linking
+        await this.handleNotificationResponse(response);
+
+        // Update badge count after handling
+        await this.updateBadgeCount();
+      }
+    );
+
+    // Process any notifications that came while app was killed
+    this.processLastNotificationResponse().catch(error => {
+      logger.error('Failed to process last notification', error);
+    });
+
+    this.isInitialized = true;
+    logger.info('Notification listeners initialized successfully');
+  }
+
+  /**
+   * Clean up notification listeners
+   */
+  static cleanup(): void {
+    if (this.receivedListener) {
+      this.receivedListener.remove();
+      this.receivedListener = null;
+    }
+
+    if (this.responseListener) {
+      this.responseListener.remove();
+      this.responseListener = null;
+    }
+
+    this.isInitialized = false;
+    logger.info('Notification listeners cleaned up');
+  }
+
+  /**
+   * Handle notification response and deep link to appropriate screen
+   */
+  private static async handleNotificationResponse(
+    response: Notifications.NotificationResponse
+  ): Promise<void> {
+    const data = response.notification.request.content.data;
+    const type = data?.type as NotificationData['type'];
+
+    logger.info('Processing notification tap', { type, data });
+
+    // Wait for navigation to be ready
+    if (!this.navigationRef) {
+      logger.warn('Navigation not ready, queuing notification for later processing');
+      await this.queueNotification(response.notification);
+      return;
+    }
+
+    if (!this.navigationRef.isReady()) {
+      logger.warn('Navigation not ready, waiting...');
+      // Wait up to 3 seconds for navigation to be ready
+      await this.waitForNavigation(3000);
+    }
+
+    // Get deep link params based on notification type
+    const deepLinkParams = this.getDeepLinkParams(type, data);
+
+    if (!deepLinkParams) {
+      logger.warn('No deep link configured for notification type', { type });
+      return;
+    }
+
+    // Navigate to the appropriate screen
+    try {
+      this.navigationRef.navigate(deepLinkParams.screen, deepLinkParams.params);
+      logger.info('Navigated to screen', deepLinkParams);
+    } catch (error) {
+      logger.error('Navigation failed', error);
+    }
+  }
+
+  /**
+   * Get deep link parameters based on notification type and data
+   */
+  private static getDeepLinkParams(
+    type: NotificationData['type'],
+    data: any
+  ): DeepLinkParams | null {
+    switch (type) {
+      case 'job_update':
+        if (data?.jobId) {
+          return {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'JobDetails',
+                params: { jobId: data.jobId },
+              },
+            },
+          };
+        }
+        break;
+
+      case 'bid_received':
+        if (data?.jobId) {
+          return {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'JobDetails',
+                params: { jobId: data.jobId },
+              },
+            },
+          };
+        }
+        break;
+
+      case 'message_received':
+        if (data?.conversationId) {
+          return {
+            screen: 'Main',
+            params: {
+              screen: 'MessagingTab',
+              params: {
+                screen: 'Messaging',
+                params: {
+                  conversationId: data.conversationId,
+                  jobTitle: data.jobTitle,
+                  recipientId: data.senderId,
+                  recipientName: data.senderName,
+                },
+              },
+            },
+          };
+        }
+        break;
+
+      case 'meeting_scheduled':
+        if (data?.meetingId) {
+          return {
+            screen: 'Modal',
+            params: {
+              screen: 'MeetingDetails',
+              params: { meetingId: data.meetingId },
+            },
+          };
+        }
+        break;
+
+      case 'payment_received':
+        if (data?.jobId) {
+          return {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'JobDetails',
+                params: { jobId: data.jobId },
+              },
+            },
+          };
+        }
+        break;
+
+      case 'quote_sent':
+        if (data?.quoteId || data?.jobId) {
+          return {
+            screen: 'Main',
+            params: {
+              screen: 'JobsTab',
+              params: {
+                screen: 'JobDetails',
+                params: { jobId: data.jobId },
+              },
+            },
+          };
+        }
+        break;
+
+      case 'system':
+        // System notifications go to home by default
+        return {
+          screen: 'Main',
+          params: { screen: 'HomeTab' },
+        };
+
+      default:
+        logger.warn('Unknown notification type', { type });
+        return null;
+    }
+
+    return null;
+  }
+
+  /**
+   * Queue notification for later processing
+   */
+  private static async queueNotification(
+    notification: Notifications.Notification
+  ): Promise<void> {
+    try {
+      const queuedNotification: QueuedNotification = {
+        id: notification.request.identifier,
+        notification,
+        receivedAt: new Date().toISOString(),
+        processed: false,
+      };
+
+      this.notificationQueue.push(queuedNotification);
+
+      // Persist to storage
+      await AsyncStorage.setItem(
+        NOTIFICATION_QUEUE_KEY,
+        JSON.stringify(this.notificationQueue)
+      );
+
+      // Keep last notification ID for processing on app restart
+      await AsyncStorage.setItem(
+        LAST_NOTIFICATION_ID_KEY,
+        notification.request.identifier
+      );
+
+      logger.info('Notification queued', {
+        id: queuedNotification.id,
+        queueLength: this.notificationQueue.length,
+      });
+    } catch (error) {
+      logger.error('Failed to queue notification', error);
+    }
+  }
+
+  /**
+   * Load notification queue from storage
+   */
+  private static async loadNotificationQueue(): Promise<void> {
+    try {
+      const queueData = await AsyncStorage.getItem(NOTIFICATION_QUEUE_KEY);
+
+      if (queueData) {
+        this.notificationQueue = JSON.parse(queueData);
+        logger.info('Loaded notification queue', {
+          count: this.notificationQueue.length,
+        });
+
+        // Process unprocessed notifications
+        await this.processQueue();
+      }
+    } catch (error) {
+      logger.error('Failed to load notification queue', error);
+    }
+  }
+
+  /**
+   * Process queued notifications
+   */
+  private static async processQueue(): Promise<void> {
+    const unprocessed = this.notificationQueue.filter(q => !q.processed);
+
+    if (unprocessed.length === 0) {
+      return;
+    }
+
+    logger.info('Processing queued notifications', { count: unprocessed.length });
+
+    for (const queued of unprocessed) {
+      // Mark as processed
+      queued.processed = true;
+
+      // Log for analytics/debugging
+      logger.info('Processed queued notification', {
+        id: queued.id,
+        type: queued.notification.request.content.data?.type,
+        receivedAt: queued.receivedAt,
+      });
+    }
+
+    // Update storage
+    await AsyncStorage.setItem(
+      NOTIFICATION_QUEUE_KEY,
+      JSON.stringify(this.notificationQueue)
+    );
+
+    // Clear old processed notifications (keep last 50)
+    this.notificationQueue = this.notificationQueue
+      .filter(q => !q.processed)
+      .concat(
+        this.notificationQueue
+          .filter(q => q.processed)
+          .slice(-50)
+      );
+
+    await AsyncStorage.setItem(
+      NOTIFICATION_QUEUE_KEY,
+      JSON.stringify(this.notificationQueue)
+    );
+  }
+
+  /**
+   * Process the last notification that was received (for app killed state)
+   */
+  private static async processLastNotificationResponse(): Promise<void> {
+    try {
+      const response = await Notifications.getLastNotificationResponseAsync();
+
+      if (response) {
+        logger.info('Processing notification from killed state', {
+          type: response.notification.request.content.data?.type,
+        });
+
+        await this.handleNotificationResponse(response);
+      }
+    } catch (error) {
+      logger.error('Failed to process last notification response', error);
+    }
+  }
+
+  /**
+   * Wait for navigation to be ready
+   */
+  private static async waitForNavigation(
+    timeoutMs: number = 3000
+  ): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+      if (this.navigationRef?.isReady()) {
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return false;
+  }
+
+  /**
+   * Update app badge count based on unread notifications
+   */
+  private static async updateBadgeCount(): Promise<void> {
+    try {
+      // Get current user ID (would need to be passed or retrieved from storage)
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        await Notifications.setBadgeCountAsync(0);
+        return;
+      }
+
+      const unreadCount = await this.getUnreadCount(user.id);
+      await Notifications.setBadgeCountAsync(unreadCount);
+
+      logger.info('Badge count updated', { count: unreadCount });
+    } catch (error) {
+      logger.error('Failed to update badge count', error);
+    }
+  }
+
+  /**
+   * Clear all notifications and reset badge count
+   */
+  static async clearAllNotifications(): Promise<void> {
+    try {
+      await Notifications.dismissAllNotificationsAsync();
+      await Notifications.setBadgeCountAsync(0);
+      this.notificationQueue = [];
+      await AsyncStorage.removeItem(NOTIFICATION_QUEUE_KEY);
+      await AsyncStorage.removeItem(LAST_NOTIFICATION_ID_KEY);
+
+      logger.info('All notifications cleared');
+    } catch (error) {
+      logger.error('Failed to clear notifications', error);
+    }
+  }
+
+  /**
+   * Handle notification tap navigation (legacy method for backwards compatibility)
    */
   private static handleNotificationTap(data: any): void {
-    // This would integrate with navigation
-    // Implementation depends on your navigation structure
-    logger.info('Handling notification tap', { data });
+    logger.info('Legacy handleNotificationTap called', { data });
+    // This method is kept for backwards compatibility but is superseded by handleNotificationResponse
   }
 }

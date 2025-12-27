@@ -9,6 +9,7 @@ import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorr
 import { YOLORetrainingService } from '@/lib/services/building-surveyor/YOLORetrainingService';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/building-surveyor/retrain/status
@@ -18,10 +19,7 @@ export async function GET() {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Get correction counts
@@ -90,15 +88,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    logger.error('Failed to get YOLO retraining status', {
-      service: 'YOLORetrainingStatusAPI',
-      error,
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to get retraining status' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

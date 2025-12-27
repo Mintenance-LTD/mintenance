@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { validateImageUpload, MAX_FILE_SIZES } from '@/lib/utils/fileValidation';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,30 +31,21 @@ export async function POST(request: NextRequest) {
       logger.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable', new Error('Configuration error'), {
         service: 'jobs',
       });
-      return NextResponse.json(
-        { error: 'Server configuration error. Please contact support.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Server configuration error. Please contact support.');
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       logger.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable', new Error('Configuration error'), {
         service: 'jobs',
       });
-      return NextResponse.json(
-        { error: 'Server configuration error. Please contact support.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Server configuration error. Please contact support.');
     }
 
     // Get current user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Must be logged in.' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to upload photos');
     }
 
     // Parse form data
@@ -61,17 +53,11 @@ export async function POST(request: NextRequest) {
     const photoFiles = formData.getAll('photos') as File[];
 
     if (photoFiles.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one photo is required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('At least one photo is required');
     }
 
     if (photoFiles.length > MAX_FILES) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_FILES} photos allowed` },
-        { status: 400 }
-      );
+      throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
     // Upload each photo to Supabase Storage
@@ -91,10 +77,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
         });
 
-        return NextResponse.json(
-          { error: validation.error || 'Invalid file' },
-          { status: 400 }
-        );
+        throw new BadRequestError(validation.error || 'Invalid file');
       }
 
       // Log warnings if MIME type or extension mismatch detected
@@ -136,23 +119,17 @@ export async function POST(request: NextRequest) {
           fileName: file.name,
           userId: user.id,
         });
-        
+
         // Check if it's a bucket not found error
         if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
-          return NextResponse.json(
-            { error: 'Storage bucket not configured. Please contact support.' },
-            { status: 500 }
-          );
+          throw new InternalServerError('Storage bucket not configured. Please contact support.');
         }
-        
+
         // Check if it's a permissions error
         if (uploadError.message?.includes('permission') || uploadError.message?.includes('access')) {
-          return NextResponse.json(
-            { error: 'Permission denied. Please check your account settings.' },
-            { status: 403 }
-          );
+          throw new BadRequestError('Permission denied. Please check your account settings.');
         }
-        
+
         // For other errors, track failed file and continue with others
         failedFiles.push(file.name);
         continue;
@@ -182,13 +159,7 @@ export async function POST(request: NextRequest) {
         attemptedFiles: photoFiles.length,
         userId: user.id,
       });
-      return NextResponse.json(
-        { 
-          error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
-          details: 'Ensure the Supabase storage bucket "Job-storage" is created and accessible.'
-        },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.');
     }
     
     // If some files failed but at least one succeeded, log a warning
@@ -211,17 +182,7 @@ export async function POST(request: NextRequest) {
         : undefined,
     });
   } catch (error) {
-    logger.error('Error uploading job photos', error, {
-      service: 'jobs',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { 
-        error: 'Failed to upload photos. Please try again.',
-        details: errorMessage
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

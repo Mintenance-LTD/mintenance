@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { searchParams } = new URL(request.url);
@@ -27,8 +29,8 @@ export async function GET(request: NextRequest) {
     const { data: quotes, error } = await query;
 
     if (error) {
-      console.error('Error fetching quotes:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('Error fetching quotes', error);
+      throw new InternalServerError('Failed to fetch quotes');
     }
 
     // Transform data to match client interface
@@ -61,8 +63,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ quotes: transformedQuotes, stats });
   } catch (error) {
-    console.error('Error in quotes API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const body = await request.json();
@@ -93,10 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!title || !clientName || !totalAmount) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Missing required fields');
     }
 
     // Generate quote number using Supabase function
@@ -104,7 +102,7 @@ export async function POST(request: NextRequest) {
       .rpc('generate_quote_number');
 
     if (numberError) {
-      console.error('Error generating quote number:', numberError);
+      logger.error('Error generating quote number', numberError);
     }
 
     // Create quote
@@ -132,13 +130,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating quote:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('Error creating quote', error);
+      throw new InternalServerError('Failed to create quote');
     }
 
     return NextResponse.json({ quote: newQuote }, { status: 201 });
   } catch (error) {
-    console.error('Error in create quote API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

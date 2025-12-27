@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * DELETE /api/account/delete
@@ -15,13 +16,10 @@ export async function DELETE(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to delete account');
     }
 
     // Verify the user is trying to delete their own account
@@ -29,17 +27,11 @@ const user = await getCurrentUserFromCookies();
     const { userId, confirmation } = body;
 
     if (!userId || userId !== user.id) {
-      return NextResponse.json(
-        { error: 'You can only delete your own account' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You can only delete your own account');
     }
 
     if (confirmation !== 'DELETE') {
-      return NextResponse.json(
-        { error: 'Confirmation text must be "DELETE"' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Confirmation text must be "DELETE"');
     }
 
     // Check if account is already deleted
@@ -50,21 +42,15 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (fetchError) {
-      logger.error('Error fetching user for deletion', { 
-        userId: user.id, 
-        error: fetchError.message 
+      logger.error('Error fetching user for deletion', {
+        userId: user.id,
+        error: fetchError.message
       });
-      return NextResponse.json(
-        { error: 'Failed to verify account status' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to verify account status');
     }
 
     if (existingUser?.deleted_at) {
-      return NextResponse.json(
-        { error: 'Account is already deleted' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Account is already deleted');
     }
 
     // Soft delete: Set deleted_at timestamp
@@ -79,33 +65,24 @@ const user = await getCurrentUserFromCookies();
       .eq('id', user.id);
 
     if (deleteError) {
-      logger.error('Error deleting user account', { 
-        userId: user.id, 
-        error: deleteError.message 
+      logger.error('Error deleting user account', {
+        userId: user.id,
+        error: deleteError.message
       });
-      return NextResponse.json(
-        { error: 'Failed to delete account. Please try again.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to delete account. Please try again.');
     }
 
     logger.info('User account deleted', { userId: user.id });
 
     return NextResponse.json(
-      { 
+      {
         message: 'Account deleted successfully',
-        deleted: true 
+        deleted: true
       },
       { status: 200 }
     );
   } catch (error) {
-    logger.error('Unexpected error in account deletion', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

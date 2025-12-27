@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
@@ -17,11 +18,11 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view jobs');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can view their jobs' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can view their jobs');
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,10 +34,7 @@ export async function GET(request: NextRequest) {
       try {
         status = statusSchema.parse(statusParam);
       } catch (error) {
-        return NextResponse.json(
-          { error: 'Invalid status parameter. Must be: active, bid, completed, or all' },
-          { status: 400 }
-        );
+        throw new BadRequestError('Invalid status parameter. Must be: active, bid, completed, or all');
       }
     }
 
@@ -53,7 +51,7 @@ export async function GET(request: NextRequest) {
           service: 'contractor-api',
           contractorId: user.id,
         });
-        return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
+        throw bidsError;
       }
 
       const jobIds = (bids || []).map(b => b.job_id).filter(Boolean);
@@ -92,7 +90,7 @@ export async function GET(request: NextRequest) {
           service: 'contractor-api',
           contractorId: user.id,
         });
-        return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
+        throw jobsError;
       }
 
       // Transform to match expected format
@@ -158,7 +156,7 @@ export async function GET(request: NextRequest) {
           contractorId: user.id,
           status,
         });
-        return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
+        throw jobsError;
       }
 
       // Transform to match expected format
@@ -183,9 +181,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ jobs: transformedJobs });
     }
   } catch (error) {
-    logger.error('Unexpected error in GET /api/contractor/my-jobs', error, {
-      service: 'contractor-api',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

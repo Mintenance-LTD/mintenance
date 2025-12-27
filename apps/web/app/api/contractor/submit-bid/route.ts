@@ -15,6 +15,7 @@ import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { submitBidSchema, type SubmitBidInput } from './validation';
 import { processBid, getDatabaseErrorMessage } from './bid-processor';
 import { prepareQuoteData, processQuote } from './quote-processor';
@@ -30,28 +31,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const rateLimitResult = await checkApiRateLimit(`submit-bid:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+      throw new RateLimitError('Too many bid submissions. Please try again later.');
     }
 
     // Authenticate user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      logger.warn('Unauthorized bid submission attempt', { service: 'contractor' });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to submit bids');
     }
 
     // Verify user is a contractor
     if (user.role !== 'contractor') {
-      logger.warn('Non-contractor attempted to submit bid', {
-        service: 'contractor',
-        userId: user.id,
-        role: user.role
-      });
-      return NextResponse.json({ error: 'Only contractors can submit bids' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can submit bids');
     }
 
     // Check subscription requirement
@@ -193,17 +185,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         jobId: validatedData.jobId,
         contractorId: user.id
       });
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
-    // Check if job is open for bids
+    // Check if job is open for bids AND not already assigned
     if (job.status !== 'posted' && job.status !== 'open') {
       logger.warn('Bid submitted for closed job', {
         service: 'contractor',
         jobId: validatedData.jobId,
         jobStatus: job.status
       });
-      return NextResponse.json({ error: 'This job is no longer accepting bids' }, { status: 400 });
+      throw new BadRequestError('This job is no longer accepting bids');
+    }
+
+    // SECURITY FIX: Verify job is not already assigned to a contractor
+    const { data: jobWithContractor } = await serverSupabase
+      .from('jobs')
+      .select('contractor_id')
+      .eq('id', validatedData.jobId)
+      .single();
+
+    if (jobWithContractor?.contractor_id) {
+      logger.warn('Bid submitted for already assigned job', {
+        service: 'contractor',
+        jobId: validatedData.jobId,
+        assignedContractor: jobWithContractor.contractor_id,
+        attemptingContractor: user.id
+      });
+      return NextResponse.json({
+        error: 'This job has already been assigned to a contractor'
+      }, { status: 400 });
     }
 
     // Validate bid amount doesn't exceed job budget
@@ -385,7 +396,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         contractorId: user.id,
         jobId: validatedData.jobId,
       });
-      return NextResponse.json({ error: 'Failed to submit bid' }, { status: 500 });
+      throw new Error('Failed to submit bid');
     }
 
     // Process quote creation or update
@@ -479,39 +490,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(responseData, { status: 201 });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      logger.warn('Invalid bid submission data', {
-        service: 'contractor',
-        errors: error.issues
-      });
-      return NextResponse.json({
-        error: 'Invalid bid data',
-        details: error.issues
-      }, { status: 400 });
-    }
-
-    // Log complete error details
-    logger.error('Unexpected error in submit-bid', {
-      service: 'contractor',
-      errorType: error instanceof Error ? error.constructor.name : typeof error,
-      errorMessage: error instanceof Error ? error.message : String(error),
-      errorStack: error instanceof Error ? error.stack : undefined,
-      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-    });
-
-    const devInfo = process.env.NODE_ENV !== 'production' && error && typeof error === 'object'
-      ? {
-          devError: {
-            type: error instanceof Error ? error.constructor.name : typeof error,
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-          }
-        }
-      : {};
-
-    return NextResponse.json({
-      error: 'An unexpected error occurred. Please try again or contact support if the issue persists.',
-      ...devInfo,
-    }, { status: 500 });
+    return handleAPIError(error);
   }
 }

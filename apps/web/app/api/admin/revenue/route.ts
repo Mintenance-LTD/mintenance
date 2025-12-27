@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { redirect } from 'next/navigation';
 import { RevenueAnalytics } from '@/lib/services/revenue/RevenueAnalytics';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -67,10 +68,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching revenue data', error, {
-      service: 'admin_revenue',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

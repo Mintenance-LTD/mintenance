@@ -7,27 +7,25 @@ import { gdprDeleteSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
     
     // CSRF protection
     await requireCSRF(request);
-// Rate limiting
+    // Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const rateLimitResult = await checkApiRateLimit(`gdpr-delete:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+      throw new RateLimitError('Too many requests. Please try again later.');
     }
 
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to delete data');
     }
 
     // Validate request body
@@ -43,21 +41,21 @@ export async function POST(request: NextRequest) {
     try {
       sanitizedEmail = sanitizeEmail(email);
     } catch (error) {
-      logger.warn('Invalid email format in delete request', { 
+      logger.warn('Invalid email format in delete request', {
         service: 'gdpr',
         userId: user.id,
         email: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      throw new BadRequestError('Invalid email format');
     }
 
     if (sanitizedEmail !== user.email) {
-      logger.warn('Email mismatch in delete request', { 
+      logger.warn('Email mismatch in delete request', {
         service: 'gdpr',
         userId: user.id,
         providedEmail: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Email does not match your account' }, { status: 400 });
+      throw new BadRequestError('Email does not match your account');
     }
 
     // Check if user already has a pending deletion request
@@ -70,9 +68,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingRequest) {
-      return NextResponse.json({ 
-        error: 'You already have a pending data deletion request' 
-      }, { status: 400 });
+      throw new BadRequestError('You already have a pending data deletion request');
     }
 
     // Create DSR request
@@ -94,9 +90,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         requestType: 'erasure'
       });
-      return NextResponse.json({ 
-        error: 'Failed to create data deletion request' 
-      }, { status: 500 });
+      throw new InternalServerError('Failed to create data deletion request');
     }
 
     // Execute data deletion
@@ -109,19 +103,17 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         requestId: dsrRequest.id
       });
-      
+
       // Update DSR request status to failed
       await serverSupabase
         .from('dsr_requests')
-        .update({ 
+        .update({
           status: 'rejected',
           notes: 'Deletion failed: ' + deleteError.message
         })
         .eq('id', dsrRequest.id);
 
-      return NextResponse.json({ 
-        error: 'Failed to delete user data' 
-      }, { status: 500 });
+      throw new InternalServerError('Failed to delete user data');
     }
 
     // Update DSR request status
@@ -151,10 +143,6 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    logger.error('GDPR deletion error', error, { service: 'gdpr' });
-    return NextResponse.json(
-      { error: 'Failed to delete user data' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

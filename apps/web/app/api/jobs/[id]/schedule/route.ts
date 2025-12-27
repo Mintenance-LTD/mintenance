@@ -5,6 +5,7 @@ import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 // Type definition for schedule update data
 interface ScheduleUpdateData {
@@ -30,17 +31,14 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to schedule jobs');
     }
 
     const body = await request.json();
     const parsed = scheduleSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request data');
     }
 
     const { scheduled_start_date, scheduled_end_date, scheduled_duration_hours } = parsed.data;
@@ -53,7 +51,7 @@ export async function POST(  request: NextRequest,
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Verify user is contractor or homeowner for this job
@@ -61,14 +59,14 @@ export async function POST(  request: NextRequest,
                          (user.role === 'homeowner' && job.homeowner_id === user.id);
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: 'Not authorized to schedule this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to schedule this job');
     }
 
     // Verify date is in the future
     const startDate = new Date(scheduled_start_date);
     const now = new Date();
     if (startDate <= now) {
-      return NextResponse.json({ error: 'Scheduled start date must be in the future' }, { status: 400 });
+      throw new BadRequestError('Scheduled start date must be in the future');
     }
 
     // Update job with scheduled dates
@@ -95,7 +93,7 @@ export async function POST(  request: NextRequest,
         jobId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to schedule job' }, { status: 500 });
+      throw updateError;
     }
 
     // Create notifications for both parties
@@ -226,10 +224,7 @@ export async function POST(  request: NextRequest,
       scheduled_end_date,
     });
   } catch (error) {
-    logger.error('Unexpected error in schedule job', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -242,7 +237,7 @@ export async function GET(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view job schedule');
     }
 
     // Verify job exists and user has permission
@@ -253,7 +248,7 @@ export async function GET(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Verify user is contractor or homeowner for this job
@@ -261,7 +256,7 @@ export async function GET(
                          (user.role === 'homeowner' && job.homeowner_id === user.id);
 
     if (!isAuthorized) {
-      return NextResponse.json({ error: 'Not authorized to view this job schedule' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to view this job schedule');
     }
 
     return NextResponse.json({
@@ -270,10 +265,7 @@ export async function GET(
       scheduled_duration_hours: job.scheduled_duration_hours,
     });
   } catch (error) {
-    logger.error('Unexpected error in GET schedule', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

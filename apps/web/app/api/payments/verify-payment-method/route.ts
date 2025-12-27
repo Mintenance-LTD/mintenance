@@ -6,6 +6,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
         service: 'payments',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         customerId
       });
-      return NextResponse.json({ error: 'Customer not found or unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Customer not found or unauthorized');
     }
 
     // Verify payment method belongs to the customer
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
           customerId,
           actualCustomerId: paymentMethod.customer
         });
-        return NextResponse.json({ error: 'Payment method does not belong to customer' }, { status: 403 });
+        throw new ForbiddenError('Payment method does not belong to customer');
       }
 
       // Note: Stripe API doesn't return deleted payment methods in retrieve() calls
@@ -108,10 +109,10 @@ export async function POST(request: NextRequest) {
         });
         
         if (stripeError.code === 'resource_missing') {
-          return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
+          throw new NotFoundError('Payment method not found');
         }
         
-        return NextResponse.json({ error: stripeError.message }, { status: 400 });
+        throw new BadRequestError(stripeError.message);
       }
       
       throw stripeError;
@@ -119,9 +120,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     logger.error('Error verifying payment method', error, { service: 'payments' });
-    return NextResponse.json(
-      { error: 'Failed to verify payment method' },
-      { status: 500 }
-    );
+    throw new InternalServerError('Failed to verify payment method');
   }
 }

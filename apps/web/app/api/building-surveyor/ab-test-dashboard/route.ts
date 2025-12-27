@@ -18,6 +18,7 @@ import { ABTestMonitoringService } from '@/lib/services/building-surveyor/ABTest
 import { ABTestAlertingService } from '@/lib/services/building-surveyor/ABTestAlertingService';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 
@@ -31,14 +32,11 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (!AB_TEST_EXPERIMENT_ID) {
-      return NextResponse.json(
-        { error: 'A/B testing not configured' },
-        { status: 503 }
-      );
+      throw new BadRequestError('A/B testing not configured');
     }
 
     // Get query parameters
@@ -131,18 +129,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error: unknown) {
-    logger.error('Error retrieving A/B test dashboard data', error, {
-      service: 'ab-test-dashboard-api',
-    });
-
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      {
-        error: 'Failed to retrieve dashboard data',
-        message: errorMessage,
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

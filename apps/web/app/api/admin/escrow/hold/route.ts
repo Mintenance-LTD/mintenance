@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 const holdEscrowSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
@@ -31,11 +32,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, escrowId });
   } catch (error) {
-    logger.error('Error holding escrow', error, { service: 'admin-escrow-hold' });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to hold escrow' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

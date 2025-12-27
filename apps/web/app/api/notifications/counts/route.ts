@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * API endpoint to fetch notification badge counts for the sidebar
@@ -12,10 +13,7 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view notification counts');
     }
 
     // Fetch counts from database
@@ -68,19 +66,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error fetching notification counts', error, {
-      service: 'notifications',
-    });
-    
-    // Return fallback counts on error
-    return NextResponse.json({
-      success: true,
-      counts: {
-        messages: 0,
-        connections: 0,
-        quoteRequests: 0,
-        notifications: 0,
-      },
-    });
+    return handleAPIError(error);
   }
 }

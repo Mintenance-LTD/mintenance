@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { checkGDPRRateLimit } from '@/lib/rate-limiting/admin-gdpr';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/user/gdpr-preferences
@@ -19,10 +20,7 @@ export async function GET(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { data, error } = await serverSupabase
@@ -33,10 +31,7 @@ export async function GET(request: NextRequest) {
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = not found
       logger.error('Failed to fetch GDPR preferences', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch preferences' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to fetch preferences');
     }
 
     return NextResponse.json({
@@ -48,11 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching GDPR preferences', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -73,20 +64,14 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await request.json();
     const { preferences } = body;
 
     if (!preferences || typeof preferences !== 'object') {
-      return NextResponse.json(
-        { error: 'Invalid preferences data' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid preferences data');
     }
 
     // Ensure dataProcessing is always true (required for service)
@@ -108,10 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) {
       logger.error('Failed to save GDPR preferences', upsertError);
-      return NextResponse.json(
-        { error: 'Failed to save preferences' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to save preferences');
     }
 
     logger.info('GDPR preferences updated', { userId: user.id });
@@ -121,11 +103,7 @@ export async function POST(request: NextRequest) {
       preferences: validPreferences,
     });
   } catch (error) {
-    logger.error('Error saving GDPR preferences', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

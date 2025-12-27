@@ -4,14 +4,15 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
 import { requireCSRF } from '@/lib/csrf';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user - security fix: use authenticated user instead of query param
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view notifications');
     }
 
     const userId = user.id;
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
         service: 'notifications',
         userId,
       });
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+      throw error;
     }
 
     // Map database notifications to component format
@@ -317,10 +318,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(allNotifications.slice(0, 20));
   } catch (error) {
-    logger.error('Notification API error', error, {
-      service: 'notifications',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -329,24 +327,25 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-const body = await request.json();
-    const { notificationId, userId, action } = body; // action: 'opened', 'clicked', 'dismissed'
 
-    if (!notificationId || !userId || !action) {
-      return NextResponse.json(
-        { error: 'Missing required fields: notificationId, userId, action' },
-        { status: 400 }
-      );
+    // Get authenticated user
+    const user = await getCurrentUserFromCookies();
+
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const body = await request.json();
+    const { notificationId, action } = body; // action: 'opened', 'clicked', 'dismissed'
+
+    if (!notificationId || !action) {
+      throw new BadRequestError('Missing required fields: notificationId, action');
     }
 
     if (!['opened', 'clicked', 'dismissed'].includes(action)) {
-      return NextResponse.json(
-        { error: 'Invalid action. Must be: opened, clicked, or dismissed' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid action. Must be: opened, clicked, or dismissed');
     }
 
     // Update notification read status if opened/clicked
@@ -355,7 +354,7 @@ const body = await request.json();
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
     }
 
     // Track engagement via NotificationService
@@ -367,9 +366,6 @@ const body = await request.json();
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Notification engagement tracking error', error, {
-      service: 'notifications',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

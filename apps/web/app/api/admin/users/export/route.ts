@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,16 +35,24 @@ export async function GET(request: NextRequest) {
       query = query.eq('role', 'contractor').eq('admin_verified', false).not('company_name', 'is', null).not('license_number', 'is', null);
     }
 
+    // SECURITY: Sanitize search input to prevent SQL injection
     if (search) {
-      const searchLower = search.toLowerCase();
-      query = query.or(`email.ilike.%${searchLower}%,first_name.ilike.%${searchLower}%,last_name.ilike.%${searchLower}%,company_name.ilike.%${searchLower}%`);
+      const sanitizedSearch = search
+        .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards
+        .substring(0, 100)
+        .toLowerCase()
+        .trim();
+
+      if (sanitizedSearch.length > 0) {
+        query = query.or(`email.ilike.%${sanitizedSearch}%,first_name.ilike.%${sanitizedSearch}%,last_name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%`);
+      }
     }
 
     const { data: users, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      logger.error('Error fetching users for export', { error: error.message });
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+      logger.error('Error fetching users for export', error);
+      throw new InternalServerError('Failed to fetch users');
     }
 
     // Generate export file
@@ -61,8 +70,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error exporting users', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

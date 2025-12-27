@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const certificationSchema = z.object({
   name: z.string().min(1, 'Certification name is required').max(255),
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { data: certifications, error } = await serverSupabase
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
         service: 'contractor-api',
         contractorId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch certifications' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch certifications');
     }
 
     // Calculate status for each certification
@@ -72,8 +73,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ certifications: certificationsWithStatus });
   } catch (error) {
-    logger.error('Error fetching certifications', error, { service: 'contractor-api' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -87,11 +87,15 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const body = await request.json();
-    const validatedData = certificationSchema.parse(body);
+    const validation = certificationSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request data');
+    }
+    const validatedData = validation.data;
 
     const { data: certification, error } = await serverSupabase
       .from('contractor_certifications')
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor-api',
         contractorId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to create certification' }, { status: 500 });
+      throw new InternalServerError('Failed to create certification');
     }
 
     logger.info('Certification created successfully', {
@@ -124,13 +128,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ certification }, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
-    logger.error('Error creating certification', error, { service: 'contractor-api' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

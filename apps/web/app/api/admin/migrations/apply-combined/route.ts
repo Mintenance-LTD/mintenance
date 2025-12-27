@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * Apply the combined platform enhancements migration
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
         service: 'migrations',
         error: error instanceof Error ? error.message : String(error),
       });
-      return NextResponse.json({ error: 'Migration file not found' }, { status: 404 });
+      throw new NotFoundError('Migration file not found');
     }
 
     // Note: Supabase JS client doesn't support raw SQL execution
@@ -54,8 +55,7 @@ export async function POST(request: NextRequest) {
       ],
     });
   } catch (error) {
-    logger.error('Error preparing migration', error, { service: 'migrations' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

@@ -13,6 +13,7 @@ import { requireCSRF } from '@/lib/csrf';
 import fs from 'fs';
 import path from 'path';
 import { LRUCache } from 'lru-cache';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
 
 // Environment configuration for A/B testing
 const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('Admin access required');
     }
 
     const stats = {
@@ -85,13 +86,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(stats);
   } catch (error) {
-    logger.error('Error fetching cache stats', error, {
-      service: 'building-surveyor-api',
-    });
-    return NextResponse.json(
-      { error: 'Failed to fetch cache stats' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -106,10 +101,11 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-// 1. Authenticate user
+
+    // 1. Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // 2. Parse and validate request
@@ -117,13 +113,7 @@ export async function POST(request: NextRequest) {
     const validationResult = assessRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: validationResult.error.issues,
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request');
     }
 
     const { imageUrls, context } = validationResult.data;
@@ -132,10 +122,7 @@ export async function POST(request: NextRequest) {
     // (Basic check - in production, you might want to verify they're from your storage)
     for (const url of imageUrls) {
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        return NextResponse.json(
-          { error: 'Invalid image URL format' },
-          { status: 400 }
-        );
+        throw new BadRequestError('Invalid image URL format');
       }
     }
 
@@ -450,34 +437,7 @@ export async function POST(request: NextRequest) {
     }
     // #endregion
 
-    // Return user-friendly error
-    let errorMessage = error instanceof Error ? error.message : 'Failed to assess building damage. Please try again.';
-    let statusCode = 500;
-    
-    // Check for specific OpenAI error codes
-    if (error instanceof Error) {
-      const openaiErrorCode = (error as any).openaiErrorCode;
-      const errorMsg = error.message.toLowerCase();
-      
-      if (openaiErrorCode === 'invalid_api_key' || errorMsg.includes('invalid_api_key') || 
-          (errorMsg.includes('api key') && (errorMsg.includes('invalid') || errorMsg.includes('expired')))) {
-        errorMessage = 'OpenAI API key is invalid or expired. Please check your API key configuration.';
-        statusCode = 401;
-      } else if (errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
-        errorMessage = 'Authentication failed. Please check your API key configuration.';
-        statusCode = 401;
-      } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
-        errorMessage = 'API rate limit exceeded. Please try again in a moment.';
-        statusCode = 429;
-      }
-    }
-
-    return NextResponse.json(
-      {
-        error: errorMessage,
-      },
-      { status: statusCode }
-    );
+    return handleAPIError(error);
   }
 }
 

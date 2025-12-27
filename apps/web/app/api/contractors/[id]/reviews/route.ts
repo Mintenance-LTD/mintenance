@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -14,7 +15,7 @@ async function getContractorReviews(context: Params) {
     const { id } = await context.params;
     if (!id) {
       logger.warn('Contractor ID missing in request', { service: 'contractors' });
-      return NextResponse.json({ error: 'Contractor id missing' }, { status: 400 });
+      throw new BadRequestError('Contractor id missing');
     }
 
     // Fetch reviews with reviewer information
@@ -50,7 +51,7 @@ async function getContractorReviews(context: Params) {
         service: 'contractors',
         contractorId: id,
       });
-      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
+      throw error;
     }
 
     // Transform reviews to match frontend interface
@@ -76,7 +77,6 @@ async function getContractorReviews(context: Params) {
 
     return NextResponse.json({ reviews: transformedReviews });
   } catch (err) {
-    logger.error('Failed to load contractor reviews', err, { service: 'contractors' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

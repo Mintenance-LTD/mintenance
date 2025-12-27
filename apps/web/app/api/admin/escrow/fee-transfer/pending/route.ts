@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { logger } from '@mintenance/shared';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/admin/escrow/fee-transfer/pending
@@ -26,13 +27,7 @@ export async function GET(request: NextRequest) {
       count: pendingTransfers.length,
     });
   } catch (error) {
-    logger.error('Error getting pending fee transfers', error, {
-      service: 'admin',
-    });
-    return NextResponse.json(
-      { error: 'Failed to get pending fee transfers' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

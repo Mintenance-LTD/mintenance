@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,21 +15,21 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
-    
+    const user = await getCurrentUserFromCookies();
+
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required to follow other contractors');
     }
 
     const body = await request.json();
     const { contractor_id } = body;
 
     if (!contractor_id) {
-      return NextResponse.json({ error: 'contractor_id is required' }, { status: 400 });
+      throw new BadRequestError('contractor_id is required');
     }
 
     if (contractor_id === user.id) {
-      return NextResponse.json({ error: 'You cannot follow yourself' }, { status: 400 });
+      throw new BadRequestError('You cannot follow yourself');
     }
 
     // Verify contractor exists
@@ -40,7 +41,7 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (contractorError || !contractor) {
-      return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
+      throw new NotFoundError('Contractor not found');
     }
 
     // Check if already following
@@ -58,7 +59,7 @@ const user = await getCurrentUserFromCookies();
         userId: user.id,
         contractorId: contractor_id,
       });
-      return NextResponse.json({ error: 'Failed to check follow status' }, { status: 500 });
+      throw new InternalServerError('Failed to check follow status');
     }
 
     if (existingFollow) {
@@ -74,7 +75,7 @@ const user = await getCurrentUserFromCookies();
           userId: user.id,
           contractorId: contractor_id,
         });
-        return NextResponse.json({ error: 'Failed to unfollow contractor' }, { status: 500 });
+        throw new InternalServerError('Failed to unfollow contractor');
       }
 
       return NextResponse.json({ 
@@ -98,20 +99,17 @@ const user = await getCurrentUserFromCookies();
           userId: user.id,
           contractorId: contractor_id,
         });
-        return NextResponse.json({ error: 'Failed to follow contractor', details: insertError.message }, { status: 500 });
+        throw new InternalServerError('Failed to follow contractor');
       }
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         following: true,
         message: 'Followed successfully',
         follow: newFollow
       }, { status: 201 });
     }
   } catch (error) {
-    logger.error('Error in POST /api/contractor/follow', error, {
-      service: 'contractor_follow',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

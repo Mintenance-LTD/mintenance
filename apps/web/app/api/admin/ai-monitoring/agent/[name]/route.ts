@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AgentAnalytics } from '@/lib/services/agents/AgentAnalytics';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/admin/ai-monitoring/agent/[name]
@@ -26,13 +27,7 @@ export async function GET(
     const metrics = await AgentAnalytics.getAgentMetrics(name, timeRange);
 
     if (!metrics) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Agent not found or no data available',
-        },
-        { status: 404 }
-      );
+      throw new NotFoundError('Agent not found or no data available');
     }
 
     return NextResponse.json({
@@ -41,18 +36,6 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    const { name } = await params;
-    logger.error('Error fetching agent metrics', error, {
-      service: 'AIMonitoringAPI',
-      agentName: name,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch agent metrics',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

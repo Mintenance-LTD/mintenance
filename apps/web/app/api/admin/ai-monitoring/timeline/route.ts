@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AgentAnalytics } from '@/lib/services/agents/AgentAnalytics';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/admin/ai-monitoring/timeline
@@ -28,16 +29,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('Error fetching decision timeline', error, {
-      service: 'AIMonitoringAPI',
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch decision timeline',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

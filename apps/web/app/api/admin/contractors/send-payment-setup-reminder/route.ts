@@ -4,6 +4,7 @@ import { PaymentSetupNotificationService } from '@/lib/services/contractor/Payme
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { contractorId } = await request.json();
 
     if (!contractorId) {
-      return NextResponse.json({ error: 'Contractor ID required' }, { status: 400 });
+      throw new BadRequestError('Contractor ID required');
     }
 
     // Get contractor's pending escrows
@@ -48,11 +49,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error sending payment setup reminder', error);
-    return NextResponse.json(
-      { error: 'Failed to send reminder' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

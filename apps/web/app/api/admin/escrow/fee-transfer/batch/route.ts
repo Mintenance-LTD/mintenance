@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 const batchTransferSchema = z.object({
   feeTransferIds: z.array(z.string().uuid('Invalid fee transfer ID')).min(1),
@@ -48,11 +49,7 @@ export async function POST(request: NextRequest) {
       result,
     });
   } catch (error) {
-    logger.error('Error batch transferring fees', error, { service: 'admin' });
-    return NextResponse.json(
-      { error: 'Failed to batch transfer fees' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

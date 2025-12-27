@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Apply SQL migrations to Supabase
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const { migrationFile } = body;
 
     if (!migrationFile) {
-      return NextResponse.json({ error: 'Migration file name is required' }, { status: 400 });
+      throw new BadRequestError('Migration file name is required');
     }
 
     // Read the migration file
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
         file: migrationFile,
         error: error instanceof Error ? error.message : String(error),
       });
-      return NextResponse.json({ error: 'Migration file not found' }, { status: 404 });
+      throw new NotFoundError('Migration file not found');
     }
 
     // Execute SQL using Supabase REST API with service role
@@ -46,10 +47,7 @@ export async function POST(request: NextRequest) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        { error: 'Supabase configuration missing' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Supabase configuration missing');
     }
 
     // Use Supabase REST API to execute SQL via rpc
@@ -70,8 +68,7 @@ export async function POST(request: NextRequest) {
       instructions: 'Execute this SQL in Supabase Dashboard SQL Editor or use Supabase CLI: supabase db push',
     });
   } catch (error) {
-    logger.error('Error applying migration', error, { service: 'migrations' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

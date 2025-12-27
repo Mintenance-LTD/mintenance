@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { RevenueAnalytics } from '@/lib/services/revenue/RevenueAnalytics';
 import { ExportService } from '@/lib/services/admin/ExportService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     if (!revenueMetrics) {
-      return NextResponse.json({ error: 'Failed to fetch revenue metrics' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch revenue metrics');
     }
 
     // Generate export file
@@ -53,8 +54,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error exporting revenue data', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

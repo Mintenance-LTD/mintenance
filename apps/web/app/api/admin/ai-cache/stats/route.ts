@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,15 +36,7 @@ export async function GET(request: NextRequest) {
       recommendations: generateRecommendations(metrics),
     });
   } catch (error) {
-    logger.error('Failed to get AI cache stats', error);
-
-    return NextResponse.json(
-      {
-        error: 'Failed to retrieve cache statistics',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

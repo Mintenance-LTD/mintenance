@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { validateURLs } from '@/lib/security/url-validation';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definition for photo metadata
 interface PhotoRecord {
@@ -35,7 +36,7 @@ export async function POST(
     const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const escrowId = id;
@@ -73,7 +74,7 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Get before photos
@@ -158,7 +159,7 @@ export async function POST(
     });
   } catch (error) {
     logger.error('Error verifying photos', error, { service: 'escrow-verify-photos-enhanced' });
-    return NextResponse.json({ error: 'Failed to verify photos' }, { status: 500 });
+    throw new InternalServerError('Failed to verify photos');
   }
 }
 

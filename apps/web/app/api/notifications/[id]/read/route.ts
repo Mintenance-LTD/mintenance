@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { errorResponse, successResponse, ErrorCodes } from '@/lib/utils/api-response';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,15 +14,15 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // CSRF protection
-  await requireCSRF(request);
-
   try {
+    // CSRF protection
+    await requireCSRF(request);
+
     const user = await getCurrentUserFromCookies();
     const { id } = await params;
 
     if (!user) {
-      return errorResponse('Unauthorized', ErrorCodes.UNAUTHORIZED, 401);
+      throw new UnauthorizedError('Authentication required to mark notifications as read');
     }
 
     // Verify notification belongs to user
@@ -33,11 +33,11 @@ export async function POST(
       .single();
 
     if (fetchError || !notification) {
-      return errorResponse('Notification not found', ErrorCodes.NOT_FOUND, 404);
+      throw new NotFoundError('Notification not found');
     }
 
     if (notification.user_id !== user.id) {
-      return errorResponse('Unauthorized', ErrorCodes.FORBIDDEN, 403);
+      throw new ForbiddenError('You do not have permission to modify this notification');
     }
 
     // Mark as read
@@ -52,19 +52,11 @@ export async function POST(
         userId: user.id,
         notificationId: id,
       });
-      return errorResponse(
-        'Failed to mark notification as read',
-        ErrorCodes.PROCESSING_ERROR,
-        500,
-        { notificationId: id }
-      );
+      throw updateError;
     }
 
-    return successResponse({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error in POST /api/notifications/[id]/read', error, {
-      service: 'notifications',
-    });
-    return errorResponse('Internal server error', ErrorCodes.INTERNAL_ERROR, 500);
+    return handleAPIError(error);
   }
 }

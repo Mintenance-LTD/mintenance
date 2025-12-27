@@ -10,6 +10,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 const clearRequestSchema = z.object({
   service: z.enum([
@@ -36,24 +37,14 @@ export async function POST(request: NextRequest) {
     const validationResult = clearRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.errors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request parameters');
     }
 
     const { service, confirm } = validationResult.data;
 
     // Require confirmation for safety
     if (!confirm) {
-      return NextResponse.json(
-        {
-          error: 'Confirmation required',
-          message: 'Set "confirm": true in request body to clear cache',
-          warning: 'This will delete all cached AI responses and may increase API costs temporarily',
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('Confirmation required. Set "confirm": true in request body to clear cache');
     }
 
     // Clear cache
@@ -91,15 +82,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    logger.error('Failed to clear AI cache', error);
-
-    return NextResponse.json(
-      {
-        error: 'Failed to clear cache',
-        details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -127,11 +110,6 @@ export async function GET(request: NextRequest) {
       warning: 'Clearing cache will temporarily increase API costs until cache is rebuilt',
     });
   } catch (error) {
-    logger.error('Failed to get cache clear preview', error);
-
-    return NextResponse.json(
-      { error: 'Failed to retrieve cache information' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

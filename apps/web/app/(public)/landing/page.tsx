@@ -1,10 +1,68 @@
 import React from 'react';
 import Image from 'next/image';
+import { Metadata } from 'next';
 import { SearchBar, ListingCard, ContractorCard, Badge, Button } from '@/components/airbnb-system';
 import { getFeaturedContractors, getPlatformStats } from '@/lib/queries/airbnb-optimized';
 import { Star, CheckCircle, TrendingUp, Users, Briefcase } from 'lucide-react';
+import { LocalBusinessStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
 
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
+  description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals. 10,000+ verified contractors nationwide.',
+  keywords: 'contractors, home maintenance, home repair, plumber, electrician, handyman, home improvement, contractor near me, trusted contractors, verified professionals',
+
+  // Open Graph
+  openGraph: {
+    type: 'website',
+    locale: 'en_GB',
+    url: 'https://mintenance.com',
+    siteName: 'Mintenance',
+    title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
+    description: 'Connect with 10,000+ verified contractors. Get instant quotes, compare prices, and hire trusted professionals for your home maintenance needs.',
+    images: [
+      {
+        url: 'https://mintenance.com/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Mintenance - Your trusted home maintenance platform',
+      }
+    ],
+  },
+
+  // Twitter Cards
+  twitter: {
+    card: 'summary_large_image',
+    site: '@mintenance',
+    creator: '@mintenance',
+    title: 'Mintenance - Find Trusted Local Contractors',
+    description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes and hire trusted professionals.',
+    images: ['https://mintenance.com/twitter-card.jpg'],
+  },
+
+  // Additional SEO
+  alternates: {
+    canonical: 'https://mintenance.com',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'google-verification-token',
+    yandex: 'yandex-verification-token',
+  },
+  category: 'Home Services',
+};
+
+// Static generation with ISR for better SEO and performance
+export const revalidate = 3600; // Revalidate every hour
 
 export default async function LandingPage() {
   // Fetch real data
@@ -14,8 +72,11 @@ export default async function LandingPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section - Full Viewport */}
+    <>
+      <LocalBusinessStructuredData />
+      <WebApplicationStructuredData />
+      <div className="min-h-screen bg-white">
+        {/* Hero Section - Full Viewport */}
       <section className="relative h-[600px] md:h-[700px] flex items-center justify-center">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
@@ -326,7 +387,7 @@ export default async function LandingPage() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                window.location.href = '/signup?role=homeowner';
+                window.location.href = '/register?role=homeowner';
               }}
               style={{
                 backgroundColor: 'white',
@@ -340,7 +401,7 @@ export default async function LandingPage() {
               variant="ghost"
               size="lg"
               onClick={() => {
-                window.location.href = '/signup?role=contractor';
+                window.location.href = '/register?role=contractor';
               }}
               style={{
                 backgroundColor: 'transparent',
@@ -353,6 +414,7 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

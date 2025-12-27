@@ -4,6 +4,7 @@ import { PhoneVerificationService } from '@/lib/services/verification/PhoneVerif
 import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 // Type for verification response
 interface VerificationResponse {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required for phone verification');
     }
 
     // Read body once
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       const verificationResult = await PhoneVerificationService.sendVerificationCode(user.id, phoneNumber);
 
       if (!verificationResult.success) {
-        return NextResponse.json({ error: verificationResult.error }, { status: 400 });
+        throw new BadRequestError(verificationResult.error || 'Failed to send verification code');
       }
 
       // In development mode, return the code so it can be displayed to the user
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
       const verificationResult = await PhoneVerificationService.verifyCode(user.id, code);
 
       if (!verificationResult.success) {
-        return NextResponse.json({ error: verificationResult.error }, { status: 400 });
+        throw new BadRequestError(verificationResult.error || 'Verification failed');
       }
 
       return NextResponse.json({ 
@@ -156,19 +157,18 @@ export async function POST(request: NextRequest) {
       const verificationResult = await PhoneVerificationService.resendCode(user.id);
 
       if (!verificationResult.success) {
-        return NextResponse.json({ error: verificationResult.error }, { status: 400 });
+        throw new BadRequestError(verificationResult.error || 'Failed to resend code');
       }
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Verification code resent successfully',
         expiresIn: 5, // minutes
       });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    throw new BadRequestError('Invalid action');
   } catch (error) {
-    logger.error('Phone verification error', error, { service: 'auth' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

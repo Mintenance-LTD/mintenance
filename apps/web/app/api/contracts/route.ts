@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definitions for contracts
 interface ContractTerms {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
     } else if (user.role === 'homeowner') {
       query = query.eq('homeowner_id', user.id);
     } else {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 403 });
+      throw new ForbiddenError('Invalid role');
     }
 
     // Additional filters
@@ -117,15 +118,12 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         role: user.role,
       });
-      return NextResponse.json({ error: 'Failed to fetch contracts' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch contracts');
     }
 
     return NextResponse.json({ contracts: contracts || [] });
   } catch (error) {
-    logger.error('Unexpected error in GET contracts', error, {
-      service: 'contracts',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -136,21 +134,18 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can create contracts' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can create contracts');
     }
 
     const body = await request.json();
     const parsed = createContractSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request data');
     }
 
     const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type } = parsed.data;
@@ -163,15 +158,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.contractor_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to create contract for this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to create contract for this job');
     }
 
     if (job.status !== 'assigned') {
-      return NextResponse.json({ error: 'Job must be assigned before creating a contract' }, { status: 400 });
+      throw new BadRequestError('Job must be assigned before creating a contract');
     }
 
     // Check if contract already exists
@@ -182,7 +177,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingContract) {
-      return NextResponse.json({ error: 'Contract already exists for this job' }, { status: 400 });
+      throw new BadRequestError('Contract already exists for this job');
     }
 
     // Create contract
@@ -214,7 +209,7 @@ export async function POST(request: NextRequest) {
         jobId: job_id,
         contractorId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to create contract' }, { status: 500 });
+      throw new InternalServerError('Failed to create contract');
     }
 
     // Create notification for homeowner
@@ -338,10 +333,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ contract }, { status: 201 });
   } catch (error) {
-    logger.error('Unexpected error in POST contracts', error, {
-      service: 'contracts',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -352,14 +344,14 @@ export async function PUT(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const searchParams = request.nextUrl.searchParams;
     const contractId = searchParams.get('id');
 
     if (!contractId) {
-      return NextResponse.json({ error: 'Contract ID required' }, { status: 400 });
+      throw new BadRequestError('Contract ID required');
     }
 
     // Verify contract exists and user has permission
@@ -370,29 +362,26 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (contractError || !contract) {
-      return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
+      throw new NotFoundError('Contract not found');
     }
 
     const canEdit = (user.role === 'contractor' && contract.contractor_id === user.id) ||
                     (user.role === 'homeowner' && contract.homeowner_id === user.id);
 
     if (!canEdit) {
-      return NextResponse.json({ error: 'Not authorized to edit this contract' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to edit this contract');
     }
 
     // Can only edit if status is draft or pending
     if (!['draft', 'pending_contractor', 'pending_homeowner'].includes(contract.status)) {
-      return NextResponse.json({ error: 'Contract cannot be edited in current status' }, { status: 400 });
+      throw new BadRequestError('Contract cannot be edited in current status');
     }
 
     const body = await request.json();
     const parsed = updateContractSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request data');
     }
 
     const updateData: ContractUpdateData = {
@@ -426,15 +415,12 @@ export async function PUT(request: NextRequest) {
         contractId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to update contract' }, { status: 500 });
+      throw new InternalServerError('Failed to update contract');
     }
 
     return NextResponse.json({ contract: updatedContract });
   } catch (error) {
-    logger.error('Unexpected error in PUT contracts', error, {
-      service: 'contracts',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

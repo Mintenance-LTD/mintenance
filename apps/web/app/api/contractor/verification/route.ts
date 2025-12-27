@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,7 +76,7 @@ export async function GET() {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized - contractor access required' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
 
     const { data: userData, error } = await supabase
@@ -105,11 +106,7 @@ export async function GET() {
 
     return NextResponse.json(verificationStatus, { status: 200 });
   } catch (error: unknown) {
-    logger.error('Verification status check error', error, {
-      service: 'contractor_verification',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -118,10 +115,10 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized - contractor access required' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
 
     const body = await request.json();
@@ -137,17 +134,14 @@ const user = await getCurrentUserFromCookies();
     } = body;
 
     if (!companyName || !businessAddress || !licenseNumber) {
-      return NextResponse.json(
-        { error: 'Company name, business address, and license number are required.' },
-        { status: 400 },
-      );
+      throw new BadRequestError('Company name, business address, and license number are required');
     }
 
     const validator = new LicenseValidator();
     const licenseValidation = validator.validate(licenseNumber);
 
     if (!licenseValidation.valid) {
-      return NextResponse.json({ error: licenseValidation.message }, { status: 400 });
+      throw new BadRequestError(licenseValidation.message || 'Invalid license number');
     }
 
     const geocoder = new GeocodingService();
@@ -191,10 +185,7 @@ const user = await getCurrentUserFromCookies();
         service: 'contractor_verification',
         userId: user.id,
       });
-      return NextResponse.json(
-        { error: 'Failed to update verification', details: updateError.message },
-        { status: 500 },
-      );
+      throw updateError;
     }
 
     return NextResponse.json(
@@ -213,11 +204,7 @@ const user = await getCurrentUserFromCookies();
       { status: 200 },
     );
   } catch (error: unknown) {
-    logger.error('Contractor verification error', error, {
-      service: 'contractor_verification',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

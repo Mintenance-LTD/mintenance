@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { ProfileBoostService } from '@/lib/services/verification/ProfileBoostService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/contractor/profile-boost
@@ -11,14 +12,11 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can access profile boost data' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can access profile boost data');
     }
 
     const boost = await ProfileBoostService.getBoost(user.id);
@@ -28,10 +26,7 @@ export async function GET(request: NextRequest) {
       const calculatedBoost = await ProfileBoostService.calculateBoost(user.id);
 
       if (!calculatedBoost) {
-        return NextResponse.json(
-          { error: 'Failed to calculate profile boost' },
-          { status: 500 }
-        );
+        throw new InternalServerError('Failed to calculate profile boost');
       }
 
       return NextResponse.json({
@@ -83,11 +78,7 @@ export async function GET(request: NextRequest) {
       recommendations: missingVerifications,
     });
   } catch (error) {
-    logger.error('Error fetching profile boost', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -99,23 +90,17 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can recalculate profile boost' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can recalculate profile boost');
     }
 
     const boost = await ProfileBoostService.calculateBoost(user.id);
 
     if (!boost) {
-      return NextResponse.json(
-        { error: 'Failed to recalculate profile boost' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to recalculate profile boost');
     }
 
     return NextResponse.json({
@@ -129,10 +114,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error recalculating profile boost', error, { service: 'contractor-api' });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

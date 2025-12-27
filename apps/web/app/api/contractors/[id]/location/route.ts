@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -25,16 +26,16 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is the contractor or has permission
     if (user.id !== contractorId && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Not authorized to update this location' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to update this location');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can update location' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can update location');
     }
 
     const body = await request.json();
@@ -62,7 +63,7 @@ export async function POST(  request: NextRequest,
         .single();
 
       if (!locationCheck?.is_sharing_location) {
-        return NextResponse.json({ error: 'Location sharing not enabled for this job' }, { status: 403 });
+        throw new ForbiddenError('Location sharing not enabled for this job');
       }
     }
 
@@ -92,7 +93,7 @@ export async function POST(  request: NextRequest,
         contractorId,
         job_id,
       });
-      return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
+      throw new InternalServerError('Failed to update location');
     }
 
     return NextResponse.json({
@@ -109,7 +110,7 @@ export async function POST(  request: NextRequest,
     logger.error('Unexpected error in POST location', error, {
       service: 'contractor_locations',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 
@@ -122,7 +123,7 @@ export async function GET(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -149,7 +150,7 @@ export async function GET(
     }
 
     if (!hasPermission) {
-      return NextResponse.json({ error: 'Not authorized to view this location' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to view this location');
     }
 
     // Get latest location
@@ -175,11 +176,11 @@ export async function GET(
         jobId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch location' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch location');
     }
 
     if (!locations || locations.length === 0) {
-      return NextResponse.json({ error: 'Location not found or sharing not enabled' }, { status: 404 });
+      throw new NotFoundError('Location not found or sharing not enabled');
     }
 
     return NextResponse.json({
@@ -189,7 +190,7 @@ export async function GET(
     logger.error('Unexpected error in GET location', error, {
       service: 'contractor_locations',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

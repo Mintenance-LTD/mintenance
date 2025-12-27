@@ -5,13 +5,14 @@ import { validateRequest } from '@/lib/validation/validator';
 import { gdprRequestSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Get user's DSR requests
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
 // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate request body

@@ -53,6 +53,7 @@
     "staging": {
       "distribution": "internal",
       "node": "20.19.4",
+      "prebuildCommand": "node scripts/validate-env.js",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -74,6 +75,7 @@
     "preview": {
       "distribution": "internal",
       "node": "20.19.4",
+      "prebuildCommand": "node scripts/validate-env.js",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -96,6 +98,7 @@
     },
     "production": {
       "node": "20.19.4",
+      "prebuildCommand": "node scripts/validate-env.js",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
@@ -115,6 +118,7 @@
     "production-store": {
       "distribution": "store",
       "node": "20.19.4",
+      "prebuildCommand": "node scripts/validate-env.js",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"

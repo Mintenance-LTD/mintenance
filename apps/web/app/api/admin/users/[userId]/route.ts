@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { VerificationService } from '@/lib/services/admin/VerificationService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -24,7 +25,7 @@ export async function GET(
 
     if (userError || !userData) {
       logger.error('Error fetching user details', { userId, error: userError?.message });
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      throw new NotFoundError('User not found');
     }
 
     // If contractor, fetch verification details and run automated checks
@@ -115,8 +116,7 @@ export async function GET(
       verification: verificationData,
     });
   } catch (error) {
-    logger.error('Unexpected error in GET /api/admin/users/[userId]', { error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { isTestUser } from '@/lib/utils/userUtils';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,9 +42,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Search filter (name or email)
+    // SECURITY: Sanitize search input to prevent SQL injection
     if (search) {
-      const searchLower = search.toLowerCase();
-      query = query.or(`email.ilike.%${searchLower}%,first_name.ilike.%${searchLower}%,last_name.ilike.%${searchLower}%,company_name.ilike.%${searchLower}%`);
+      // Escape SQL wildcards and limit input length
+      const sanitizedSearch = search
+        .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards (%, _, \)
+        .substring(0, 100) // Limit to 100 characters
+        .toLowerCase()
+        .trim();
+
+      if (sanitizedSearch.length > 0) {
+        query = query.or(`email.ilike.%${sanitizedSearch}%,first_name.ilike.%${sanitizedSearch}%,last_name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%`);
+      }
     }
 
     // Exclude deleted users
@@ -55,8 +65,8 @@ export async function GET(request: NextRequest) {
     const { data: users, error, count } = await query;
 
     if (error) {
-      logger.error('Error fetching users for admin', { error: error.message });
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+      logger.error('Error fetching users for admin', error);
+      throw new InternalServerError('Failed to fetch users');
     }
 
     // For contractors, fetch verification data
@@ -108,8 +118,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Unexpected error in GET /api/admin/users', { error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

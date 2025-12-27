@@ -145,14 +145,38 @@ async function uploadModelToStorage() {
     console.log(`   Bucket: yolo-models`);
     console.log(`   Path: ${storagePath}`);
 
-    // Upload to Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('yolo-models')
-      .upload(storagePath, modelBuffer, {
-        contentType: 'application/octet-stream',
-        upsert: true, // Overwrite if exists
-        cacheControl: '3600', // Cache for 1 hour
-      });
+    // For large files (>50MB), use REST API directly
+    const LARGE_FILE_THRESHOLD = 50 * 1024 * 1024; // 50MB
+    let uploadData;
+    let uploadError;
+
+    if (fileSize > LARGE_FILE_THRESHOLD) {
+      console.log(`   ⚠️  Large file detected (${fileSizeMB} MB)`);
+      console.log(`   Supabase has a default 50MB upload limit for direct uploads.`);
+      console.log(`   Please increase the upload limit in your Supabase project settings:`);
+      console.log(`   1. Go to Project Settings > Storage`);
+      console.log(`   2. Increase "Global file size limit" to at least 100MB`);
+      console.log(`   3. Or use S3 protocol for large file uploads`);
+      console.log(`   \n   Attempting upload anyway (may fail if limit not increased)...\n`);
+    }
+    
+    {
+      // Use standard upload for smaller files
+      const result = await supabase.storage
+        .from('yolo-models')
+        .upload(storagePath, modelBuffer, {
+          contentType: 'application/octet-stream',
+          upsert: true, // Overwrite if exists
+          cacheControl: '3600', // Cache for 1 hour
+        });
+
+      uploadData = result.data;
+      uploadError = result.error;
+      
+      if (!uploadError) {
+        console.log('✅ Upload successful!');
+      }
+    }
 
     if (uploadError) {
       throw new Error(`Upload failed: ${uploadError.message}`);
@@ -179,13 +203,15 @@ async function uploadModelToStorage() {
 
     console.log('\n📝 Updating database record...');
 
-    // Check if model already exists
+    // Normalize version format (ensure it starts with 'v')
+    const normalizedVersion = modelVersion.startsWith('v') ? modelVersion : `v${modelVersion}`;
+    
+    // Check if model already exists by version (unique field)
     const { data: existingModel } = await supabase
       .from('yolo_models')
       .select('id')
-      .eq('model_name', modelName)
-      .eq('model_version', modelVersion)
-      .single();
+      .eq('version', normalizedVersion)
+      .maybeSingle();
 
     let result;
 
@@ -196,6 +222,10 @@ async function uploadModelToStorage() {
       const { data, error } = await supabase
         .from('yolo_models')
         .update({
+          model_name: modelName,
+          model_version: modelVersion,
+          version: normalizedVersion,
+          filename: basename(modelPath),
           storage_path: storagePath,
           storage_url: urlData.publicUrl,
           storage_bucket: 'yolo-models',
@@ -220,12 +250,12 @@ async function uploadModelToStorage() {
       // Insert new model
       console.log('   Creating new model record...');
 
-      // If activating, deactivate other models first
+      // If activating, deactivate all other models first (trigger also handles this, but this is a safeguard)
       if (values.activate) {
         await supabase
           .from('yolo_models')
           .update({ is_active: false })
-          .eq('model_name', modelName);
+          .neq('version', normalizedVersion);
       }
 
       const { data, error } = await supabase
@@ -233,6 +263,8 @@ async function uploadModelToStorage() {
         .insert({
           model_name: modelName,
           model_version: modelVersion,
+          version: normalizedVersion,
+          filename: basename(modelPath),
           storage_path: storagePath,
           storage_url: urlData.publicUrl,
           storage_bucket: 'yolo-models',

@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definitions for comments
 interface CommentContractor {
@@ -52,7 +53,7 @@ export async function GET(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const postId = id;
@@ -83,7 +84,7 @@ export async function GET(
         postId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch comments');
     }
 
     // Fetch user's comment likes (if there's a likes table for comments)
@@ -135,7 +136,7 @@ export async function GET(
     logger.error('Error in GET /api/contractor/posts/[id]/comments', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 
@@ -150,7 +151,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const postId = id;
@@ -158,11 +159,11 @@ export async function POST(
     const { comment_text, parent_comment_id } = body;
 
     if (!comment_text || comment_text.trim().length === 0) {
-      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
+      throw new BadRequestError('Comment text is required');
     }
 
     if (comment_text.length > 2000) {
-      return NextResponse.json({ error: 'Comment text must be 2000 characters or less' }, { status: 400 });
+      throw new BadRequestError('Comment text must be 2000 characters or less');
     }
 
     // Verify post exists and is active
@@ -174,7 +175,7 @@ export async function POST(
       .single();
 
     if (postError || !post) {
-      return NextResponse.json({ error: 'Post not found or inactive' }, { status: 404 });
+      throw new NotFoundError('Post not found or inactive');
     }
 
     // If parent_comment_id is provided, verify it exists
@@ -187,7 +188,7 @@ export async function POST(
         .single();
 
       if (parentError || !parentComment) {
-        return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 });
+        throw new NotFoundError('Parent comment not found');
       }
     }
 
@@ -219,7 +220,7 @@ export async function POST(
         postId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to create comment', details: commentError.message }, { status: 500 });
+      throw new InternalServerError('Failed to create comment');
     }
 
     // The trigger should automatically update comments_count on contractor_posts
@@ -248,7 +249,7 @@ export async function POST(
     logger.error('Error in POST /api/contractor/posts/[id]/comments', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

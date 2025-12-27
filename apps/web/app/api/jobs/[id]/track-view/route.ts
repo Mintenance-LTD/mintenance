@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 /**
  * Track when a contractor views a job
@@ -19,18 +20,12 @@ export async function POST(  request: NextRequest,
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to track job views');
     }
 
     // Only contractors can track views
     if (user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can track job views' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('Only contractors can track job views');
     }
 
     // Verify job exists and get homeowner info
@@ -41,10 +36,7 @@ export async function POST(  request: NextRequest,
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Job not found');
     }
 
     // Check if this contractor has already viewed this job
@@ -90,10 +82,7 @@ export async function POST(  request: NextRequest,
         jobId,
         contractorId: user.id,
       });
-      return NextResponse.json(
-        { error: 'Failed to track view' },
-        { status: 500 }
-      );
+      throw viewError;
     }
 
     // Create notification for homeowner on first view only
@@ -147,13 +136,7 @@ export async function POST(  request: NextRequest,
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error in track-view route', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

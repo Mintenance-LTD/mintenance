@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +21,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const postId = id;
@@ -34,7 +35,7 @@ export async function POST(
       .single();
 
     if (postError || !post) {
-      return NextResponse.json({ error: 'Post not found or inactive' }, { status: 404 });
+      throw new NotFoundError('Post not found or inactive');
     }
 
     // Increment shares_count
@@ -54,7 +55,7 @@ export async function POST(
         userId: user.id,
         postId,
       });
-      return NextResponse.json({ error: 'Failed to track share', details: updateError.message }, { status: 500 });
+      throw new InternalServerError('Failed to track share');
     }
 
     // Generate shareable link
@@ -70,7 +71,7 @@ export async function POST(
     logger.error('Error in POST /api/contractor/posts/[id]/share', error, {
       service: 'contractor_posts',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

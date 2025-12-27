@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import {
   mapMessageRow,
   MESSAGE_TYPES,
@@ -32,29 +33,27 @@ export async function POST(request: NextRequest, context: Params) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+
+    const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to send messages');
     }
 
     const { id: threadId } = await context.params;
     if (!threadId) {
-      return NextResponse.json({ error: 'Thread id is required' }, { status: 400 });
+      throw new BadRequestError('Thread id is required');
     }
 
     const rawBody = await request.json().catch(() => ({}));
     const parsed = bodySchema.safeParse(rawBody);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid payload', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid payload');
     }
 
     const data = parsed.data;
     const messageText = data.content ?? data.messageText ?? '';
     if (!messageText) {
-      return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
+      throw new BadRequestError('Message content is required');
     }
 
     const { data: jobData, error: jobError } = await serverSupabase
@@ -63,12 +62,12 @@ const user = await getCurrentUserFromCookies();
       .eq('id', threadId)
       .single();
 
-    if (jobError) {
+    if (jobError || !jobData) {
       logger.error('Message POST job error', jobError, {
         service: 'messages',
         threadId,
       });
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
+      throw new NotFoundError('Thread not found');
     }
 
     const job = jobData as SupabaseJobRow;
@@ -81,7 +80,7 @@ const user = await getCurrentUserFromCookies();
         jobContractorId: job.contractor_id,
         jobId: threadId,
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('You are not a participant in this thread');
     }
 
     const inferredReceiverId = job.homeowner_id === user.id ? job.contractor_id : job.homeowner_id;
@@ -97,10 +96,7 @@ const user = await getCurrentUserFromCookies();
         inferredReceiverId,
         jobId: threadId,
       });
-      return NextResponse.json({ 
-        error: 'Receiver could not be determined for this thread',
-        details: 'Job may be missing contractor_id or homeowner_id'
-      }, { status: 400 });
+      throw new BadRequestError('Receiver could not be determined for this thread');
     }
 
     const messageType = normalizeMessageType(data.messageType);
@@ -149,10 +145,7 @@ const user = await getCurrentUserFromCookies();
         receiverId,
         messageText: messageText.substring(0, 50),
       });
-      return NextResponse.json({ 
-        error: 'Failed to send message',
-        details: insertError.message || 'Database insert failed'
-      }, { status: 500 });
+      throw insertError;
     }
 
     // Map inserted data to response format (mapMessageRow handles content -> messageText conversion)
@@ -228,14 +221,6 @@ const user = await getCurrentUserFromCookies();
     
     return NextResponse.json({ message }, { status: 201 });
   } catch (err) {
-    const threadId = await context.params.then(p => p.id).catch(() => 'unknown');
-    logger.error('Message POST error', err, {
-      service: 'messages',
-      threadId,
-    });
-    return NextResponse.json({ 
-      error: 'Failed to send message',
-      details: err instanceof Error ? err.message : 'Unexpected error'
-    }, { status: 500 });
+    return handleAPIError(err);
   }
 }

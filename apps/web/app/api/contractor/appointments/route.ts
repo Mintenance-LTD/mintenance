@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
 
     const { searchParams } = new URL(request.url);
@@ -47,8 +49,8 @@ export async function GET(request: NextRequest) {
     const { data: appointments, error } = await query;
 
     if (error) {
-      console.error('Error fetching appointments:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('Error fetching appointments', error, { service: 'appointments', userId: user.id });
+      throw error;
     }
 
     // Transform data to match client interface
@@ -75,8 +77,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ appointments: transformedAppointments });
   } catch (error) {
-    console.error('Error in appointments API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required');
     }
 
     const body = await request.json();
@@ -105,10 +106,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!title || !appointmentDate || !startTime || !endTime) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Missing required fields');
     }
 
     // Check for conflicts
@@ -123,10 +121,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (conflictCheck) {
-      return NextResponse.json(
-        { error: 'Time slot conflicts with existing appointment' },
-        { status: 409 }
-      );
+      throw new ConflictError('Time slot conflicts with existing appointment');
     }
 
     // Create appointment
@@ -151,13 +146,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating appointment:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('Error creating appointment', error, { service: 'appointments', userId: user.id });
+      throw error;
     }
 
     return NextResponse.json({ appointment: newAppointment }, { status: 201 });
   } catch (error) {
-    console.error('Error in create appointment API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

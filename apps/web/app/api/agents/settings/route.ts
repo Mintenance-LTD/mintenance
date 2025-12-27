@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 interface AgentSettings {
   enableAutomation: boolean;
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Try to fetch existing settings
@@ -106,11 +107,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(settings);
   } catch (error) {
-    logger.error('Failed to fetch agent settings', { error });
-    return NextResponse.json(
-      { error: 'Failed to fetch settings' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -119,17 +116,14 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const settings: AgentSettings = await req.json();
 
     // Validate settings
     if (!settings || typeof settings.enableAutomation !== 'boolean') {
-      return NextResponse.json(
-        { error: 'Invalid settings format' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid settings format');
     }
 
     // Prepare data for database
@@ -149,11 +143,8 @@ export async function POST(req: NextRequest) {
       });
 
     if (upsertError) {
-      logger.error('Failed to update agent settings', { error: upsertError });
-      return NextResponse.json(
-        { error: 'Failed to save settings' },
-        { status: 500 }
-      );
+      logger.error('Failed to update agent settings', upsertError);
+      throw new InternalServerError('Failed to save settings');
     }
 
     // Log the change for audit
@@ -182,10 +173,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Failed to update agent settings', { error });
-    return NextResponse.json(
-      { error: 'Failed to save settings' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

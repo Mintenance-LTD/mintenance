@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -22,10 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view properties');
     }
 
     const { data: properties, error } = await serverSupabase
@@ -40,21 +38,14 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         service: 'properties',
       });
-      return NextResponse.json(
-        { error: 'Failed to fetch properties' },
-        { status: 500 }
-      );
+      throw error;
     }
 
     return NextResponse.json({
       properties: properties || [],
     });
   } catch (error) {
-    logger.error('Error fetching properties', error, { service: 'properties' });
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -69,10 +60,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to create properties');
     }
 
     const body = await request.json();
@@ -80,24 +68,15 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!property_name || !property_name.trim()) {
-      return NextResponse.json(
-        { error: 'Property name is required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Property name is required');
     }
 
     if (!address || !address.trim()) {
-      return NextResponse.json(
-        { error: 'Address is required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Address is required');
     }
 
     if (!property_type || !['residential', 'commercial', 'rental'].includes(property_type)) {
-      return NextResponse.json(
-        { error: 'Valid property type is required (residential, commercial, or rental)' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Valid property type is required (residential, commercial, or rental)');
     }
 
     // If setting as primary, unset all other primary properties for this user
@@ -140,21 +119,10 @@ export async function POST(request: NextRequest) {
 
       // Handle duplicate or constraint errors
       if (createError.code === '23505') {
-        return NextResponse.json(
-          { error: 'A property with this name already exists' },
-          { status: 409 }
-        );
+        throw new ConflictError('A property with this name already exists');
       }
 
-      // Return more detailed error information
-      return NextResponse.json(
-        { 
-          error: 'Failed to create property. Please try again.',
-          details: createError.message || 'Database error occurred',
-          code: createError.code,
-        },
-        { status: 500 }
-      );
+      throw createError;
     }
 
     logger.info('Property created successfully', {
@@ -169,11 +137,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error creating property', error, { service: 'properties' });
-    return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again.' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

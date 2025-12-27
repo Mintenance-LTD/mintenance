@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Handle async params in Next.js 15
@@ -30,7 +31,7 @@ export async function POST(
 
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(postId)) {
-      return NextResponse.json({ error: 'Invalid post ID format' }, { status: 400 });
+      throw new BadRequestError('Invalid post ID format');
     }
 
     // SECURITY: Fix IDOR - verify post exists and user can access it
@@ -42,7 +43,7 @@ export async function POST(
 
     if (postError || !post) {
       // Don't reveal if post exists or not - return generic error
-      return NextResponse.json({ error: 'Post not found or access denied' }, { status: 404 });
+      throw new NotFoundError('Post not found or access denied');
     }
 
     // Check if like already exists
@@ -67,7 +68,7 @@ export async function POST(
           postId,
           userId: user.id,
         });
-        return NextResponse.json({ error: 'Failed to unlike post' }, { status: 500 });
+        throw new InternalServerError('Failed to unlike post');
       }
 
       // Get updated likes count
@@ -96,7 +97,7 @@ export async function POST(
           postId,
           userId: user.id,
         });
-        return NextResponse.json({ error: 'Failed to like post' }, { status: 500 });
+        throw new InternalServerError('Failed to like post');
       }
 
       // Get updated likes count
@@ -114,7 +115,7 @@ export async function POST(
   } catch (error) {
     logger.error('Unexpected error in like post', error, { service: 'contractor-posts' });
     // SECURITY: Don't expose error details to client
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

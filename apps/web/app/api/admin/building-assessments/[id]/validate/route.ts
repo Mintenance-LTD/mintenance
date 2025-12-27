@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/admin/building-assessments/[id]/validate
@@ -41,15 +42,6 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    logger.error('Error validating assessment', error, {
-      service: 'admin_building_assessments',
-      assessmentId,
-      userId,
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Failed to validate assessment';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

@@ -7,44 +7,28 @@ import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
     
     // CSRF protection
     await requireCSRF(request);
-// Check Supabase configuration early
+    // Check Supabase configuration early
     if (!isSupabaseConfigured) {
       logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
-      return NextResponse.json(
-        { 
-          error: 'Service configuration error. Please contact support.',
-          code: 'CONFIG_ERROR'
-        },
-        { status: 500 }
-      );
+      throw new InternalServerError('Service configuration error. Please contact support.');
     }
 
     // Rate limiting to prevent abuse
     const rateLimitResult = await checkPasswordResetRateLimit(request);
 
     if (!rateLimitResult.allowed) {
-      const headers = createRateLimitHeaders(rateLimitResult);
       logger.warn('Password reset rate limit exceeded', {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-
-      return NextResponse.json(
-        {
-          error: 'Too many password reset attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        {
-          status: 429,
-          headers
-        }
-      );
+      throw new RateLimitError('Too many password reset attempts. Please try again later.');
     }
 
     const body = await request.json();
@@ -52,31 +36,22 @@ export async function POST(request: NextRequest) {
 
     // Validate access token
     if (!accessToken) {
-      logger.warn('Password reset attempted without access token', {
-        service: 'auth'
-      });
-      return NextResponse.json(
-        { error: 'Invalid reset link. Please request a new password reset.' },
-        { status: 400 }
-      );
+      logger.warn('Password reset attempted without access token', { service: 'auth' });
+      throw new BadRequestError('Invalid reset link. Please request a new password reset.');
     }
 
     // Validate password - accept either password or newPassword from frontend
     const newPassword = password || body.newPassword;
 
     if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Password must be at least 8 characters long');
     }
 
     // Use centralized password validation (matches registration validation)
-    // This allows all common special characters including #, !, @, $, %, ^, &, *, etc.
     const hasUppercase = /[A-Z]/.test(newPassword);
     const hasLowercase = /[a-z]/.test(newPassword);
     const hasNumber = /\d/.test(newPassword);
-    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword); // Any non-alphanumeric character
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
 
     if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
       const missing = [];
@@ -84,11 +59,7 @@ export async function POST(request: NextRequest) {
       if (!hasLowercase) missing.push('lowercase letter');
       if (!hasNumber) missing.push('number');
       if (!hasSpecialChar) missing.push('special character');
-      
-      return NextResponse.json(
-        { error: `Password must contain at least one ${missing.join(', ')}` },
-        { status: 400 }
-      );
+      throw new BadRequestError(`Password must contain at least one ${missing.join(', ')}`);
     }
 
     // Initialize Supabase client using validated environment variables
@@ -97,10 +68,7 @@ export async function POST(request: NextRequest) {
     
     if (!supabaseKey) {
       logger.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY', undefined, { service: 'auth' });
-      return NextResponse.json(
-        { error: 'Service configuration error. Please contact support.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Service configuration error. Please contact support.');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -116,10 +84,7 @@ export async function POST(request: NextRequest) {
         service: 'auth',
         error: sessionError.message
       });
-      return NextResponse.json(
-        { error: 'Invalid or expired reset link. Please request a new one.' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid or expired reset link. Please request a new one.');
     }
 
     // Update the password
@@ -129,10 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       logger.error('Password update error', updateError, { service: 'auth' });
-      return NextResponse.json(
-        { error: updateError.message || 'Failed to reset password' },
-        { status: 400 }
-      );
+      throw new BadRequestError(updateError.message || 'Failed to reset password');
     }
 
     // Sign out the user
@@ -152,11 +114,6 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error: unknown) {
-    logger.error('Reset password error', error, { service: 'auth' });
-
-    return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again later.' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

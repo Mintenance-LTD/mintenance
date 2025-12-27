@@ -14,6 +14,7 @@ import { BuildingSurveyorService } from '@/lib/services/building-surveyor/Buildi
 import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
 import { rateLimiter } from '@/lib/rate-limiter';
 import crypto from 'crypto';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -84,7 +85,7 @@ export async function GET(_req: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view job');
     }
     const { id } = await context.params;
 
@@ -112,14 +113,14 @@ export async function GET(_req: NextRequest, context: Params) {
           userId: user.id,
           jobId: id
         });
-        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        throw new NotFoundError('Job not found');
       }
       logger.error('Failed to load job', error, {
         service: 'jobs',
         userId: user.id,
         jobId: id
       });
-      return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
+      throw error;
     }
 
     const row = data as any;
@@ -131,7 +132,7 @@ export async function GET(_req: NextRequest, context: Params) {
         homeownerId: row.homeowner_id,
         contractorId: row.contractor_id
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('You do not have permission to view this job');
     }
 
     logger.info('Job retrieved', {
@@ -186,10 +187,7 @@ export async function GET(_req: NextRequest, context: Params) {
 
     return NextResponse.json({ job: formattedJob });
   } catch (err) {
-    logger.error('Failed to load job', err, {
-      service: 'jobs'
-    });
-    return NextResponse.json({ error: 'Failed to load job' }, { status: 500 });
+    return handleAPIError(err);
   }
 }
 
@@ -203,7 +201,7 @@ export async function PUT(request: NextRequest, context: Params) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to update job');
     }
 
     const { id: jobId } = await context.params;
@@ -216,17 +214,15 @@ export async function PUT(request: NextRequest, context: Params) {
       .single();
 
     if (fetchError || !existingJob) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (existingJob.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('You do not have permission to update this job');
     }
 
     if (existingJob.status !== 'posted') {
-      return NextResponse.json({
-        error: 'Cannot edit job that is already in progress or completed'
-      }, { status: 400 });
+      throw new BadRequestError('Cannot edit job that is already in progress or completed');
     }
 
     // Rate limiting for AI analysis
@@ -237,28 +233,14 @@ export async function PUT(request: NextRequest, context: Params) {
     });
 
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Too many AI analysis requests. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
-          },
-        }
-      );
+      throw new RateLimitError('Too many AI analysis requests. Please try again later');
     }
 
     const body = await request.json();
     const parsed = updateJobSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({
-        error: 'Validation failed',
-        details: parsed.error.flatten().fieldErrors
-      }, { status: 400 });
+      throw new BadRequestError('Validation failed');
     }
 
     const payload = parsed.data;
@@ -270,10 +252,7 @@ export async function PUT(request: NextRequest, context: Params) {
     if (payload.images && payload.images.length > 0) {
       const urlValidation = await validateURLs(payload.images, true);
       if (urlValidation.invalid.length > 0) {
-        return NextResponse.json(
-          { error: `Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
-          { status: 400 }
-        );
+        throw new BadRequestError(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
       }
       payload.images = urlValidation.valid;
     }
@@ -423,7 +402,7 @@ export async function PUT(request: NextRequest, context: Params) {
         jobId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+      throw updateError;
     }
 
     // Notify about status changes
@@ -506,11 +485,7 @@ export async function PUT(request: NextRequest, context: Params) {
       geocode: geocodeResult,
     });
   } catch (err) {
-    logger.error('Failed to update job', err, {
-      service: 'jobs',
-      jobId: (await context.params).id,
-    });
-    return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+    return handleAPIError(err);
   }
 }
 
@@ -521,14 +496,14 @@ export async function PATCH(request: NextRequest, context: Params) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to update job');
     }
     const { id } = await context.params;
 
     const body = await request.json();
     const parsed = updateJobSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+      throw new BadRequestError('Validation failed');
     }
 
     const { data: existing, error: fetchError } = await serverSupabase
@@ -544,14 +519,14 @@ export async function PATCH(request: NextRequest, context: Params) {
           userId: user.id,
           jobId: id
         });
-        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        throw new NotFoundError('Job not found');
       }
       logger.error('Failed to fetch job for update', fetchError, {
         service: 'jobs',
         userId: user.id,
         jobId: id
       });
-      return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+      throw fetchError;
     }
 
     if (!existing || existing.homeowner_id !== user.id) {
@@ -561,7 +536,7 @@ export async function PATCH(request: NextRequest, context: Params) {
         jobId: id,
         homeownerId: existing?.homeowner_id
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('You do not have permission to update this job');
     }
 
     const payload = parsed.data;
@@ -597,21 +572,19 @@ export async function PATCH(request: NextRequest, context: Params) {
           attemptedStatus: newStatus,
           error: (error as Error).message
         });
-        return NextResponse.json({
-          error: (error as Error).message
-        }, { status: 400 });
+        throw new BadRequestError((error as Error).message);
       }
     }
     if (payload.category !== undefined) {
       const trimmedCategory = payload.category.trim();
       updatePayload.category = trimmedCategory.length > 0 ? trimmedCategory : null;
     }
-    
+
     // SECURITY: Prevent budget reduction if bids exist
     if (payload.budget !== undefined) {
       const newBudget = payload.budget;
       const currentBudget = existing.budget;
-      
+
       // Check if budget is being reduced
       if (currentBudget !== null && newBudget < currentBudget) {
         // Check if there are any active bids
@@ -620,7 +593,7 @@ export async function PATCH(request: NextRequest, context: Params) {
           .select('id', { count: 'exact', head: true })
           .eq('job_id', id)
           .neq('status', 'withdrawn');
-        
+
         if (bidCount && bidCount > 0) {
           // Check if any bids would exceed the new budget
           const { data: existingBids } = await serverSupabase
@@ -628,13 +601,13 @@ export async function PATCH(request: NextRequest, context: Params) {
             .select('amount, contractor_id, status')
             .eq('job_id', id)
             .neq('status', 'withdrawn');
-          
+
           const bidsExceedNewBudget = existingBids?.some((bid: { amount: number; contractor_id: string; status: string }) => {
             const bidAmountCents = Math.round(bid.amount * 100);
             const newBudgetCents = Math.round(newBudget * 100);
             return bidAmountCents > newBudgetCents;
           });
-          
+
           if (bidsExceedNewBudget) {
             logger.warn('Budget reduction blocked - existing bids exceed new budget', {
               service: 'jobs',
@@ -644,16 +617,11 @@ export async function PATCH(request: NextRequest, context: Params) {
               newBudget,
               bidCount,
             });
-            return NextResponse.json({
-              error: 'Cannot reduce budget below existing bid amounts. Please reject or withdraw bids first.',
-              currentBudget,
-              newBudget,
-              bidCount,
-            }, { status: 400 });
+            throw new BadRequestError('Cannot reduce budget below existing bid amounts. Please reject or withdraw bids first');
           }
         }
       }
-      
+
       updatePayload.budget = payload.budget;
     }
 
@@ -670,7 +638,7 @@ export async function PATCH(request: NextRequest, context: Params) {
         userId: user.id,
         jobId: id
       });
-      return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+      throw error;
     }
 
     logger.info('Job updated successfully', {
@@ -699,21 +667,18 @@ export async function PATCH(request: NextRequest, context: Params) {
 
     return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });
   } catch (err) {
-    logger.error('Failed to update job', err, {
-      service: 'jobs'
-    });
-    return NextResponse.json({ error: 'Failed to update job' }, { status: 500 });
+    return handleAPIError(err);
   }
 }
 
 export async function DELETE(request: NextRequest, context: Params) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+
+    const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to delete job');
     }
     const { id } = await context.params;
 
@@ -731,14 +696,14 @@ const user = await getCurrentUserFromCookies();
           userId: user.id,
           jobId: id
         });
-        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        throw new NotFoundError('Job not found');
       }
       logger.error('Failed to fetch job for deletion', fetchError, {
         service: 'jobs',
         userId: user.id,
         jobId: id
       });
-      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+      throw fetchError;
     }
 
     // Verify ownership - only homeowner can delete their own job
@@ -749,7 +714,7 @@ const user = await getCurrentUserFromCookies();
         jobId: id,
         homeownerId: existing?.homeowner_id
       });
-      return NextResponse.json({ error: 'Forbidden: You can only delete your own jobs' }, { status: 403 });
+      throw new ForbiddenError('You can only delete your own jobs');
     }
 
     // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)
@@ -765,23 +730,17 @@ const user = await getCurrentUserFromCookies();
         .limit(1);
 
       if (acceptedBids && acceptedBids.length > 0) {
-        return NextResponse.json({ 
-          error: 'Cannot delete job with accepted bids. Please cancel the job instead.' 
-        }, { status: 400 });
+        throw new BadRequestError('Cannot delete job with accepted bids. Please cancel the job instead');
       }
 
       // If contractor is assigned, don't allow deletion
       if (existing.contractor_id) {
-        return NextResponse.json({ 
-          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
-        }, { status: 400 });
+        throw new BadRequestError('Cannot delete job with assigned contractor. Please cancel the job instead');
       }
     } else {
       // For posted jobs, also check if contractor is assigned (shouldn't happen, but safety check)
       if (existing.contractor_id) {
-        return NextResponse.json({ 
-          error: 'Cannot delete job with assigned contractor. Please cancel the job instead.' 
-        }, { status: 400 });
+        throw new BadRequestError('Cannot delete job with assigned contractor. Please cancel the job instead');
       }
     }
 
@@ -797,7 +756,7 @@ const user = await getCurrentUserFromCookies();
         userId: user.id,
         jobId: id
       });
-      return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+      throw deleteError;
     }
 
     logger.info('Job deleted successfully', {
@@ -808,10 +767,7 @@ const user = await getCurrentUserFromCookies();
 
     return NextResponse.json({ message: 'Job deleted successfully' }, { status: 200 });
   } catch (err) {
-    logger.error('Failed to delete job', err, {
-      service: 'jobs'
-    });
-    return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 });
+    return handleAPIError(err);
   }
 }
 

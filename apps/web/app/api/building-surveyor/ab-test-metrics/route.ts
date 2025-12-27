@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { ABTestMonitoringService } from '@/lib/services/building-surveyor/ABTestMonitoringService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 
@@ -27,14 +28,11 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (!AB_TEST_EXPERIMENT_ID) {
-      return NextResponse.json(
-        { error: 'A/B testing not configured' },
-        { status: 503 }
-      );
+      throw new BadRequestError('A/B testing not configured');
     }
 
     // Get query parameters
@@ -105,19 +103,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error: unknown) {
-    logger.error('Error retrieving A/B test metrics', error, {
-      service: 'ab-test-metrics-api',
-    });
-
-    const errorMessage = error instanceof Error ? error.message : undefined;
-
-    return NextResponse.json(
-      {
-        error: 'Failed to retrieve metrics',
-        ...(errorMessage && { message: errorMessage }),
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

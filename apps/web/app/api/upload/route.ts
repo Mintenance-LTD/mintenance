@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/supabase/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { validateImageUpload, createValidationErrorResponse, generateSecureFilename } from '@/lib/security/file-validator';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/upload
  * Upload an image to Supabase storage
+ * SECURITY: Uses magic number validation to prevent malicious file uploads
  */
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to upload files');
     }
 
     // Get form data
@@ -20,32 +23,39 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      throw new BadRequestError('No file provided');
     }
 
-    // Validate file type (images only)
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, WebP, and HEIC images are allowed.' },
-        { status: 400 }
-      );
+    // SECURITY: Validate file using magic number (actual file content)
+    // This prevents malicious files disguised as images by checking file signatures
+    const validation = await validateImageUpload(file);
+
+    if (!validation.valid) {
+      logger.warn('[SECURITY] File upload blocked', {
+        fileName: file.name,
+        declaredType: file.type,
+        errors: validation.errors,
+        userId: user.id,
+      });
+
+      const errorResponse = createValidationErrorResponse(validation);
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
-        { status: 400 }
-      );
+    // Log warnings if any detected (e.g., small file size, type mismatch)
+    if (validation.warnings && validation.warnings.length > 0) {
+      logger.warn('[SECURITY] File validation warnings', {
+        fileName: file.name,
+        warnings: validation.warnings,
+        userId: user.id,
+      });
     }
 
     const supabase = serverSupabase();
 
-    // Generate unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    // SECURITY: Generate secure filename (prevents path traversal and filename-based attacks)
+    const secureFilename = generateSecureFilename(file.name);
+    const fileName = `${user.id}/${secureFilename}`;
 
     // Convert File to ArrayBuffer then to Buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -90,13 +100,6 @@ export async function POST(request: NextRequest) {
       path: uploadData.path,
     });
   } catch (error) {
-    logger.error('Unexpected error in upload', error, {
-      service: 'upload',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

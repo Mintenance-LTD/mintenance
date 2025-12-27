@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, RateLimitError, ValidationError, InternalServerError } from '@/lib/errors/api-error';
 
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -24,30 +25,16 @@ const contactFormSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // CSRF protection
-    try {
-      await requireCSRF(request);
-    } catch (csrfError) {
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
+    await requireCSRF(request);
 
     // Rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-               request.headers.get('x-real-ip') || 
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+               request.headers.get('x-real-ip') ||
                'unknown';
     const rateLimitResult = await checkApiRateLimit(`contact-form:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      logger.warn('Contact form rate limit exceeded', {
-        service: 'contact',
-        ip,
-      });
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+      throw new RateLimitError('Too many contact form submissions. Please try again later.');
     }
 
     // Parse and validate request body
@@ -190,11 +177,8 @@ You can reply directly to: ${formData.email}
           category: formData.category,
         },
       });
-      
-      return NextResponse.json(
-        { error: 'Failed to send message. Please try again later.' },
-        { status: 500 }
-      );
+
+      throw new InternalServerError('Failed to send message. Please try again later.');
     }
 
     logger.info('Contact form submission received', {
@@ -212,14 +196,7 @@ You can reply directly to: ${formData.email}
     );
 
   } catch (error) {
-    logger.error('Contact form submission error', error, {
-      service: 'contact',
-    });
-
-    return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again later.' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

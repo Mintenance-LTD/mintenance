@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { SeriousBuyerService } from '@/lib/services/jobs/SeriousBuyerService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -10,28 +11,25 @@ export async function GET(
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view buyer score');
     }
 
     const { id: jobId } = await params;
 
     // Only contractors can view serious buyer score
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can view serious buyer score');
     }
 
     const breakdown = await SeriousBuyerService.getScoreBreakdown(jobId);
 
     if (!breakdown) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     return NextResponse.json(breakdown);
   } catch (error) {
-    logger.error('Error fetching serious buyer score', error, {
-      service: 'jobs',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

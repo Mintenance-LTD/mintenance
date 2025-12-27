@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
 import { User } from '../types';
@@ -12,6 +13,23 @@ import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } from '../utils/sentryUtils';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
+
+// SECURITY: SecureStore keys for session persistence
+const SESSION_KEY = 'mintenance_session';
+const SESSION_EXPIRY_KEY = 'mintenance_session_expiry';
+
+// TOKEN EXPIRATION FIX: Parse JWT payload to check expiration
+const parseJWT = (token: string): { exp?: number } | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(base64Url);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
 
 interface AuthContextType {
   user: User | null;
@@ -69,14 +87,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await biometricAuth.checkBiometricAvailability();
       }
 
-      // Set up auth state listener
-      const { data } = await AuthService.getCurrentSession();
-      if (data && mounted) {
-        // Subscribe to auth state changes
-        // In production, set up real-time listener here
-        // Example: const { data: { subscription } } = supabase.auth.onAuthStateChange(...)
-        // unsubscribe = () => subscription?.unsubscribe();
-      }
+      // TOKEN EXPIRATION FIX: Set up auth state listener for session changes
+      const authStateSubscription = AuthService.onAuthStateChange(async (event: string, session: any) => {
+        if (!mounted) return;
+
+        logger.info('[AUTH] Auth state changed:', { event, hasSession: !!session });
+
+        // Handle token refresh events
+        if (event === 'TOKEN_REFRESHED') {
+          setSession(session);
+          if (session) {
+            await saveSessionToSecureStore(session);
+            logger.info('[AUTH] Token auto-refreshed and persisted');
+          }
+        }
+
+        // Handle signed out (expired token, manual signout, etc.)
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setSession(null);
+          await clearSessionFromSecureStore();
+          logger.info('[AUTH] User signed out, session cleared');
+        }
+
+        // Handle signed in
+        if (event === 'SIGNED_IN' && session) {
+          const user = await AuthService.getCurrentUser();
+          setUser(user);
+          setSession(session);
+          setUserContext(user);
+          await saveSessionToSecureStore(session);
+          logger.info('[AUTH] User signed in, session persisted');
+        }
+      });
+
+      unsubscribe = () => {
+        authStateSubscription?.data?.subscription?.unsubscribe();
+      };
     };
 
     initialize().catch(error => {
@@ -103,9 +150,102 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // SECURITY FIX: Persist session to SecureStore
+  const saveSessionToSecureStore = async (sessionData: any) => {
+    try {
+      if (!sessionData) return;
+
+      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(sessionData));
+
+      // Store expiry time (sessions valid for 7 days)
+      const expiryTime = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      await SecureStore.setItemAsync(SESSION_EXPIRY_KEY, expiryTime.toString());
+
+      logger.info('[AUTH] Session persisted to SecureStore');
+    } catch (error) {
+      logger.error('[AUTH] Failed to persist session:', error);
+    }
+  };
+
+  // SECURITY FIX: Load session from SecureStore
+  const loadSessionFromSecureStore = async () => {
+    try {
+      const sessionJson = await SecureStore.getItemAsync(SESSION_KEY);
+      const expiryTime = await SecureStore.getItemAsync(SESSION_EXPIRY_KEY);
+
+      if (!sessionJson || !expiryTime) {
+        logger.info('[AUTH] No persisted session found');
+        return null;
+      }
+
+      // Check if session expired
+      const now = Date.now();
+      const expiry = parseInt(expiryTime, 10);
+
+      if (now > expiry) {
+        logger.warn('[AUTH] Persisted session expired, clearing');
+        await clearSessionFromSecureStore();
+        return null;
+      }
+
+      const session = JSON.parse(sessionJson);
+      logger.info('[AUTH] Session restored from SecureStore');
+      return session;
+    } catch (error) {
+      logger.error('[AUTH] Failed to load session:', error);
+      return null;
+    }
+  };
+
+  // SECURITY FIX: Clear session from SecureStore
+  const clearSessionFromSecureStore = async () => {
+    try {
+      await SecureStore.deleteItemAsync(SESSION_KEY);
+      await SecureStore.deleteItemAsync(SESSION_EXPIRY_KEY);
+      logger.info('[AUTH] Session cleared from SecureStore');
+    } catch (error) {
+      logger.error('[AUTH] Failed to clear session:', error);
+    }
+  };
 
   const checkUser = async () => {
     try {
+      // SECURITY FIX: Try to restore session from SecureStore first
+      const persistedSession = await loadSessionFromSecureStore();
+
+      if (persistedSession) {
+        setSession(persistedSession);
+        logger.info('[AUTH] Using persisted session');
+
+        // TOKEN EXPIRATION FIX: Check if access token is expired
+        if (persistedSession.access_token) {
+          const tokenPayload = parseJWT(persistedSession.access_token);
+          const now = Math.floor(Date.now() / 1000);
+
+          // Token expires in less than 5 minutes or already expired
+          if (tokenPayload?.exp && tokenPayload.exp < now + 300) {
+            logger.info('[AUTH] Token expired or expiring soon, refreshing...');
+
+            try {
+              const refreshedData = await AuthService.refreshToken();
+              if (refreshedData?.session) {
+                setSession(refreshedData.session);
+                await saveSessionToSecureStore(refreshedData.session);
+                logger.info('[AUTH] Token refreshed successfully');
+              }
+            } catch (refreshError) {
+              logger.error('[AUTH] Token refresh failed:', refreshError);
+              // Clear invalid session
+              await clearSessionFromSecureStore();
+              setSession(null);
+              setUser(null);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      }
+
       const user = await measureAsyncPerformance(
         () => AuthService.getCurrentUser(),
         'auth.check_user',
@@ -115,7 +255,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserContext(user);
 
       const activeSession = await AuthService.getCurrentSession();
-      setSession(activeSession);
+
+      // SECURITY FIX: Persist session to SecureStore
+      if (activeSession) {
+        setSession(activeSession);
+        await saveSessionToSecureStore(activeSession);
+      }
 
       if (user) {
         addBreadcrumb(`User session restored: ${user.email}`, 'auth');
@@ -265,6 +410,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setUserContext(null);
       setSession(null);
+
+      // SECURITY FIX: Clear persisted session from SecureStore
+      await clearSessionFromSecureStore();
 
       // Clear query cache and offline queue when user logs out
       try {

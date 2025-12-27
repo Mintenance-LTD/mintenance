@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@/lib/logger';
+import { handleAPIError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view bids');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can view bids' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can view bids');
     }
 
     // Get query parameters
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
         contractorId: user.id,
         error: error.message,
       });
-      return NextResponse.json({ error: 'Failed to fetch bids' }, { status: 500 });
+      throw error;
     }
 
     return NextResponse.json({
@@ -78,8 +79,7 @@ export async function GET(request: NextRequest) {
       bids: bids || [],
     });
   } catch (error) {
-    logger.error('Unexpected error in contractor bids', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

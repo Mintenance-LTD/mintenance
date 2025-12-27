@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Delete a saved job
@@ -19,11 +20,11 @@ export async function DELETE(  request: NextRequest,
     const jobId = resolvedParams.jobId;
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can unsave jobs' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can unsave jobs');
     }
 
     // Delete the saved job
@@ -39,7 +40,7 @@ export async function DELETE(  request: NextRequest,
         userId: user.id,
         jobId,
       });
-      return NextResponse.json({ error: 'Failed to unsave job' }, { status: 500 });
+      throw new InternalServerError('Failed to unsave job');
     }
 
     return NextResponse.json({ success: true, message: 'Job unsaved successfully' });
@@ -47,7 +48,7 @@ export async function DELETE(  request: NextRequest,
     logger.error('Unexpected error in DELETE /api/contractor/saved-jobs/[jobId]', error, {
       service: 'saved_jobs',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

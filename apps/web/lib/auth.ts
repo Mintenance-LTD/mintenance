@@ -259,8 +259,10 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       return null;
     }
   } catch (error) {
-    // If blacklist check fails, continue with verification (fail open for availability)
-    logger.warn('Token blacklist check failed, continuing verification', error, { service: 'auth' });
+    // SECURITY: Fail closed - reject token if blacklist check fails
+    // This prevents revoked tokens from being accepted during outages
+    logger.error('Token blacklist check failed - rejecting token for safety', error, { service: 'auth' });
+    return null;
   }
 
   const secret = config.getRequired('JWT_SECRET');

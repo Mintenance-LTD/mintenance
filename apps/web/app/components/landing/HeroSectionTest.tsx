@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Simplified HeroSection for testing
  * This is a minimal version to debug the runtime error

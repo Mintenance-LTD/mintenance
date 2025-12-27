@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Type definitions for escrow approval data
 interface PhotoMetadata {
@@ -39,7 +40,7 @@ export async function GET(
     const { id: escrowId } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Get escrow with photos
@@ -72,13 +73,13 @@ export async function GET(
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+      throw new NotFoundError('Escrow not found');
     }
 
     const typedEscrow = escrow as any;
     const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
     if (!job || (job.homeowner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized');
     }
 
     // Filter photos by type
@@ -107,7 +108,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error('Error fetching pending approval', error, { service: 'homeowner-pending-approval' });
-    return NextResponse.json({ error: 'Failed to fetch approval details' }, { status: 500 });
+    throw new InternalServerError('Failed to fetch approval details');
   }
 }
 

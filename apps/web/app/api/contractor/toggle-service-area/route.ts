@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Validation schema
 const toggleServiceAreaSchema = z.object({
@@ -13,15 +14,15 @@ const toggleServiceAreaSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-// Authenticate user
+
+    // Authenticate user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
       logger.warn('Unauthorized toggle service area attempt', { service: 'contractor' });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is a contractor
@@ -31,12 +32,16 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         role: user.role
       });
-      return NextResponse.json({ error: 'Only contractors can manage service areas' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can manage service areas');
     }
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = toggleServiceAreaSchema.parse(body);
+    const validation = toggleServiceAreaSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request data');
+    }
+    const validatedData = validation.data;
 
     // Verify service area exists and belongs to contractor
     const { data: serviceArea, error: areaError } = await serverSupabase
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
         serviceAreaId: validatedData.serviceAreaId,
         contractorId: user.id
       });
-      return NextResponse.json({ error: 'Service area not found' }, { status: 404 });
+      throw new NotFoundError('Service area not found');
     }
 
     // Update service area status
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         serviceAreaId: validatedData.serviceAreaId
       });
-      return NextResponse.json({ error: 'Failed to update service area' }, { status: 500 });
+      throw new InternalServerError('Failed to update service area');
     }
 
     logger.info('Service area toggled successfully', {
@@ -92,18 +97,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      logger.warn('Invalid toggle service area data', {
-        service: 'contractor',
-        errors: error.issues
-      });
-      return NextResponse.json({
-        error: 'Invalid request data',
-        details: error.issues
-      }, { status: 400 });
-    }
-
-    logger.error('Unexpected error in toggle-service-area', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

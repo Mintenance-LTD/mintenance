@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 const rejectEscrowSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
@@ -31,11 +32,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, escrowId });
   } catch (error) {
-    logger.error('Error rejecting escrow', error, { service: 'admin-escrow-reject' });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to reject escrow' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

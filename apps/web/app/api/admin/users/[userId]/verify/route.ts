@@ -7,6 +7,7 @@ import { AdminNotificationService } from '@/lib/services/admin/AdminNotification
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const verifySchema = z.object({
   action: z.enum(['approve', 'reject']),
@@ -31,7 +32,7 @@ export async function POST(
     // Validate request body
     const validation = verifySchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: validation.error.issues }, { status: 400 });
+      throw new BadRequestError('Invalid request body');
     }
 
     const { action, reason } = validation.data;
@@ -44,16 +45,16 @@ export async function POST(
       .single();
 
     if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      throw new NotFoundError('User not found');
     }
 
     if (userData.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can be verified' }, { status: 400 });
+      throw new BadRequestError('Only contractors can be verified');
     }
 
     // Require reason for rejection
     if (action === 'reject' && !reason) {
-      return NextResponse.json({ error: 'Reason is required when rejecting verification' }, { status: 400 });
+      throw new BadRequestError('Reason is required when rejecting verification');
     }
 
     // Get current verification status
@@ -77,7 +78,7 @@ export async function POST(
 
     if (updateError) {
       logger.error('Error updating verification status', { userId, action, error: updateError.message });
-      return NextResponse.json({ error: 'Failed to update verification status' }, { status: 500 });
+      throw new InternalServerError('Failed to update verification status');
     }
 
     // Log verification action
@@ -148,8 +149,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    logger.error('Unexpected error in POST /api/admin/users/[userId]/verify', { error: error instanceof Error ? error.message : String(error) });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

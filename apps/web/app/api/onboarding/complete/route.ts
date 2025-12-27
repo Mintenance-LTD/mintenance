@@ -3,25 +3,23 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
-    
+
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to complete onboarding');
     }
 
     const success = await OnboardingService.markOnboardingComplete(user.id);
 
     if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to mark onboarding as complete' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to mark onboarding as complete');
     }
 
     logger.info('Onboarding completed', {
@@ -35,14 +33,7 @@ const user = await getCurrentUserFromCookies();
       message: 'Onboarding marked as complete',
     });
   } catch (error) {
-    logger.error('Unexpected error completing onboarding', {
-      service: 'onboarding',
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

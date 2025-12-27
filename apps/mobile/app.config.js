@@ -180,9 +180,9 @@ export default {
           universalApk: false,
           enableHermes: true,
           minSdkVersion: 24,
-          compileSdkVersion: 36,
-          targetSdkVersion: 36,
-          buildToolsVersion: "36.0.0",
+          compileSdkVersion: 34,
+          targetSdkVersion: 34,
+          buildToolsVersion: "34.0.0",
           packagingOptions: {
             pickFirst: ["**/libc++_shared.so", "**/libjsc.so"]
           },

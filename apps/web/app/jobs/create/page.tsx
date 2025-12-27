@@ -130,11 +130,11 @@ export default function CreateJobPage2025() {
   // Trigger AI assessment when images are uploaded
   useEffect(() => {
     const runAssessment = async () => {
-      console.log('[DEBUG] runAssessment effect triggered', { 
-        imageCount: imageUpload.uploadedImages.length, 
-        isAssessing: buildingAssessment.isAssessing 
+      console.log('[DEBUG] runAssessment effect triggered', {
+        imageCount: imageUpload.uploadedImages.length,
+        isAssessing: buildingAssessment.isAssessing
       });
-      
+
       if (imageUpload.uploadedImages.length > 0 && !buildingAssessment.isAssessing) {
         // Get selected property for context
         const selectedProperty = properties.find(p => p.id === formData.property_id);
@@ -157,7 +157,7 @@ export default function CreateJobPage2025() {
     };
 
     runAssessment();
-  }, [imageUpload.uploadedImages.length]); // Only trigger when uploaded images count changes
+  }, [imageUpload.uploadedImages, buildingAssessment.isAssessing, formData.location, formData.property_id, properties]); // Fixed dependencies
 
   const handleSubmit = async () => {
     // Log form data for debugging

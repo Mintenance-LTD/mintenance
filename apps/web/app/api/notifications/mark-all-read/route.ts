@@ -3,17 +3,18 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
     // CSRF protection
     await requireCSRF(request);
-    
+
     // Get authenticated user - security fix: use authenticated user instead of body param
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to mark notifications as read');
     }
 
     const { error } = await serverSupabase
@@ -27,20 +28,11 @@ export async function POST(request: NextRequest) {
         service: 'notifications',
         userId: user.id,
       });
-      return NextResponse.json(
-        { error: 'Failed to mark all as read' },
-        { status: 500 }
-      );
+      throw error;
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Mark all as read API error', error, {
-      service: 'notifications',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

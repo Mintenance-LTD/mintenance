@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,23 +102,17 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - contractor access required' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Contractor access required');
     }
 
     const body = await request.json();
     const { city, state, zipCode, serviceRadius, country = 'USA' } = body;
 
     if (!city || !state) {
-      return NextResponse.json(
-        { error: 'City and state are required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('City and state are required');
     }
 
     // Build location string for geocoding
@@ -128,10 +123,7 @@ const user = await getCurrentUserFromCookies();
     const coordinates = await geocoder.geocodeAddress(locationString);
 
     if (!coordinates) {
-      return NextResponse.json(
-        { error: 'Could not geocode the provided location' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Could not geocode the provided location');
     }
 
     // Check if area already exists
@@ -144,10 +136,7 @@ const user = await getCurrentUserFromCookies();
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'Service area already exists for this location' },
-        { status: 409 }
-      );
+      throw new ConflictError('Service area already exists for this location');
     }
 
     // Insert new service area
@@ -184,10 +173,7 @@ const user = await getCurrentUserFromCookies();
         city,
         state,
       });
-      return NextResponse.json(
-        { error: 'Failed to create service area', details: insertError.message },
-        { status: 500 }
-      );
+      throw insertError;
     }
 
     // Return formatted response matching component interface
@@ -203,14 +189,7 @@ const user = await getCurrentUserFromCookies();
     }, { status: 201 });
 
   } catch (error: unknown) {
-    logger.error('Service area creation error', error, {
-      service: 'service_areas',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json(
-      { error: 'Internal server error', details: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

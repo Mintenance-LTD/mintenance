@@ -19,6 +19,7 @@ import {
   X,
   ChevronRight,
   User,
+  Leaf,
 } from 'lucide-react';
 
 /**
@@ -87,9 +88,11 @@ export function ModernContractorLayout({
           {/* Logo */}
           <div className="flex h-16 items-center px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-900 to-teal-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
-              </div>
+              <img
+                src="/assets/mintenance-leaf-icon.png"
+                alt="Mintenance"
+                className="w-8 h-8"
+              />
               <span className="text-xl font-bold text-gray-900">Mintenance</span>
             </Link>
           </div>
@@ -171,9 +174,11 @@ export function ModernContractorLayout({
               <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2">
                 <div className="flex h-16 shrink-0 items-center">
                   <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-900 to-teal-600 flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">M</span>
-                    </div>
+                    <img
+                      src="/assets/mintenance-leaf-icon.png"
+                      alt="Mintenance"
+                      className="w-8 h-8"
+                    />
                     <span className="text-xl font-bold text-gray-900">Mintenance</span>
                   </Link>
                 </div>

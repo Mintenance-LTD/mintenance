@@ -7,6 +7,7 @@ import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to accept bids');
     }
 
     // Idempotency check - prevent duplicate bid acceptances
@@ -50,7 +51,7 @@ export async function POST(
     }
 
     if (user.role !== 'homeowner') {
-      return NextResponse.json({ error: 'Only homeowners can accept bids' }, { status: 403 });
+      throw new ForbiddenError('Only homeowners can accept bids');
     }
 
     // Verify the job belongs to this homeowner
@@ -65,11 +66,11 @@ export async function POST(
         service: 'jobs',
         jobId,
       });
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to accept bids for this job' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to accept bids for this job');
     }
 
     // Verify the bid exists and belongs to this job
@@ -86,7 +87,7 @@ export async function POST(
         bidId,
         jobId,
       });
-      return NextResponse.json({ error: 'Bid not found' }, { status: 404 });
+      throw new NotFoundError('Bid not found');
     }
 
     // Check if contractor has payment setup before accepting bid
@@ -98,15 +99,7 @@ export async function POST(
       .single();
 
     if (contractorError || !contractor?.stripe_connect_account_id) {
-      return NextResponse.json(
-        {
-          error: 'Payment setup required',
-          message: 'This contractor has not completed payment account setup. They must set up their payment account before accepting jobs.',
-          requiresPaymentSetup: true,
-          contractorId: bid.contractor_id,
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('This contractor has not completed payment account setup. They must set up their payment account before accepting jobs.');
     }
 
     // Also check if the payout account is marked as complete
@@ -136,15 +129,7 @@ export async function POST(
                                     stripeAccount.payouts_enabled;
 
           if (!isAccountComplete) {
-            return NextResponse.json(
-              {
-                error: 'Payment setup incomplete',
-                message: 'This contractor has started payment setup but has not completed the onboarding process. They must finish setting up their payment account before accepting jobs.',
-                requiresPaymentSetup: true,
-                contractorId: bid.contractor_id,
-              },
-              { status: 400 }
-            );
+            throw new BadRequestError('This contractor has started payment setup but has not completed the onboarding process. They must finish setting up their payment account before accepting jobs.');
           }
 
           // Update database if account is actually complete but not marked as such
@@ -184,12 +169,10 @@ export async function POST(
 
       // Handle unique constraint violation (race condition detected)
       if (acceptError.code === '23505' || acceptError.message?.includes('unique constraint') || acceptError.message?.includes('duplicate key')) {
-        return NextResponse.json({ 
-          error: 'A bid has already been accepted for this job. Please refresh the page.',
-        }, { status: 409 }); // 409 Conflict
+        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
       }
 
-      return NextResponse.json({ error: 'Failed to accept bid' }, { status: 500 });
+      throw new InternalServerError('Failed to accept bid');
     }
 
     // Check function return value
@@ -207,20 +190,18 @@ export async function POST(
 
       // Handle specific error cases
       if (errorMessage.includes('already been accepted')) {
-        return NextResponse.json({ 
-          error: 'A bid has already been accepted for this job. Please refresh the page.',
-        }, { status: 409 }); // 409 Conflict
+        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
       }
 
       if (errorMessage.includes('not found')) {
-        return NextResponse.json({ error: errorMessage }, { status: 404 });
+        throw new NotFoundError(errorMessage);
       }
 
       if (errorMessage.includes('Not authorized')) {
-        return NextResponse.json({ error: errorMessage }, { status: 403 });
+        throw new ForbiddenError(errorMessage);
       }
 
-      return NextResponse.json({ error: errorMessage }, { status: 400 });
+      throw new BadRequestError(errorMessage);
     }
 
     // Fetch job title for notification (after successful acceptance)
@@ -489,14 +470,7 @@ export async function POST(
 
     return NextResponse.json(responseData);
   } catch (error) {
-    logger.error('Unexpected error in accept bid', error, {
-      jobId,
-      bidId,
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ 
-      error: errorMessage,
-    }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

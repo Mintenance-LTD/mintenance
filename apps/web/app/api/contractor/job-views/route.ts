@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await request.json();
     const { jobId } = body;
 
     if (!jobId) {
-      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+      throw new BadRequestError('Job ID is required');
     }
 
     // Check if job exists and get homeowner info
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // Try to insert or update job view
@@ -49,8 +50,8 @@ export async function POST(request: NextRequest) {
         .eq('contractor_id', user.id);
 
       if (updateError) {
-        console.error('Error updating job view:', updateError);
-        return NextResponse.json({ error: 'Failed to update view' }, { status: 500 });
+        logger.error('Error updating job view', updateError);
+        throw new InternalServerError('Failed to update view');
       }
     } else {
       // Create new view record
@@ -65,8 +66,8 @@ export async function POST(request: NextRequest) {
         });
 
       if (insertError) {
-        console.error('Error creating job view:', insertError);
-        return NextResponse.json({ error: 'Failed to track view' }, { status: 500 });
+        logger.error('Error creating job view', insertError);
+        throw new InternalServerError('Failed to track view');
       }
 
       // Create notification for homeowner (only on first view)
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
         });
 
       if (notificationError) {
-        console.error('Error creating notification:', notificationError);
+        logger.error('Error creating notification', notificationError);
         // Don't fail the request if notification fails
       }
     }
@@ -104,11 +105,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error tracking job view:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -118,11 +115,11 @@ export async function GET(request: NextRequest) {
     // Check authentication and role
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can view job views' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can view job views');
     }
 
     const { searchParams } = new URL(request.url);
@@ -138,8 +135,8 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching job view:', error);
-        return NextResponse.json({ error: 'Failed to fetch view data' }, { status: 500 });
+        logger.error('Error fetching job view', error);
+        throw new InternalServerError('Failed to fetch view data');
       }
 
       return NextResponse.json({ viewed: !!data, viewData: data });
@@ -157,10 +154,7 @@ export async function GET(request: NextRequest) {
           service: 'contractor-api',
           contractorId: user.id,
         });
-        return NextResponse.json({ 
-          error: 'Failed to fetch views',
-          details: viewsError.message 
-        }, { status: 500 });
+        throw new InternalServerError('Failed to fetch views');
       }
 
       if (!views || views.length === 0) {
@@ -204,10 +198,7 @@ export async function GET(request: NextRequest) {
           contractorId: user.id,
           jobIds,
         });
-        return NextResponse.json({ 
-          error: 'Failed to fetch job details',
-          details: jobsError.message 
-        }, { status: 500 });
+        throw new InternalServerError('Failed to fetch job details');
       }
 
       // Combine views with job data
@@ -223,10 +214,6 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error fetching job views:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

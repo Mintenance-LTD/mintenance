@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
         service: 'notifications',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch notifications');
     }
 
     const formattedNotifications = (notifications || []).map((notif: Record<string, unknown>) => ({
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
     logger.error('Error in GET /api/notifications/social', error, {
       service: 'notifications',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

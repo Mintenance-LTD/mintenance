@@ -4,6 +4,7 @@ import type { Phase1BuildingAssessment, SafetyHazard } from '@/lib/services/buil
 import { validateImageForOpenAI } from '@/lib/utils/image-validation';
 import { shouldCompressImage, compressImageServerSide } from '@/lib/utils/image-compression';
 import { logger } from '@/lib/logger';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,10 +28,7 @@ export async function POST(request: NextRequest) {
 
         if (!imageFile) {
             logger.warn('[API] Error: No image provided');
-            return NextResponse.json(
-                { error: 'No image provided' },
-                { status: 400 }
-            );
+            throw new BadRequestError('No image provided');
         }
 
         logger.info('[API] Image received', {
@@ -44,14 +42,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!validation.isValid) {
-            return NextResponse.json(
-                {
-                    error: 'Image validation failed',
-                    details: validation.errors.join('; '),
-                    warnings: validation.warnings,
-                },
-                { status: 400 }
-            );
+            throw new BadRequestError(`Image validation failed: ${validation.errors.join('; ')}`);
         }
 
         // Log warnings if any
@@ -120,80 +111,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        // Enhanced error logging with full error details
-        const errorInfo = {
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            name: error instanceof Error ? error.name : typeof error,
-            hasApiKey: !!process.env.OPENAI_API_KEY,
-            apiKeyLength: process.env.OPENAI_API_KEY?.length || 0,
-        };
-
-        logger.error('[API] Building Surveyor demo assessment error', errorInfo);
-        logger.error('[API] Full error object', error);
-
-        // Provide more helpful error messages for common issues
-        let errorMessage = 'Assessment failed. Please try again.';
-        let errorDetails = error instanceof Error ? error.message : 'Unknown error';
-
-        // Check for common error scenarios
-        if (error instanceof Error) {
-            const errorMsg = error.message.toLowerCase();
-
-            // Check for OpenAI API key errors - look for invalid_api_key code in the error message
-            if (errorMsg.includes('invalid_api_key') ||
-                (errorMsg.includes('openai api error') && (errorMsg.includes('401') || errorMsg.includes('invalid')))) {
-                errorMessage = 'OpenAI API key is invalid or expired. Please check your API key configuration.';
-                errorDetails = 'The API key is present but OpenAI rejected it. Please verify the key is correct, has not expired, and has the necessary permissions.';
-            } else if (errorMsg.includes('ai assessment service is not configured') ||
-                errorMsg.includes('openai_api_key') ||
-                errorMsg.includes('not configured')) {
-                errorMessage = 'AI service is not configured. Please contact support.';
-                errorDetails = `OpenAI API key is missing or invalid. Key present: ${!!process.env.OPENAI_API_KEY}`;
-            } else if (errorMsg.includes('timeout')) {
-                errorMessage = 'Assessment timed out. Please try again with a smaller image.';
-                errorDetails = error.message;
-            } else if (errorMsg.includes('invalid image')) {
-                errorMessage = 'Invalid image format. Please upload a valid image file.';
-                errorDetails = error.message;
-            } else if (errorMsg.includes('openai api error')) {
-                // Generic OpenAI API error - extract details from error message
-                errorMessage = 'OpenAI API request failed. Please try again.';
-                // Try to extract error code from the message if present
-                const codeMatch = error.message.match(/code:\s*(\w+)/i);
-                if (codeMatch) {
-                    errorDetails = `OpenAI error: ${codeMatch[1]}. ${error.message}`;
-                } else {
-                    errorDetails = error.message;
-                }
-            } else {
-                // For other errors, include the actual error message
-                errorDetails = error.message;
-            }
-        }
-
-        // Ensure we always return a valid JSON response with error details
-        const errorResponse = {
-            error: errorMessage,
-            details: errorDetails,
-            // Include debug info in development
-            ...(process.env.NODE_ENV === 'development' && {
-                debug: {
-                    hasApiKey: !!process.env.OPENAI_API_KEY,
-                    errorType: error instanceof Error ? error.name : typeof error,
-                    originalMessage: error instanceof Error ? error.message : String(error),
-                }
-            })
-        };
-
-        logger.error('[API] Returning error response', {
-            status: 500,
-            errorMessage,
-            errorDetails,
-            responseKeys: Object.keys(errorResponse),
-        });
-
-        return NextResponse.json(errorResponse, { status: 500 });
+        return handleAPIError(error);
     }
 }
 

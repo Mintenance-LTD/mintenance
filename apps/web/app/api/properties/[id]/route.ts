@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, NotFoundError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 export async function PUT(
   request: NextRequest,
@@ -11,7 +13,7 @@ export async function PUT(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to update properties');
     }
 
     const body = await request.json();
@@ -50,27 +52,21 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating property:', error);
-      return NextResponse.json(
-        { error: 'Failed to update property' },
-        { status: 500 }
-      );
+      logger.error('Error updating property', error, {
+        service: 'properties',
+        propertyId: resolvedParams.id,
+        userId: user.id,
+      });
+      throw error;
     }
 
     if (!data) {
-      return NextResponse.json(
-        { error: 'Property not found or not authorized' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Property not found or not authorized');
     }
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error in PUT /api/properties/[id]:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -83,7 +79,7 @@ export async function DELETE(
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to delete properties');
     }
 
     // Delete the property from the database
@@ -94,19 +90,16 @@ export async function DELETE(
       .eq('owner_id', user.id);
 
     if (error) {
-      console.error('Error deleting property:', error);
-      return NextResponse.json(
-        { error: 'Failed to delete property' },
-        { status: 500 }
-      );
+      logger.error('Error deleting property', error, {
+        service: 'properties',
+        propertyId: resolvedParams.id,
+        userId: user.id,
+      });
+      throw error;
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/properties/[id]:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

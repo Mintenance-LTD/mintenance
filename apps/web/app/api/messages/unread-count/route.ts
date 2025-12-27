@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export async function GET(_request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view unread count');
     }
 
     const { count, error } = await serverSupabase
@@ -21,7 +22,7 @@ export async function GET(_request: NextRequest) {
         service: 'messages',
         userId: user.id
       });
-      return NextResponse.json({ error: 'Failed to load unread count' }, { status: 500 });
+      throw error;
     }
 
     logger.debug('Unread count retrieved', {
@@ -32,9 +33,6 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json({ count: count ?? 0 });
   } catch (err) {
-    logger.error('Failed to load unread count', err, {
-      service: 'messages'
-    });
-    return NextResponse.json({ error: 'Failed to load unread count' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

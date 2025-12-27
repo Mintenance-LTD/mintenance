@@ -5,6 +5,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { registerSchema } from '@/lib/validation/schemas';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,22 +16,11 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkLoginRateLimit(request);
 
     if (!rateLimitResult.allowed) {
-      const headers = createRateLimitHeaders(rateLimitResult);
       logger.warn('Registration rate limit exceeded', {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-
-      return NextResponse.json(
-        {
-          error: 'Too many registration attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        {
-          status: 429,
-          headers
-        }
-      );
+      throw new RateLimitError('Too many registration attempts. Please try again later.');
     }
 
     // Validate and sanitize input using Zod schema
@@ -49,11 +39,7 @@ export async function POST(request: NextRequest) {
         email,
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-
-      return NextResponse.json(
-        { error: 'Admin accounts must use @mintenance.co.uk email address' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Admin accounts must use @mintenance.co.uk email address');
     }
 
     // Register user with AuthManager
@@ -72,11 +58,7 @@ export async function POST(request: NextRequest) {
         email,
         reason: result.error
       });
-
-      return NextResponse.json(
-        { error: result.error || 'Registration failed' },
-        { status: 400 }
-      );
+      throw new BadRequestError(result.error || 'Registration failed');
     }
 
     logger.info('User registered successfully', {
@@ -112,27 +94,6 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-  // Handle CSRF validation errors specifically
-  if (error instanceof Error && error.message === 'CSRF validation failed') {
-    logger.warn('CSRF validation failed', {
-      service: 'auth',
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-      hasHeaderToken: !!request.headers.get('x-csrf-token'),
-      cookies: request.headers.get('cookie')?.substring(0, 100) || 'none'
-    });
-
-    return NextResponse.json(
-      { error: 'CSRF validation failed', message: 'Please refresh the page and try again.' },
-      { status: 403 }
-    );
+    return handleAPIError(error);
   }
-
-  logger.error('Registration error', error, { service: 'auth' });
-
-  // Don't expose internal error details to client
-  return NextResponse.json(
-    { error: 'An unexpected error occurred. Please try again.' },
-    { status: 500 }
-  );
-}
 }

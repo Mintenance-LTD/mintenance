@@ -16,6 +16,7 @@ import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorr
 import { DriftMonitorService } from '@/lib/services/building-surveyor/DriftMonitorService';
 import { ModelEvaluationService } from '@/lib/services/building-surveyor/ModelEvaluationService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 // ============================================================================
 // CONFIGURATION
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
     const authHeader = headersList.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       logger.warn('Unauthorized model retraining cron attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     logger.info('Starting model retraining cron job', { config: CONFIG });
@@ -206,23 +207,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
 
   } catch (error) {
-    logger.error('Model retraining cron job failed', { error });
-
-    return NextResponse.json({
-      success: false,
-      retrainingTriggered: false,
-      checkResult: {
-        shouldRetrain: false,
-        reasons: ['Cron job error'],
-        metrics: {}
-      },
-      error: error instanceof Error ? error.message : 'Unknown error',
-      alerts: [{
-        type: 'CRON_ERROR',
-        severity: 'critical',
-        message: `Cron job failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }]
-    } as CronJobResult, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -507,11 +492,6 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    logger.error('Manual retraining trigger failed', { error });
-
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return handleAPIError(error);
   }
 }

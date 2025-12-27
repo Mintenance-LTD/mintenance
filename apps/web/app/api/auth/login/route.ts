@@ -7,6 +7,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { MFAService } from '@/lib/mfa/mfa-service';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 
 // Route segment config to ensure proper error handling
 export const dynamic = 'force-dynamic';
@@ -15,62 +16,28 @@ export const runtime = 'nodejs';
 // Export route handler with comprehensive error handling
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // CSRF protection
-    try {
-      await requireCSRF(request);
-    } catch (csrfError) {
-      logger.warn('CSRF validation failed', {
-        service: 'auth',
-        error: csrfError instanceof Error ? csrfError.message : 'Unknown CSRF error',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
+    // CSRF protection (throws ForbiddenError automatically)
+    await requireCSRF(request);
     
     // Rate limiting check
     let rateLimitResult;
     try {
       rateLimitResult = await checkLoginRateLimit(request);
     } catch (rateLimitError) {
-      logger.error('Rate limit check failed', rateLimitError, { 
+      logger.error('Rate limit check failed', rateLimitError, {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
       // Fail closed: deny request when rate limiting is unavailable (security-first)
-      return NextResponse.json(
-        {
-          error: 'Rate limiting service unavailable. Please try again later.',
-        },
-        {
-          status: 503, // Service Unavailable
-          headers: {
-            'Retry-After': '60', // Suggest retry after 60 seconds
-          }
-        }
-      );
+      throw new InternalServerError('Rate limiting service unavailable. Please try again later.');
     }
 
     if (!rateLimitResult.allowed) {
-      const headers = createRateLimitHeaders(rateLimitResult);
       logger.warn('Login rate limit exceeded', {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      
-      return NextResponse.json(
-        {
-          error: 'Too many login attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        {
-          status: 429,
-          headers
-        }
-      );
+      throw new RateLimitError('Too many login attempts. Please try again later.');
     }
 
     // Validate and sanitize input using Zod schema
@@ -79,12 +46,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       validation = await validateRequest(request, loginSchema);
     } catch (validationError) {
       logger.error('Request validation error', validationError, { service: 'auth' });
-      return NextResponse.json(
-        { error: 'Invalid request format' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request format');
     }
-    
+
     if ('headers' in validation) {
       // Validation failed - return error response
       return validation;
@@ -98,10 +62,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       result = await authManager.login({ email, password }, rememberMe || false);
     } catch (authError) {
       logger.error('AuthManager login error', authError, { service: 'auth', email });
-      return NextResponse.json(
-        { error: 'Authentication service error. Please try again.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Authentication service error. Please try again.');
     }
 
     if (!result.success || !result.user) {
@@ -110,11 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         email,
         reason: result.error
       });
-
-      return NextResponse.json(
-        { error: result.error || 'Invalid email or password' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError(result.error || 'Invalid email or password');
     }
 
     // Check if user has MFA enabled
@@ -219,65 +176,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return response;
 
   } catch (error) {
-    // Log error details for debugging (server-side only)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : String(error);
-    
-    // Log error (logger should always work, but handle gracefully if it doesn't)
-    try {
-      if (logger && typeof logger.error === 'function') {
-        logger.error('Login error', error, { service: 'auth' });
-      } else {
-        // If logger is unavailable, use stderr as fallback
-        process.stderr.write(
-          `[CRITICAL] Logger unavailable during login error: ${errorMessage}\nStack: ${errorStack}\n`
-        );
-      }
-    } catch (loggerError) {
-      // If logger itself fails, use stderr as absolute fallback
-      process.stderr.write(
-        `[CRITICAL] Logger failed during login error handling: ${errorMessage}\n` +
-        `Stack: ${errorStack}\n` +
-        `Logger error: ${loggerError instanceof Error ? loggerError.message : String(loggerError)}\n`
-      );
-    }
-
-    // Handle CSRF validation errors specifically
-    if (error instanceof Error && error.message === 'CSRF validation failed') {
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
-    
-    // Log the actual error for debugging (should already be logged above)
-    // This is a safety net in case the logger call above didn't work
-    try {
-      logger.error('Login route error details', error, {
-        service: 'auth',
-        message: errorMessage,
-        stack: errorStack?.substring(0, 500), // Limit stack trace length
-        type: error?.constructor?.name || typeof error
-      });
-    } catch {
-      // If logger fails again, silently continue - we've already logged to stderr above
-    }
-
-    // Always return JSON, never HTML - this is critical
-    return NextResponse.json(
-      { 
-        error: 'An unexpected error occurred. Please try again.',
-        // Include error message in development for debugging
-        ...(process.env.NODE_ENV === 'development' && { 
-          details: errorMessage.substring(0, 200) // Limit length
-        })
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
+    return handleAPIError(error);
   }
 }

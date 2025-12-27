@@ -15,6 +15,7 @@ import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
 import { env } from '@/lib/env';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Initialize Stripe with validated secret key (server-side only)
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
         service: 'payments',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -80,10 +81,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         escrowTransactionId,
       });
-      return NextResponse.json(
-        { error: 'Request is being processed. Please wait and try again.' },
-        { status: 409 }
-      );
+      throw new ConflictError('Request is being processed. Please wait and try again.');
     }
 
     // Get escrow transaction with job details and all new fields
@@ -108,7 +106,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         escrowTransactionId
       });
-      return NextResponse.json({ error: 'Escrow transaction not found' }, { status: 404 });
+      throw new NotFoundError('Escrow transaction not found');
     }
 
     const job = escrowTransaction.jobs;
@@ -190,7 +188,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           escrowTransactionId,
         });
-        return NextResponse.json({ error: 'Unauthorized to release this escrow' }, { status: 403 });
+        throw new ForbiddenError('Unauthorized to release this escrow');
       }
     }
 
@@ -208,7 +206,7 @@ export async function POST(request: NextRequest) {
         contractorId: job.contractor_id,
         userRole: user.role
       });
-      return NextResponse.json({ error: 'Unauthorized to release this escrow' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized to release this escrow');
     }
 
     // Validate current state allows release
@@ -226,7 +224,7 @@ export async function POST(request: NextRequest) {
         currentStatus: escrowTransaction.status,
         error: stateValidation.error
       });
-      return NextResponse.json({ error: stateValidation.error }, { status: 400 });
+      throw new BadRequestError(stateValidation.error || 'Invalid state transition');
     }
 
     // Check all new release conditions (unless admin is forcing release)
@@ -235,10 +233,7 @@ export async function POST(request: NextRequest) {
       // 1. Check admin approval
       if (escrowTransaction.admin_hold_status === 'admin_hold' || escrowTransaction.admin_hold_status === 'pending_review') {
         const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-        return NextResponse.json({
-          error: 'Escrow is on admin hold',
-          blockingReasons,
-        }, { status: 403 });
+        throw new ForbiddenError('Escrow is on admin hold');
       }
 
       // 2. Check homeowner approval or auto-approval eligibility
@@ -550,10 +545,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json(
-        { error: 'Failed to update escrow transaction. Transfer has been reversed.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to update escrow transaction. Transfer has been reversed.');
     }
 
     // Create payment released notification for contractor

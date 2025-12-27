@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,9 +12,9 @@ const supabase = createClient(
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
-    
+
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor access required to view following list');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
           userId: user.id,
           contractorId,
         });
-        return NextResponse.json({ error: 'Failed to check follow status' }, { status: 500 });
+        throw new InternalServerError('Failed to check follow status');
       }
 
       return NextResponse.json({ 
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
         service: 'contractor_following',
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to fetch following list' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch following list');
     }
 
     interface ContractorData {
@@ -113,17 +114,14 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       following: formattedFollowing,
       total: formattedFollowing.length,
       limit,
-      offset 
+      offset
     });
   } catch (error) {
-    logger.error('Error in GET /api/contractor/following', error, {
-      service: 'contractor_following',
-    });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

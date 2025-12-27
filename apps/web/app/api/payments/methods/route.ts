@@ -4,6 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
+import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view payment methods');
     }
 
     // Get or create Stripe customer ID for this user
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      throw new NotFoundError('User not found');
     }
 
     let stripeCustomerId = userData.stripe_customer_id;
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     // Check if customer is deleted
     if ((customer as any).deleted) {
-      return NextResponse.json({ error: 'Stripe customer deleted' }, { status: 400 });
+      throw new BadRequestError('Stripe customer deleted');
     }
 
     const stripeCustomer = customer as Stripe.Customer;
@@ -119,18 +120,6 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    logger.error('Error fetching payment methods', error, { service: 'payments' });
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch payment methods' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

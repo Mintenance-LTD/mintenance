@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,11 +17,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: reviews });
   } catch (error) {
-    logger.error('Error fetching pending reviews', error, { service: 'admin-escrow-pending-reviews' });
-    return NextResponse.json(
-      { error: 'Failed to fetch pending reviews' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

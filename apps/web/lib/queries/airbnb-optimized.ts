@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -94,41 +95,47 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     }
 
     const contractorIds = contractors.map(c => c.id);
-    
-    // Get skills for contractors (contractor_skills table uses user_id, not contractor_id)
+
+    // Get skills for contractors
     const { data: skills, error: skillsError } = await supabase
       .from('contractor_skills')
-      .select('user_id, skill_name')
-      .in('user_id', contractorIds);
+      .select('contractor_id, skill_name')
+      .in('contractor_id', contractorIds);
 
     if (skillsError) {
-      console.error('[getFeaturedContractors] Error fetching skills:', skillsError);
+      logger.error('Error fetching contractor skills', skillsError, {
+        service: 'getFeaturedContractors',
+        contractorIds,
+      });
     }
 
-    // Group skills by contractor (using user_id)
+    // Group skills by contractor
     const skillsMap = new Map<string, string[]>();
     skills?.forEach(skill => {
-      if (!skillsMap.has(skill.user_id)) {
-        skillsMap.set(skill.user_id, []);
+      if (!skillsMap.has(skill.contractor_id)) {
+        skillsMap.set(skill.contractor_id, []);
       }
-      skillsMap.get(skill.user_id)!.push(skill.skill_name);
+      skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
     });
 
-    // Get ratings for contractors (reviews use reviewed_id to reference the contractor user)
+    // Get ratings for contractors
     const { data: reviews, error: reviewsError } = await supabase
       .from('reviews')
-      .select('reviewed_id, rating')
-      .in('reviewed_id', contractorIds);
+      .select('contractor_id, rating')
+      .in('contractor_id', contractorIds);
 
     if (reviewsError) {
-      console.error('[getFeaturedContractors] Error fetching reviews:', reviewsError);
+      logger.error('Error fetching contractor reviews', reviewsError, {
+        service: 'getFeaturedContractors',
+        contractorIds,
+      });
     }
 
     // Aggregate ratings
     const ratingsMap = new Map<string, { total: number; count: number }>();
     reviews?.forEach(review => {
-      const existing = ratingsMap.get(review.reviewed_id) || { total: 0, count: 0 };
-      ratingsMap.set(review.reviewed_id, {
+      const existing = ratingsMap.get(review.contractor_id) || { total: 0, count: 0 };
+      ratingsMap.set(review.contractor_id, {
         total: existing.total + review.rating,
         count: existing.count + 1
       });

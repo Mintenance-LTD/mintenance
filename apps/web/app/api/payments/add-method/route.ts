@@ -5,6 +5,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate request body
@@ -38,10 +39,7 @@ export async function POST(request: NextRequest) {
     const parsed = addMethodSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request');
     }
 
     const { paymentMethodId, setAsDefault } = parsed.data;
@@ -54,7 +52,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      throw new NotFoundError('User not found');
     }
 
     let stripeCustomerId = userData.stripe_customer_id;
@@ -115,18 +113,10 @@ export async function POST(request: NextRequest) {
       isDefault: setAsDefault,
     });
   } catch (error) {
-    logger.error('Error adding payment method', error, { service: 'payments' });
-
     if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
+      logger.error('Stripe error adding payment method', error, { service: 'payments' });
+      throw new BadRequestError(error.message);
     }
-
-    return NextResponse.json(
-      { error: 'Failed to add payment method' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

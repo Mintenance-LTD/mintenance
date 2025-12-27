@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
 import { PlusCircle, Search, MessageSquare, Calendar } from 'lucide-react';

@@ -187,13 +187,39 @@ export default async function ContractorDiscoverPage2025() {
     })
   );
 
-  // Filter out jobs that contractor has already bid on
+  // Filter out jobs that contractor has already bid on (with 48h cooldown after rejection)
+  // BID FILTERING LOGIC:
+  // - Hide jobs with active bids (pending, accepted)
+  // - Hide recently rejected bids (< 48 hours ago)
+  // - Show rejected bids after 48 hours cooldown
   const { data: existingBids } = await serverSupabase
     .from('bids')
-    .select('job_id')
+    .select('job_id, status, updated_at, created_at')
     .eq('contractor_id', user.id);
 
-  const bidJobIds = new Set(existingBids?.map(b => b.job_id) || []);
+  const now = Date.now();
+  const REJECTION_COOLDOWN_MS = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+
+  const bidJobIds = new Set(
+    existingBids
+      ?.filter(bid => {
+        // Always hide jobs with active bids
+        if (bid.status === 'pending' || bid.status === 'accepted') {
+          return true;
+        }
+
+        // For rejected bids, only hide if within 48h cooldown period
+        if (bid.status === 'rejected') {
+          const rejectionTime = new Date(bid.updated_at || bid.created_at).getTime();
+          const timeSinceRejection = now - rejectionTime;
+          return timeSinceRejection < REJECTION_COOLDOWN_MS; // Hide if within 48h
+        }
+
+        // Don't filter out other statuses (withdrawn, expired, etc.)
+        return false;
+      })
+      .map(b => b.job_id) || []
+  );
 
   // Calculate match scores and filter
   const availableJobs: Job[] = jobsWithDetails

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/escrow/:id/release-timeline
@@ -15,7 +16,7 @@ export async function GET(
     const { id: escrowId } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const blockingReasons = await EscrowStatusService.getBlockingReasons(escrowId);
@@ -30,7 +31,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error('Error getting release timeline', error, { service: 'escrow-release-timeline' });
-    return NextResponse.json({ error: 'Failed to get timeline' }, { status: 500 });
+    throw new InternalServerError('Failed to get timeline');
   }
 }
 

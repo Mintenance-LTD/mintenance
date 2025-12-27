@@ -4,6 +4,7 @@ import type { MessageThread } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { isValidUUID } from '@/lib/validation/uuid';
 import {
   buildThreadParticipants,
@@ -25,17 +26,17 @@ export async function GET(request: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view message thread');
     }
 
     const { id: threadId } = await context.params;
     if (!threadId) {
-      return NextResponse.json({ error: 'Thread id is required' }, { status: 400 });
+      throw new BadRequestError('Thread id is required');
     }
 
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(threadId)) {
-      return NextResponse.json({ error: 'Invalid thread ID format' }, { status: 400 });
+      throw new BadRequestError('Invalid thread ID format');
     }
 
     const url = new URL(request.url);
@@ -45,10 +46,7 @@ export async function GET(request: NextRequest, context: Params) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid query parameters');
     }
 
     const { limit, cursor } = parsed.data;
@@ -57,7 +55,7 @@ export async function GET(request: NextRequest, context: Params) {
     if (cursor) {
       const ts = Date.parse(cursor);
       if (Number.isNaN(ts)) {
-        return NextResponse.json({ error: 'Invalid cursor value' }, { status: 400 });
+        throw new BadRequestError('Invalid cursor value');
       }
       cursorIso = new Date(ts).toISOString();
     }
@@ -87,7 +85,7 @@ export async function GET(request: NextRequest, context: Params) {
         userId: user.id,
         error: jobError?.message,
       });
-      return NextResponse.json({ error: 'Thread not found or access denied' }, { status: 404 });
+      throw new NotFoundError('Thread not found or access denied');
     }
 
     const job = jobData as SupabaseJobRow;
@@ -123,10 +121,7 @@ export async function GET(request: NextRequest, context: Params) {
         threadId,
         userId: user.id,
       });
-      // SECURITY: Don't expose database error details to client
-      return NextResponse.json({ 
-        error: 'Failed to load messages'
-      }, { status: 500 });
+      throw messagesError;
     }
     
     // Log message retrieval for debugging (without sensitive details)
@@ -178,8 +173,6 @@ export async function GET(request: NextRequest, context: Params) {
       limit,
     });
   } catch (err) {
-    logger.error('Failed to load thread', err, { service: 'messages' });
-    // SECURITY: Don't expose error details to client
-    return NextResponse.json({ error: 'Failed to load thread' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

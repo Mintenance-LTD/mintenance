@@ -3,6 +3,7 @@ import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -15,7 +16,7 @@ async function getContractor(context: Params) {
     const { id } = await context.params;
     if (!id) {
       logger.warn('Contractor ID missing in request', { service: 'contractors' });
-      return NextResponse.json({ error: 'Contractor id missing' }, { status: 400 });
+      throw new BadRequestError('Contractor id missing');
     }
 
     // First check if user exists at all (without role filter)
@@ -72,7 +73,7 @@ async function getContractor(context: Params) {
         userExists: !!userCheck,
         userRole: userCheck?.role
       });
-      return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
+      throw new NotFoundError('Contractor not found');
     }
 
     // Transform to ContractorProfile format with extended fields
@@ -114,6 +115,6 @@ async function getContractor(context: Params) {
     return NextResponse.json({ contractor: contractorProfile });
   } catch (err) {
     logger.error('Failed to load contractor', err, { service: 'contractors' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }

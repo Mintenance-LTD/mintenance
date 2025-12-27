@@ -5,32 +5,22 @@ import { validateRequest } from '@/lib/validation/validator';
 import { passwordResetSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
     
     // CSRF protection
     await requireCSRF(request);
-// Rate limiting - 3 requests per hour
+    // Rate limiting - 3 requests per hour
     const rateLimitResult = await checkPasswordResetRateLimit(request);
 
     if (!rateLimitResult.allowed) {
-      const headers = createRateLimitHeaders(rateLimitResult);
       logger.warn('Password reset rate limit exceeded', {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      
-      return NextResponse.json(
-        {
-          error: 'Too many password reset requests. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        {
-          status: 429,
-          headers
-        }
-      );
+      throw new RateLimitError('Too many password reset requests. Please try again later.');
     }
 
     // Validate and sanitize input using Zod schema
@@ -48,10 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       logger.error('Missing Supabase configuration', { service: 'auth' });
-      return NextResponse.json(
-        { error: 'Service configuration error. Please contact support.' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Service configuration error. Please contact support.');
     }
 
     // Use service role key for admin operations (can send emails regardless of user state)
@@ -160,11 +147,6 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    logger.error('Forgot password error', error, { service: 'auth' });
-
-    return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again later.' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

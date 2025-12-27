@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const subscription = await SubscriptionService.getContractorSubscription(user.id);
@@ -38,10 +39,7 @@ export async function GET(request: NextRequest) {
       requiresSubscription,
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: 'Failed to get subscription status', details: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(err);
   }
 }
 

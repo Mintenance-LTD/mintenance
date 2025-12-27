@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorrectionService';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 const correctionSchema = z.object({
   assessmentId: z.string().uuid(),
@@ -33,10 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to submit corrections');
     }
 
     const body = await request.json();
@@ -53,20 +51,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: error.issues },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request data');
     }
-
-    logger.error('Failed to submit correction', error, {
-      service: 'YOLOCorrectionsAPI',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to submit correction' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -78,10 +65,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view corrections');
     }
 
     const { searchParams } = new URL(request.url);
@@ -106,14 +90,7 @@ export async function GET(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    logger.error('Failed to get corrections', error, {
-      service: 'YOLOCorrectionsAPI',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to get corrections' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // SECURITY: No fallback for production credentials
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate request body
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     // SECURITY: Enhanced refund authorization logic
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     const isContractor = job.contractor_id === user.id;
 
     if (!isHomeowner && !isContractor) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized');
     }
 
     // Get escrow transaction
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow transaction not found' }, { status: 404 });
+      throw new NotFoundError('Escrow transaction not found');
     }
 
     // SECURITY: Only allow refunds in specific scenarios

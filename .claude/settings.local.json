@@ -70,7 +70,9 @@
       "Bash(npm run test:run:*)",
       "Read(//c/Users/Djodjo.Nkouka.ERICCOLE/Downloads/**)",
       "Bash(npm run:*)",
-      "Bash(comm:*)"
+      "Bash(comm:*)",
+      "Bash(do if [ -f \"$dir/page.tsx\" ])",
+      "Bash([ ! -f \"$dir/loading.tsx\" ])"
     ],
     "deny": [],
     "ask": []

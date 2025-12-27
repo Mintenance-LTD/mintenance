@@ -7,6 +7,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));

@@ -5,7 +5,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import { DynamicGoogleMap } from '@/components/maps';
 import { LocationPromptModal } from './LocationPromptModal';
 import toast from 'react-hot-toast';
-import { MapPin, List, Map } from 'lucide-react';
+import { MapPin, List, Map as MapIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // Helper function to calculate distance between two points
@@ -417,76 +417,168 @@ export function ContractorDiscoverClient({
       bounds.extend({ lat: contractorLocation.latitude, lng: contractorLocation.longitude });
     }
 
-    let markersCreated = 0;
+    // GROUP JOBS BY LOCATION: Group jobs that are at the same/similar coordinates
+    // This allows multiple jobs from same homeowner/location to be shown in a carousel
+    const LOCATION_THRESHOLD_KM = 0.05; // Jobs within 50 meters considered same location
+    const locationGroups = new Map<string, typeof filteredJobsByRadius>();
+
     filteredJobsByRadius.forEach(job => {
       if (job.lat && job.lng) {
-        const marker = new google.maps.Marker({
-          position: { lat: job.lat, lng: job.lng },
-          map: mapRef.current,
-          title: job.title,
-          icon: getMarkerIcon(job.category, job.priority),
-          animation: job.priority === 'high' ? google.maps.Animation.BOUNCE : undefined,
-        });
-        
-        markersCreated++;
+        // Find existing group within threshold
+        let addedToGroup = false;
+        for (const [groupKey, jobs] of locationGroups.entries()) {
+          const [groupLat, groupLng] = groupKey.split(',').map(Number);
+          const distance = calculateDistance(job.lat, job.lng, groupLat, groupLng);
 
-        // Add info window with enhanced content including AI assessment
+          if (distance < LOCATION_THRESHOLD_KM) {
+            jobs.push(job);
+            addedToGroup = true;
+            break;
+          }
+        }
+
+        // Create new group if not added to existing
+        if (!addedToGroup) {
+          const key = `${job.lat},${job.lng}`;
+          locationGroups.set(key, [job]);
+        }
+      }
+    });
+
+    let markersCreated = 0;
+    // Create one marker per location group
+    locationGroups.forEach((jobsAtLocation, locationKey) => {
+      const [lat, lng] = locationKey.split(',').map(Number);
+      const primaryJob = jobsAtLocation[0]; // Use first job for marker appearance
+      const carouselId = `carousel-${markersCreated}`; // Unique ID for each carousel
+
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        map: mapRef.current,
+        title: jobsAtLocation.length > 1
+          ? `${jobsAtLocation.length} jobs at this location`
+          : primaryJob.title,
+        icon: getMarkerIcon(primaryJob.category, primaryJob.priority),
+        animation: primaryJob.priority === 'high' ? google.maps.Animation.BOUNCE : undefined,
+        label: jobsAtLocation.length > 1 ? {
+          text: String(jobsAtLocation.length),
+          color: 'white',
+          fontSize: '12px',
+          fontWeight: 'bold',
+        } : undefined,
+      });
+
+      markersCreated++;
+
+      // CAROUSEL FOR MULTIPLE JOBS: Create carousel UI if multiple jobs at same location
+      const createJobCard = (job: typeof primaryJob, index: number, total: number) => {
         const categoryDisplay = job.category ? job.category.charAt(0).toUpperCase() + job.category.slice(1) : '';
         const priorityColor = job.priority === 'high' ? '#DC2626' : job.priority === 'low' ? '#059669' : '#F59E0B';
-
-        // Get AI assessment info if available
         const aiAssessment = job.building_assessments && job.building_assessments.length > 0
           ? job.building_assessments.sort((a, b) =>
               new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
             )[0]
           : null;
-
         const severityBadge = aiAssessment ? {
           early: { color: '#10b981', label: 'Minor' },
           midway: { color: '#f59e0b', label: 'Moderate' },
           full: { color: '#ef4444', label: 'Severe' }
         }[aiAssessment.severity] : null;
 
-        const infoWindow = new google.maps.InfoWindow({
-          content: `
-            <div style="padding: 12px; max-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
-                ${job.priority ? `<span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${job.priority.toUpperCase()}</span>` : ''}
-                ${categoryDisplay ? `<span style="background: #F3F4F6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${categoryDisplay}</span>` : ''}
-                ${aiAssessment ? `<span style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">AI</span>` : ''}
-                ${severityBadge ? `<span style="background: ${severityBadge.color}20; color: ${severityBadge.color}; border: 1px solid ${severityBadge.color}40; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${severityBadge.label}</span>` : ''}
-              </div>
-              <h3 style="font-weight: bold; margin: 0 0 8px 0; color: #111827; font-size: 16px;">${job.title}</h3>
-              <p style="color: #6B7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">${job.description.substring(0, 120)}...</p>
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <p style="font-weight: bold; color: #14b8a6; margin: 0; font-size: 18px;">£${Number(job.budget).toLocaleString()}</p>
-                <p style="color: #9CA3AF; margin: 0; font-size: 12px;">${formatLocation(job.property)}</p>
-              </div>
-              ${aiAssessment && aiAssessment.assessment_data?.contractorAdvice?.estimatedCost ? `
-                <div style="background: linear-gradient(135deg, #ede9fe, #fae8ff); border: 1px solid #ddd6fe; padding: 6px 8px; border-radius: 6px; margin-bottom: 12px;">
-                  <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">AI Repair Estimate</div>
-                  <div style="font-size: 13px; font-weight: 600; color: #1f2937;">£${aiAssessment.assessment_data.contractorAdvice.estimatedCost.min.toLocaleString()}-${aiAssessment.assessment_data.contractorAdvice.estimatedCost.max.toLocaleString()}</div>
-                </div>
-              ` : ''}
-              <button
-                onclick="window.open('/contractor/bid/${job.id}/details', '_self')"
-                style="width: 100%; background: #14b8a6; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;"
-                onmouseover="this.style.background='#0D9488'"
-                onmouseout="this.style.background='#14b8a6'"
-              >
-                View Details
-              </button>
+        return `
+          <div class="${carouselId}-job-card-${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: fadeIn 0.3s;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+              ${job.priority ? `<span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${job.priority.toUpperCase()}</span>` : ''}
+              ${categoryDisplay ? `<span style="background: #F3F4F6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${categoryDisplay}</span>` : ''}
+              ${aiAssessment ? `<span style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">AI</span>` : ''}
+              ${severityBadge ? `<span style="background: ${severityBadge.color}20; color: ${severityBadge.color}; border: 1px solid ${severityBadge.color}40; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${severityBadge.label}</span>` : ''}
             </div>
-          `,
-        });
+            <h3 style="font-weight: bold; margin: 0 0 8px 0; color: #111827; font-size: 16px;">${job.title}</h3>
+            <p style="color: #6B7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">${job.description.substring(0, 120)}...</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <p style="font-weight: bold; color: #14b8a6; margin: 0; font-size: 18px;">£${Number(job.budget).toLocaleString()}</p>
+              <p style="color: #9CA3AF; margin: 0; font-size: 12px;">${formatLocation(job.property)}</p>
+            </div>
+            ${aiAssessment && aiAssessment.assessment_data?.contractorAdvice?.estimatedCost ? `
+              <div style="background: linear-gradient(135deg, #ede9fe, #fae8ff); border: 1px solid #ddd6fe; padding: 6px 8px; border-radius: 6px; margin-bottom: 12px;">
+                <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">AI Repair Estimate</div>
+                <div style="font-size: 13px; font-weight: 600; color: #1f2937;">£${aiAssessment.assessment_data.contractorAdvice.estimatedCost.min.toLocaleString()}-${aiAssessment.assessment_data.contractorAdvice.estimatedCost.max.toLocaleString()}</div>
+              </div>
+            ` : ''}
+            <button
+              onclick="window.open('/contractor/bid/${job.id}/details', '_self')"
+              style="width: 100%; background: #14b8a6; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;"
+              onmouseover="this.style.background='#0D9488'"
+              onmouseout="this.style.background='#14b8a6'"
+            >
+              View Details
+            </button>
+          </div>
+        `;
+      };
 
-        marker.addListener('click', () => {
-          infoWindow.open(mapRef.current, marker);
-        });
+      const carouselHTML = `
+        <div style="padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          ${jobsAtLocation.length > 1 ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f9fafb; padding: 8px 12px; border-radius: 8px;">
+              <span style="font-size: 13px; font-weight: 600; color: #374151;">
+                <span id="${carouselId}-index">1</span> of ${jobsAtLocation.length} jobs here
+              </span>
+              <div style="display: flex; gap: 6px;">
+                <button
+                  onclick="window.${carouselId}_prev()"
+                  style="background: white; border: 1px solid #d1d5db; color: #374151; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s;"
+                  onmouseover="this.style.background='#f3f4f6'"
+                  onmouseout="this.style.background='white'"
+                >
+                  ‹
+                </button>
+                <button
+                  onclick="window.${carouselId}_next()"
+                  style="background: white; border: 1px solid #d1d5db; color: #374151; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s;"
+                  onmouseover="this.style.background='#f3f4f6'"
+                  onmouseout="this.style.background='white'"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          ` : ''}
+          <div id="${carouselId}-container">
+            ${jobsAtLocation.map((job, i) => createJobCard(job, i, jobsAtLocation.length)).join('')}
+          </div>
+        </div>
+      `;
 
-        markersRef.current.push(marker);
-        bounds.extend({ lat: job.lat, lng: job.lng });
-      }
+      const infoWindow = new google.maps.InfoWindow({
+        content: carouselHTML,
+      });
+
+      // Carousel navigation logic - use unique function names per marker
+      let currentIndex = 0;
+      (window as any)[`${carouselId}_next`] = () => {
+        document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: none');
+        currentIndex = (currentIndex + 1) % jobsAtLocation.length;
+        document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
+        const indexEl = document.getElementById(`${carouselId}-index`);
+        if (indexEl) indexEl.textContent = String(currentIndex + 1);
+      };
+
+      (window as any)[`${carouselId}_prev`] = () => {
+        document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: none');
+        currentIndex = (currentIndex - 1 + jobsAtLocation.length) % jobsAtLocation.length;
+        document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
+        const indexEl = document.getElementById(`${carouselId}-index`);
+        if (indexEl) indexEl.textContent = String(currentIndex + 1);
+      };
+
+      marker.addListener('click', () => {
+        currentIndex = 0; // Reset to first job when opening
+        infoWindow.open(mapRef.current, marker);
+      });
+
+      markersRef.current.push(marker);
+      bounds.extend({ lat, lng });
     });
 
     // Fit map to markers
@@ -523,54 +615,33 @@ export function ContractorDiscoverClient({
 
   return (
     <ContractorPageWrapper>
-      {/* Hero Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-8 mb-6">
-        <div className="mx-auto">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center">
-                <svg
-                  className="w-9 h-9 text-teal-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-1">
-                  Discover Jobs
-                </h1>
-                <p className="text-gray-600">
-                  Browse available projects and save your favorites
-                </p>
-              </div>
+      {/* Quick Stats Bar */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Browse available projects and save your favorites
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <div className="text-lg font-semibold text-gray-900">
+              {filteredJobsByRadius.length}
             </div>
-
-            {/* Stats */}
-            <div className="text-right">
-              <div className="text-2xl font-semibold text-gray-900 mb-1">
-                {filteredJobsByRadius.length}
-              </div>
-              <div className="text-gray-600 text-sm">
-                Available Jobs
-                {contractorLocation?.latitude && contractorLocation?.longitude && (
-                  <span className="ml-1">within {selectedRadius}km</span>
-                )}
-              </div>
-              {savedJobIds.size > 0 && (
-                <div className="mt-2 text-sm text-teal-600 font-medium">
-                  {savedJobIds.size} Saved
-                </div>
+            <div className="text-gray-600 text-xs">
+              Available Jobs
+              {contractorLocation?.latitude && contractorLocation?.longitude && (
+                <span className="ml-1">within {selectedRadius}km</span>
               )}
             </div>
           </div>
+          {savedJobIds.size > 0 && (
+            <div className="text-right">
+              <div className="text-lg font-semibold text-teal-600">
+                {savedJobIds.size}
+              </div>
+              <div className="text-gray-600 text-xs">
+                Saved
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Validation schema for business card
 const updateCardSchema = z.object({
@@ -25,15 +26,15 @@ const updateCardSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-// Authenticate user
+
+    // Authenticate user
     const user = await getCurrentUserFromCookies();
 
     if (!user) {
       logger.warn('Unauthorized card update attempt', { service: 'contractor' });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is a contractor
@@ -43,12 +44,16 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         role: user.role
       });
-      return NextResponse.json({ error: 'Only contractors can update business cards' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can update business cards');
     }
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = updateCardSchema.parse(body);
+    const validation = updateCardSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid card data');
+    }
+    const validatedData = validation.data;
 
     // Prepare update object
     const updateData: {
@@ -109,7 +114,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         userId: user.id
       });
-      return NextResponse.json({ error: 'Failed to update business card' }, { status: 500 });
+      throw new InternalServerError('Failed to update business card');
     }
 
     logger.info('Business card updated successfully', {
@@ -136,18 +141,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      logger.warn('Invalid business card update data', {
-        service: 'contractor',
-        errors: error.issues
-      });
-      return NextResponse.json({
-        error: 'Invalid card data',
-        details: error.issues
-      }, { status: 400 });
-    }
-
-    logger.error('Unexpected error in update-card', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

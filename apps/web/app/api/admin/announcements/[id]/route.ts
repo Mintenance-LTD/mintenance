@@ -5,6 +5,7 @@ import { AdminCommunicationService } from '@/lib/services/admin/AdminCommunicati
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function PUT(
   request: NextRequest,
@@ -23,7 +24,7 @@ export async function PUT(
     const updated = await AdminCommunicationService.updateAnnouncement(id, body);
 
     if (!updated) {
-      return NextResponse.json({ error: 'Failed to update announcement' }, { status: 500 });
+      throw new InternalServerError('Failed to update announcement');
     }
 
     // Log admin activity
@@ -39,8 +40,7 @@ export async function PUT(
 
     return NextResponse.json(updated);
   } catch (error) {
-    logger.error('Error updating announcement', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -64,7 +64,7 @@ export async function DELETE(
 
     if (error) {
       logger.error('Error deleting announcement', { error: error.message, id });
-      return NextResponse.json({ error: 'Failed to delete announcement' }, { status: 500 });
+      throw new InternalServerError('Failed to delete announcement');
     }
 
     // Log admin activity
@@ -80,8 +80,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error deleting announcement', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

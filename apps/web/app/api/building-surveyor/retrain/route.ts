@@ -9,6 +9,7 @@ import { YOLORetrainingService } from '@/lib/services/building-surveyor/YOLORetr
 import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorrectionService';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/building-surveyor/retrain
@@ -18,10 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // TODO: Check if user has permission (admin only)
@@ -47,17 +45,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    logger.error('Failed to trigger retraining', error, {
-      service: 'YOLORetrainingAPI',
-    });
-
-    return NextResponse.json(
-      { 
-        error: 'Failed to trigger retraining',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -69,10 +57,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     const status = YOLORetrainingService.getStatus();
@@ -86,14 +71,7 @@ export async function GET(request: NextRequest) {
       correctionCounts,
     });
   } catch (error) {
-    logger.error('Failed to get retraining status', error, {
-      service: 'YOLORetrainingAPI',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to get retraining status' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

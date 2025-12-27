@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { env } from '@/lib/env';
+import { handleAPIError, RateLimitError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Lazy-initialize Stripe to avoid errors when STRIPE_SECRET_KEY is not set
 const getStripeInstance = () => {
@@ -55,15 +56,7 @@ export async function POST(request: NextRequest) {
       service: 'stripe-webhook',
       clientIp
     });
-    return NextResponse.json(
-      { error: 'Rate limit exceeded' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': '60'
-        }
-      }
-    );
+    throw new RateLimitError('Too many webhook requests. Please try again later.');
   }
   try {
     // Get the raw body for signature verification
@@ -76,10 +69,7 @@ export async function POST(request: NextRequest) {
       } catch {
         // Logger might fail, ignore it
       }
-      return NextResponse.json(
-        { error: 'Missing stripe-signature header' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Missing stripe-signature header');
     }
 
     if (!webhookSecret) {
@@ -89,13 +79,7 @@ export async function POST(request: NextRequest) {
         service: 'stripe-webhook',
         eventType: 'unknown'
       });
-      return NextResponse.json(
-        {
-          error: 'Webhook endpoint not properly configured',
-          message: 'STRIPE_WEBHOOK_SECRET environment variable is required for webhook signature verification'
-        },
-        { status: 503 } // Service Unavailable - indicates server misconfiguration
-      );
+      throw new InternalServerError('Webhook endpoint not properly configured');
     }
 
     // Verify webhook signature
@@ -106,10 +90,7 @@ export async function POST(request: NextRequest) {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       logger.error('Webhook signature verification failed', err, { service: 'stripe-webhook' });
-      return NextResponse.json(
-        { error: `Webhook signature verification failed: ${errorMessage}` },
-        { status: 400 }
-      );
+      throw new BadRequestError(`Webhook signature verification failed: ${errorMessage}`);
     }
 
     // Validate timestamp to prevent replay attacks (60 second tolerance)
@@ -126,10 +107,7 @@ export async function POST(request: NextRequest) {
         currentTimestamp,
         timeDifference: Math.abs(currentTimestamp - eventTimestamp)
       });
-      return NextResponse.json(
-        { error: 'Event timestamp outside acceptable range' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Event timestamp outside acceptable range');
     }
 
     // Generate idempotency key from event ID and type
@@ -149,10 +127,7 @@ export async function POST(request: NextRequest) {
 
     if (idempotencyError) {
       logger.error('Webhook idempotency check failed', idempotencyError, { service: 'stripe-webhook' });
-      return NextResponse.json(
-        { error: 'Idempotency check failed' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Idempotency check failed');
     }
 
     if (idempotencyResult && idempotencyResult[0]?.is_duplicate) {
@@ -244,19 +219,11 @@ export async function POST(request: NextRequest) {
         p_error_message: errorMessage
       });
 
-      return NextResponse.json(
-        { error: 'Event processing failed', details: errorMessage },
-        { status: 500 }
-      );
+      throw new InternalServerError(`Event processing failed: ${errorMessage}`);
     }
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Webhook handler failed', error, { service: 'stripe-webhook' });
-    return NextResponse.json(
-      { error: 'Webhook handler failed', details: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

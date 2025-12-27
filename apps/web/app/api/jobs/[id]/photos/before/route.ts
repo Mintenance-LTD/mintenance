@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +32,7 @@ export async function POST(
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to upload photos');
     }
 
     // Verify user is contractor for this job
@@ -42,11 +43,11 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.contractor_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Not authorized to upload photos for this job');
     }
 
     const formData = await request.formData();
@@ -54,11 +55,11 @@ export async function POST(
     const geolocationStr = formData.get('geolocation') as string | null;
 
     if (photoFiles.length === 0) {
-      return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
+      throw new BadRequestError('At least one photo is required');
     }
 
     if (photoFiles.length > MAX_FILES) {
-      return NextResponse.json({ error: `Maximum ${MAX_FILES} photos allowed` }, { status: 400 });
+      throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
     let geolocation: { lat: number; lng: number; accuracy?: number } | undefined;
@@ -75,16 +76,16 @@ export async function POST(
     for (const file of photoFiles) {
       // Validate file
       if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json({ error: 'Each photo must be less than 10MB' }, { status: 400 });
+        throw new BadRequestError('Each photo must be less than 10MB');
       }
 
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+        throw new BadRequestError('Invalid file type');
       }
 
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        return NextResponse.json({ error: 'Invalid file extension' }, { status: 400 });
+        throw new BadRequestError('Invalid file extension');
       }
 
       // Upload to storage
@@ -125,7 +126,7 @@ export async function POST(
     }
 
     if (uploadedPhotos.length === 0) {
-      return NextResponse.json({ error: 'Failed to upload photos' }, { status: 500 });
+      throw new Error('Failed to upload photos');
     }
 
     return NextResponse.json({
@@ -134,7 +135,6 @@ export async function POST(
       count: uploadedPhotos.length,
     });
   } catch (error) {
-    logger.error('Error uploading before photos', error);
-    return NextResponse.json({ error: 'Failed to upload photos' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

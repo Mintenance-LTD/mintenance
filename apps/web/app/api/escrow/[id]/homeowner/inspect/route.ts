@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/escrow/:id/homeowner/inspect
@@ -18,7 +19,7 @@ export async function POST(
     const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const escrowId = id;
@@ -39,12 +40,12 @@ export async function POST(
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+      throw new NotFoundError('Escrow not found');
     }
 
     const job = (escrow as any).jobs;
     if (job.homeowner_id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized');
     }
 
     // Update inspection status
@@ -60,7 +61,7 @@ export async function POST(
     return NextResponse.json({ success: true, escrowId });
   } catch (error) {
     logger.error('Error marking inspection completed', error, { service: 'homeowner-inspect' });
-    return NextResponse.json({ error: 'Failed to mark inspection' }, { status: 500 });
+    throw new InternalServerError('Failed to mark inspection');
   }
 }
 

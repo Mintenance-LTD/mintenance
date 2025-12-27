@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -15,18 +16,14 @@ export async function GET(
     const { id: escrowId } = await params;
 
     if (!escrowId) {
-      return NextResponse.json({ error: 'Escrow ID is required' }, { status: 400 });
+      throw new BadRequestError('Escrow ID is required');
     }
 
     const reviewDetails = await AdminEscrowHoldService.getEscrowReviewDetails(escrowId);
 
     return NextResponse.json({ success: true, data: reviewDetails });
   } catch (error) {
-    logger.error('Error fetching review details', error, { service: 'admin-escrow-review-details' });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch review details' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

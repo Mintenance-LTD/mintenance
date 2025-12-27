@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { z } from 'zod';
+import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 // ==========================================================
 // VALIDATION SCHEMAS
@@ -28,10 +30,7 @@ export async function POST(
     // Step 1: Authentication check
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Please sign in to react to messages' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to react to messages');
     }
 
     // Step 2: Validate request body
@@ -39,14 +38,7 @@ export async function POST(
     const parsed = reactionSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          message: 'Invalid emoji format',
-          details: parsed.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid emoji format');
     }
 
     const { emoji } = parsed.data;
@@ -56,10 +48,7 @@ export async function POST(
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(messageId)) {
-      return NextResponse.json(
-        { error: 'Invalid message ID format' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid message ID format');
     }
 
     const supabase = serverSupabase;
@@ -72,10 +61,7 @@ export async function POST(
       .single();
 
     if (messageError || !message) {
-      return NextResponse.json(
-        { error: 'Message not found', message: 'The message you are trying to react to does not exist' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Message not found');
     }
 
     // Step 4: Verify user has access (must be sender or receiver)
@@ -83,10 +69,7 @@ export async function POST(
       message.sender_id === user.id || message.receiver_id === user.id;
 
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'You do not have permission to react to this message' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You do not have permission to react to this message');
     }
 
     // Step 5: Check if reaction already exists (toggle behavior)
@@ -99,8 +82,12 @@ export async function POST(
       .maybeSingle();
 
     if (fetchError) {
-      console.error('Error checking existing reaction:', fetchError);
-      throw new Error('Failed to check existing reaction');
+      logger.error('Error checking existing reaction', fetchError, {
+        service: 'messages',
+        messageId,
+        userId: user.id,
+      });
+      throw fetchError;
     }
 
     if (existingReaction) {
@@ -111,8 +98,12 @@ export async function POST(
         .eq('id', existingReaction.id);
 
       if (deleteError) {
-        console.error('Error deleting reaction:', deleteError);
-        throw new Error('Failed to remove reaction');
+        logger.error('Error deleting reaction', deleteError, {
+          service: 'messages',
+          messageId,
+          userId: user.id,
+        });
+        throw deleteError;
       }
 
       return NextResponse.json({
@@ -132,17 +123,19 @@ export async function POST(
         });
 
       if (insertError) {
-        console.error('Error adding reaction:', insertError);
+        logger.error('Error adding reaction', insertError, {
+          service: 'messages',
+          messageId,
+          userId: user.id,
+          emoji,
+        });
 
         // Handle unique constraint violation gracefully
         if (insertError.code === '23505') {
-          return NextResponse.json(
-            { error: 'Reaction already exists' },
-            { status: 409 }
-          );
+          throw new ConflictError('Reaction already exists');
         }
 
-        throw new Error('Failed to add reaction');
+        throw insertError;
       }
 
       return NextResponse.json({
@@ -153,14 +146,7 @@ export async function POST(
       });
     }
   } catch (error) {
-    console.error('Error handling reaction:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'An unexpected error occurred while processing your reaction',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 
@@ -177,10 +163,7 @@ export async function GET(
     // Step 1: Authentication check
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Please sign in to view reactions' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to view reactions');
     }
 
     const { id: messageId } = await params;
@@ -189,10 +172,7 @@ export async function GET(
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(messageId)) {
-      return NextResponse.json(
-        { error: 'Invalid message ID format' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid message ID format');
     }
 
     const supabase = serverSupabase;
@@ -205,10 +185,7 @@ export async function GET(
       .single();
 
     if (messageError || !message) {
-      return NextResponse.json(
-        { error: 'Message not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Message not found');
     }
 
     // Step 3: Verify access
@@ -216,10 +193,7 @@ export async function GET(
       message.sender_id === user.id || message.receiver_id === user.id;
 
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'You do not have permission to view reactions for this message' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You do not have permission to view reactions for this message');
     }
 
     // Step 4: Fetch all reactions for this message
@@ -230,8 +204,12 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (reactionsError) {
-      console.error('Error fetching reactions:', reactionsError);
-      throw new Error('Failed to fetch reactions');
+      logger.error('Error fetching reactions', reactionsError, {
+        service: 'messages',
+        messageId,
+        userId: user.id,
+      });
+      throw reactionsError;
     }
 
     // Step 5: Group reactions by emoji
@@ -274,14 +252,7 @@ export async function GET(
       totalReactions: reactions?.length || 0,
     });
   } catch (error) {
-    console.error('Error fetching reactions:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'An unexpected error occurred while fetching reactions',
-      },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

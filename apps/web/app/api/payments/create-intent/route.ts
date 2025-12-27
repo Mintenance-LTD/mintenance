@@ -7,6 +7,8 @@ import { paymentIntentSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 
 // Initialize Stripe with secret key (server-side only)
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -24,11 +26,7 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      logger.warn('Unauthorized payment intent creation attempt', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to create payment');
     }
 
     // Validate and sanitize input using Zod schema
@@ -100,7 +98,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         jobId
       });
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
@@ -110,7 +108,7 @@ export async function POST(request: NextRequest) {
         jobId,
         homeownerId: job.homeowner_id
       });
-      return NextResponse.json({ error: 'Only the homeowner can create payments' }, { status: 403 });
+      throw new ForbiddenError('Only the homeowner can create payments');
     }
 
     if (!job.contractor_id) {
@@ -119,7 +117,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         jobId
       });
-      return NextResponse.json({ error: 'Job has no assigned contractor' }, { status: 400 });
+      throw new BadRequestError('Job has no assigned contractor');
     }
 
     // Validate payment amount against job budget or accepted bid
@@ -132,18 +130,29 @@ export async function POST(request: NextRequest) {
       .eq('status', 'accepted')
       .single();
 
-    let maxAllowedAmount: number | null = null;
-    
+    // SECURITY FIX: Always set a maximum, even if no bid or budget exists
+    const DEFAULT_MAX_PAYMENT = 50000; // £50,000 fail-safe maximum
+    let maxAllowedAmount: number = DEFAULT_MAX_PAYMENT;
+
     if (acceptedBid) {
       // Use accepted bid amount as the maximum
       maxAllowedAmount = acceptedBid.amount;
     } else if (job.budget) {
       // Fall back to job budget if no accepted bid
       maxAllowedAmount = job.budget;
+    } else {
+      // No bid or budget - log warning and use fail-safe
+      logger.warn('Payment intent with no bid or budget - using fail-safe maximum', {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        requestedAmount: amount,
+        failSafeMax: DEFAULT_MAX_PAYMENT,
+      });
     }
 
     // Validate amount doesn't exceed maximum allowed
-    if (maxAllowedAmount !== null) {
+    if (maxAllowedAmount) {
       const amountCents = Math.round(amount * 100);
       const maxAllowedCents = Math.round(maxAllowedAmount * 100);
       
@@ -211,23 +220,27 @@ export async function POST(request: NextRequest) {
     // Using UUID for better collision resistance than timestamp
     const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
 
-    // Create Stripe PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: (currency || 'usd').toLowerCase(),
-      description: metadata?.description || `Payment for job: ${job.title}`,
-      metadata: {
-        jobId,
-        homeownerId: user.id,
-        contractorId: job.contractor_id,
-      },
-      // Enable automatic payment methods
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    }, {
-      idempotencyKey: stripeIdempotencyKey,
-    });
+    // Create Stripe PaymentIntent with timeout to prevent hanging requests
+    const paymentIntent = await stripeWithTimeout(
+      () => stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: (currency || 'usd').toLowerCase(),
+        description: metadata?.description || `Payment for job: ${job.title}`,
+        metadata: {
+          jobId,
+          homeownerId: user.id,
+          contractorId: job.contractor_id,
+        },
+        // Enable automatic payment methods
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      }, {
+        idempotencyKey: stripeIdempotencyKey,
+      }),
+      'create-payment-intent',
+      10000 // 10 second timeout
+    );
 
     // Create escrow transaction record
     // CRITICAL FIX: Include payer_id (homeowner) and payee_id (contractor) so payment history queries work

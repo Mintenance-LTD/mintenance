@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 const holdFeeTransferSchema = z.object({
   feeTransferId: z.string().uuid('Invalid fee transfer ID'),
@@ -44,11 +45,7 @@ export async function POST(request: NextRequest) {
       message: 'Fee transfer held successfully',
     });
   } catch (error) {
-    logger.error('Error holding fee transfer', error, { service: 'admin' });
-    return NextResponse.json(
-      { error: 'Failed to hold fee transfer' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

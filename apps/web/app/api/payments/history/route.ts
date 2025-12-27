@@ -4,6 +4,7 @@ import type { EscrowTransaction } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view payment history');
     }
 
     const url = new URL(request.url);
@@ -94,10 +95,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid query parameters');
     }
 
     const { limit, cursor, status } = parsed.data;
@@ -106,7 +104,7 @@ export async function GET(request: NextRequest) {
     if (cursor) {
       const ts = Date.parse(cursor);
       if (Number.isNaN(ts)) {
-        return NextResponse.json({ error: 'Invalid cursor value' }, { status: 400 });
+        throw new BadRequestError('Invalid cursor value');
       }
       cursorIso = new Date(ts).toISOString();
     }
@@ -128,11 +126,11 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query;
     if (error) {
-      logger.error('Failed to load payment history', error, { 
+      logger.error('Failed to load payment history', error, {
         service: 'payments',
         userId: user.id
       });
-      return NextResponse.json({ error: 'Failed to load payments' }, { status: 500 });
+      throw new InternalServerError('Failed to load payments');
     }
 
     const rows = (data ?? []) as EscrowRow[];
@@ -152,9 +150,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ payments, nextCursor: nextCursorValue, limit });
   } catch (err) {
-    logger.error('Failed to load payment history', err, { 
-      service: 'payments'
-    });
-    return NextResponse.json({ error: 'Failed to load payments' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

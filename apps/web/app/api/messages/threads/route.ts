@@ -4,6 +4,7 @@ import type { MessageThread } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import {
   buildThreadParticipants,
   mapMessageRow,
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required to view message threads');
     }
 
     const url = new URL(request.url);
@@ -35,10 +36,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid query parameters');
     }
 
     const { limit, cursor } = parsed.data;
@@ -47,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (cursor) {
       const ts = Date.parse(cursor);
       if (Number.isNaN(ts)) {
-        return NextResponse.json({ error: 'Invalid cursor value' }, { status: 400 });
+        throw new BadRequestError('Invalid cursor value');
       }
       cursorTimestamp = ts;
     }
@@ -250,9 +248,6 @@ export async function GET(request: NextRequest) {
       limit,
     });
   } catch (err) {
-    logger.error('Failed to load message threads', err, {
-      service: 'messages'
-    });
-    return NextResponse.json({ error: 'Failed to load threads' }, { status: 500 });
+    return handleAPIError(err);
   }
 }

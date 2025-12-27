@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { GuaranteeService } from '@/lib/services/payment/GuaranteeService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 const createGuaranteeSchema = z.object({
   jobId: z.string().uuid(),
@@ -30,7 +31,7 @@ export async function POST(  request: NextRequest,
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required for guarantee operations');
     }
 
     const { id: jobId } = await params;
@@ -46,11 +47,11 @@ export async function POST(  request: NextRequest,
         .single();
 
       if (jobError || !job) {
-        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+        throw new NotFoundError('Job not found');
       }
 
       if (!job.contractor_id) {
-        return NextResponse.json({ error: 'Job must have an assigned contractor' }, { status: 400 });
+        throw new BadRequestError('Job must have an assigned contractor');
       }
 
       // Check if contractor is verified
@@ -61,7 +62,7 @@ export async function POST(  request: NextRequest,
         .single();
 
       if (!contractor?.admin_verified) {
-        return NextResponse.json({ error: 'Only verified contractors are eligible for guarantees' }, { status: 400 });
+        throw new BadRequestError('Only verified contractors are eligible for guarantees');
       }
 
       const guaranteeId = await GuaranteeService.createGuarantee(
@@ -72,7 +73,7 @@ export async function POST(  request: NextRequest,
       );
 
       if (!guaranteeId) {
-        return NextResponse.json({ error: 'Failed to create guarantee' }, { status: 500 });
+        throw new Error('Failed to create guarantee');
       }
 
       return NextResponse.json({ message: 'Guarantee created successfully', guaranteeId });
@@ -80,7 +81,7 @@ export async function POST(  request: NextRequest,
 
     if (action === 'claim') {
       if (user.role !== 'homeowner') {
-        return NextResponse.json({ error: 'Only homeowners can submit guarantee claims' }, { status: 403 });
+        throw new ForbiddenError('Only homeowners can submit guarantee claims');
       }
 
       const validation = await validateRequest(request, submitClaimSchema);
@@ -100,13 +101,13 @@ export async function POST(  request: NextRequest,
         .single();
 
       if (guaranteeError || !guarantee) {
-        return NextResponse.json({ error: 'Guarantee not found' }, { status: 404 });
+        throw new NotFoundError('Guarantee not found');
       }
 
       const success = await GuaranteeService.submitClaim(guarantee.id, user.id, reason, evidence || []);
 
       if (!success) {
-        return NextResponse.json({ error: 'Failed to submit claim' }, { status: 500 });
+        throw new Error('Failed to submit claim');
       }
 
       return NextResponse.json({ message: 'Claim submitted successfully' });
@@ -129,22 +130,21 @@ export async function POST(  request: NextRequest,
         .single();
 
       if (!guarantee) {
-        return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
+        throw new NotFoundError('Claim not found');
       }
 
       const success = await GuaranteeService.resolveClaim(guarantee.id, user.id, resolution, payoutAmount);
 
       if (!success) {
-        return NextResponse.json({ error: 'Failed to resolve claim' }, { status: 500 });
+        throw new Error('Failed to resolve claim');
       }
 
       return NextResponse.json({ message: 'Claim resolved successfully' });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    throw new BadRequestError('Invalid action');
   } catch (error) {
-    logger.error('Error handling guarantee', error, { service: 'jobs' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

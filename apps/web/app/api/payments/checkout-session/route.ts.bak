@@ -1,0 +1,116 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getCurrentUserFromCookies } from '@/lib/auth';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { requireCSRF } from '@/lib/csrf';
+import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+
+const bodySchema = z.object({
+  amount: z.number().int().positive(),
+  jobId: z.string().uuid(),
+  contractorId: z.string().uuid(),
+  currency: z.string().trim().min(3).max(10).optional().default('usd'),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // CSRF protection
+    await requireCSRF(request);
+
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid payload', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { amount, jobId, contractorId, currency } = parsed.data;
+    
+    // SECURITY: Fix IDOR - check ownership in query, not after fetch
+    const { data: jobData, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select('id, title, budget, homeowner_id, contractor_id')
+      .eq('id', jobId)
+      .eq('homeowner_id', user.id) // Only fetch if user is homeowner
+      .single();
+
+    if (jobError || !jobData) {
+      // Don't reveal if job exists or not - return generic error
+      logger.warn('Job access denied or not found', {
+        service: 'payments',
+        jobId,
+        userId: user.id,
+        error: jobError?.message,
+      });
+      throw new NotFoundError('Job not found or access denied');
+    }
+
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin && jobData.homeowner_id !== user.id) {
+      throw new ForbiddenError('Only the homeowner can initiate payment checkout');
+    }
+
+    if (!jobData.contractor_id) {
+      throw new BadRequestError('Job does not have an assigned contractor');
+    }
+
+    if (jobData.contractor_id !== contractorId) {
+      throw new BadRequestError('Contractor does not match job assignment');
+    }
+
+    if (amount <= 0) {
+      throw new BadRequestError('Amount must be greater than zero');
+    }
+
+    const metadata = {
+      jobId,
+      jobTitle: jobData.title ?? 'Untitled Job',
+      contractorId,
+      payerId: user.id,
+    };
+
+    const { data: paymentIntent, error: functionError } = await serverSupabase
+      .functions
+      .invoke('create-payment-intent', {
+        body: {
+          amount,
+          currency,
+          metadata,
+          jobId,
+          contractorId,
+        },
+      });
+
+    if (functionError) {
+      logger.error('Failed to create payment intent', functionError, {
+        service: 'payments',
+        jobId,
+        userId: user.id,
+      });
+      return NextResponse.json({ error: 'Failed to create payment intent' }, { status: 502 });
+    }
+
+    if (!paymentIntent?.client_secret) {
+      return NextResponse.json({ error: 'Payment provider did not return a client secret' }, { status: 502 });
+    }
+
+    return NextResponse.json({
+      payment_intent_id: paymentIntent.id,
+      client_secret: paymentIntent.client_secret,
+      amount: paymentIntent.amount ?? amount,
+      currency: paymentIntent.currency ?? currency,
+      status: paymentIntent.status,
+    });
+  } catch (err) {
+    logger.error('Failed to create checkout session', err, { service: 'payments' });
+    // SECURITY: Don't expose error details to client
+    throw new InternalServerError('Failed to create checkout session');
+  }
+}

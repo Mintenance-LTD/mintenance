@@ -4,6 +4,7 @@ import { AdminCommunicationService } from '@/lib/services/admin/AdminCommunicati
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,8 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ announcements, total });
   } catch (error) {
-    logger.error('Error fetching announcements', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { title, content, announcement_type, target_audience, priority, is_published, expires_at, created_by } = body;
 
     if (!title || !content || !created_by) {
-      return NextResponse.json({ error: 'Title, content, and created_by are required' }, { status: 400 });
+      throw new BadRequestError('Title, content, and created_by are required');
     }
 
     const announcement = await AdminCommunicationService.createAnnouncement({
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!announcement) {
-      return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 });
+      throw new InternalServerError('Failed to create announcement');
     }
 
     // Log admin activity
@@ -72,8 +72,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(announcement);
   } catch (error) {
-    logger.error('Error creating announcement', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

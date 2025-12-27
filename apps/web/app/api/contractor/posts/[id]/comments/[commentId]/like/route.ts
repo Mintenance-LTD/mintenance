@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +20,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const { commentId } = await params;
@@ -32,7 +33,7 @@ export async function POST(
       .single();
 
     if (fetchError || !comment) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      throw new NotFoundError('Comment not found');
     }
 
     // For now, we'll just increment/decrement likes_count
@@ -58,7 +59,7 @@ export async function POST(
         commentId,
         userId: user.id,
       });
-      return NextResponse.json({ error: 'Failed to update comment likes', details: updateError.message }, { status: 500 });
+      throw new InternalServerError('Failed to update comment likes');
     }
 
     return NextResponse.json({ 
@@ -69,7 +70,7 @@ export async function POST(
     logger.error('Error in POST /api/contractor/posts/[id]/comments/[commentId]/like', error, {
       service: 'contractor',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

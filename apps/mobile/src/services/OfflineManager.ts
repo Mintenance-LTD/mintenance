@@ -2,8 +2,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import { queryClient } from '../lib/queryClient';
 import NetInfo from '@react-native-community/netinfo';
-import { LocalDatabase } from './LocalDatabase';
+// OFFLINE QUEUE CONSOLIDATION FIX: LocalDatabase removed - using only AsyncStorage for consistency
 
+// =============================================
+// CONFLICT RESOLUTION TYPES
+// =============================================
+
+/**
+ * Conflict resolution strategies for offline sync
+ */
+export type ConflictResolutionStrategy =
+  | 'last-write-wins'      // Default: Most recent timestamp wins
+  | 'server-wins'          // Server data always takes precedence (for critical data)
+  | 'client-wins'          // Client data always takes precedence (for user preferences)
+  | 'manual'               // Requires user intervention via UI dialog
+  | 'merge';               // Attempt intelligent merge based on entity type
+
+/**
+ * Conflict information when offline changes conflict with server state
+ */
+export interface DataConflict {
+  id: string;
+  actionId: string;
+  entity: string;
+  entityId: string;
+  clientVersion: number;
+  serverVersion: number;
+  clientData: any;
+  serverData: any;
+  clientTimestamp: number;
+  serverTimestamp: number;
+  detectedAt: number;
+  strategy: ConflictResolutionStrategy;
+  resolved: boolean;
+  resolution?: 'client' | 'server' | 'merged';
+  mergedData?: any;
+}
+
+/**
+ * Enhanced offline action with version tracking for conflict detection
+ */
 export type OfflineAction = {
   id: string;
   type: 'CREATE' | 'UPDATE' | 'DELETE';
@@ -13,12 +51,19 @@ export type OfflineAction = {
   retryCount: number;
   maxRetries: number;
   queryKey?: string[];
+  // Conflict resolution fields
+  version?: number;           // Optimistic version number
+  entityId?: string;          // ID of the entity being modified
+  baseVersion?: number;       // Server version when action was created
+  strategy?: ConflictResolutionStrategy;
 };
 
-export type SyncStatus = 'syncing' | 'synced' | 'error' | 'pending';
+export type SyncStatus = 'syncing' | 'synced' | 'error' | 'pending' | 'conflict';
 
 class OfflineManagerClass {
   private readonly OFFLINE_QUEUE_KEY = 'OFFLINE_QUEUE';
+  private readonly CONFLICT_QUEUE_KEY = 'CONFLICT_QUEUE';
+  private readonly ENTITY_VERSIONS_KEY = 'ENTITY_VERSIONS';
   private readonly MAX_RETRIES = 3;
   private readonly CHUNK_SIZE = 50; // process actions in manageable chunks
   private syncInProgress = false;
@@ -30,25 +75,14 @@ class OfflineManagerClass {
     status: SyncStatus,
     pendingCount: number
   ) => void)[] = [];
+  // Conflict resolution listeners
+  private conflictListeners: ((conflicts: DataConflict[]) => void)[] = [];
 
+  // OFFLINE QUEUE CONSOLIDATION FIX: Always use AsyncStorage for consistency
+  // LocalDatabase removed - causes storage inconsistency and complexity
+  // AsyncStorage is simpler, more reliable, and works consistently across test/prod
   private get shouldUseAsyncStorage(): boolean {
-    // In tests, prefer:
-    // - LocalDatabase when it's explicitly mocked (simple tests)
-    // - AsyncStorage otherwise
-    const env = (process as any)?.env || {};
-    const isTestEnv = env.NODE_ENV === 'test' || !!env.JEST_WORKER_ID;
-    const hasJest = typeof (global as any).jest !== 'undefined';
-    if (isTestEnv || hasJest) {
-      try {
-        // If LocalDatabase is jest-mocked (fn has .mock), use it in tests
-        const mocked = !!((LocalDatabase as any)?.init?.mock);
-        return !mocked; // use AsyncStorage when LocalDatabase is not mocked
-      } catch {
-        return true;
-      }
-    }
-    // Default to AsyncStorage in app as a safe, simple queue
-    return true;
+    return true; // Always use AsyncStorage for offline queue
   }
 
   async queueAction(
@@ -58,45 +92,47 @@ class OfflineManagerClass {
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     try {
-      if (this.shouldUseAsyncStorage) {
-        // AsyncStorage-backed queue for tests
-        const existing = (await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY)) || '[]';
-        let queue: OfflineAction[];
-        try {
-          queue = JSON.parse(existing);
-        } catch {
-          queue = [];
-        }
-        const queued: OfflineAction = {
-          id: actionId,
-          type: action.type,
-          entity: action.entity,
-          data: action.data,
-          timestamp: Date.now(),
-          retryCount: 0,
-          maxRetries: action.maxRetries || this.MAX_RETRIES,
-          queryKey: action.queryKey,
-        };
-        queue.push(queued);
-        await AsyncStorage.setItem(this.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-      } else {
-        // Initialize local database
-        await LocalDatabase.init();
-        // Queue action in local database
-        await LocalDatabase.queueOfflineAction({
-          id: actionId,
-          type: action.type,
-          entity: action.entity,
-          data: action.data,
-          maxRetries: action.maxRetries || this.MAX_RETRIES,
-          queryKey: action.queryKey,
-        });
+      // OFFLINE QUEUE CONSOLIDATION FIX: Use only AsyncStorage
+      const existing = (await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY)) || '[]';
+      let queue: OfflineAction[];
+      try {
+        queue = JSON.parse(existing);
+      } catch {
+        queue = [];
       }
+
+      // Get current version for version tracking
+      const baseVersion = action.entityId
+        ? await this.getEntityVersion(action.entity, action.entityId)
+        : undefined;
+
+      // Determine conflict resolution strategy
+      const strategy = action.strategy || this.getDefaultStrategy(action.entity, action.type);
+
+      const queued: OfflineAction = {
+        id: actionId,
+        type: action.type,
+        entity: action.entity,
+        data: action.data,
+        timestamp: Date.now(),
+        retryCount: 0,
+        maxRetries: action.maxRetries || this.MAX_RETRIES,
+        queryKey: action.queryKey,
+        version: action.version,
+        entityId: action.entityId,
+        baseVersion,
+        strategy,
+      };
+      queue.push(queued);
+      await AsyncStorage.setItem(this.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
 
       logger.info('Action queued for offline sync', {
         actionId,
         type: action.type,
         entity: action.entity,
+        version: action.version,
+        baseVersion,
+        strategy,
       });
 
       // Try to sync immediately if online
@@ -116,27 +152,13 @@ class OfflineManagerClass {
 
   async getQueue(): Promise<OfflineAction[]> {
     try {
-      if (this.shouldUseAsyncStorage) {
-        const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
-        if (!existing) return [];
-        try {
-          return JSON.parse(existing);
-        } catch (e) {
-          return [];
-        }
-      } else {
-        await LocalDatabase.init();
-        const actions = await LocalDatabase.getOfflineActions();
-        return actions.map((action: any) => ({
-          id: action.id,
-          type: action.type,
-          entity: action.entity,
-          data: JSON.parse(action.data),
-          timestamp: action.created_at,
-          retryCount: action.retry_count,
-          maxRetries: action.max_retries,
-          queryKey: action.query_key ? JSON.parse(action.query_key) : undefined,
-        }));
+      // OFFLINE QUEUE CONSOLIDATION FIX: Use only AsyncStorage
+      const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
+      if (!existing) return [];
+      try {
+        return JSON.parse(existing);
+      } catch (e) {
+        return [];
       }
     } catch (error) {
       logger.error('Failed to get offline queue:', error);
@@ -146,16 +168,8 @@ class OfflineManagerClass {
 
   async clearQueue(): Promise<void> {
     try {
-      if (this.shouldUseAsyncStorage) {
-        await AsyncStorage.removeItem(this.OFFLINE_QUEUE_KEY);
-      } else {
-        await LocalDatabase.init();
-        const actions = await LocalDatabase.getOfflineActions();
-        for (const action of actions) {
-          await LocalDatabase.removeOfflineAction(action.id);
-        }
-      }
-
+      // OFFLINE QUEUE CONSOLIDATION FIX: Use only AsyncStorage
+      await AsyncStorage.removeItem(this.OFFLINE_QUEUE_KEY);
       this.notifySyncListeners('synced', 0);
       logger.info('Offline queue cleared');
     } catch (error) {
@@ -196,15 +210,48 @@ class OfflineManagerClass {
         const batch = queue.slice(start, start + this.CHUNK_SIZE);
         for (const action of batch) {
           try {
+            // Check for conflicts before executing
+            const conflict = await this.detectConflict(action);
+
+            if (conflict) {
+              // Handle conflict based on strategy
+              const resolved = await this.resolveConflict(conflict);
+
+              if (!resolved) {
+                // Manual resolution required - add to conflict queue
+                await this.addToConflictQueue(conflict);
+                this.notifySyncListeners('conflict', failedActions.length);
+                logger.warn('Conflict detected, requires manual resolution', {
+                  actionId: action.id,
+                  entity: action.entity,
+                  entityId: action.entityId,
+                });
+                continue; // Skip this action for now
+              }
+
+              // Conflict resolved automatically - update action data
+              if (conflict.resolution === 'merged' && conflict.mergedData) {
+                action.data = conflict.mergedData;
+              } else if (conflict.resolution === 'server') {
+                // Server wins - skip this action
+                logger.info('Conflict resolved: server version kept', {
+                  actionId: action.id,
+                  entity: action.entity,
+                });
+                continue;
+              }
+              // If client wins, proceed with original action data
+            }
+
             await this.executeAction(action);
             syncedCount++;
 
-            if (this.shouldUseAsyncStorage) {
-              // Removal handled after loop via updated queue snapshot
-            } else {
-              // Remove successful action from database
-              await LocalDatabase.removeOfflineAction(action.id);
+            // Update entity version after successful sync
+            if (action.entityId) {
+              await this.updateEntityVersion(action.entity, action.entityId);
             }
+
+            // OFFLINE QUEUE CONSOLIDATION FIX: Removal handled after loop via AsyncStorage update
 
             // Invalidate related queries
             if (action.queryKey) {
@@ -230,12 +277,7 @@ class OfflineManagerClass {
                 error: (error as Error).message,
               });
             } else {
-              // Remove permanently failed actions
-              if (this.shouldUseAsyncStorage) {
-                // Will be dropped from new queue below
-              } else {
-                await LocalDatabase.removeOfflineAction(action.id);
-              }
+              // OFFLINE QUEUE CONSOLIDATION FIX: Permanently failed actions dropped from queue below
 
               logger.error(
                 'Action failed permanently, removed from queue',
@@ -464,19 +506,14 @@ class OfflineManagerClass {
 
   async getPendingActionsCount(): Promise<number> {
     try {
-      if (this.shouldUseAsyncStorage) {
-        const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
-        if (!existing) return 0;
-        try {
-          const queue = JSON.parse(existing);
-          return Array.isArray(queue) ? queue.length : 0;
-        } catch {
-          return 0;
-        }
-      } else {
-        await LocalDatabase.init();
-        const actions = await LocalDatabase.getOfflineActions();
-        return actions.length;
+      // OFFLINE QUEUE CONSOLIDATION FIX: Use only AsyncStorage
+      const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
+      if (!existing) return 0;
+      try {
+        const queue = JSON.parse(existing);
+        return Array.isArray(queue) ? queue.length : 0;
+      } catch {
+        return 0;
       }
     } catch (error) {
       logger.error('Failed to get pending actions count:', error);
@@ -487,6 +524,469 @@ class OfflineManagerClass {
   async hasPendingActions(): Promise<boolean> {
     const count = await this.getPendingActionsCount();
     return count > 0;
+  }
+
+  // =============================================
+  // CONFLICT RESOLUTION METHODS
+  // =============================================
+
+  /**
+   * Get default conflict resolution strategy for entity type
+   */
+  private getDefaultStrategy(
+    entity: string,
+    type: OfflineAction['type']
+  ): ConflictResolutionStrategy {
+    // Critical data should use server-wins by default
+    if (entity === 'payment' || entity === 'escrow') {
+      return 'server-wins';
+    }
+
+    // User preferences should use client-wins
+    if (entity === 'profile' && type === 'UPDATE') {
+      return 'client-wins';
+    }
+
+    // Messages are create-only, no conflicts
+    if (entity === 'message') {
+      return 'last-write-wins';
+    }
+
+    // Jobs and bids use merge strategy when possible
+    if (entity === 'job' || entity === 'bid') {
+      return 'merge';
+    }
+
+    // Default: last write wins
+    return 'last-write-wins';
+  }
+
+  /**
+   * Get stored version for an entity
+   */
+  private async getEntityVersion(entity: string, entityId: string): Promise<number> {
+    try {
+      const versionsJson = await AsyncStorage.getItem(this.ENTITY_VERSIONS_KEY);
+      if (!versionsJson) return 0;
+
+      const versions = JSON.parse(versionsJson);
+      const key = `${entity}:${entityId}`;
+      return versions[key] || 0;
+    } catch (error) {
+      logger.error('Failed to get entity version:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Update stored version for an entity
+   */
+  private async updateEntityVersion(entity: string, entityId: string): Promise<void> {
+    try {
+      const versionsJson = await AsyncStorage.getItem(this.ENTITY_VERSIONS_KEY);
+      const versions = versionsJson ? JSON.parse(versionsJson) : {};
+
+      const key = `${entity}:${entityId}`;
+      versions[key] = (versions[key] || 0) + 1;
+
+      await AsyncStorage.setItem(this.ENTITY_VERSIONS_KEY, JSON.stringify(versions));
+    } catch (error) {
+      logger.error('Failed to update entity version:', error);
+    }
+  }
+
+  /**
+   * Detect if there's a conflict between offline action and server state
+   */
+  private async detectConflict(action: OfflineAction): Promise<DataConflict | null> {
+    // Only UPDATE operations can have conflicts
+    if (action.type !== 'UPDATE' || !action.entityId) {
+      return null;
+    }
+
+    try {
+      // Fetch current server state
+      const serverData = await this.fetchServerData(action.entity, action.entityId);
+      if (!serverData) {
+        return null; // Entity doesn't exist on server
+      }
+
+      // Check if versions match
+      const currentVersion = await this.getEntityVersion(action.entity, action.entityId);
+      const baseVersion = action.baseVersion || 0;
+
+      // If server has been updated since we created this action, there's a conflict
+      if (serverData.version && serverData.version > baseVersion) {
+        const conflict: DataConflict = {
+          id: `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          actionId: action.id,
+          entity: action.entity,
+          entityId: action.entityId,
+          clientVersion: action.version || currentVersion,
+          serverVersion: serverData.version,
+          clientData: action.data,
+          serverData: serverData,
+          clientTimestamp: action.timestamp,
+          serverTimestamp: new Date(serverData.updatedAt || serverData.updated_at).getTime(),
+          detectedAt: Date.now(),
+          strategy: action.strategy || this.getDefaultStrategy(action.entity, action.type),
+          resolved: false,
+        };
+
+        logger.warn('Conflict detected', {
+          entity: action.entity,
+          entityId: action.entityId,
+          clientVersion: conflict.clientVersion,
+          serverVersion: conflict.serverVersion,
+          strategy: conflict.strategy,
+        });
+
+        return conflict;
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Failed to detect conflict:', error);
+      return null; // On error, assume no conflict and proceed
+    }
+  }
+
+  /**
+   * Fetch current server data for conflict detection
+   */
+  private async fetchServerData(entity: string, entityId: string): Promise<any> {
+    try {
+      switch (entity) {
+        case 'job': {
+          const { JobService } = require('./JobService');
+          return await JobService.getJobById(entityId);
+        }
+        case 'bid': {
+          const { JobService } = require('./JobService');
+          const bids = await JobService.getBidsByJob(entityId);
+          return bids.find((b: any) => b.id === entityId);
+        }
+        case 'profile': {
+          const { UserService } = require('./UserService');
+          return await UserService.getUserProfile(entityId);
+        }
+        case 'message': {
+          // Messages are append-only, no conflicts
+          return null;
+        }
+        default:
+          logger.warn('Unknown entity type for conflict detection:', entity);
+          return null;
+      }
+    } catch (error) {
+      logger.error('Failed to fetch server data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Resolve conflict based on strategy
+   * @returns true if resolved automatically, false if manual resolution needed
+   */
+  private async resolveConflict(conflict: DataConflict): Promise<boolean> {
+    switch (conflict.strategy) {
+      case 'last-write-wins':
+        return this.resolveLastWriteWins(conflict);
+
+      case 'server-wins':
+        conflict.resolved = true;
+        conflict.resolution = 'server';
+        logger.info('Conflict resolved: server-wins strategy', {
+          entity: conflict.entity,
+          entityId: conflict.entityId,
+        });
+        return true;
+
+      case 'client-wins':
+        conflict.resolved = true;
+        conflict.resolution = 'client';
+        logger.info('Conflict resolved: client-wins strategy', {
+          entity: conflict.entity,
+          entityId: conflict.entityId,
+        });
+        return true;
+
+      case 'merge':
+        return this.resolveMerge(conflict);
+
+      case 'manual':
+        return false; // Requires user intervention
+
+      default:
+        return this.resolveLastWriteWins(conflict);
+    }
+  }
+
+  /**
+   * Resolve conflict using last-write-wins strategy
+   */
+  private async resolveLastWriteWins(conflict: DataConflict): Promise<boolean> {
+    if (conflict.clientTimestamp > conflict.serverTimestamp) {
+      conflict.resolved = true;
+      conflict.resolution = 'client';
+      logger.info('Conflict resolved: client write is newer', {
+        entity: conflict.entity,
+        clientTimestamp: conflict.clientTimestamp,
+        serverTimestamp: conflict.serverTimestamp,
+      });
+      return true;
+    } else {
+      conflict.resolved = true;
+      conflict.resolution = 'server';
+      logger.info('Conflict resolved: server write is newer', {
+        entity: conflict.entity,
+        clientTimestamp: conflict.clientTimestamp,
+        serverTimestamp: conflict.serverTimestamp,
+      });
+      return true;
+    }
+  }
+
+  /**
+   * Resolve conflict using intelligent merge strategy
+   */
+  private async resolveMerge(conflict: DataConflict): Promise<boolean> {
+    try {
+      let mergedData: any;
+
+      switch (conflict.entity) {
+        case 'job':
+          mergedData = this.mergeJobData(conflict.clientData, conflict.serverData);
+          break;
+
+        case 'bid':
+          mergedData = this.mergeBidData(conflict.clientData, conflict.serverData);
+          break;
+
+        case 'profile':
+          mergedData = this.mergeProfileData(conflict.clientData, conflict.serverData);
+          break;
+
+        default:
+          // Can't merge - fallback to last-write-wins
+          return this.resolveLastWriteWins(conflict);
+      }
+
+      conflict.resolved = true;
+      conflict.resolution = 'merged';
+      conflict.mergedData = mergedData;
+
+      logger.info('Conflict resolved: data merged', {
+        entity: conflict.entity,
+        entityId: conflict.entityId,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to merge data:', error);
+      return false; // Requires manual resolution
+    }
+  }
+
+  /**
+   * Merge job data intelligently
+   */
+  private mergeJobData(clientData: any, serverData: any): any {
+    return {
+      ...serverData,
+      // Client updates for editable fields
+      title: clientData.title || serverData.title,
+      description: clientData.description || serverData.description,
+      budget: clientData.budget !== undefined ? clientData.budget : serverData.budget,
+      priority: clientData.priority || serverData.priority,
+      // Server wins for status and critical fields
+      status: serverData.status,
+      contractorId: serverData.contractorId,
+      homeownerId: serverData.homeownerId,
+      // Merge photos (union of both sets)
+      photos: Array.from(new Set([
+        ...(serverData.photos || []),
+        ...(clientData.photos || []),
+      ])),
+      // Keep server timestamps
+      createdAt: serverData.createdAt,
+      updatedAt: serverData.updatedAt,
+    };
+  }
+
+  /**
+   * Merge bid data intelligently
+   */
+  private mergeBidData(clientData: any, serverData: any): any {
+    // Bids are mostly immutable - server wins for status changes
+    return {
+      ...serverData,
+      // Client can update description before acceptance
+      description: serverData.status === 'pending'
+        ? (clientData.description || serverData.description)
+        : serverData.description,
+      // Server wins for status and amount
+      status: serverData.status,
+      amount: serverData.amount,
+      updatedAt: serverData.updatedAt,
+    };
+  }
+
+  /**
+   * Merge profile data intelligently
+   */
+  private mergeProfileData(clientData: any, serverData: any): any {
+    return {
+      ...serverData,
+      // Client wins for user preferences
+      name: clientData.name || serverData.name,
+      phone: clientData.phone || serverData.phone,
+      bio: clientData.bio || serverData.bio,
+      // Merge skills (union of both sets)
+      skills: Array.from(new Set([
+        ...(serverData.skills || []),
+        ...(clientData.skills || []),
+      ])),
+      // Server wins for verification status
+      isVerified: serverData.isVerified,
+      rating: serverData.rating,
+      completedJobs: serverData.completedJobs,
+    };
+  }
+
+  /**
+   * Add conflict to queue for manual resolution
+   */
+  private async addToConflictQueue(conflict: DataConflict): Promise<void> {
+    try {
+      const existing = await AsyncStorage.getItem(this.CONFLICT_QUEUE_KEY) || '[]';
+      const queue: DataConflict[] = JSON.parse(existing);
+      queue.push(conflict);
+      await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(queue));
+
+      // Notify listeners about new conflict
+      this.notifyConflictListeners(queue);
+
+      logger.info('Conflict added to queue for manual resolution', {
+        conflictId: conflict.id,
+        entity: conflict.entity,
+      });
+    } catch (error) {
+      logger.error('Failed to add conflict to queue:', error);
+    }
+  }
+
+  /**
+   * Get all pending conflicts
+   */
+  async getConflicts(): Promise<DataConflict[]> {
+    try {
+      const existing = await AsyncStorage.getItem(this.CONFLICT_QUEUE_KEY);
+      if (!existing) return [];
+      return JSON.parse(existing);
+    } catch (error) {
+      logger.error('Failed to get conflicts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Manually resolve a conflict
+   */
+  async resolveConflictManually(
+    conflictId: string,
+    resolution: 'client' | 'server' | 'merged',
+    mergedData?: any
+  ): Promise<void> {
+    try {
+      const conflicts = await this.getConflicts();
+      const conflict = conflicts.find(c => c.id === conflictId);
+
+      if (!conflict) {
+        throw new Error('Conflict not found');
+      }
+
+      conflict.resolved = true;
+      conflict.resolution = resolution;
+      if (mergedData) {
+        conflict.mergedData = mergedData;
+      }
+
+      // Remove from conflict queue
+      const remaining = conflicts.filter(c => c.id !== conflictId);
+      await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(remaining));
+
+      // Apply the resolution
+      if (resolution === 'client' || resolution === 'merged') {
+        const dataToSync = resolution === 'merged' ? mergedData : conflict.clientData;
+
+        // BUGFIX: Update baseVersion to current server version to prevent infinite loop
+        // Re-queue the action with resolved data
+        await this.queueAction({
+          type: 'UPDATE',
+          entity: conflict.entity,
+          entityId: conflict.entityId,
+          data: dataToSync,
+          baseVersion: conflict.serverVersion, // Use server version as new base
+          maxRetries: this.MAX_RETRIES,
+          strategy: 'client-wins', // Force client-wins after manual resolution
+        });
+      }
+      // If server wins, do nothing - server data is already current
+
+      this.notifyConflictListeners(remaining);
+
+      logger.info('Conflict resolved manually', {
+        conflictId,
+        resolution,
+        entity: conflict.entity,
+      });
+    } catch (error) {
+      logger.error('Failed to resolve conflict manually:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all resolved conflicts
+   */
+  async clearResolvedConflicts(): Promise<void> {
+    try {
+      const conflicts = await this.getConflicts();
+      const unresolved = conflicts.filter(c => !c.resolved);
+      await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(unresolved));
+      this.notifyConflictListeners(unresolved);
+    } catch (error) {
+      logger.error('Failed to clear resolved conflicts:', error);
+    }
+  }
+
+  /**
+   * Subscribe to conflict updates
+   */
+  onConflictDetected(callback: (conflicts: DataConflict[]) => void): () => void {
+    this.conflictListeners.push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.conflictListeners.indexOf(callback);
+      if (index > -1) {
+        this.conflictListeners.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify conflict listeners
+   */
+  private notifyConflictListeners(conflicts: DataConflict[]): void {
+    this.conflictListeners.forEach(callback => {
+      try {
+        callback(conflicts);
+      } catch (error) {
+        logger.error('Error in conflict callback:', error);
+      }
+    });
   }
 }
 

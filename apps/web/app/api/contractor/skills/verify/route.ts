@@ -5,6 +5,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { SkillsVerificationService } from '@/lib/services/verification/SkillsVerificationService';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const submitTestSchema = z.object({
   skillId: z.string().uuid(),
@@ -17,11 +18,11 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can submit skills tests' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can submit skills tests');
     }
 
     const validation = await validateRequest(request, submitTestSchema);
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     const result = await SkillsVerificationService.submitTestResults(user.id, skillId, answers);
 
     if (!result.passed && result.error) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      throw new BadRequestError(result.error);
     }
 
     return NextResponse.json({
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Error submitting skills test', error, { service: 'contractor' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

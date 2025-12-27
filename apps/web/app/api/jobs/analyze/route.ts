@@ -4,6 +4,7 @@ import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
 import { validateURLs } from '@/lib/security/url-validation';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * Analyze job description and return suggestions
@@ -11,25 +12,19 @@ import { requireCSRF } from '@/lib/csrf';
  */
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+
+    const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to analyze jobs');
     }
 
     const body = await request.json();
     const { title, description, location, imageUrls } = body;
 
     if (!title && !description && (!imageUrls || imageUrls.length === 0)) {
-      return NextResponse.json(
-        { error: 'Title, description, or image URLs are required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Title, description, or image URLs are required');
     }
 
     // SECURITY: Validate image URLs to prevent SSRF attacks
@@ -42,10 +37,7 @@ const user = await getCurrentUserFromCookies();
           userId: user.id,
           invalidUrls: urlValidation.invalid,
         });
-        return NextResponse.json(
-          { error: `Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
-          { status: 400 }
-        );
+        throw new BadRequestError(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
       }
       validatedImageUrls = urlValidation.valid;
     }
@@ -61,13 +53,7 @@ const user = await getCurrentUserFromCookies();
     return NextResponse.json(analysis);
 
   } catch (error) {
-    logger.error('Error analyzing job', error, {
-      service: 'jobs-analyze',
-    });
-    return NextResponse.json(
-      { error: 'Failed to analyze job description' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { checkGDPRRateLimit } from '@/lib/rate-limiting/admin-gdpr';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/user/export-data
@@ -22,10 +23,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Log the export request for GDPR compliance
@@ -74,11 +72,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error exporting user data', error);
-    return NextResponse.json(
-      { error: 'Failed to export data' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

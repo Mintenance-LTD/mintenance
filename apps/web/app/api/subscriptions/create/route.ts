@@ -6,6 +6,7 @@ import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
 import { z } from 'zod';
+import { handleAPIError, UnauthorizedError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
 const createSubscriptionSchema = z.object({
   planType: z.enum(['free', 'basic', 'professional', 'enterprise']),
@@ -15,22 +16,19 @@ export async function POST(request: NextRequest) {
   try {
     // Validate CSRF
     if (!(await requireCSRF(request))) {
-      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
+      throw new ForbiddenError('CSRF token validation failed');
     }
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const body = await request.json();
     const validation = createSubscriptionSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.flatten() },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request');
     }
 
     const { planType } = validation.data;
@@ -128,10 +126,7 @@ export async function POST(request: NextRequest) {
 
       // If user is trying to subscribe to the same plan and it's active, return error
       if (existingSubscription.planType === planType && effectiveStatus === 'active') {
-        return NextResponse.json(
-          { error: `You are already subscribed to the ${planType} plan` },
-          { status: 400 }
-        );
+        throw new BadRequestError(`You are already subscribed to the ${planType} plan`);
       }
 
       // Check if subscription is incomplete/unpaid/trial/expired - cancel it and create new one
@@ -344,15 +339,7 @@ export async function POST(request: NextRequest) {
       requiresPayment: !!clientSecret,
     });
   } catch (err) {
-    logger.error('Error creating subscription', {
-      service: 'subscriptions',
-      error: err instanceof Error ? err.message : String(err),
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to create subscription', details: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleAPIError(err);
   }
 }
 

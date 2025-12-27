@@ -89,8 +89,21 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
   const [isProcessing, setIsProcessing] = useState(false);
   const [assessmentResults, setAssessmentResults] = useState<any>(null);
 
+  // REQUEST CANCELLATION FIX: Load videos with cleanup
   useEffect(() => {
-    loadCapturedVideos();
+    let isCancelled = false;
+
+    const loadVideos = async () => {
+      if (!isCancelled) {
+        await loadCapturedVideos();
+      }
+    };
+
+    loadVideos();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const loadCapturedVideos = async () => {

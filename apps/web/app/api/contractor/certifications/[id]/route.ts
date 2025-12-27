@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const certificationUpdateSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest, context: Params) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { id } = await context.params;
@@ -40,13 +41,12 @@ export async function GET(request: NextRequest, context: Params) {
       .single();
 
     if (error || !certification) {
-      return NextResponse.json({ error: 'Certification not found' }, { status: 404 });
+      throw new NotFoundError('Certification not found');
     }
 
     return NextResponse.json({ certification });
   } catch (error) {
-    logger.error('Error fetching certification', error, { service: 'contractor-api' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -60,12 +60,16 @@ export async function PUT(request: NextRequest, context: Params) {
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { id } = await context.params;
     const body = await request.json();
-    const validatedData = certificationUpdateSchema.parse(body);
+    const validation = certificationUpdateSchema.safeParse(body);
+    if (!validation.success) {
+      throw new BadRequestError('Invalid request data');
+    }
+    const validatedData = validation.data;
 
     // Verify the certification belongs to the user
     const { data: existingCert, error: checkError } = await serverSupabase
@@ -76,7 +80,7 @@ export async function PUT(request: NextRequest, context: Params) {
       .single();
 
     if (checkError || !existingCert) {
-      return NextResponse.json({ error: 'Certification not found' }, { status: 404 });
+      throw new NotFoundError('Certification not found');
     }
 
     // Build update object
@@ -103,7 +107,7 @@ export async function PUT(request: NextRequest, context: Params) {
         contractorId: user.id,
         certificationId: id,
       });
-      return NextResponse.json({ error: 'Failed to update certification' }, { status: 500 });
+      throw new InternalServerError('Failed to update certification');
     }
 
     logger.info('Certification updated successfully', {
@@ -114,14 +118,7 @@ export async function PUT(request: NextRequest, context: Params) {
 
     return NextResponse.json({ certification });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
-    logger.error('Error updating certification', error, { service: 'contractor-api' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
@@ -135,7 +132,7 @@ export async function DELETE(request: NextRequest, context: Params) {
 
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { id } = await context.params;
@@ -149,7 +146,7 @@ export async function DELETE(request: NextRequest, context: Params) {
       .single();
 
     if (checkError || !existingCert) {
-      return NextResponse.json({ error: 'Certification not found' }, { status: 404 });
+      throw new NotFoundError('Certification not found');
     }
 
     const { error } = await serverSupabase
@@ -164,7 +161,7 @@ export async function DELETE(request: NextRequest, context: Params) {
         contractorId: user.id,
         certificationId: id,
       });
-      return NextResponse.json({ error: 'Failed to delete certification' }, { status: 500 });
+      throw new InternalServerError('Failed to delete certification');
     }
 
     logger.info('Certification deleted successfully', {
@@ -175,7 +172,6 @@ export async function DELETE(request: NextRequest, context: Params) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('Error deleting certification', error, { service: 'contractor-api' });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

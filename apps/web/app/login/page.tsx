@@ -71,6 +71,41 @@ export default function LoginPage() {
   const password = watch('password');
   const rememberMe = watch('rememberMe');
 
+  // SECURITY: Validate redirect URL to prevent open redirect attacks
+  const isAllowedRedirect = (url: string | null): boolean => {
+    if (!url) return false;
+
+    try {
+      // Parse URL to validate it
+      const parsedUrl = new URL(url, window.location.origin);
+
+      // Must be same origin
+      if (parsedUrl.origin !== window.location.origin) {
+        return false;
+      }
+
+      // Allowlist of valid redirect paths
+      const allowedPaths = [
+        '/dashboard',
+        '/contractor',
+        '/jobs',
+        '/profile',
+        '/settings',
+        '/checkout',
+        '/favorites',
+        '/notifications',
+        '/messages',
+        '/video-calls',
+      ];
+
+      // Check if pathname starts with any allowed path
+      return allowedPaths.some(path => parsedUrl.pathname.startsWith(path));
+    } catch {
+      // Invalid URL format
+      return false;
+    }
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     if (!csrfToken) {
       setErrorMessage('Security token not available. Please refresh the page.');
@@ -140,8 +175,8 @@ export default function LoginPage() {
       setSubmitStatus('success');
       // Use the stored redirectParam value
       setTimeout(() => {
-        // Redirect based on user role or specified redirect
-        if (redirectParam) {
+        // SECURITY: Validate redirect URL before using it
+        if (redirectParam && isAllowedRedirect(redirectParam)) {
           router.push(redirectParam);
         } else if (responseData.user?.role === 'contractor') {
           router.push('/contractor/dashboard-enhanced');
@@ -237,6 +272,9 @@ export default function LoginPage() {
                 autoComplete="email"
                 autoFocus
                 showSuccess={!!email && !errors.email}
+                aria-required="true"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : undefined}
                 {...register('email')}
                 error={errors.email?.message}
               />
@@ -246,6 +284,9 @@ export default function LoginPage() {
                 label="Password"
                 placeholder="Enter your password"
                 autoComplete="current-password"
+                aria-required="true"
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? 'password-error' : undefined}
                 {...register('password')}
                 error={errors.password?.message}
                 value={password}

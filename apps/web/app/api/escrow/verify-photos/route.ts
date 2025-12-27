@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const verifyPhotosSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate request
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+      throw new NotFoundError('Escrow not found');
     }
 
     const job = (escrow as any).jobs;
@@ -54,14 +55,14 @@ export async function POST(request: NextRequest) {
       (user.role === 'homeowner' && job.homeowner_id === user.id);
 
     if (!canVerify) {
-      return NextResponse.json({ error: 'Unauthorized to verify photos for this escrow' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized to verify photos for this escrow');
     }
 
     // Verify photos
     const verificationResult = await EscrowReleaseAgent.verifyCompletionPhotos(escrowId, jobId, photoUrls);
 
     if (!verificationResult) {
-      return NextResponse.json({ error: 'Failed to verify photos' }, { status: 500 });
+      throw new InternalServerError('Failed to verify photos');
     }
 
     // Calculate auto-release date if verification passed
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     logger.error('Error verifying escrow photos', error, {
       service: 'escrow-verify-photos',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

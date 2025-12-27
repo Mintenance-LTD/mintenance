@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Handle swipe actions on the Discover page
@@ -16,30 +17,21 @@ export async function POST(request: NextRequest) {
     
     // CSRF protection
     await requireCSRF(request);
-const user = await getCurrentUserFromCookies();
+    const user = await getCurrentUserFromCookies();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required to swipe');
     }
 
     const body = await request.json();
     const { action, itemId, itemType } = body;
 
     if (!action || !itemId || !itemType) {
-      return NextResponse.json(
-        { error: 'Missing required fields: action, itemId, itemType' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Missing required fields: action, itemId, itemType');
     }
 
     if (!['like', 'pass', 'super_like', 'maybe'].includes(action)) {
-      return NextResponse.json(
-        { error: 'Invalid action. Must be: like, pass, super_like, or maybe' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid action. Must be: like, pass, super_like, or maybe');
     }
 
     const isContractor = user.role === 'contractor';
@@ -139,10 +131,7 @@ const user = await getCurrentUserFromCookies();
           contractorId: itemId,
           action: matchAction,
         });
-        return NextResponse.json(
-          { error: 'Failed to save match' },
-          { status: 500 }
-        );
+        throw new InternalServerError('Failed to save match');
       }
 
       // Check for mutual match (contractor also liked this homeowner's job)
@@ -155,18 +144,9 @@ const user = await getCurrentUserFromCookies();
       });
     }
 
-    return NextResponse.json(
-      { error: 'Invalid user role or item type combination' },
-      { status: 400 }
-    );
+    throw new BadRequestError('Invalid user role or item type combination');
   } catch (error) {
-    logger.error('Unexpected error in POST /api/discover/swipe', error, {
-      service: 'discover',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

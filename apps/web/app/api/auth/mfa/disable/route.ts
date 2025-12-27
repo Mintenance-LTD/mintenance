@@ -6,6 +6,7 @@ import { DatabaseManager } from '@/lib/database';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -39,10 +40,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const user = getCurrentUserFromHeaders(request.headers);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Rate limiting - 3 attempts per hour
@@ -58,13 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         userId: user.id,
       });
 
-      return NextResponse.json(
-        {
-          error: 'Too many disable attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        { status: 429 }
-      );
+      throw new RateLimitError('Too many disable attempts. Please try again later.');
     }
 
     // Parse and validate request body
@@ -72,13 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const validation = disableMFASchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: validation.error.errors,
-        },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid request');
     }
 
     const { password } = validation.data;
@@ -95,19 +81,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         userId: user.id,
       });
 
-      return NextResponse.json(
-        { error: 'Invalid password' },
-        { status: 401 }
-      );
+      throw new UnauthorizedError('Invalid password');
     }
 
     // Check if MFA is enabled
     const mfaStatus = await MFAService.getMFAStatus(user.id);
     if (!mfaStatus.enabled) {
-      return NextResponse.json(
-        { error: 'MFA is not enabled' },
-        { status: 400 }
-      );
+      throw new BadRequestError('MFA is not enabled');
     }
 
     // Disable MFA
@@ -123,13 +103,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       message: 'MFA has been disabled. Your account is now protected by password only.',
     });
   } catch (error) {
-    logger.error('Failed to disable MFA', error, {
-      service: 'mfa',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to disable MFA' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

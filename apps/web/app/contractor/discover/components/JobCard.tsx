@@ -43,6 +43,7 @@ interface JobCardProps {
  */
 export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contractorSkills }) => {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Check if job is new (posted within 24 hours)
   const isNewJob = job.created_at && (Date.now() - new Date(job.created_at).getTime()) < 24 * 60 * 60 * 1000;
@@ -141,7 +142,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
       flexDirection: 'column',
     }}>
       {/* Photo Section - Hero Image */}
-      {hasPhotos ? (
+      {hasPhotos && !imageError ? (
         <div style={{
           position: 'relative',
           width: '100%',
@@ -156,6 +157,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
             style={{ objectFit: 'cover' }}
             priority
             sizes="(max-width: 400px) 100vw, 400px"
+            onError={() => setImageError(true)}
+            unoptimized
           />
           
           {/* Category Badge Overlay */}
@@ -217,11 +220,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
           )}
         </div>
       ) : (
-        // Placeholder when no photos
+        // Compact placeholder when no photos
         <div style={{
           position: 'relative',
           width: '100%',
-          aspectRatio: '16/9',
+          height: '120px',
           backgroundColor: theme.colors.backgroundSecondary,
           display: 'flex',
           alignItems: 'center',
@@ -235,12 +238,12 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
             gap: theme.spacing[2],
             color: theme.colors.textTertiary,
           }}>
-            <Icon name="image" size={48} color={theme.colors.textTertiary} />
+            <Icon name="briefcase" size={32} color={theme.colors.textTertiary} />
             <span style={{
-              fontSize: theme.typography.fontSize.sm,
+              fontSize: theme.typography.fontSize.xs,
               color: theme.colors.textTertiary,
             }}>
-              No photos available
+              No photos
             </span>
           </div>
           

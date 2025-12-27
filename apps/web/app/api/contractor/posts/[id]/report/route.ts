@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +21,7 @@ export async function POST(
     const user = await getCurrentUserFromCookies();
     
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const postId = id;
@@ -35,12 +36,12 @@ export async function POST(
       .single();
 
     if (postError || !post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      throw new NotFoundError('Post not found');
     }
 
     // Don't allow users to report their own posts
     if (post.contractor_id === user.id) {
-      return NextResponse.json({ error: 'You cannot report your own post' }, { status: 400 });
+      throw new BadRequestError('You cannot report your own post');
     }
 
     // Flag the post
@@ -58,7 +59,7 @@ export async function POST(
         userId: user.id,
         postId,
       });
-      return NextResponse.json({ error: 'Failed to report post', details: flagError.message }, { status: 500 });
+      throw new InternalServerError('Failed to report post');
     }
 
     return NextResponse.json({ 
@@ -68,7 +69,7 @@ export async function POST(
     logger.error('Error in POST /api/contractor/posts/[id]/report', error, {
       service: 'contractor_posts',
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    throw new InternalServerError('Internal server error');
   }
 }
 

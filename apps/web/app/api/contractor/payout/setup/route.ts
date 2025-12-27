@@ -3,6 +3,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/contractor/payout/setup
@@ -10,18 +11,18 @@ import { requireCSRF } from '@/lib/csrf';
  */
 export async function POST(request: NextRequest) {
   try {
-    
     // CSRF protection
     await requireCSRF(request);
-// Authenticate user
+
+    // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Verify user is a contractor
     if (user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Only contractors can set up payout accounts' }, { status: 403 });
+      throw new ForbiddenError('Only contractors can set up payout accounts');
     }
 
     // Invoke Supabase Edge Function to set up Stripe Connect
@@ -106,12 +107,7 @@ export async function POST(request: NextRequest) {
       message: 'Redirecting to Stripe onboarding...',
     });
   } catch (error) {
-    logger.error('Error setting up contractor payout', error, { service: 'payments' });
-
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to set up payout account' },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

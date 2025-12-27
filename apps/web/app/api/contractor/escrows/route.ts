@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/contractor/escrows
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Contractor authentication required');
     }
 
     const { data: escrows, error } = await serverSupabase
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error('Error fetching contractor escrows', error);
-      return NextResponse.json({ error: 'Failed to fetch escrows' }, { status: 500 });
+      throw new InternalServerError('Failed to fetch escrows');
     }
 
     interface EscrowWithJob {
@@ -66,8 +67,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: formattedEscrows });
   } catch (error) {
-    logger.error('Error in contractor escrows endpoint', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 

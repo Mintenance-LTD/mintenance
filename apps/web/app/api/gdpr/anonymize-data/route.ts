@@ -6,6 +6,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { gdprAnonymizeSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
 // Authenticate user
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate request body
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      throw new BadRequestError('Invalid email format');
     }
 
     if (sanitizedEmail !== user.email) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         providedEmail: email.substring(0, 3) + '***'
       });
-      return NextResponse.json({ error: 'Email does not match your account' }, { status: 400 });
+      throw new BadRequestError('Email does not match your account');
     }
 
     // Check if user already has a pending anonymization request

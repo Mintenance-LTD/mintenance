@@ -3,6 +3,7 @@ import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/admin/building-assessments
@@ -50,14 +51,7 @@ export async function GET(request: NextRequest) {
       statistics,
     });
   } catch (error: unknown) {
-    logger.error('Error fetching assessments', error, {
-      service: 'admin_building_assessments',
-    });
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch assessments';
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
 

@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * POST /api/escrow/:id/request-admin-review
@@ -19,7 +20,7 @@ export async function POST(
     const { id } = await params;
     const user = await getCurrentUserFromCookies();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      throw new UnauthorizedError('Authentication required');
     }
 
     const escrowId = id;
@@ -42,18 +43,18 @@ export async function POST(
       .single();
 
     if (escrowError || !escrow) {
-      return NextResponse.json({ error: 'Escrow not found' }, { status: 404 });
+      throw new NotFoundError('Escrow not found');
     }
 
     const job = (escrow as any).jobs;
     if (job.contractor_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      throw new ForbiddenError('Unauthorized');
     }
 
     // Check if 7 days have passed since auto-approval date
     const autoApprovalDate = escrow.auto_approval_date ? new Date(escrow.auto_approval_date) : null;
     if (!autoApprovalDate) {
-      return NextResponse.json({ error: 'Auto-approval date not set' }, { status: 400 });
+      throw new BadRequestError('Auto-approval date not set');
     }
 
     const daysSinceAutoApproval = (Date.now() - autoApprovalDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -65,7 +66,7 @@ export async function POST(
 
     // Check if homeowner has not approved
     if (escrow.homeowner_approval) {
-      return NextResponse.json({ error: 'Homeowner has already approved' }, { status: 400 });
+      throw new BadRequestError('Homeowner has already approved');
     }
 
     // Set escrow to pending admin review
@@ -78,7 +79,7 @@ export async function POST(
     return NextResponse.json({ success: true, escrowId });
   } catch (error) {
     logger.error('Error requesting admin review', error, { service: 'escrow-request-admin-review' });
-    return NextResponse.json({ error: 'Failed to request admin review' }, { status: 500 });
+    throw new InternalServerError('Failed to request admin review');
   }
 }
 
