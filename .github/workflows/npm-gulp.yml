@@ -1,28 +1,26 @@
-name: NodeJS with Gulp
+# DISABLED: This workflow references gulp which is not used in this project
+# If you need Node.js version compatibility testing, use the ci-enhanced.yml workflow instead
+name: NodeJS with Gulp (DISABLED)
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:  # Only run manually, if needed
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
+    if: false  # Disabled - gulp is not used in this project
 
     steps:
     - uses: actions/checkout@v5
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '20.19.4'
+        cache: 'npm'
 
-    - name: Build
-      run: |
-        npm install
-        gulp
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build packages
+      run: npm run build:packages
