@@ -26,7 +26,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
 
       - name: Build mobile bundle
         run: |
@@ -64,7 +66,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
 
       - name: Build web bundle
         run: |
@@ -112,7 +116,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
 
       - name: Run performance tests
         run: |

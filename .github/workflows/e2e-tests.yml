@@ -33,7 +33,9 @@ jobs:
 
       - name: Install dependencies
         working-directory: .
-        run: npm ci
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
 
       - name: Install Playwright browsers
         working-directory: apps/web
