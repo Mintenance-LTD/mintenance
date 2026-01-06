@@ -10,10 +10,11 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
+import { rateLimiter } from '@/lib/rate-limiter';
 import fs from 'fs';
 import path from 'path';
 import { LRUCache } from 'lru-cache';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, TooManyRequestsError } from '@/lib/errors/api-error';
 
 // Environment configuration for A/B testing
 const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';
@@ -95,9 +96,42 @@ export async function GET(request: NextRequest) {
  * POST /api/building-surveyor/assess
  * 
  * Assess building damage from photos using GPT-4 Vision
+ * OWASP Security: Rate limited to prevent API cost abuse
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting - OWASP best practice: limit expensive AI operations
+    const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                       request.headers.get('x-real-ip') ||
+                       'anonymous';
+
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `building-surveyor:${identifier}`,
+      windowMs: 60000, // 1 minute
+      maxRequests: 5, // 5 requests per minute (expensive AI analysis)
+    });
+
+    if (!rateLimitResult.allowed) {
+      logger.warn('Building surveyor rate limit exceeded', {
+        service: 'building-surveyor-api',
+        identifier,
+        remaining: rateLimitResult.remaining,
+        retryAfter: rateLimitResult.retryAfter,
+      });
+
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(rateLimitResult.resetTime / 1000)),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+          },
+        }
+      );
+    }
     
     // CSRF protection
     await requireCSRF(request);

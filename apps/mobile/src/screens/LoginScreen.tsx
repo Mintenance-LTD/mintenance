@@ -46,8 +46,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const headerTitleText = useAccessibleText(28);
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
-  useAccessibleText(16); // inputText (style uses fixed size)
-  // const { colors } = useAccessibleColors();
+  // Note: Input text uses fixed size from theme, no accessible text hook needed
 
   // Haptic feedback
   const haptics = useHaptics();

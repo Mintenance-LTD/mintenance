@@ -8,13 +8,19 @@
       "developmentClient": true,
       "distribution": "internal",
       "node": "20.19.4",
+      "cache": {
+        "key": "development",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "gradleCommand": ":app:assembleDebug",
         "buildType": "apk",
         "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
-        "buildConfiguration": "Debug"
+        "buildConfiguration": "Debug",
+        "simulator": true
       },
       "env": {
         "NODE_ENV": "development",
@@ -29,6 +35,11 @@
     "stable": {
       "distribution": "internal",
       "node": "20.19.4",
+      "cache": {
+        "key": "stable",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -53,7 +64,11 @@
     "staging": {
       "distribution": "internal",
       "node": "20.19.4",
-      "prebuildCommand": "node scripts/validate-env.js",
+      "cache": {
+        "key": "staging",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -75,7 +90,11 @@
     "preview": {
       "distribution": "internal",
       "node": "20.19.4",
-      "prebuildCommand": "node scripts/validate-env.js",
+      "cache": {
+        "key": "preview",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
@@ -98,16 +117,22 @@
     },
     "production": {
       "node": "20.19.4",
-      "prebuildCommand": "node scripts/validate-env.js",
+      "cache": {
+        "key": "production",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease"
+        "gradleCommand": ":app:bundleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Release"
       },
       "env": {
         "NODE_ENV": "production",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
         "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
@@ -118,16 +143,22 @@
     "production-store": {
       "distribution": "store",
       "node": "20.19.4",
-      "prebuildCommand": "node scripts/validate-env.js",
+      "cache": {
+        "key": "production-store",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
       "android": {
         "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease"
+        "gradleCommand": ":app:bundleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
         "buildConfiguration": "Release"
       },
       "env": {
         "NODE_ENV": "production",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
         "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",

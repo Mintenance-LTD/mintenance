@@ -10,7 +10,7 @@
  * - Log batching for efficiency
  */
 
-import { Logger as BaseLogger, LogLevel, LogContext } from './logger';
+import { LogLevel, LogContext } from './logger';
 
 export interface LogTransport {
   name: string;
@@ -59,8 +59,9 @@ export interface LoggerConfig {
 
 /**
  * Enhanced Logger with production features
+ * Note: This is a standalone implementation, not extending BaseLogger to avoid signature conflicts
  */
-export class EnhancedLogger extends BaseLogger {
+export class EnhancedLogger {
   private config: Required<LoggerConfig>;
   private buffer: LogEntry[] = [];
   private flushTimer?: NodeJS.Timeout;
@@ -69,8 +70,6 @@ export class EnhancedLogger extends BaseLogger {
   private performanceStartTimes: Map<string, number> = new Map();
 
   constructor(config: LoggerConfig = {}) {
-    super();
-
     this.config = {
       service: config.service || 'mintenance',
       environment: config.environment || process.env.NODE_ENV || 'development',

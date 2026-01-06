@@ -17,7 +17,7 @@ import {
   AIServiceConfig
 } from '@mintenance/ai-core/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Config from 'react-native-config';
+import { config } from '../config/environment';
 
 // Mobile-specific configuration
 const mobileConfig: AIServiceConfig = {
@@ -25,10 +25,10 @@ const mobileConfig: AIServiceConfig = {
     // These are handled server-side for security
   },
   endpoints: {
-    buildingSurveyor: Config.API_URL + '/api/building-surveyor/assess',
-    agents: Config.API_URL + '/api/agents',
-    search: Config.API_URL + '/api/ai/search',
-    training: Config.API_URL + '/api/training'
+    buildingSurveyor: config.apiBaseUrl + '/api/building-surveyor/assess',
+    agents: config.apiBaseUrl + '/api/agents',
+    search: config.apiBaseUrl + '/api/ai/search',
+    training: config.apiBaseUrl + '/api/training'
   },
   limits: {
     daily: 100,

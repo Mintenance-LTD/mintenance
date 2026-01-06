@@ -26,7 +26,7 @@ import {
   Activity,
 } from 'lucide-react';
 import Image from 'next/image';
-import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
+import { Bot, Settings } from 'lucide-react';
 
 interface ContractorDashboardProfessionalProps {
   data: {
@@ -525,9 +525,31 @@ export function ContractorDashboardProfessional({ data }: ContractorDashboardPro
           })}
         </section>
 
-        {/* AI Agent Automation Panel */}
+        {/* AI Agent Automation Summary */}
         <section>
-          <AgentAutomationPanel />
+            <Link
+            href="/contractor/settings?section=automation"
+            className="group bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300 block"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">AI Agent Automation</h3>
+                  <p className="text-sm text-slate-500">Control how AI agents assist you</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-indigo-600 group-hover:text-indigo-700">
+                <span className="text-sm font-medium">Manage</span>
+                <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
+              Configure automation levels, bid acceptance, smart pricing, and more in your settings.
+            </p>
+          </Link>
         </section>
 
         {/* Recent Activity Feed */}

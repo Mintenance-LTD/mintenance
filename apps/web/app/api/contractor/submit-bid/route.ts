@@ -249,8 +249,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           .eq('job_id', validatedData.jobId)
           .neq('status', 'withdrawn');
 
-        const budgetReduced = existingBids?.some(bid => {
-          const bidAmount = (bid as any).amount || 0;
+        const budgetReduced = existingBids?.some((bid: { amount: number | null; contractor_id: string; status: string }) => {
+          const bidAmount = bid.amount || 0;
           const bidAmountCents = Math.round(bidAmount * 100);
           return bidAmountCents > budgetCents;
         });
@@ -320,8 +320,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       hasProposedStartDate: !!validatedData.proposedStartDate,
       estimatedDuration: validatedData.estimatedDuration,
       proposedStartDate: validatedData.proposedStartDate,
-      bidPayloadEstimatedDuration: (bidPayload as any).estimated_duration,
-      bidPayloadProposedStartDate: (bidPayload as any).proposed_start_date,
+      // Note: estimated_duration and proposed_start_date are not included in payload
+      // due to potential schema variations - see TODO above
     });
 
     // Process bid creation or update

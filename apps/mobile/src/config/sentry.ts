@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react-native';
-import { init } from 'sentry-expo';
 import { User } from '../types';
 import { setSentryFunctions, logger } from '../utils/logger';
 import { config, isFeatureEnabled } from './environment';
@@ -20,11 +19,10 @@ export const initSentry = () => {
     return;
   }
 
-  // Use sentry-expo for initialization
-  init({
+  // Use @sentry/react-native directly for initialization (removed sentry-expo for security)
+  Sentry.init({
     dsn: config.sentryDsn,
     environment: config.environment,
-    enableInExpoDevelopment: false,
     debug: config.environment === 'development',
     beforeSend(event) {
       // Don't send events in development unless explicitly enabled
@@ -120,7 +118,7 @@ export const startTransaction = (name: string, op: string) => {
     logger.debug(`Transaction started: ${name} (${op})`);
     return null;
   }
-  // Use breadcrumbs for tracking instead of transactions in sentry-expo
+  // Use breadcrumbs for tracking performance
   Sentry.addBreadcrumb({
     message: `Transaction started: ${name}`,
     level: 'info',

@@ -258,3 +258,6 @@ export const SkeletonImage = React.forwardRef<HTMLDivElement, SkeletonImageProps
 SkeletonImage.displayName = 'SkeletonImage';
 
 export default Skeleton;
+
+// Named export for named imports
+export { Skeleton };

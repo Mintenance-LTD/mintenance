@@ -118,11 +118,23 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
     });
 
-    // Get ratings for contractors
+    // Get ratings for contractors (reviews are linked through jobs)
+    interface ReviewWithJob {
+      rating: number;
+      job: {
+        contractor_id: string;
+      } | null;
+    }
+
     const { data: reviews, error: reviewsError } = await supabase
       .from('reviews')
-      .select('contractor_id, rating')
-      .in('contractor_id', contractorIds);
+      .select(`
+        rating,
+        job:job_id (
+          contractor_id
+        )
+      `)
+      .not('job_id', 'is', null) as { data: ReviewWithJob[] | null; error: any };
 
     if (reviewsError) {
       logger.error('Error fetching contractor reviews', reviewsError, {
@@ -134,8 +146,15 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     // Aggregate ratings
     const ratingsMap = new Map<string, { total: number; count: number }>();
     reviews?.forEach(review => {
-      const existing = ratingsMap.get(review.contractor_id) || { total: 0, count: 0 };
-      ratingsMap.set(review.contractor_id, {
+      // Skip reviews without job or contractor_id
+      if (!review.job || !review.job.contractor_id) return;
+
+      const contractorId = review.job.contractor_id;
+      // Only process reviews for the contractors we're interested in
+      if (!contractorIds.includes(contractorId)) return;
+
+      const existing = ratingsMap.get(contractorId) || { total: 0, count: 0 };
+      ratingsMap.set(contractorId, {
         total: existing.total + review.rating,
         count: existing.count + 1
       });

@@ -1,15 +1,13 @@
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import {
-  Image,
   View,
   StyleSheet,
   ActivityIndicator,
   Text,
   ImageStyle,
   ViewStyle,
-  ImageResizeMode,
-  Platform,
 } from 'react-native';
+import { Image, ImageContentFit, ImageTransition } from 'expo-image';
 import { useImageOptimization } from '../../hooks/usePerformance';
 
 // ============================================================================
@@ -17,11 +15,14 @@ import { useImageOptimization } from '../../hooks/usePerformance';
 // ============================================================================
 
 export interface OptimizedImageProps {
-  source: { uri: string } | number;
+  source: { uri: string } | number | string;
   style?: ImageStyle;
   containerStyle?: ViewStyle;
-  resizeMode?: ImageResizeMode;
-  placeholder?: React.ReactNode;
+  contentFit?: ImageContentFit;
+  /** @deprecated Use contentFit instead */
+  resizeMode?: ImageContentFit;
+  placeholder?: React.ReactNode | string;
+  placeholderContentFit?: ImageContentFit;
   errorComponent?: React.ReactNode;
   loadingComponent?: React.ReactNode;
   onLoad?: () => void;
@@ -31,12 +32,21 @@ export interface OptimizedImageProps {
   testID?: string;
   accessibilityLabel?: string;
   preload?: boolean;
+  transition?: ImageTransition;
+  /** @deprecated Use transition instead */
   fade?: boolean;
+  /** @deprecated Use transition instead */
   fadeDuration?: number;
   quality?: 'low' | 'medium' | 'high';
   priority?: 'low' | 'normal' | 'high';
+  cachePolicy?: 'none' | 'disk' | 'memory' | 'memory-disk';
+  /** @deprecated Use cachePolicy instead */
   cache?: 'default' | 'reload' | 'force-cache' | 'only-if-cached';
   blurRadius?: number;
+  /** expo-image blurhash for fast placeholder */
+  blurhash?: string;
+  /** Use recycling for better list performance */
+  recyclingKey?: string;
 }
 
 interface ImageState {
@@ -54,8 +64,10 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     source,
     style,
     containerStyle,
+    contentFit,
     resizeMode = 'cover',
     placeholder,
+    placeholderContentFit = 'cover',
     errorComponent,
     loadingComponent,
     onLoad,
@@ -65,13 +77,20 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     testID,
     accessibilityLabel,
     preload = false,
+    transition,
     fade = true,
     fadeDuration = 300,
     quality = 'medium',
     priority = 'normal',
-    cache = 'default',
+    cachePolicy = 'memory-disk',
+    cache,
     blurRadius,
+    blurhash,
+    recyclingKey,
   } = props;
+
+  // Use contentFit if provided, otherwise fall back to resizeMode (deprecated)
+  const imageContentFit = contentFit || resizeMode;
 
   // ============================================================================
   // STATE & HOOKS
@@ -281,13 +300,26 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     );
   }
 
-  // Show actual image
+  // Calculate transition settings
+  const imageTransition = useMemo((): ImageTransition | undefined => {
+    if (transition) return transition;
+    if (!fade) return undefined;
+    return {
+      duration: fadeDuration,
+      effect: 'cross-dissolve',
+    };
+  }, [transition, fade, fadeDuration]);
+
+  // Show actual image using expo-image
   return (
     <View style={containerStyles} testID={testID}>
       <Image
         source={optimizedSource}
         style={[imageStyles, animatedStyles]}
-        resizeMode={resizeMode}
+        contentFit={imageContentFit}
+        placeholder={blurhash ? { blurhash } : undefined}
+        placeholderContentFit={placeholderContentFit}
+        transition={imageTransition}
         onLoadStart={handleLoadStart}
         onLoad={handleLoad}
         onError={handleError}
@@ -295,17 +327,10 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
         accessibilityLabel={accessibilityLabel}
         blurRadius={blurRadius}
         testID={`${testID}-image`}
-        // Performance optimizations
-        {...(Platform.OS === 'android' && {
-          fadeDuration: fade ? fadeDuration : 0,
-        })}
-        {...(Platform.OS === 'ios' && {
-          resizeMethod: 'resize',
-        })}
-        {...(isRemoteImage && {
-          cache,
-          priority,
-        })}
+        // expo-image performance optimizations
+        cachePolicy={cachePolicy}
+        priority={priority}
+        recyclingKey={recyclingKey}
       />
     </View>
   );

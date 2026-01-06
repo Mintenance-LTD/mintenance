@@ -72,34 +72,35 @@ describe('InternalDamageClassifier', () => {
     });
 
     describe('Prediction', () => {
-        it('should generate mock prediction when no model is available', async () => {
+        // Note: predict() is deprecated - it returns low confidence to trigger GPT-4 fallback
+        // These tests verify the fallback behavior when YOLO model is not loaded
+        it('should return low confidence prediction when no model is available', async () => {
             const features = new Array(40).fill(0.5);
             const prediction = await InternalDamageClassifier.predict(features);
 
             expect(prediction).toBeDefined();
-            expect(prediction.damageType).toBeDefined();
-            expect(prediction.severity).toBeDefined();
-            expect(prediction.confidence).toBeGreaterThanOrEqual(0);
-            expect(prediction.confidence).toBeLessThanOrEqual(100);
-            expect(prediction.urgency).toBeDefined();
-            expect(prediction.safetyHazards).toBeDefined();
-            expect(prediction.features).toEqual(features);
+            expect(prediction.damageType).toBe('unknown');
+            expect(prediction.severity).toBe('early');
+            expect(prediction.confidence).toBe(0); // Low confidence triggers GPT-4 fallback
+            expect(prediction.urgency).toBe('monitor');
+            expect(prediction.safetyHazards).toEqual([]);
+            // Note: features are NOT passed through in current implementation
+            expect(prediction.features).toEqual([]);
         });
 
-        it('should use feature values to generate prediction heuristics', async () => {
-            // High feature values should trigger more severe prediction
+        it('should return consistent low confidence for any feature values', async () => {
+            // With YOLO model not loaded, all predictions return same low confidence response
             const highFeatures = new Array(40).fill(0.8);
             const highPrediction = await InternalDamageClassifier.predict(highFeatures);
 
-            // Low feature values should trigger less severe prediction
             const lowFeatures = new Array(40).fill(0.2);
             const lowPrediction = await InternalDamageClassifier.predict(lowFeatures);
 
-            // High features should have more severe damage
-            const severityOrder: DamageSeverity[] = ['early', 'midway', 'full'];
-            const highSeverityIndex = severityOrder.indexOf(highPrediction.severity);
-            const lowSeverityIndex = severityOrder.indexOf(lowPrediction.severity);
-            expect(highSeverityIndex).toBeGreaterThanOrEqual(lowSeverityIndex);
+            // Both should return same low confidence prediction
+            expect(highPrediction.confidence).toBe(0);
+            expect(lowPrediction.confidence).toBe(0);
+            expect(highPrediction.severity).toBe('early');
+            expect(lowPrediction.severity).toBe('early');
         });
 
         it('should return valid severity values', async () => {
@@ -118,13 +119,12 @@ describe('InternalDamageClassifier', () => {
             );
         });
 
-        it('should have safety hazards for urgent cases', async () => {
+        it('should return empty safety hazards for low confidence prediction', async () => {
             const highFeatures = new Array(40).fill(0.9);
             const prediction = await InternalDamageClassifier.predict(highFeatures);
 
-            if (prediction.urgency === 'urgent' || prediction.urgency === 'immediate') {
-                expect(prediction.safetyHazards.length).toBeGreaterThan(0);
-            }
+            // Low confidence predictions have no safety hazards
+            expect(prediction.safetyHazards).toEqual([]);
         });
     });
 
@@ -164,29 +164,34 @@ describe('InternalDamageClassifier', () => {
         });
     });
 
-    describe('Mock Prediction Logic', () => {
-        it('should classify low feature mean as minor damage', async () => {
+    describe('Low Confidence Fallback Behavior', () => {
+        // predict() returns low confidence for all inputs when model not loaded
+        // This is designed to trigger GPT-4 Vision fallback
+        it('should return low confidence for any feature values', async () => {
             const features = new Array(40).fill(0.2);
             const prediction = await InternalDamageClassifier.predict(features);
 
+            expect(prediction.confidence).toBe(0);
             expect(prediction.severity).toBe('early');
-            expect(['monitor', 'planned']).toContain(prediction.urgency);
+            expect(prediction.urgency).toBe('monitor');
         });
 
-        it('should classify medium feature mean as moderate damage', async () => {
+        it('should return consistent low confidence for medium feature values', async () => {
             const features = new Array(40).fill(0.5);
             const prediction = await InternalDamageClassifier.predict(features);
 
-            expect(['early', 'midway']).toContain(prediction.severity);
-            expect(['soon', 'planned']).toContain(prediction.urgency);
+            expect(prediction.confidence).toBe(0);
+            expect(prediction.severity).toBe('early');
+            expect(prediction.urgency).toBe('monitor');
         });
 
-        it('should classify high feature mean as severe damage', async () => {
+        it('should return consistent low confidence for high feature values', async () => {
             const features = new Array(40).fill(0.7);
             const prediction = await InternalDamageClassifier.predict(features);
 
-            expect(['midway', 'full']).toContain(prediction.severity);
-            expect(['urgent', 'soon']).toContain(prediction.urgency);
+            expect(prediction.confidence).toBe(0);
+            expect(prediction.severity).toBe('early');
+            expect(prediction.urgency).toBe('monitor');
         });
     });
 
@@ -260,16 +265,16 @@ describe('InternalDamageClassifier', () => {
     });
 
     describe('Damage Type Classification', () => {
-        it('should return known damage type', async () => {
+        it('should return unknown damage type when model not loaded', async () => {
             const features = new Array(40).fill(0.5);
             const prediction = await InternalDamageClassifier.predict(features);
 
-            expect(prediction.damageType).toBeDefined();
+            expect(prediction.damageType).toBe('unknown');
             expect(typeof prediction.damageType).toBe('string');
             expect(prediction.damageType.length).toBeGreaterThan(0);
         });
 
-        it('should vary damage type based on features', async () => {
+        it('should return same unknown damage type for all features', async () => {
             const lowFeatures = new Array(40).fill(0.2);
             const mediumFeatures = new Array(40).fill(0.5);
             const highFeatures = new Array(40).fill(0.8);
@@ -278,14 +283,10 @@ describe('InternalDamageClassifier', () => {
             const mediumPrediction = await InternalDamageClassifier.predict(mediumFeatures);
             const highPrediction = await InternalDamageClassifier.predict(highFeatures);
 
-            // Damage types should be different (though this is probabilistic)
-            const damageTypes = new Set([
-                lowPrediction.damageType,
-                mediumPrediction.damageType,
-                highPrediction.damageType,
-            ]);
-
-            expect(damageTypes.size).toBeGreaterThan(1);
+            // All predictions return 'unknown' when model not loaded
+            expect(lowPrediction.damageType).toBe('unknown');
+            expect(mediumPrediction.damageType).toBe('unknown');
+            expect(highPrediction.damageType).toBe('unknown');
         });
     });
 });

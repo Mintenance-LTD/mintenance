@@ -109,7 +109,13 @@ export function PayoutsPageClient({
   }, []);
 
   const handleSetupStripeConnect = async () => {
+    console.log('🔵 Setup button clicked');
+    console.log('🔵 CSRF Token:', csrfToken);
+    console.log('🔵 CSRF Loading:', csrfLoading);
+    console.log('🔵 CSRF Error:', csrfError);
+
     if (!csrfToken) {
+      console.log('🔴 No CSRF token available');
       setError('Security token not loaded. Please refresh the page and try again.');
       return;
     }
@@ -119,6 +125,7 @@ export function PayoutsPageClient({
       setError('');
       setSuccess('');
 
+      console.log('🔵 Making API request to /api/contractor/payout/setup');
       const response = await fetch('/api/contractor/payout/setup', {
         method: 'POST',
         headers: {
@@ -128,19 +135,26 @@ export function PayoutsPageClient({
         credentials: 'include',
       });
 
+      console.log('🔵 Response status:', response.status);
       const data = await response.json();
+      console.log('🔵 Response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to set up payout account');
+        console.log('🔴 Response not OK:', data.error);
+        const errorMessage = data.error?.message || data.error || 'Failed to set up payout account';
+        throw new Error(errorMessage);
       }
 
       // Redirect to Stripe onboarding
       if (data.accountUrl) {
+        console.log('🟢 Redirecting to:', data.accountUrl);
         window.location.href = data.accountUrl;
       } else {
+        console.log('🔴 No accountUrl in response');
         throw new Error('No onboarding URL returned');
       }
     } catch (err) {
+      console.log('🔴 Error caught:', err);
       setError(err instanceof Error ? err.message : 'Failed to set up payout account');
     } finally {
       setIsSubmitting(false);

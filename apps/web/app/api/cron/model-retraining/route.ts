@@ -8,7 +8,7 @@
  * - Distribution drift detection
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { logger } from '@mintenance/shared';
 import { YOLORetrainingService } from '@/lib/services/building-surveyor/YOLORetrainingService';
@@ -17,6 +17,7 @@ import { DriftMonitorService } from '@/lib/services/building-surveyor/DriftMonit
 import { ModelEvaluationService } from '@/lib/services/building-surveyor/ModelEvaluationService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 // ============================================================================
 // CONFIGURATION
@@ -79,14 +80,12 @@ interface CronJobResult {
 // MAIN CRON HANDLER
 // ============================================================================
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Verify cron authentication (Vercel cron or admin)
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      logger.warn('Unauthorized model retraining cron attempt');
-      throw new UnauthorizedError('Authentication required');
+    // Verify cron authentication using consistent auth method
+    const authError = requireCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     logger.info('Starting model retraining cron job', { config: CONFIG });

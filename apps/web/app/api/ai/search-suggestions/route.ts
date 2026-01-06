@@ -2,13 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { rateLimiter } from '@/lib/rate-limiter';
 
+/**
+ * AI-powered search suggestions endpoint
+ * OWASP Security: Rate limited to 20 requests per minute per IP
+ */
 export async function POST(request: NextRequest) {
   try {
-    
+    // Rate limiting - OWASP best practice
+    const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                       request.headers.get('x-real-ip') ||
+                       'anonymous';
+
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `ai-suggestions:${identifier}`,
+      windowMs: 60000, // 1 minute
+      maxRequests: 20, // 20 requests per minute
+    });
+
+    if (!rateLimitResult.allowed) {
+      logger.warn('AI suggestions rate limit exceeded', {
+        service: 'ai_search_suggestions',
+        identifier,
+        remaining: rateLimitResult.remaining,
+      });
+
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '20',
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(rateLimitResult.resetTime / 1000)),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+          },
+        }
+      );
+    }
+
     // CSRF protection
     await requireCSRF(request);
-const { query, limit = 10 } = await request.json();
+    const { query, limit = 10 } = await request.json();
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(

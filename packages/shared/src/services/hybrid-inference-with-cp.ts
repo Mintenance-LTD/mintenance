@@ -94,8 +94,8 @@ export class EnhancedHybridInferenceService {
       requireHighConfidence
     );
 
-    // Get conformal prediction interval
-    const predictionInterval = await conformalPrediction.getPredictionInterval(
+    // Get conformal prediction interval (mutable since it may be updated for GPT-4 predictions)
+    let predictionInterval = await conformalPrediction.getPredictionInterval(
       internalPrediction.scores,
       propertyAgeCategory,
       this.extractDamageType(imageUrls), // Simplified for example

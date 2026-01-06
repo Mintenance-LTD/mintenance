@@ -9,6 +9,7 @@ import { logger } from '@mintenance/shared';
 import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import { BUSINESS_RULES } from '@mintenance/shared';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -375,18 +376,19 @@ export async function POST(request: NextRequest) {
 
     const payload = parsed.data;
 
-    // BUSINESS RULE: Jobs over £500 MUST have images
-    if (payload.budget && payload.budget > 500) {
+    // BUSINESS RULE: High-budget jobs MUST have images
+    const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
+    if (payload.budget && payload.budget > budgetThreshold) {
       const hasImages = payload.photoUrls && payload.photoUrls.length > 0;
 
       if (!hasImages) {
-        logger.warn('Job creation rejected: Budget >£500 requires images', {
+        logger.warn(`Job creation rejected: Budget >£${budgetThreshold} requires images`, {
           service: 'jobs',
           userId: user.id,
           budget: payload.budget,
           photoCount: 0,
         });
-        throw new BadRequestError('Jobs with a budget over £500 must include at least one photo');
+        throw new BadRequestError(`Jobs with a budget over £${budgetThreshold} must include at least one photo`);
       }
     }
 
@@ -443,8 +445,8 @@ export async function POST(request: NextRequest) {
     }
     if (payload.require_itemized_bids !== undefined) {
       insertPayload.require_itemized_bids = payload.require_itemized_bids;
-    } else if (payload.budget && payload.budget > 500) {
-      // Auto-require itemization for high-value jobs (>£500)
+    } else if (payload.budget && payload.budget > budgetThreshold) {
+      // Auto-require itemization for high-value jobs
       insertPayload.require_itemized_bids = true;
     }
 

@@ -113,14 +113,15 @@ export default function MFAVerificationScreen() {
 
     try {
       // Get CSRF token
+      const { config } = require('../../config/environment');
       const csrfResponse = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/csrf`
+        `${config.apiBaseUrl}/api/csrf`
       );
       const { csrfToken } = await csrfResponse.json();
 
       // Verify MFA
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/auth/mfa/verify`,
+        `${config.apiBaseUrl}/api/auth/mfa/verify`,
         {
           method: 'POST',
           headers: {

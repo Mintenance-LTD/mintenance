@@ -1,0 +1,1156 @@
+openapi: 3.1.0
+info:
+  title: Mintenance Platform API
+  description: |
+    RESTful API for the Mintenance contractor discovery and job marketplace platform.
+    
+    ## Authentication
+    Most endpoints require authentication via JWT Bearer token. Obtain a token by calling `/api/auth/login`.
+    
+    ## Rate Limiting
+    API endpoints are rate limited. AI/ML endpoints have stricter limits (5 requests/minute).
+    Exceeding rate limits returns a 429 status code.
+    
+    ## Security
+    - All endpoints use HTTPS
+    - CSRF protection on mutation endpoints
+    - Rate limiting on all public endpoints
+  version: 1.2.4
+  contact:
+    name: Mintenance API Support
+    email: api-support@mintenance.com
+  license:
+    name: Proprietary
+    url: https://mintenance.com/terms
+
+servers:
+  - url: https://api.mintenance.com
+    description: Production server
+  - url: https://staging-api.mintenance.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Jobs
+    description: Job posting and management
+  - name: Contractors
+    description: Contractor profiles and discovery
+  - name: Payments
+    description: Payment processing and escrow
+  - name: Messages
+    description: Messaging between users
+  - name: AI
+    description: AI-powered features (assessment, search, etc.)
+  - name: Notifications
+    description: User notifications
+  - name: Admin
+    description: Administrative endpoints (admin only)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/auth/login
+    
+    CSRFToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: CSRF token for mutation endpoints
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+          enum: [homeowner, contractor, admin]
+        phone:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, open, assigned, in_progress, completed, cancelled]
+        category:
+          type: string
+        subcategory:
+          type: string
+        urgency:
+          type: string
+          enum: [low, medium, high, emergency]
+        budget_min:
+          type: number
+          format: float
+        budget_max:
+          type: number
+          format: float
+        location:
+          $ref: '#/components/schemas/Location'
+        homeowner_id:
+          type: string
+          format: uuid
+        contractor_id:
+          type: string
+          format: uuid
+          nullable: true
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Location:
+      type: object
+      properties:
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+          default: US
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+
+    Contractor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        business_name:
+          type: string
+        description:
+          type: string
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+        review_count:
+          type: integer
+        verified:
+          type: boolean
+        license_number:
+          type: string
+        insurance_verified:
+          type: boolean
+        specialties:
+          type: array
+          items:
+            type: string
+        service_areas:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceArea'
+        availability:
+          type: object
+          additionalProperties: true
+
+    ServiceArea:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        radius_miles:
+          type: number
+        center:
+          $ref: '#/components/schemas/Location'
+
+    Bid:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+        contractor_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, rejected, withdrawn]
+        estimated_duration:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    PaymentIntent:
+      type: object
+      properties:
+        id:
+          type: string
+        client_secret:
+          type: string
+        amount:
+          type: integer
+          description: Amount in cents
+        currency:
+          type: string
+          default: usd
+        status:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    AIAssessment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+        damage_type:
+          type: string
+        severity:
+          type: string
+          enum: [minor, moderate, severe, critical]
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        estimated_cost_min:
+          type: number
+          format: float
+        estimated_cost_max:
+          type: number
+          format: float
+        recommendations:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total_pages:
+          type: integer
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: UNAUTHORIZED
+            message: Authentication required
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: FORBIDDEN
+            message: You do not have permission to access this resource
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: NOT_FOUND
+            message: Resource not found
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: RATE_LIMIT_EXCEEDED
+            message: Too many requests. Please try again later.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+
+    ValidationError:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: VALIDATION_ERROR
+            message: Invalid request data
+            details:
+              email: Invalid email format
+
+paths:
+  # =====================
+  # AUTHENTICATION
+  # =====================
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and obtain JWT tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      description: Create a new user account
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - first_name
+                - last_name
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                role:
+                  type: string
+                  enum: [homeowner, contractor]
+                phone:
+                  type: string
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidate current session
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get a new access token using refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # =====================
+  # JOBS
+  # =====================
+  /api/jobs:
+    get:
+      tags:
+        - Jobs
+      summary: List jobs
+      description: Get a paginated list of jobs
+      operationId: listJobs
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, open, assigned, in_progress, completed, cancelled]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Jobs list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Job'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - Jobs
+      summary: Create a new job
+      description: Post a new job (homeowners only)
+      operationId: createJob
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - category
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                  maxLength: 5000
+                category:
+                  type: string
+                subcategory:
+                  type: string
+                urgency:
+                  type: string
+                  enum: [low, medium, high, emergency]
+                  default: medium
+                budget_min:
+                  type: number
+                budget_max:
+                  type: number
+                location:
+                  $ref: '#/components/schemas/Location'
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+      responses:
+        '201':
+          description: Job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/jobs/{jobId}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job details
+      description: Get detailed information about a specific job
+      operationId: getJob
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags:
+        - Jobs
+      summary: Update job
+      description: Update job details
+      operationId: updateJob
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                urgency:
+                  type: string
+      responses:
+        '200':
+          description: Job updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # =====================
+  # CONTRACTORS
+  # =====================
+  /api/discover:
+    get:
+      tags:
+        - Contractors
+      summary: Discover contractors
+      description: Search and discover contractors with filtering
+      operationId: discoverContractors
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: rating_min
+          in: query
+          schema:
+            type: number
+            minimum: 0
+            maximum: 5
+        - name: verified_only
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Contractors list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contractor'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /api/contractors/{id}:
+    get:
+      tags:
+        - Contractors
+      summary: Get contractor profile
+      description: Get detailed contractor profile information
+      operationId: getContractor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Contractor profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contractor'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # =====================
+  # PAYMENTS
+  # =====================
+  /api/payments/create-intent:
+    post:
+      tags:
+        - Payments
+      summary: Create payment intent
+      description: Create a Stripe payment intent for job payment
+      operationId: createPaymentIntent
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobId
+                - amount
+              properties:
+                jobId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: integer
+                  description: Amount in cents
+                  minimum: 100
+      responses:
+        '200':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/payments/release-escrow:
+    post:
+      tags:
+        - Payments
+      summary: Release escrow payment
+      description: Release escrowed funds to contractor after job completion
+      operationId: releaseEscrow
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobId
+              properties:
+                jobId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Escrow released
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  # =====================
+  # AI FEATURES
+  # =====================
+  /api/ai/analyze:
+    post:
+      tags:
+        - AI
+      summary: Analyze job photos
+      description: Use AI to analyze job photos for damage assessment
+      operationId: analyzePhotos
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photos
+              properties:
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  minItems: 1
+                  maxItems: 10
+                jobId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAssessment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/ai/search:
+    post:
+      tags:
+        - AI
+      summary: Semantic search
+      description: AI-powered semantic search for jobs or contractors
+      operationId: semanticSearch
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  maxLength: 500
+                type:
+                  type: string
+                  enum: [jobs, contractors, all]
+                  default: all
+                limit:
+                  type: integer
+                  default: 10
+                  maximum: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  query:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/building-surveyor/assess:
+    post:
+      tags:
+        - AI
+      summary: Building damage assessment
+      description: AI-powered building damage assessment using GPT-4 Vision
+      operationId: buildingAssessment
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photos
+              properties:
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  minItems: 1
+                  maxItems: 10
+                context:
+                  type: object
+                  properties:
+                    property_type:
+                      type: string
+                    building_age:
+                      type: integer
+                    previous_damage:
+                      type: boolean
+      responses:
+        '200':
+          description: Assessment complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAssessment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  # =====================
+  # MESSAGES
+  # =====================
+  /api/messages:
+    get:
+      tags:
+        - Messages
+      summary: List conversations
+      description: Get list of user's conversations
+      operationId: listConversations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Conversations list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        participants:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/User'
+                        last_message:
+                          $ref: '#/components/schemas/Message'
+                        unread_count:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags:
+        - Messages
+      summary: Send message
+      description: Send a new message
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+        - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipientId
+                - content
+              properties:
+                recipientId:
+                  type: string
+                  format: uuid
+                content:
+                  type: string
+                  maxLength: 5000
+                jobId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # =====================
+  # HEALTH & VERSION
+  # =====================
+  /api/health:
+    get:
+      tags:
+        - Admin
+      summary: Health check
+      description: Check API health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  version:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/version:
+    get:
+      tags:
+        - Admin
+      summary: API version
+      description: Get current API version
+      operationId: getVersion
+      responses:
+        '200':
+          description: Version info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  environment:
+                    type: string

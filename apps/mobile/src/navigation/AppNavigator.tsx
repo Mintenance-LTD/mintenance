@@ -1,6 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TouchableOpacity, StyleSheet, Platform, View, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   NavigationContainer,
@@ -345,7 +345,11 @@ export const AppNavigator: React.FC = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null; // Could show a loading spinner here
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -434,6 +438,12 @@ const FloatingActionButton: React.FC = () => {
 // ============================================================================
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
   },

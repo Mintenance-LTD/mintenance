@@ -7,7 +7,16 @@ import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+
+/** Type for bid data from Supabase query */
+interface BidRow {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  status: string;
+  amount: number;
+}
 
 export async function POST(
   request: NextRequest,
@@ -74,12 +83,14 @@ export async function POST(
     }
 
     // Verify the bid exists and belongs to this job
-    const { data: bid, error: bidError } = await serverSupabase
+    const { data: bidData, error: bidError } = await serverSupabase
       .from('bids')
       .select('id, job_id, contractor_id, status, amount')
       .eq('id', bidId)
       .eq('job_id', jobId)
       .single();
+
+    const bid = bidData as BidRow | null;
 
     if (bidError || !bid) {
       logger.error('Failed to fetch bid', bidError, {
@@ -242,13 +253,13 @@ export async function POST(
         bidId,
         jobId,
         jobTitle: jobDetails?.title,
-        bidAmount: Number((bid as any).amount || 0),
+        bidAmount: Number(bid.amount || 0),
       });
 
       const notificationData = {
         user_id: bid.contractor_id,
         title: 'Bid Accepted! 🎉',
-        message: `Congratulations! Your bid of £${Number((bid as any).amount || 0).toLocaleString()} for "${jobDetails?.title || 'the job'}" has been accepted. You can now contact the homeowner and create a contract.`,
+        message: `Congratulations! Your bid of £${Number(bid.amount || 0).toLocaleString()} for "${jobDetails?.title || 'the job'}" has been accepted. You can now contact the homeowner and create a contract.`,
         type: 'bid_accepted',
         read: false,
         action_url: `/contractor/jobs/${jobId}`,
@@ -338,7 +349,7 @@ export async function POST(
 
     // Auto-create draft contract from accepted bid
     try {
-      const bidAmount = (bid as any).amount || 0;
+      const bidAmount = bid.amount || 0;
       
       const { error: contractError } = await serverSupabase
         .from('contracts')
@@ -431,7 +442,7 @@ export async function POST(
       jobId,
       user.id,
       bid.contractor_id,
-      Number((bid as any).amount || 0)
+      Number(bid.amount || 0)
     ).catch((error) => {
       logger.error('Error learning from acceptance', error, {
         service: 'jobs',

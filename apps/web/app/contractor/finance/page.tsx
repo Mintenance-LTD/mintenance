@@ -2,6 +2,7 @@
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   PoundSterling,
   TrendingUp,
@@ -41,6 +42,7 @@ interface Transaction {
 }
 
 export default function ContractorFinancePage2025() {
+  const router = useRouter();
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
@@ -237,7 +239,7 @@ export default function ContractorFinancePage2025() {
   };
 
   const handlePayoutSettings = () => {
-    toast.success('Opening payout settings...');
+    router.push('/contractor/payouts');
   };
 
   if (loading) {

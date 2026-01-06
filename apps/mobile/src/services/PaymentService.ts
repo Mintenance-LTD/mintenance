@@ -1,6 +1,6 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { API_BASE_URL } from '../config/environment';
+import { config } from '../config/environment';
 
 interface PaymentMethod {
   id: string;
@@ -40,7 +40,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/create-intent`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/create-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/create-setup-intent`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/create-setup-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/save-method`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/save-method`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/methods`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
@@ -184,7 +184,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/methods/${paymentMethodId}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods/${paymentMethodId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
@@ -219,7 +219,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/methods/${paymentMethodId}/default`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods/${paymentMethodId}/default`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
@@ -263,7 +263,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/process-job-payment`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/process-job-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -326,7 +326,7 @@ export class PaymentService {
       }
 
       const response = await fetch(
-        `${API_BASE_URL}/api/payments/history?limit=${limit}&offset=${offset}`,
+        `${config.apiBaseUrl}/api/payments/history?limit=${limit}&offset=${offset}`,
         {
           method: 'GET',
           headers: {
@@ -364,7 +364,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/payments/${paymentId}/refund`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/${paymentId}/refund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

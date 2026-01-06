@@ -1,0 +1,193 @@
+# EAS Build Ignore File (Root Level)
+# Excludes files and directories from EAS build archive
+# This reduces upload time and archive size (must be under 2.0 GB)
+
+# ============================================================================
+# LARGE DATASET DIRECTORIES (These are the main size contributors)
+# ============================================================================
+yolo_dataset/
+yolo_dataset_*/
+colab_upload/
+colab_upload_*/
+training_data/
+all_images_merged/
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.onnx
+*.pt
+*.pth
+
+# ============================================================================
+# WEB APP (Not needed for mobile builds)
+# ============================================================================
+apps/web/
+!apps/mobile/
+
+# ============================================================================
+# TEST FILES AND COVERAGE
+# ============================================================================
+__tests__/
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.spec.ts
+**/*.spec.tsx
+**/*.spec.js
+coverage/
+**/coverage/
+*.lcov
+coverage-analysis.js
+e2e/
+testsprite_tests/
+
+# ============================================================================
+# DOCUMENTATION FILES
+# ============================================================================
+*.md
+!README.md
+!CHANGELOG.md
+!apps/mobile/README.md
+docs/
+Screenshots/
+
+# ============================================================================
+# BUILD ARTIFACTS AND CACHES
+# ============================================================================
+.expo/
+.expo-shared/
+dist/
+build/
+web-build/
+*.tsbuildinfo
+.metro-health-check*
+.cache/
+.tmp/
+.next/
+.out/
+playwright-report/
+runs/
+
+# ============================================================================
+# DEVELOPMENT AND DEBUGGING FILES
+# ============================================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug-*.js
+test-*.js
+*.backup
+*.bak
+*~
+app.json.backup
+metro.config.js.backup
+App.tsx.backup
+performance-dashboard.html
+
+# ============================================================================
+# SCRIPTS AND TOOLS (Not needed for build)
+# ============================================================================
+scripts/
+**/scripts/
+week3-test-plan.js
+analyze-coverage.js
+performance-budgets.json
+
+# ============================================================================
+# ARCHIVE AND TEMPORARY DATA
+# ============================================================================
+archive/
+all_images_merged/
+beta-testing-data/
+beta-testing-templates/
+temp-supabase-mock/
+
+# ============================================================================
+# INFRASTRUCTURE AND DEPLOYMENT CONFIGS
+# ============================================================================
+infrastructure/
+.github/
+.vercel/
+.idea/
+.vscode/
+.cursor/
+.claude/
+.kiro/
+.husky/
+
+# ============================================================================
+# DATABASE FILES AND MIGRATIONS
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+migrations/
+*.sql
+
+# ============================================================================
+# SAM3 SERVICE (Not needed for mobile)
+# ============================================================================
+apps/sam3-service/
+
+# ============================================================================
+# CREDENTIALS AND SECRETS
+# ============================================================================
+credentials/
+**/credentials/
+*.pem
+*.p12
+*.key
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+service-account*.json
+AuthKey_*.p8
+
+# ============================================================================
+# ENVIRONMENT FILES
+# ============================================================================
+.env*
+!.env.example
+
+# ============================================================================
+# OS AND EDITOR FILES
+# ============================================================================
+.DS_Store
+Thumbs.db
+*.swp
+._*
+.Trashes
+ehthumbs.db
+
+# ============================================================================
+# SUPABASE LOCAL SETUP
+# ============================================================================
+supabase/.branches
+supabase/.temp
+
+# ============================================================================
+# NODE MODULES (Should already be excluded, but ensuring)
+# ============================================================================
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+
+# ============================================================================
+# LEGAL AND WEB ASSETS (Mobile assets MUST be included!)
+# ============================================================================
+LEGAL/
+apps/web/public/
+apps/web/assets/
+# DO NOT exclude apps/mobile/assets/ - required for app icon and splash screen!
+
+# ============================================================================
+# MONITORING AND TOOLS
+# ============================================================================
+monitoring/
+tools/

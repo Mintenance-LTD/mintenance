@@ -302,11 +302,10 @@ function ContractorPublicProfilePage2025() {
         }
 
         setContractor(transformedContractor);
-        
-        // Update reviews if fetched
+
+        // Update reviews state with fetched reviews
         if (fetchedReviews.length > 0) {
-          // Update reviews state - but we need to handle this differently since reviews is const
-          // We'll need to refactor to use fetched reviews
+          setFetchedReviews(fetchedReviews);
         }
       } catch (error) {
         console.error('Error fetching contractor:', error);
@@ -722,12 +721,12 @@ function ContractorPublicProfilePage2025() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   <Star className="w-6 h-6 fill-gray-900 text-gray-900 inline mr-2" />
-                  {contractor.rating.toFixed(1)} · {reviews.length > 0 ? reviews.length : contractor.reviewCount} {reviews.length > 0 ? reviews.length === 1 ? 'review' : 'reviews' : contractor.reviewCount === 1 ? 'review' : 'reviews'}
+                  {contractor.rating.toFixed(1)} · {fetchedReviews.length > 0 ? fetchedReviews.length : contractor.reviewCount} {fetchedReviews.length > 0 ? fetchedReviews.length === 1 ? 'review' : 'reviews' : contractor.reviewCount === 1 ? 'review' : 'reviews'}
                 </h2>
               </div>
-              {reviews.length > 0 ? (
+              {fetchedReviews.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6">
-                  {reviews.map((review) => (
+                  {fetchedReviews.map((review) => (
                   <div key={review.id} className="pb-6 border-b border-gray-200 last:border-0">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">

@@ -56,7 +56,8 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    const { config } = require('../config/environment');
+    const API_BASE_URL = config.apiBaseUrl;
 
     for (const photo of photos) {
       try {
@@ -131,7 +132,8 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    const { config } = require('../config/environment');
+    const API_BASE_URL = config.apiBaseUrl;
 
     for (const photo of photos) {
       try {
@@ -205,7 +207,8 @@ export class PhotoUploadService {
     jobId: string,
     video: ImagePicker.ImagePickerAsset
   ): Promise<PhotoUploadResult> {
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    const { config } = require('../config/environment');
+    const API_BASE_URL = config.apiBaseUrl;
     
     try {
       const location = await this.getCurrentLocation();

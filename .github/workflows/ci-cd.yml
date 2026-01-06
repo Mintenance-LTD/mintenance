@@ -106,85 +106,106 @@ jobs:
   #
   # NOTE: Uncomment this job when Detox E2E testing is configured
 
-  # build-staging:
-  #   name: Build Staging Apps
-  #   runs-on: ubuntu-latest
-  #   needs: quality-checks
-  #   if: github.ref == 'refs/heads/develop'
-  #
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v5
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: '18'
-  #         cache: 'npm'
-  #
-  #     - name: Setup Expo
-  #       uses: expo/expo-github-action@v8
-  #       with:
-  #         expo-version: latest
-  #         token: ${{ secrets.EXPO_TOKEN }}
-  #
-  #     - name: Install dependencies
-  #       run: npm ci
-  #
-  #     - name: Build staging Android
-  #       run: eas build --platform android --profile staging --non-interactive
-  #       env:
-  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  #
-  #     - name: Build staging iOS
-  #       run: eas build --platform ios --profile staging --non-interactive
-  #       env:
-  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  #
-  # NOTE: Uncomment when EAS is configured with EXPO_TOKEN secret
+  build-staging:
+    name: Build Staging Apps
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
 
-  # build-production:
-  #   name: Build Production Apps
-  #   runs-on: ubuntu-latest
-  #   needs: quality-checks
-  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-  #
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v5
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: '18'
-  #         cache: 'npm'
-  #
-  #     - name: Setup Expo
-  #       uses: expo/expo-github-action@v8
-  #       with:
-  #         expo-version: latest
-  #         token: ${{ secrets.EXPO_TOKEN }}
-  #
-  #     - name: Install dependencies
-  #       run: npm ci
-  #
-  #     - name: Build production Android
-  #       run: eas build --platform android --profile production --non-interactive
-  #       env:
-  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  #
-  #     - name: Build production iOS
-  #       run: eas build --platform ios --profile production --non-interactive
-  #       env:
-  #         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  #
-  #     - name: Submit to app stores (manual approval required)
-  #       run: |
-  #         echo "Production builds completed. Manual app store submission required."
-  #         echo "Run: eas submit --platform android --latest"
-  #         echo "Run: eas submit --platform ios --latest"
-  #
-  # NOTE: Uncomment when EAS is configured with EXPO_TOKEN secret
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-version: latest
+
+      - name: Install dependencies
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Build staging Android
+        if: ${{ secrets.EXPO_TOKEN != '' }}
+        run: eas build --platform android --profile staging --non-interactive
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
+
+      - name: Staging build status
+        run: |
+          echo "📱 Staging build triggered for develop branch"
+          echo "Check EAS dashboard for build status"
+
+  build-production:
+    name: Build Production Apps
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-version: latest
+
+      - name: Install dependencies
+        run: |
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        timeout-minutes: 10
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Build production Android
+        if: ${{ secrets.EXPO_TOKEN != '' }}
+        run: eas build --platform android --profile production --non-interactive
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
+
+      - name: Build production iOS
+        if: ${{ secrets.EXPO_TOKEN != '' }}
+        run: eas build --platform ios --profile production --non-interactive
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        continue-on-error: true
+
+      - name: Production build status
+        run: |
+          echo "🚀 Production builds triggered for main branch"
+          echo "Check EAS dashboard for build status"
+          echo "Manual app store submission required after build completes:"
+          echo "  eas submit --platform android --latest"
+          echo "  eas submit --platform ios --latest"
+
+  # NOTE: Set EXPO_TOKEN secret in GitHub repository settings for automated builds
 
   performance-monitoring:
     name: Performance & Security Monitoring

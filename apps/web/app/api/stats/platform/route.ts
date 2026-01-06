@@ -69,14 +69,14 @@ export async function GET() {
       // Average Response Time (time from job creation to first bid/message)
       serverSupabase
         .from('jobs')
-        .select('created_at')
+        .select('id, created_at')
         .eq('status', 'completed')
         .limit(1000), // Sample for performance
       
       // Average Response Time last month
       serverSupabase
         .from('jobs')
-        .select('created_at')
+        .select('id, created_at')
         .eq('status', 'completed')
         .lte('updated_at', endOfLastMonth.toISOString())
         .limit(1000),

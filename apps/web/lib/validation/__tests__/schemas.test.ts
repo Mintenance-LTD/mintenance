@@ -67,17 +67,29 @@ describe('loginSchema', () => {
 });
 
 describe('registerSchema', () => {
+  // Note: homeowner role requires a phone number per schema refinement
   const validRegistration = {
     email: 'test@example.com',
     password: 'SecurePass123!',
     firstName: 'John',
     lastName: 'Doe',
     role: 'homeowner' as const,
+    phone: '+441234567890',
   };
 
   it('should validate valid registration data', () => {
     const result = registerSchema.safeParse(validRegistration);
     expect(result.success).toBe(true);
+  });
+
+  it('should require phone for homeowner role', () => {
+    const data = {
+      ...validRegistration,
+      phone: undefined,
+    };
+
+    const result = registerSchema.safeParse(data);
+    expect(result.success).toBe(false);
   });
 
   it('should require uppercase in password', () => {

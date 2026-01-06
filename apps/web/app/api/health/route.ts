@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { logger } from '@mintenance/shared';
+import { CURRENT_API_VERSION, addVersionHeaders } from '@/lib/api-version';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,15 +36,19 @@ export async function GET() {
   // Public response - minimal information only
   const publicStatus = allHealthy ? 'healthy' : hasCriticalError ? 'unhealthy' : 'degraded';
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       status: publicStatus,
       timestamp: new Date().toISOString(),
+      version: CURRENT_API_VERSION,
     },
     {
       status: allHealthy ? 200 : hasCriticalError ? 503 : 200,
     }
   );
+
+  // Add API version headers
+  return addVersionHeaders(response);
 }
 
 function checkDatabase() {

@@ -13,16 +13,25 @@ serve(async (req) => {
   }
 
   let contractorId: string | undefined;
-  
+
   try {
+    console.log('🔵 Edge Function invoked');
     const body = await req.json();
     contractorId = body.contractorId;
+    console.log('🔵 Contractor ID:', contractorId);
 
     // Validate required environment variables
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     const appUrl = Deno.env.get('APP_URL');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    console.log('🔵 Environment variables check:', {
+      hasStripeKey: !!stripeSecretKey,
+      hasAppUrl: !!appUrl,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceRoleKey,
+    });
     
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');

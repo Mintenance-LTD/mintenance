@@ -6,7 +6,13 @@
  * Prevents builds with missing/invalid credentials
  */
 
-const chalk = require('chalk');
+// Simple color functions (no external dependency required)
+const colors = {
+  blue: (text) => `\x1b[34m${text}\x1b[0m`,
+  green: (text) => `\x1b[32m${text}\x1b[0m`,
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+  red: (text) => `\x1b[31m${text}\x1b[0m`,
+};
 
 const REQUIRED_VARS = [
   'EXPO_PUBLIC_SUPABASE_URL',
@@ -17,7 +23,7 @@ const REQUIRED_VARS = [
 const errors = [];
 const warnings = [];
 
-console.log(chalk.blue('\n🔍 Validating environment variables for mobile build...\n'));
+console.log(colors.blue('\n🔍 Validating environment variables for mobile build...\n'));
 
 // Check each required variable
 REQUIRED_VARS.forEach(varName => {
@@ -58,7 +64,7 @@ REQUIRED_VARS.forEach(varName => {
     }
   }
 
-  console.log(chalk.green(`✓ ${varName}`));
+  console.log(colors.green(`✓ ${varName}`));
 });
 
 // Check NODE_ENV
@@ -66,22 +72,22 @@ const nodeEnv = process.env.NODE_ENV;
 if (!nodeEnv) {
   warnings.push('⚠️  NODE_ENV is not set');
 } else {
-  console.log(chalk.green(`✓ NODE_ENV = ${nodeEnv}`));
+  console.log(colors.green(`✓ NODE_ENV = ${nodeEnv}`));
 }
 
 // Print warnings
 if (warnings.length > 0) {
-  console.log(chalk.yellow('\n⚠️  Warnings:\n'));
-  warnings.forEach(warning => console.log(chalk.yellow(`  ${warning}`)));
+  console.log(colors.yellow('\n⚠️  Warnings:\n'));
+  warnings.forEach(warning => console.log(colors.yellow(`  ${warning}`)));
 }
 
 // Print errors and exit if any
 if (errors.length > 0) {
-  console.log(chalk.red('\n❌ Environment validation FAILED:\n'));
-  errors.forEach(error => console.log(chalk.red(`  ${error}`)));
-  console.log(chalk.red('\n💡 Please set missing environment variables in .env or EAS Secrets\n'));
+  console.log(colors.red('\n❌ Environment validation FAILED:\n'));
+  errors.forEach(error => console.log(colors.red(`  ${error}`)));
+  console.log(colors.red('\n💡 Please set missing environment variables in .env or EAS Secrets\n'));
   process.exit(1);
 }
 
-console.log(chalk.green('\n✅ Environment validation passed!\n'));
+console.log(colors.green('\n✅ Environment validation passed!\n'));
 process.exit(0);

@@ -3,15 +3,51 @@
  *
  * Single endpoint for all AI analysis requests.
  * Routes to appropriate service based on context.
+ * 
+ * OWASP Security: Rate limited to prevent API cost abuse
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { UnifiedAIService, type AnalysisContext } from '@/lib/services/ai/UnifiedAIService';
 import { createClient } from '@/lib/database';
 import { logger } from '@mintenance/shared';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting - OWASP best practice: limit expensive AI operations
+    const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                       request.headers.get('x-real-ip') ||
+                       'anonymous';
+
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `ai-analyze:${identifier}`,
+      windowMs: 60000, // 1 minute
+      maxRequests: 5, // 5 requests per minute (very expensive AI analysis)
+    });
+
+    if (!rateLimitResult.allowed) {
+      logger.warn('AI analyze rate limit exceeded', {
+        service: 'ai_analyze',
+        identifier,
+        remaining: rateLimitResult.remaining,
+        retryAfter: rateLimitResult.retryAfter,
+      });
+
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(rateLimitResult.resetTime / 1000)),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+          },
+        }
+      );
+    }
+
     // Get authenticated user
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

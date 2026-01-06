@@ -3,8 +3,8 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      // Removed reanimated/worklets plugin temporarily to fix blank screen
-      // Will re-add once basic rendering is working
+      'react-native-worklets/plugin',
+      'react-native-reanimated/plugin'
     ],
   };
 };

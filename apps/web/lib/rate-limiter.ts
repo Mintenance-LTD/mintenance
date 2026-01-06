@@ -2,7 +2,7 @@
  * Distributed rate limiting using Redis
  * Replaces in-memory rate limiting for webhook endpoints
  */
-import { logger } from '@mintenance/shared';
+import { logger, BUSINESS_RULES, RATE_LIMITS, TIME_MS } from '@mintenance/shared';
 
 // Global type declaration for rate limit fallback
 declare global {
@@ -67,7 +67,7 @@ export class RedisRateLimiter {
       const count = await Promise.race([
         this.redis!.incr(key),
         new Promise<number>((_, reject) => {
-          setTimeout(() => reject(new Error('Redis timeout')), 5000); // 5 second timeout
+          setTimeout(() => reject(new Error('Redis timeout')), RATE_LIMITS.REDIS_TIMEOUT_MS);
         })
       ]);
 
@@ -76,7 +76,7 @@ export class RedisRateLimiter {
         await Promise.race([
           this.redis!.expire(key, Math.ceil(config.windowMs / 1000)),
           new Promise<number>((_, reject) => {
-            setTimeout(() => reject(new Error('Redis timeout')), 2000); // 2 second timeout
+            setTimeout(() => reject(new Error('Redis timeout')), RATE_LIMITS.REDIS_EXPIRE_TIMEOUT_MS);
           })
         ]);
       }
@@ -124,7 +124,7 @@ export class RedisRateLimiter {
         allowed: false,
         remaining: 0,
         resetTime: Date.now() + config.windowMs,
-        retryAfter: 60, // Retry after 60 seconds
+        retryAfter: RATE_LIMITS.PRODUCTION_FALLBACK_RETRY_AFTER,
       };
     }
 
@@ -156,12 +156,29 @@ export class RedisRateLimiter {
 
     globalThis.rateLimitFallback.set(key, count);
 
-    // Clean up old entries to prevent memory leak
+    // Clean up old entries to prevent memory leak (TTL-based eviction)
     for (const [k] of globalThis.rateLimitFallback) {
       const windowTime = parseInt(k.split(':').pop() || '0');
       if (now - windowTime > config.windowMs) {
         globalThis.rateLimitFallback.delete(k);
       }
+    }
+
+    // Additional safeguard: enforce max entries limit to prevent unbounded growth
+    if (globalThis.rateLimitFallback.size > RATE_LIMITS.MAX_FALLBACK_ENTRIES) {
+      // Remove oldest entries (first entries in Map iteration order)
+      const entriesToRemove = globalThis.rateLimitFallback.size - RATE_LIMITS.MAX_FALLBACK_ENTRIES;
+      let removed = 0;
+      for (const [k] of globalThis.rateLimitFallback) {
+        if (removed >= entriesToRemove) break;
+        globalThis.rateLimitFallback.delete(k);
+        removed++;
+      }
+      logger.warn('[rate-limiter] Fallback map exceeded max entries, evicted oldest entries', {
+        service: 'rate_limiter',
+        evictedCount: removed,
+        currentSize: globalThis.rateLimitFallback.size,
+      });
     }
 
     const remaining = Math.max(0, effectiveMaxRequests - count);
@@ -183,17 +200,17 @@ export const rateLimiter = new RedisRateLimiter();
 // Helper function for webhook rate limiting
 export async function checkWebhookRateLimit(identifier: string): Promise<RateLimitResult> {
   return rateLimiter.checkRateLimit({
-    windowMs: 60000, // 1 minute
-    maxRequests: 100, // Max 100 requests per minute
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.WEBHOOK_REQUESTS_PER_MINUTE,
     identifier,
   });
 }
 
-// Helper function for job creation rate limiting (10 jobs per hour)
+// Helper function for job creation rate limiting
 export async function checkJobCreationRateLimit(userId: string): Promise<RateLimitResult> {
   return rateLimiter.checkRateLimit({
-    windowMs: 3600000, // 1 hour
-    maxRequests: 10, // Max 10 jobs per hour per user
+    windowMs: TIME_MS.HOUR,
+    maxRequests: BUSINESS_RULES.MAX_JOBS_PER_HOUR,
     identifier: `job-creation:${userId}`,
   });
 }
@@ -201,8 +218,8 @@ export async function checkJobCreationRateLimit(userId: string): Promise<RateLim
 // Helper function for API rate limiting
 export async function checkApiRateLimit(identifier: string): Promise<RateLimitResult> {
   return rateLimiter.checkRateLimit({
-    windowMs: 60000, // 1 minute
-    maxRequests: 1000, // Max 1000 requests per minute
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.API_REQUESTS_PER_MINUTE,
     identifier,
   });
 }
@@ -220,8 +237,8 @@ export async function checkLoginRateLimit(request: { headers: { get: (key: strin
   }
 
   return rateLimiter.checkRateLimit({
-    windowMs: 900000, // 15 minutes
-    maxRequests: 5, // Max 5 login attempts per 15 minutes
+    windowMs: BUSINESS_RULES.LOGIN_LOCKOUT_DURATION_MINUTES * TIME_MS.MINUTE,
+    maxRequests: BUSINESS_RULES.MAX_LOGIN_ATTEMPTS,
     identifier,
   });
 }
@@ -240,9 +257,48 @@ export async function checkPasswordResetRateLimit(identifier: string | { headers
   }
 
   return rateLimiter.checkRateLimit({
-    windowMs: 3600000, // 1 hour
-    maxRequests: 3, // Max 3 password resets per hour
+    windowMs: TIME_MS.HOUR,
+    maxRequests: BUSINESS_RULES.MAX_PASSWORD_RESETS_PER_HOUR,
     identifier: id,
+  });
+}
+
+// Helper function for AI analysis rate limiting (expensive operations)
+export async function checkAIAnalysisRateLimit(request: { headers: { get: (key: string) => string | null } }): Promise<RateLimitResult> {
+  const identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     request.headers.get('x-real-ip') ||
+                     'anonymous';
+
+  return rateLimiter.checkRateLimit({
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.AI_ANALYSIS_PER_MINUTE,
+    identifier: `ai-analyze:${identifier}`,
+  });
+}
+
+// Helper function for AI search rate limiting
+export async function checkAISearchRateLimit(request: { headers: { get: (key: string) => string | null } }): Promise<RateLimitResult> {
+  const identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     request.headers.get('x-real-ip') ||
+                     'anonymous';
+
+  return rateLimiter.checkRateLimit({
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.AI_SEARCH_PER_MINUTE,
+    identifier: `ai-search:${identifier}`,
+  });
+}
+
+// Helper function for AI suggestions rate limiting
+export async function checkAISuggestionsRateLimit(request: { headers: { get: (key: string) => string | null } }): Promise<RateLimitResult> {
+  const identifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                     request.headers.get('x-real-ip') ||
+                     'anonymous';
+
+  return rateLimiter.checkRateLimit({
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.AI_SUGGESTIONS_PER_MINUTE,
+    identifier: `ai-suggestions:${identifier}`,
   });
 }
 

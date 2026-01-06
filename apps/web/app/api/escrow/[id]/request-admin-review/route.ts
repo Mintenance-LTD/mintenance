@@ -6,6 +6,17 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
+/** Type for escrow with job relation */
+interface EscrowWithContractorJob {
+  id: string;
+  auto_approval_date: string | null;
+  homeowner_approval: string | null;
+  jobs: {
+    id: string;
+    contractor_id: string;
+  };
+}
+
 /**
  * POST /api/escrow/:id/request-admin-review
  * Contractor requests admin review after 7 days
@@ -46,7 +57,8 @@ export async function POST(
       throw new NotFoundError('Escrow not found');
     }
 
-    const job = (escrow as any).jobs;
+    const typedEscrow = escrow as EscrowWithContractorJob;
+    const job = typedEscrow.jobs;
     if (job.contractor_id !== user.id && user.role !== 'admin') {
       throw new ForbiddenError('Unauthorized');
     }

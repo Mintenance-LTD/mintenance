@@ -88,10 +88,11 @@ try {
   }
 }
 
-export default {
+module.exports = {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
+    owner: "mintanance-ltd",
     version: "1.2.4",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -154,6 +155,7 @@ export default {
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA",
+        "RECORD_AUDIO",
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "VIBRATE",
@@ -168,9 +170,7 @@ export default {
     updates: {
       url: "https://u.expo.dev/671d1323-6979-465f-91db-e61471746ab3"
     },
-    runtimeVersion: {
-      policy: "appVersion"
-    },
+    runtimeVersion: "1.2.4",
     plugins: [
       "expo-dev-client",
       ["expo-build-properties", {
@@ -180,9 +180,9 @@ export default {
           universalApk: false,
           enableHermes: true,
           minSdkVersion: 24,
-          compileSdkVersion: 34,
-          targetSdkVersion: 34,
-          buildToolsVersion: "34.0.0",
+          compileSdkVersion: 35,
+          targetSdkVersion: 35,
+          buildToolsVersion: "35.0.0",
           packagingOptions: {
             pickFirst: ["**/libc++_shared.so", "**/libjsc.so"]
           },
@@ -210,12 +210,26 @@ export default {
       ["expo-local-authentication", {
         faceIDPermission: "This app uses Face ID for secure authentication and faster login."
       }],
+      "sentry-expo",
+      "@sentry/react-native",
+      ["@stripe/stripe-react-native", {
+        "merchantIdentifier": "merchant.com.mintenance.app",
+        "enableGooglePay": true
+      }],
+      "expo-router",
+      "expo-font",
       "expo-web-browser",
-      "sentry-expo"
+      "@react-native-community/datetimepicker",
+      ["react-native-vision-camera", {
+        "cameraPermissionText": "This app needs camera access to record property assessment videos.",
+        "enableMicrophonePermission": true,
+        "microphonePermissionText": "This app needs microphone access to capture audio with property videos."
+      }]
     ],
     extra: {
       eas: {
-        projectId: "671d1323-6979-465f-91db-e61471746ab3"
+        projectId: "671d1323-6979-465f-91db-e61471746ab3",
+        owner: "mintanance-ltd"
       },
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.

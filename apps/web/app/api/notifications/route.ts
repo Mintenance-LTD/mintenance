@@ -26,21 +26,30 @@ export async function GET(request: NextRequest) {
     // 1. Created within the last 24 hours, OR
     // 2. Unread (regardless of age)
     // Also limit to max 7 notifications to auto-remove older ones
-    const { data: notifications, error } = await serverSupabase
-      .from('notifications')
-      .select('id, type, title, message, read, created_at, action_url, link, user_id')
-      .eq('user_id', userId)
-      .or(`created_at.gte.${twentyFourHoursAgo.toISOString()},read.eq.false`)
-      .order('created_at', { ascending: false })
-      .limit(7); // Maximum 7 notifications - older ones will be automatically excluded when 8th is added
 
-    if (error) {
-      logger.error('Error fetching notifications', error, {
+    // First try to fetch all notifications for this user, then filter in memory
+    // This avoids complex .or() syntax which can cause issues
+    const { data: allUserNotifications, error: fetchError } = await serverSupabase
+      .from('notifications')
+      .select('id, type, title, message, read, created_at, action_url, user_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50); // Fetch more, then filter
+
+    if (fetchError) {
+      logger.error('Error fetching notifications', fetchError, {
         service: 'notifications',
         userId,
       });
-      throw error;
+      throw fetchError;
     }
+
+    // Filter notifications: keep recent (24h) OR unread
+    const notifications = (allUserNotifications || []).filter(notif => {
+      const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
+      const isUnread = notif.read === false || notif.read === 0;
+      return isRecent || isUnread;
+    }).slice(0, 7); // Maximum 7 notifications
 
     // Map database notifications to component format
     interface NotificationRecord {
@@ -51,7 +60,6 @@ export async function GET(request: NextRequest) {
       read?: boolean | number;
       created_at?: string;
       action_url?: string;
-      link?: string;
     }
 
     interface MappedNotification {
@@ -72,7 +80,7 @@ export async function GET(request: NextRequest) {
       message: notif.message || '',
       read: notif.read === true || notif.read === 1,
       created_at: notif.created_at || new Date().toISOString(),
-      link: notif.action_url || notif.link,
+      link: notif.action_url,
       action_url: notif.action_url,
     }));
 

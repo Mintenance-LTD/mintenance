@@ -3,12 +3,26 @@
  * Tests Bayesian fusion math, correlation terms, and variance calculations
  */
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DetectorFusionService } from '../DetectorFusionService';
 import type { RoboflowDetection } from '../types';
 
+// Mock the DriftMonitorService to avoid async drift detection in tests
+vi.mock('../DriftMonitorService', () => ({
+  DriftMonitorService: {
+    detectDrift: vi.fn().mockResolvedValue({ hasDrift: false }),
+    applyWeightAdjustments: vi.fn().mockReturnValue({ yolo: 0.35, maskrcnn: 0.50, sam: 0.15 }),
+  },
+}));
+
 describe('DetectorFusionService', () => {
+  beforeEach(() => {
+    // Reset detector weights before each test
+    DetectorFusionService.resetWeights();
+  });
+
   describe('fuseDetectors', () => {
-    it('should compute fusion mean as weighted average', () => {
+    it('should compute fusion mean as weighted average', async () => {
       const detections: RoboflowDetection[] = [
         {
           id: '1',
@@ -19,7 +33,7 @@ describe('DetectorFusionService', () => {
         },
       ];
 
-      const result = DetectorFusionService.fuseDetectors(detections, 80);
+      const result = await DetectorFusionService.fuseDetectors(detections, 80);
 
       // Fusion mean should be weighted average of detector confidences
       // w = [0.35, 0.50, 0.15] for [yolo, maskrcnn, sam]
@@ -28,7 +42,7 @@ describe('DetectorFusionService', () => {
       expect(result.fusionMean).toBeCloseTo(0.768, 2);
     });
 
-    it('should include correlation term in variance', () => {
+    it('should include correlation term in variance', async () => {
       const detections: RoboflowDetection[] = [
         {
           id: '1',
@@ -39,7 +53,7 @@ describe('DetectorFusionService', () => {
         },
       ];
 
-      const result = DetectorFusionService.fuseDetectors(detections, 80);
+      const result = await DetectorFusionService.fuseDetectors(detections, 80);
 
       // Variance should include: epistemic + disagreement + correlation
       expect(result.fusionVariance).toBeGreaterThan(result.epistemicVariance);
@@ -47,15 +61,15 @@ describe('DetectorFusionService', () => {
       expect(result.correlationTerm).toBeGreaterThan(0);
     });
 
-    it('should handle empty detections', () => {
-      const result = DetectorFusionService.fuseDetectors([], 50);
+    it('should handle empty detections', async () => {
+      const result = await DetectorFusionService.fuseDetectors([], 50);
 
       expect(result.fusionMean).toBeGreaterThanOrEqual(0);
       expect(result.fusionMean).toBeLessThanOrEqual(1);
       expect(result.fusionVariance).toBeGreaterThan(0);
     });
 
-    it('should handle multiple detections', () => {
+    it('should handle multiple detections', async () => {
       const detections: RoboflowDetection[] = [
         {
           id: '1',
@@ -73,10 +87,12 @@ describe('DetectorFusionService', () => {
         },
       ];
 
-      const result = DetectorFusionService.fuseDetectors(detections, 85);
+      const result = await DetectorFusionService.fuseDetectors(detections, 85);
 
-      // Average confidence = (80 + 90) / 2 = 85
-      expect(result.fusionMean).toBeCloseTo(0.85 * 0.35 + 0.85 * 0.95 * 0.50 + 0.85 * 0.90 * 0.15, 2);
+      // Average confidence = (80 + 90) / 2 = 85%  = 0.85
+      // yolo = 0.85, maskrcnn = 0.85 * 0.95 = 0.8075, sam = 0.85 * 0.90 = 0.765
+      // mean = 0.35 * 0.85 + 0.50 * 0.8075 + 0.15 * 0.765 = 0.2975 + 0.40375 + 0.11475 = 0.816
+      expect(result.fusionMean).toBeCloseTo(0.816, 2);
     });
   });
 

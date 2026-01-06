@@ -3,51 +3,71 @@
  * Tests critical authentication functionality including JWT creation, verification, and rotation
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { 
-  createToken, 
-  createTokenPair, 
-  rotateTokens, 
-  revokeAllTokens, 
-  verifyToken,
-  setAuthCookie,
-  clearAuthCookie,
-  getCurrentUserFromCookies
-} from '../lib/auth';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock dependencies
-jest.mock('../lib/api/supabaseServer', () => ({
-  serverSupabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn()
-        }))
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn()
-        }))
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-          }))
-        }))
-      })),
-      delete: jest.fn(() => ({
-        eq: jest.fn()
-      }))
-    }))
+// Mock server-only modules before importing auth
+vi.mock('../database', () => ({
+  supabase: {
+    from: vi.fn(function() {
+      return {
+        select: vi.fn(function() { return { eq: vi.fn(function() { return { single: vi.fn() }; }) }; }),
+        insert: vi.fn(function() { return { select: vi.fn(function() { return { single: vi.fn() }; }) }; }),
+        update: vi.fn(function() { return { eq: vi.fn(function() { return {}; }) }; }),
+        delete: vi.fn(function() { return { eq: vi.fn() }; }),
+      };
+    })
   }
 }));
 
-jest.mock('next/headers', () => ({
-  cookies: jest.fn(() => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    delete: jest.fn()
-  }))
+vi.mock('../api/supabaseServer', () => ({
+  serverSupabase: {
+    from: vi.fn(function() {
+      return {
+        select: vi.fn(function() {
+          return {
+            eq: vi.fn(function() {
+              return {
+                single: vi.fn()
+              };
+            })
+          };
+        }),
+        insert: vi.fn(function() {
+          return {
+            select: vi.fn(function() {
+              return {
+                single: vi.fn()
+              };
+            })
+          };
+        }),
+        update: vi.fn(function() {
+          return {
+            eq: vi.fn(function() {
+              return {
+                select: vi.fn()
+              };
+            })
+          };
+        }),
+        delete: vi.fn(function() {
+          return {
+            eq: vi.fn()
+          };
+        })
+      };
+    })
+  }
+}));
+
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(function() {
+    return {
+      get: vi.fn(),
+      set: vi.fn(),
+      delete: vi.fn()
+    };
+  })
 }));
 
 describe('Auth Library', () => {
@@ -62,7 +82,7 @@ describe('Auth Library', () => {
 
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock environment variables
     process.env.JWT_SECRET = 'test-secret-key-that-is-long-enough-for-security';
@@ -205,7 +225,7 @@ describe('Auth Library', () => {
     it('should set auth cookie with correct options', async () => {
       const token = await createToken(mockUser);
       const mockCookies = {
-        set: jest.fn()
+        set: vi.fn()
       };
       
       setAuthCookie(token, mockCookies as any);
@@ -225,7 +245,7 @@ describe('Auth Library', () => {
 
     it('should clear auth cookie', () => {
       const mockCookies = {
-        delete: jest.fn()
+        delete: vi.fn()
       };
       
       clearAuthCookie(mockCookies as any);
@@ -238,15 +258,15 @@ describe('Auth Library', () => {
     it('should return user data from valid cookie', async () => {
       const token = await createToken(mockUser);
       const mockCookies = {
-        get: jest.fn(() => ({ value: token }))
+        get: vi.fn(() => ({ value: token }))
       };
       
       // Mock the database query
       const mockSupabase = require('../lib/api/supabaseServer').serverSupabase;
       mockSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(() => ({
               data: mockUser,
               error: null
             }))
@@ -263,7 +283,7 @@ describe('Auth Library', () => {
 
     it('should return null for missing cookie', async () => {
       const mockCookies = {
-        get: jest.fn(() => undefined)
+        get: vi.fn(() => undefined)
       };
       
       const user = await getCurrentUserFromCookies(mockCookies as any);
@@ -273,7 +293,7 @@ describe('Auth Library', () => {
 
     it('should return null for invalid cookie', async () => {
       const mockCookies = {
-        get: jest.fn(() => ({ value: 'invalid-token' }))
+        get: vi.fn(() => ({ value: 'invalid-token' }))
       };
       
       const user = await getCurrentUserFromCookies(mockCookies as any);

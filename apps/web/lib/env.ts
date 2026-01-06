@@ -20,6 +20,42 @@ const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(64, 'JWT_SECRET must be at least 64 characters for production security')
+    .refine(
+      (val) => {
+        // Reject known weak/placeholder patterns
+        const weakPatterns = [
+          'your-jwt-secret',
+          'change-me',
+          'placeholder',
+          'secret123',
+          'development',
+          'test-jwt',
+          /^(.)\1{10,}$/, // Repeated characters like 'aaaaaaaaaa'
+        ];
+        const lowerVal = val.toLowerCase();
+        for (const pattern of weakPatterns) {
+          if (typeof pattern === 'string') {
+            if (lowerVal.includes(pattern)) return false;
+          } else if (pattern.test(val)) {
+            return false;
+          }
+        }
+        return true;
+      },
+      'JWT_SECRET appears to be a weak or placeholder value - use a cryptographically secure random string'
+    )
+    .refine(
+      (val) => {
+        // Check for minimum entropy (at least 3 different character classes)
+        const hasLower = /[a-z]/.test(val);
+        const hasUpper = /[A-Z]/.test(val);
+        const hasNumber = /[0-9]/.test(val);
+        const hasSpecial = /[^a-zA-Z0-9]/.test(val);
+        const charClasses = [hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
+        return charClasses >= 3;
+      },
+      'JWT_SECRET must contain at least 3 character classes (lowercase, uppercase, numbers, special characters)'
+    )
     .describe('Secret key for JWT signing - must be strong and random'),
 
   // Supabase Configuration (CRITICAL)
@@ -165,7 +201,7 @@ function validateEnv(): Env {
       const parsed = result.success ? result.data : envSchema.parse({
         ...process.env,
         // Provide minimal defaults for test mode
-        JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-that-is-exactly-64-characters-long-for-testing-only',
+        JWT_SECRET: process.env.JWT_SECRET || 'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key',
         STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',

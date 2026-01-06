@@ -1,0 +1,61 @@
+# EAS Build Ignore File
+# IMPORTANT: Keep this minimal - only exclude what's truly not needed for builds
+# Asset files (icon.png, splash.png, etc.) MUST be included!
+
+# Web app directory (not needed for mobile builds)
+../web/
+../../apps/web/
+
+# Test files
+__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.spec.ts
+**/*.spec.tsx
+**/*.spec.js
+coverage/
+
+# Generated build artifacts (EAS regenerates these)
+android/
+ios/
+.expo/
+.expo-shared/
+dist/
+build/
+web-build/
+
+# Large unnecessary files
+*.onnx
+*.pt
+*.pth
+*.zip
+*.tar.gz
+
+# Development files
+*.log
+.DS_Store
+Thumbs.db
+
+# Other apps/services in monorepo
+../../apps/sam3-service/
+../../apps/web/
+
+# Documentation (but keep README)
+docs/
+**/*.md
+!README.md
+!CHANGELOG.md
+
+# Credentials (these should be in secrets)
+credentials/
+*.keystore
+*.jks
+*.pem
+*.p12
+google-services.json
+GoogleService-Info.plist
+
+# Environment files (use EAS secrets instead)
+.env*
+!.env.example

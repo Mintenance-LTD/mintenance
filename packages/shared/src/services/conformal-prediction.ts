@@ -1,9 +1,42 @@
 /**
  * Conformal Prediction Service
  * Provides mathematically guaranteed confidence intervals for damage predictions
+ * 
+ * Note: This service requires a Supabase client to be injected via setSupabaseClient()
+ * before use, as the shared package doesn't have direct database access.
  */
 
-import { supabase } from '../lib/supabase';
+// Supabase client type - injected at runtime
+// Using 'any' for the response types to avoid complex generics
+interface SupabaseClient {
+  from(table: string): {
+    select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): any;
+    insert(data: any): any;
+    update(data: any): any;
+    upsert(data: any): any;
+  };
+  rpc(fn: string, params?: Record<string, any>): Promise<{ data: any; error: any }>;
+}
+
+let _supabaseClient: SupabaseClient | null = null;
+
+/**
+ * Inject the Supabase client for this service
+ * Must be called before using any database operations
+ */
+export function setSupabaseClient(client: SupabaseClient): void {
+  _supabaseClient = client;
+}
+
+function getSupabase(): SupabaseClient {
+  if (!_supabaseClient) {
+    throw new Error(
+      'ConformalPrediction: Supabase client not initialized. ' +
+      'Call setSupabaseClient() before using database operations.'
+    );
+  }
+  return _supabaseClient;
+}
 
 // ============================================================================
 // Types and Interfaces
@@ -97,7 +130,7 @@ export class ConformalPredictionService {
     damageType: string,
     confidenceLevel: number = 0.95
   ): Promise<ConformalPredictionInterval> {
-    const { data, error } = await supabase.rpc('get_conformal_prediction_interval', {
+    const { data, error } = await getSupabase().rpc('get_conformal_prediction_interval', {
       p_prediction_scores: predictionScores,
       p_property_age_category: propertyAgeCategory,
       p_damage_type: damageType,
@@ -121,7 +154,7 @@ export class ConformalPredictionService {
     trueClass: SeverityLevel,
     scoreType: 'hinge' | 'margin' | 'inverse_probability' = 'hinge'
   ): Promise<number> {
-    const { data, error } = await supabase.rpc('calculate_nonconformity_score', {
+    const { data, error } = await getSupabase().rpc('calculate_nonconformity_score', {
       predicted_scores: predictionScores,
       true_class: trueClass,
       score_type: scoreType
@@ -139,7 +172,7 @@ export class ConformalPredictionService {
    * Get active calibration sets
    */
   async getActiveCalibrationSets(): Promise<CalibrationSet[]> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('conformal_calibration_sets')
       .select('*')
       .eq('is_active', true)
@@ -157,7 +190,7 @@ export class ConformalPredictionService {
    * Get calibration summary with performance metrics
    */
   async getCalibrationSummary(): Promise<any[]> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('v_calibration_summary')
       .select('*')
       .order('created_at', { ascending: false });
@@ -180,7 +213,7 @@ export class ConformalPredictionService {
     minSamples: number = 500,
     validationSplit: number = 0.2
   ): Promise<string | null> {
-    const { data, error } = await supabase.rpc('build_calibration_set', {
+    const { data, error } = await getSupabase().rpc('build_calibration_set', {
       p_set_name: setName,
       p_set_type: setType,
       p_stratum: stratum,
@@ -200,7 +233,7 @@ export class ConformalPredictionService {
    * Trigger recalibration (admin only)
    */
   async recalibrateModels(force: boolean = false): Promise<void> {
-    const { error } = await supabase.rpc('recalibrate_conformal_models', {
+    const { error } = await getSupabase().rpc('recalibrate_conformal_models', {
       p_force: force
     });
 
@@ -217,7 +250,7 @@ export class ConformalPredictionService {
     calibrationSetId: string,
     daysBack: number = 7
   ): Promise<CalibrationMetrics | null> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('conformal_performance_metrics')
       .select('*')
       .eq('calibration_set_id', calibrationSetId)
@@ -374,7 +407,7 @@ export class ConformalPredictionService {
    * Check if recalibration is needed
    */
   async isRecalibrationNeeded(calibrationSetId: string): Promise<boolean> {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('conformal_calibration_sets')
       .select('created_at, sample_count, valid_until')
       .eq('id', calibrationSetId)
@@ -388,7 +421,7 @@ export class ConformalPredictionService {
     }
 
     // Check for significant new samples (20% increase)
-    const { count } = await supabase
+    const { count } = await getSupabase()
       .from('building_assessment_outcomes')
       .select('*', { count: 'exact', head: true })
       .gte('learned_at', data.created_at);

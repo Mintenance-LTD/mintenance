@@ -62,6 +62,8 @@ const ICON_NAME_MAP: Readonly<Record<string, keyof typeof LucideIcons>> = {
   dollarSign: 'DollarSign',
   currencyPound: 'PoundSterling',
   creditCard: 'CreditCard',
+  bank: 'Landmark',
+  banking: 'Landmark',
   chart: 'BarChart3',
   pieChart: 'PieChart',
   target: 'Target',

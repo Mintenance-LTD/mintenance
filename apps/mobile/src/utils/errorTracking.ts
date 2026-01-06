@@ -11,21 +11,16 @@
  * - Business logic error tracking
  */
 
-// Sentry import with Expo integration
+// Sentry import - using @sentry/react-native directly (removed sentry-expo for security)
 import { logger } from './logger';
 
 let Sentry: any = null;
 try {
-  Sentry = require('sentry-expo');
-  logger.info('Sentry (sentry-expo) available for error tracking');
+  Sentry = require('@sentry/react-native');
+  logger.info('Sentry (@sentry/react-native) available for error tracking');
 } catch (error) {
-  try {
-    Sentry = require('@sentry/react-native');
-    logger.info('Sentry (react-native) available for error tracking');
-  } catch (fallbackError) {
-    logger.warn('Sentry not available, using fallback error tracking');
-    Sentry = null;
-  }
+  logger.warn('Sentry not available, using fallback error tracking');
+  Sentry = null;
 }
 
 // Initialize Sentry configuration

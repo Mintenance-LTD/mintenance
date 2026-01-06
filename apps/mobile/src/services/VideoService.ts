@@ -4,11 +4,11 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'ffmpeg-kit-react-native';
+import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'react-native-ffmpeg-kit';
 import { logger } from '@mintenance/shared';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../config/supabase';
 
 // Types
 export interface VideoMetadata {

@@ -3,6 +3,8 @@
  *
  * This endpoint uses the new EnhancedHybridInferenceService that performs
  * real-time three-way Bayesian fusion with YOLO, SAM3, and GPT-4.
+ * 
+ * OWASP Security: Rate limited to prevent API cost abuse
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,6 +14,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { rateLimiter } from '@/lib/rate-limiter';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 
 // Request validation schema
@@ -36,6 +39,39 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Rate limiting - OWASP best practice: limit expensive AI operations
+    const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                       request.headers.get('x-real-ip') ||
+                       'anonymous';
+
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `building-surveyor-fusion:${identifier}`,
+      windowMs: 60000, // 1 minute
+      maxRequests: 5, // 5 requests per minute (very expensive multi-model analysis)
+    });
+
+    if (!rateLimitResult.allowed) {
+      logger.warn('Building surveyor fusion rate limit exceeded', {
+        service: 'building-surveyor-fusion',
+        identifier,
+        remaining: rateLimitResult.remaining,
+        retryAfter: rateLimitResult.retryAfter,
+      });
+
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(rateLimitResult.resetTime / 1000)),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+          },
+        }
+      );
+    }
+
     // 1. Authentication check
     const session = await getServerSession(authOptions);
     if (!session) {

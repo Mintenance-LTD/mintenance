@@ -5,6 +5,15 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
+/** Type for escrow with job relation */
+interface EscrowWithHomeownerJob {
+  id: string;
+  jobs: {
+    id: string;
+    homeowner_id: string;
+  };
+}
+
 /**
  * POST /api/escrow/:id/homeowner/inspect
  * Mark inspection completed
@@ -43,7 +52,8 @@ export async function POST(
       throw new NotFoundError('Escrow not found');
     }
 
-    const job = (escrow as any).jobs;
+    const typedEscrow = escrow as EscrowWithHomeownerJob;
+    const job = typedEscrow.jobs;
     if (job.homeowner_id !== user.id) {
       throw new ForbiddenError('Unauthorized');
     }

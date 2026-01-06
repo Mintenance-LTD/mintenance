@@ -13,6 +13,12 @@ import {
   toTimestamp,
 } from '@/app/api/messages/utils';
 
+// Type for message rows with nested job data from join query
+interface MessageJobRow {
+  job_id: string;
+  jobs: SupabaseJobRow;
+}
+
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
   cursor: z.string().optional(),
@@ -77,19 +83,19 @@ export async function GET(request: NextRequest) {
       .limit(50);
     
     // Combine and deduplicate jobs
-    const allJobs = new Map<string, any>();
+    const allJobs = new Map<string, SupabaseJobRow>();
     
     // Add jobs from direct query
     if (jobsData) {
-      for (const job of jobsData) {
+      for (const job of jobsData as SupabaseJobRow[]) {
         allJobs.set(job.id, job);
       }
     }
     
     // Add jobs from messages query
     if (messageJobsData) {
-      for (const msgRow of messageJobsData) {
-        const job = (msgRow as any).jobs;
+      for (const msgRow of messageJobsData as MessageJobRow[]) {
+        const job = msgRow.jobs;
         if (job && !allJobs.has(job.id)) {
           allJobs.set(job.id, job);
         }

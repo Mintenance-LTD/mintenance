@@ -76,7 +76,7 @@ export async function GET(
       throw new NotFoundError('Escrow not found');
     }
 
-    const typedEscrow = escrow as any;
+    const typedEscrow = escrow as EscrowRecord | { jobs: JobWithPhotos[] };
     const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
     if (!job || (job.homeowner_id !== user.id && user.role !== 'admin')) {
       throw new ForbiddenError('Unauthorized');

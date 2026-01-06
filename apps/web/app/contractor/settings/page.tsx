@@ -22,16 +22,30 @@ import {
   Building,
   Plus,
   Trash2,
+  Bot,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AddPaymentMethodForm } from '@/app/settings/payment-methods/components/AddPaymentMethodForm';
+import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 
-type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'privacy';
+type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'automation' | 'privacy';
 
 export default function ContractorSettingsPage() {
   const router = useRouter();
   const { user, loading: loadingUser, refresh } = useCurrentUser();
   const [activeSection, setActiveSection] = useState<SectionKey>('profile');
+  
+  // Read section from URL on mount and when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sectionParam = params.get('section') as SectionKey | null;
+      const validSections: SectionKey[] = ['profile', 'account', 'notifications', 'payments', 'automation', 'privacy'];
+      if (sectionParam && validSections.includes(sectionParam)) {
+        setActiveSection(sectionParam);
+      }
+    }
+  }, []);
   const [isExporting, setIsExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -358,6 +372,7 @@ export default function ContractorSettingsPage() {
     { key: 'account' as SectionKey, label: 'Account & Security', icon: Lock },
     { key: 'notifications' as SectionKey, label: 'Notifications', icon: Bell },
     { key: 'payments' as SectionKey, label: 'Payments', icon: CreditCard },
+    { key: 'automation' as SectionKey, label: 'AI Agent Automation', icon: Bot },
     { key: 'privacy' as SectionKey, label: 'Privacy', icon: Shield },
   ];
 
@@ -891,6 +906,15 @@ export default function ContractorSettingsPage() {
                     </DialogContent>
                   </Dialog>
                 </div>
+              </div>
+            )}
+
+            {/* AI Agent Automation Section */}
+            {activeSection === 'automation' && (
+              <div className="space-y-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Agent Automation</h1>
+                <p className="text-gray-600 mb-6">Control how AI agents assist you</p>
+                <AgentAutomationPanel />
               </div>
             )}
 

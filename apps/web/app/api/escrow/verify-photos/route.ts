@@ -8,6 +8,18 @@ import { validateRequest } from '@/lib/validation/validator';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
+/** Type for escrow with job relation from Supabase */
+interface EscrowWithJob {
+  id: string;
+  payer_id: string;
+  payee_id: string;
+  jobs: {
+    id: string;
+    contractor_id: string;
+    homeowner_id: string;
+  };
+}
+
 const verifyPhotosSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
   jobId: z.string().uuid('Invalid job ID'),
@@ -48,7 +60,8 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('Escrow not found');
     }
 
-    const job = (escrow as any).jobs;
+    const typedEscrow = escrow as EscrowWithJob;
+    const job = typedEscrow.jobs;
     const canVerify =
       user.role === 'admin' ||
       (user.role === 'contractor' && job.contractor_id === user.id) ||
