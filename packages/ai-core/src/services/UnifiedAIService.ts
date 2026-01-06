@@ -511,7 +511,16 @@ export class UnifiedAIService {
 
   private async handleRateLimit(error: any): Promise<void> {
     const retryAfter = error.response?.headers?.['retry-after'];
-    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+    let waitTime = 5000; // Default 5 seconds
+
+    if (retryAfter) {
+      const parsed = parseInt(retryAfter, 10); // Radix parameter for predictable base-10 parsing
+      // Validate: must be positive integer, cap at 5 minutes to prevent indefinite hangs
+      if (!isNaN(parsed) && parsed > 0 && parsed <= 300) {
+        waitTime = parsed * 1000;
+      }
+    }
+
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
 

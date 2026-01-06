@@ -333,9 +333,15 @@ export class WeatherService {
         // Handle rate limiting
         if (response.status === 429 && retryCount < this.MAX_RETRIES) {
           const retryAfter = response.headers.get('Retry-After');
-          const delay = retryAfter
-            ? parseInt(retryAfter) * 1000
-            : this.RETRY_DELAY_MS * Math.pow(2, retryCount);
+          let delay = this.RETRY_DELAY_MS * Math.pow(2, retryCount); // Default exponential backoff
+
+          if (retryAfter) {
+            const parsed = parseInt(retryAfter, 10); // Radix parameter for predictable base-10 parsing
+            // Validate: must be positive integer, cap at 5 minutes to prevent indefinite hangs
+            if (!isNaN(parsed) && parsed > 0 && parsed <= 300) {
+              delay = parsed * 1000;
+            }
+          }
 
           logger.warn('Rate limit hit, retrying', {
             service: 'WeatherService',
