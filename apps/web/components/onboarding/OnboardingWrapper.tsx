@@ -8,6 +8,7 @@
 import React from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { TutorialSpotlight } from './TutorialSpotlight';
+import { logger } from '@mintenance/shared';
 
 interface OnboardingWrapperProps {
   children: React.ReactNode;
@@ -34,10 +35,10 @@ export function OnboardingWrapper({
     userType,
     autoStart,
     onComplete: () => {
-      // console.log('Onboarding completed!');
+      // logger.info('Onboarding completed!', [object Object], { service: 'ui' });
     },
     onSkip: () => {
-      // console.log('Onboarding skipped');
+      // logger.info('Onboarding skipped', [object Object], { service: 'ui' });
     },
   });
 

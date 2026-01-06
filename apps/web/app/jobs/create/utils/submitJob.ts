@@ -3,6 +3,7 @@
  */
 
 import type { JobFormData } from './validation';
+import { logger } from '@mintenance/shared';
 
 /**
  * Geocode an address using Google Maps Geocoding API
@@ -11,7 +12,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.warn('Google Maps API key not configured, skipping geocoding');
+      logger.warn('Google Maps API key not configured, skipping geocoding', [object Object], { service: 'app' });
       return null;
     }
 
@@ -34,10 +35,10 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
       };
     }
 
-    console.warn('Geocoding failed:', data.status, data.error_message);
+    logger.warn('Geocoding failed:', data.status, data.error_message', [object Object], { service: 'app' });
     return null;
   } catch (error) {
-    console.error('Error geocoding address:', error);
+    logger.error('Error geocoding address:', error', [object Object], { service: 'app' });
     return null;
   }
 }
@@ -97,10 +98,10 @@ export async function submitJob({
       // Small delay to ensure cookie is processed by browser before next request
       await new Promise(resolve => setTimeout(resolve, 50));
     } else {
-      console.warn('[Submit] Failed to fetch fresh CSRF token, using provided token');
+      logger.warn('[Submit] Failed to fetch fresh CSRF token, using provided token', [object Object], { service: 'app' });
     }
   } catch (tokenError) {
-    console.warn('[Submit] Error fetching fresh CSRF token, using provided token:', tokenError);
+    logger.warn('[Submit] Error fetching fresh CSRF token, using provided token:', tokenError', [object Object], { service: 'app' });
   }
 
   if (!tokenToUse) {
@@ -164,7 +165,7 @@ export async function submitJob({
     });
 
     if (!response.ok) {
-      let errorData: any = {};
+      let errorData: unknown = {};
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         try {
@@ -180,12 +181,12 @@ export async function submitJob({
         errorData = { error: textError || `Failed to create job (${response.status})` };
       }
       
-      console.error('Job submission failed:', {
+      logger.error('Job submission failed:', {
         status: response.status,
         statusText: response.statusText,
         contentType,
         error: errorData
-      });
+      }', [object Object], { service: 'app' });
       
       const errorMessage = errorData.error || errorData.message || errorData.details || `Failed to create job (${response.status})`;
       return {
@@ -195,20 +196,20 @@ export async function submitJob({
     }
 
     const data = await response.json();
-    // console.log('Job creation API response:', data);
+    // logger.info('Job creation API response:', data', [object Object], { service: 'app' });
 
     // The API returns { job: { id, ... } }
     const jobId = data.job?.id || data.jobId || data.id;
 
     if (!jobId) {
-      console.error('No job ID in response. Full response data:', JSON.stringify(data, null, 2));
+      logger.error('No job ID in response. Full response data:', JSON.stringify(data, null, 2', [object Object], { service: 'app' }));
       return {
         success: false,
         error: 'Job created but no ID returned',
       };
     }
 
-    // console.log('Job created successfully with ID:', jobId);
+    // logger.info('Job created successfully with ID:', jobId', [object Object], { service: 'app' });
 
     // Trigger AI assessment if photos were uploaded (non-blocking)
     if (photoUrls && photoUrls.length > 0 && jobId) {
@@ -229,7 +230,7 @@ export async function submitJob({
         }),
       }).catch(error => {
         // Don't fail job creation if assessment fails
-        console.warn('Failed to trigger AI assessment:', error);
+        logger.warn('Failed to trigger AI assessment:', error', [object Object], { service: 'app' });
       });
     }
 
@@ -238,7 +239,7 @@ export async function submitJob({
       jobId: jobId,
     };
   } catch (error) {
-    console.error('Job submission exception:', error);
+    logger.error('Job submission exception:', error', [object Object], { service: 'app' });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'An unexpected error occurred',

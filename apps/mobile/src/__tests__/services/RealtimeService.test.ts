@@ -1,7 +1,7 @@
 import { RealtimeService } from '../../services/RealtimeService';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { Message, Job, Bid } from '../../types';
+import { Message, Job, Bid } from '@mintenance/types';
 
 enum JobStatus {
   POSTED = 'posted',

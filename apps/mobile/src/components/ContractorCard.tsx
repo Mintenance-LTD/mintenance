@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Swiper from 'react-native-deck-swiper';
 import { Ionicons } from '@expo/vector-icons';
-import { ContractorProfile } from '../types';
+import { ContractorProfile } from '@mintenance/types';
 import { theme } from '../theme';
 import ConnectButton from './ConnectButton';
 

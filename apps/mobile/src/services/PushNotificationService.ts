@@ -6,7 +6,7 @@
 
 import { Platform } from 'react-native';
 import { logger } from '../utils/logger';
-import { NotificationBehavior } from '../types';
+import { NotificationBehavior } from '@mintenance/types';
 
 // Conditional imports for Expo modules
 let Notifications: any;

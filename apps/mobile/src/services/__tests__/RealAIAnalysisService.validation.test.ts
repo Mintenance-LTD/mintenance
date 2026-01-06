@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RealAIAnalysisService } from '../RealAIAnalysisService';
-import type { Job } from '../../types';
+import type { Job } from '@mintenance/types';
 
 // Mock dependencies
 vi.mock('../../config/ai.config', () => ({

@@ -6,7 +6,7 @@
  */
 
 import { AuthService } from '../../services/AuthService';
-import { User } from '../../types';
+import { User } from '@mintenance/types';
 
 // Mock AuthService
 jest.mock('../../services/AuthService');

@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Production-Safe Logger
  * 
@@ -124,15 +125,15 @@ class Logger {
         }
         break;
       case 'info':
-        console.log(formattedMessage);
+        logger.info('Log output', formattedMessage, { service: 'general' });
         break;
       case 'warn':
-        console.warn(formattedMessage);
+        logger.warn('Log output', formattedMessage, { service: 'general' });
         break;
       case 'error':
-        console.error(formattedMessage);
+        logger.error('Log output', formattedMessage, { service: 'general' });
         if (error) {
-          console.error('Error details:', error.stack || error.message || error);
+          logger.error('Error details:', error.stack || error.message || error', [object Object], { service: 'general' });
         }
         break;
     }

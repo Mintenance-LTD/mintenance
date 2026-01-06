@@ -10,6 +10,7 @@ import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { useRouter } from 'next/navigation';
 import { SkillsManagementModal } from './SkillsManagementModal';
+import { logger } from '@mintenance/shared';
 import {
   Camera,
   Upload,
@@ -163,7 +164,7 @@ export function ContractorProfileClient2025({
       toast.success('Skills updated successfully');
       router.refresh();
     } catch (error) {
-      console.error('Error saving skills:', error);
+      logger.error('Error saving skills:', error', [object Object], { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to save skills');
     }
   };
@@ -219,7 +220,7 @@ export function ContractorProfileClient2025({
           // Try to extract specific validation errors
           if (Array.isArray(data.details)) {
             const validationErrors = data.details
-              .map((err: any) => err.message || err.path?.join('.') || 'Invalid field')
+              .map((err: unknown) => err.message || err.path?.join('.') || 'Invalid field')
               .join(', ');
             if (validationErrors) {
               errorMessage = `Validation error: ${validationErrors}`;
@@ -235,7 +236,7 @@ export function ContractorProfileClient2025({
       // Refresh the page to show updated data
       router.refresh();
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error', [object Object], { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setIsSaving(false);

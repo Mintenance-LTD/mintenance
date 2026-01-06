@@ -9,6 +9,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 // Invoice line item schema
 const lineItemSchema = z.object({
@@ -69,6 +70,28 @@ function calculateTotals(lineItems: any[], taxRate: number) {
 // GET: Fetch contractor's invoices
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getCurrentUserFromCookies();
 
     if (!user || user.role !== 'contractor') {
@@ -128,6 +151,28 @@ export async function GET(request: NextRequest) {
 // POST: Create new invoice
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // CSRF protection
     await requireCSRF(request);
 
@@ -268,6 +313,28 @@ export async function POST(request: NextRequest) {
 // PATCH: Update invoice
 export async function PATCH(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();
@@ -314,7 +381,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Recalculate totals if line items changed
-    let updateData: any = { ...body };
+    let updateData: unknown = { ...body };
     if (body.lineItems && body.taxRate !== undefined) {
       const { subtotal, taxAmount, totalAmount } = calculateTotals(
         body.lineItems,
@@ -360,7 +427,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 // Helper function to send invoice email (implement with your email service)
-async function sendInvoiceEmail(invoice: any, contractor: any): Promise<void> {
+async function sendInvoiceEmail(invoice: unknown, contractor: unknown): Promise<void> {
   // TODO: Implement email sending logic
   // This could use SendGrid, AWS SES, or any other email service
 

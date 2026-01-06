@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 // Web Logger Utility - Structured logging for Next.js/web environment
 // Adapted from mobile logger pattern for browser and server-side compatibility
 
@@ -123,8 +124,9 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      // console.log(
-      //   this.formatMessage('debug', message, this.toContext(context))
+      // logger.info('//   this.formatMessage('debug', {
+        service: 'lib'
+      }))
       // );
     }
 
@@ -164,8 +166,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.warn(
-        this.formatMessage('warn', message, this.toContext(context))
+      logger.warn('this.formatMessage('warn', message, this.toContext(context, { service: 'lib' }))
       );
     }
 
@@ -230,7 +231,7 @@ class Logger {
     );
 
     if (this.isDevelopment) {
-      console.error(formattedMessage, err);
+      logger.error('formattedMessage', err, { service: 'lib' });
     }
 
     sentryFunctions.addBreadcrumb({
@@ -258,7 +259,7 @@ class Logger {
     const message = `${operation} completed in ${duration}ms`;
 
     if (this.isDevelopment) {
-      // console.log(this.formatMessage('info', message, this.toContext(context)));
+      // logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'lib' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -319,7 +320,7 @@ class Logger {
     const message = `User action: ${action}`;
 
     if (this.isDevelopment) {
-      // console.log(this.formatMessage('info', message, this.toContext(context)));
+      // logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'lib' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -335,7 +336,7 @@ class Logger {
     const message = `Navigation: ${from} -> ${to}`;
 
     if (this.isDevelopment) {
-      // console.log(this.formatMessage('info', message, this.toContext(context)));
+      // logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'lib' })));
     }
 
     sentryFunctions.addBreadcrumb({

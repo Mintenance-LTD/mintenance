@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Enhanced Hybrid Inference Service with Conformal Prediction
  * Provides routing decisions with mathematical confidence guarantees
@@ -367,7 +368,7 @@ export class EnhancedHybridInferenceService {
       );
 
       if (needsRecalibration) {
-        console.log('Recalibration recommended for set:', predictedInterval.calibration_set_id);
+        logger.info('Recalibration recommended for set:', predictedInterval.calibration_set_id', [object Object], { service: 'general' });
         // Could trigger automated recalibration here
       }
     }
@@ -452,7 +453,7 @@ export class EnhancedHybridInferenceService {
 
   private async logPerformanceMetric(metric: any): Promise<void> {
     // Implement logging to database
-    console.log('Performance metric:', metric);
+    logger.info('Performance metric:', metric', [object Object], { service: 'general' });
   }
 }
 

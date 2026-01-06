@@ -10,6 +10,7 @@ import { logger } from '@mintenance/shared';
 import { supabase } from '@/lib/supabase';
 import { featureFlags, FeatureFlag } from '@/lib/config/feature-flags';
 import { HybridInferenceService } from '@/lib/services/building-surveyor/HybridInferenceService';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * GET /api/feature-flags
@@ -17,6 +18,28 @@ import { HybridInferenceService } from '@/lib/services/building-surveyor/HybridI
  */
 export async function GET(request: NextRequest) {
     try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
         const searchParams = request.nextUrl.searchParams;
         const flag = searchParams.get('flag');
         const includeMetrics = searchParams.get('metrics') === 'true';
@@ -96,6 +119,28 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
         const body = await request.json();
         const { flag, metrics, userId, sessionId } = body;
 
@@ -322,7 +367,7 @@ async function getOverallMetrics() {
     };
 }
 
-async function handleSAM3Metrics(metrics: any) {
+async function handleSAM3Metrics(metrics: unknown) {
     const config = featureFlags.getSAM3Config();
 
     // Check if automatic rollback is needed
@@ -387,7 +432,7 @@ async function genericRollback(flag: string) {
     };
 }
 
-async function updateFeatureFlag(flag: string, value: any) {
+async function updateFeatureFlag(flag: string, value: unknown) {
     // In production, this would update LaunchDarkly
     // For now, update local state and database
     const { data, error } = await supabase
@@ -406,7 +451,7 @@ async function updateFeatureFlag(flag: string, value: any) {
 async function sendRollbackNotifications(
     flag: string,
     reason: string,
-    result: any
+    result: unknown
 ) {
     // Send Slack notification
     try {

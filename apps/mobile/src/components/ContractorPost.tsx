@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { logger } from '../utils/logger';
 import { Ionicons } from '@expo/vector-icons';
-import { ContractorPost, ContractorPostComment } from '../types';
+import { ContractorPost, ContractorPostComment } from '@mintenance/types';
 import { ContractorSocialService } from '../services/ContractorSocialService';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';

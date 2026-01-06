@@ -18,6 +18,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '@mintenance/shared';
 
 // ==========================================================
 // CONFIGURATION
@@ -60,7 +61,7 @@ function log(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'inf
     error: '\x1b[31m[ERROR]\x1b[0m',
     warn: '\x1b[33m[WARN]\x1b[0m',
   };
-  // console.log(`${prefix[type]} ${message}`);
+  // logger.info('%s %s', [object Object], { service: 'general' });
 }
 
 function ensureDirectoryExists(dir: string): void {

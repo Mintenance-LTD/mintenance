@@ -40,6 +40,7 @@ export * from './variants';
 // ============================================
 
 import * as motionConfig from './motion-config';
+import { logger } from '@mintenance/shared';
 
 /**
  * Convenience object for accessing all motion variants
@@ -276,7 +277,7 @@ export function enableAnimationDebug(): void {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.entryType === 'measure' && entry.name.includes('animation')) {
-          // console.log('[Animation Debug]', entry.name, `${entry.duration}ms`);
+          // logger.debug('[Animation Debug]', entry.name, `${entry.duration}ms`', [object Object], { service: 'lib' });
         }
       }
     });

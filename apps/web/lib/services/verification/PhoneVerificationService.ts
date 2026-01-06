@@ -293,7 +293,7 @@ export class PhoneVerificationService {
       });
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending SMS via Twilio Verify', error, {
         service: 'PhoneVerificationService',
         errorCode: error?.code,
@@ -483,7 +483,7 @@ export class PhoneVerificationService {
         });
         return { success: false, error: 'Invalid or expired verification code' };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error verifying code via Twilio Verify', error, {
         service: 'PhoneVerificationService',
       });

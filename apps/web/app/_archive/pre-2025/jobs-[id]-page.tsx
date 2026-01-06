@@ -153,7 +153,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .order('created_at', { ascending: false });
 
   // Get the accepted bid (if any)
-  const acceptedBid = bidsWithContractors?.find((bid: any) => bid.status === 'accepted');
+  const acceptedBid = bidsWithContractors?.find((bid: unknown) => bid.status === 'accepted');
 
   // Fetch contract for this job (if exists)
   const { data: contract } = await serverSupabase

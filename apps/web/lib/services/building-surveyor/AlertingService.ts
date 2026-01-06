@@ -590,7 +590,7 @@ export class AlertingService {
   private static async escalateAlert(
     originalPayload: AlertPayload,
     escalationLevel: number,
-    rule: any
+    rule: unknown
   ): Promise<void> {
     if (escalationLevel > rule.maxEscalations) {
       logger.warn('Max escalation level reached', {

@@ -20,6 +20,7 @@ import { FormField, ValidatedInput, ValidatedTextarea, ValidatedSelect } from '@
 import { LandingNavigation } from '../components/landing/LandingNavigation';
 import { Footer2025 } from '../components/landing/Footer2025';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { logger } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -265,7 +266,7 @@ function ContactPageContent() {
         }
       }
     } catch (error) {
-      console.error('Contact form submission error:', error);
+      logger.error('Contact form submission error:', error', [object Object], { service: 'app' });
       toast.error('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

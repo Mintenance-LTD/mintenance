@@ -25,6 +25,7 @@ import {
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { AddCertificationModal } from './components/AddCertificationModal';
+import { logger } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -174,7 +175,7 @@ export default function CertificationsPage2025() {
       setCertifications(certifications.filter((c) => c.id !== id));
       toast.success('Certification deleted');
     } catch (error) {
-      console.error('Error deleting certification:', error);
+      logger.error('Error deleting certification:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to delete certification');
     }
   };
@@ -200,10 +201,10 @@ export default function CertificationsPage2025() {
           const data = await response.json();
           setCertifications(data.certifications || []);
         } else {
-          console.error('Failed to fetch certifications');
+          logger.error('Failed to fetch certifications', [object Object], { service: 'app' });
         }
       } catch (error) {
-        console.error('Error fetching certifications:', error);
+        logger.error('Error fetching certifications:', error', [object Object], { service: 'app' });
       } finally {
         setLoadingCertifications(false);
       }
@@ -220,7 +221,7 @@ export default function CertificationsPage2025() {
           setDbsCheckStatus(data);
         }
       } catch (error) {
-        console.error('Error fetching DBS check status:', error);
+        logger.error('Error fetching DBS check status:', error', [object Object], { service: 'app' });
       } finally {
         setLoadingDBS(false);
       }
@@ -258,7 +259,7 @@ export default function CertificationsPage2025() {
         setDbsCheckStatus(statusData);
       }
     } catch (error) {
-      console.error('Error initiating DBS check:', error);
+      logger.error('Error initiating DBS check:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to initiate DBS check');
     } finally {
       setInitiatingDBS(false);

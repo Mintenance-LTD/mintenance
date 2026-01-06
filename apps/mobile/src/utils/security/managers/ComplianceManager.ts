@@ -4,7 +4,7 @@
  * Handles security compliance checks and reporting
  */
 
-import type { SecurityVulnerability } from '../types';
+import type { SecurityVulnerability } from '@mintenance/types';
 
 export class ComplianceManager {
   /**

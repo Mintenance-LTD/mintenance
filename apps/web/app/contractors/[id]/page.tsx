@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { logger } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -187,7 +188,7 @@ function ContractorPublicProfilePage2025() {
   }, []); // Only run once on mount, URL params are read synchronously in initializer
 
   // Transform API response to Contractor interface
-  const transformContractorData = (contractorData: any, id: string): Contractor => {
+  const transformContractorData = (contractorData: unknown, id: string): Contractor => {
     const location = contractorData.city && contractorData.country
       ? `${contractorData.city}, ${contractorData.country}`
       : contractorData.city || contractorData.country || 'Location not specified';
@@ -308,7 +309,7 @@ function ContractorPublicProfilePage2025() {
           setFetchedReviews(fetchedReviews);
         }
       } catch (error) {
-        console.error('Error fetching contractor:', error);
+        logger.error('Error fetching contractor:', error', [object Object], { service: 'app' });
         const errorMessage = error instanceof Error ? error.message : 'Failed to load contractor profile';
         setError(errorMessage);
         toast.error('Failed to load contractor profile');
@@ -437,7 +438,7 @@ function ContractorPublicProfilePage2025() {
         toast.success('Profile link copied to clipboard');
       }
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      logger.error('Failed to copy to clipboard:', error', [object Object], { service: 'app' });
       toast.error('Failed to copy link. Please copy the URL manually.');
     }
   };

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function MessageThreadError({
   error,
@@ -15,7 +16,7 @@ export default function MessageThreadError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Message thread error:', error);
+    logger.error('Message thread error:', error', [object Object], { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

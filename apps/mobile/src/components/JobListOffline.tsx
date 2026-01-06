@@ -13,7 +13,7 @@ import { useAvailableJobs, useCreateJob } from '../hooks/useJobs';
 import { useNetworkState } from '../hooks/useNetworkState';
 import OfflineSyncStatus from './OfflineSyncStatus';
 import { theme } from '../theme';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 interface JobListOfflineProps {

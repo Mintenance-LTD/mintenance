@@ -77,13 +77,13 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .limit(limit * 2); // Get more to filter after
 
     if (contractorsError) {
-      console.error('[getFeaturedContractors] Error fetching contractors:', {
+      logger.error('[getFeaturedContractors] Error fetching contractors:', {
         message: contractorsError.message,
         details: contractorsError.details,
         hint: contractorsError.hint,
         code: contractorsError.code,
         fullError: contractorsError,
-        errorString: String(contractorsError),
+        errorString: String(contractorsError', [object Object], { service: 'lib' }),
         errorType: typeof contractorsError,
         errorConstructor: contractorsError.constructor?.name
       });
@@ -134,7 +134,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
           contractor_id
         )
       `)
-      .not('job_id', 'is', null) as { data: ReviewWithJob[] | null; error: any };
+      .not('job_id', 'is', null) as { data: ReviewWithJob[] | null; error: unknown };
 
     if (reviewsError) {
       logger.error('Error fetching contractor reviews', reviewsError, {
@@ -168,7 +168,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .eq('status', 'completed');
 
     if (jobsError) {
-      console.error('[getFeaturedContractors] Error fetching jobs:', jobsError);
+      logger.error('[getFeaturedContractors] Error fetching jobs:', jobsError', [object Object], { service: 'lib' });
     }
 
     const jobsMap = new Map<string, number>();
@@ -213,7 +213,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
 
     return profiles;
   } catch (error) {
-    console.error('[getFeaturedContractors] Unexpected error:', error);
+    logger.error('[getFeaturedContractors] Unexpected error:', error', [object Object], { service: 'lib' });
     return [];
   }
 }
@@ -250,7 +250,7 @@ export async function searchContractors(params: {
     const { data: contractors, error } = await query.limit(limit * 2);
 
     if (error) {
-      console.error('[searchContractors] Error:', error);
+      logger.error('[searchContractors] Error:', error', [object Object], { service: 'lib' });
       return [];
     }
 
@@ -332,7 +332,7 @@ export async function searchContractors(params: {
 
     return profiles;
   } catch (error) {
-    console.error('[searchContractors] Unexpected error:', error);
+    logger.error('[searchContractors] Unexpected error:', error', [object Object], { service: 'lib' });
     return [];
   }
 }
@@ -354,7 +354,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
       .limit(limit);
 
     if (error) {
-      console.error('[getAvailableJobs] Error:', error);
+      logger.error('[getAvailableJobs] Error:', error', [object Object], { service: 'lib' });
       return [];
     }
 
@@ -387,7 +387,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
 
     return jobListings;
   } catch (error) {
-    console.error('[getAvailableJobs] Unexpected error:', error);
+    logger.error('[getAvailableJobs] Unexpected error:', error', [object Object], { service: 'lib' });
     return [];
   }
 }
@@ -424,7 +424,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       averageRating: Math.round(averageRating * 10) / 10
     };
   } catch (error) {
-    console.error('[getPlatformStats] Unexpected error:', error);
+    logger.error('[getPlatformStats] Unexpected error:', error', [object Object], { service: 'lib' });
     return {
       totalContractors: 0,
       totalJobs: 0,
@@ -449,7 +449,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       .single();
 
     if (error || !contractor) {
-      console.error('[getContractorProfile] Error:', error);
+      logger.error('[getContractorProfile] Error:', error', [object Object], { service: 'lib' });
       return null;
     }
 
@@ -495,7 +495,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       response_time: '< 1 hour'
     };
   } catch (error) {
-    console.error('[getContractorProfile] Unexpected error:', error);
+    logger.error('[getContractorProfile] Unexpected error:', error', [object Object], { service: 'lib' });
     return null;
   }
 }

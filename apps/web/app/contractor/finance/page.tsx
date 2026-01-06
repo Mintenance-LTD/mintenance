@@ -63,7 +63,7 @@ export default function ContractorFinancePage2025() {
 
         // Transform to transactions
         // API returns EscrowTransaction: { id, jobId, payerId, payeeId, amount, status, createdAt, job: { title }, payer: { first_name, last_name } }
-        const transformed: Transaction[] = payments.map((p: any) => {
+        const transformed: Transaction[] = payments.map((p: unknown) => {
           // Map API status to finance page status
           // API: 'pending', 'held', 'released', 'refunded'
           // Finance page expects: 'pending', 'held', 'released', 'completed'
@@ -376,7 +376,7 @@ export default function ContractorFinancePage2025() {
                   borderRadius: '12px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 }}
-                formatter={(value: any) => [`£${value}`, 'Revenue']}
+                formatter={(value: unknown) => [`£${value}`, 'Revenue']}
               />
               <Area
                 type="monotone"

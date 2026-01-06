@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { MutualConnectionsService } from '../services/MutualConnectionsService';
-import { ConnectionRequest, MutualConnection } from '../types';
+import { ConnectionRequest, MutualConnection } from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';

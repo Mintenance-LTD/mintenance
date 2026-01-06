@@ -28,6 +28,7 @@ import { MotionDiv } from '@/components/ui/MotionDiv';
 import { SmartJobAnalysis } from '@/app/jobs/create/components/SmartJobAnalysis';
 import { getCsrfToken } from '@/lib/csrf-client';
 import { formatMoney } from '@/lib/utils/currency';
+import { logger } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -188,7 +189,7 @@ export default function JobEditPage2025() {
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching job:', error);
+        logger.error('Error fetching job:', error', [object Object], { service: 'app' });
         toast.error('Failed to load job details');
         router.push('/jobs');
       }
@@ -283,7 +284,7 @@ export default function JobEditPage2025() {
 
       toast.success(`${files.length} image(s) uploaded successfully`);
     } catch (error) {
-      console.error('Error uploading images:', error);
+      logger.error('Error uploading images:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to upload images');
     } finally {
       setUploadingImages(false);
@@ -405,7 +406,7 @@ export default function JobEditPage2025() {
       toast.success('Job updated successfully');
       router.push(`/jobs/${jobId}`);
     } catch (error) {
-      console.error('Error updating job:', error);
+      logger.error('Error updating job:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to update job');
     } finally {
       setIsSubmitting(false);
@@ -439,7 +440,7 @@ export default function JobEditPage2025() {
         toast.error(error.error || 'Failed to save job');
       }
     } catch (error) {
-      console.error('Error saving job:', error);
+      logger.error('Error saving job:', error', [object Object], { service: 'app' });
       toast.error('Failed to save job');
     } finally {
       setSavingJob(false);
@@ -495,7 +496,7 @@ export default function JobEditPage2025() {
         setGeocodeData(result.geocode);
       }
     } catch (error) {
-      console.error('Error running AI analysis:', error);
+      logger.error('Error running AI analysis:', error', [object Object], { service: 'app' });
       toast.error('Failed to run AI analysis');
     } finally {
       setIsSubmitting(false);
@@ -1037,7 +1038,7 @@ export default function JobEditPage2025() {
                           <div className="bg-red-50 rounded-lg p-3">
                             <p className="text-sm font-medium text-red-800 mb-2">Safety Hazards:</p>
                             <ul className="list-disc list-inside text-sm text-red-700">
-                              {buildingSurvey.safetyHazards.map((hazard: any, index: number) => (
+                              {buildingSurvey.safetyHazards.map((hazard: unknown, index: number) => (
                                 <li key={index}>{hazard.description}</li>
                               ))}
                             </ul>

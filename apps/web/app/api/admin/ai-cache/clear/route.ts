@@ -11,6 +11,7 @@ import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 const clearRequestSchema = z.object({
   service: z.enum([
@@ -27,6 +28,28 @@ const clearRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 10
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(10),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Secure admin authentication with database verification
     const auth = await requireAdmin(request);
     if (isAdminError(auth)) return auth.error;
@@ -91,6 +114,28 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 10
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(10),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Secure admin authentication with database verification
     const auth = await requireAdmin(request);
     if (isAdminError(auth)) return auth.error;

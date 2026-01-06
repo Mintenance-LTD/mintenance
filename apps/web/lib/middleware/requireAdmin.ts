@@ -15,7 +15,7 @@ import { logger } from '@/lib/logger';
  * Always verify against the database to prevent token forgery attacks
  */
 export async function requireAdmin(request: NextRequest): Promise<{
-  user: any;
+  user: unknown;
   error?: never;
 } | {
   error: NextResponse;

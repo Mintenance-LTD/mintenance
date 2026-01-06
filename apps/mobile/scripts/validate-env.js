@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 #!/usr/bin/env node
 
 /**
@@ -23,7 +24,7 @@ const REQUIRED_VARS = [
 const errors = [];
 const warnings = [];
 
-console.log(colors.blue('\n🔍 Validating environment variables for mobile build...\n'));
+logger.info('Log output', colors.blue('\n🔍 Validating environment variables for mobile build...\n', { service: 'mobile' }));
 
 // Check each required variable
 REQUIRED_VARS.forEach(varName => {
@@ -64,7 +65,7 @@ REQUIRED_VARS.forEach(varName => {
     }
   }
 
-  console.log(colors.green(`✓ ${varName}`));
+  logger.info('Log output', colors.green(`✓ ${varName}`, { service: 'mobile' }));
 });
 
 // Check NODE_ENV
@@ -72,22 +73,22 @@ const nodeEnv = process.env.NODE_ENV;
 if (!nodeEnv) {
   warnings.push('⚠️  NODE_ENV is not set');
 } else {
-  console.log(colors.green(`✓ NODE_ENV = ${nodeEnv}`));
+  logger.info('Log output', colors.green(`✓ NODE_ENV = ${nodeEnv}`, { service: 'mobile' }));
 }
 
 // Print warnings
 if (warnings.length > 0) {
-  console.log(colors.yellow('\n⚠️  Warnings:\n'));
-  warnings.forEach(warning => console.log(colors.yellow(`  ${warning}`)));
+  logger.info('Log output', colors.yellow('\n⚠️  Warnings:\n', { service: 'mobile' }));
+  warnings.forEach(warning => logger.info('Log output', colors.yellow(`  ${warning}`, { service: 'mobile' })));
 }
 
 // Print errors and exit if any
 if (errors.length > 0) {
-  console.log(colors.red('\n❌ Environment validation FAILED:\n'));
-  errors.forEach(error => console.log(colors.red(`  ${error}`)));
-  console.log(colors.red('\n💡 Please set missing environment variables in .env or EAS Secrets\n'));
+  logger.info('Log output', colors.red('\n❌ Environment validation FAILED:\n', { service: 'mobile' }));
+  errors.forEach(error => logger.info('Log output', colors.red(`  ${error}`, { service: 'mobile' })));
+  logger.info('Log output', colors.red('\n💡 Please set missing environment variables in .env or EAS Secrets\n', { service: 'mobile' }));
   process.exit(1);
 }
 
-console.log(colors.green('\n✅ Environment validation passed!\n'));
+logger.info('Log output', colors.green('\n✅ Environment validation passed!\n', { service: 'mobile' }));
 process.exit(0);

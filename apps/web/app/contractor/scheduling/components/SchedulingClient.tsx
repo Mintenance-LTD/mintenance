@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Calendar, Clock, Users, MapPin, Video, Plus, ChevronLeft, ChevronRight, Phone, Check, X } from 'lucide-react';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import toast from 'react-hot-toast';
+import { logger } from '@mintenance/shared';
 
 interface SchedulingClientProps {
   userId: string;
@@ -99,7 +100,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
         loadAvailability(),
       ]);
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error', [object Object], { service: 'ui' });
       toast.error('Failed to load scheduling data');
     } finally {
       setLoading(false);
@@ -112,7 +113,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       if (!response.ok) throw new Error('Failed to fetch appointments');
 
       const data = await response.json();
-      const transformedAppointments: Appointment[] = (data.appointments || []).map((apt: any) => ({
+      const transformedAppointments: Appointment[] = (data.appointments || []).map((apt: unknown) => ({
         id: apt.id,
         title: apt.title,
         client: apt.client,
@@ -127,7 +128,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       setAppointments(transformedAppointments);
     } catch (error) {
-      console.error('Error loading appointments:', error);
+      logger.error('Error loading appointments:', error', [object Object], { service: 'ui' });
       throw error;
     }
   };
@@ -140,7 +141,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       const data = await response.json();
       setStats(data.stats || stats);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      logger.error('Error loading stats:', error', [object Object], { service: 'ui' });
       throw error;
     }
   };
@@ -178,7 +179,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       setAvailability(fullAvailability);
     } catch (error) {
-      console.error('Error loading availability:', error);
+      logger.error('Error loading availability:', error', [object Object], { service: 'ui' });
       throw error;
     }
   };
@@ -247,8 +248,8 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       // Reload data
       await loadData();
-    } catch (error: any) {
-      console.error('Error creating appointment:', error);
+    } catch (error: unknown) {
+      logger.error('Error creating appointment:', error', [object Object], { service: 'ui' });
       toast.error(error.message || 'Failed to create appointment');
     }
   };
@@ -268,14 +269,14 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       toast.success('Availability settings saved');
     } catch (error) {
-      console.error('Error saving availability:', error);
+      logger.error('Error saving availability:', error', [object Object], { service: 'ui' });
       toast.error('Failed to save availability settings');
     } finally {
       setSavingAvailability(false);
     }
   };
 
-  const updateAvailability = (dayOfWeek: number, field: string, value: any) => {
+  const updateAvailability = (dayOfWeek: number, field: string, value: unknown) => {
     setAvailability((prev) =>
       prev.map((slot) =>
         slot.dayOfWeek === dayOfWeek ? { ...slot, [field]: value } : slot

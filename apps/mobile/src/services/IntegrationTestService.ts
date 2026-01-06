@@ -7,7 +7,7 @@ import { RealAIAnalysisService } from './RealAIAnalysisService';
 import { PaymentService } from './PaymentService';
 import { MessagingService } from './MessagingService';
 import { NotificationService } from './NotificationService';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export class IntegrationTestService {

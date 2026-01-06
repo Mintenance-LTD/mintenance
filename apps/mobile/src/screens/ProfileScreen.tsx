@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../services/JobService';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';

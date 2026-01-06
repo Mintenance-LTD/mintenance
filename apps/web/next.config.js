@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 const path = require('path');
 
 // Enable bundle analyzer when ANALYZE env is set
@@ -16,9 +17,9 @@ if (process.env.NODE_ENV !== 'test') {
   } catch (error) {
     // Use console.error for build-time errors (logger not available in config)
     if (error instanceof Error && error.message) {
-      console.error(error.message);
+      logger.error('Log output', error.message, { service: 'general' });
     }
-    console.error('\n❌ Build failed: Environment validation error');
+    logger.error('\n❌ Build failed: Environment validation error', [object Object], { service: 'general' });
     process.exit(1);
   }
 }

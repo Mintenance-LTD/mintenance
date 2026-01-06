@@ -155,7 +155,7 @@ export default function ContractorBidsPage() {
             const data = await response.json();
             // Ensure we always set an array, and filter out any invalid job objects
             jobsData = Array.isArray(data.jobs)
-              ? data.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
+              ? data.jobs.filter((job: unknown) => job && typeof job === 'object' && job.id)
               : [];
           }
 
@@ -218,12 +218,12 @@ export default function ContractorBidsPage() {
           if (assignedResponse.ok) {
             const assignedData = await assignedResponse.json();
             const assignedJobs = Array.isArray(assignedData.jobs)
-              ? assignedData.jobs.filter((job: any) => job && typeof job === 'object' && job.id)
+              ? assignedData.jobs.filter((job: unknown) => job && typeof job === 'object' && job.id)
               : [];
 
             // Filter to only include jobs with accepted contracts
             const jobsWithContracts = await Promise.all(
-              assignedJobs.map(async (job: any) => {
+              assignedJobs.map(async (job: unknown) => {
                 try {
                   const contractResponse = await fetch(`/api/contracts?job_id=${job.id}`);
                   if (contractResponse.ok) {
@@ -612,7 +612,7 @@ export default function ContractorBidsPage() {
                   }
 
                   // Ensure photos is always an array or undefined
-                  const safeJob: any = {
+                  const safeJob: unknown = {
                     id: String(job.id), // Ensure id is always a string
                     photos: normalizedPhotos,
                     title: typeof job.title === 'string' ? job.title : 'Untitled Job',

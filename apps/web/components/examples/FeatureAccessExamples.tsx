@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/FeatureGate';
 import { useFeatureAccess, useFeature } from '@/hooks/useFeatureAccess';
 import { Paywall, PaywallBanner } from '@/components/ui/Paywall';
+import { logger } from '@mintenance/shared';
 
 // =====================================================
 // Example 1: Protected Page Component
@@ -82,7 +83,7 @@ export function BidSubmissionForm({ jobId }: { jobId: string }) {
 
   const handleSubmit = async () => {
     // Submit bid logic here
-    // console.log('Submitting bid...', { jobId, bidAmount, description });
+    // logger.info('Submitting bid...', { jobId, bidAmount, description }', [object Object], { service: 'ui' });
 
     // Show success and navigate
     router.push('/contractor/bids?success=true');

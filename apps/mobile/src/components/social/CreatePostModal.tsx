@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Input } from '../ui/Input';
 import { theme } from '../../theme';
-import { ContractorPostType } from '../../types';
+import { ContractorPostType } from '@mintenance/types';
 import { SocialFeedUtils } from './SocialFeedUtils';
 
 interface CreatePostModalProps {

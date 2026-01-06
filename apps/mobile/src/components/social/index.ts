@@ -10,4 +10,4 @@ export type { FeedPost } from './SocialFeedUtils';
 export type {
   ContractorPost,
   ContractorPostType,
-} from '../../types';
+} from '@mintenance/types';

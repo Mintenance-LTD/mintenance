@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { DiscoverStackParamList } from '../types';
+import type { DiscoverStackParamList } from '@mintenance/types';
 import { ExploreMapScreen } from '../../screens/explore-map';
 import { ContractorProfileScreen } from '../../screens/contractor-profile';
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';

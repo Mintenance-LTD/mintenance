@@ -6,7 +6,7 @@ import { JobService } from '../JobService';
 import { JobCRUDService } from '../JobCRUDService';
 import { BidManagementService } from '../BidManagementService';
 import { JobSearchService } from '../JobSearchService';
-import { Job, Bid } from '../../types';
+import { Job, Bid } from '@mintenance/types';
 
 // Mock the delegated services
 jest.mock('../JobCRUDService');

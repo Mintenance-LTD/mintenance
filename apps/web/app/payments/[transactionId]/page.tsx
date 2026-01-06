@@ -105,7 +105,7 @@ export default function TransactionDetailPage2025() {
         if (!response.ok) throw new Error('Failed to fetch');
 
         const { payments } = await response.json();
-        const found = payments.find((p: any) => p.id === transactionId);
+        const found = payments.find((p: unknown) => p.id === transactionId);
 
         if (!found) {
           toast.error('Transaction not found');

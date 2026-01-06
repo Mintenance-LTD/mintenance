@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 
 export function JobViewTracker({ jobId }: { jobId: string }) {
   useEffect(() => {
@@ -16,13 +17,13 @@ export function JobViewTracker({ jobId }: { jobId: string }) {
         });
 
         if (!response.ok) {
-          console.error('Failed to track job view');
+          logger.error('Failed to track job view', [object Object], { service: 'ui' });
         } else {
           const data = await response.json();
-          // console.log('Job view tracked:', data);
+          // logger.info('Job view tracked:', data', [object Object], { service: 'ui' });
         }
       } catch (error) {
-        console.error('Error tracking job view:', error);
+        logger.error('Error tracking job view:', error', [object Object], { service: 'ui' });
       }
     };
 

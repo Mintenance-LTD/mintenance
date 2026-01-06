@@ -80,7 +80,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // Format jobs data
   const formattedJobs = (jobs || []).map(job => {
     // Find an accepted bid if any
-    const acceptedBid = job.contractor_bids?.find((bid: any) => bid.status === 'accepted');
+    const acceptedBid = job.contractor_bids?.find((bid: unknown) => bid.status === 'accepted');
     const contractor = acceptedBid?.contractor ?
       `${acceptedBid.contractor?.[0]?.first_name || ''} ${acceptedBid.contractor?.[0]?.last_name || ''}`.trim() :
       null;

@@ -5,6 +5,7 @@
 
 import * as ort from 'onnxruntime-web';
 import { supabase as createClient } from '@/lib/supabase';
+import { logger } from '@mintenance/shared';
 
 // Maintenance issue classes
 export const MAINTENANCE_CLASSES = [
@@ -73,7 +74,7 @@ export class MaintenanceDetectionService {
           'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx';
       }
 
-      // console.log('Loading YOLO model from:', this.modelUrl);
+      // logger.info('Loading YOLO model from:', this.modelUrl', [object Object], { service: 'lib' });
 
       // Create ONNX Runtime session
       this.session = await ort.InferenceSession.create(this.modelUrl as string, {
@@ -81,11 +82,11 @@ export class MaintenanceDetectionService {
         graphOptimizationLevel: 'all'
       });
 
-      // console.log('✅ Model loaded successfully');
+      // logger.info('✅ Model loaded successfully', [object Object], { service: 'lib' });
     } catch (error) {
-      console.error('Failed to load model:', error);
+      logger.error('Failed to load model:', error', [object Object], { service: 'lib' });
       // Fallback to mock mode for development
-      // console.log('⚠️ Running in mock mode');
+      // logger.info('⚠️ Running in mock mode', [object Object], { service: 'lib' });
     } finally {
       this.isLoading = false;
     }
@@ -237,26 +238,26 @@ export class MaintenanceDetectionService {
 
       // If model failed to load, use mock
       if (!this.session) {
-        // console.log('Using mock detection (model not loaded)');
+        // logger.info('Using mock detection (model not loaded', [object Object], { service: 'lib' })');
         return this.mockDetection(imageUrl);
       }
 
       // Preprocess image
-      // console.log('Preprocessing image...');
+      // logger.info('Preprocessing image...', [object Object], { service: 'lib' });
       const inputData = await this.preprocessImage(imageUrl);
 
       // Create input tensor
       const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
 
       // Run inference
-      // console.log('Running inference...');
+      // logger.info('Running inference...', [object Object], { service: 'lib' });
       const results = await this.session.run({ images: inputTensor });
 
       // Get output tensor
       const output = results['output0'] || results['output'] || Object.values(results)[0];
 
       if (!output) {
-        console.error('No output from model');
+        logger.error('No output from model', [object Object], { service: 'lib' });
         return this.mockDetection(imageUrl);
       }
 
@@ -267,11 +268,11 @@ export class MaintenanceDetectionService {
         maxDetections
       );
 
-      // console.log(`Found ${detections.length} detections`);
+      // logger.info('Found %s detections', [object Object], { service: 'lib' });
       return detections;
 
     } catch (error) {
-      console.error('Detection failed:', error);
+      logger.error('Detection failed:', error', [object Object], { service: 'lib' });
       // Fallback to mock
       return this.mockDetection(imageUrl);
     }

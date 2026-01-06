@@ -1,4 +1,4 @@
-import type { Job, Bid } from '../types';
+import type { Job, Bid } from '@mintenance/types';
 
 // ============================================================================
 // JOB & BID MOCK FACTORY

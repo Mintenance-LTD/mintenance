@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { logger } from '@mintenance/shared';
 import {
   Home,
   Briefcase,
@@ -239,7 +240,7 @@ export function ProfessionalContractorLayout({
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error', [object Object], { service: 'ui' });
     }
   };
 

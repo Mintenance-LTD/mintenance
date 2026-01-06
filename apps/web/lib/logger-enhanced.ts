@@ -89,8 +89,8 @@ if (typeof window !== 'undefined') {
 export function logApiRequest(
   method: string,
   endpoint: string,
-  params?: any,
-  headers?: any
+  params?: unknown,
+  headers?: unknown
 ): void {
   logger.info('API request', {
     method,
@@ -109,7 +109,7 @@ export function logApiResponse(
   endpoint: string,
   status: number,
   duration: number,
-  data?: any
+  data?: unknown
 ): void {
   const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info';
 
@@ -201,8 +201,8 @@ export function createPageLogger(pageName: string): EnhancedLogger {
 /**
  * Middleware for Next.js API routes
  */
-export function withLogging(handler: any) {
-  return async (req: any, res: any) => {
+export function withLogging(handler: unknown) {
+  return async (req: unknown, res: unknown) => {
     const startTime = Date.now();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 

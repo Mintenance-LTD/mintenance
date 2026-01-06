@@ -1,5 +1,5 @@
 import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
-import { Job } from '../../types';
+import { Job } from '@mintenance/types';
 
 // Mock fetch globally
 global.fetch = jest.fn();

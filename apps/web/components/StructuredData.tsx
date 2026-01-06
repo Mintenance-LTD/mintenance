@@ -17,7 +17,7 @@ function sanitizeForJsonLd(value: string | undefined): string {
 /**
  * Recursively sanitize object for JSON-LD
  */
-function sanitizeObjectForJsonLd(obj: any): any {
+function sanitizeObjectForJsonLd(obj: unknown): unknown {
   if (typeof obj === 'string') {
     return sanitizeForJsonLd(obj);
   }
@@ -25,7 +25,7 @@ function sanitizeObjectForJsonLd(obj: any): any {
     return obj.map(sanitizeObjectForJsonLd);
   }
   if (obj && typeof obj === 'object') {
-    const sanitized: any = {};
+    const sanitized: unknown = {};
     for (const [key, value] of Object.entries(obj)) {
       sanitized[key] = sanitizeObjectForJsonLd(value);
     }

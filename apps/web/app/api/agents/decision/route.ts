@@ -19,6 +19,7 @@ import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { rateLimit } from '@/lib/rate-limiter';
 import { withErrorHandler } from '@/lib/error-handler';
 import { z } from 'zod';
+import { logger } from '@mintenance/shared';
 
 const requestSchema = z.object({
   agentName: z.string(),
@@ -40,7 +41,7 @@ const requestSchema = z.object({
   })
 });
 
-const agents: { [key: string]: any } = {
+const agents: { [key: string]: unknown } = {
   'PricingAgent': PricingAgent,
   'BidAcceptanceAgent': BidAcceptanceAgent,
   'SchedulingAgent': SchedulingAgent,
@@ -278,8 +279,8 @@ export const POST = withErrorHandler(async (req: Request) => {
       }
     );
 
-  } catch (error: any) {
-    console.error('Agent decision error:', error);
+  } catch (error: unknown) {
+    logger.error('Agent decision error:', error', [object Object], { service: 'api' });
 
     // Log error
     await AgentLogger.logDecision({

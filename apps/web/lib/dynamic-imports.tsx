@@ -5,6 +5,7 @@
 
 import dynamic from 'next/dynamic';
 import { ComponentType, Suspense } from 'react';
+import { logger } from '@mintenance/shared';
 
 // Loading fallbacks for different component types
 export const LoadingSpinner = () => (
@@ -264,9 +265,9 @@ export function reportBundleSize() {
       };
 
       // Send to analytics
-      console.log('Bundle Performance Metrics:', metrics);
+      logger.info('Bundle Performance Metrics:', metrics', [object Object], { service: 'lib' });
     } catch (error) {
-      console.error('Failed to collect bundle metrics:', error);
+      logger.error('Failed to collect bundle metrics:', error', [object Object], { service: 'lib' });
     }
   }
 }

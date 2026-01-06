@@ -4,7 +4,7 @@ import {
   MeetingUpdate,
   ContractorLocation,
   LocationData,
-} from '../types';
+} from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 

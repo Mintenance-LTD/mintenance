@@ -30,6 +30,7 @@
 
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
+import { logger } from '@mintenance/shared';
 
 export function useReducedMotion(): boolean {
   // Initialize with false (default state)
@@ -43,7 +44,7 @@ export function useReducedMotion(): boolean {
         setPrefersReducedMotion(isReduceMotionEnabled);
       } catch (error) {
         // Fallback to false if AccessibilityInfo is not available
-        console.warn('AccessibilityInfo.isReduceMotionEnabled not available:', error);
+        logger.warn('AccessibilityInfo.isReduceMotionEnabled not available:', error', [object Object], { service: 'mobile' });
         setPrefersReducedMotion(false);
       }
     };
@@ -190,7 +191,7 @@ export function useScreenReaderEnabled(): boolean {
         const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
         setIsEnabled(screenReaderEnabled);
       } catch (error) {
-        console.warn('AccessibilityInfo.isScreenReaderEnabled not available:', error);
+        logger.warn('AccessibilityInfo.isScreenReaderEnabled not available:', error', [object Object], { service: 'mobile' });
         setIsEnabled(false);
       }
     };

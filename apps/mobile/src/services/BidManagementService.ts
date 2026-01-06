@@ -8,7 +8,7 @@
  */
 
 import { supabase } from '../config/supabase';
-import { Bid } from '../types';
+import { Bid } from '@mintenance/types';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
 export class BidManagementService {

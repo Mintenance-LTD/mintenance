@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
-import { ContractorProfile, LocationData } from '../types';
+import { ContractorProfile, LocationData } from '@mintenance/types';
 import ContractorMapView from '../components/ContractorMapView';
 import ContractorDiscoverView from '../components/ContractorDiscoverView';
 import { theme } from '../theme';

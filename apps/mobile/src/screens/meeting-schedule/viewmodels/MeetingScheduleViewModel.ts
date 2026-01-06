@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import { logger } from '../../../utils/logger';
 import { useAuth } from '../../../contexts/AuthContext';
 import { MeetingService } from '../../../services/MeetingService';
-import type { ContractorMeeting, LocationData, User, Job } from '../../../types';
+import type { ContractorMeeting, LocationData, User, Job } from '@mintenance/types';
 
 export type MeetingType = 'site_visit' | 'consultation' | 'work_session';
 

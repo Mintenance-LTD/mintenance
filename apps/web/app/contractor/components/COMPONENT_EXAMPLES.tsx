@@ -102,7 +102,7 @@ export function StatsGrid() {
 /**
  * Job Card - Individual job listing with status
  */
-export function JobCard({ job }: { job: any }) {
+export function JobCard({ job }: { job: unknown }) {
   const statusColors = {
     active: 'bg-green-100 text-green-800',
     pending: 'bg-yellow-100 text-yellow-800',

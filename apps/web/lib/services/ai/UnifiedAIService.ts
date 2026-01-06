@@ -37,12 +37,12 @@ export interface AnalysisResult<T = any> {
 export interface AIServiceError {
   code: 'BUDGET_EXCEEDED' | 'RATE_LIMITED' | 'INVALID_INPUT' | 'API_ERROR' | 'EMERGENCY_STOP';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface GeneralImageAnalysis {
   labels: Array<{ name: string; confidence: number }>;
-  objects: Array<{ name: string; confidence: number; boundingBox?: any }>;
+  objects: Array<{ name: string; confidence: number; boundingBox?: unknown }>;
   text: string[];
   safeSearch: {
     adult: string;
@@ -366,7 +366,7 @@ export class UnifiedAIService {
     images: string[],
     prompt: string,
     service: string
-  ): Promise<{ success: boolean; data?: any; cost?: number }> {
+  ): Promise<{ success: boolean; data?: unknown; cost?: number }> {
     try {
       const openaiApiKey = process.env.OPENAI_API_KEY;
       if (!openaiApiKey) {
@@ -516,7 +516,7 @@ export class UnifiedAIService {
    */
   static async getStatus(): Promise<{
     operational: boolean;
-    budget: any;
+    budget: unknown;
     services: Record<string, boolean>;
   }> {
     const budgetStatus = await CostControlService.getBudgetStatus();

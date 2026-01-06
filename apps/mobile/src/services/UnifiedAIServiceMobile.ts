@@ -18,6 +18,7 @@ import {
 } from '@mintenance/ai-core/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
+import { logger } from '@mintenance/shared';
 
 // Mobile-specific configuration
 const mobileConfig: AIServiceConfig = {
@@ -109,7 +110,7 @@ export class UnifiedAIServiceMobile {
       // Use fallback if API fails
       return this.getFallbackAssessment(images, jobDetails);
     } catch (error) {
-      console.error('Building assessment failed:', error);
+      logger.error('Building assessment failed:', error', [object Object], { service: 'mobile' });
       return this.getFallbackAssessment(images, jobDetails);
     }
   }
@@ -130,7 +131,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      console.error('Pricing recommendation failed:', error);
+      logger.error('Pricing recommendation failed:', error', [object Object], { service: 'mobile' });
       return null;
     }
   }
@@ -153,7 +154,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      console.error('Agent decision failed:', error);
+      logger.error('Agent decision failed:', error', [object Object], { service: 'mobile' });
       return null;
     }
   }
@@ -178,7 +179,7 @@ export class UnifiedAIServiceMobile {
       // Fallback to local search
       return this.performLocalSearch(query, filters);
     } catch (error) {
-      console.error('Search failed:', error);
+      logger.error('Search failed:', error', [object Object], { service: 'mobile' });
       return this.performLocalSearch(query, filters);
     }
   }
@@ -196,7 +197,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      console.error('ESG calculation failed:', error);
+      logger.error('ESG calculation failed:', error', [object Object], { service: 'mobile' });
       return null;
     }
   }
@@ -214,7 +215,7 @@ export class UnifiedAIServiceMobile {
 
       return [];
     } catch (error) {
-      console.error('Image analysis failed:', error);
+      logger.error('Image analysis failed:', error', [object Object], { service: 'mobile' });
       return [];
     }
   }
@@ -234,7 +235,7 @@ export class UnifiedAIServiceMobile {
 
       return response.success;
     } catch (error) {
-      console.error('Correction submission failed:', error);
+      logger.error('Correction submission failed:', error', [object Object], { service: 'mobile' });
       return false;
     }
   }
@@ -252,7 +253,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      console.error('Failed to fetch usage metrics:', error);
+      logger.error('Failed to fetch usage metrics:', error', [object Object], { service: 'mobile' });
       return null;
     }
   }
@@ -325,7 +326,7 @@ export class UnifiedAIServiceMobile {
       assessmentIds.push(assessment.id);
       await AsyncStorage.setItem('assessment_ids', JSON.stringify(assessmentIds));
     } catch (error) {
-      console.error('Failed to store assessment locally:', error);
+      logger.error('Failed to store assessment locally:', error', [object Object], { service: 'mobile' });
     }
   }
 
@@ -349,7 +350,7 @@ export class UnifiedAIServiceMobile {
       const key = `decision_${decision.agentName}_${Date.now()}`;
       await AsyncStorage.setItem(key, JSON.stringify(decision));
     } catch (error) {
-      console.error('Failed to store agent decision:', error);
+      logger.error('Failed to store agent decision:', error', [object Object], { service: 'mobile' });
     }
   }
 

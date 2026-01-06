@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,6 +21,28 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
     try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 10
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(10),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
         const auth = await requireAdmin(request);
         if (isAdminError(auth)) return auth.error;
         const user = auth.user;
@@ -197,7 +221,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        console.error('Model learning API error:', error);
+        logger.error('Model learning API error:', error', [object Object], { service: 'api' });
         return NextResponse.json(
             { error: 'Failed to fetch learning metrics' },
             { status: 500 }

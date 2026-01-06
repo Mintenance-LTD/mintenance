@@ -4,8 +4,64 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
 import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 10
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(10),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+    const user = auth.user;
+
+    const { searchParams } = new URL(request.url);
+    const format = searchParams.get('format') as 'csv' | 'pdf' || 'csv';
+    const role = searchParams.get('role');
+    const verified = searchParams.get('verified');
+    const search = searchParams.get('search');
+
+    // Build query
+    let query = serverSupabase
+      .from('users')
+      .select('id, email, first_name, last_name, role, company_name, admin_verified, created_at, updated_at')
+      .is('deleted_at', null);
+
+    if (role && (role === 'contractor' || role === 'homeowner')) {
+      query = query.eq('role', role);
+    }
+
+    if (verified === 'true') {
+      query = query.eq('admin_verified', true);
+    } else if (verified === 'false') {
+      query = query.eq('admin_verified', false);
+    } else if (verified === 'pending') {
+      query = query.eq('role', 'contractor').eq('admin_verified', false).not('company_name', 'is', null).not('license_number', 'is', null);
+    }
+
+    // SECURITY: Sanitize search input to prevent SQL injection
+    if (search) {
+      const sanitizedSearch = search
+        .replace(/[%_\\]/g, '\\export async function GET(request: NextRequest) {
   try {
     const auth = await requireAdmin(request);
     if (isAdminError(auth)) return auth.error;
@@ -39,6 +95,40 @@ export async function GET(request: NextRequest) {
     if (search) {
       const sanitizedSearch = search
         .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards
+        .substring(0, 100)
+        .toLowerCase()
+        .trim();
+
+      if (sanitizedSearch.length > 0) {
+        query = query.or(`email.ilike.%${sanitizedSearch}%,first_name.ilike.%${sanitizedSearch}%,last_name.ilike.%${sanitizedSearch}%,company_name.ilike.%${sanitizedSearch}%`);
+      }
+    }
+
+    const { data: users, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Error fetching users for export', error);
+      throw new InternalServerError('Failed to fetch users');
+    }
+
+    // Generate export file
+    const file = await ExportService.exportUsers(users || [], format);
+
+    // Convert Buffer to Uint8Array if needed, otherwise use content as-is
+    const body: BodyInit = Buffer.isBuffer(file.content)
+      ? new Uint8Array(file.content)
+      : file.content;
+
+    return new NextResponse(body, {
+      headers: {
+        'Content-Type': file.contentType,
+        'Content-Disposition': `attachment; filename="${file.filename}"`,
+      },
+    });
+  } catch (error) {
+    return handleAPIError(error);
+  }
+}') // Escape SQL wildcards
         .substring(0, 100)
         .toLowerCase()
         .trim();

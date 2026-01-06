@@ -196,7 +196,7 @@ export class DBSCheckService {
    * https://www.dbscheckonline.org.uk/
    */
   private static async initiateDBSOnlineCheck(
-    contractor: any,
+    contractor: unknown,
     dbsType: DBSCheckLevel
   ): Promise<string> {
     const apiKey = process.env.DBS_ONLINE_API_KEY;
@@ -241,7 +241,7 @@ export class DBSCheckService {
    * https://www.gbgplc.com/en/solutions/identity/criminal-record-checks/
    */
   private static async initiateGBGroupCheck(
-    contractor: any,
+    contractor: unknown,
     dbsType: DBSCheckLevel
   ): Promise<string> {
     const apiKey = process.env.GBGROUP_API_KEY;
@@ -259,7 +259,7 @@ export class DBSCheckService {
    * https://ucheck.co.uk/
    */
   private static async initiateUCheckCheck(
-    contractor: any,
+    contractor: unknown,
     dbsType: DBSCheckLevel
   ): Promise<string> {
     const apiKey = process.env.UCHECK_API_KEY;
@@ -276,7 +276,7 @@ export class DBSCheckService {
    * Custom/placeholder implementation
    */
   private static async initiateCustomCheck(
-    contractor: any,
+    contractor: unknown,
     dbsType: DBSCheckLevel
   ): Promise<string> {
     return `custom_${dbsType}_${Date.now()}`;
@@ -292,12 +292,12 @@ export class DBSCheckService {
       certificateNumber?: string;
       checkDate?: string;
       issueDate?: string;
-      disclosureDetails?: any;
+      disclosureDetails?: unknown;
       adminNotes?: string;
     }
   ): Promise<boolean> {
     try {
-      const updateData: any = {
+      const updateData: unknown = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -509,7 +509,7 @@ export class DBSCheckService {
   private static async logVerificationEvent(
     contractorId: string,
     eventType: string,
-    eventData: any
+    eventData: unknown
   ): Promise<void> {
     try {
       await serverSupabase.from('contractor_verification_events').insert({

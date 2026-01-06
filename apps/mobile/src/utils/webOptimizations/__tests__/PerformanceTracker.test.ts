@@ -4,7 +4,7 @@
 
 import { Platform } from 'react-native';
 import { PerformanceTracker } from '../PerformanceTracker';
-import { AnalyticsConfig } from '../types';
+import { AnalyticsConfig } from '@mintenance/types';
 
 // Mock dependencies
 jest.mock('../../logger');

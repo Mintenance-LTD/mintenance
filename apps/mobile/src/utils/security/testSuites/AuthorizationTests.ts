@@ -5,7 +5,7 @@
  */
 
 import { SecurityManager } from '../../SecurityManager';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
 
 export class AuthorizationTestSuite {
   static createPrivilegeEscalationTest(): PenetrationTest {

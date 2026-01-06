@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { SearchBar, ContractorCard, Badge, Button } from '@/components/airbnb-system';
 import { MapPin, SlidersHorizontal, Grid, List, Check } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -108,7 +109,7 @@ export const ContractorsBrowseAirbnb = React.memo(function ContractorsBrowseAirb
   const handleSearch = useCallback((params: { service?: string; location?: string; date?: string }) => {
     setSearchParams(prev => ({ ...prev, ...params }));
     // In real implementation, this would trigger a server-side search
-    // console.log('Search:', params);
+    // logger.info('Search:', params', [object Object], { service: 'ui' });
   }, []);
 
   const toggleSkillFilter = useCallback((skill: string) => {

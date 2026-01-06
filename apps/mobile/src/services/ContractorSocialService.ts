@@ -6,7 +6,7 @@ import {
   ContractorFollow,
   ContractorEndorsement,
   LocationData,
-} from '../types';
+} from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export class ContractorSocialService {

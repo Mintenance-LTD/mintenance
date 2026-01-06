@@ -190,7 +190,7 @@ export class ImageAnalysisService {
                   );
                   const [result] = await Promise.race([labelPromise, timeoutPromise]) as any;
                   return result;
-                } catch (error: any) {
+                } catch (error: unknown) {
                   logger.warn('Label detection failed for image', {
                     imageUrl,
                     error: error?.message || 'Unknown error',
@@ -211,7 +211,7 @@ export class ImageAnalysisService {
                   );
                   const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as any;
                   return objectLocalizationResult ? objectLocalizationResult[0] : null;
-                } catch (error: any) {
+                } catch (error: unknown) {
                   logger.warn('Object localization failed for image', {
                     imageUrl,
                     error: error?.message || 'Unknown error',
@@ -229,7 +229,7 @@ export class ImageAnalysisService {
                   );
                   const [result] = await Promise.race([textPromise, timeoutPromise]) as any;
                   return result;
-                } catch (error: any) {
+                } catch (error: unknown) {
                   logger.warn('Text detection failed for image', {
                     imageUrl,
                     error: error?.message || 'Unknown error',
@@ -240,7 +240,7 @@ export class ImageAnalysisService {
             ]);
 
             return { imageUrl, labelResult, objectResult, textResult };
-          } catch (error: any) {
+          } catch (error: unknown) {
             logger.warn('Failed to analyze image - continuing with next image', {
               imageUrl,
               error: error?.message || 'Unknown error',
@@ -255,7 +255,7 @@ export class ImageAnalysisService {
       for (const { imageUrl, labelResult, objectResult, textResult } of imageResults) {
         // Process labels (only if we got results)
         if (labelResult?.labelAnnotations) {
-          labelResult.labelAnnotations.forEach((label: any) => {
+          labelResult.labelAnnotations.forEach((label: unknown) => {
             if (label.description && label.score) {
               const existingScore = allLabels.get(label.description) || 0;
               allLabels.set(label.description, Math.max(existingScore, label.score));
@@ -265,7 +265,7 @@ export class ImageAnalysisService {
 
         // Process objects (only if we got results)
         if (objectResult?.localizedObjectAnnotations) {
-          objectResult.localizedObjectAnnotations.forEach((obj: any) => {
+          objectResult.localizedObjectAnnotations.forEach((obj: unknown) => {
             if (obj.name && obj.score) {
               const existingScore = allObjects.get(obj.name) || 0;
               allObjects.set(obj.name, Math.max(existingScore, obj.score));
@@ -276,7 +276,7 @@ export class ImageAnalysisService {
         // Process text (OCR) (only if we got results)
         if (textResult?.textAnnotations && textResult.textAnnotations.length > 0) {
           // Skip the first annotation (full text block)
-          const textLines = textResult.textAnnotations.slice(1).map((ann: any) => ann.description || '').filter(Boolean);
+          const textLines = textResult.textAnnotations.slice(1).map((ann: unknown) => ann.description || '').filter(Boolean);
           allText.push(...textLines);
         }
       }

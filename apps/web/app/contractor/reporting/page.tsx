@@ -113,7 +113,7 @@ export default async function ContractorReportingPage2025() {
 
   // Calculate top clients by revenue
   const clientRevenueMap = new Map<string, { name: string; revenue: number; jobs: number }>();
-  (clientJobsResult.data || []).forEach((job: any) => {
+  (clientJobsResult.data || []).forEach((job: unknown) => {
     if (job.homeowner_id && job.homeowner) {
       const clientName = `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim();
       const existing = clientRevenueMap.get(job.homeowner_id) || { name: clientName, revenue: 0, jobs: 0 };

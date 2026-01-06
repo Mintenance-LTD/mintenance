@@ -5,6 +5,7 @@ import { BidComparisonTable2025 } from './BidComparisonTable2025';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { logger } from '@mintenance/shared';
 
 interface Bid {
   id: string;
@@ -62,7 +63,7 @@ export function BidComparisonClient({ bids, jobId }: BidComparisonClientProps) {
       toast.success('Bid accepted successfully!');
       router.refresh();
     } catch (error) {
-      console.error('Error accepting bid:', error);
+      logger.error('Error accepting bid:', error', [object Object], { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to accept bid');
     } finally {
       setProcessingBid(null);
@@ -95,7 +96,7 @@ export function BidComparisonClient({ bids, jobId }: BidComparisonClientProps) {
       toast.success('Bid declined');
       router.refresh();
     } catch (error) {
-      console.error('Error rejecting bid:', error);
+      logger.error('Error rejecting bid:', error', [object Object], { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to reject bid');
     } finally {
       setProcessingBid(null);

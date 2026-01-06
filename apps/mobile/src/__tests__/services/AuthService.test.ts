@@ -1,6 +1,6 @@
 import { AuthService } from '../../services/AuthService';
 import { supabase } from '../../config/supabase';
-import { User } from '../../types';
+import { User } from '@mintenance/types';
 
 // Get mocked modules from jest-setup.js
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;

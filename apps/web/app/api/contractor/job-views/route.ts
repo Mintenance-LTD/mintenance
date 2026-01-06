@@ -3,9 +3,32 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Check authentication
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -112,6 +135,28 @@ export async function POST(request: NextRequest) {
 // GET endpoint to retrieve job views for a contractor
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Check authentication and role
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -202,13 +247,13 @@ export async function GET(request: NextRequest) {
       }
 
       // Combine views with job data
-      const viewsWithJobs = views.map((view: any) => {
-        const job = jobs?.find((j: any) => j.id === view.job_id);
+      const viewsWithJobs = views.map((view: unknown) => {
+        const job = jobs?.find((j: unknown) => j.id === view.job_id);
         return {
           ...view,
           job: job || null,
         };
-      }).filter((view: any) => view.job !== null); // Filter out views where job was deleted
+      }).filter((view: unknown) => view.job !== null); // Filter out views where job was deleted
 
       return NextResponse.json({ views: viewsWithJobs });
     }

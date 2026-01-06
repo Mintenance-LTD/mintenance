@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home, CreditCard } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function JobPaymentError({
   error,
@@ -16,7 +17,7 @@ export default function JobPaymentError({
   const params = useParams();
 
   useEffect(() => {
-    console.error('Job payment error:', error);
+    logger.error('Job payment error:', error', [object Object], { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

@@ -8,6 +8,7 @@
  */
 
 import { MLPBackpropagation, type BackpropConfig } from '../MLPBackpropagation';
+import { logger } from '@mintenance/shared';
 
 interface ComparisonResult {
   method: string;
@@ -29,7 +30,7 @@ const colors = {
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
-  // console.log(`${colors[color]}${message}${colors.reset}`);
+  // logger.info('%s%s%s', [object Object], { service: 'lib' });
 }
 
 function initializeWeights(architecture: number[]): {

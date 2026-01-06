@@ -31,6 +31,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InfoIcon, TrendingUpIcon, ActivityIcon } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface ConformalMetrics {
   totalWithConformal: number;
@@ -85,8 +86,8 @@ export const ConformalPredictionMonitor: React.FC = () => {
 
       if (error) throw error;
 
-      const metricsMap: any = {};
-      data.forEach((row: any) => {
+      const metricsMap: unknown = {};
+      data.forEach((row: unknown) => {
         metricsMap[row.metric_name] = row.metric_value;
       });
 
@@ -100,7 +101,7 @@ export const ConformalPredictionMonitor: React.FC = () => {
         avgInferenceTimeWithout: metricsMap.avg_inference_time_without_conformal_ms || 0,
       });
     } catch (err) {
-      console.error('Error fetching metrics:', err);
+      logger.error('Error fetching metrics:', err', [object Object], { service: 'ui' });
       setError('Failed to load conformal prediction metrics');
     } finally {
       setLoading(false);
@@ -130,7 +131,7 @@ export const ConformalPredictionMonitor: React.FC = () => {
         }))
       );
     } catch (err) {
-      console.error('Error fetching stratum performance:', err);
+      logger.error('Error fetching stratum performance:', err', [object Object], { service: 'ui' });
     }
   };
 
@@ -175,7 +176,7 @@ export const ConformalPredictionMonitor: React.FC = () => {
 
       setIntervalDistribution(Object.values(grouped).sort((a, b) => a.intervalSize - b.intervalSize));
     } catch (err) {
-      console.error('Error fetching interval distribution:', err);
+      logger.error('Error fetching interval distribution:', err', [object Object], { service: 'ui' });
     }
   };
 

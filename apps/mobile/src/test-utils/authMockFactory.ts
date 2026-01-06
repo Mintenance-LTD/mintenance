@@ -1,5 +1,5 @@
 import type { AuthContextType } from '../contexts/AuthContext';
-import type { User } from '../types';
+import type { User } from '@mintenance/types';
 import { createStub } from './jest-globals';
 
 // ============================================================================

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { JobsStackParamList } from '../types';
+import type { JobsStackParamList } from '@mintenance/types';
 
 // Import existing screens
 import JobsScreen from '../../screens/JobsScreen';

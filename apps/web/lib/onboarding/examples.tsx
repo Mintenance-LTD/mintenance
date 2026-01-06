@@ -20,7 +20,7 @@ import { trackOnboardingStarted, trackProfileCompletion } from '@/lib/onboarding
 /**
  * Example 1: Dashboard Integration
  */
-export function DashboardWithOnboarding({ user }: { user: any }) {
+export function DashboardWithOnboarding({ user }: { user: unknown }) {
   const {
     complete,
     startOnboarding,
@@ -78,7 +78,7 @@ export function DashboardWithOnboarding({ user }: { user: any }) {
 /**
  * Example 2: Jobs List with Empty State
  */
-export function JobsListWithEmptyState({ jobs, user }: { jobs: any[]; user: any }) {
+export function JobsListWithEmptyState({ jobs, user }: { jobs: any[]; user: unknown }) {
   if (jobs.length === 0) {
     return (
       <FirstUseEmptyState
@@ -213,7 +213,7 @@ export function RootLayoutWithOnboarding({
   user,
 }: {
   children: React.ReactNode;
-  user: any;
+  user: unknown;
 }) {
   return (
     <OnboardingWrapper
@@ -230,7 +230,7 @@ export function RootLayoutWithOnboarding({
 /**
  * Example 6: Contractor Profile with Completion
  */
-export function ContractorProfileWithCompletion({ contractor }: { contractor: any }) {
+export function ContractorProfileWithCompletion({ contractor }: { contractor: unknown }) {
   const { getProfileCompletionItems } = useOnboarding({
     userType: 'contractor',
   });

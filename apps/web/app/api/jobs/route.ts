@@ -75,7 +75,7 @@ type AIAssessmentData = {
   damage_type: string;
   confidence: number;
   urgency: 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor';
-  assessment_data?: any;
+  assessment_data?: unknown;
   created_at: string;
 };
 
@@ -131,6 +131,28 @@ const mapRowToJobDetail = (row: JobRow): JobDetail => ({
 
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getCurrentUserFromCookies();
     if (!user) {
       throw new UnauthorizedError('Authentication required to view jobs');
@@ -268,7 +290,7 @@ export async function GET(request: NextRequest) {
 
           if (assessmentsData) {
             // Group by job_id and take the most recent
-            assessmentsData.forEach((assessment: any) => {
+            assessmentsData.forEach((assessment: unknown) => {
               if (assessment.job_id && !assessmentsByJobId.has(assessment.job_id)) {
                 assessmentsByJobId.set(assessment.job_id, {
                   id: assessment.id,
@@ -322,6 +344,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // CSRF protection
     await requireCSRF(request);
 

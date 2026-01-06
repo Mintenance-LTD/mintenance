@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { ContractorProfile } from '@mintenance/types';
+import { logger } from '@mintenance/shared';
 
 // Import design system CSS
 import '@/styles/airbnb-system.css';
@@ -246,7 +247,7 @@ export function ProductionLandingPage() {
         setFeaturedContractors(featured);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      logger.error('Error fetching data:', err', [object Object], { service: 'ui' });
       setError('Failed to load data');
 
       // Set fallback data

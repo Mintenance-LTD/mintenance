@@ -19,7 +19,7 @@ import {
   ContractorMeeting,
   MeetingUpdate,
   Message,
-} from '../types';
+} from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 

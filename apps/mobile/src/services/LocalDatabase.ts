@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { logger } from '../utils/logger';
-import { User, Job, Message, Bid } from '../types';
+import { User, Job, Message, Bid } from '@mintenance/types';
 
 export interface LocalDatabaseConfig {
   name: string;

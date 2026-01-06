@@ -3,6 +3,7 @@
 import React, { forwardRef, ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 export interface AccessibleButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'link';
@@ -244,7 +245,7 @@ AccessibleButton.displayName = 'AccessibleButton';
 export const IconButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
   ({ children, ariaLabel, visuallyHiddenText, ...props }, ref) => {
     if (!ariaLabel && !visuallyHiddenText) {
-      console.warn('IconButton: Must provide either ariaLabel or visuallyHiddenText for accessibility');
+      logger.warn('IconButton: Must provide either ariaLabel or visuallyHiddenText for accessibility', [object Object], { service: 'ui' });
     }
 
     return (

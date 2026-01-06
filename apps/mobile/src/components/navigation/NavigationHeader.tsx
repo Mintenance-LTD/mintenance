@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { theme } from '../../theme';
+import { logger } from '@mintenance/shared';
 
 interface NavigationHeaderProps {
   title: string;
@@ -57,7 +58,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         navigation.dispatch(DrawerActions.openDrawer());
       } catch {
         // If no drawer, navigate to menu or do nothing
-        console.log('No drawer navigator available');
+        logger.info('No drawer navigator available', [object Object], { service: 'ui' });
       }
     }
   };

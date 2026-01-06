@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 #!/usr/bin/env node
 
 /**
@@ -28,11 +29,11 @@ function formatBytes(bytes) {
 
 function analyzeBundleSize() {
   if (!fs.existsSync(BUILD_DIR)) {
-    console.error('❌ Build directory not found. Run `npm run build` first.');
+    logger.error('❌ Build directory not found. Run `npm run build` first.', [object Object], { service: 'general' });
     process.exit(1);
   }
 
-  console.log('📊 Analyzing Next.js bundle size...\n');
+  logger.info('📊 Analyzing Next.js bundle size...\n', [object Object], { service: 'general' });
 
   // Read build manifest
   let manifest = {};
@@ -87,39 +88,39 @@ function analyzeBundleSize() {
   });
 
   // Display results
-  console.log('📦 Bundle Size Summary');
-  console.log('═'.repeat(60));
-  console.log(`Total Size: ${formatBytes(totalSize)}`);
-  console.log(`Total Files: ${fileCount}`);
-  console.log('');
+  logger.info('📦 Bundle Size Summary', [object Object], { service: 'general' });
+  logger.info('═'.repeat(60', [object Object], { service: 'general' }));
+  logger.info('Total Size: ${formatBytes(totalSize', [object Object], { service: 'general' })}`);
+  logger.info('Total Files: %s', [object Object], { service: 'general' });
+  logger.info('', [object Object], { service: 'general' });
 
-  console.log('📁 By Category:');
+  logger.info('📁 By Category:', [object Object], { service: 'general' });
   Object.entries(chunks).forEach(([category, data]) => {
     const percentage = ((data.size / totalSize) * 100).toFixed(1);
-    console.log(`  ${category.padEnd(20)} ${formatBytes(data.size).padStart(12)} (${percentage}%)`);
+    logger.info('  ${category.padEnd(20', [object Object], { service: 'general' })} ${formatBytes(data.size).padStart(12)} (${percentage}%)`);
   });
-  console.log('');
+  logger.info('', [object Object], { service: 'general' });
 
   // Show largest files
-  console.log('🔍 Largest Files (Top 10):');
+  logger.info('🔍 Largest Files (Top 10', [object Object], { service: 'general' }):');
   const allFiles = Object.values(chunks).flatMap(c => c.files);
   allFiles.sort((a, b) => b.size - a.size);
   allFiles.slice(0, 10).forEach((file, i) => {
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${file.formatted.padStart(12)} - ${file.name}`);
+    logger.info('  ${(i + 1', [object Object], { service: 'general' }).toString().padStart(2)}. ${file.formatted.padStart(12)} - ${file.name}`);
   });
-  console.log('');
+  logger.info('', [object Object], { service: 'general' });
 
   // Performance recommendations
   const recommendedMaxSize = 300 * 1024; // 300KB
   if (totalSize > recommendedMaxSize) {
     const excess = totalSize - recommendedMaxSize;
-    console.log('⚠️  Performance Warning:');
-    console.log(`   Bundle exceeds recommended size by ${formatBytes(excess)}`);
-    console.log('   Consider code splitting or removing unused dependencies');
-    console.log('');
+    logger.warn('⚠️  Performance Warning:', [object Object], { service: 'general' });
+    logger.info('   Bundle exceeds recommended size by ${formatBytes(excess', [object Object], { service: 'general' })}`);
+    logger.info('   Consider code splitting or removing unused dependencies', [object Object], { service: 'general' });
+    logger.info('', [object Object], { service: 'general' });
   } else {
-    console.log('✅ Bundle size is within recommended limits');
-    console.log('');
+    logger.info('✅ Bundle size is within recommended limits', [object Object], { service: 'general' });
+    logger.info('', [object Object], { service: 'general' });
   }
 
   return {
@@ -132,37 +133,37 @@ function analyzeBundleSize() {
 
 function saveBaseline(data, filename) {
   fs.writeFileSync(filename, JSON.stringify(data, null, 2));
-  console.log(`💾 Baseline saved to ${filename}`);
+  logger.info('💾 Baseline saved to %s', [object Object], { service: 'general' });
 }
 
 function compareWithBaseline(current, baselineFile) {
   if (!fs.existsSync(baselineFile)) {
-    console.error(`❌ Baseline file not found: ${baselineFile}`);
+    logger.error('❌ Baseline file not found: %s', [object Object], { service: 'general' });
     process.exit(1);
   }
 
   const baseline = JSON.parse(fs.readFileSync(baselineFile, 'utf8'));
 
-  console.log('📊 Comparison with Baseline');
-  console.log('═'.repeat(60));
+  logger.info('📊 Comparison with Baseline', [object Object], { service: 'general' });
+  logger.info('═'.repeat(60', [object Object], { service: 'general' }));
 
   const diff = current.totalSize - baseline.totalSize;
   const percentChange = ((diff / baseline.totalSize) * 100).toFixed(1);
 
-  console.log(`Baseline:  ${formatBytes(baseline.totalSize)} (${baseline.timestamp})`);
-  console.log(`Current:   ${formatBytes(current.totalSize)}`);
+  logger.info('Baseline:  ${formatBytes(baseline.totalSize', [object Object], { service: 'general' })} (${baseline.timestamp})`);
+  logger.info('Current:   ${formatBytes(current.totalSize', [object Object], { service: 'general' })}`);
 
   if (diff > 0) {
-    console.log(`Change:    +${formatBytes(diff)} (+${percentChange}%) ⬆️  INCREASED`);
+    logger.info('Change:    +${formatBytes(diff', [object Object], { service: 'general' })} (+${percentChange}%) ⬆️  INCREASED`);
   } else if (diff < 0) {
-    console.log(`Change:    ${formatBytes(diff)} (${percentChange}%) ⬇️  DECREASED`);
+    logger.info('Change:    ${formatBytes(diff', [object Object], { service: 'general' })} (${percentChange}%) ⬇️  DECREASED`);
   } else {
-    console.log('Change:    No change ➡️');
+    logger.info('Change:    No change ➡️', [object Object], { service: 'general' });
   }
-  console.log('');
+  logger.info('', [object Object], { service: 'general' });
 
   // Category comparison
-  console.log('📁 By Category:');
+  logger.info('📁 By Category:', [object Object], { service: 'general' });
   const categories = new Set([
     ...Object.keys(baseline.chunks),
     ...Object.keys(current.chunks)
@@ -178,16 +179,16 @@ function compareWithBaseline(current, baselineFile) {
     if (catDiff > 0) indicator = '⬆️';
     if (catDiff < 0) indicator = '⬇️';
 
-    console.log(`  ${category.padEnd(20)} ${formatBytes(currSize).padStart(12)} (${catPercent}% ${indicator})`);
+    logger.info('  ${category.padEnd(20', [object Object], { service: 'general' })} ${formatBytes(currSize).padStart(12)} (${catPercent}% ${indicator})`);
   });
-  console.log('');
+  logger.info('', [object Object], { service: 'general' });
 }
 
 // CLI handling
 const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
-  console.log(`
+  logger.info('
 Bundle Size Measurement Tool
 
 Usage:
@@ -200,7 +201,9 @@ Examples:
   # ... make changes ...
   npm run build
   node scripts/measure-bundle-size.js --compare baseline-before.json
-  `);
+  ', {
+        service: 'general'
+      });
   process.exit(0);
 }
 
@@ -212,14 +215,14 @@ if (args.includes('--save')) {
 } else if (args.includes('--compare')) {
   const filename = args[args.indexOf('--compare') + 1];
   if (!filename) {
-    console.error('❌ Please provide baseline file: --compare FILE');
+    logger.error('❌ Please provide baseline file: --compare FILE', [object Object], { service: 'general' });
     process.exit(1);
   }
   compareWithBaseline(currentData, filename);
 }
 
-console.log('💡 Tips:');
-console.log('   - Run `npm run build:analyze` for detailed bundle visualization');
-console.log('   - Use dynamic imports for components > 50KB');
-console.log('   - Check for duplicate dependencies with `npm ls [package]`');
-console.log('');
+logger.info('💡 Tips:', [object Object], { service: 'general' });
+logger.info('   - Run `npm run build:analyze` for detailed bundle visualization', [object Object], { service: 'general' });
+logger.info('   - Use dynamic imports for components > 50KB', [object Object], { service: 'general' });
+logger.info('   - Check for duplicate dependencies with `npm ls [package]`', [object Object], { service: 'general' });
+logger.info('', [object Object], { service: 'general' });

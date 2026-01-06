@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User } from '@mintenance/types';
 import { AuthService } from '../services/AuthService';
 
 export interface AuthContextType {

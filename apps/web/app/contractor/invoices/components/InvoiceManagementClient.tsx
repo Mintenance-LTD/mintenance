@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@mintenance/shared';
 import {
   Plus,
   FileText,
@@ -217,23 +218,23 @@ const ActionMenu = ({ invoice }: { invoice: Invoice }) => {
   const actions = useMemo(() => {
     const baseActions: InvoiceAction[] = [
       { icon: Eye, label: 'View Details', href: `/invoices/${invoice.id}` },
-      { icon: Download, label: 'Download PDF', action: () => {} }, // console.log('Download', invoice.id)
+      { icon: Download, label: 'Download PDF', action: () => {} }, // logger.info('Download', invoice.id', [object Object], { service: 'ui' })
     ];
 
     if (invoice.status === 'draft') {
       baseActions.unshift(
         { icon: Edit, label: 'Edit Invoice', href: `/invoices/${invoice.id}/edit` },
-        { icon: Send, label: 'Send to Client', action: () => {} }, // console.log('Send', invoice.id)
+        { icon: Send, label: 'Send to Client', action: () => {} }, // logger.info('Send', invoice.id', [object Object], { service: 'ui' })
       );
     } else if (invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'partial') {
       baseActions.unshift(
-        { icon: CheckCircle, label: 'Mark as Paid', action: () => {} }, // console.log('Mark paid', invoice.id)
-        { icon: Send, label: 'Send Reminder', action: () => {} }, // console.log('Remind', invoice.id)
+        { icon: CheckCircle, label: 'Mark as Paid', action: () => {} }, // logger.info('Mark paid', invoice.id', [object Object], { service: 'ui' })
+        { icon: Send, label: 'Send Reminder', action: () => {} }, // logger.info('Remind', invoice.id', [object Object], { service: 'ui' })
       );
     }
 
     baseActions.push(
-      { icon: Trash2, label: 'Delete', action: () => {}, danger: true }, // console.log('Delete', invoice.id)
+      { icon: Trash2, label: 'Delete', action: () => {}, danger: true }, // logger.info('Delete', invoice.id', [object Object], { service: 'ui' })
     );
 
     return baseActions;

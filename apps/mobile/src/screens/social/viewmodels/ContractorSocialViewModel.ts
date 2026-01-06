@@ -12,7 +12,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { ContractorSocialService } from '../../../services/ContractorSocialService';
 import { logger } from '../../../utils/logger';
-import type { ContractorPost, ContractorPostType } from '../../../types';
+import type { ContractorPost, ContractorPostType } from '@mintenance/types';
 
 export interface FeedPost extends ContractorPost {
   contractor?: {

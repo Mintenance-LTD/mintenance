@@ -25,7 +25,7 @@ export interface MaintenanceAssessment {
   // Enhanced details from SAM3
   affected_area_percentage?: number;
   precise_location?: string;
-  damage_boundaries?: any;
+  damage_boundaries?: unknown;
   multiple_issues?: string[];
 
   // Contractor routing

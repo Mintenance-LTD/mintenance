@@ -3,7 +3,7 @@
  * This file ensures onnxruntime-web is only loaded in the browser
  */
 
-let MaintenanceDetectionService: any = null;
+let MaintenanceDetectionService: unknown = null;
 
 export async function getMaintenanceDetectionService() {
   if (typeof window === 'undefined') {

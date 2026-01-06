@@ -1,5 +1,5 @@
-import { ContractorPostType } from '../../types';
-import type { ContractorPost } from '../../types';
+import { ContractorPostType } from '@mintenance/types';
+import type { ContractorPost } from '@mintenance/types';
 
 export type FeedPost = ContractorPost & {
   contractor?: {

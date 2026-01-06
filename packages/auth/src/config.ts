@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Shared configuration management
  */
@@ -49,13 +50,13 @@ export class ConfigManager {
       
       // NEVER use fallbacks in production or CI environments
       if (!isDev || process.env.CI === 'true') {
-        console.error('[config] Error:', errorMessage);
+        logger.error('[config] Error:', errorMessage', [object Object], { service: 'general' });
         throw new Error(errorMessage);
       }
       
-      console.error('[config] DEVELOPMENT MODE: Using insecure fallbacks');
-      console.error('[config] DO NOT DEPLOY THIS BUILD TO PRODUCTION');
-      console.error('[config] Configure .env.local with proper values');
+      logger.error('[config] DEVELOPMENT MODE: Using insecure fallbacks', [object Object], { service: 'general' });
+      logger.error('[config] DO NOT DEPLOY THIS BUILD TO PRODUCTION', [object Object], { service: 'general' });
+      logger.error('[config] Configure .env.local with proper values', [object Object], { service: 'general' });
       
       // Return insecure defaults ONLY for development
       return {
@@ -76,7 +77,7 @@ export class ConfigManager {
     }
     if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'dev-insecure-secret-not-for-production') {
       if (isDev) {
-        if (isDev) console.warn('[config] Weak/default JWT_SECRET in dev. Using fallback.');
+        if (isDev) logger.warn('[config] Weak/default JWT_SECRET in dev. Using fallback.', [object Object], { service: 'general' });
         return {
           JWT_SECRET: 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
           NODE_ENV: process.env.NODE_ENV!,
@@ -85,7 +86,7 @@ export class ConfigManager {
         };
       } else {
         const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
-        console.error('[config] Security Error:', errorMessage);
+        logger.error('[config] Security Error:', errorMessage', [object Object], { service: 'general' });
         throw new Error(errorMessage);
       }
     }

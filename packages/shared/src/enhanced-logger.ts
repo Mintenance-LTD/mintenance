@@ -11,6 +11,7 @@
  */
 
 import { LogLevel, LogContext } from './logger';
+import { logger } from '@mintenance/shared';
 
 export interface LogTransport {
   name: string;
@@ -285,7 +286,7 @@ export class EnhancedLogger {
         await transport.send(entry);
       } catch (error) {
         // Fallback to console if transport fails
-        console.error(`Transport ${transport.name} failed:`, error);
+        logger.error('Transport %s failed:, error', [object Object], { service: 'general' });
       }
     }
   }
@@ -312,13 +313,13 @@ export class EnhancedLogger {
           console.debug(formatted);
           break;
         case 'info':
-          console.log(formatted);
+          logger.info('Log output', formatted, { service: 'general' });
           break;
         case 'warn':
-          console.warn(formatted);
+          logger.warn('Log output', formatted, { service: 'general' });
           break;
         case 'error':
-          console.error(formatted);
+          logger.error('Log output', formatted, { service: 'general' });
           break;
       }
     }
@@ -343,7 +344,7 @@ export class EnhancedLogger {
           entries.forEach(entry => transport.send(entry));
         }
       } catch (error) {
-        console.error(`Transport ${transport.name} batch failed:`, error);
+        logger.error('Transport %s batch failed:, error', [object Object], { service: 'general' });
       }
     }
 
@@ -351,7 +352,7 @@ export class EnhancedLogger {
     if (this.config.environment === 'production' && this.transports.length === 0) {
       entries.forEach(entry => {
         const formatted = this.formatLogEntry(entry);
-        console.log(formatted);
+        logger.info('Log output', formatted, { service: 'general' });
       });
     }
   }
@@ -516,13 +517,13 @@ export class ConsoleTransport implements LogTransport {
         console.debug(formatted);
         break;
       case 'info':
-        console.log(formatted);
+        logger.info('Log output', formatted, { service: 'general' });
         break;
       case 'warn':
-        console.warn(formatted);
+        logger.warn('Log output', formatted, { service: 'general' });
         break;
       case 'error':
-        console.error(formatted);
+        logger.error('Log output', formatted, { service: 'general' });
         break;
     }
   }

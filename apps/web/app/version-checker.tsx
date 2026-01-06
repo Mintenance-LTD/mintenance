@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 
 const VERSION_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 const VERSION_ENDPOINT = '/api/version';
@@ -47,7 +48,7 @@ interface VersionCheckProps {
  * <VersionChecker autoRefresh />
  *
  * // Custom callback
- * <VersionChecker onNewVersion={() => console.log('New version!')} />
+ * <VersionChecker onNewVersion={() => logger.info('New version!', [object Object], { service: 'app' })} />
  * ```
  */
 export function VersionChecker({

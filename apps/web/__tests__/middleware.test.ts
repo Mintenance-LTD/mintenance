@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * Middleware Security Tests
  * Tests critical security functionality in Next.js middleware

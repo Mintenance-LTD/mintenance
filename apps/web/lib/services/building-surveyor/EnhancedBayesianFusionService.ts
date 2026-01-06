@@ -806,7 +806,7 @@ export class EnhancedBayesianFusionService {
   /**
    * Validate weight structure
    */
-  private static validateWeights(weights: any): weights is AttentionWeights {
+  private static validateWeights(weights: unknown): weights is AttentionWeights {
     return weights &&
       typeof weights.yolo === 'number' &&
       typeof weights.sam3 === 'number' &&

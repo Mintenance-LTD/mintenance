@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { AuthStackParamList } from '../types';
+import type { AuthStackParamList } from '@mintenance/types';
 
 // Import existing screens
 import LandingScreen from '../../screens/LandingScreen';

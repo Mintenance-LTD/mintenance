@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, Alert } from 'react-native';
 import { OfflineManager, DataConflict, ConflictResolutionStrategy } from '../OfflineManager';
+import { logger } from '@mintenance/shared';
 
 // =============================================
 // EXAMPLE 1: Queue Action with Version Tracking
@@ -27,9 +28,9 @@ export const UpdateJobWithVersioning = async (jobId: string, updates: any) => {
       strategy: 'merge', // Will attempt intelligent merge on conflict
     });
 
-    console.log('Job update queued:', actionId);
+    logger.info('Job update queued:', actionId', [object Object], { service: 'mobile' });
   } catch (error) {
-    console.error('Failed to queue job update:', error);
+    logger.error('Failed to queue job update:', error', [object Object], { service: 'mobile' });
   }
 };
 
@@ -312,5 +313,5 @@ export const simulateConflict = async () => {
 
   // 4. Check for conflicts
   const conflicts = await OfflineManager.getConflicts();
-  console.log('Detected conflicts:', conflicts.length);
+  logger.info('Detected conflicts:', conflicts.length', [object Object], { service: 'mobile' });
 };

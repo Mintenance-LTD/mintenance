@@ -109,8 +109,8 @@ export function MessagesClient() {
       const data = await response.json();
 
       // Transform threads to conversations
-      const transformedConversations: Conversation[] = (data.threads || []).map((thread: any) => {
-        const otherParticipant = thread.participants.find((p: any) => p.id !== currentUser.id);
+      const transformedConversations: Conversation[] = (data.threads || []).map((thread: unknown) => {
+        const otherParticipant = thread.participants.find((p: unknown) => p.id !== currentUser.id);
         return {
           id: thread.jobId,
           otherUser: {
@@ -154,7 +154,7 @@ export function MessagesClient() {
 
         const data = await response.json();
 
-        const transformedMessages = (data.messages || []).map((msg: any): Message => ({
+        const transformedMessages = (data.messages || []).map((msg: unknown): Message => ({
           id: msg.id,
           sender_id: msg.senderId || msg.sender_id,
           content: msg.content || msg.messageText || '',

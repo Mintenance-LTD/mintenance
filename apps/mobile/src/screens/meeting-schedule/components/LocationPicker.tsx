@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
-import type { LocationData } from '../../../types';
+import type { LocationData } from '@mintenance/types';
 
 interface LocationPickerProps {
   location: LocationData | null;

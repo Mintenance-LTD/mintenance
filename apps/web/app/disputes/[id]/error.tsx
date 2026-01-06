@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function DisputeDetailsError({
   error,
@@ -15,7 +16,7 @@ export default function DisputeDetailsError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Dispute details error:', error);
+    logger.error('Dispute details error:', error', [object Object], { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

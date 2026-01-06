@@ -12,6 +12,7 @@ import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
+import { logger } from '@mintenance/shared';
 
 interface Job {
   id: string;
@@ -62,14 +63,14 @@ export default function ContractorJobsPage2025() {
         const data = await response.json();
         const allJobs = data.jobs || [];
 
-        const active = allJobs.filter((j: any) => j.status === 'in_progress' || j.status === 'assigned').length;
-        const pending = allJobs.filter((j: any) => j.status === 'pending' || j.status === 'posted').length;
-        const completed = allJobs.filter((j: any) => j.status === 'completed').length;
-        const totalValue = allJobs.reduce((sum: number, j: any) => sum + (j.budget || 0), 0);
+        const active = allJobs.filter((j: unknown) => j.status === 'in_progress' || j.status === 'assigned').length;
+        const pending = allJobs.filter((j: unknown) => j.status === 'pending' || j.status === 'posted').length;
+        const completed = allJobs.filter((j: unknown) => j.status === 'completed').length;
+        const totalValue = allJobs.reduce((sum: number, j: unknown) => sum + (j.budget || 0), 0);
 
         setAllJobsStats({ active, pending, completed, totalValue });
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+        logger.error('Failed to fetch stats:', error', [object Object], { service: 'app' });
         // Don't show toast for stats failure, just log it
       } finally {
         setLoadingStats(false);
@@ -142,16 +143,16 @@ export default function ContractorJobsPage2025() {
         let jobsData: any[] = [];
 
         if (filter === 'viewed' && data.views) {
-          jobsData = data.views.map((view: any) => view.job).filter(Boolean);
+          jobsData = data.views.map((view: unknown) => view.job).filter(Boolean);
         } else if (filter === 'saved' && data.savedJobs) {
-          jobsData = data.savedJobs.map((saved: any) => saved.job).filter(Boolean);
+          jobsData = data.savedJobs.map((saved: unknown) => saved.job).filter(Boolean);
         } else {
           jobsData = data.jobs || [];
         }
 
         // Apply category filter
         if (categoryFilter && categoryFilter !== 'all') {
-          jobsData = jobsData.filter((job: any) => 
+          jobsData = jobsData.filter((job: unknown) => 
             job.category?.toLowerCase() === categoryFilter.toLowerCase()
           );
         }
@@ -178,7 +179,7 @@ export default function ContractorJobsPage2025() {
 
         setJobs(transformedJobs);
       } catch (error) {
-        console.error('Error fetching jobs:', error);
+        logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
         toast.error(error instanceof Error ? error.message : 'Failed to load jobs');
         setJobs([]);
       } finally {

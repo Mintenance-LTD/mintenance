@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Upload, X, Plus, Home, Building2, Warehouse } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
+import { logger } from '@mintenance/shared';
 
 interface PropertyData {
   id: string;
@@ -85,7 +86,7 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
         toast.error(error.message || 'Failed to update property');
       }
     } catch (error) {
-      console.error('Error updating property:', error);
+      logger.error('Error updating property:', error', [object Object], { service: 'ui' });
       toast.error('Failed to update property');
     } finally {
       setIsSubmitting(false);

@@ -121,7 +121,7 @@ export default function PaymentsPage() {
           setSuccessAlert({ show: true, message: 'Payment released successfully!' });
           setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
           loadUserAndPayments(); // Refresh the list
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error('Error releasing payment:', error);
           setAlertDialog({
             open: true,
@@ -200,7 +200,7 @@ export default function PaymentsPage() {
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 3000);
       setRefundDialog({ open: false, transactionId: null, reason: '' });
       loadUserAndPayments(); // Refresh the list
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error requesting refund:', error);
       setAlertDialog({
         open: true,

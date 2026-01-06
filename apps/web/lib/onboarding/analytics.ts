@@ -11,7 +11,7 @@ export interface OnboardingAnalyticsEvent {
   userType: 'homeowner' | 'contractor';
   timestamp: string;
   properties?: Record<string, any>;
-  [key: string]: any; // Index signature for dynamic property access
+  [key: string]: unknown; // Index signature for dynamic property access
 }
 
 /**
@@ -252,7 +252,7 @@ function storeEventLocally(event: OnboardingAnalyticsEvent) {
 
     localStorage.setItem(key, JSON.stringify(events));
   } catch (error) {
-    console.error('Failed to store event locally:', error);
+    logger.error('Failed to store event locally:', error', [object Object], { service: 'lib' });
   }
 }
 
@@ -267,7 +267,7 @@ export function getLocalEvents(): OnboardingAnalyticsEvent[] {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Failed to get local events:', error);
+    logger.error('Failed to get local events:', error', [object Object], { service: 'lib' });
     return [];
   }
 }
@@ -281,6 +281,6 @@ export function clearLocalEvents(): void {
   try {
     localStorage.removeItem('mintenance_onboarding_events');
   } catch (error) {
-    console.error('Failed to clear local events:', error);
+    logger.error('Failed to clear local events:', error', [object Object], { service: 'lib' });
   }
 }

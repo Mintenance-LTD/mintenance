@@ -41,13 +41,13 @@ export async function uploadProfilePhotoExample() {
   const compressed = await compressProfilePhoto(imageUri);
 
   if (compressed.error) {
-    console.error('Compression failed:', compressed.error);
+    logger.error('Compression failed:', compressed.error', [object Object], { service: 'mobile' });
     return;
   }
 
   // 3. Show compression stats to user
   const stats = ImageCompressionService.getCompressionStats(compressed);
-  console.log(`Saved ${stats.savedMB.toFixed(2)} MB (${stats.savedPercentage.toFixed(0)}%)`);
+  logger.info('Saved ${stats.savedMB.toFixed(2', [object Object], { service: 'mobile' })} MB (${stats.savedPercentage.toFixed(0)}%)`);
 
   // 4. Upload compressed image
   // ... upload compressed.uri to server
@@ -74,18 +74,20 @@ export async function uploadJobPhotosExample(jobId: string) {
   // 2. Compress with progress tracking
   const onProgress: ProgressCallback = (processed, total, currentFile) => {
     const percentage = Math.round((processed / total) * 100);
-    console.log(`Compressing: ${percentage}% (${processed}/${total})`);
+    logger.info('Compressing: %s% (%s/%s', [object Object], { service: 'mobile' })`);
     // Update UI progress indicator here
   };
 
   const batchResult = await compressJobPhotos(imageUris, onProgress);
 
   // 3. Show overall stats
-  console.log(`
-    Total: ${batchResult.results.length} images
-    Success: ${batchResult.successCount}
-    Failed: ${batchResult.failureCount}
-    Original size: ${(batchResult.totalOriginalSize / 1024 / 1024).toFixed(2)} MB
+  logger.info('
+    Total: %s images
+    Success: %s
+    Failed: %s
+    Original size: ${(batchResult.totalOriginalSize / 1024 / 1024', {
+        service: 'mobile'
+      }).toFixed(2)} MB
     Compressed size: ${(batchResult.totalCompressedSize / 1024 / 1024).toFixed(2)} MB
     Saved: ${((1 - batchResult.totalCompressionRatio) * 100).toFixed(0)}%
     Time: ${(batchResult.duration / 1000).toFixed(1)}s
@@ -134,13 +136,13 @@ export async function uploadPropertyAssessmentExample(assessmentId: string) {
   const compressed = await compressPropertyAssessmentPhoto(photo.uri);
 
   if (compressed.error) {
-    console.error('Compression failed:', compressed.error);
+    logger.error('Compression failed:', compressed.error', [object Object], { service: 'mobile' });
     return;
   }
 
   // 3. Use both thumbnail and full image
-  console.log('Full image:', compressed.uri);
-  console.log('Thumbnail:', compressed.thumbnailUri);
+  logger.info('Full image:', compressed.uri', [object Object], { service: 'mobile' });
+  logger.info('Thumbnail:', compressed.thumbnailUri', [object Object], { service: 'mobile' });
 
   // 4. Upload to property assessment endpoint
   // ... use compressed.uri for full image
@@ -160,11 +162,11 @@ export async function smartCompressionExample(imageUri: string) {
   );
 
   if (needsCompression) {
-    console.log('Image needs compression');
+    logger.info('Image needs compression', [object Object], { service: 'mobile' });
     const compressed = await compressJobPhoto(imageUri);
     return compressed.uri;
   } else {
-    console.log('Image is already optimized');
+    logger.info('Image is already optimized', [object Object], { service: 'mobile' });
     return imageUri;
   }
 }
@@ -206,7 +208,7 @@ export async function generateThumbnailsExample(imageUri: string) {
     [100, 200, 400] // Small, Medium, Large thumbnails
   );
 
-  console.log('Thumbnails:', thumbnails);
+  logger.info('Thumbnails:', thumbnails', [object Object], { service: 'mobile' });
   // thumbnails[0] = 100x100 for tiny icons
   // thumbnails[1] = 200x200 for list views
   // thumbnails[2] = 400x400 for grid views
@@ -228,7 +230,7 @@ export async function estimateSizeExample(imageUri: string) {
     'job'
   );
 
-  console.log(`Estimated compressed size: ${(estimatedSize / 1024 / 1024).toFixed(2)} MB`);
+  logger.info('Estimated compressed size: ${(estimatedSize / 1024 / 1024', [object Object], { service: 'mobile' }).toFixed(2)} MB`);
 
   // Show user before compressing
   const shouldCompress = confirm(
@@ -249,7 +251,7 @@ export async function completeUploadFlowExample(jobId: string) {
   const permissions = await PhotoUploadService.requestPermissions();
 
   if (!permissions.camera) {
-    console.error('Camera permission required');
+    logger.error('Camera permission required', [object Object], { service: 'mobile' });
     return;
   }
 
@@ -263,7 +265,7 @@ export async function completeUploadFlowExample(jobId: string) {
   // 3. Compress all photos with progress
   const imageUris = photos.map(p => p.uri);
   const progressCallback: ProgressCallback = (processed, total) => {
-    console.log(`Processing: ${processed}/${total}`);
+    logger.info('Processing: %s/%s', [object Object], { service: 'mobile' });
     // Update UI progress bar
   };
 
@@ -295,7 +297,7 @@ export async function completeUploadFlowExample(jobId: string) {
 
   // 6. Show results
   const successCount = uploadResults.filter(r => r.success).length;
-  console.log(`Uploaded ${successCount}/${uploadResults.length} photos`);
+  logger.info('Uploaded %s/%s photos', [object Object], { service: 'mobile' });
 
   return {
     compressionStats: {
@@ -320,6 +322,7 @@ export async function completeUploadFlowExample(jobId: string) {
 /*
 import React, { useState } from 'react';
 import { View, Button, Text, ActivityIndicator } from 'react-native';
+import { logger } from '@mintenance/shared';
 
 export function ImageUploadComponent({ jobId }: { jobId: string }) {
   const [uploading, setUploading] = useState(false);
@@ -411,10 +414,10 @@ export async function errorHandlingExample(imageUri: string) {
 
     if (result.error) {
       // Compression failed, but didn't throw
-      console.error('Compression failed:', result.error);
+      logger.error('Compression failed:', result.error', [object Object], { service: 'mobile' });
 
       // Fallback: use original image
-      console.log('Using original image as fallback');
+      logger.info('Using original image as fallback', [object Object], { service: 'mobile' });
       return imageUri;
     }
 
@@ -422,7 +425,7 @@ export async function errorHandlingExample(imageUri: string) {
     return result.uri;
   } catch (error) {
     // Unexpected error
-    console.error('Unexpected error during compression:', error);
+    logger.error('Unexpected error during compression:', error', [object Object], { service: 'mobile' });
 
     // Fallback: use original image
     return imageUri;

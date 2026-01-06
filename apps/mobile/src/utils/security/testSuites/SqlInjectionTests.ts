@@ -6,7 +6,7 @@
 
 import { SecurityManager } from '../../SecurityManager';
 import { logger } from '../../logger';
-import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '../types';
+import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } from '@mintenance/types';
 
 export class SqlInjectionTestSuite {
   static createBasicSQLInjectionTest(): PenetrationTest {

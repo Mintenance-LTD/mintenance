@@ -462,7 +462,6 @@ export async function POST(request: NextRequest) {
 
     // #region agent log
     const logData = {location:'api/building-surveyor/assess/route.ts:323',message:'Error caught in API route',data:{errorType:error instanceof Error ? error.name : typeof error,errorMessage:error instanceof Error ? error.message : String(error),hasOpenaiErrorCode:!!(error as any)?.openaiErrorCode,openaiErrorCode:(error as any)?.openaiErrorCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-    console.log('[DEBUG] API route error:', logData);
     try {
       const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
       fs.appendFileSync(logPath, JSON.stringify(logData) + '\n');

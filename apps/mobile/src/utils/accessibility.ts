@@ -4,6 +4,7 @@
  */
 
 import { Platform, AccessibilityInfo, findNodeHandle, UIManager } from 'react-native';
+import { logger } from '@mintenance/shared';
 
 /**
  * Accessibility roles for React Native components
@@ -77,7 +78,7 @@ export async function isScreenReaderEnabled(): Promise<boolean> {
   try {
     return await AccessibilityInfo.isScreenReaderEnabled();
   } catch (error) {
-    console.warn('Failed to check screen reader status:', error);
+    logger.warn('Failed to check screen reader status:', error', [object Object], { service: 'mobile' });
     return false;
   }
 }
@@ -89,7 +90,7 @@ export async function isReduceMotionEnabled(): Promise<boolean> {
   try {
     return await AccessibilityInfo.isReduceMotionEnabled();
   } catch (error) {
-    console.warn('Failed to check reduce motion status:', error);
+    logger.warn('Failed to check reduce motion status:', error', [object Object], { service: 'mobile' });
     return false;
   }
 }
@@ -103,7 +104,7 @@ export async function isBoldTextEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isBoldTextEnabled();
     } catch (error) {
-      console.warn('Failed to check bold text status:', error);
+      logger.warn('Failed to check bold text status:', error', [object Object], { service: 'mobile' });
       return false;
     }
   }
@@ -119,7 +120,7 @@ export async function isGrayscaleEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isGrayscaleEnabled();
     } catch (error) {
-      console.warn('Failed to check grayscale status:', error);
+      logger.warn('Failed to check grayscale status:', error', [object Object], { service: 'mobile' });
       return false;
     }
   }
@@ -135,7 +136,7 @@ export async function isInvertColorsEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isInvertColorsEnabled();
     } catch (error) {
-      console.warn('Failed to check invert colors status:', error);
+      logger.warn('Failed to check invert colors status:', error', [object Object], { service: 'mobile' });
       return false;
     }
   }

@@ -7,6 +7,7 @@ import { LocationPromptModal } from './LocationPromptModal';
 import toast from 'react-hot-toast';
 import { MapPin, List, Map as MapIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 // Helper function to calculate distance between two points
 function calculateDistance(
@@ -93,14 +94,16 @@ export function ContractorDiscoverClient({
   contractorLocation: initialContractorLocation,
 }: ContractorDiscoverClientProps) {
   // Debug logging - track props received from server
-  console.log('[CLIENT] ContractorDiscoverClient Props:', {
+  logger.info('[CLIENT] ContractorDiscoverClient Props:', {
     totalJobs: jobs.length,
     contractorId,
     contractorLocation: initialContractorLocation,
     firstJob: jobs[0] ? {
       id: jobs[0].id,
       title: jobs[0].title,
-      lat: (jobs[0] as any).latitude,
+      lat: (jobs[0] as any', {
+        service: 'ui'
+      }).latitude,
       lng: (jobs[0] as any).longitude,
       property: jobs[0].property
     } : null
@@ -150,7 +153,7 @@ export function ContractorDiscoverClient({
         setSavedJobIds(savedIds);
       }
     } catch (error) {
-      console.error('Error loading saved jobs:', error);
+      logger.error('Error loading saved jobs:', error', [object Object], { service: 'ui' });
     } finally {
       setLoadingSavedJobs(false);
     }
@@ -167,7 +170,7 @@ export function ContractorDiscoverClient({
     // If contractor has no location, show ALL jobs with coordinates
     if (!contractorLocation?.latitude || !contractorLocation?.longitude) {
       const filtered = jobsWithCoordinates.filter(job => job.lat && job.lng);
-      console.log('[CLIENT] Filtering (no contractor location):', {
+      logger.info('[CLIENT] Filtering (no contractor location', [object Object], { service: 'ui' }):', {
         input: jobsWithCoordinates.length,
         output: filtered.length,
         contractorHasLocation: false
@@ -182,7 +185,7 @@ export function ContractorDiscoverClient({
       return job.distance <= selectedRadius;
     });
 
-    console.log('[CLIENT] Filtering (with contractor location):', {
+    logger.info('[CLIENT] Filtering (with contractor location', [object Object], { service: 'ui' }):', {
       input: jobsWithCoordinates.length,
       output: filtered.length,
       radius: selectedRadius,
@@ -249,7 +252,7 @@ export function ContractorDiscoverClient({
         toast.success('Job saved! You can view it in your saved jobs.');
       }
     } catch (error) {
-      console.error('Error toggling save:', error);
+      logger.error('Error toggling save:', error', [object Object], { service: 'ui' });
       toast.error(isCurrentlySaved ? 'Failed to unsave job' : 'Failed to save job');
     } finally {
       setIsLoading(null);
@@ -307,9 +310,11 @@ export function ContractorDiscoverClient({
       };
     });
 
-    console.log('[CLIENT] Jobs with coordinates:', {
+    logger.info('[CLIENT] Jobs with coordinates:', {
       total: jobsWithCoords.length,
-      withCoords: jobsWithCoords.filter(j => j.lat && j.lng).length,
+      withCoords: jobsWithCoords.filter(j => j.lat && j.lng', {
+        service: 'ui'
+      }).length,
       withoutCoords: jobsWithCoords.filter(j => !j.lat || !j.lng).length,
       sample: jobsWithCoords.slice(0, 2).map(j => ({
         id: j.id,

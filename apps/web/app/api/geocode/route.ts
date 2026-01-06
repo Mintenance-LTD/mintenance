@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { publicRateLimiter } from '@/lib/middleware/public-rate-limiter-redis';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Geocode an address to get latitude/longitude
@@ -14,6 +15,28 @@ import { publicRateLimiter } from '@/lib/middleware/public-rate-limiter-redis';
  */
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Apply rate limiting (10 req/min per IP)
     const rateLimitResult = await publicRateLimiter(request, {
       maxRequests: 10,

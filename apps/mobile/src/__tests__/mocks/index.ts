@@ -1,3 +1,4 @@
+const logger = console;
 // Centralized Mock Factory Exports
 import { SupabaseMockFactory } from './supabaseMock';
 import { ExpoMockFactory } from './expoMocks';

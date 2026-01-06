@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';;
 import { fadeIn, slideInFromBottom } from '@/lib/animations/variants';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { logger } from '@mintenance/shared';
 
 interface Message {
   id: string;
@@ -61,7 +62,7 @@ export function ChatInterface2025({
       setMessageInput('');
       inputRef.current?.focus();
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', error', [object Object], { service: 'ui' });
     } finally {
       setSending(false);
     }

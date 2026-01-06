@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth';
 import { z } from 'zod';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
 
 // Feedback validation schema
 const feedbackSchema = z.object({
@@ -22,6 +24,28 @@ const feedbackSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Check authentication
     const user = await getUser();
     if (!user) {
@@ -134,7 +158,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Feedback error:', error);
+    logger.error('Feedback error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to submit feedback' },
       { status: 500 }
@@ -147,6 +171,28 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getUser();
     if (!user) {
       return NextResponse.json(
@@ -181,7 +227,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get feedback stats error:', error);
+    logger.error('Get feedback stats error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve feedback statistics' },
       { status: 500 }
@@ -193,8 +239,8 @@ export async function GET(request: NextRequest) {
  * Create correction record for wrong assessment
  */
 async function createCorrection(
-  assessment: any,
-  feedback: any,
+  assessment: unknown,
+  feedback: unknown,
   contractorId: string
 ): Promise<void> {
   const supabase = await createServerSupabaseClient();
@@ -222,7 +268,7 @@ async function createCorrection(
     });
 
   } catch (error) {
-    console.error('Failed to create correction:', error);
+    logger.error('Failed to create correction:', error', [object Object], { service: 'api' });
     // Don't throw - correction is not critical for feedback
   }
 }
@@ -267,7 +313,7 @@ async function updateContributorStats(
     await updateContributorLevel(contractorId);
 
   } catch (error) {
-    console.error('Failed to update contributor stats:', error);
+    logger.error('Failed to update contributor stats:', error', [object Object], { service: 'api' });
   }
 }
 
@@ -338,7 +384,7 @@ async function checkRetrainingThreshold(): Promise<boolean> {
 /**
  * Calculate rewards for feedback
  */
-function calculateRewards(feedback: any): {
+function calculateRewards(feedback: unknown): {
   credits: number;
   message: string;
 } {

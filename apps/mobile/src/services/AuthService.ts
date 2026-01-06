@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
-import { User } from '../types';
-import type { Database } from '../types/database';
+import { User } from '@mintenance/types';
+import type { Database } from '@mintenance/types';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { NetworkDiagnosticsService } from '../utils/networkDiagnostics';
 import { logger } from '../utils/logger';

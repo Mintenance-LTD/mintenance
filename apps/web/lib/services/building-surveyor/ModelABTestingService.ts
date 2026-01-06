@@ -535,7 +535,7 @@ export class ModelABTestingService {
   // HELPER METHODS
   // ============================================================================
 
-  private static calculateVariantMetrics(data: any[]): any {
+  private static calculateVariantMetrics(data: any[]): unknown {
     if (data.length === 0) {
       return {
         mAP50: 0,
@@ -566,11 +566,11 @@ export class ModelABTestingService {
   }
 
   private static calculateStatisticalSignificance(
-    controlMetrics: any,
-    treatmentMetrics: any,
+    controlMetrics: unknown,
+    treatmentMetrics: unknown,
     controlN: number,
     treatmentN: number
-  ): any {
+  ): unknown {
     // Simplified statistical test - would use proper test in production
     const controlMean = controlMetrics.f1_score;
     const treatmentMean = treatmentMetrics.f1_score;
@@ -640,9 +640,9 @@ export class ModelABTestingService {
 
   private static generateABTestRecommendation(
     config: ABTestConfig,
-    controlMetrics: any,
-    treatmentMetrics: any,
-    significance: any,
+    controlMetrics: unknown,
+    treatmentMetrics: unknown,
+    significance: unknown,
     controlN: number,
     treatmentN: number
   ): {

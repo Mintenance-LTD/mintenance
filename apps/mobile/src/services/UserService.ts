@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import { User } from '../types';
+import { User } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export interface ContractorStats {

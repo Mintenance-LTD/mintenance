@@ -5,6 +5,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 const certificationUpdateSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -26,6 +27,28 @@ interface Params {
  */
 export async function GET(request: NextRequest, context: Params) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'contractor') {
       throw new UnauthorizedError('Contractor authentication required');
@@ -56,6 +79,28 @@ export async function GET(request: NextRequest, context: Params) {
  */
 export async function PUT(request: NextRequest, context: Params) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();
@@ -84,7 +129,7 @@ export async function PUT(request: NextRequest, context: Params) {
     }
 
     // Build update object
-    const updateData: any = {};
+    const updateData: unknown = {};
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.issuer !== undefined) updateData.issuer = validatedData.issuer;
     if (validatedData.issueDate !== undefined) updateData.issue_date = validatedData.issueDate;
@@ -128,6 +173,28 @@ export async function PUT(request: NextRequest, context: Params) {
  */
 export async function DELETE(request: NextRequest, context: Params) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     await requireCSRF(request);
 
     const user = await getCurrentUserFromCookies();

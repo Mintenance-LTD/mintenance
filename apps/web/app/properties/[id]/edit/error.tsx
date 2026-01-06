@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function EditPropertyError({
   error,
@@ -15,7 +16,7 @@ export default function EditPropertyError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Edit property error:', error);
+    logger.error('Edit property error:', error', [object Object], { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

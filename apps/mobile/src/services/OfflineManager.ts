@@ -469,7 +469,7 @@ class OfflineManagerClass {
    * ```typescript
    * useEffect(() => {
    *   const unsubscribe = OfflineManager.onSyncStatusChange((status, count) => {
-   *     console.log('Sync status:', status, count);
+   *     logger.info('Sync status:', status, count', [object Object], { service: 'mobile' });
    *   });
    *
    *   // IMPORTANT: Always cleanup on unmount to prevent memory leak

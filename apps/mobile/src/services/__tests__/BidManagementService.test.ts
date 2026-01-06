@@ -4,7 +4,7 @@
 
 import { BidManagementService } from '../BidManagementService';
 import { supabase } from '../../config/supabase';
-import { Bid } from '../../types';
+import { Bid } from '@mintenance/types';
 
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({

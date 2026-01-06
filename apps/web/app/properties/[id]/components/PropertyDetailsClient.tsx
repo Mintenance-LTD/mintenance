@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { logger } from '@mintenance/shared';
 
 interface Job {
   id: string;
@@ -116,7 +117,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
           toast.error('Failed to delete property');
         }
       } catch (error) {
-        console.error('Error deleting property:', error);
+        logger.error('Error deleting property:', error', [object Object], { service: 'ui' });
         toast.error('Failed to delete property');
       }
     }

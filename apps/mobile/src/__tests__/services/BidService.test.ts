@@ -1,7 +1,7 @@
 import React from 'react';
 import { BidService } from '../../services/BidService';
 import { supabase } from '../../config/supabase';
-import { Bid, BidData } from '../../types';
+import { Bid, BidData } from '@mintenance/types';
 
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({

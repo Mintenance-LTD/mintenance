@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, MapPinned, X, AlertCircle, Loader2 } from 'lucide-react';
 import { designTokens } from '@/lib/design-tokens';
+import { logger } from '@mintenance/shared';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -78,7 +79,7 @@ export function LocationPromptModal({
         }
       } catch (err) {
         // Permission API not fully supported, continue anyway
-        console.warn('Permission API check failed:', err);
+        logger.warn('Permission API check failed:', err', [object Object], { service: 'ui' });
       }
     }
 
@@ -108,7 +109,7 @@ export function LocationPromptModal({
           onClose();
         } catch (err) {
           setError('Failed to save location. Please try again.');
-          console.error('Location save error:', err);
+          logger.error('Location save error:', err', [object Object], { service: 'ui' });
         } finally {
           setIsLoadingGeo(false);
         }
@@ -171,7 +172,7 @@ export function LocationPromptModal({
       onClose();
     } catch (err) {
       setError('Failed to save location. Please try again.');
-      console.error('Manual location save error:', err);
+      logger.error('Manual location save error:', err', [object Object], { service: 'ui' });
     } finally {
       setIsLoadingManual(false);
     }
@@ -207,7 +208,7 @@ export function LocationPromptModal({
 
       return {};
     } catch (err) {
-      console.error('Reverse geocoding error:', err);
+      logger.error('Reverse geocoding error:', err', [object Object], { service: 'ui' });
       return {};
     }
   };
@@ -244,7 +245,7 @@ export function LocationPromptModal({
 
       return null;
     } catch (err) {
-      console.error('Geocoding error:', err);
+      logger.error('Geocoding error:', err', [object Object], { service: 'ui' });
       return null;
     }
   };

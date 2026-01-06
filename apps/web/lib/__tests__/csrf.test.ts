@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * CSRF Protection Tests
  * Tests CSRF token validation and generation

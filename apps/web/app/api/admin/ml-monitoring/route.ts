@@ -13,6 +13,7 @@ import { ContinuousLearningService, getLearningPipelineSummary } from '@/lib/ser
 import { ModelEvaluationService } from '@/lib/services/building-surveyor/ModelEvaluationService';
 import { DriftMonitorService } from '@/lib/services/building-surveyor/DriftMonitorService';
 import { getExperimentHealth } from '@/lib/monitoring/experimentHealth';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -138,6 +139,28 @@ interface DashboardData {
 
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 10
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(10),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const auth = await requireAdmin(request);
     if (isAdminError(auth)) return auth.error;
     const user = auth.user;
@@ -531,7 +554,7 @@ async function getResourceUsage() {
   };
 }
 
-function calculateHealthScore(status: any): number {
+function calculateHealthScore(status: unknown): number {
   let score = 100;
 
   // Deduct points for issues
@@ -554,7 +577,7 @@ function calculateHealthScore(status: any): number {
   return Math.max(0, Math.min(100, score));
 }
 
-function identifyIssues(status: any, experimentHealthData: any): string[] {
+function identifyIssues(status: unknown, experimentHealthData: unknown): string[] {
   const issues: string[] = [];
 
   if (status.pendingCorrections > 500) {
@@ -576,7 +599,7 @@ function identifyIssues(status: any, experimentHealthData: any): string[] {
   return issues;
 }
 
-function calculateTestProgress(test: any): number {
+function calculateTestProgress(test: unknown): number {
   // Simplified progress calculation
   // In production, would calculate based on sample size and duration
   if (test.status === 'completed') return 100;

@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * Submit Bid API Tests
  * Tests for contractor bid submission endpoint

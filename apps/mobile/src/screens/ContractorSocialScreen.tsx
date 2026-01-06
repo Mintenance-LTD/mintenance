@@ -15,7 +15,7 @@ import { useHaptics } from '../utils/haptics';
 import { logger } from '../utils/logger';
 import { SkeletonPostCard } from '../components/SkeletonLoader';
 import { ContractorSocialService } from '../services/ContractorSocialService';
-import { ContractorPostType } from '../types';
+import { ContractorPostType } from '@mintenance/types';
 import { FeedPostCard } from '../components/social/FeedPostCard';
 import { CreatePostModal } from '../components/social/CreatePostModal';
 import { SocialFeedUtils, type FeedPost } from '../components/social/SocialFeedUtils';

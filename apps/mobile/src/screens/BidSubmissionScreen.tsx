@@ -12,7 +12,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';

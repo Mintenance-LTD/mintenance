@@ -28,6 +28,7 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { logger } from '@mintenance/shared';
 
 // Types
 interface Quote {
@@ -103,7 +104,7 @@ export default function QuotesPage() {
       setQuotes(data.quotes || []);
       setApiStats(data.stats || apiStats);
     } catch (error) {
-      console.error('Error loading quotes:', error);
+      logger.error('Error loading quotes:', error', [object Object], { service: 'app' });
       toast.error('Failed to load quotes');
     } finally {
       setLoading(false);

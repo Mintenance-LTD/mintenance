@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, ArrowLeft, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function JobCreationError({
   error,
@@ -16,7 +17,7 @@ export default function JobCreationError({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Job creation error:', error);
+    logger.error('Job creation error:', error', [object Object], { service: 'app' });
 
     // Report to Sentry if configured
     if (typeof window !== 'undefined' && (window as any).Sentry) {
@@ -30,7 +31,7 @@ export default function JobCreationError({
         localStorage.setItem('job-creation-recovery', formData);
       }
     } catch (e) {
-      console.error('Could not save form data for recovery:', e);
+      logger.error('Could not save form data for recovery:', e', [object Object], { service: 'app' });
     }
   }, [error]);
 

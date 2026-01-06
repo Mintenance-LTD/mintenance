@@ -248,7 +248,7 @@ export function useUpdateJob(jobId: string) {
       const previousJob = queryClient.getQueryData(queryKeys.jobs.details(jobId));
 
       // Optimistically update cache
-      queryClient.setQueryData(queryKeys.jobs.details(jobId), (old: any) => ({
+      queryClient.setQueryData(queryKeys.jobs.details(jobId), (old: unknown) => ({
         ...old,
         ...updates,
       }));

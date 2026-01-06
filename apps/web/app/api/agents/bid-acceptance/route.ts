@@ -10,6 +10,7 @@ import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { rateLimit } from '@/lib/rate-limiter';
 import { z } from 'zod';
+import { logger } from '@mintenance/shared';
 
 const requestSchema = z.object({
   action: z.enum(['evaluate', 'auto-accept', 'recommend']),
@@ -28,6 +29,28 @@ const requestSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Rate limiting
     const identifier = req.headers.get('x-forwarded-for') || 'anonymous';
     const rateLimitResult = await rateLimit(identifier, 20); // 20 requests per minute
@@ -340,8 +363,8 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
-    console.error('Bid acceptance agent error:', error);
+  } catch (error: unknown) {
+    logger.error('Bid acceptance agent error:', error', [object Object], { service: 'api' });
 
     if (error.name === 'ZodError') {
       return NextResponse.json(

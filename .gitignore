@@ -35,6 +35,9 @@ credentials/
 *.mobileprovision
 google-services.json
 GoogleService-Info.plist
+infrastructure/**/*.env
+infrastructure/**/*.pem
+infrastructure/**/*.key
 
 # Editor/OS files
 .DS_Store

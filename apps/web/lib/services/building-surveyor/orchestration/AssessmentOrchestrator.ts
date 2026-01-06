@@ -380,7 +380,7 @@ export class AssessmentOrchestrator {
             // Check cache first
             const cachedResponse = await GPT4CacheService.getCached(validatedImageUrls, context);
 
-            let aiAssessment: any;
+            let aiAssessment: unknown;
             let gptDuration = 0;
 
             if (cachedResponse) {

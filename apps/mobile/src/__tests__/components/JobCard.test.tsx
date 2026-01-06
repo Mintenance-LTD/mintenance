@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { JobCard } from '../../components/JobCard';
-import { Job } from '../../types';
+import { Job } from '@mintenance/types';
 
 const mockJob: Job = {
   id: 'test-job-1',

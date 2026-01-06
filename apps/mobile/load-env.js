@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Load environment variables from root or web app .env files
  * This allows sharing Supabase credentials between web and mobile apps
@@ -8,9 +9,9 @@ const path = require('path');
 
 // Simple logger for config file
 const logger = {
-  info: (...args) => console.log('[INFO]', ...args),
-  warn: (...args) => console.warn('[WARN]', ...args),
-  error: (...args) => console.error('[ERROR]', ...args),
+  info: (...args) => logger.info('[INFO]', ...args', [object Object], { service: 'mobile' }),
+  warn: (...args) => logger.warn('[WARN]', ...args', [object Object], { service: 'mobile' }),
+  error: (...args) => logger.error('[ERROR]', ...args', [object Object], { service: 'mobile' }),
 };
 
 // Paths to check for .env files (in order of priority)

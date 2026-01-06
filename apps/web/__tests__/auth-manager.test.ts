@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * Auth Manager Tests
  * Tests critical authentication and user management functionality

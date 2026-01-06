@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MutualConnectionsService } from '../services/MutualConnectionsService';
-import { ConnectionStatus } from '../types';
+import { ConnectionStatus } from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useHaptics } from '../utils/haptics';

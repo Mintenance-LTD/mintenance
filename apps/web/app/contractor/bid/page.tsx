@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface ActiveBid {
   id: string;
@@ -67,7 +68,7 @@ export default function ContractorBidsOverviewPage() {
         setStats(stats);
 
       } catch (error) {
-        console.error('Error fetching bids:', error);
+        logger.error('Error fetching bids:', error', [object Object], { service: 'app' });
         toast.error('Failed to load your bids');
       } finally {
         setLoading(false);

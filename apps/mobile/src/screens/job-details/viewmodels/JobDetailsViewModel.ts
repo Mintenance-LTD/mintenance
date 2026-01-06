@@ -14,7 +14,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useJob } from '../../../hooks/useJobs';
 import { AIAnalysisService, AIAnalysis } from '../../../services/AIAnalysisService';
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
-import type { Job } from '../../../types';
+import type { Job } from '@mintenance/types';
 
 export interface JobDetailsState {
   aiAnalysis: AIAnalysis | null;

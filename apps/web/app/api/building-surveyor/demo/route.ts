@@ -5,6 +5,7 @@ import { validateImageForOpenAI } from '@/lib/utils/image-validation';
 import { shouldCompressImage, compressImageServerSide } from '@/lib/utils/image-compression';
 import { logger } from '@/lib/logger';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,28 @@ export async function POST(request: NextRequest) {
     logger.info('[API] Building Surveyor Demo: Request received');
 
     try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
         // Check for API key availability
         const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
         logger.debug('[API] Environment check', { hasOpenAIKey });

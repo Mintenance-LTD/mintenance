@@ -5,7 +5,7 @@
  * cancelling, and managing booking data.
  */
 
-import { User } from '../../types';
+import { User } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
 import { UserService } from '../../services/UserService';
 import { logger } from '../../utils/logger';

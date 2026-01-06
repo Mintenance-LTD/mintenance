@@ -218,7 +218,7 @@ export function useSendMessage() {
 
         const previousMessages = queryClient.getQueryData(conversationKey);
 
-        queryClient.setQueryData(conversationKey, (old: any) => {
+        queryClient.setQueryData(conversationKey, (old: unknown) => {
           if (!old?.pages) return old;
 
           const optimisticMessage: Message = {

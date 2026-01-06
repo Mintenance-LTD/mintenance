@@ -18,6 +18,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { BuildingAssessmentDisplay } from './BuildingAssessmentDisplay';
+import { logger } from '@mintenance/shared';
 import {
   MapPin,
   Calendar,
@@ -101,7 +102,7 @@ export interface JobDetailsProfessionalProps {
   photos?: string[];
   currentUserId: string;
   userRole: 'homeowner' | 'contractor';
-  buildingAssessment?: any;
+  buildingAssessment?: unknown;
 }
 
 /* ==========================================
@@ -216,10 +217,12 @@ export function JobDetailsProfessional({
                 <BuildingAssessmentDisplay
                   assessment={buildingAssessment}
                   onCorrection={(assessmentId, corrections) => {
-                    console.log('Training data corrections submitted:', {
+                    logger.info('Training data corrections submitted:', {
                       assessmentId,
                       correctionsCount: corrections.length
-                    });
+                    }', {
+        service: 'ui'
+      });
                   }}
                 />
               </div>
@@ -620,7 +623,7 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       alert(`Bid accepted successfully! The contractor has been notified.`);
       window.location.reload(); // Refresh to show updated status
     } catch (error) {
-      console.error('Error accepting bid:', error);
+      logger.error('Error accepting bid:', error', [object Object], { service: 'ui' });
       alert(
         `Failed to accept bid: ${error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'}\n\n` +
         `If this problem persists, please refresh the page and try again.`

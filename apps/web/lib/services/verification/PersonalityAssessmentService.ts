@@ -506,7 +506,7 @@ export class PersonalityAssessmentService {
   private static async logVerificationEvent(
     contractorId: string,
     eventType: string,
-    eventData: any
+    eventData: unknown
   ): Promise<void> {
     try {
       await serverSupabase.from('contractor_verification_events').insert({

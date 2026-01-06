@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /** @jest-environment node */
 import { NextRequest, NextResponse } from 'next/server';
 

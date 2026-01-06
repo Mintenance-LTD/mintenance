@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 4. Prepare response based on options
-    const response: any = {
+    const response: unknown = {
       success: true,
       assessment: result.assessment,
       route: result.route,
@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'summary';
 
-    let response: any = {};
+    let response: unknown = {};
 
     switch (type) {
       case 'performance':

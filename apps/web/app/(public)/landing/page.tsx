@@ -5,6 +5,7 @@ import { SearchBar, ListingCard, ContractorCard, Badge, Button } from '@/compone
 import { getFeaturedContractors, getPlatformStats } from '@/lib/queries/airbnb-optimized';
 import { Star, CheckCircle, TrendingUp, Users, Briefcase } from 'lucide-react';
 import { LocalBusinessStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
+import { logger } from '@mintenance/shared';
 
 export const metadata: Metadata = {
   title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
@@ -105,7 +106,7 @@ export default async function LandingPage() {
             <SearchBar
               onSearch={(params) => {
                 // Client-side navigation will be handled by the component
-                // console.log('Search:', params);
+                // logger.info('Search:', params', [object Object], { service: 'app' });
               }}
               variant="hero"
             />

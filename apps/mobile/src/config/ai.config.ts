@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * AI Service Configuration - MOBILE CLIENT
  *
@@ -133,7 +134,7 @@ try {
   }
 } catch (error) {
   // Fatal error if API keys detected in mobile bundle
-  console.error('FATAL SECURITY ERROR:', error);
+  logger.error('FATAL SECURITY ERROR:', error', [object Object], { service: 'mobile' });
   throw error;
 }
 

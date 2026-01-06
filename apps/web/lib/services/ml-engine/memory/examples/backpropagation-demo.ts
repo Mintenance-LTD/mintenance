@@ -6,6 +6,7 @@
 
 import { MLPBackpropagation, type BackpropConfig } from '../MLPBackpropagation';
 import { ActivationFunctions } from '../ActivationFunctions';
+import { logger } from '@mintenance/shared';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -19,7 +20,7 @@ const colors = {
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
-  // console.log(`${colors[color]}${message}${colors.reset}`);
+  // logger.info('%s%s%s', [object Object], { service: 'lib' });
 }
 
 function header(title: string) {
@@ -359,7 +360,7 @@ async function main() {
     log('█'.repeat(60) + '\n', 'bright');
   } catch (error) {
     log('\nERROR:', 'red');
-    console.error(error);
+    logger.error('Log output', error, { service: 'lib' });
   }
 }
 

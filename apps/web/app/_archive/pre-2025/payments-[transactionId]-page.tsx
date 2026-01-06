@@ -63,7 +63,7 @@ export default function PaymentDetailPage() {
       await PaymentService.releaseEscrowPayment(transaction.id);
       alert('Payment released successfully!');
       loadTransactionDetails(); // Refresh transaction data
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error releasing payment:', error);
       alert(error.message || 'Failed to release payment');
     } finally {
@@ -82,7 +82,7 @@ export default function PaymentDetailPage() {
       await PaymentService.refundEscrowPayment(transaction.id, reason);
       alert('Refund request submitted successfully!');
       loadTransactionDetails(); // Refresh transaction data
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error requesting refund:', error);
       alert(error.message || 'Failed to request refund');
     } finally {

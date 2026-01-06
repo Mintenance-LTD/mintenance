@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@mintenance/shared';
 
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
@@ -80,14 +81,14 @@ export default function AnalyticsPage2025() {
         let completedJobs = 0;
         let activeJobs = 0;
 
-        jobs?.forEach((job: any) => {
+        jobs?.forEach((job: unknown) => {
           const date = new Date(job.created_at);
           const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
 
           if (job.status === 'completed') completedJobs++;
           if (job.status === 'in_progress' || job.status === 'posted') activeJobs++;
 
-          job.payments?.forEach((payment: any) => {
+          job.payments?.forEach((payment: unknown) => {
             const amount = payment.amount || 0;
             totalSpent += amount;
 
@@ -144,7 +145,7 @@ export default function AnalyticsPage2025() {
           { label: 'Properties', value: (propertiesCount || 0).toString(), change: '0', changeType: 'neutral', icon: '🏠' },
         ]);
       } catch (error) {
-        console.error('Error fetching analytics:', error);
+        logger.error('Error fetching analytics:', error', [object Object], { service: 'app' });
       } finally {
         setLoading(false);
       }

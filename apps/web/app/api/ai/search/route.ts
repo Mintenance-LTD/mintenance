@@ -118,7 +118,7 @@ const { query, filters, limit = 20 } = await request.json();
           resultsCount: jobResults.length + contractorResults.length,
         });
 
-      } catch (embeddingError: any) {
+      } catch (embeddingError: unknown) {
         clearTimeout(timeout);
 
         // Handle timeout or embedding generation failure

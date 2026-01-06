@@ -1,7 +1,7 @@
 import { JobService } from '../services/JobService';
 import { queryKeys } from '../lib/queryClient';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 
 // Query hooks
 export const useJobs = (limit: number = 20, offset: number = 0) => {

@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import { MutualConnection, ConnectionRequest, ConnectionStatus, User } from '../types';
+import { MutualConnection, ConnectionRequest, ConnectionStatus, User } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export class MutualConnectionsService {

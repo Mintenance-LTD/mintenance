@@ -5,6 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
 
 // Maintenance issue to contractor mapping
 const ISSUE_TO_CONTRACTOR: Record<string, string> = {
@@ -27,6 +29,28 @@ const ISSUE_TO_CONTRACTOR: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const supabase = await createServerSupabaseClient();
 
     // Check authentication
@@ -161,7 +185,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Detection error:', error);
+    logger.error('Detection error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to process image' },
       { status: 500 }
@@ -173,7 +197,7 @@ export async function POST(request: NextRequest) {
 async function mockServerSideDetection(imageUrl: string) {
   // In production, this would call an external AI service or
   // return a response telling the client to perform detection
-  // console.log('Mock detection for:', imageUrl);
+  // logger.info('Mock detection for:', imageUrl', [object Object], { service: 'api' });
 
   // Return mock detections for development
   return [

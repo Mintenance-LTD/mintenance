@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@mintenance/shared';
 
 interface HomeownerProfileDropdownProps {
   userName: string;
@@ -52,7 +53,7 @@ export function HomeownerProfileDropdown({ userName, profileImageUrl, initials }
   }, [isOpen]);
 
   const handleMenuItemClick = (href: string) => {
-    // console.log('HomeownerProfileDropdown: Menu item clicked, navigating to:', href);
+    // logger.info('HomeownerProfileDropdown: Menu item clicked, navigating to:', href', [object Object], { service: 'ui' });
     setIsOpen(false);
     router.push(href);
   };
@@ -63,7 +64,7 @@ export function HomeownerProfileDropdown({ userName, profileImageUrl, initials }
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error', [object Object], { service: 'ui' });
       router.push('/login');
     }
   };
@@ -71,7 +72,7 @@ export function HomeownerProfileDropdown({ userName, profileImageUrl, initials }
   const toggleDropdown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // console.log('HomeownerProfileDropdown: Toggle clicked, current state:', isOpen);
+    // logger.info('HomeownerProfileDropdown: Toggle clicked, current state:', isOpen', [object Object], { service: 'ui' });
     setIsOpen(!isOpen);
   };
 

@@ -39,6 +39,8 @@
     "@expo/vector-icons": "^15.0.3",
     "@mintenance/api-client": "file:../../packages/api-client",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
+    "@mintenance/services": "file:../../packages/services",
+    "@mintenance/types": "file:../../packages/types",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-community/netinfo": "11.4.1",
@@ -88,6 +90,7 @@
     "react-native-deck-swiper": "^2.0.19",
     "react-native-ffmpeg-kit": "^6.1.2",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-localize": "^3.2.2",
     "react-native-maps": "1.20.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
@@ -95,10 +98,7 @@
     "react-native-vision-camera": "^4.0.0",
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.5.1",
-    "sentry-expo": "~7.0.0",
-    "expo-secure-store": "~15.0.8",
-    "react-native-ffmpeg-kit": "^6.1.2",
-    "react-native-localize": "^3.2.2"
+    "sentry-expo": "~7.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

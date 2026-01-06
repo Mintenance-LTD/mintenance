@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@mintenance/shared';
 
 interface ProfileDropdownProps {
   contractorName: string;
@@ -53,7 +54,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
   }, [isOpen]);
 
   const handleMenuItemClick = (href: string) => {
-    // console.log('ProfileDropdown: Menu item clicked, navigating to:', href);
+    // logger.info('ProfileDropdown: Menu item clicked, navigating to:', href', [object Object], { service: 'ui' });
     setIsOpen(false);
     router.push(href);
   };
@@ -64,7 +65,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error', [object Object], { service: 'ui' });
       router.push('/login');
     }
   };
@@ -72,7 +73,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
   const toggleDropdown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // console.log('ProfileDropdown: Toggle clicked, current state:', isOpen);
+    // logger.info('ProfileDropdown: Toggle clicked, current state:', isOpen', [object Object], { service: 'ui' });
     setIsOpen(!isOpen);
   };
 

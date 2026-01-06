@@ -5,6 +5,7 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 // ==========================================================
 // TYPES
@@ -84,7 +85,7 @@ export async function getMonthlyRevenue(
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error(`[getMonthlyRevenue] Error fetching ${type}:`, error.message || error);
+      logger.error('[getMonthlyRevenue] Error fetching %s:, error.message || error', [object Object], { service: 'lib' });
       // Return empty months instead of failing
       return generateEmptyMonths(months);
     }
@@ -145,7 +146,7 @@ export async function getMonthlyRevenue(
 
     return result;
   } catch (error) {
-    console.error('[getMonthlyRevenue] Unexpected error:', error);
+    logger.error('[getMonthlyRevenue] Unexpected error:', error', [object Object], { service: 'lib' });
     return generateEmptyMonths(months);
   }
 }
@@ -164,8 +165,8 @@ export async function getMonthlyRevenue(
  * @example
  * ```typescript
  * const stats = await getRevenueStats('user-123', 'earnings');
- * // console.log(`Total: £${stats.total}`);
- * // console.log(`Growth: ${stats.growthPercentage}%`);
+ * // logger.info('Total: £%s', [object Object], { service: 'lib' });
+ * // logger.info('Growth: %s%', [object Object], { service: 'lib' });
  * ```
  */
 export async function getRevenueStats(

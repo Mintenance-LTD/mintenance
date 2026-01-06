@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
-import { ContractorProfile } from '../types';
+import { ContractorProfile } from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import Button from '../components/ui/Button';

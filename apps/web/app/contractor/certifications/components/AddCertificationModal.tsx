@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { logger } from '@mintenance/shared';
 
 interface Certification {
   id: string;
@@ -93,7 +94,7 @@ export function AddCertificationModal({ onClose, onSuccess, getCsrfHeaders }: Ad
 
       onSuccess(newCertification);
     } catch (error) {
-      console.error('Error adding certification:', error);
+      logger.error('Error adding certification:', error', [object Object], { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to add certification');
     } finally {
       setIsSubmitting(false);

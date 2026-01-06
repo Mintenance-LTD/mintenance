@@ -10,6 +10,7 @@ import { validateQuickJob, isFormValid } from './utils/validation';
 import { submitJob } from '@/app/jobs/create/utils/submitJob';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import Image from 'next/image';
+import { logger } from '@mintenance/shared';
 import {
   Wrench,
   Droplets,
@@ -113,7 +114,7 @@ export default function QuickJobPage() {
   // Fetch user's primary property
   useEffect(() => {
     if (user && user.role === 'homeowner') {
-      // console.log('Fetching properties for user:', user.id);
+      // logger.info('Fetching properties for user:', user.id', [object Object], { service: 'app' });
       fetch('/api/properties')
         .then(res => {
           if (!res.ok) {
@@ -122,22 +123,22 @@ export default function QuickJobPage() {
           return res.json();
         })
         .then(data => {
-          // console.log('Properties response:', data);
+          // logger.info('Properties response:', data', [object Object], { service: 'app' });
           if (data.properties && data.properties.length > 0) {
             // Select first property as primary
             const primary = data.properties[0];
-            // console.log('Setting primary property:', primary);
+            // logger.info('Setting primary property:', primary', [object Object], { service: 'app' });
             setPrimaryProperty(primary);
             setFormData(prev => ({
               ...prev,
               property_id: primary.id,
             }));
           } else {
-            console.warn('No properties found for user');
+            logger.warn('No properties found for user', [object Object], { service: 'app' });
           }
         })
         .catch(err => {
-          console.error('Error fetching properties:', err);
+          logger.error('Error fetching properties:', err', [object Object], { service: 'app' });
           toast.error('Failed to load your properties. Please try again.');
         });
     }
@@ -170,38 +171,38 @@ export default function QuickJobPage() {
   };
 
   const handleSubmit = async () => {
-    // console.log('=== Quick Job Submission Started ===');
-    // console.log('Form data at submission:', formData);
-    // console.log('User:', user?.id, user?.email);
-    // console.log('CSRF Token available:', !!csrfToken);
-    // console.log('Primary Property:', primaryProperty?.id);
+    // logger.info('=== Quick Job Submission Started ===', [object Object], { service: 'app' });
+    // logger.info('Form data at submission:', formData', [object Object], { service: 'app' });
+    // logger.info('User:', user?.id, user?.email', [object Object], { service: 'app' });
+    // logger.info('CSRF Token available:', !!csrfToken', [object Object], { service: 'app' });
+    // logger.info('Primary Property:', primaryProperty?.id', [object Object], { service: 'app' });
 
     // Simple validation for quick jobs
     const errors = validateQuickJob(formData);
-    // console.log('Validation errors:', errors);
+    // logger.error('Validation errors:', errors', [object Object], { service: 'app' });
 
     if (!isFormValid(errors)) {
       const firstError = Object.values(errors)[0];
-      console.error('Validation failed:', firstError, errors);
+      logger.error('Validation failed:', firstError, errors', [object Object], { service: 'app' });
       toast.error(firstError);
       return;
     }
 
     if (!primaryProperty) {
-      console.error('No primary property found');
+      logger.error('No primary property found', [object Object], { service: 'app' });
       toast.error('Please add a property first');
       router.push('/properties/add');
       return;
     }
 
     if (!csrfToken) {
-      console.error('No CSRF token available');
+      logger.error('No CSRF token available', [object Object], { service: 'app' });
       toast.error('Security token not available. Please refresh the page.');
       return;
     }
 
     setIsSubmitting(true);
-    // console.log('Starting job submission...');
+    // logger.info('Starting job submission...', [object Object], { service: 'app' });
     try {
       // Prepare job data with proper description padding for API validation
       // Note: urgency is stored in description since there's no urgency field in the database
@@ -213,9 +214,9 @@ export default function QuickJobPage() {
       const fullDescription = urgencyText ? `${urgencyText} ${baseDescription}` : baseDescription;
 
       // Ensure budget is a valid number
-      // console.log('Budget before conversion:', formData.budget, 'Type:', typeof formData.budget);
+      // logger.info('Budget before conversion:', formData.budget, 'Type:', typeof formData.budget', [object Object], { service: 'app' });
       const budgetValue = parseFloat(formData.budget);
-      // console.log('Budget after conversion:', budgetValue, 'Type:', typeof budgetValue);
+      // logger.info('Budget after conversion:', budgetValue, 'Type:', typeof budgetValue', [object Object], { service: 'app' });
 
       if (isNaN(budgetValue) || budgetValue <= 0) {
         toast.error('Please select a valid budget');
@@ -241,34 +242,36 @@ export default function QuickJobPage() {
         jobData.description = jobData.description.padEnd(50, ' ') + ' Additional details will be provided upon contractor arrival.';
       }
 
-      // console.log('Submitting job data:', jobData);
-      // console.log('Budget type:', typeof jobData.budget, 'Budget value:', jobData.budget);
-      // console.log('Property ID:', jobData.property_id);
-      // console.log('Location:', jobData.location);
+      // logger.info('Submitting job data:', jobData', [object Object], { service: 'app' });
+      // logger.info('Budget type:', typeof jobData.budget, 'Budget value:', jobData.budget', [object Object], { service: 'app' });
+      // logger.info('Property ID:', jobData.property_id', [object Object], { service: 'app' });
+      // logger.info('Location:', jobData.location', [object Object], { service: 'app' });
 
       // Use the proper submitJob API
-      // console.log('Calling submitJob with:', {
+      // logger.info('Calling submitJob with:', {
       //   formData: jobData,
       //   csrfToken: csrfToken ? 'present' : 'missing',
-      // });
+      // }', {
+        service: 'app'
+      });
 
       const submitJobPayload = {
         formData: jobData,
         photoUrls: [], // No photos required for quick jobs under £500
         csrfToken: csrfToken || '',
       };
-      // console.log('Final submitJob payload:', submitJobPayload);
+      // logger.info('Final submitJob payload:', submitJobPayload', [object Object], { service: 'app' });
 
       const result = await submitJob(submitJobPayload);
 
-      // console.log('submitJob result:', result);
+      // logger.info('submitJob result:', result', [object Object], { service: 'app' });
 
       // Check if submission was successful
       if (!result.success) {
-        console.error('Job submission failed in quick-create:', {
+        logger.error('Job submission failed in quick-create:', {
           error: result.error,
           result: result,
-        });
+        }', [object Object], { service: 'app' });
         throw new Error(result.error || 'Failed to post job');
       }
 
@@ -280,24 +283,24 @@ export default function QuickJobPage() {
       toast.success('Job posted successfully!');
       router.push(`/jobs/${result.jobId}`);
     } catch (error) {
-      console.error('=== Error posting quick job ===');
-      console.error('Error object:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      console.error('Form data at error:', {
+      logger.error('=== Error posting quick job ===', [object Object], { service: 'app' });
+      logger.error('Error object:', error', [object Object], { service: 'app' });
+      logger.error('Error message:', error instanceof Error ? error.message : 'Unknown error', [object Object], { service: 'app' });
+      logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace', [object Object], { service: 'app' });
+      logger.error('Form data at error:', {
         title: formData.title,
         category: formData.category,
         budget: formData.budget,
         budgetType: typeof formData.budget,
         property_id: formData.property_id,
         description: formData.description,
-      });
-      console.error('User info:', {
+      }', [object Object], { service: 'app' });
+      logger.error('User info:', {
         id: user?.id,
         email: user?.email,
         role: user?.role,
-      });
-      console.error('CSRF token status:', csrfToken ? 'present' : 'missing');
+      }', [object Object], { service: 'app' });
+      logger.error('CSRF token status:', csrfToken ? 'present' : 'missing', [object Object], { service: 'app' });
 
       const errorMessage = error instanceof Error ? error.message : 'Failed to post job. Please try again.';
 

@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import { Database } from '../types/database';
+import { Database } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export interface QuoteTemplate {

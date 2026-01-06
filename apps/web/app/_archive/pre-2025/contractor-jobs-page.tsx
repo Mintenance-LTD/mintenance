@@ -5,6 +5,7 @@ import { JobsTable } from './components/JobsTable';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Plus } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 export const metadata = {
   title: 'My Jobs | Mintenance',
@@ -64,7 +65,7 @@ export default async function ContractorJobsPage({
   const { data: jobs, error, count } = await query;
 
   if (error) {
-    console.error('Error fetching jobs:', error);
+    logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
   }
 
   // Fetch homeowner data for each job

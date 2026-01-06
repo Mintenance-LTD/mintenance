@@ -1,7 +1,7 @@
 import React from 'react';
 import { JobService } from '../../services/JobService';
 import { supabase } from '../../config/supabase';
-import { Job, JobData } from '../../types';
+import { Job, JobData } from '@mintenance/types';
 
 // Mock ServiceErrorHandler
 jest.mock('../../utils/serviceErrorHandler', () => ({

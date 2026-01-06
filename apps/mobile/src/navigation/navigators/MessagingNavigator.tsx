@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { MessagingStackParamList } from '../types';
+import type { MessagingStackParamList } from '@mintenance/types';
 
 // Import existing screens
 import MessagesListScreen from '../../screens/MessagesListScreen';

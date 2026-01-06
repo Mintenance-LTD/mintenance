@@ -6,6 +6,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
 import { appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /** Type for Supabase edge function error with possible extended properties */
 interface EdgeFunctionError extends Error {
@@ -33,6 +34,28 @@ function getErrorDetails(error: unknown): { code?: string; statusCode?: number; 
  */
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // CSRF protection
     await requireCSRF(request);
 
@@ -62,15 +85,15 @@ export async function POST(request: NextRequest) {
     });
 
     // #region agent log
-    console.log('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' });
+    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' }', [object Object], { service: 'api' });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       const logDir = join(process.cwd(), '.cursor');
       if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
       appendFileSync(logPath, JSON.stringify({location:'route.ts:46',message:'Before Edge Function invoke',data:{userId:user.id,hasServiceRoleKey:!!serviceRoleKey,functionName:'setup-contractor-payout'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D'})+'\n', 'utf8');
-      console.log('🔵 [DEBUG] Log written to file');
+      logger.debug('🔵 [DEBUG] Log written to file', [object Object], { service: 'api' });
     } catch (e) { 
-      console.error('🔴 [DEBUG] Failed to write log file:', e);
+      logger.error('🔴 [DEBUG] Failed to write log file:', e', [object Object], { service: 'api' });
     }
     // #endregion
 
@@ -96,36 +119,38 @@ export async function POST(request: NextRequest) {
       const responseText = await response.text();
 
       if (!response.ok) {
-        console.error('🔴 Edge Function HTTP error:', {
+        logger.error('🔴 Edge Function HTTP error:', {
           status: response.status,
           statusText: response.statusText,
           body: responseText,
-        });
+        }', [object Object], { service: 'api' });
         error = new Error(`Edge Function error: ${responseText}`);
       } else {
         try {
           data = JSON.parse(responseText);
         } catch (parseError) {
-          console.error('🔴 Failed to parse Edge Function response:', parseError);
+          logger.error('🔴 Failed to parse Edge Function response:', parseError', [object Object], { service: 'api' });
           error = new Error('Invalid JSON response from Edge Function');
         }
       }
     } catch (invokeError) {
       // Catch any exception during invocation
-      console.error('🔴 [DEBUG] Exception during Edge Function invoke:', invokeError);
+      logger.error('🔴 [DEBUG] Exception during Edge Function invoke:', invokeError', [object Object], { service: 'api' });
       error = invokeError;
     }
 
     // #region agent log
     const errorObj = error as { name?: string; message?: string; context?: unknown; status?: number; statusCode?: number } | null;
-    console.log('🔵 [DEBUG] After Edge Function invoke:', {
+    logger.info('🔵 [DEBUG] After Edge Function invoke:', {
       hasData: !!data,
       hasError: !!error,
       errorName: errorObj?.name,
       errorMessage: errorObj?.message,
       errorContext: errorObj?.context,
       errorStatus: errorObj?.status || errorObj?.statusCode,
-      dataKeys: data && typeof data === 'object' ? Object.keys(data) : null,
+      dataKeys: data && typeof data === 'object' ? Object.keys(data', {
+        service: 'api'
+      }) : null,
       errorKeys: error && typeof error === 'object' ? Object.keys(error) : null,
       rawError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0, 1000) : null,
     });
@@ -133,12 +158,12 @@ export async function POST(request: NextRequest) {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       appendFileSync(logPath, JSON.stringify({location:'route.ts:68',message:'After Edge Function invoke',data:{hasData:!!data,hasError:!!error,errorType:error?.constructor?.name,errorName:errorObj?.name,errorMessage:errorObj?.message,errorContext:errorObj?.context,errorStatus:errorObj?.status || errorObj?.statusCode,dataType:typeof data,dataKeys:data && typeof data === 'object' ? Object.keys(data) : null,errorKeys:error && typeof error === 'object' ? Object.keys(error) : null,rawData:data ? JSON.stringify(data).substring(0,1000) : null,rawError:error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0,1000) : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
     } catch (e) { 
-      console.error('🔴 [DEBUG] Failed to write log file:', e);
+      logger.error('🔴 [DEBUG] Failed to write log file:', e', [object Object], { service: 'api' });
     }
     // #endregion
 
     // Log the raw response for debugging
-    console.log('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2));
+    logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2', [object Object], { service: 'api' }));
 
     if (error) {
       const errorDetails = getErrorDetails(error);

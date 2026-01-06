@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Data Formatting Utilities
  *
@@ -60,7 +61,7 @@ export function formatCurrency(
 
     return formatter.format(numValue);
   } catch (error) {
-    console.error('Currency formatting error:', error);
+    logger.error('Currency formatting error:', error', [object Object], { service: 'lib' });
     return fallback;
   }
 }
@@ -139,7 +140,7 @@ export function formatNumber(
 
     return formatter.format(numValue);
   } catch (error) {
-    console.error('Number formatting error:', error);
+    logger.error('Number formatting error:', error', [object Object], { service: 'lib' });
     return fallback;
   }
 }
@@ -270,7 +271,7 @@ export function formatDate(
         return dateObj.toLocaleDateString(locale);
     }
   } catch (error) {
-    console.error('Date formatting error:', error);
+    logger.error('Date formatting error:', error', [object Object], { service: 'lib' });
     return fallback;
   }
 }

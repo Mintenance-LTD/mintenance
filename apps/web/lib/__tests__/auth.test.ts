@@ -70,6 +70,22 @@ vi.mock('next/headers', () => ({
   })
 }));
 
+// Import auth functions after mocking dependencies
+import {
+  createToken,
+  createTokenPair,
+  rotateTokens,
+  revokeAllTokens,
+  verifyToken,
+  createAuthCookieHeaders,
+  setAuthCookie,
+  clearAuthCookie,
+  getCurrentUserFromHeaders,
+  getCurrentUserFromCookies,
+  getCurrentUser,
+  getUser
+} from '../auth';
+
 describe('Auth Library', () => {
   const mockUser = {
     id: '123',

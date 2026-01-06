@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import toast from 'react-hot-toast';
 import { JobViewTracker } from '@/app/jobs/[id]/components/JobViewTracker';
+import { logger } from '@mintenance/shared';
 import {
   ArrowLeft,
   MapPin,
@@ -23,9 +24,9 @@ import {
 } from 'lucide-react';
 
 interface JobDetailsClientProps {
-  job: any;
-  homeowner: any;
-  existingBid: any;
+  job: unknown;
+  homeowner: unknown;
+  existingBid: unknown;
 }
 
 export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClientProps) {
@@ -47,7 +48,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
         setIsSaved(data.jobIds?.includes(job.id) || false);
       }
     } catch (error) {
-      console.error('Error checking saved status:', error);
+      logger.error('Error checking saved status:', error', [object Object], { service: 'ui' });
     }
   };
 
@@ -95,7 +96,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
         toast.success('Job saved! You can view it in your saved jobs.');
       }
     } catch (error) {
-      console.error('Error toggling save:', error);
+      logger.error('Error toggling save:', error', [object Object], { service: 'ui' });
       toast.error(isSaved ? 'Failed to unsave job' : 'Failed to save job');
     } finally {
       setIsSaving(false);

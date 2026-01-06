@@ -8,7 +8,7 @@ import React, {
 import * as SecureStore from 'expo-secure-store';
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
-import { User } from '../types';
+import { User } from '@mintenance/types';
 import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } from '../utils/sentryUtils';

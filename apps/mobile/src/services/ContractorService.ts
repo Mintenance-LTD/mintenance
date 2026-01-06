@@ -5,7 +5,7 @@ import {
   ContractorSkill,
   Review,
   LocationData,
-} from '../types';
+} from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { sanitizeForSQL } from '../utils/sqlSanitization';
 

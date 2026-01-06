@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
+import { logger } from '@mintenance/shared';
 import {
   Activity,
   TrendingUp,
@@ -104,7 +105,7 @@ export function AIMonitoringClient() {
 
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching AI monitoring data:', error);
+      logger.error('Error fetching AI monitoring data:', error', [object Object], { service: 'ui' });
     } finally {
       setIsLoading(false);
     }

@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * Stripe Webhook Tests
  * Tests critical payment processing and webhook security

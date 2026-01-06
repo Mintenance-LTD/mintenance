@@ -480,7 +480,7 @@ export class ContinuousLearningService {
     pendingCorrections: number;
     daysSinceLastTraining: number;
     driftScore: number;
-    currentModelMetrics?: any;
+    currentModelMetrics?: unknown;
   }): boolean {
     // Pipeline is unhealthy if:
     // - Too many pending corrections (> 2x batch size)

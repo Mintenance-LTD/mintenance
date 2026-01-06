@@ -164,7 +164,7 @@ export class AIResponseCache {
    */
   private static generateCacheKey(
     service: AICacheServiceType,
-    input: any
+    input: unknown
   ): string {
     // Normalize input for consistent hashing
     const normalized = typeof input === 'string'
@@ -186,7 +186,7 @@ export class AIResponseCache {
    */
   static async get<T>(
     service: AICacheServiceType,
-    input: any,
+    input: unknown,
     fetchFn: () => Promise<T>,
     options: {
       forceRefresh?: boolean;
@@ -322,7 +322,7 @@ export class AIResponseCache {
    */
   static async invalidate(
     service: AICacheServiceType,
-    input: any
+    input: unknown
   ): Promise<void> {
     const cacheKey = this.generateCacheKey(service, input);
     const cache = this.getCache(service);

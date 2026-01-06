@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
-import type { Job } from '../../../types';
+import type { Job } from '@mintenance/types';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 48) / 2; // 2 images per row with padding

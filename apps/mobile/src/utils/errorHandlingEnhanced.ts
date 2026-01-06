@@ -355,7 +355,7 @@ export function logCategorizedError(
  *   {
  *     retry: true,
  *     logErrors: true,
- *     onError: (error) => console.error(error),
+ *     onError: (error) => logger.error('Log output', error, { service: 'mobile' }),
  *   }
  * );
  * ```

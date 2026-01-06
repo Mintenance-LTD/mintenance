@@ -11,6 +11,7 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { logger } from '@mintenance/shared';
 
 // Initialize Redis client from environment variables
 // Required: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
@@ -151,7 +152,7 @@ export async function checkRedisHealth(): Promise<boolean> {
     await redis.ping();
     return true;
   } catch (error) {
-    console.error('Redis health check failed:', error);
+    logger.error('Redis health check failed:', error', [object Object], { service: 'lib' });
     return false;
   }
 }

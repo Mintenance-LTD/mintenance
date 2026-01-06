@@ -2,6 +2,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { colors, typography, spacing, borderRadius, shadows, components } from '@/lib/design-tokens';
+import { logger } from '@mintenance/shared';
 // import { focusRing } from '@/lib/a11y'; // Module not found
 // import * as Sentry from '@sentry/nextjs'; // Optional dependency
 
@@ -39,7 +40,7 @@ const focusRing = {
 };
 
 // Sentry is optional - will be undefined if not installed
-const Sentry: any = null; // Disabled until @sentry/nextjs is installed
+const Sentry: unknown = null; // Disabled until @sentry/nextjs is installed
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -88,7 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
+      logger.error('ErrorBoundary caught an error:', error, errorInfo', [object Object], { service: 'ui' });
     }
 
     // Call custom error handler if provided

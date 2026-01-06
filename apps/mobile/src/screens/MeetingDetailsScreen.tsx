@@ -37,7 +37,7 @@ import {
   ContractorLocation,
   MeetingUpdate,
   LocationData,
-} from '../types';
+} from '@mintenance/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 

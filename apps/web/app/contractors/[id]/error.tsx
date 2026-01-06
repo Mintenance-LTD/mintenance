@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function ContractorDetailsError({
   error,
@@ -16,7 +17,7 @@ export default function ContractorDetailsError({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Contractor details error:', error);
+    logger.error('Contractor details error:', error', [object Object], { service: 'app' });
 
     // Report to Sentry if configured
     if (typeof window !== 'undefined' && (window as any).Sentry) {

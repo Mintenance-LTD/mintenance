@@ -58,7 +58,7 @@ export interface EnhancedHybridInferenceResult {
     damageDetected: boolean;
     damageTypes: string[];
     averagePresenceScore: number;
-    masks?: any;
+    masks?: unknown;
     inferenceMs: number;
   };
 
@@ -357,7 +357,7 @@ export class EnhancedHybridInferenceService {
     result: PromiseSettledResult<any>,
     modelName: string,
     fallbacksUsed: string[]
-  ): any {
+  ): unknown {
     if (result.status === 'fulfilled') {
       // Update availability on success
       this.serviceAvailability[modelName as keyof typeof this.serviceAvailability].failures = 0;
@@ -390,9 +390,9 @@ export class EnhancedHybridInferenceService {
    * Prepare fusion input from model outputs
    */
   private static prepareFusionInput(
-    yoloOutput: any,
-    sam3Output: any,
-    gpt4Output: any
+    yoloOutput: unknown,
+    sam3Output: unknown,
+    gpt4Output: unknown
   ): EnhancedFusionInput {
     const fusionInput: EnhancedFusionInput = {};
 
@@ -462,9 +462,9 @@ export class EnhancedHybridInferenceService {
    */
   private static generateFinalAssessment(
     fusionOutput: EnhancedFusionOutput,
-    yoloOutput: any,
-    sam3Output: any,
-    gpt4Output: any,
+    yoloOutput: unknown,
+    sam3Output: unknown,
+    gpt4Output: unknown,
     imageUrls: string[],
     context?: AssessmentContext
   ): Phase1BuildingAssessment {
@@ -516,8 +516,8 @@ export class EnhancedHybridInferenceService {
    */
   private static generateAssessmentFromFusion(
     fusionOutput: EnhancedFusionOutput,
-    yoloOutput: any,
-    sam3Output: any,
+    yoloOutput: unknown,
+    sam3Output: unknown,
     imageUrls: string[],
     context?: AssessmentContext
   ): Phase1BuildingAssessment {
@@ -612,9 +612,9 @@ export class EnhancedHybridInferenceService {
    * Determine route based on available models
    */
   private static determineRoute(
-    yoloOutput: any,
-    sam3Output: any,
-    gpt4Output: any
+    yoloOutput: unknown,
+    sam3Output: unknown,
+    gpt4Output: unknown
   ): EnhancedInferenceRoute {
     const hasYolo = yoloOutput !== null;
     const hasSam3 = sam3Output !== null;

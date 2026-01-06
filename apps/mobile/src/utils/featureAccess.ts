@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../config/supabase';
+import { logger } from '@mintenance/shared';
 
 export type SubscriptionTier = 'trial' | 'basic' | 'professional' | 'enterprise';
 export type UserRole = 'homeowner' | 'contractor' | 'admin';
@@ -238,7 +239,7 @@ export class FeatureAccessManager {
         });
       }
     } catch (err) {
-      console.error('[FeatureAccess] Initialization failed', err);
+      logger.error('[FeatureAccess] Initialization failed', err', [object Object], { service: 'mobile' });
       // Default to trial on error
       this.subscription = {
         tier: 'trial',
@@ -329,7 +330,7 @@ export class FeatureAccessManager {
       });
 
       if (error) {
-        console.error('[FeatureAccess] Failed to track usage', error);
+        logger.error('[FeatureAccess] Failed to track usage', error', [object Object], { service: 'mobile' });
         return false;
       }
 
@@ -344,7 +345,7 @@ export class FeatureAccessManager {
 
       return true;
     } catch (err) {
-      console.error('[FeatureAccess] Error tracking usage', err);
+      logger.error('[FeatureAccess] Error tracking usage', err', [object Object], { service: 'mobile' });
       return false;
     }
   }

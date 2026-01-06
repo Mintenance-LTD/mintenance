@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 // Global Sentry functions - will be set by Sentry initialization
 let sentryFunctions = {
   captureMessage: (() => {}) as any,
@@ -85,8 +86,9 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.log(
-        this.formatMessage('debug', message, this.toContext(context))
+      logger.info('this.formatMessage('debug', {
+        service: 'mobile'
+      }))
       );
     }
 
@@ -126,8 +128,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.warn(
-        this.formatMessage('warn', message, this.toContext(context))
+      logger.warn('this.formatMessage('warn', message, this.toContext(context, { service: 'mobile' }))
       );
     }
 
@@ -185,7 +186,7 @@ class Logger {
     );
 
     if (this.isDevelopment) {
-      console.error(formattedMessage, err);
+      logger.error('formattedMessage', err, { service: 'mobile' });
     }
 
     sentryFunctions.addBreadcrumb({
@@ -213,7 +214,7 @@ class Logger {
     const message = `${operation} completed in ${duration}ms`;
 
     if (this.isDevelopment) {
-      console.log(this.formatMessage('info', message, this.toContext(context)));
+      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -274,7 +275,7 @@ class Logger {
     const message = `User action: ${action}`;
 
     if (this.isDevelopment) {
-      console.log(this.formatMessage('info', message, this.toContext(context)));
+      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -290,7 +291,7 @@ class Logger {
     const message = `Navigation: ${from} -> ${to}`;
 
     if (this.isDevelopment) {
-      console.log(this.formatMessage('info', message, this.toContext(context)));
+      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({

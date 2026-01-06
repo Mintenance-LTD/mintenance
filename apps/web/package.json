@@ -43,6 +43,7 @@
         "@hookform/resolvers": "^5.2.2",
         "@mintenance/auth": "file:../../packages/auth",
         "@mintenance/design-tokens": "file:../../packages/design-tokens",
+        "@mintenance/services": "file:../../packages/services",
         "@mintenance/shared": "file:../../packages/shared",
         "@mintenance/shared-ui": "file:../../packages/shared-ui",
         "@mintenance/types": "file:../../packages/types",

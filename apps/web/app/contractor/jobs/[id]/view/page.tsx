@@ -2,6 +2,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { JobDetailsClient } from '../components/JobDetailsClient';
+import { logger } from '@mintenance/shared';
 
 export default async function ContractorJobDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -30,7 +31,7 @@ export default async function ContractorJobDetailsPage({ params }: { params: Pro
     .single();
 
   if (error || !job) {
-    console.error('Error fetching job:', error);
+    logger.error('Error fetching job:', error', [object Object], { service: 'app' });
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Job Not Found</h1>

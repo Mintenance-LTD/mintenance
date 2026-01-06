@@ -4,7 +4,7 @@
 
 import { JobCRUDService } from '../JobCRUDService';
 import { supabase } from '../../config/supabase';
-import { Job } from '../../types';
+import { Job } from '@mintenance/types';
 import { sanitizeText } from '../../utils/sanitize';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 

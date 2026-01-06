@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import { ContractorPost, ContractorPostComment } from '../types';
+import { ContractorPost, ContractorPostComment } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export class ModerationService {

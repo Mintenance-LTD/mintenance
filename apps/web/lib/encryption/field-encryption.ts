@@ -171,7 +171,7 @@ export function decryptField(encryptedField: EncryptedField, context: string): s
  * Payment data that may contain sensitive fields
  */
 export interface PaymentData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -292,7 +292,7 @@ export function generateSecureToken(length: number = 32): string {
  * Redact sensitive information from logs
  * Replaces sensitive data with asterisks while preserving structure
  */
-export function redactSensitiveData(data: any): any {
+export function redactSensitiveData(data: unknown): unknown {
   if (typeof data === 'string') {
     // Check if it looks like a card number
     if (/^\d{13,19}$/.test(data.replace(/\s/g, ''))) {
@@ -314,7 +314,7 @@ export function redactSensitiveData(data: any): any {
   }
 
   if (typeof data === 'object' && data !== null) {
-    const redacted: any = Array.isArray(data) ? [] : {};
+    const redacted: unknown = Array.isArray(data) ? [] : {};
 
     for (const key in data) {
       // Check if key name suggests sensitive data

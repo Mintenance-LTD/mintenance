@@ -300,7 +300,7 @@ export class LocalYOLOInferenceService {
               });
             }
           }
-        } catch (storageError: any) {
+        } catch (storageError: unknown) {
           logger.warn('Failed to load from Storage, trying BYTEA fallback', {
             service: 'LocalYOLOInferenceService',
             modelName,

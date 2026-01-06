@@ -44,7 +44,7 @@ if (Platform.OS === 'web') {
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
-import { ContractorProfile, LocationData } from '../types';
+import { ContractorProfile, LocationData } from '@mintenance/types';
 import ContractorCard from '../components/ContractorCard';
 import SearchBar from '../components/SearchBar';
 import AdvancedSearchFilters from '../components/advanced-search/AdvancedSearchFilters';

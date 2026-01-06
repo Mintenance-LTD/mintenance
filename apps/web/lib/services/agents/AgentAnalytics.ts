@@ -120,7 +120,7 @@ export class AgentAnalytics {
       }
 
       // Filter memory updates for this agent
-      const agentMemoryUpdates = (memoryUpdates || []).filter((update: any) => {
+      const agentMemoryUpdates = (memoryUpdates || []).filter((update: unknown) => {
         // Get memory state to find agent name
         return true; // For now, include all updates
       });
@@ -595,7 +595,7 @@ export class AgentAnalytics {
   private static groupByDay<T extends { created_at: string }>(
     items: T[],
     aggregator: (items: T[]) => number
-  ): Array<{ date: string; [key: string]: any }> {
+  ): Array<{ date: string; [key: string]: unknown }> {
     const dayMap = new Map<string, T[]>();
 
     items.forEach((item) => {

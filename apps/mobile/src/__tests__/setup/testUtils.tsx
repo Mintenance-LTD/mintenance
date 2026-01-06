@@ -15,7 +15,7 @@ const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) 
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0,
+        gcTime: 0,
       },
     },
   });

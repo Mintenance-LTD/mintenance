@@ -28,6 +28,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@mintenance/shared';
 
 // Maintenance categories
 const MAINTENANCE_CATEGORIES = [
@@ -172,7 +173,7 @@ export default function ContributeTrainingPage() {
         toast.success(`Image uploaded successfully! Earned 5 credits`);
 
       } catch (error) {
-        console.error('Upload error:', error);
+        logger.error('Upload error:', error', [object Object], { service: 'app' });
         setUploadedImages(prev =>
           prev.map(img =>
             img.id === image.id

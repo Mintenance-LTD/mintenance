@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Version API endpoint
@@ -7,6 +8,28 @@ import { NextResponse } from 'next/server';
  * This helps detect when a new deployment has occurred
  */
 export async function GET() {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
   // In production, this would be set by the build process
   // For now, we'll use an environment variable or timestamp
   const buildId =

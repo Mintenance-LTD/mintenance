@@ -6,7 +6,7 @@
  */
 
 import { JobService } from '../../services/JobService';
-import { Job } from '../../types';
+import { Job } from '@mintenance/types';
 
 // Mock JobService
 jest.mock('../../services/JobService');

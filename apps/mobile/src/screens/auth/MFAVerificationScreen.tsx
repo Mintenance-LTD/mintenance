@@ -24,6 +24,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@mintenance/shared';
 
 interface MFAVerificationScreenProps {
   preMfaToken: string;
@@ -71,7 +72,7 @@ export default function MFAVerificationScreen() {
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(compatible && enrolled);
     } catch (error) {
-      console.error('Failed to check biometric availability', error);
+      logger.error('Failed to check biometric availability', error', [object Object], { service: 'mobile' });
     }
   };
 
@@ -87,7 +88,7 @@ export default function MFAVerificationScreen() {
         setBiometricVerified(true);
       }
     } catch (error) {
-      console.error('Biometric authentication failed', error);
+      logger.error('Biometric authentication failed', error', [object Object], { service: 'mobile' });
     }
   };
 
@@ -168,7 +169,7 @@ export default function MFAVerificationScreen() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Verification failed';
       Alert.alert('Verification Failed', message);
-      console.error('MFA verification error', error);
+      logger.error('MFA verification error', error', [object Object], { service: 'mobile' });
     } finally {
       setLoading(false);
     }

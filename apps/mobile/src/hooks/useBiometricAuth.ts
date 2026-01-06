@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import { BiometricService } from '../services/BiometricService';
 import { AuthService } from '../services/AuthService';
-import { User } from '../types';
+import { User } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { trackUserAction, addBreadcrumb } from '../utils/sentryUtils';
 

@@ -10,6 +10,7 @@ import { YOLORetrainingService } from '@/lib/services/building-surveyor/YOLORetr
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * GET /api/building-surveyor/retrain/status
@@ -17,6 +18,28 @@ import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
  */
 export async function GET() {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
       throw new UnauthorizedError('Authentication required');

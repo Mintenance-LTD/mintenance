@@ -3,7 +3,7 @@ import {
   AIAnalysisService,
   AIAnalysis,
 } from '../../services/AIAnalysisService';
-import { Job } from '../../types';
+import { Job } from '@mintenance/types';
 import { logger } from '../../utils/logger';
 
 // Define enums locally for tests

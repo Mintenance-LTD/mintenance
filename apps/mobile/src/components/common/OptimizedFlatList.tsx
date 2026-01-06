@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   FlatList,
   FlatListProps,
@@ -113,12 +114,14 @@ function OptimizedFlatListComponent<T = any>(
   const handleViewableItemsChanged = useCallback(
     (info: { viewableItems: ViewToken[]; changed: ViewToken[] }) => {
       if (debugPerformance) {
-        console.log('[OptimizedFlatList] Viewable items:', {
+        logger.info('[OptimizedFlatList] Viewable items:', {
           viewable: info.viewableItems.length,
           changed: info.changed.length,
           firstItem: info.viewableItems[0]?.index,
           lastItem: info.viewableItems[info.viewableItems.length - 1]?.index,
-        });
+        }', {
+        service: 'ui'
+      });
       }
       onViewableItemsChanged?.(info);
     },
@@ -181,10 +184,12 @@ function OptimizedFlatListComponent<T = any>(
   // Log performance metrics in debug mode
   React.useEffect(() => {
     if (debugPerformance && data) {
-      console.log('[OptimizedFlatList] Mounted with:', {
+      logger.info('[OptimizedFlatList] Mounted with:', {
         dataLength: data.length,
         estimatedItemSize,
         ...platformOptimizations,
+      }', {
+        service: 'ui'
       });
     }
   }, [debugPerformance, data?.length, estimatedItemSize, platformOptimizations]);

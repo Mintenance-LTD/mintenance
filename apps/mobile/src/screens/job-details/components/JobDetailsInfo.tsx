@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
-import type { Job } from '../../../types';
+import type { Job } from '@mintenance/types';
 
 interface JobDetailsInfoProps {
   job: Job;

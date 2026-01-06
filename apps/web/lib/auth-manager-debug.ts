@@ -7,12 +7,12 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from './api/supabaseServer';
 
 export async function debugLogin(email: string, password: string) {
-  // console.log('🔍 Starting login debug...');
+  // logger.debug('🔍 Starting login debug...', [object Object], { service: 'lib' });
 
   // Step 1: Validate input
   console.time('⏱️  Step 1: Validate Input');
   if (!email?.trim() || !password?.trim()) {
-    // console.log('❌ Missing credentials');
+    // logger.info('❌ Missing credentials', [object Object], { service: 'lib' });
     return;
   }
   console.timeEnd('⏱️  Step 1: Validate Input');
@@ -26,16 +26,16 @@ export async function debugLogin(email: string, password: string) {
   console.timeEnd('⏱️  Step 2: Supabase Auth');
 
   if (authError) {
-    console.error('❌ Supabase Auth Error:', authError.message);
-    console.error('   Error Code:', authError.code);
-    console.error('   Full Error:', JSON.stringify(authError, null, 2));
+    logger.error('❌ Supabase Auth Error:', authError.message', [object Object], { service: 'lib' });
+    logger.error('   Error Code:', authError.code', [object Object], { service: 'lib' });
+    logger.error('   Full Error:', JSON.stringify(authError, null, 2', [object Object], { service: 'lib' }));
     return;
   }
 
-  // console.log('✅ Supabase Auth Success');
-  // console.log('   User ID:', authData.user?.id);
-  // console.log('   Email:', authData.user?.email);
-  // console.log('   Email Confirmed:', !!authData.user?.email_confirmed_at);
+  // logger.info('✅ Supabase Auth Success', [object Object], { service: 'lib' });
+  // logger.info('   User ID:', authData.user?.id', [object Object], { service: 'lib' });
+  // logger.info('   Email:', authData.user?.email', [object Object], { service: 'lib' });
+  // logger.info('   Email Confirmed:', !!authData.user?.email_confirmed_at', [object Object], { service: 'lib' });
 
   // Step 3: Get User Profile
   console.time('⏱️  Step 3: Get User Profile');
@@ -47,10 +47,10 @@ export async function debugLogin(email: string, password: string) {
   console.timeEnd('⏱️  Step 3: Get User Profile');
 
   if (profileError) {
-    console.error('❌ Profile Error:', profileError.message);
+    logger.error('❌ Profile Error:', profileError.message', [object Object], { service: 'lib' });
   } else {
-    // console.log('✅ Profile Retrieved');
-    // console.log('   Role:', userProfile?.role);
+    // logger.info('✅ Profile Retrieved', [object Object], { service: 'lib' });
+    // logger.info('   Role:', userProfile?.role', [object Object], { service: 'lib' });
   }
 
   // Step 4: Create Tokens
@@ -62,8 +62,8 @@ export async function debugLogin(email: string, password: string) {
   });
   console.timeEnd('⏱️  Step 4: Create Token Pair');
 
-  // console.log('✅ Login Debug Complete!');
-  // console.log('=====================================');
+  // logger.debug('✅ Login Debug Complete!', [object Object], { service: 'lib' });
+  // logger.info('=====================================', [object Object], { service: 'lib' });
 }
 
 // Usage: Add to login route temporarily

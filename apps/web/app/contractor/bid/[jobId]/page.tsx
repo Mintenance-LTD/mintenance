@@ -2,6 +2,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidSubmissionClient2025 } from './components/BidSubmissionClient2025';
 import { redirect } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default async function BidSubmissionPage2025({ params }: { params: Promise<{ jobId: string }> }) {
   const resolvedParams = await params;
@@ -12,10 +13,10 @@ export default async function BidSubmissionPage2025({ params }: { params: Promis
   }
 
   // Debug params structure
-  // console.log('BidSubmissionPage - Raw params:', resolvedParams);
-  // console.log('BidSubmissionPage - Job ID:', resolvedParams.jobId);
-  // console.log('BidSubmissionPage - Job ID type:', typeof resolvedParams.jobId);
-  // console.log('BidSubmissionPage - User:', user.id);
+  // logger.info('BidSubmissionPage - Raw params:', resolvedParams', [object Object], { service: 'app' });
+  // logger.info('BidSubmissionPage - Job ID:', resolvedParams.jobId', [object Object], { service: 'app' });
+  // logger.info('BidSubmissionPage - Job ID type:', typeof resolvedParams.jobId', [object Object], { service: 'app' });
+  // logger.info('BidSubmissionPage - User:', user.id', [object Object], { service: 'app' });
 
   // Fetch job details
   const { data: job, error } = await serverSupabase
@@ -32,21 +33,23 @@ export default async function BidSubmissionPage2025({ params }: { params: Promis
     .eq('id', resolvedParams.jobId)
     .single();
 
-  // console.log('BidSubmissionPage - Job fetch result:', {
+  // logger.info('BidSubmissionPage - Job fetch result:', {
   //   jobId: resolvedParams.jobId,
   //   found: !!job,
   //   error: error?.message,
   //   errorCode: error?.code,
   //   errorDetails: error?.details
-  // });
+  // }', {
+        service: 'app'
+      });
 
   if (error || !job) {
-    console.error('BidSubmissionPage - Job not found or error:', {
+    logger.error('BidSubmissionPage - Job not found or error:', {
       error,
       jobId: resolvedParams.jobId,
       errorMessage: error?.message,
       errorCode: error?.code
-    });
+    }', [object Object], { service: 'app' });
 
     // Instead of redirecting, show an error message
     return (

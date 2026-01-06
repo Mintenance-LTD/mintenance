@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@mintenance/shared';
 
 export default function BidDetailsError({
   error,
@@ -15,7 +16,7 @@ export default function BidDetailsError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Bid details error:', error);
+    logger.error('Bid details error:', error', [object Object], { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

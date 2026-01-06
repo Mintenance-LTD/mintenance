@@ -3,10 +3,33 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, context: Params) {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
   return withPublicRateLimit(req, async (_request) => getContractorMetrics(context), 'resource');
 }
 
@@ -87,7 +110,7 @@ async function getContractorMetrics(context: Params) {
 
     // Calculate repeat customers
     const homeownerCounts = new Map<string, number>();
-    homeownerIds.forEach((job: any) => {
+    homeownerIds.forEach((job: unknown) => {
       if (job.homeowner_id) {
         homeownerCounts.set(job.homeowner_id, (homeownerCounts.get(job.homeowner_id) || 0) + 1);
       }
@@ -112,21 +135,21 @@ async function getContractorMetrics(context: Params) {
 
     // Create maps for first bid/message times per job
     const firstBidMap = new Map<string, Date>();
-    firstBids.forEach((bid: any) => {
+    firstBids.forEach((bid: unknown) => {
       if (!firstBidMap.has(bid.job_id)) {
         firstBidMap.set(bid.job_id, new Date(bid.created_at));
       }
     });
 
     const firstMessageMap = new Map<string, Date>();
-    firstMessages.forEach((message: any) => {
+    firstMessages.forEach((message: unknown) => {
       if (!firstMessageMap.has(message.job_id)) {
         firstMessageMap.set(message.job_id, new Date(message.created_at));
       }
     });
 
     // Calculate response time for each completed job
-    completedJobs.forEach((job: any) => {
+    completedJobs.forEach((job: unknown) => {
       const jobCreatedAt = new Date(job.created_at).getTime();
       const firstBidTime = firstBidMap.get(job.id)?.getTime();
       const firstMessageTime = firstMessageMap.get(job.id)?.getTime();

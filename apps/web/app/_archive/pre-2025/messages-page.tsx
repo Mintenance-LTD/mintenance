@@ -110,7 +110,7 @@ export default function MessagesPage() {
 
   const handleConversationClick = (conversation: MessageThread) => {
     const otherParticipant = conversation.participants.find(
-      (p: any) => p.id !== user?.id
+      (p: unknown) => p.id !== user?.id
     );
 
     if (otherParticipant) {
@@ -118,10 +118,10 @@ export default function MessagesPage() {
     }
   };
 
-  const filteredConversations = conversations.filter((c: any) => {
+  const filteredConversations = conversations.filter((c: unknown) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const otherParticipant = c.participants.find((p: any) => p.id !== user?.id);
+    const otherParticipant = c.participants.find((p: unknown) => p.id !== user?.id);
     return (
       c.jobTitle.toLowerCase().includes(query) ||
       otherParticipant?.name.toLowerCase().includes(query) ||
@@ -130,7 +130,7 @@ export default function MessagesPage() {
   });
 
   const getTotalUnreadCount = () => {
-    return conversations.reduce((total: number, conv: any) => total + (conv.unreadCount || 0), 0);
+    return conversations.reduce((total: number, conv: unknown) => total + (conv.unreadCount || 0), 0);
   };
 
   if (loading && !user) {
@@ -209,7 +209,7 @@ export default function MessagesPage() {
               <div style={{ padding: '0' }}>
                 <div className="flex flex-col">
                   {filteredConversations.length > 0 ? (
-                    filteredConversations.map((conversation: any, index: number) => (
+                    filteredConversations.map((conversation: unknown, index: number) => (
                       <div key={conversation.jobId}>
                         <ConversationCard
                           conversation={conversation}

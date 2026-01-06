@@ -27,7 +27,7 @@ interface Property {
 
 interface AirbnbSearchBarProps {
   properties: Property[];
-  onQuickJobPost?: (data: any) => void;
+  onQuickJobPost?: (data: unknown) => void;
 }
 
 type SearchMode = 'where' | 'when' | 'what' | null;

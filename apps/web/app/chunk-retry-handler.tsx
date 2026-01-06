@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { logger } from '@mintenance/shared';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // Start with 1 second
@@ -34,7 +35,7 @@ export function ChunkRetryHandler() {
         return; // Not a chunk error, let other handlers deal with it
       }
 
-      console.warn('[ChunkRetry] Chunk loading error detected:', event.message);
+      logger.warn('[ChunkRetry] Chunk loading error detected:', event.message', [object Object], { service: 'app' });
 
       // Prevent default error handling
       event.preventDefault();
@@ -44,7 +45,7 @@ export function ChunkRetryHandler() {
 
       // If we've exceeded max retries, clear cache and hard reload
       if (retryCountRef.current >= MAX_RETRIES) {
-        console.error(`[ChunkRetry] Max retries (${MAX_RETRIES}) exceeded. Clearing cache and reloading...`);
+        logger.error('[ChunkRetry] Max retries (%s', [object Object], { service: 'app' }) exceeded. Clearing cache and reloading...`);
 
         // Notify service worker to clear cache
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -57,7 +58,7 @@ export function ChunkRetryHandler() {
         try {
           sessionStorage.removeItem('next-build-id');
         } catch (e) {
-          console.warn('[ChunkRetry] Failed to clear session storage:', e);
+          logger.warn('[ChunkRetry] Failed to clear session storage:', e', [object Object], { service: 'app' });
         }
 
         // Hard reload after a brief delay
@@ -93,7 +94,7 @@ export function ChunkRetryHandler() {
         reason.includes('ChunkLoadError') ||
         (reason.includes('chunk') && reason.includes('failed'))
       ) {
-        console.warn('[ChunkRetry] Chunk error in promise rejection:', reason);
+        logger.warn('[ChunkRetry] Chunk error in promise rejection:', reason', [object Object], { service: 'app' });
 
         // Convert to ErrorEvent format
         const errorEvent = new ErrorEvent('error', {

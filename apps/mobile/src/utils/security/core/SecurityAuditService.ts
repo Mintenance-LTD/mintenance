@@ -17,7 +17,7 @@ import type {
   SecurityVulnerability,
   PenetrationTestResult,
   PenetrationTestSuite
-} from '../types';
+} from '@mintenance/types';
 
 export class SecurityAuditService {
   private vulnerabilities: SecurityVulnerability[] = [];

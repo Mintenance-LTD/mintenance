@@ -353,7 +353,7 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                     padding: '12px'
                   }}
-                  formatter={(value: any) => [`£${value}`, 'Revenue']}
+                  formatter={(value: unknown) => [`£${value}`, 'Revenue']}
                   labelStyle={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}
                 />
                 <Area
@@ -401,7 +401,7 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       padding: '12px'
                     }}
-                    formatter={(value: any, name: any, props: any) => [
+                    formatter={(value: unknown, name: unknown, props: unknown) => [
                       `${value} jobs`,
                       props.payload.status
                     ]}
@@ -459,7 +459,7 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       padding: '12px'
                     }}
-                    formatter={(value: any) => [`£${value}`, 'Revenue']}
+                    formatter={(value: unknown) => [`£${value}`, 'Revenue']}
                     labelStyle={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}
                   />
                   <Bar
@@ -520,7 +520,7 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                     padding: '12px'
                   }}
-                  formatter={(value: any, name: string) => [
+                  formatter={(value: unknown, name: string) => [
                     name === 'revenue' ? `£${value}` : value,
                     name === 'revenue' ? 'Revenue' : 'Jobs'
                   ]}

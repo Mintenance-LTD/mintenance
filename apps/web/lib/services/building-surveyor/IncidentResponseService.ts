@@ -962,7 +962,7 @@ export class IncidentResponseService {
   /**
    * Map database incident to Incident interface
    */
-  private static mapDbIncidentToIncident(data: any): Incident {
+  private static mapDbIncidentToIncident(data: unknown): Incident {
     return {
       id: data.id,
       type: data.incident_type,

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { GDPRForm } from './GDPRForm';
+import { logger } from '@mintenance/shared';
 
 export function PaymentMethodForm() {
   const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ export function PaymentMethodForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement payment method creation with Stripe
-    // console.log('Form data:', formData);
+    // logger.info('Form data:', formData', [object Object], { service: 'ui' });
   };
 
   return (

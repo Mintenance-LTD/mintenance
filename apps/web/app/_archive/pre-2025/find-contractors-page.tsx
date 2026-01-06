@@ -83,7 +83,7 @@ export default function ContractorMapPage() {
       if (error) throw error;
 
       // Transform to markers
-      const markers: ContractorMarker[] = (data || []).map((contractor: any) => ({
+      const markers: ContractorMarker[] = (data || []).map((contractor: unknown) => ({
         id: contractor.id,
         name: `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || 'Contractor',
         latitude: parseFloat(contractor.latitude),

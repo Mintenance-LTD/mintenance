@@ -77,13 +77,13 @@ export default async function AnalyticsPage() {
   const totalRevenue = payments?.reduce((sum, payment) =>
     sum + parseFloat(payment.amount), 0
   ) || completedJobs?.reduce((sum, job) => {
-    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: any) =>
+    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: unknown) =>
       s + (t.status === 'released' ? parseFloat(t.amount) : 0), 0) || 0;
     return sum + escrowAmount;
   }, 0) || 0;
 
   const pendingRevenue = completedJobs?.reduce((sum, job) => {
-    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: any) => 
+    const escrowAmount = job.escrow_transactions?.reduce((s: number, t: unknown) => 
       s + (t.status === 'held' ? parseFloat(t.amount) : 0), 0) || 0;
     return sum + escrowAmount;
   }, 0) || 0;
@@ -101,16 +101,16 @@ export default async function AnalyticsPage() {
     : contractor?.rating || 0;
 
   // Group jobs by month for chart
-  const jobsByMonth = allJobs?.reduce((acc: any, job) => {
+  const jobsByMonth = allJobs?.reduce((acc: unknown, job) => {
     const month = new Date(job.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
     acc[month] = (acc[month] || 0) + 1;
     return acc;
   }, {}) || {};
 
   // Group revenue by month
-  const revenueByMonth = completedJobs?.reduce((acc: any, job) => {
+  const revenueByMonth = completedJobs?.reduce((acc: unknown, job) => {
     const month = new Date(job.completed_at || job.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-    const jobRevenue = job.escrow_transactions?.reduce((s: number, t: any) => 
+    const jobRevenue = job.escrow_transactions?.reduce((s: number, t: unknown) => 
       s + (t.status === 'released' ? parseFloat(t.amount) : 0), 0) || 0;
     acc[month] = (acc[month] || 0) + jobRevenue;
     return acc;

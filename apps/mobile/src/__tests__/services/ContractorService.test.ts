@@ -1,7 +1,7 @@
 import { ContractorService } from '../../services/ContractorService';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
+import { ContractorProfile, LocationData, ContractorMatch } from '@mintenance/types';
 
 // Use global Supabase mock from jest-setup.js
 jest.mock('../../config/supabase');

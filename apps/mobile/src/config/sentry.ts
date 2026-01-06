@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react-native';
-import { User } from '../types';
+import { User } from '@mintenance/types';
 import { setSentryFunctions, logger } from '../utils/logger';
 import { config, isFeatureEnabled } from './environment';
 

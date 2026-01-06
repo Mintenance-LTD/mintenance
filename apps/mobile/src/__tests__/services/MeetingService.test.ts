@@ -4,7 +4,7 @@ import {
   ContractorLocation,
   MeetingUpdate,
   LocationData,
-} from '../../types';
+} from '@mintenance/types';
 
 // Mock data (defined first so it can be used in mocks)
 const mockMeetingData = {

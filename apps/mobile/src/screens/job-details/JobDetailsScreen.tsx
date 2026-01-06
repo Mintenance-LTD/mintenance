@@ -24,6 +24,7 @@ import {
 } from './components';
 import { BuildingAssessmentCard } from '../../components/ai/BuildingAssessmentCard';
 import { JobsStackParamList } from '../../navigation/types';
+import { logger } from '@mintenance/shared';
 
 type JobDetailsScreenRouteProp = RouteProp<JobsStackParamList, 'JobDetails'>;
 type JobDetailsScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'JobDetails'>;
@@ -96,7 +97,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
             onAssessmentComplete={(assessment) => {
               // Assessment complete callback
-              console.log('Building assessment complete:', assessment.id);
+              logger.info('Building assessment complete:', assessment.id', [object Object], { service: 'mobile' });
             }}
           />
         )}

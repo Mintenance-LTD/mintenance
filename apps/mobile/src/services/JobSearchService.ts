@@ -8,7 +8,7 @@
  */
 
 import { supabase } from '../config/supabase';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
 import { JobCRUDService } from './JobCRUDService';

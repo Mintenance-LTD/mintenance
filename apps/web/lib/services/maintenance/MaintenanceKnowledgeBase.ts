@@ -397,7 +397,7 @@ export class MaintenanceKnowledgeBase {
   /**
    * Transform database record to our interface
    */
-  private static transformDatabaseRecord(record: any): MaintenanceKnowledge {
+  private static transformDatabaseRecord(record: unknown): MaintenanceKnowledge {
     return {
       issue_type: record.issue_type,
       issue_category: record.issue_category,

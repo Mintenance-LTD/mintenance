@@ -10,6 +10,7 @@ import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ArrowLeft } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface Notification {
   id: string;
@@ -77,7 +78,7 @@ export default function ContractorNotificationsPage2025() {
 
         setNotifications(transformedNotifications);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        logger.error('Error fetching notifications:', error', [object Object], { service: 'app' });
         toast.error(error instanceof Error ? error.message : 'Failed to load notifications');
       } finally {
         setLoadingNotifications(false);
@@ -106,7 +107,7 @@ export default function ContractorNotificationsPage2025() {
         prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to mark notification as read');
     }
   };
@@ -129,7 +130,7 @@ export default function ContractorNotificationsPage2025() {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      logger.error('Error marking all as read:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to mark all as read');
     }
   };
@@ -159,7 +160,7 @@ export default function ContractorNotificationsPage2025() {
       // Check if any deletions failed
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) {
-        console.error('Some notifications failed to delete:', failures);
+        logger.error('Some notifications failed to delete:', failures', [object Object], { service: 'app' });
         toast.error(`${failures.length} notification(s) failed to delete`);
         // Still remove successfully deleted ones from state
         const successfulIds = results
@@ -171,7 +172,7 @@ export default function ContractorNotificationsPage2025() {
         toast.success('All notifications cleared');
       }
     } catch (error) {
-      console.error('Error clearing notifications:', error);
+      logger.error('Error clearing notifications:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to clear all notifications');
     }
   };
@@ -196,7 +197,7 @@ export default function ContractorNotificationsPage2025() {
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       toast.success('Notification deleted');
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      logger.error('Error deleting notification:', error', [object Object], { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to delete notification');
     }
   };

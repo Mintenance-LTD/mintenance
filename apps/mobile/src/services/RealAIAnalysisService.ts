@@ -1,4 +1,4 @@
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { AIAnalysis } from './AIAnalysisService';
 import { logger } from '../utils/logger';
 import { aiConfig, isAIConfigured, getConfiguredAIService } from '../config/ai.config';

@@ -8,9 +8,33 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getUser } from '@/lib/auth';
 import { SAM3Service } from '@/lib/services/building-surveyor/SAM3Service';
 import crypto from 'crypto';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
 
 export async function POST(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     // Check authentication
     const user = await getUser();
     if (!user) {
@@ -79,7 +103,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      logger.error('Upload error:', uploadError', [object Object], { service: 'api' });
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -98,7 +122,7 @@ export async function POST(request: NextRequest) {
         segmentationData = await processWithSAM3(publicUrl);
       }
     } catch (error) {
-      console.error('SAM3 processing failed:', error);
+      logger.error('SAM3 processing failed:', error', [object Object], { service: 'api' });
       // Continue without segmentation
     }
 
@@ -120,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (labelError) {
-      console.error('Label save error:', labelError);
+      logger.error('Label save error:', labelError', [object Object], { service: 'api' });
       throw labelError;
     }
 
@@ -156,7 +180,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Training contribution error:', error);
+    logger.error('Training contribution error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to process contribution' },
       { status: 500 }
@@ -169,6 +193,28 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+  // Rate limiting check
+  const rateLimitResult = await rateLimiter.checkRateLimit({
+    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    windowMs: 60000,
+    maxRequests: 30
+  });
+
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter || 60),
+          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+        }
+      }
+    );
+  }
+
     const user = await getUser();
     if (!user) {
       return NextResponse.json(
@@ -209,7 +255,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get stats error:', error);
+    logger.error('Get stats error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve statistics' },
       { status: 500 }
@@ -255,7 +301,7 @@ async function processWithSAM3(imageUrl: string): Promise<any> {
     return null;
 
   } catch (error) {
-    console.error('SAM3 processing error:', error);
+    logger.error('SAM3 processing error:', error', [object Object], { service: 'api' });
     return null;
   }
 }
@@ -294,7 +340,7 @@ async function updateContributorStats(contractorId: string): Promise<void> {
     }
 
   } catch (error) {
-    console.error('Failed to update stats:', error);
+    logger.error('Failed to update stats:', error', [object Object], { service: 'api' });
   }
 }
 
@@ -318,7 +364,7 @@ async function checkAndAwardRewards(contractorId: string): Promise<{
     return { creditsEarned: 5 };
   }
 
-  const response: any = {
+  const response: unknown = {
     creditsEarned: 5
   };
 
@@ -381,6 +427,6 @@ async function grantPremiumSubscription(
     // TODO: Integrate with subscription system
 
   } catch (error) {
-    console.error('Failed to grant premium:', error);
+    logger.error('Failed to grant premium:', error', [object Object], { service: 'api' });
   }
 }

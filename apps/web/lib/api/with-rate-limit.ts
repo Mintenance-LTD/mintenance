@@ -10,7 +10,7 @@ import type { RateLimitResult } from '@/lib/rate-limiter-enhanced';
 
 export interface ApiHandlerContext {
   request: NextRequest;
-  params?: any;
+  params?: unknown;
   rateLimitResult: RateLimitResult;
 }
 
@@ -21,7 +21,7 @@ type ApiHandler = (context: ApiHandlerContext) => Promise<NextResponse> | NextRe
  * Rate limiting is already applied in middleware, but this ensures headers are included
  */
 export function withRateLimit(handler: ApiHandler) {
-  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
+  return async (request: NextRequest, context?: unknown): Promise<NextResponse> => {
     try {
       // Get rate limit status (should already be checked in middleware)
       const rateLimitResult = await checkRateLimit(request);
@@ -92,7 +92,7 @@ export function withRateLimit(handler: ApiHandler) {
  * Creates a standard JSON response with rate limit headers
  */
 export function createApiResponse(
-  data: any,
+  data: unknown,
   status: number = 200,
   rateLimitResult?: RateLimitResult
 ): NextResponse {
@@ -120,7 +120,7 @@ export function createApiResponse(
 export function createErrorResponse(
   message: string,
   status: number = 400,
-  details?: any,
+  details?: unknown,
   rateLimitResult?: RateLimitResult
 ): NextResponse {
   const headers: Record<string, string> = {

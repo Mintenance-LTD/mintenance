@@ -39,8 +39,8 @@ export interface RealtimeStatus {
  * const { status, subscribe, unsubscribe } = useRealtime({
  *   table: 'jobs',
  *   filter: 'contractor_id=eq.123',
- *   onInsert: (payload) => // console.log('New job:', payload.new),
- *   onUpdate: (payload) => // console.log('Job updated:', payload.new),
+ *   onInsert: (payload) => // logger.info('New job:', payload.new', [object Object], { service: 'general' }),
+ *   onUpdate: (payload) => // logger.info('Job updated:', payload.new', [object Object], { service: 'general' }),
  * });
  * ```
  */

@@ -1,3 +1,4 @@
+import { logger } from '@mintenance/shared';
 /**
  * Conformal Prediction Service
  * Provides mathematically guaranteed confidence intervals for damage predictions
@@ -138,7 +139,7 @@ export class ConformalPredictionService {
     });
 
     if (error) {
-      console.error('Error getting prediction interval:', error);
+      logger.error('Error getting prediction interval:', error', [object Object], { service: 'general' });
       // Fallback to simple threshold-based interval
       return this.getFallbackInterval(predictionScores, confidenceLevel);
     }
@@ -161,7 +162,7 @@ export class ConformalPredictionService {
     });
 
     if (error) {
-      console.error('Error calculating nonconformity score:', error);
+      logger.error('Error calculating nonconformity score:', error', [object Object], { service: 'general' });
       return this.calculateLocalNonconformityScore(predictionScores, trueClass, scoreType);
     }
 
@@ -179,7 +180,7 @@ export class ConformalPredictionService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching calibration sets:', error);
+      logger.error('Error fetching calibration sets:', error', [object Object], { service: 'general' });
       return [];
     }
 
@@ -196,7 +197,7 @@ export class ConformalPredictionService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching calibration summary:', error);
+      logger.error('Error fetching calibration summary:', error', [object Object], { service: 'general' });
       return [];
     }
 
@@ -222,7 +223,7 @@ export class ConformalPredictionService {
     });
 
     if (error) {
-      console.error('Error building calibration set:', error);
+      logger.error('Error building calibration set:', error', [object Object], { service: 'general' });
       return null;
     }
 
@@ -238,7 +239,7 @@ export class ConformalPredictionService {
     });
 
     if (error) {
-      console.error('Error recalibrating models:', error);
+      logger.error('Error recalibrating models:', error', [object Object], { service: 'general' });
       throw error;
     }
   }
@@ -260,7 +261,7 @@ export class ConformalPredictionService {
       .single();
 
     if (error) {
-      console.error('Error fetching performance metrics:', error);
+      logger.error('Error fetching performance metrics:', error', [object Object], { service: 'general' });
       return null;
     }
 

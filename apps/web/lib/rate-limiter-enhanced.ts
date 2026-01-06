@@ -48,7 +48,7 @@ interface RateLimitStore {
  * Upstash Redis backend (recommended for production)
  */
 class UpstashStore implements RateLimitStore {
-  private client: any;
+  private client: unknown;
   private initialized = false;
 
   async init() {

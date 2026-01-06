@@ -224,7 +224,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
     }
 
     // Map to maintenance-specific format
-    return detections.map((d: any) => this.mapToMaintenanceDetection(d));
+    return detections.map((d: unknown) => this.mapToMaintenanceDetection(d));
   }
 
   /**
@@ -275,7 +275,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Map detection to maintenance format
    */
-  private static mapToMaintenanceDetection(detection: any): MaintenanceDetection {
+  private static mapToMaintenanceDetection(detection: unknown): MaintenanceDetection {
     const issueType = Object.keys(MAINTENANCE_CATEGORIES)[detection.class_id];
     const category = MAINTENANCE_CATEGORIES[issueType as keyof typeof MAINTENANCE_CATEGORIES];
 
@@ -298,7 +298,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Estimate severity based on detection
    */
-  private static estimateSeverity(detection: any): 'minor' | 'moderate' | 'major' | 'critical' {
+  private static estimateSeverity(detection: unknown): 'minor' | 'moderate' | 'major' | 'critical' {
     // Use bounding box size as proxy for severity
     const area = detection.bbox.width * detection.bbox.height;
     const imageArea = 640 * 640; // Assuming standard YOLO input size

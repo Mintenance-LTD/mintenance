@@ -130,7 +130,7 @@ function FeatureCard({
   feature: typeof features[0];
   index: number;
   prefersReducedMotion: boolean;
-  itemVariants: any;
+  itemVariants: unknown;
 }) {
   const Icon = feature.icon;
 

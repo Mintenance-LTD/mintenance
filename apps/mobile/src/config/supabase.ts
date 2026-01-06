@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import type { Database } from '../types/database';
+import type { Database } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 type SupabaseLike = ReturnType<typeof createClient<Database>> | ReturnType<typeof createMockSupabase>;

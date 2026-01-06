@@ -109,7 +109,7 @@ export function useProfile() {
     queryKey: ['user', 'profile', 'current'],
     queryFn: fetchProfile,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry if unauthorized
       if (error?.message?.includes('Unauthorized') || error?.status === 401) {
         return false;
@@ -171,7 +171,7 @@ export function useUpdateProfile() {
       const previousProfile = queryClient.getQueryData(['user', 'profile', 'current']);
 
       // Optimistically update
-      queryClient.setQueryData(['user', 'profile', 'current'], (old: any) => ({
+      queryClient.setQueryData(['user', 'profile', 'current'], (old: unknown) => ({
         ...old,
         ...updates,
       }));

@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { test, expect, Page } from '@playwright/test';
 import { login, createMockData, cleanupData } from '../helpers';
 

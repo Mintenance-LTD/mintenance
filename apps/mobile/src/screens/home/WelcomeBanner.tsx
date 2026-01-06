@@ -8,7 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
-import { User } from '../../types';
+import { User } from '@mintenance/types';
 
 interface WelcomeBannerProps {
   user: User | null;

@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../../components/ui/Input';
 import { theme } from '../../../theme';
-import type { ContractorPostType } from '../../../types';
+import type { ContractorPostType } from '@mintenance/types';
 
 interface PostTypeOption {
   id: ContractorPostType;

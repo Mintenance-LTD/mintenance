@@ -1,6 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { ModalStackParamList } from '../types';
+import type { ModalStackParamList } from '@mintenance/types';
 
 // Import existing screens
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';

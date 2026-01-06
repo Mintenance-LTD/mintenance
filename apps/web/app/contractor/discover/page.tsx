@@ -2,6 +2,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorDiscoverClient } from './components/ContractorDiscoverClient';
+import { logger } from '@mintenance/shared';
 
 interface Job {
   id: string;
@@ -32,7 +33,7 @@ export const metadata = {
 
 // Calculate match score based on various factors
 function calculateMatchScore(
-  job: any,
+  job: unknown,
   contractorSkills: string[],
   contractorCity: string | null
 ): number {
@@ -144,11 +145,11 @@ export default async function ContractorDiscoverPage2025() {
     .limit(50);
 
   // Debug logging
-  console.log('[DISCOVER] Contractor ID:', user.id);
-  console.log('[DISCOVER] Contractor Location:', contractorLocation);
-  console.log('[DISCOVER] Query Error:', error);
-  console.log('[DISCOVER] Jobs Fetched:', jobs?.length || 0);
-  console.log('[DISCOVER] First 3 Jobs:', jobs?.slice(0, 3).map(j => ({
+  logger.info('[DISCOVER] Contractor ID:', user.id', [object Object], { service: 'app' });
+  logger.info('[DISCOVER] Contractor Location:', contractorLocation', [object Object], { service: 'app' });
+  logger.error('[DISCOVER] Query Error:', error', [object Object], { service: 'app' });
+  logger.info('[DISCOVER] Jobs Fetched:', jobs?.length || 0', [object Object], { service: 'app' });
+  logger.info('[DISCOVER] First 3 Jobs:', jobs?.slice(0, 3', [object Object], { service: 'app' }).map(j => ({
     id: j.id,
     title: j.title,
     status: j.status,
@@ -158,7 +159,7 @@ export default async function ContractorDiscoverPage2025() {
   })));
 
   if (error) {
-    console.error('Error fetching jobs:', error);
+    logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
   }
 
   // Fetch homeowner data separately for better error handling

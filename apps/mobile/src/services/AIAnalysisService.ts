@@ -1,4 +1,4 @@
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export interface AIAnalysis {

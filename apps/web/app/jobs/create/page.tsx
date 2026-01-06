@@ -15,6 +15,7 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ArrowLeft } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 const serviceCategories = [
   { label: 'Plumbing', value: 'plumbing', icon: '🚰' },
@@ -130,18 +131,22 @@ export default function CreateJobPage2025() {
   // Trigger AI assessment when images are uploaded
   useEffect(() => {
     const runAssessment = async () => {
-      console.log('[DEBUG] runAssessment effect triggered', {
+      logger.info('[DEBUG] runAssessment effect triggered', {
         imageCount: imageUpload.uploadedImages.length,
         isAssessing: buildingAssessment.isAssessing
+      }', {
+        service: 'app'
       });
 
       if (imageUpload.uploadedImages.length > 0 && !buildingAssessment.isAssessing) {
         // Get selected property for context
         const selectedProperty = properties.find(p => p.id === formData.property_id);
 
-        console.log('[DEBUG] Calling assessBuilding', {
+        logger.info('[DEBUG] Calling assessBuilding', {
           imageCount: imageUpload.uploadedImages.length,
-          hasLocation: !!(formData.location || selectedProperty?.address),
+          hasLocation: !!(formData.location || selectedProperty?.address', {
+        service: 'app'
+      }),
           propertyType: selectedProperty?.property_type
         });
 
@@ -161,17 +166,17 @@ export default function CreateJobPage2025() {
 
   const handleSubmit = async () => {
     // Log form data for debugging
-    // console.log('Form data being submitted:', formData);
-    // console.log('Uploaded images:', imageUpload.uploadedImages);
+    // logger.info('Form data being submitted:', formData', [object Object], { service: 'app' });
+    // logger.info('Uploaded images:', imageUpload.uploadedImages', [object Object], { service: 'app' });
 
     const errors = validateJobForm(formData, imageUpload.uploadedImages, imageUpload.imagePreviews.length);
-    // console.log('Validation errors:', errors);
+    // logger.error('Validation errors:', errors', [object Object], { service: 'app' });
 
     if (!isFormValid(errors)) {
       setValidationErrors(errors);
       // Show specific error messages
       const errorMessages = Object.entries(errors).map(([field, message]) => `${field}: ${message}`);
-      console.error('Validation failed:', errorMessages);
+      logger.error('Validation failed:', errorMessages', [object Object], { service: 'app' });
       toast.error(errorMessages[0] || 'Please fix validation errors');
       return;
     }
@@ -180,23 +185,25 @@ export default function CreateJobPage2025() {
     try {
       let imageUrls = imageUpload.uploadedImages;
       if (imageUpload.imagePreviews.length > 0 && imageUrls.length === 0) {
-        console.log('[Submit] Need to upload images. CSRF token available:', !!csrfToken);
+        logger.info('[Submit] Need to upload images. CSRF token available:', !!csrfToken', [object Object], { service: 'app' });
         if (!csrfToken) {
           toast.error('Security token not available. Please refresh the page.');
           setIsSubmitting(false);
           return;
         }
-        console.log('[Submit] Calling uploadImages with token');
+        logger.info('[Submit] Calling uploadImages with token', [object Object], { service: 'app' });
         imageUrls = await imageUpload.uploadImages(csrfToken);
-        console.log('[Submit] Upload completed. URLs received:', imageUrls.length);
+        logger.info('[Submit] Upload completed. URLs received:', imageUrls.length', [object Object], { service: 'app' });
       }
 
-      // console.log('Submitting job with data:', {
+      // logger.info('Submitting job with data:', {
       //   formData,
       //   photoUrls: imageUrls,
       //   csrfToken: csrfToken || '',
       //   hasAIAssessment: !!buildingAssessment.assessment,
-      // });
+      // }', {
+        service: 'app'
+      });
 
       const result = await submitJob({
         formData,
@@ -210,11 +217,11 @@ export default function CreateJobPage2025() {
         throw new Error(result.error || 'Failed to post job');
       }
 
-      // console.log('Job submitted successfully:', result);
+      // logger.info('Job submitted successfully:', result', [object Object], { service: 'app' });
       toast.success('Job posted successfully!');
       router.push(`/jobs/${result.jobId}`);
     } catch (error) {
-      console.error('Error submitting job:', error);
+      logger.error('Error submitting job:', error', [object Object], { service: 'app' });
       const errorMessage = (error as Error).message || 'Failed to post job';
 
       // Check if it's a phone verification error

@@ -6,6 +6,7 @@
  */
 
 import { EnhancedLogger, LogTransport, LogEntry } from '../enhanced-logger';
+import { logger } from '@mintenance/shared';
 
 /**
  * Datadog Transport for production logging
@@ -87,10 +88,10 @@ export class DatadogTransport implements LogTransport {
       });
 
       if (!response.ok) {
-        console.error(`Datadog logging failed: ${response.status} ${response.statusText}`);
+        logger.error('Datadog logging failed: %s %s', [object Object], { service: 'lib' });
       }
     } catch (error) {
-      console.error('Failed to send logs to Datadog:', error);
+      logger.error('Failed to send logs to Datadog:', error', [object Object], { service: 'lib' });
     }
   }
 
@@ -141,7 +142,7 @@ export class CloudWatchTransport implements LogTransport {
 
     // AWS CloudWatch SDK would be used here
     if (process.env.NODE_ENV === 'development') {
-      console.log('[CloudWatch]', logEvent);
+      logger.info('[CloudWatch]', logEvent', [object Object], { service: 'lib' });
     }
   }
 }

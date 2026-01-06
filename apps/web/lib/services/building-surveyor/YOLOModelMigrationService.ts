@@ -45,7 +45,7 @@ interface YOLOModel {
   id: string;
   model_name: string;
   model_version: string;
-  model_data: any; // BYTEA data
+  model_data: unknown; // BYTEA data
   file_size: number;
   storage_migration_status: string | null;
   storage_path: string | null;
@@ -246,7 +246,7 @@ export class YOLOModelMigrationService {
       }
 
       // Update database record with storage info
-      const updateData: any = {
+      const updateData: unknown = {
         storage_path: storagePath,
         storage_url: urlData.publicUrl,
         storage_bucket: 'yolo-models',
@@ -290,7 +290,7 @@ export class YOLOModelMigrationService {
         duration
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
 
       logger.error('Model migration failed', {
@@ -552,7 +552,7 @@ export class YOLOModelMigrationService {
     status: string,
     errorMessage?: string
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: unknown = {
       storage_migration_status: status
     };
 

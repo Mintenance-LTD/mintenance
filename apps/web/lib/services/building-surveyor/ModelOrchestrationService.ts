@@ -286,7 +286,7 @@ export class ModelOrchestrationService {
    * Determine overall system health
    */
   private static determineSystemHealth(
-    metrics: any,
+    metrics: unknown,
     driftScore: number,
     activeIncidents: number,
     retrainingInProgress: boolean
@@ -323,7 +323,7 @@ export class ModelOrchestrationService {
    */
   private static generateRecommendations(
     health: 'healthy' | 'degraded' | 'critical',
-    metrics: any
+    metrics: unknown
   ): string[] {
     const recommendations: string[] = [];
 
@@ -502,7 +502,7 @@ export class ModelOrchestrationService {
   /**
    * Handle new correction
    */
-  private static async handleCorrection(correction: any): Promise<void> {
+  private static async handleCorrection(correction: unknown): Promise<void> {
     try {
       // Track correction for accuracy
       if (!correction.was_correct) {
@@ -539,7 +539,7 @@ export class ModelOrchestrationService {
   /**
    * Handle new prediction
    */
-  private static async handlePrediction(prediction: any): Promise<void> {
+  private static async handlePrediction(prediction: unknown): Promise<void> {
     try {
       // Check for low confidence predictions
       if (prediction.confidence < 0.5) {

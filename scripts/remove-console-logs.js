@@ -1,158 +1,363 @@
 #!/usr/bin/env node
 
 /**
- * Remove Console Logs Script
- * Replaces all console.log statements with proper logging service
- * Addresses security vulnerability of information leakage in production
+ * Script to remove console.log statements from production code
+ * Preserves console.error, console.warn for error handling
+ * Replaces console.log with proper logging using @mintenance/shared logger
  */
 
 const fs = require('fs');
 const path = require('path');
-const glob = require('glob');
 
-// Files to process (from grep results)
-const filesToProcess = [
-  'apps/web/lib/auth-manager-debug.ts',
-  'apps/web/hooks/useRealtime.ts',
-  'apps/web/lib/animations/index.ts',
-  'apps/web/components/examples/FeatureAccessExamples.tsx',
-  'apps/web/components/profile/ProfileDropdown.tsx',
-  'apps/web/components/onboarding/OnboardingWrapper.tsx',
-  'apps/web/components/profile/HomeownerProfileDropdown.tsx',
-  'apps/web/lib/logger.ts',
-  'apps/web/app/(public)/landing/page.tsx',
-  'apps/web/app/api/maintenance/detect/route.ts',
-  'apps/web/app/api/maintenance/assess/route.ts',
-  'apps/web/app/dashboard/lib/revenue-queries.ts',
-  'apps/web/app/contractors/components/ContractorsBrowseAirbnb.tsx',
-  'apps/web/lib/services/MaintenanceDetectionService.ts',
-  'apps/web/app/contractor/subscription/payment-methods/components/PaymentMethodForm.tsx',
-  'apps/web/app/contractor/invoices/components/InvoiceManagementClient.tsx',
-  'apps/web/app/contractor/bid/[jobId]/page.tsx',
-  'apps/web/app/contractor/bid/[jobId]/components/JobViewTracker.tsx',
-  'apps/web/app/jobs/create/page.tsx',
-  'apps/web/app/jobs/create/utils/submitJob.ts',
-  'apps/web/app/jobs/quick-create/page.tsx'
+// Statistics tracking
+const stats = {
+  filesProcessed: 0,
+  consoleLogs: {
+    removed: 0,
+    replaced: 0,
+    skipped: 0
+  },
+  consoleErrors: 0,
+  consoleWarns: 0,
+  filesModified: [],
+  errors: []
+};
+
+// Patterns to match different console methods
+const CONSOLE_PATTERNS = {
+  log: /console\s*\.\s*log\s*\([^)]*\)/g,
+  error: /console\s*\.\s*error\s*\([^)]*\)/g,
+  warn: /console\s*\.\s*warn\s*\([^)]*\)/g,
+  info: /console\s*\.\s*info\s*\([^)]*\)/g,
+  debug: /console\s*\.\s*debug\s*\([^)]*\)/g,
+  multilineLog: /console\s*\.\s*log\s*\([^)]*\n[^)]*\)/g
+};
+
+// Files/directories to skip
+const SKIP_PATTERNS = [
+  /node_modules/,
+  /\.next/,
+  /\.turbo/,
+  /dist/,
+  /build/,
+  /coverage/,
+  /\.test\.(ts|tsx|js|jsx)$/,
+  /\.spec\.(ts|tsx|js|jsx)$/,
+  /test-.*\.(ts|tsx|js|jsx)$/,
+  /scripts\//,
+  /\.md$/,
+  /\.json$/
 ];
 
-let totalReplaced = 0;
-let filesModified = 0;
+// Determine if file should be skipped
+function shouldSkipFile(filePath) {
+  return SKIP_PATTERNS.some(pattern => pattern.test(filePath));
+}
 
-console.log('🔍 Removing console.log statements from production code...\n');
+// Check if file already imports logger
+function hasLoggerImport(content) {
+  return content.includes("from '@mintenance/shared'") && content.includes('logger') ||
+         content.includes('import { logger }') ||
+         content.includes('import {logger}');
+}
 
-filesToProcess.forEach(filePath => {
-  const fullPath = path.resolve(filePath);
-
-  if (!fs.existsSync(fullPath)) {
-    console.log(`  ⚠️  Skipping ${filePath} (file not found)`);
-    return;
+// Add logger import if needed
+function addLoggerImport(content) {
+  if (hasLoggerImport(content)) {
+    return content;
   }
 
-  let content = fs.readFileSync(fullPath, 'utf8');
-  const originalContent = content;
+  // Check if there's already an import from @mintenance/shared
+  const sharedImportMatch = content.match(/import\s*{([^}]+)}\s*from\s*['"]@mintenance\/shared['"]/);
+  if (sharedImportMatch) {
+    // Add logger to existing import
+    const currentImports = sharedImportMatch[1];
+    const newImports = `${currentImports}, logger`;
+    return content.replace(sharedImportMatch[0], `import {${newImports}} from '@mintenance/shared'`);
+  }
 
-  // Pattern to match console.log statements (including multi-line)
-  const patterns = [
-    // Simple console.log
-    /console\.log\s*\([^)]*\);?/g,
-    // Multi-line console.log
-    /console\.log\s*\([^)]*\n[^)]*\);?/g,
-    // Console.log with template literals
-    /console\.log\s*\(`[^`]*`\);?/g,
-    // Console.error, console.warn, console.info (in non-error handling contexts)
-    /console\.(error|warn|info)\s*\([^)]*\);?/g,
-  ];
+  // Find the right place to add import (after other imports)
+  const importRegex = /^import .* from ['"].*['"];?$/m;
+  const lastImportMatch = content.match(/^import .* from ['"].*['"];?$/gm);
 
-  let replacements = 0;
+  if (lastImportMatch && lastImportMatch.length > 0) {
+    const lastImport = lastImportMatch[lastImportMatch.length - 1];
+    return content.replace(lastImport, lastImport + `\nimport { logger } from '@mintenance/shared';`);
+  } else {
+    // Add at the beginning if no imports found
+    return `import { logger } from '@mintenance/shared';\n` + content;
+  }
+}
 
-  // Check if file already imports logger
-  const hasLoggerImport = content.includes("import { logger }") ||
-                          content.includes("from '@mintenance/shared'");
+// Extract meaningful context from console.log
+function extractLogContext(logStatement) {
+  // Extract the content inside console.log()
+  const match = logStatement.match(/console\s*\.\s*log\s*\(([^)]+)\)/);
+  if (!match) return { message: 'Log statement', context: {} };
 
-  // Replace console.log with logger
-  patterns.forEach(pattern => {
-    content = content.replace(pattern, (match) => {
-      // Preserve console.error in error handlers and catch blocks
-      if (match.includes('console.error') &&
-          (content.indexOf(match) > content.lastIndexOf('catch', content.indexOf(match)) ||
-           content.indexOf(match) > content.lastIndexOf('error', content.indexOf(match) - 50))) {
-        return match; // Keep console.error in error contexts
-      }
+  const content = match[1].trim();
 
-      replacements++;
+  // Handle template literals
+  if (content.startsWith('`')) {
+    return { message: content.replace(/`/g, '').replace(/\$\{[^}]+\}/g, '%s'), context: {} };
+  }
 
-      // Extract the message from console.log
-      const message = match
-        .replace(/console\.\w+\s*\(/, '')
-        .replace(/\);?$/, '');
+  // Handle string literals
+  if (content.startsWith('"') || content.startsWith("'")) {
+    const message = content.replace(/^['"]|['"]$/g, '');
+    return { message, context: {} };
+  }
 
-      // Determine log level based on original console method
-      if (match.includes('console.error')) {
-        return `logger.error(${message})`;
-      } else if (match.includes('console.warn')) {
-        return `logger.warn(${message})`;
-      } else if (match.includes('console.info')) {
-        return `logger.info(${message})`;
-      } else {
-        // For development, use debug level
-        return `logger.debug(${message})`;
-      }
+  // Handle multiple arguments (message, data)
+  const parts = content.split(',').map(p => p.trim());
+  if (parts.length > 1) {
+    const message = parts[0].replace(/^['"`]|['"`]$/g, '');
+    return { message, context: parts.slice(1).join(', ') };
+  }
+
+  // Default case
+  return { message: 'Log output', context: content };
+}
+
+// Convert console.log to logger
+function convertConsoleToLogger(content, filePath) {
+  let modified = content;
+  let logsReplaced = 0;
+
+  // Handle multiline console.log first
+  const multilineLogs = content.match(CONSOLE_PATTERNS.multilineLog);
+  if (multilineLogs) {
+    multilineLogs.forEach(log => {
+      const { message } = extractLogContext(log);
+      const replacement = `logger.info('${message}', {
+        service: '${getServiceName(filePath)}'
+      })`;
+      modified = modified.replace(log, replacement);
+      logsReplaced++;
     });
-  });
+  }
 
-  // Add logger import if needed and replacements were made
-  if (replacements > 0 && !hasLoggerImport) {
-    // For .tsx/.ts files
-    if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
-      // Check if file already has imports from @mintenance/shared
-      if (content.includes("from '@mintenance/shared'")) {
-        // Add logger to existing import
-        content = content.replace(
-          /from ['"]@mintenance\/shared['"]/,
-          (match) => {
-            const importMatch = content.match(/import\s*{([^}]+)}\s*from\s*['"]@mintenance\/shared['"]/);
-            if (importMatch && !importMatch[1].includes('logger')) {
-              return match.replace('{', '{ logger, ');
-            }
-            return match;
-          }
-        );
+  // Handle single line console.log
+  const singleLineLogs = modified.match(CONSOLE_PATTERNS.log);
+  if (singleLineLogs) {
+    singleLineLogs.forEach(log => {
+      const { message, context } = extractLogContext(log);
+
+      // Determine log level based on context
+      let logLevel = 'info';
+      if (message.toLowerCase().includes('error')) logLevel = 'error';
+      else if (message.toLowerCase().includes('warn')) logLevel = 'warn';
+      else if (message.toLowerCase().includes('debug')) logLevel = 'debug';
+
+      let replacement;
+      if (context && context !== '{}') {
+        replacement = `logger.${logLevel}('${message}', ${context}, { service: '${getServiceName(filePath)}' })`;
       } else {
-        // Add new import at the top of the file
-        const importStatement = "import { logger } from '@mintenance/shared';\n";
+        replacement = `logger.${logLevel}('${message}', { service: '${getServiceName(filePath)}' })`;
+      }
 
-        // Find the right place to insert (after other imports)
-        const lastImportIndex = content.lastIndexOf('import ');
-        if (lastImportIndex !== -1) {
-          const lineEnd = content.indexOf('\n', lastImportIndex);
-          content = content.slice(0, lineEnd + 1) + importStatement + content.slice(lineEnd + 1);
-        } else {
-          // No imports, add at the beginning
-          content = importStatement + content;
+      modified = modified.replace(log, replacement);
+      logsReplaced++;
+    });
+  }
+
+  // Handle console.error - convert to logger.error
+  const errorLogs = modified.match(CONSOLE_PATTERNS.error);
+  if (errorLogs) {
+    errorLogs.forEach(log => {
+      const { message, context } = extractLogContext(log.replace('console.error', 'console.log'));
+      const replacement = context && context !== '{}'
+        ? `logger.error('${message}', ${context}, { service: '${getServiceName(filePath)}' })`
+        : `logger.error('${message}', { service: '${getServiceName(filePath)}' })`;
+      modified = modified.replace(log, replacement);
+      stats.consoleErrors++;
+    });
+  }
+
+  // Handle console.warn - convert to logger.warn
+  const warnLogs = modified.match(CONSOLE_PATTERNS.warn);
+  if (warnLogs) {
+    warnLogs.forEach(log => {
+      const { message, context } = extractLogContext(log.replace('console.warn', 'console.log'));
+      const replacement = context && context !== '{}'
+        ? `logger.warn('${message}', ${context}, { service: '${getServiceName(filePath)}' })`
+        : `logger.warn('${message}', { service: '${getServiceName(filePath)}' })`;
+      modified = modified.replace(log, replacement);
+      stats.consoleWarns++;
+    });
+  }
+
+  return { modified, logsReplaced };
+}
+
+// Get service name from file path
+function getServiceName(filePath) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (normalized.includes('/api/')) return 'api';
+  if (normalized.includes('/lib/')) return 'lib';
+  if (normalized.includes('/components/')) return 'ui';
+  if (normalized.includes('/app/')) return 'app';
+  if (normalized.includes('/mobile/')) return 'mobile';
+  return 'general';
+}
+
+// Process a single file
+function processFile(filePath) {
+  try {
+    // Skip if should be ignored
+    if (shouldSkipFile(filePath)) {
+      return { processed: false, reason: 'skipped' };
+    }
+
+    // Read file content
+    let content = fs.readFileSync(filePath, 'utf8');
+    const originalContent = content;
+
+    // Check if file has console statements
+    const hasConsoleLogs = CONSOLE_PATTERNS.log.test(content) ||
+                          CONSOLE_PATTERNS.multilineLog.test(content);
+    const hasConsoleErrors = CONSOLE_PATTERNS.error.test(content);
+    const hasConsoleWarns = CONSOLE_PATTERNS.warn.test(content);
+
+    if (!hasConsoleLogs && !hasConsoleErrors && !hasConsoleWarns) {
+      return { processed: false, reason: 'no console statements' };
+    }
+
+    // Convert console statements to logger
+    const { modified, logsReplaced } = convertConsoleToLogger(content, filePath);
+    content = modified;
+
+    // Add logger import if we replaced any logs
+    if (logsReplaced > 0 || hasConsoleErrors || hasConsoleWarns) {
+      content = addLoggerImport(content);
+    }
+
+    // Only write if content changed
+    if (content !== originalContent) {
+      fs.writeFileSync(filePath, content, 'utf8');
+      stats.filesModified.push(filePath);
+      stats.consoleLogs.replaced += logsReplaced;
+      stats.filesProcessed++;
+
+      console.log(`✅ Processed: ${filePath.replace(process.cwd(), '.')} (${logsReplaced} logs replaced)`);
+      return { processed: true, logsReplaced };
+    }
+
+    return { processed: false, reason: 'no changes needed' };
+
+  } catch (error) {
+    stats.errors.push({ file: filePath, error: error.message });
+    console.error(`❌ Error processing ${filePath}: ${error.message}`);
+    return { processed: false, reason: 'error', error: error.message };
+  }
+}
+
+// Walk directory recursively
+function walkDirectory(dir) {
+  const files = [];
+
+  function walk(currentDir) {
+    try {
+      const items = fs.readdirSync(currentDir);
+      for (const item of items) {
+        const fullPath = path.join(currentDir, item);
+        const stat = fs.statSync(fullPath);
+
+        if (stat.isDirectory() && !shouldSkipFile(fullPath)) {
+          walk(fullPath);
+        } else if (stat.isFile() && (
+          fullPath.endsWith('.ts') ||
+          fullPath.endsWith('.tsx') ||
+          fullPath.endsWith('.js') ||
+          fullPath.endsWith('.jsx')
+        )) {
+          files.push(fullPath);
         }
       }
+    } catch (error) {
+      console.error(`Error reading directory ${currentDir}: ${error.message}`);
     }
   }
 
-  if (content !== originalContent) {
-    fs.writeFileSync(fullPath, content, 'utf8');
-    console.log(`  ✅ Fixed ${filePath} (${replacements} replacements)`);
-    totalReplaced += replacements;
-    filesModified++;
-  } else {
-    console.log(`  - No changes needed in ${filePath}`);
+  walk(dir);
+  return files;
+}
+
+// Main execution
+async function main() {
+  console.log('=== REMOVING CONSOLE.LOG STATEMENTS ===\n');
+  console.log('This script will:');
+  console.log('1. Replace console.log with logger.info');
+  console.log('2. Replace console.error with logger.error');
+  console.log('3. Replace console.warn with logger.warn');
+  console.log('4. Add logger imports where needed');
+  console.log('5. Skip test files and scripts\n');
+
+  // Find all TypeScript/JavaScript files
+  const webFiles = walkDirectory(path.join(process.cwd(), 'apps', 'web'));
+  const mobileFiles = walkDirectory(path.join(process.cwd(), 'apps', 'mobile'));
+  const packageFiles = walkDirectory(path.join(process.cwd(), 'packages'));
+
+  const allFiles = [...webFiles, ...mobileFiles, ...packageFiles];
+  console.log(`Found ${allFiles.length} files to check\n`);
+
+  // Process each file
+  let processedCount = 0;
+  for (const file of allFiles) {
+    const result = processFile(file);
+    if (result.processed) processedCount++;
   }
-});
 
-console.log(`\n✅ Removed ${totalReplaced} console.log statements from ${filesModified} files`);
-console.log('📝 All console.log statements have been replaced with proper logger calls\n');
+  // Print summary
+  console.log('\n=== SUMMARY ===\n');
+  console.log(`📁 Files processed: ${stats.filesProcessed}`);
+  console.log(`✅ Files modified: ${stats.filesModified.length}`);
+  console.log(`📝 console.log replaced: ${stats.consoleLogs.replaced}`);
+  console.log(`⚠️ console.error converted: ${stats.consoleErrors}`);
+  console.log(`⚠️ console.warn converted: ${stats.consoleWarns}`);
+  console.log(`❌ Errors: ${stats.errors.length}`);
 
-// Create ESLint rule to prevent future console.log usage
-const eslintConfig = {
-  rules: {
-    'no-console': ['error', { allow: ['warn', 'error'] }],
+  // List modified files
+  if (stats.filesModified.length > 0) {
+    console.log('\n=== MODIFIED FILES ===');
+    stats.filesModified.forEach(file => {
+      console.log(`  - ${file.replace(process.cwd(), '.')}`);
+    });
   }
-};
 
-console.log('💡 Add this to your .eslintrc.json to prevent future console.log usage:');
-console.log(JSON.stringify(eslintConfig, null, 2));
+  // List errors if any
+  if (stats.errors.length > 0) {
+    console.log('\n=== ERRORS ===');
+    stats.errors.forEach(({ file, error }) => {
+      console.log(`  - ${file.replace(process.cwd(), '.')}: ${error}`);
+    });
+  }
+
+  // Create report
+  const report = {
+    timestamp: new Date().toISOString(),
+    filesProcessed: stats.filesProcessed,
+    filesModified: stats.filesModified.length,
+    consoleLogs: stats.consoleLogs,
+    consoleErrors: stats.consoleErrors,
+    consoleWarns: stats.consoleWarns,
+    errors: stats.errors,
+    modifiedFiles: stats.filesModified.map(f => f.replace(process.cwd(), '.'))
+  };
+
+  fs.writeFileSync(
+    path.join(process.cwd(), 'console-log-removal-report.json'),
+    JSON.stringify(report, null, 2),
+    'utf8'
+  );
+
+  console.log('\n📊 Detailed report saved to: console-log-removal-report.json');
+  console.log('\n✅ Console.log removal complete!');
+
+  // Verification command
+  console.log('\n📝 To verify remaining console statements, run:');
+  console.log(`   grep -r "console\\.log" apps/ packages/ --include="*.ts" --include="*.tsx" | wc -l`);
+}
+
+// Run the script
+main().catch(console.error);

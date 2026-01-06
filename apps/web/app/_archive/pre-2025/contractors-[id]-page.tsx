@@ -280,7 +280,7 @@ export default async function ContractorDetailPage(props: {
               Skills & Expertise
             </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2] }}>
-              {contractor.contractor_skills.map((skill: any, index: number) => (
+              {contractor.contractor_skills.map((skill: unknown, index: number) => (
                 <span
                   key={index}
                   style={{
@@ -317,7 +317,7 @@ export default async function ContractorDetailPage(props: {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-              {reviews.map((review: any) => (
+              {reviews.map((review: unknown) => (
                 <div
                   key={review.id}
                   style={{
@@ -424,7 +424,7 @@ export default async function ContractorDetailPage(props: {
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
               gap: theme.spacing[4],
             }}>
-              {posts?.map((post: any) => (
+              {posts?.map((post: unknown) => (
                 post.images && Array.isArray(post.images) && post.images.length > 0 && (
                   <div
                     key={post.id}

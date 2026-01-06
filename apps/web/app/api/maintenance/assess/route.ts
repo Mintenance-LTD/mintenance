@@ -8,6 +8,7 @@ import { MaintenanceAssessmentService } from '@/lib/services/maintenance/Mainten
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@mintenance/shared';
 
 // Request validation schema
 const assessmentRequestSchema = z.object({
@@ -53,13 +54,15 @@ export async function POST(request: NextRequest) {
     const { images, description, jobId, useSAM3, useGPTFallback, saveAssessment } = validationResult.data;
 
     // Log assessment request
-    // console.log(`Assessment request from user ${user.id}:`, {
+    // logger.info('Assessment request from user %s:, {
     //   imageCount: images.length,
     //   hasDescription: !!description,
     //   jobId,
     //   useSAM3,
     //   useGPTFallback
-    // });
+    // }', {
+        service: 'api'
+      });
 
     // Run assessment
     const assessment = await MaintenanceAssessmentService.assessMaintenanceIssue(
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Assessment error:', error);
+    logger.error('Assessment error:', error', [object Object], { service: 'api' });
 
     // Handle specific error types
     if (error instanceof Error) {
@@ -180,7 +183,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get assessment error:', error);
+    logger.error('Get assessment error:', error', [object Object], { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve assessment' },
       { status: 500 }
@@ -210,7 +213,7 @@ async function checkRateLimit(userId: string): Promise<boolean> {
 /**
  * Track usage metrics
  */
-async function trackUsageMetrics(userId: string, assessment: any): Promise<void> {
+async function trackUsageMetrics(userId: string, assessment: unknown): Promise<void> {
   const supabase = await createServerSupabaseClient();
 
   try {
@@ -228,7 +231,7 @@ async function trackUsageMetrics(userId: string, assessment: any): Promise<void>
     });
 
   } catch (error) {
-    console.error('Failed to track metrics:', error);
+    logger.error('Failed to track metrics:', error', [object Object], { service: 'api' });
     // Don't throw - metrics are not critical
   }
 }
@@ -236,7 +239,7 @@ async function trackUsageMetrics(userId: string, assessment: any): Promise<void>
 /**
  * Generate user-friendly message
  */
-function generateUserMessage(assessment: any): string {
+function generateUserMessage(assessment: unknown): string {
   if (assessment.status === 'identified') {
     const issue = assessment.issue_detected.replace('_', ' ');
     const severity = assessment.severity;

@@ -580,7 +580,7 @@ export class AutoRetrainingService {
   /**
    * Train model (placeholder - actual implementation would call ML service)
    */
-  private static async trainModel(trainingData: any, job: RetrainingJob): Promise<any> {
+  private static async trainModel(trainingData: unknown, job: RetrainingJob): Promise<any> {
     logger.info('Training model', {
       service: 'AutoRetrainingService',
       jobId: job.id,
@@ -600,7 +600,7 @@ export class AutoRetrainingService {
   /**
    * Validate model
    */
-  private static async validateModel(model: any, validationSet: any[]): Promise<any> {
+  private static async validateModel(model: unknown, validationSet: any[]): Promise<any> {
     // Placeholder validation metrics
     return {
       accuracy: 0.88 + Math.random() * 0.1,
@@ -617,7 +617,7 @@ export class AutoRetrainingService {
   /**
    * Test model
    */
-  private static async testModel(model: any, testSet: any[]): Promise<any> {
+  private static async testModel(model: unknown, testSet: any[]): Promise<any> {
     // Placeholder test metrics
     return {
       accuracy: 0.86 + Math.random() * 0.1,
@@ -630,7 +630,7 @@ export class AutoRetrainingService {
   /**
    * Compare with current model
    */
-  private static async compareWithCurrentModel(newMetrics: any): Promise<boolean> {
+  private static async compareWithCurrentModel(newMetrics: unknown): Promise<boolean> {
     try {
       // Get current model metrics
       const { data: currentBaseline } = await serverSupabase
@@ -659,7 +659,7 @@ export class AutoRetrainingService {
   /**
    * Deploy model based on strategy
    */
-  private static async deployModel(model: any, job: RetrainingJob): Promise<void> {
+  private static async deployModel(model: unknown, job: RetrainingJob): Promise<void> {
     const strategy = this.config.deploymentStrategy;
 
     switch (strategy) {
@@ -687,7 +687,7 @@ export class AutoRetrainingService {
   /**
    * Immediate deployment
    */
-  private static async deployImmediate(model: any, job: RetrainingJob): Promise<void> {
+  private static async deployImmediate(model: unknown, job: RetrainingJob): Promise<void> {
     logger.info('Deploying model immediately', {
       service: 'AutoRetrainingService',
       modelVersion: job.modelVersion
@@ -712,7 +712,7 @@ export class AutoRetrainingService {
   /**
    * Canary deployment
    */
-  private static async deployCanary(model: any, job: RetrainingJob): Promise<void> {
+  private static async deployCanary(model: unknown, job: RetrainingJob): Promise<void> {
     const percentage = this.config.canaryPercentage || 10;
 
     logger.info('Deploying model as canary', {
@@ -748,7 +748,7 @@ export class AutoRetrainingService {
   /**
    * Blue-green deployment
    */
-  private static async deployBlueGreen(model: any, job: RetrainingJob): Promise<void> {
+  private static async deployBlueGreen(model: unknown, job: RetrainingJob): Promise<void> {
     logger.info('Deploying model as blue-green', {
       service: 'AutoRetrainingService',
       modelVersion: job.modelVersion
@@ -783,7 +783,7 @@ export class AutoRetrainingService {
   /**
    * Shadow deployment
    */
-  private static async deployShadow(model: any, job: RetrainingJob): Promise<void> {
+  private static async deployShadow(model: unknown, job: RetrainingJob): Promise<void> {
     const duration = this.config.shadowDuration || 24;
 
     logger.info('Deploying model as shadow', {
@@ -1133,7 +1133,7 @@ export class AutoRetrainingService {
   /**
    * Check if model meets quality thresholds
    */
-  private static meetsQualityThresholds(metrics: any): boolean {
+  private static meetsQualityThresholds(metrics: unknown): boolean {
     return metrics.accuracy >= this.config.accuracyThreshold &&
            metrics.precision >= 0.8 &&
            metrics.recall >= 0.8 &&

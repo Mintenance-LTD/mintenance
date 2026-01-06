@@ -37,6 +37,7 @@ const staggerItem = {
 };
 
 import type { LucideIcon } from 'lucide-react';
+import { logger } from '@mintenance/shared';
 
 interface PricingPlan {
   id: string;
@@ -281,7 +282,7 @@ export default function PricingPage2025() {
         }
       }
     } catch (error) {
-      console.error('Subscription creation error:', error);
+      logger.error('Subscription creation error:', error', [object Object], { service: 'app' });
       toast.error('Network error. Please check your connection and try again.');
     } finally {
       setLoadingPlan(null);

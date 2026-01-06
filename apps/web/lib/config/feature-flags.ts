@@ -58,7 +58,7 @@ export class FeatureFlagService {
     private ldClient?: LDClient;
     private flags: LDFlagSet = {};
     private initialized = false;
-    private userContext: any = {};
+    private userContext: unknown = {};
 
     private constructor() {}
 
@@ -380,7 +380,7 @@ export function useFeatureFlag<T = any>(
 }
 
 // Next.js API route helper
-export async function initializeFeatureFlags(req: any): Promise<void> {
+export async function initializeFeatureFlags(req: unknown): Promise<void> {
     const userId = req.cookies?.userId || req.headers['x-user-id'];
     const attributes = {
         ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,

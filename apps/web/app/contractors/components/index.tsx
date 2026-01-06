@@ -9,7 +9,7 @@ import { ContractorsBrowseClient as ContractorsBrowseClientBase } from './Contra
  * Wraps the ContractorsBrowseClient component with an ErrorBoundary
  * to catch and handle any runtime errors gracefully
  */
-export function ContractorsBrowseClient(props: any) {
+export function ContractorsBrowseClient(props: unknown) {
   return (
     <ErrorBoundary>
       <ContractorsBrowseClientBase {...props} />

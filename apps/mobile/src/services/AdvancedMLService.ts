@@ -4,7 +4,7 @@
  * Provides basic ML functionality without complex dependencies
  */
 
-import { Job, ContractorProfile } from '../types';
+import { Job, ContractorProfile } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 interface PricingFactors {

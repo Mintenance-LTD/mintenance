@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
+import { logger } from '@mintenance/shared';
 
 type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'privacy' | 'automation';
 
@@ -638,7 +639,7 @@ export default function SettingsPage2025({
                                   setVerificationCode('');
 
                                 } catch (error) {
-                                  console.error('Verification error:', error);
+                                  logger.error('Verification error:', error', [object Object], { service: 'app' });
                                   toast.error('Failed to send verification code. Please try again.', { id: 'verify' });
                                 } finally {
                                   setIsSaving(false);
@@ -1017,7 +1018,7 @@ export default function SettingsPage2025({
                     refresh();
 
                   } catch (error) {
-                    console.error('Verification error:', error);
+                    logger.error('Verification error:', error', [object Object], { service: 'app' });
                     toast.error('Verification failed. Please try again.', { id: 'verify-code' });
                   } finally {
                     setIsSaving(false);

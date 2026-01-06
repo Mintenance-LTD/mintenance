@@ -1,5 +1,5 @@
 import { JobService } from '../../services/JobService';
-import { Job, Bid } from '../../types';
+import { Job, Bid } from '@mintenance/types';
 import { supabase } from '../../config/supabase';
 
 // Use global Supabase mock from jest-setup.js

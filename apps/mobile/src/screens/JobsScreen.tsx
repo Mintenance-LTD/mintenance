@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
-import { Job } from '../types';
+import { Job } from '@mintenance/types';
 import { theme } from '../theme';
 import { NavigationHeader } from '../components/navigation';
 import {

@@ -19,7 +19,7 @@ import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRe
 interface Params { params: Promise<{ id: string }> }
 
 // Cache AI analysis results for 24 hours
-const aiAnalysisCache = new Map<string, { timestamp: number; data: any }>();
+const aiAnalysisCache = new Map<string, { timestamp: number; data: unknown }>();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 function getCacheKey(jobId: string, imageUrls: string[]): string {
@@ -142,7 +142,7 @@ export async function GET(_req: NextRequest, context: Params) {
     });
 
     // Format comprehensive job data for frontend
-    const formattedJob: any = {
+    const formattedJob: unknown = {
       id: row.id,
       title: row.title,
       description: row.description,
@@ -166,8 +166,8 @@ export async function GET(_req: NextRequest, context: Params) {
       propertyType: row.property?.property_type || 'house',
       accessInfo: row.access_info || '',
       images: row.job_attachments
-        ?.filter((att: any) => att.file_type === 'image')
-        .map((att: any) => att.file_url) || [],
+        ?.filter((att: unknown) => att.file_type === 'image')
+        .map((att: unknown) => att.file_url) || [],
       requirements: row.requirements || [],
       latitude: row.latitude,
       longitude: row.longitude,
@@ -351,7 +351,7 @@ export async function PUT(request: NextRequest, context: Params) {
     }
 
     // Update job in database
-    const updatePayload: any = {
+    const updatePayload: unknown = {
       updated_at: new Date().toISOString(),
     };
 

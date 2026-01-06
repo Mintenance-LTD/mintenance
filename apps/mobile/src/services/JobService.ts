@@ -5,7 +5,7 @@
  * It maintains backward compatibility while using the new modular architecture.
  */
 
-import { Job, Bid } from '../types';
+import { Job, Bid } from '@mintenance/types';
 import { JobCRUDService } from './JobCRUDService';
 import { BidManagementService } from './BidManagementService';
 import { JobSearchService } from './JobSearchService';

@@ -4,7 +4,7 @@
  * Calculates security audit metrics and scores
  */
 
-import type { SecurityAuditReport, SecurityVulnerability, PenetrationTestResult } from '../types';
+import type { SecurityAuditReport, SecurityVulnerability, PenetrationTestResult } from '@mintenance/types';
 
 export class AuditSummaryCalculator {
   /**

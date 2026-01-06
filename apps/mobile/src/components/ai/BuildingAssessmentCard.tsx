@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import UnifiedAIServiceMobile from '../../services/UnifiedAIServiceMobile';
 import { BuildingAssessment } from '@mintenance/ai-core/types';
 import { theme } from '../../theme';
+import { logger } from '@mintenance/shared';
 
 interface BuildingAssessmentCardProps {
   images: string[];
@@ -70,7 +71,7 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
         }
       }
     } catch (error) {
-      console.error('Assessment failed:', error);
+      logger.error('Assessment failed:', error', [object Object], { service: 'ui' });
       Alert.alert('Assessment Failed', 'Unable to analyze images. Please try again.');
     } finally {
       setLoading(false);

@@ -6,7 +6,7 @@ import { JobService } from './JobService';
 import { MessagingService } from './MessagingService';
 import { queryClient } from '../lib/queryClient';
 import { logger } from '../utils/logger';
-import { User, Job } from '../types';
+import { User, Job } from '@mintenance/types';
 
 export type SyncStrategy = 'immediate' | 'background' | 'manual';
 export type SyncDirection = 'upload' | 'download' | 'bidirectional';

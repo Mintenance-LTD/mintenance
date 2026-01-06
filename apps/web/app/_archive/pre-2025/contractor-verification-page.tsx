@@ -18,7 +18,7 @@ interface VerificationStatus {
   hasGeolocation: boolean;
   hasCompanyName: boolean;
   isFullyVerified: boolean;
-  data: any;
+  data: unknown;
 }
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
@@ -88,7 +88,7 @@ export default function ContractorVerificationPage() {
         setInsurancePolicyNumber(data.data.insurance_policy_number || '');
         setInsuranceExpiryDate(data.data.insurance_expiry_date || '');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Verification load error:', error);
       const errorMessage = error.message || 'We could not load your verification data. Please try again shortly.';
       setFeedback({ tone: 'error', message: errorMessage });
@@ -130,7 +130,7 @@ export default function ContractorVerificationPage() {
           : 'Verification submitted. Address saved without geocoding.',
       });
       loadVerificationStatus();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setFeedback({ tone: 'error', message: error.message || 'Failed to submit verification.' });
     } finally {
       setSubmitting(false);
