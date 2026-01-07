@@ -250,19 +250,6 @@ const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     },
     upgradeMessage: 'Upgrade to create posts and engage with the contractor community.',
   },
-  CONTRACTOR_GROUPS: {
-    id: 'CONTRACTOR_GROUPS',
-    name: 'Contractor Groups',
-    description: 'Join and participate in contractor groups',
-    category: 'Social',
-    limits: {
-      free: false,
-      basic: false,
-      professional: true,
-      enterprise: true,
-    },
-    upgradeMessage: 'Upgrade to Professional to join contractor groups and network with peers.',
-  },
 
   // Portfolio & Branding
   CONTRACTOR_PORTFOLIO_PHOTOS: {
@@ -383,19 +370,6 @@ const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
       enterprise: true,
     },
     upgradeMessage: 'Upgrade to Professional for CRM tools to manage your customers.',
-  },
-  CONTRACTOR_TEAM_MANAGEMENT: {
-    id: 'CONTRACTOR_TEAM_MANAGEMENT',
-    name: 'Team Management',
-    description: 'Manage team members and assign roles',
-    category: 'Business Tools',
-    limits: {
-      free: false,
-      basic: false,
-      professional: false,
-      enterprise: true,
-    },
-    upgradeMessage: 'Upgrade to Enterprise to manage team members.',
   },
   CONTRACTOR_API_ACCESS: {
     id: 'CONTRACTOR_API_ACCESS',
@@ -569,19 +543,6 @@ const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
       enterprise: true,
     },
     upgradeMessage: 'Upgrade to Professional for training materials and courses.',
-  },
-  CONTRACTOR_PUBLISH_ARTICLES: {
-    id: 'CONTRACTOR_PUBLISH_ARTICLES',
-    name: 'Publish Articles',
-    description: 'Write and publish articles to showcase expertise',
-    category: 'Content',
-    limits: {
-      free: false,
-      basic: false,
-      professional: true,
-      enterprise: true,
-    },
-    upgradeMessage: 'Upgrade to Professional to publish articles and build your reputation.',
   },
 };
 

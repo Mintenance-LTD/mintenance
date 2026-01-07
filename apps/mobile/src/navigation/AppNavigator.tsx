@@ -29,7 +29,6 @@ import DiscoverNavigator from './navigators/DiscoverNavigator';
 
 // Import core screens
 import HomeScreen from '../screens/HomeScreen';
-import ContractorSocialScreen from '../screens/ContractorSocialScreen';
 
 // Import context and utilities
 import { useAuth } from '../contexts/AuthContext';
@@ -48,10 +47,6 @@ import { CustomTabBar } from './components/CustomTabBar';
 // ============================================================================
 
 const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
-const SafeContractorSocialScreen = withScreenErrorBoundary(
-  ContractorSocialScreen,
-  'Community Feed'
-);
 
 // ============================================================================
 // NAVIGATION STACKS
@@ -226,30 +221,6 @@ const TabNavigator: React.FC = () => {
         })}
       />
 
-      <Tab.Screen
-        name="FeedTab"
-        component={SafeContractorSocialScreen}
-        options={{
-          tabBarLabel: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="newspaper" size={size} color={color} />
-          ),
-          tabBarAccessibilityLabel: 'Community feed tab',
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              onPress={(e) => {
-                handleTabPress('FeedTab');
-                props.onPress?.(e);
-              }}
-              accessibilityRole="tab"
-              accessibilityLabel="Community feed tab"
-              accessibilityHint="Navigate to community feed"
-              style={[props.style, { minHeight: 44, minWidth: 44 }]}
-            />
-          ),
-        }}
-      />
 
       <Tab.Screen
         name="MessagingTab"

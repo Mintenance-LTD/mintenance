@@ -16,7 +16,6 @@ import ServiceAreasScreen from '../../screens/ServiceAreasScreen';
 import QuoteBuilderScreen from '../../screens/QuoteBuilderScreen';
 import { CreateQuoteScreen } from '../../screens/create-quote';
 import ContractorCardEditorScreen from '../../screens/ContractorCardEditorScreen';
-import ConnectionsScreen from '../../screens/ConnectionsScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -103,11 +102,6 @@ const SafeContractorCardEditorScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 
-const SafeConnectionsScreen = withScreenErrorBoundary(
-  ConnectionsScreen,
-  'Connections',
-  { fallbackRoute: 'ProfileMain' }
-);
 
 // ============================================================================
 // PROFILE NAVIGATOR
@@ -277,15 +271,6 @@ export const ProfileNavigator: React.FC = () => {
         }}
       />
 
-      <ProfileStack.Screen
-        name="Connections"
-        component={SafeConnectionsScreen}
-        options={{
-          title: 'Connections',
-          headerShown: false,
-          gestureEnabled: true,
-        }}
-      />
     </ProfileStack.Navigator>
   );
 };

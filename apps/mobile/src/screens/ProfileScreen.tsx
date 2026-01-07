@@ -361,22 +361,6 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('Connections')}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons
-                  name='people-outline'
-                  size={20}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <Text style={styles.menuText}>My Connections</Text>
-            </View>
-            <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
-          </TouchableOpacity>
 
           {user?.role === 'contractor' && (
             <>
