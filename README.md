@@ -1,10 +1,19 @@
 # 🏠 Mintenance - AI-Powered Contractor Discovery Marketplace
 
+**Connect homeowners with verified contractors for property maintenance and repair jobs. Powered by AI.**
+
+## 🔗 Connect With Us
+
+- **Website**: https://mintenance.co.uk
+- **GitHub**: https://github.com/Mintenance-LTD/mintenance
+- **LinkedIn**: [Mintenance](https://linkedin.com/company/mintenance)
+- **Twitter**: [@MintenanceUK](https://twitter.com/MintenanceUK)
+
+---
+
 [![Mobile Tests](https://github.com/Mintenance-LTD/mintenance/actions/workflows/mobile-tests.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/mobile-tests.yml)
 [![CI/CD Pipeline](https://github.com/Mintenance-LTD/mintenance/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/ci-cd.yml)
 [![Security Scan](https://github.com/Mintenance-LTD/mintenance/actions/workflows/security-scan.yml/badge.svg)](https://github.com/Mintenance-LTD/mintenance/actions/workflows/security-scan.yml)
-
-**Connect homeowners with verified contractors for property maintenance and repair jobs. Powered by AI.**
 
 ---
 
@@ -20,6 +29,7 @@
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Documentation](#documentation)
+- [Contributing](#contributing)
 
 ---
 
@@ -39,6 +49,20 @@
 - **Status**: Production Ready
 - **Test Coverage**: 87.7% (804/917 tests passing)
 - **Deployment**: Ready for mintenance.co.uk
+- **Location**: Greater Manchester, UK
+
+### Platform Statistics
+
+| Metric | Value |
+|--------|-------|
+| **Test Coverage** | 87.7% (804/917 tests passing) |
+| **Architecture** | Next.js 16 + React Native 0.82 |
+| **Database Migrations** | 120+ migrations |
+| **API Endpoints** | 200+ routes |
+| **Web Pages** | 514 TSX files |
+| **Mobile Screens** | 100+ screens |
+| **AI Services** | 6 major flows |
+| **Autonomous Agents** | 13 specialized agents |
 
 ---
 
@@ -64,13 +88,14 @@
 - **Payment Processing**: Receive payments via Stripe Connect
 - **Service Areas**: Define and manage service coverage areas
 - **Verification**: Get verified credentials to build trust
+- **Financial Dashboard**: Track earnings, payouts, and business metrics
 
 #### AI-Powered Features
-- **Building Surveyor AI**: Multi-model fusion (YOLO + SAM3 + GPT-4 Vision) for comprehensive property damage analysis
-- **Semantic Search**: AI-powered search for jobs and contractors
+- **Building Surveyor AI**: Multi-model fusion (YOLO v11 + SAM3 + GPT-4 Vision) for comprehensive property damage analysis
+- **Semantic Search**: AI-powered search for jobs and contractors using OpenAI embeddings
 - **Contractor Matching**: Intelligent matching based on skills, location, and past performance
 - **Pricing Intelligence**: AI-suggested pricing based on market data and job complexity
-- **Automated Workflows**: 12 specialized AI agents for bid acceptance, scheduling, notifications, and more
+- **Automated Workflows**: 13 specialized AI agents for bid acceptance, scheduling, notifications, and more
 
 ---
 
@@ -79,11 +104,12 @@
 ### Web Application
 - **Framework**: Next.js 16 (App Router)
 - **UI Library**: React 19
-- **Language**: TypeScript 5 (strict mode)
+- **Language**: TypeScript 5.9 (strict mode)
 - **Styling**: Tailwind CSS 4.1 + Radix UI + Shadcn UI
 - **State Management**: TanStack Query 5.90
 - **Forms**: React Hook Form 7.66 + Zod 4.1
 - **Animations**: Framer Motion 12.23
+- **Testing**: Vitest 4.0 + Playwright
 
 ### Mobile Application
 - **Framework**: Expo SDK ~54
@@ -93,19 +119,22 @@
 - **State Management**: TanStack Query 5.90 + React Context
 - **Animations**: React Native Reanimated 4.1 + Gesture Handler
 - **Maps**: React Native Maps
+- **Build**: EAS Build
+- **Monitoring**: Sentry React Native 7.6
 
 ### Backend & Infrastructure
-- **Database**: Supabase (PostgreSQL) with Row Level Security (RLS)
+- **Database**: Supabase (PostgreSQL 17) with Row Level Security (RLS)
 - **Authentication**: Supabase Auth + JWT tokens
 - **Storage**: Supabase Storage + Google Cloud Storage
 - **Payments**: Stripe 19.0 (Connect for contractors, Escrow for jobs)
 - **Real-time**: Supabase Realtime subscriptions
 - **Caching**: Upstash Redis
-- **AI/ML**: 
+- **AI/ML Services**:
   - OpenAI GPT-4 Vision for image analysis
   - YOLO v11 for damage detection (71 classes)
   - SAM3 for pixel-perfect segmentation
   - Custom ML models for pricing and matching
+  - Google Cloud AI Platform for model deployment
 
 ### Shared Packages (Monorepo)
 - `@mintenance/types` - TypeScript type definitions
@@ -114,6 +143,7 @@
 - `@mintenance/shared-ui` - Shared UI components (web/native)
 - `@mintenance/design-tokens` - Design system tokens
 - `@mintenance/api-client` - API client wrapper
+- `@mintenance/services` - Shared service layer (Auth, Payment, Job, Notification, etc.)
 
 ---
 
@@ -127,30 +157,49 @@ mintenance/
 │   ├── web/                    # Next.js 16 Web App
 │   │   ├── app/               # App Router routes
 │   │   │   ├── (auth)/       # Authentication routes
-│   │   │   ├── dashboard/   # Homeowner dashboard
+│   │   │   ├── dashboard/    # Homeowner dashboard
 │   │   │   ├── contractor/   # Contractor features
 │   │   │   ├── jobs/         # Job management
-│   │   │   ├── api/          # API routes
+│   │   │   ├── api/          # API routes (200+ endpoints)
 │   │   │   └── ...
 │   │   ├── components/       # React components
 │   │   ├── lib/              # Utilities and services
+│   │   │   ├── services/    # Business logic services
+│   │   │   ├── api/         # API client utilities
+│   │   │   └── ...
 │   │   └── ...
-│   └── mobile/                # Expo React Native App
-│       ├── app/              # Expo Router
-│       ├── components/       # React Native components
-│       ├── screens/          # Screen components
-│       └── ...
+│   ├── mobile/                # Expo React Native App
+│   │   ├── app/              # Expo Router
+│   │   ├── components/       # React Native components
+│   │   ├── screens/          # Screen components (100+)
+│   │   ├── services/         # Mobile-specific services
+│   │   └── ...
+│   ├── sam3-service/          # SAM3 AI Service (Python)
+│   └── sam2-video-service/    # SAM2 Video Service (Python)
 ├── packages/
 │   ├── types/                # Shared TypeScript types
 │   ├── auth/                 # Auth utilities
 │   ├── shared/               # Shared utilities
 │   ├── shared-ui/            # Shared UI components
 │   ├── design-tokens/        # Design system
-│   └── api-client/           # API client
+│   ├── api-client/           # API client
+│   ├── services/             # Shared service layer
+│   └── ai-core/              # AI/ML core utilities
 ├── supabase/
-│   ├── migrations/          # Database migrations
+│   ├── migrations/          # Database migrations (120+)
+│   │   ├── 001_core_tables.sql
+│   │   ├── 002_job_system.sql
+│   │   ├── 003_payment_system.sql
+│   │   ├── 004_security_audit.sql
+│   │   ├── 005_ml_ai_system.sql
+│   │   └── ...
 │   └── functions/           # Edge functions
+│       ├── setup-contractor-payout/
+│       └── test-payout/
 └── docs/                     # Documentation
+    ├── technical/           # Technical docs
+    ├── business/            # Business docs
+    └── ...
 ```
 
 ### Key Architectural Patterns
@@ -161,6 +210,8 @@ mintenance/
 - **Server Actions**: 'use server' functions for form submissions and mutations
 - **Type Safety**: Strict TypeScript with shared types from `@mintenance/types`
 - **Design Tokens**: Centralized design system via `@mintenance/design-tokens`
+- **Service Layer**: Shared business logic in `@mintenance/services` package
+- **Monorepo**: npm workspaces for code sharing between web and mobile
 
 ---
 
@@ -168,11 +219,12 @@ mintenance/
 
 ### Prerequisites
 
-- **Node.js**: 20.x or higher
+- **Node.js**: 20.19.4 or higher (see `.nvmrc` for exact version)
 - **npm**: 9.0.0 or higher
 - **Git**: Latest version
 - **Supabase Account**: For database and auth
 - **Stripe Account**: For payments (optional for development)
+- **Google Cloud Account**: For AI/ML services (optional for development)
 
 ### Installation
 
@@ -220,6 +272,13 @@ mintenance/
    NODE_ENV=development
    ```
 
+   Create `.env.local` in `apps/mobile/`:
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   ```
+
 4. **Set up Supabase database**
 
    Run migrations:
@@ -228,10 +287,20 @@ mintenance/
    supabase db push
 
    # Or manually via Supabase dashboard
-   # Apply all files in supabase/migrations/
+   # Apply all files in supabase/migrations/ in order:
+   # 001_core_tables.sql
+   # 002_job_system.sql
+   # 003_payment_system.sql
+   # 004_security_audit.sql
+   # 005_ml_ai_system.sql
    ```
 
-5. **Start development servers**
+5. **Build shared packages**
+   ```bash
+   npm run build:packages
+   ```
+
+6. **Start development servers**
 
    ```bash
    # Web app (default)
@@ -278,6 +347,14 @@ npm run type-check       # Type check all apps
 
 # Database
 npm run migrate:push     # Push all migrations to Supabase
+npm run migrate:setup    # Set up migration functions
+
+# Auditing
+npm run audit:all        # Run all audits (use-client, file-sizes, any-types, console)
+npm run audit:use-client # Audit 'use client' usage
+npm run audit:file-sizes # Check file sizes
+npm run audit:any-types  # Find any types
+npm run audit:console    # Find console statements
 ```
 
 ### Code Style
@@ -287,6 +364,7 @@ npm run migrate:push     # Push all migrations to Supabase
 - **Naming**: camelCase for variables/functions, PascalCase for components
 - **File Structure**: kebab-case for files, colocate related files
 - **Imports**: Use `@/` alias for app-specific, package names for shared
+- **File Size**: Keep files under 500 lines, split if approaching 400 lines
 
 See `AGENTS.md` for comprehensive coding standards and conventions.
 
@@ -294,21 +372,22 @@ See `AGENTS.md` for comprehensive coding standards and conventions.
 
 ## 🤖 AI Features
 
-### Building Surveyor AI
+### Building Surveyor AI (MintAI)
 
 The flagship AI feature that analyzes property damage photos using multiple models:
 
-- **YOLO v11**: Detects 71 damage classes (cracks, leaks, mold, etc.)
+- **YOLO v11**: Detects 71 damage classes (cracks, leaks, mold, structural issues, etc.)
 - **SAM3**: Pixel-perfect segmentation for precise damage boundaries
 - **GPT-4 Vision**: Semantic understanding and natural language descriptions
 - **Bayesian Fusion**: Combines evidence from all models mathematically
 - **Conformal Prediction**: Provides statistical confidence guarantees
+- **Hybrid Routing**: Intelligently routes between local and cloud models
 
 **Use Case**: Homeowners upload photos when creating jobs → AI analyzes damage → Provides assessment with safety concerns, repair estimates, and contractor recommendations.
 
 ### AI Agents
 
-12 specialized automation agents:
+13 specialized automation agents:
 
 1. **BidAcceptanceAgent**: Auto-accept high-quality bids based on criteria
 2. **PricingAgent**: AI-powered pricing recommendations
@@ -322,6 +401,7 @@ The flagship AI feature that analyzes property damage photos using multiple mode
 10. **EscrowAgent**: Automated escrow management
 11. **ReviewAgent**: Automated review prompts
 12. **VerificationAgent**: Contractor verification automation
+13. **EscrowReleaseAgent**: Automated escrow release workflows
 
 Users can control automation levels (Off, Basic, Standard, Full) per agent via the Settings page.
 
@@ -408,7 +488,9 @@ Before production deployment:
 - ✅ Set up environment variables
 - ✅ Enable security headers (CSP, HSTS, etc.)
 - ✅ Configure rate limiting
-- ✅ Set up monitoring and error tracking
+- ✅ Set up monitoring and error tracking (Sentry)
+- ✅ Verify all migrations are applied
+- ✅ Test payment flows end-to-end
 
 ---
 
@@ -426,11 +508,13 @@ Before production deployment:
 
 - API endpoints are documented in `docs/technical/api/API_DOCUMENTATION.md`
 - All API routes are in `apps/web/app/api/`
+- OpenAPI spec available at `apps/web/openapi.yaml`
 
 ### Database Schema
 
 - Migrations are in `supabase/migrations/`
 - Schema documentation in `docs/technical/database/`
+- Consolidated migrations: `001_core_tables.sql` through `005_ml_ai_system.sql`
 
 ---
 
@@ -440,9 +524,19 @@ Before production deployment:
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes following `AGENTS.md` guidelines
 4. Run tests: `npm run test && npm run e2e`
-5. Commit your changes: `git commit -m 'feat: add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+5. Run linting: `npm run lint && npm run type-check`
+6. Commit your changes: `git commit -m 'feat: add amazing feature'`
+7. Push to the branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+### Contribution Guidelines
+
+- Follow the coding standards in `AGENTS.md`
+- Write tests for new features
+- Keep files under 500 lines
+- Use TypeScript strict mode
+- Prefer Server Components over Client Components
+- Use design tokens from `@mintenance/design-tokens`
 
 ---
 
@@ -460,14 +554,6 @@ For technical issues or questions:
 - Review [deployment guides](docs/technical/deployment/)
 - Run verification: `npm run deploy:verify`
 - Check [troubleshooting guides](docs/debug/)
-
----
-
-## 🔗 Links
-
-- **Website**: https://mintenance.co.uk
-- **GitHub**: https://github.com/Mintenance-LTD/mintenance
-- **Documentation**: See `docs/` directory
 
 ---
 
