@@ -1,4 +1,17 @@
-import 'react-native-gesture-handler/jestSetup';
+
+// Platform Mocks - Temporarily disabled to fix circular dependency
+// jest.mock('react-native', () => require('./__mocks__/react-native.js'));
+jest.mock('@react-native-community/netinfo', () => require('./__mocks__/@react-native-community/netinfo.js'));
+jest.mock('react-native-gesture-handler', () => require('./__mocks__/react-native-gesture-handler.js'));
+// jest.mock('react-native-reanimated', () => require('./__mocks__/react-native-reanimated.js'));
+jest.mock('react-native-screens', () => require('./__mocks__/react-native-screens.js'));
+
+// Additional platform globals
+global.requestAnimationFrame = jest.fn((callback) => setTimeout(callback, 0));
+global.cancelAnimationFrame = jest.fn((id) => clearTimeout(id));
+
+// Use require instead of import for Jest compatibility
+require('react-native-gesture-handler/jestSetup');
 
 // Stabilize time and locale for consistent test results
 process.env.TZ = 'UTC';
@@ -39,20 +52,27 @@ jest.mock('react-native-localize', () => ({
   removeEventListener: jest.fn(),
 }), { virtual: true });
 
-// Mock React Native modules with better TypeScript support
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.NativeModules.SettingsManager = {
-    settings: {
-      AppleLocale: 'en_US',
-      AppleLanguages: ['en'],
-    },
-  };
-  RN.Alert = {
-    alert: jest.fn(),
-  };
-  return RN;
-});
+// React Native is now mocked by jest-expo preset
+// Additional native module mocks can be added if needed
+
+// Mock react-native-haptics
+jest.mock('react-native-haptics', () => ({
+  impact: jest.fn(),
+  selection: jest.fn(),
+  notification: jest.fn(),
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+    Soft: 'soft',
+    Rigid: 'rigid',
+  },
+  NotificationFeedbackType: {
+    Success: 'success',
+    Warning: 'warning',
+    Error: 'error',
+  },
+}), { virtual: true });
 
 // Mock Expo modules
 jest.mock('expo-location', () => ({
@@ -138,13 +158,13 @@ jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test-token]' })),
-  scheduleNotificationAsync: jest.fn(async () => 'mock-identifier'),
-  cancelScheduledNotificationAsync: jest.fn(async () => undefined),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('mock-identifier')),
+  cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve(undefined)),
   setNotificationHandler: jest.fn(),
   addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-  setBadgeCountAsync: jest.fn(async () => undefined),
-  setNotificationChannelAsync: jest.fn(async () => undefined),
+  setBadgeCountAsync: jest.fn(() => Promise.resolve(undefined)),
+  setNotificationChannelAsync: jest.fn(() => Promise.resolve(undefined)),
   AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
 }));
 
@@ -156,15 +176,30 @@ jest.mock('expo-device', () => __deviceState, { virtual: true });
 jest.mock('@react-native-async-storage/async-storage', () => {
   const store = {};
   return {
-    getItem: jest.fn(async (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null)),
-    setItem: jest.fn(async (key, value) => {
+    getItem: jest.fn((key) => Promise.resolve(Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null)),
+    setItem: jest.fn((key, value) => {
       store[key] = value;
+      return Promise.resolve();
     }),
-    removeItem: jest.fn(async (key) => {
+    removeItem: jest.fn((key) => {
       delete store[key];
+      return Promise.resolve();
     }),
-    clear: jest.fn(async () => {
+    clear: jest.fn(() => {
       Object.keys(store).forEach((k) => delete store[k]);
+      return Promise.resolve();
+    }),
+    getAllKeys: jest.fn(() => Promise.resolve(Object.keys(store))),
+    multiGet: jest.fn((keys) => Promise.resolve(keys.map((key) => [key, store[key] ?? null]))),
+    multiSet: jest.fn((pairs) => {
+      pairs.forEach(([key, value]) => {
+        store[key] = value;
+      });
+      return Promise.resolve();
+    }),
+    multiRemove: jest.fn((keys) => {
+      keys.forEach((key) => delete store[key]);
+      return Promise.resolve();
     }),
   };
 });
@@ -196,6 +231,13 @@ jest.mock('@sentry/react-native', () => ({
   setContext: jest.fn(),
   setTag: jest.fn(),
   init: jest.fn(),
+  reactNavigationIntegration: jest.fn(() => ({
+    name: 'ReactNavigation',
+    setupOnce: jest.fn(),
+  })),
+  ReactNavigationInstrumentation: jest.fn(() => ({
+    registerNavigationContainer: jest.fn(),
+  })),
 }), { virtual: true });
 
 // Mock sentry-expo
@@ -496,3 +538,6 @@ jest.mock(
   }),
   { virtual: true }
 );
+
+// Mock react-native-safe-area-context - Temporarily disabled to fix circular dependency
+// jest.mock('react-native-safe-area-context', () => require('./__mocks__/react-native-safe-area-context.js'));
