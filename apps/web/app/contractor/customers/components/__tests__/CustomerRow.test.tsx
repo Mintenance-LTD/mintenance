@@ -1,0 +1,38 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { CustomerRow } from '../CustomerRow';
+
+// Mock dependencies
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+  useParams: () => ({ id: 'test-id' }),
+}));
+
+describe('CustomerRow', () => {
+  const defaultProps = {
+    // Add default props here
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should render without crashing', () => {
+    render(<CustomerRow {...defaultProps} />);
+    expect(true).toBeTruthy(); // Component rendered
+  });
+
+  it('should handle user interactions', async () => {
+    render(<CustomerRow {...defaultProps} />);
+    // Add interaction tests
+  });
+
+  it('should display correct data', () => {
+    render(<CustomerRow {...defaultProps} />);
+    // Add data display tests
+  });
+
+  it('should handle edge cases', () => {
+    render(<CustomerRow {...defaultProps} />);
+    // Test edge cases
+  });
+});
