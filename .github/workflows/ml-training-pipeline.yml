@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload dataset artifact
         if: steps.validation.outputs.proceed == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: training-dataset-${{ steps.dataset.outputs.version }}
           path: /tmp/training-data
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload data report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: data-report-${{ steps.dataset.outputs.version }}
           path: /tmp/data-report.html
@@ -273,7 +273,7 @@ jobs:
             --output /tmp/model-package.tar.gz
 
       - name: Upload model artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: model-${{ steps.training.outputs.version }}
           path: /tmp/model-package.tar.gz

@@ -76,7 +76,7 @@ jobs:
       continue-on-error: true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: security-reports
@@ -172,7 +172,7 @@ jobs:
         grep -r "SECURITY DEFINER" supabase/migrations/ || true
 
     - name: Upload database security report
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: database-security-report
         path: |

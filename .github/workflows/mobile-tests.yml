@@ -60,7 +60,7 @@ jobs:
 
       - name: Archive test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: mobile-test-results
           path: |
@@ -129,7 +129,7 @@ jobs:
 
       - name: Archive integration test results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: integration-test-results
           path: apps/mobile/test-results/
