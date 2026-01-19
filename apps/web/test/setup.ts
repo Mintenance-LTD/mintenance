@@ -61,6 +61,16 @@ process.env.STRIPE_WEBHOOK_SECRET = 'whsec_abcdef123456ghijkl789012mnopqr345678s
 process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_51Abc123Def456Ghi789Jkl012Mno345Pqr678Stu901Vwx234';
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
+// Mock DOMPurify for sanitizer tests
+vi.mock('dompurify', async () => {
+  const { createMockDOMPurify } = await import('./mocks/dompurify');
+  const mockDOMPurify = createMockDOMPurify();
+
+  return {
+    default: vi.fn(() => mockDOMPurify),
+  };
+});
+
 // Mock crypto for consistent testing
 const mockCrypto = {
   randomUUID: () => `test-uuid-${Date.now()}`,
@@ -124,7 +134,7 @@ global.fetch = vi.fn(() =>
 
 // Suppress console errors in tests (unless debugging)
 const originalError = console.error;
-console.error = (...args: any[]) => {
+console.error = (...args: unknown[]) => {
   // Ignore specific React warnings in tests
   if (
     typeof args[0] === 'string' &&
