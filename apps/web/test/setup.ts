@@ -4,12 +4,38 @@
  */
 
 import '@testing-library/jest-dom';
+import React from 'react';
 import { expect, afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
 // Extend Vitest's expect with Testing Library matchers
 expect.extend(matchers);
+
+// Jest compatibility layer - make jest globals available for tests written for Jest
+// This allows tests using jest.fn(), jest.mock(), etc. to work with Vitest
+const jest = {
+  fn: vi.fn,
+  mock: vi.mock,
+  spyOn: vi.spyOn,
+  clearAllMocks: vi.clearAllMocks,
+  resetAllMocks: vi.resetAllMocks,
+  restoreAllMocks: vi.restoreAllMocks,
+  useFakeTimers: vi.useFakeTimers,
+  useRealTimers: vi.useRealTimers,
+  advanceTimersByTime: vi.advanceTimersByTime,
+  runAllTimers: vi.runAllTimers,
+  runOnlyPendingTimers: vi.runOnlyPendingTimers,
+  setSystemTime: vi.setSystemTime,
+  getMockName: vi.getMockName,
+  isMockFunction: vi.isMockFunction,
+  mocked: vi.mocked,
+  requireActual: vi.importActual,
+  requireMock: vi.importMock,
+};
+
+// Make jest available globally
+(globalThis as any).jest = jest;
 
 // Cleanup after each test
 afterEach(() => {
@@ -49,6 +75,52 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
+// Mock @tanstack/react-query for components using React Query
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query');
+  return {
+    ...actual,
+    useQuery: vi.fn().mockReturnValue({
+      data: [], // Return empty array instead of undefined to prevent .flatMap/.reduce errors
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+      isSuccess: true,
+      isFetching: false,
+      status: 'success',
+    }),
+    useMutation: vi.fn().mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn().mockResolvedValue({}),
+      isLoading: false,
+      isPending: false,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      status: 'idle',
+      reset: vi.fn(),
+    }),
+    useQueryClient: vi.fn().mockReturnValue({
+      invalidateQueries: vi.fn(),
+      setQueryData: vi.fn(),
+      getQueryData: vi.fn().mockReturnValue([]),
+      prefetchQuery: vi.fn(),
+      cancelQueries: vi.fn(),
+      clear: vi.fn(),
+    }),
+    QueryClient: vi.fn().mockImplementation(() => ({
+      invalidateQueries: vi.fn(),
+      setQueryData: vi.fn(),
+      getQueryData: vi.fn().mockReturnValue([]),
+      prefetchQuery: vi.fn(),
+      cancelQueries: vi.fn(),
+      clear: vi.fn(),
+    })),
+    QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
+
 // Mock environment variables
 process.env.NODE_ENV = 'test';
 // JWT_SECRET must be at least 64 characters and look random (no weak patterns like 'test-jwt', 'placeholder', etc.)
@@ -62,12 +134,20 @@ process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_51Abc123Def456Ghi789Jk
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
 // Mock DOMPurify for sanitizer tests
+// The mock must return the sanitize function directly when called without arguments
+// and also work when called as a constructor with window
 vi.mock('dompurify', async () => {
   const { createMockDOMPurify } = await import('./mocks/dompurify');
   const mockDOMPurify = createMockDOMPurify();
 
+  // Create a callable function that also has all properties of mockDOMPurify
+  const DOMPurifyMock = Object.assign(
+    (window?: unknown) => mockDOMPurify,
+    mockDOMPurify
+  );
+
   return {
-    default: vi.fn(() => mockDOMPurify),
+    default: DOMPurifyMock,
   };
 });
 
