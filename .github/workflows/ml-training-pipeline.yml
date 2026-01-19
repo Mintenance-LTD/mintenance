@@ -203,7 +203,7 @@ jobs:
           pip install -r requirements-ml-${{ matrix.model_type }}.txt
 
       - name: Download training dataset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v7
         with:
           name: training-dataset-${{ needs.data-preparation.outputs.dataset_version }}
           path: /tmp/training-data
@@ -354,7 +354,7 @@ jobs:
           pip install boto3 kubernetes
 
       - name: Download model artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v7
         with:
           name: model-${{ needs.model-training.outputs.model_version }}
           path: /tmp/models
