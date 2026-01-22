@@ -9,18 +9,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-
-jest.mock('../../services/LocationService', () => ({
-  LocationService: {
-    ...jest.requireActual('../../services/LocationService').LocationService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
-import { LocationService } from '../../services/LocationService';
 import * as Location from 'expo-location';
 import { logger } from '../../utils/logger';
+
+// Import the REAL LocationService (not mocked) - we want to test the actual implementation
+import { LocationService } from '../../services/LocationService';
 
 // Mock expo-location
 jest.mock('expo-location', () => ({

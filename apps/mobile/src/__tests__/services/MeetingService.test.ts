@@ -9,22 +9,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-
-jest.mock('../../services/MeetingService', () => ({
-  MeetingService: {
-    ...jest.requireActual('../../services/MeetingService').MeetingService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
-import { MeetingService } from '../../services/MeetingService';
 import {
   ContractorMeeting,
   ContractorLocation,
   MeetingUpdate,
   LocationData,
 } from '../../types';
+
+// Import the REAL MeetingService (not mocked) - we want to test the actual implementation
+import { MeetingService } from '../../services/MeetingService';
 
 // Mock data (defined first so it can be used in mocks)
 const mockMeetingData = {

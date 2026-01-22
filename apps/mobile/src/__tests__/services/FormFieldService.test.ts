@@ -9,20 +9,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-
-jest.mock('../../services/FormFieldService', () => ({
-  FormFieldService: {
-    ...jest.requireActual('../../services/FormFieldService').FormFieldService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
-import { FormFieldService, FormField } from '../../services/FormFieldService';
 import { supabase } from '../../config/supabase';
 
 // Mock supabase
 jest.mock('../../config/supabase');
+
+// Import the REAL FormFieldService (not mocked) - we want to test the actual implementation
+import { FormFieldService, FormField } from '../../services/FormFieldService';
 
 // Mock serviceHelper
 jest.mock('../../utils/serviceHelper', () => ({

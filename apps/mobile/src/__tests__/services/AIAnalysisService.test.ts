@@ -9,21 +9,14 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
+import { Job } from '../../types';
+import { logger } from '../../utils/logger';
 
-jest.mock('../../services/AIAnalysisService', () => ({
-  AIAnalysisService: {
-    ...jest.requireActual('../../services/AIAnalysisService').AIAnalysisService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
+// Import the REAL AIAnalysisService (not mocked) - we want to test the actual implementation
 import {
   AIAnalysisService,
   AIAnalysis,
 } from '../../services/AIAnalysisService';
-import { Job } from '../../types';
-import { logger } from '../../utils/logger';
 
 // Define enums locally for tests
 enum JobPriority {

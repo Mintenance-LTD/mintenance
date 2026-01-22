@@ -9,16 +9,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-
-jest.mock('../../services/FormTemplateService', () => ({
-  FormTemplateService: {
-    ...jest.requireActual('../../services/FormTemplateService').FormTemplateService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
-import { FormTemplateService, FormTemplate, CreateFormTemplateData } from '../../services/FormTemplateService';
 import { supabase } from '../../config/supabase';
 
 // Mock supabase
@@ -72,6 +62,9 @@ jest.mock('../../utils/serviceHealthMonitor', () => ({
 }));
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+
+// Import the REAL FormTemplateService (not mocked) - we want to test the actual implementation
+import { FormTemplateService, FormTemplate, CreateFormTemplateData } from '../../services/FormTemplateService';
 
 describe('FormTemplateService', () => {
   beforeEach(() => {
