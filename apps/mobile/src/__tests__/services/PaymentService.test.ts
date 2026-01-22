@@ -297,13 +297,18 @@ describe('PaymentService', () => {
         eq: jest.fn().mockResolvedValue({ error: null }),
       } as any);
 
-      await PaymentService.releaseEscrow({
+      const result = await PaymentService.releaseEscrow({
         paymentIntentId: 'pi_test_123',
         jobId: 'job-1',
         contractorId: 'contractor-1',
         amount: 150,
       });
 
+      // ✅ Test actual behavior - verify return value
+      expect(result.success).toBe(true);
+      expect(result.transfer_id).toBe('tr_test_123');
+
+      // Secondary: Verify job status update
       expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
       expect(mockSupabase.from().update).toHaveBeenCalledWith({
         status: 'completed',
@@ -344,8 +349,30 @@ describe('PaymentService', () => {
     });
 
     it('filters payments by status', async () => {
-      await PaymentService.getPaymentHistory('user-1', 'completed');
+      const mockFilteredPayments = [
+        {
+          id: 'pay-1',
+          amount: 150,
+          status: 'completed',
+          job_title: 'Kitchen Faucet Repair',
+          created_at: '2024-01-01T00:00:00Z',
+        },
+      ];
 
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({ data: mockFilteredPayments, error: null }),
+      } as any);
+
+      const result = await PaymentService.getPaymentHistory('user-1', 'completed');
+
+      // ✅ Test actual behavior - verify filtered results
+      expect(result).toEqual(mockFilteredPayments);
+      expect(result.length).toBe(1);
+      expect(result[0].status).toBe('completed');
+
+      // Secondary: Verify filter was applied
       const mockQuery = mockSupabase.from().select().eq();
       expect(mockQuery.eq).toHaveBeenCalledWith('status', 'completed');
     });
@@ -381,16 +408,22 @@ describe('PaymentService', () => {
 
     it('handles partial refunds', async () => {
       mockSupabase.functions.invoke.mockResolvedValue({
-        data: { success: true, refund_id: 're_test_124' },
+        data: { success: true, refund_id: 're_test_124', amount_refunded: 75 },
         error: null,
       });
 
-      await PaymentService.refundPayment({
+      const result = await PaymentService.refundPayment({
         paymentIntentId: 'pi_test_123',
         amount: 75, // Partial refund
         reason: 'requested_by_customer',
       });
 
+      // ✅ Test actual behavior - verify partial refund result
+      expect(result.success).toBe(true);
+      expect(result.refund_id).toBe('re_test_124');
+      expect(result.amount_refunded).toBe(75);
+
+      // Secondary: Verify correct amount was sent
       expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
         'process-refund',
         {
@@ -436,6 +469,335 @@ describe('PaymentService', () => {
 
       expect(result.platformFee).toBe(50); // Cap at $50
       expect(result.contractorAmount).toBeGreaterThan(4800); // More realistic expectation
+    });
+  });
+
+  // ========================================================================
+  // NEW TESTS - Additional coverage for business logic
+  // ========================================================================
+
+  describe('initializePayment - additional validation', () => {
+    it('converts decimal amounts to cents correctly', async () => {
+      mockSupabase.functions.invoke.mockResolvedValue({
+        data: { client_secret: 'pi_secret_test' },
+        error: null,
+      });
+
+      const result = await PaymentService.initializePayment({
+        amount: 99.99,
+        jobId: 'job-1',
+        contractorId: 'contractor-1',
+      });
+
+      // ✅ Test actual behavior - verify return value
+      expect(result.client_secret).toBe('pi_secret_test');
+
+      // Secondary: Verify dollar->cent conversion logic
+      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
+        'create-payment-intent',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            amount: 9999, // Converted to cents
+          }),
+        })
+      );
+    });
+
+    it('handles very small amounts correctly', async () => {
+      mockSupabase.functions.invoke.mockResolvedValue({
+        data: { client_secret: 'pi_secret_test' },
+        error: null,
+      });
+
+      const result = await PaymentService.initializePayment({
+        amount: 0.50, // 50 cents
+        jobId: 'job-1',
+        contractorId: 'contractor-1',
+      });
+
+      // ✅ Test actual behavior - verify return value
+      expect(result.client_secret).toBe('pi_secret_test');
+
+      // Secondary: Verify conversion
+      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
+        'create-payment-intent',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            amount: 50,
+          }),
+        })
+      );
+    });
+
+    it('rejects negative amounts', async () => {
+      await expect(
+        PaymentService.initializePayment({
+          amount: -100,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        })
+      ).rejects.toThrow('Amount must be greater than 0');
+    });
+
+    it('rejects NaN amounts', async () => {
+      await expect(
+        PaymentService.initializePayment({
+          amount: NaN,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        })
+      ).rejects.toThrow('Amount must be greater than 0');
+    });
+
+    it('rejects Infinity amounts', async () => {
+      await expect(
+        PaymentService.initializePayment({
+          amount: Infinity,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        })
+      ).rejects.toThrow('Amount must be greater than 0');
+    });
+
+    it('handles network errors gracefully', async () => {
+      mockSupabase.functions.invoke.mockRejectedValue(
+        new Error('Network timeout')
+      );
+
+      await expect(
+        PaymentService.initializePayment({
+          amount: 150,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        })
+      ).rejects.toThrow('Network timeout');
+    });
+  });
+
+  describe('createPaymentMethod - additional validation', () => {
+    it('validates expired card (past year)', async () => {
+      const pastYear = new Date().getFullYear() - 1;
+
+      await expect(
+        PaymentService.createPaymentMethod({
+          type: 'card',
+          card: {
+            number: '4242424242424242',
+            expMonth: 12,
+            expYear: pastYear,
+            cvc: '123',
+          },
+        })
+      ).rejects.toThrow('Card has expired');
+    });
+
+    it('validates expired card (current year, past month)', async () => {
+      const currentYear = new Date().getFullYear();
+      const pastMonth = new Date().getMonth(); // 0-indexed, so current month - 1
+
+      await expect(
+        PaymentService.createPaymentMethod({
+          type: 'card',
+          card: {
+            number: '4242424242424242',
+            expMonth: pastMonth || 12, // Handle January edge case
+            expYear: pastMonth === 0 ? currentYear - 1 : currentYear,
+            cvc: '123',
+          },
+        })
+      ).rejects.toThrow('Card has expired');
+    });
+
+    it('accepts current month and year', async () => {
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1; // Convert to 1-indexed
+
+      mockStripe.createPaymentMethod.mockResolvedValue({
+        paymentMethod: mockPaymentMethod,
+        error: null,
+      });
+
+      const result = await PaymentService.createPaymentMethod({
+        type: 'card',
+        card: {
+          number: '4242424242424242',
+          expMonth: currentMonth,
+          expYear: currentYear,
+          cvc: '123',
+        },
+      });
+
+      expect(result.id).toBeDefined();
+    });
+  });
+
+  describe('refundPayment - additional validation', () => {
+    it('validates refund amount is not negative', async () => {
+      await expect(
+        PaymentService.refundPayment({
+          paymentIntentId: 'pi_test_123',
+          amount: -50,
+          reason: 'requested_by_customer',
+        })
+      ).rejects.toThrow('Refund amount must be greater than 0');
+    });
+
+    it('validates refund amount is not NaN', async () => {
+      await expect(
+        PaymentService.refundPayment({
+          paymentIntentId: 'pi_test_123',
+          amount: NaN,
+          reason: 'requested_by_customer',
+        })
+      ).rejects.toThrow('Refund amount must be greater than 0');
+    });
+
+    it('handles refund processing errors', async () => {
+      const error = { message: 'Refund already processed' };
+      mockSupabase.functions.invoke.mockResolvedValue({
+        data: null,
+        error,
+      });
+
+      await expect(
+        PaymentService.refundPayment({
+          paymentIntentId: 'pi_test_123',
+          amount: 100,
+          reason: 'requested_by_customer',
+        })
+      ).rejects.toThrow('Refund already processed');
+    });
+
+    it('handles Stripe API errors during refund', async () => {
+      mockSupabase.functions.invoke.mockRejectedValue(
+        new Error('Stripe API error: insufficient funds')
+      );
+
+      await expect(
+        PaymentService.refundPayment({
+          paymentIntentId: 'pi_test_123',
+          amount: 100,
+          reason: 'requested_by_customer',
+        })
+      ).rejects.toThrow('Stripe API error: insufficient funds');
+    });
+  });
+
+  describe('releaseEscrow - additional scenarios', () => {
+    it('handles job status update failure', async () => {
+      mockSupabase.functions.invoke.mockResolvedValue({
+        data: { success: true, transfer_id: 'tr_test_123' },
+        error: null,
+      });
+
+      mockSupabase.from.mockReturnValue({
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
+          error: { message: 'Job not found' }
+        }),
+      } as any);
+
+      await expect(
+        PaymentService.releaseEscrow({
+          paymentIntentId: 'pi_test_123',
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+          amount: 150,
+        })
+      ).rejects.toThrow('Job not found');
+    });
+
+    it('releases escrow and returns transfer ID', async () => {
+      const transferId = 'tr_custom_456';
+      mockSupabase.functions.invoke.mockResolvedValue({
+        data: { success: true, transfer_id: transferId },
+        error: null,
+      });
+
+      mockSupabase.from.mockReturnValue({
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      } as any);
+
+      const result = await PaymentService.releaseEscrow({
+        paymentIntentId: 'pi_test_123',
+        jobId: 'job-1',
+        contractorId: 'contractor-1',
+        amount: 150,
+      });
+
+      // ✅ Verify transfer ID is returned
+      expect(result.transfer_id).toBe(transferId);
+    });
+  });
+
+  describe('calculateFees - edge cases', () => {
+    it('calculates fees for very small amounts', () => {
+      const result = PaymentService.calculateFees(1);
+
+      // Minimum platform fee applies
+      expect(result.platformFee).toBe(0.5);
+      expect(result.stripeFee).toBeGreaterThan(0.3); // At least fixed fee
+      expect(result.contractorAmount).toBeLessThan(1);
+      expect(result.totalFees).toBeGreaterThan(0.5);
+    });
+
+    it('calculates fees for exact maximum platform fee threshold', () => {
+      // $1000 * 5% = $50 (exact cap)
+      const result = PaymentService.calculateFees(1000);
+
+      expect(result.platformFee).toBe(50);
+      expect(result.totalFees).toBeGreaterThan(50); // Including Stripe fee
+    });
+
+    it('returns fees with proper decimal precision', () => {
+      const result = PaymentService.calculateFees(123.45);
+
+      // All fees should be rounded to 2 decimals
+      expect(result.platformFee.toString().split('.')[1]?.length || 0).toBeLessThanOrEqual(2);
+      expect(result.stripeFee.toString().split('.')[1]?.length || 0).toBeLessThanOrEqual(2);
+      expect(result.contractorAmount.toString().split('.')[1]?.length || 0).toBeLessThanOrEqual(2);
+      expect(result.totalFees.toString().split('.')[1]?.length || 0).toBeLessThanOrEqual(2);
+    });
+
+    it('contractor receives correct amount after fees', () => {
+      const amount = 100;
+      const result = PaymentService.calculateFees(amount);
+
+      // Verify: amount = contractorAmount + totalFees
+      const reconstructed = result.contractorAmount + result.totalFees;
+      expect(Math.abs(reconstructed - amount)).toBeLessThan(0.01); // Allow for rounding
+    });
+  });
+
+  describe('getPaymentHistory - error handling', () => {
+    it('returns empty array on database error', async () => {
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' }
+        }),
+      } as any);
+
+      const result = await PaymentService.getPaymentHistory('user-1');
+
+      // ✅ Should return empty array, not throw
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when user has no payments', async () => {
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockResolvedValue({ data: [], error: null }),
+      } as any);
+
+      const result = await PaymentService.getPaymentHistory('user-1');
+
+      expect(result).toEqual([]);
+      expect(result.length).toBe(0);
     });
   });
 });
