@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -122,7 +123,7 @@ export default function AnalyticsPage2025() {
           { label: 'Properties', value: (propertiesCount || 0).toString(), change: '0', changeType: 'neutral', icon: '🏠' },
         ]);
       } catch (error) {
-        console.error('Error fetching analytics:', error);
+        logger.error('Error fetching analytics:', error);
       } finally {
         setLoading(false);
       }

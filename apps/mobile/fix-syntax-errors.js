@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing syntax errors in test files...\n');
+logger.info('🔧 Fixing syntax errors in test files...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -26,14 +28,14 @@ testFiles.forEach(file => {
     content = content.replace(/import type { Job } from '@\/types';\s*\nimport { Job } from '@mintenance\/types';/g,
                              "import type { Job } from '@/types';");
     modified = true;
-    console.log(`  Fixed duplicate Job import in ${fileName}`);
+    logger.info(`  Fixed duplicate Job import in ${fileName}`);
   }
 
   // Fix 2: General duplicate imports pattern
   const importPattern = /import\s+(?:type\s+)?{\s*(\w+)\s*}\s+from\s+['"]([^'"]+)['"];\s*\nimport\s+{\s*\1\s*}\s+from\s+['"]([^'"]+)['"]/g;
   if (importPattern.test(content)) {
     content = content.replace(importPattern, (match, name, path1, path2) => {
-      console.log(`  Fixed duplicate import of ${name} in ${fileName}`);
+      logger.info(`  Fixed duplicate import of ${name} in ${fileName}`);
       // Keep the first import, remove the second
       return `import type { ${name} } from '${path1}'`;
     });
@@ -56,7 +58,7 @@ testFiles.forEach(file => {
           importMap.set(imp, { line, path: modulePath });
         } else {
           // Duplicate import found, skip this line
-          console.log(`  Skipping duplicate import of ${imp} in ${fileName}`);
+          logger.info(`  Skipping duplicate import of ${imp} in ${fileName}`);
           modified = true;
           return;
         }
@@ -78,14 +80,14 @@ testFiles.forEach(file => {
   if (content.includes("from '@/types'") && !fs.existsSync(path.join(__dirname, 'src/types/index.ts'))) {
     content = content.replace(/@\/types/g, '../../types');
     modified = true;
-    console.log(`  Fixed @/types import path in ${fileName}`);
+    logger.info(`  Fixed @/types import path in ${fileName}`);
   }
 
   // Fix 5: Fix @mintenance/types imports
   content = content.replace(/@mintenance\/types/g, '../../types');
   if (original.includes('@mintenance/types')) {
     modified = true;
-    console.log(`  Fixed @mintenance/types import in ${fileName}`);
+    logger.info(`  Fixed @mintenance/types import in ${fileName}`);
   }
 
   // Fix 6: Remove completely duplicate lines
@@ -126,7 +128,7 @@ testFiles.forEach(file => {
     }
 
     modified = true;
-    console.log(`  Applied specific fixes to ${fileName}`);
+    logger.info(`  Applied specific fixes to ${fileName}`);
   }
 
   // Fix 8: Fix React import in test files (should be at the top)
@@ -136,7 +138,7 @@ testFiles.forEach(file => {
       content = content.replace(reactImportLine, '');
       content = `${reactImportLine}\n${content}`;
       modified = true;
-      console.log(`  Moved React import to top in ${fileName}`);
+      logger.info(`  Moved React import to top in ${fileName}`);
     }
   }
 
@@ -159,10 +161,10 @@ testFiles.forEach(file => {
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files checked: ${testFiles.length}`);
-console.log(`  Total files fixed: ${totalFixes}`);
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files checked: ${testFiles.length}`);
+logger.info(`  Total files fixed: ${totalFixes}`);
 if (fixedFiles.length > 0) {
-  console.log(`  Fixed files: ${fixedFiles.slice(0, 10).join(', ')}${fixedFiles.length > 10 ? '...' : ''}`);
+  logger.info(`  Fixed files: ${fixedFiles.slice(0, 10).join(', ')}${fixedFiles.length > 10 ? '...' : ''}`);
 }
-console.log('\n✨ Syntax error fixes complete!');
+logger.info('\n✨ Syntax error fixes complete!');

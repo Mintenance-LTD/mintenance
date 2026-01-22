@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔧 Phase 9: Focused fixes on high-value tests...\n');
+logger.info('🔧 Phase 9: Focused fixes on high-value tests...\n');
 
 // High-value test files to fix
 const targetTests = [
@@ -30,13 +32,13 @@ const targetTests = [
 let fixedCount = 0;
 let passingCount = 0;
 
-console.log('📊 Testing and fixing high-value tests:\n');
+logger.info('📊 Testing and fixing high-value tests:\n');
 
 targetTests.forEach(testPath => {
   const fullPath = path.join(__dirname, testPath);
 
   if (!fs.existsSync(fullPath)) {
-    console.log(`  ⚠️  ${path.basename(testPath)} - Not found`);
+    logger.info(`  ⚠️  ${path.basename(testPath)} - Not found`);
     return;
   }
 
@@ -46,14 +48,14 @@ targetTests.forEach(testPath => {
       cwd: __dirname,
       stdio: 'pipe'
     });
-    console.log(`  ✅ ${path.basename(testPath)} - Already passing`);
+    logger.info(`  ✅ ${path.basename(testPath)} - Already passing`);
     passingCount++;
     return;
   } catch (error) {
     // Test is failing, let's fix it
   }
 
-  console.log(`  🔧 ${path.basename(testPath)} - Fixing...`);
+  logger.info(`  🔧 ${path.basename(testPath)} - Fixing...`);
 
   let content = fs.readFileSync(fullPath, 'utf8');
   const original = content;
@@ -74,7 +76,7 @@ export const ${utilName} = {
 
 export default ${utilName};`;
       fs.writeFileSync(utilPath, basicUtil);
-      console.log(`      Created ${utilName}.ts`);
+      logger.info(`      Created ${utilName}.ts`);
     }
 
     // Fix import statement
@@ -201,23 +203,23 @@ afterAll(() => {
         cwd: __dirname,
         stdio: 'pipe'
       });
-      console.log(`      ✅ Fixed and now passing!`);
+      logger.info(`      ✅ Fixed and now passing!`);
       passingCount++;
     } catch (error) {
-      console.log(`      ⚠️  Fixed but still failing`);
+      logger.info(`      ⚠️  Fixed but still failing`);
     }
   } else {
-    console.log(`      ❌ Still failing`);
+    logger.info(`      ❌ Still failing`);
   }
 });
 
-console.log('\n📊 Summary:');
-console.log(`  Tests targeted: ${targetTests.length}`);
-console.log(`  Tests fixed: ${fixedCount}`);
-console.log(`  Tests passing: ${passingCount}`);
+logger.info('\n📊 Summary:');
+logger.info(`  Tests targeted: ${targetTests.length}`);
+logger.info(`  Tests fixed: ${fixedCount}`);
+logger.info(`  Tests passing: ${passingCount}`);
 
 // Create missing utility stubs
-console.log('\n🔧 Creating missing utility stubs...\n');
+logger.info('\n🔧 Creating missing utility stubs...\n');
 
 const missingUtils = [
   'validation-infrastructure',
@@ -236,8 +238,8 @@ export const ${utilName.replace(/-/g, '_')} = {
 
 export default ${utilName.replace(/-/g, '_')};`;
     fs.writeFileSync(utilPath, stub);
-    console.log(`  Created ${utilName}.ts stub`);
+    logger.info(`  Created ${utilName}.ts stub`);
   }
 });
 
-console.log('\n✨ Phase 9 focused fixes complete!');
+logger.info('\n✨ Phase 9 focused fixes complete!');

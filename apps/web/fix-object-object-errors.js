@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 /**
  * Fix [object Object] syntax errors in logger calls
  * This script fixes malformed logger calls like:
@@ -90,7 +92,7 @@ filesToFix.forEach(file => {
   const filePath = path.join(__dirname, file);
 
   if (!fs.existsSync(filePath)) {
-    console.log(`⚠️  File not found: ${file}`);
+    logger.info(`⚠️  File not found: ${file}`);
     return;
   }
 
@@ -130,10 +132,10 @@ filesToFix.forEach(file => {
 
   if (content !== originalContent) {
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`✅ Fixed ${fileFixed} issues in: ${file}`);
+    logger.info(`✅ Fixed ${fileFixed} issues in: ${file}`);
     totalFixed += fileFixed;
     totalFiles++;
   }
 });
 
-console.log(`\n🎉 Total: Fixed ${totalFixed} issues across ${totalFiles} files`);
+logger.info(`\n🎉 Total: Fixed ${totalFixed} issues across ${totalFiles} files`);

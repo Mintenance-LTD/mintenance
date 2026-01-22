@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing async test patterns and common issues...\n');
+logger.info('🔧 Fixing async test patterns and common issues...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -61,7 +63,7 @@ testFiles.forEach(file => {
     if (content !== original) {
       stats.fixedImports++;
       modified = true;
-      console.log(`  Fixed test-utils import in ${fileName} -> ${correctPath}`);
+      logger.info(`  Fixed test-utils import in ${fileName} -> ${correctPath}`);
     }
   }
 
@@ -263,15 +265,15 @@ jest.mock('react-native/Libraries/Interaction/InteractionManager', () => ({
 
   if (modified && content !== original) {
     fs.writeFileSync(file, content, 'utf8');
-    console.log(`  ✅ Fixed: ${fileName}`);
+    logger.info(`  ✅ Fixed: ${fileName}`);
   }
 });
 
-console.log('\n📊 Async Test Fix Summary:');
-console.log(`  Total files checked: ${stats.totalFiles}`);
-console.log(`  Fixed import paths: ${stats.fixedImports}`);
-console.log(`  Added async/await: ${stats.fixedAsync}`);
-console.log(`  Added waitFor: ${stats.addedWaitFor}`);
-console.log(`  Fixed timeouts: ${stats.fixedTimeouts}`);
-console.log(`  Added async mocks: ${stats.addedMocks}`);
-console.log('\n✨ Async test fixes complete!');
+logger.info('\n📊 Async Test Fix Summary:');
+logger.info(`  Total files checked: ${stats.totalFiles}`);
+logger.info(`  Fixed import paths: ${stats.fixedImports}`);
+logger.info(`  Added async/await: ${stats.fixedAsync}`);
+logger.info(`  Added waitFor: ${stats.addedWaitFor}`);
+logger.info(`  Fixed timeouts: ${stats.fixedTimeouts}`);
+logger.info(`  Added async mocks: ${stats.addedMocks}`);
+logger.info('\n✨ Async test fixes complete!');

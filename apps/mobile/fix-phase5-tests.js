@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing Phase 5 test issues...\n');
+logger.info('🔧 Fixing Phase 5 test issues...\n');
 
 // Find all Phase 5 test files
 const phase5Dirs = [
@@ -163,7 +163,7 @@ export const isValidURL = (url: string): boolean => {
 };
 `;
         fs.writeFileSync(validationPath, validationModule);
-        console.log('  Created validation.ts module');
+        logger.info('  Created validation.ts module');
       }
     }
 
@@ -267,7 +267,7 @@ export const toSlug = (text: string): string => {
 };
 `;
         fs.writeFileSync(formattersPath, formattersModule);
-        console.log('  Created formatters.ts module');
+        logger.info('  Created formatters.ts module');
       }
     }
 
@@ -278,6 +278,7 @@ export const toSlug = (text: string): string => {
         const hookModule = `
 import { useEffect, useState } from 'react';
 
+import { logger } from '@mintenance/shared';
 export const useDebounce = <T>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -295,7 +296,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 };
 `;
         fs.writeFileSync(hookPath, hookModule);
-        console.log('  Created useDebounce.ts hook');
+        logger.info('  Created useDebounce.ts hook');
       }
     }
 
@@ -377,18 +378,18 @@ export const useInfiniteScroll = (fetchFn: (page: number) => Promise<any>) => {
 };
 `;
         fs.writeFileSync(hookPath, hookModule);
-        console.log('  Created useInfiniteScroll.ts hook');
+        logger.info('  Created useInfiniteScroll.ts hook');
       }
     }
 
     if (modified && content !== original) {
       fs.writeFileSync(file, content, 'utf8');
       totalFixes++;
-      console.log(`  Fixed ${fileName}`);
+      logger.info(`  Fixed ${fileName}`);
     }
   });
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ Phase 5 test fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ Phase 5 test fixes complete!');

@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
@@ -21,4 +23,4 @@ files.forEach(file => {
   }
 });
 
-console.log('Fixed', fixedCount, 'files');
+logger.info('Fixed', fixedCount, 'files');

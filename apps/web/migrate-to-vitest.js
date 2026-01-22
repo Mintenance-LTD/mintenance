@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 /**
  * Automated Jest to Vitest Migration Script
@@ -86,7 +88,7 @@ function migrateFile(filePath) {
 // Main execution
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error('Usage: node migrate-to-vitest.js <file1> <file2> ...');
+  logger.error('Usage: node migrate-to-vitest.js <file1> <file2> ...');
   process.exit(1);
 }
 
@@ -96,15 +98,15 @@ let skippedCount = 0;
 args.forEach(filePath => {
   try {
     if (migrateFile(filePath)) {
-      console.log(`✅ Migrated: ${filePath}`);
+      logger.info(`✅ Migrated: ${filePath}`);
       migratedCount++;
     } else {
-      console.log(`⏭️  Skipped (no changes): ${filePath}`);
+      logger.info(`⏭️  Skipped (no changes): ${filePath}`);
       skippedCount++;
     }
   } catch (error) {
-    console.error(`❌ Error migrating ${filePath}:`, error.message);
+    logger.error(`❌ Error migrating ${filePath}:`, error.message);
   }
 });
 
-console.log(`\n✅ Migration complete: ${migratedCount} files migrated, ${skippedCount} files skipped`);
+logger.info(`\n✅ Migration complete: ${migratedCount} files migrated, ${skippedCount} files skipped`);

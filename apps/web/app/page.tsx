@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import Link from 'next/link';
 import { Footer2025 } from './components/landing/Footer2025';
 
@@ -80,7 +81,7 @@ export default function LandingPage() {
           });
         }
       } catch (error) {
-        console.error('Failed to fetch platform statistics:', error);
+        logger.error('Failed to fetch platform statistics:', error);
         // Use fallback values on error
         setStats({
           activeContractors: 2847,

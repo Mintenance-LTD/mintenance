@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 7: Generating utility tests for better coverage...\n');
+logger.info('🔧 Phase 7: Generating utility tests for better coverage...\n');
 
 // Find utility files that don't have tests
 const utilFiles = glob.sync('src/utils/*.{ts,tsx}', {
@@ -134,6 +134,7 @@ describe('ErrorHandler Utility', () => {
   networkUtils: `import * as networkUtils from '../../utils/networkUtils';
 import NetInfo from '@react-native-community/netinfo';
 
+import { logger } from '@mintenance/shared';
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(),
   addEventListener: jest.fn(),
@@ -438,10 +439,10 @@ describe('${fileName} Utility', () => {
   }
 
   fs.writeFileSync(testFilePath, testContent);
-  console.log(`  Created ${testFileName}`);
+  logger.info(`  Created ${testFileName}`);
   testsGenerated++;
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Tests generated: ${testsGenerated}`);
-console.log('\n✨ Utility test generation complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Tests generated: ${testsGenerated}`);
+logger.info('\n✨ Utility test generation complete!');

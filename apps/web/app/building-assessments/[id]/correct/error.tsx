@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ export default function CorrectAssessmentError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Correct assessment error:', error);
+    logger.error('Correct assessment error:', error);
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

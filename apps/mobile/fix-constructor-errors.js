@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing constructor and import errors...\n');
+logger.info('🔧 Fixing constructor and import errors...\n');
 
 // Find all test files with potential constructor errors
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -15,7 +15,7 @@ let totalFixes = 0;
 const fixedFiles = [];
 
 // Pattern 1: Fix "is not a constructor" errors
-console.log('📝 Fixing constructor errors...');
+logger.info('📝 Fixing constructor errors...');
 
 testFiles.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
@@ -60,7 +60,7 @@ testFiles.forEach(file => {
     });
   });
 });`;
-      console.log(`  ✅ Rewrote ${fileName} to fix constructor errors`);
+      logger.info(`  ✅ Rewrote ${fileName} to fix constructor errors`);
     }
   }
 
@@ -101,10 +101,10 @@ testFiles.forEach(file => {
   }
 });
 
-console.log(`✅ Fixed ${fixedFiles.length} files with constructor errors\n`);
+logger.info(`✅ Fixed ${fixedFiles.length} files with constructor errors\n`);
 
 // Pattern 2: Fix "document is not defined" errors
-console.log('📝 Fixing document reference errors...');
+logger.info('📝 Fixing document reference errors...');
 
 const documentErrorFiles = testFiles.filter(file => {
   const content = fs.readFileSync(file, 'utf8');
@@ -139,7 +139,7 @@ global.window = {
 
 `;
     content = mockSetup + content;
-    console.log(`  ✅ Added DOM mocks to ${path.basename(file)}`);
+    logger.info(`  ✅ Added DOM mocks to ${path.basename(file)}`);
   }
 
   if (content !== original) {
@@ -149,7 +149,7 @@ global.window = {
 });
 
 // Pattern 3: Fix module loading errors
-console.log('\n📝 Fixing module loading errors...');
+logger.info('\n📝 Fixing module loading errors...');
 
 const moduleErrors = [
   'ExpoModulesCoreJSLogger',
@@ -177,7 +177,7 @@ jest.mock('@shopify/react-native-skia', () => ({}), { virtual: true });
 
 `;
       content = mocks + content;
-      console.log(`  ✅ Added module mocks to ${path.basename(file)}`);
+      logger.info(`  ✅ Added module mocks to ${path.basename(file)}`);
     }
   }
 
@@ -188,7 +188,7 @@ jest.mock('@shopify/react-native-skia', () => ({}), { virtual: true });
 });
 
 // Pattern 4: Fix common test patterns
-console.log('\n📝 Fixing common test patterns...');
+logger.info('\n📝 Fixing common test patterns...');
 
 // Find tests that are just placeholders
 const placeholderTests = testFiles.filter(file => {
@@ -197,7 +197,7 @@ const placeholderTests = testFiles.filter(file => {
          content.includes('// TODO: Fix this test');
 });
 
-console.log(`Found ${placeholderTests.length} placeholder tests to fix`);
+logger.info(`Found ${placeholderTests.length} placeholder tests to fix`);
 
 placeholderTests.forEach(file => {
   const fileName = path.basename(file, '.test.ts').replace('.test.tsx', '');
@@ -211,6 +211,7 @@ placeholderTests.forEach(file => {
     // Component test template
     newContent = `import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { logger } from '@mintenance/shared';
 import { ${fileName} } from '../${fileName}';
 
 describe('${fileName}', () => {
@@ -256,15 +257,15 @@ describe('${fileName}', () => {
   }
 
   fs.writeFileSync(file, newContent, 'utf8');
-  console.log(`  ✅ Replaced placeholder test: ${path.basename(file)}`);
+  logger.info(`  ✅ Replaced placeholder test: ${path.basename(file)}`);
   totalFixes++;
 });
 
 // Summary
-console.log(`\n📊 Summary:`);
-console.log(`  Total fixes applied: ${totalFixes}`);
-console.log(`  Constructor errors fixed: ${fixedFiles.length}`);
-console.log(`  Document reference errors fixed: ${documentErrorFiles.length}`);
-console.log(`  Placeholder tests replaced: ${placeholderTests.length}`);
-console.log('\n✨ Constructor and import fixes complete!');
-console.log('Run npm test to see improvements.');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total fixes applied: ${totalFixes}`);
+logger.info(`  Constructor errors fixed: ${fixedFiles.length}`);
+logger.info(`  Document reference errors fixed: ${documentErrorFiles.length}`);
+logger.info(`  Placeholder tests replaced: ${placeholderTests.length}`);
+logger.info('\n✨ Constructor and import fixes complete!');
+logger.info('Run npm test to see improvements.');

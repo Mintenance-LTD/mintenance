@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
@@ -636,7 +637,7 @@ export default function SettingsPage2025({
                                   setVerificationCode('');
 
                                 } catch (error) {
-                                  console.error('Verification error:', error);
+                                  logger.error('Verification error:', error);
                                   toast.error('Failed to send verification code. Please try again.', { id: 'verify' });
                                 } finally {
                                   setIsSaving(false);
@@ -1006,7 +1007,7 @@ export default function SettingsPage2025({
                     refresh();
 
                   } catch (error) {
-                    console.error('Verification error:', error);
+                    logger.error('Verification error:', error);
                     toast.error('Verification failed. Please try again.', { id: 'verify-code' });
                   } finally {
                     setIsSaving(false);

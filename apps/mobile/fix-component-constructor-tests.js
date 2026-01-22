@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing component test constructor patterns...\n');
+logger.info('🔧 Fixing component test constructor patterns...\n');
 
 // Find all component test files
 const componentTests = glob.sync('src/components/**/*.test.{ts,tsx}', {
@@ -32,6 +32,7 @@ componentTests.forEach(file => {
 
     content = `import React from 'react';
 import { render, fireEvent, waitFor } from '../../test-utils';
+import { logger } from '@mintenance/shared';
 import { ${componentName} } from '../${componentName}';
 
 describe('${componentName}', () => {
@@ -138,7 +139,7 @@ describe('${componentName}', () => {
 
     modified = true;
     fixedFiles.push(componentName);
-    console.log(`  ✅ Rewrote ${componentName}.test.tsx`);
+    logger.info(`  ✅ Rewrote ${componentName}.test.tsx`);
   }
 
   // Also fix import patterns
@@ -170,7 +171,7 @@ describe('${componentName}', () => {
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total component tests fixed: ${totalFixes}`);
-console.log(`  Components updated: ${fixedFiles.slice(0, 15).join(', ')}${fixedFiles.length > 15 ? '...' : ''}`);
-console.log('\n✨ Component constructor test fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total component tests fixed: ${totalFixes}`);
+logger.info(`  Components updated: ${fixedFiles.slice(0, 15).join(', ')}${fixedFiles.length > 15 ? '...' : ''}`);
+logger.info('\n✨ Component constructor test fixes complete!');

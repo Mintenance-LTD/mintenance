@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { logger } from '@mintenance/shared';
 import { Card } from '@/components/ui/Card.unified';
 import { Icon } from '@/components/ui/Icon';
 import { loadClassNames } from '@/lib/services/building-surveyor/yolo-class-names';
@@ -310,7 +311,7 @@ export function YOLOCorrectionEditor({
     try {
       await onSave(detections);
     } catch (error) {
-      console.error('Failed to save correction:', error);
+      logger.error('Failed to save correction:', error);
       alert('Failed to save correction. Please try again.');
     } finally {
       setIsSaving(false);

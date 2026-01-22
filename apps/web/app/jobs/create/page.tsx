@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -130,7 +131,7 @@ export default function CreateJobPage2025() {
   // Trigger AI assessment when images are uploaded
   useEffect(() => {
     const runAssessment = async () => {
-      console.log('[DEBUG] runAssessment effect triggered', { 
+      logger.info('[DEBUG] runAssessment effect triggered', { 
         imageCount: imageUpload.uploadedImages.length, 
         isAssessing: buildingAssessment.isAssessing 
       });
@@ -139,7 +140,7 @@ export default function CreateJobPage2025() {
         // Get selected property for context
         const selectedProperty = properties.find(p => p.id === formData.property_id);
 
-        console.log('[DEBUG] Calling assessBuilding', {
+        logger.info('[DEBUG] Calling assessBuilding', {
           imageCount: imageUpload.uploadedImages.length,
           hasLocation: !!(formData.location || selectedProperty?.address),
           propertyType: selectedProperty?.property_type
@@ -161,17 +162,17 @@ export default function CreateJobPage2025() {
 
   const handleSubmit = async () => {
     // Log form data for debugging
-    // console.log('Form data being submitted:', formData);
-    // console.log('Uploaded images:', imageUpload.uploadedImages);
+    // logger.info('Form data being submitted:', formData);
+    // logger.info('Uploaded images:', imageUpload.uploadedImages);
 
     const errors = validateJobForm(formData, imageUpload.uploadedImages, imageUpload.imagePreviews.length);
-    // console.log('Validation errors:', errors);
+    // logger.info('Validation errors:', errors);
 
     if (!isFormValid(errors)) {
       setValidationErrors(errors);
       // Show specific error messages
       const errorMessages = Object.entries(errors).map(([field, message]) => `${field}: ${message}`);
-      console.error('Validation failed:', errorMessages);
+      logger.error('Validation failed:', errorMessages);
       toast.error(errorMessages[0] || 'Please fix validation errors');
       return;
     }
@@ -180,18 +181,18 @@ export default function CreateJobPage2025() {
     try {
       let imageUrls = imageUpload.uploadedImages;
       if (imageUpload.imagePreviews.length > 0 && imageUrls.length === 0) {
-        console.log('[Submit] Need to upload images. CSRF token available:', !!csrfToken);
+        logger.info('[Submit] Need to upload images. CSRF token available:', !!csrfToken);
         if (!csrfToken) {
           toast.error('Security token not available. Please refresh the page.');
           setIsSubmitting(false);
           return;
         }
-        console.log('[Submit] Calling uploadImages with token');
+        logger.info('[Submit] Calling uploadImages with token');
         imageUrls = await imageUpload.uploadImages(csrfToken);
-        console.log('[Submit] Upload completed. URLs received:', imageUrls.length);
+        logger.info('[Submit] Upload completed. URLs received:', imageUrls.length);
       }
 
-      // console.log('Submitting job with data:', {
+      // logger.info('Submitting job with data:', {
       //   formData,
       //   photoUrls: imageUrls,
       //   csrfToken: csrfToken || '',
@@ -210,11 +211,11 @@ export default function CreateJobPage2025() {
         throw new Error(result.error || 'Failed to post job');
       }
 
-      // console.log('Job submitted successfully:', result);
+      // logger.info('Job submitted successfully:', result);
       toast.success('Job posted successfully!');
       router.push(`/jobs/${result.jobId}`);
     } catch (error) {
-      console.error('Error submitting job:', error);
+      logger.error('Error submitting job:', error);
       const errorMessage = (error as Error).message || 'Failed to post job';
 
       // Check if it's a phone verification error

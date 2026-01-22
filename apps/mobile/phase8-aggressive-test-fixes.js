@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 8: Aggressive test fixes for maximum passing tests...\n');
+logger.info('🔧 Phase 8: Aggressive test fixes for maximum passing tests...\n');
 
 // Find ALL test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -161,20 +163,20 @@ jest.mock('../../config/supabase', () => ({
       totalFixes++;
     }
   } catch (error) {
-    console.error(`  Error processing ${path.basename(file)}: ${error.message}`);
+    logger.error(`  Error processing ${path.basename(file)}: ${error.message}`);
   }
 });
 
-console.log('\n📊 Fix Summary:');
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log(`  Import fixes: ${fixCategories.imports}`);
-console.log(`  Mock additions: ${fixCategories.mocks}`);
-console.log(`  Navigation fixes: ${fixCategories.navigation}`);
-console.log(`  React imports: ${fixCategories.react}`);
-console.log(`  Async utilities: ${fixCategories.async}`);
+logger.info('\n📊 Fix Summary:');
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info(`  Import fixes: ${fixCategories.imports}`);
+logger.info(`  Mock additions: ${fixCategories.mocks}`);
+logger.info(`  Navigation fixes: ${fixCategories.navigation}`);
+logger.info(`  React imports: ${fixCategories.react}`);
+logger.info(`  Async utilities: ${fixCategories.async}`);
 
 // Now run a second pass to fix service-specific issues
-console.log('\n🔧 Second pass: Fixing service test issues...\n');
+logger.info('\n🔧 Second pass: Fixing service test issues...\n');
 
 const serviceTests = glob.sync('src/__tests__/services/**/*.test.ts', {
   cwd: __dirname,
@@ -230,10 +232,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
       serviceFixes++;
     }
   } catch (error) {
-    console.error(`  Error processing service test: ${error.message}`);
+    logger.error(`  Error processing service test: ${error.message}`);
   }
 });
 
-console.log(`  Service tests fixed: ${serviceFixes}`);
-console.log('\n✨ Phase 8 aggressive test fixes complete!');
-console.log(`\n🎯 Total improvements: ${totalFixes + serviceFixes} files`);
+logger.info(`  Service tests fixed: ${serviceFixes}`);
+logger.info('\n✨ Phase 8 aggressive test fixes complete!');
+logger.info(`\n🎯 Total improvements: ${totalFixes + serviceFixes} files`);

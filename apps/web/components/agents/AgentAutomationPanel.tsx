@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   Bot,
   Settings,
@@ -130,7 +131,7 @@ export function AgentAutomationPanel() {
         setSettings(data);
       }
     } catch (error) {
-      console.error('Failed to fetch automation settings:', error);
+      logger.error('Failed to fetch automation settings:', error);
     } finally {
       setLoading(false);
     }
@@ -154,7 +155,7 @@ export function AgentAutomationPanel() {
         toast.error('Failed to save settings');
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      logger.error('Failed to save settings:', error);
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);

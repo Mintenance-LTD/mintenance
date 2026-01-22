@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing index.test.ts files...\n');
+logger.info('🔧 Fixing index.test.ts files...\n');
 
 // Find all index.test.ts files that have the moduleExports.default issue
 const indexTests = glob.sync('src/**/index.test.{ts,tsx}', {
@@ -45,7 +47,7 @@ indexTests.forEach(file => {
   });
 });`;
 
-    console.log(`  ✅ Fixed ${path.basename(file)} in ${dirName}`);
+    logger.info(`  ✅ Fixed ${path.basename(file)} in ${dirName}`);
     totalFixes++;
   } else if (content.includes('Module Exports') && !content.includes('should export expected modules')) {
     // Update the existing simple test to be even simpler
@@ -74,7 +76,7 @@ indexTests.forEach(file => {
   });
 });`;
 
-    console.log(`  ✅ Updated ${path.basename(file)} in ${dirName}`);
+    logger.info(`  ✅ Updated ${path.basename(file)} in ${dirName}`);
     totalFixes++;
   }
 
@@ -83,6 +85,6 @@ indexTests.forEach(file => {
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total index tests fixed: ${totalFixes}`);
-console.log('\n✨ Index test fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total index tests fixed: ${totalFixes}`);
+logger.info('\n✨ Index test fixes complete!');

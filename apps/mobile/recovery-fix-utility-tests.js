@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Recovery: Systematically fixing utility tests...\n');
+logger.info('🔧 Recovery: Systematically fixing utility tests...\n');
 
 // Find all utility test files
 const utilityTests = glob.sync('src/__tests__/utils/*.test.ts', {
@@ -11,7 +13,7 @@ const utilityTests = glob.sync('src/__tests__/utils/*.test.ts', {
   absolute: true,
 });
 
-console.log(`Found ${utilityTests.length} utility test files\n`);
+logger.info(`Found ${utilityTests.length} utility test files\n`);
 
 let fixedCount = 0;
 const fixes = {
@@ -78,26 +80,26 @@ export default codeSplitting;`,
 export default EnvironmentSecurity;`,
 
   'errorHandling': `export const errorHandling = {
-  handleError: (error: Error) => console.error(error),
-  logError: (error: Error) => console.error(error),
+  handleError: (error: Error) => logger.error(error),
+  logError: (error: Error) => logger.error(error),
   reportError: (error: Error) => {},
 };
 
 export default errorHandling;`,
 
   'errorHandlingEnhanced': `export const errorHandlingEnhanced = {
-  handleError: (error: Error) => console.error(error),
+  handleError: (error: Error) => logger.error(error),
   withErrorBoundary: (component: any) => component,
   errorLogger: {
-    log: (error: Error) => console.error(error),
+    log: (error: Error) => logger.error(error),
   },
 };
 
 export default errorHandlingEnhanced;`,
 
   'ErrorManager': `export class ErrorManager {
-  static logError = (error: Error) => console.error(error);
-  static handleError = (error: Error) => console.error(error);
+  static logError = (error: Error) => logger.error(error);
+  static handleError = (error: Error) => logger.error(error);
   static clearErrors = () => {};
 }
 
@@ -136,10 +138,10 @@ export default featureAccess;`,
 export default imageOptimization;`,
 
   'logger-enhanced': `export const logger = {
-  debug: (...args: any[]) => console.debug(...args),
-  info: (...args: any[]) => console.info(...args),
-  warn: (...args: any[]) => console.warn(...args),
-  error: (...args: any[]) => console.error(...args),
+  debug: (...args: any[]) => logger.debug(...args),
+  info: (...args: any[]) => logger.info(...args),
+  warn: (...args: any[]) => logger.warn(...args),
+  error: (...args: any[]) => logger.error(...args),
 };
 
 export default logger;`,
@@ -282,12 +284,12 @@ Object.entries(basicImplementations).forEach(([name, implementation]) => {
   const utilPath = path.join(utilsDir, `${name}.ts`);
   if (!fs.existsSync(utilPath)) {
     fs.writeFileSync(utilPath, implementation);
-    console.log(`  ✅ Created ${name}.ts`);
+    logger.info(`  ✅ Created ${name}.ts`);
     fixes.implementations++;
   }
 });
 
-console.log('\n📋 Fixing test files...\n');
+logger.info('\n📋 Fixing test files...\n');
 
 // Fix each utility test
 utilityTests.forEach(testFile => {
@@ -383,14 +385,14 @@ afterEach(() => {
   if (modified && content !== original) {
     fs.writeFileSync(testFile, content, 'utf8');
     fixedCount++;
-    console.log(`  ✅ Fixed ${fileName}`);
+    logger.info(`  ✅ Fixed ${fileName}`);
   }
 });
 
-console.log('\n📊 Summary:');
-console.log(`  Utility tests fixed: ${fixedCount}/${utilityTests.length}`);
-console.log(`  Imports fixed: ${fixes.imports}`);
-console.log(`  Mocks added: ${fixes.mocks}`);
-console.log(`  Implementations created: ${fixes.implementations}`);
-console.log(`  Syntax issues fixed: ${fixes.syntax}`);
-console.log('\n✨ Utility test recovery complete!');
+logger.info('\n📊 Summary:');
+logger.info(`  Utility tests fixed: ${fixedCount}/${utilityTests.length}`);
+logger.info(`  Imports fixed: ${fixes.imports}`);
+logger.info(`  Mocks added: ${fixes.mocks}`);
+logger.info(`  Implementations created: ${fixes.implementations}`);
+logger.info(`  Syntax issues fixed: ${fixes.syntax}`);
+logger.info('\n✨ Utility test recovery complete!');

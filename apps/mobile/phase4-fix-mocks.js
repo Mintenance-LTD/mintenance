@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 4: Fixing mock issues in test files...\n');
+logger.info('🔧 Phase 4: Fixing mock issues in test files...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -136,7 +138,7 @@ testFiles.forEach(file => {
 
           content = content.replace(importMatch[0], importMatch[0] + '\n' + mockToAdd + '\n');
           modified = true;
-          console.log(`  Added ${serviceName} mock to ${fileName}`);
+          logger.info(`  Added ${serviceName} mock to ${fileName}`);
         }
       }
     }
@@ -209,7 +211,7 @@ const mockRoute = {
         if (endOfImports > -1) {
           content = content.slice(0, endOfImports + 1) + navMock + content.slice(endOfImports + 1);
           modified = true;
-          console.log(`  Added navigation mocks to ${fileName}`);
+          logger.info(`  Added navigation mocks to ${fileName}`);
         }
       }
     }
@@ -242,7 +244,7 @@ const mockRoute = {
         // Replace with static usage
         content = content.replace(new RegExp(`new\\s+${className}\\(\\)`, 'g'), className);
         modified = true;
-        console.log(`  Fixed instantiation of ${className} in ${fileName}`);
+        logger.info(`  Fixed instantiation of ${className} in ${fileName}`);
       }
     }
   }
@@ -260,7 +262,7 @@ describe('${testName}', () => {
 
     content += basicTest;
     modified = true;
-    console.log(`  Added basic test structure to ${fileName}`);
+    logger.info(`  Added basic test structure to ${fileName}`);
   }
 
   if (modified && content !== original) {
@@ -270,13 +272,13 @@ describe('${testName}', () => {
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files checked: ${testFiles.length}`);
-console.log(`  Total files fixed: ${totalFixes}`);
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files checked: ${testFiles.length}`);
+logger.info(`  Total files fixed: ${totalFixes}`);
 if (fixedFiles.length > 0 && fixedFiles.length <= 20) {
-  console.log(`  Fixed files:`);
-  fixedFiles.forEach(f => console.log(`    - ${f}`));
+  logger.info(`  Fixed files:`);
+  fixedFiles.forEach(f => logger.info(`    - ${f}`));
 } else if (fixedFiles.length > 20) {
-  console.log(`  Fixed files: ${fixedFiles.slice(0, 10).join(', ')}... (${fixedFiles.length} total)`);
+  logger.info(`  Fixed files: ${fixedFiles.slice(0, 10).join(', ')}... (${fixedFiles.length} total)`);
 }
-console.log('\n✨ Mock fixes complete!');
+logger.info('\n✨ Mock fixes complete!');

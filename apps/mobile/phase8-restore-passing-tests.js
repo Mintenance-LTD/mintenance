@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔧 Phase 8: Restoring and fixing high-value tests...\n');
+logger.info('🔧 Phase 8: Restoring and fixing high-value tests...\n');
 
 // List of test files that were previously passing and should be restored
 const criticalTests = [
@@ -18,7 +20,7 @@ const criticalTests = [
 ];
 
 // First, let's identify which specific tests are failing
-console.log('📊 Checking specific test failures...\n');
+logger.info('📊 Checking specific test failures...\n');
 
 let fixedCount = 0;
 
@@ -32,14 +34,14 @@ criticalTests.forEach(testPath => {
 
   try {
     // Try to run the test
-    console.log(`Testing: ${path.basename(testPath)}`);
+    logger.info(`Testing: ${path.basename(testPath)}`);
     execSync(`npm test -- ${testPath} --silent`, {
       cwd: __dirname,
       stdio: 'pipe'
     });
-    console.log(`  ✅ Passing`);
+    logger.info(`  ✅ Passing`);
   } catch (error) {
-    console.log(`  ❌ Failing - attempting fix...`);
+    logger.info(`  ❌ Failing - attempting fix...`);
 
     // Read the test file
     let content = fs.readFileSync(fullPath, 'utf8');
@@ -89,15 +91,15 @@ criticalTests.forEach(testPath => {
     if (modified && content !== original) {
       fs.writeFileSync(fullPath, content, 'utf8');
       fixedCount++;
-      console.log(`    Fixed and saved`);
+      logger.info(`    Fixed and saved`);
     }
   }
 });
 
-console.log(`\n📊 Summary: Fixed ${fixedCount} test files\n`);
+logger.info(`\n📊 Summary: Fixed ${fixedCount} test files\n`);
 
 // Now let's create a simple working test to ensure infrastructure is ok
-console.log('🔧 Creating validation test...\n');
+logger.info('🔧 Creating validation test...\n');
 
 const validationTest = `describe('Test Infrastructure Validation', () => {
   it('should run basic JavaScript tests', () => {
@@ -126,10 +128,10 @@ const validationTest = `describe('Test Infrastructure Validation', () => {
 
 const validationPath = path.join(__dirname, 'src/__tests__/utils/validation-infrastructure.test.ts');
 fs.writeFileSync(validationPath, validationTest);
-console.log('  Created validation-infrastructure.test.ts');
+logger.info('  Created validation-infrastructure.test.ts');
 
 // Remove broken React imports from TS files
-console.log('\n🔧 Cleaning up React imports from .ts files...\n');
+logger.info('\n🔧 Cleaning up React imports from .ts files...\n');
 
 const tsTestFiles = require('glob').sync('src/**/*.test.ts', {
   cwd: __dirname,
@@ -164,6 +166,6 @@ tsTestFiles.forEach(file => {
   }
 });
 
-console.log(`  Cleaned ${cleanedCount} .ts test files`);
+logger.info(`  Cleaned ${cleanedCount} .ts test files`);
 
-console.log('\n✨ Phase 8 test restoration complete!');
+logger.info('\n✨ Phase 8 test restoration complete!');

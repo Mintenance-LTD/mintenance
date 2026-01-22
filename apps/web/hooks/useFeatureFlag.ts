@@ -14,6 +14,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@mintenance/shared';
 import type { FeatureFlagName } from '@/lib/feature-flags';
 
 export function useFeatureFlag(flagName: FeatureFlagName): boolean {
@@ -29,7 +30,7 @@ export function useFeatureFlag(flagName: FeatureFlagName): boolean {
           setEnabled(data.enabled);
         }
       } catch (error) {
-        console.error(`[useFeatureFlag] Error checking ${flagName}:`, error);
+        logger.error(`[useFeatureFlag] Error checking ${flagName}:`, error);
       } finally {
         setLoading(false);
       }

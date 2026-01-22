@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 8: Fixing utility tests to make them pass...\n');
+logger.info('🔧 Phase 8: Fixing utility tests to make them pass...\n');
 
 // Find all newly generated utility test files
 const testFiles = glob.sync('src/__tests__/utils/*.test.ts', {
@@ -197,38 +199,38 @@ export const logger = {
 
   debug: (...args: any[]) => {
     if (currentLevel <= logLevels.DEBUG) {
-      console.debug('[DEBUG]', ...args);
+      logger.debug('[DEBUG]', ...args);
     }
   },
 
   info: (...args: any[]) => {
     if (currentLevel <= logLevels.INFO) {
-      console.info('[INFO]', ...args);
+      logger.info('[INFO]', ...args);
     }
   },
 
   warn: (...args: any[]) => {
     if (currentLevel <= logLevels.WARN) {
-      console.warn('[WARN]', ...args);
+      logger.warn('[WARN]', ...args);
     }
   },
 
   error: (...args: any[]) => {
     if (currentLevel <= logLevels.ERROR) {
       if (args[0] instanceof Error) {
-        console.error('[ERROR]', {
+        logger.error('[ERROR]', {
           message: args[0].message,
           stack: args[0].stack,
         });
       } else {
-        console.error('[ERROR]', ...args);
+        logger.error('[ERROR]', ...args);
       }
     }
   },
 };`,
 
   errorHandler: `export const captureError = (error: Error | any): void => {
-  console.error('[ErrorHandler]', error);
+  logger.error('[ErrorHandler]', error);
 };
 
 export const getMessage = (error: any): string => {
@@ -311,7 +313,7 @@ testFiles.forEach(file => {
 
   if (modified && content !== original) {
     fs.writeFileSync(file, content, 'utf8');
-    console.log(`  Fixed test: ${fileName}.test.ts`);
+    logger.info(`  Fixed test: ${fileName}.test.ts`);
     totalFixes++;
   }
 });
@@ -322,7 +324,7 @@ Object.entries(utilityImplementations).forEach(([name, implementation]) => {
 
   if (!fs.existsSync(utilPath)) {
     fs.writeFileSync(utilPath, implementation);
-    console.log(`  Created utility: ${name}.ts`);
+    logger.info(`  Created utility: ${name}.ts`);
     totalFixes++;
   }
 });
@@ -342,7 +344,7 @@ if (fs.existsSync(errorHandlerTestPath)) {
   content = content.replace(/ErrorHandler/g, 'errorHandler');
 
   fs.writeFileSync(errorHandlerTestPath, content);
-  console.log('  Fixed errorHandler test imports');
+  logger.info('  Fixed errorHandler test imports');
 }
 
 // Create a simple logger test fix
@@ -371,18 +373,18 @@ afterAll(() => {
     if (describeIndex > 0) {
       content = content.slice(0, describeIndex) + setupCode + '\n' + content.slice(describeIndex);
       fs.writeFileSync(loggerTestPath, content);
-      console.log('  Fixed logger test console mocks');
+      logger.info('  Fixed logger test console mocks');
     }
   }
 }
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total fixes applied: ${totalFixes}`);
-console.log(`  Test files fixed: ${testFiles.filter(f => {
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total fixes applied: ${totalFixes}`);
+logger.info(`  Test files fixed: ${testFiles.filter(f => {
   const content = fs.readFileSync(f, 'utf8');
   return content.includes('../../utils/');
 }).length}`);
-console.log(`  Utility implementations created: ${Object.keys(utilityImplementations).filter(name =>
+logger.info(`  Utility implementations created: ${Object.keys(utilityImplementations).filter(name =>
   fs.existsSync(path.join(utilsDir, `${name}.ts`))
 ).length}`);
-console.log('\n✨ Phase 8 utility test fixes complete!');
+logger.info('\n✨ Phase 8 utility test fixes complete!');

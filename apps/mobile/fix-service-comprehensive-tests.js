@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing service comprehensive tests...\n');
+logger.info('🔧 Fixing service comprehensive tests...\n');
 
 // Find service comprehensive test files
 const testFiles = glob.sync('src/__tests__/services/comprehensive/*.test.ts', {
@@ -152,10 +154,10 @@ jest.mock('../../../config/supabase', () => ({
   if (modified && content !== original) {
     fs.writeFileSync(file, content, 'utf8');
     totalFixes++;
-    console.log(`  Fixed ${fileName}`);
+    logger.info(`  Fixed ${fileName}`);
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ Service comprehensive test fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ Service comprehensive test fixes complete!');

@@ -9,7 +9,7 @@ const testFiles = glob.sync('src/**/__tests__/**/*.test.{ts,tsx}', {
   absolute: true,
 });
 
-console.log(`Found ${testFiles.length} test files to check...`);
+logger.info(`Found ${testFiles.length} test files to check...`);
 
 let filesFixed = 0;
 let totalFixes = 0;
@@ -53,7 +53,7 @@ testFiles.forEach(filePath => {
   // Fix 2: Check if component is being called as function instead of JSX
   const componentCallPattern = /expect\((\w+)\(['"].*['"]\)\)/g;
   if (componentCallPattern.test(content)) {
-    console.log(`  WARNING: ${path.basename(filePath)} has component being called as function`);
+    logger.info(`  WARNING: ${path.basename(filePath)} has component being called as function`);
     // This needs manual fixing as we need to know the component's props
   }
 
@@ -93,14 +93,14 @@ jest.mock('react', () => ({
     fs.writeFileSync(filePath, content, 'utf8');
     filesFixed++;
     totalFixes += fixes;
-    console.log(`✅ Fixed ${path.basename(filePath)} (${fixes} fixes)`);
+    logger.info(`✅ Fixed ${path.basename(filePath)} (${fixes} fixes)`);
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  - Files checked: ${testFiles.length}`);
-console.log(`  - Files fixed: ${filesFixed}`);
-console.log(`  - Total fixes applied: ${totalFixes}`);
+logger.info(`\n📊 Summary:`);
+logger.info(`  - Files checked: ${testFiles.length}`);
+logger.info(`  - Files fixed: ${filesFixed}`);
+logger.info(`  - Total fixes applied: ${totalFixes}`);
 
 // Now fix specific problematic tests
 const problematicTests = [
@@ -109,12 +109,12 @@ const problematicTests = [
   'src/screens/__tests__/QuoteBuilderScreen.test.tsx',
 ];
 
-console.log(`\n🔧 Fixing specific problematic tests...`);
+logger.info(`\n🔧 Fixing specific problematic tests...`);
 
 problematicTests.forEach(testPath => {
   const fullPath = path.join(__dirname, testPath);
   if (!fs.existsSync(fullPath)) {
-    console.log(`  ⚠️  ${testPath} not found`);
+    logger.info(`  ⚠️  ${testPath} not found`);
     return;
   }
 
@@ -124,13 +124,14 @@ problematicTests.forEach(testPath => {
   // For BusinessDashboard specifically
   if (testPath.includes('BusinessDashboard')) {
     // Already fixed manually
-    console.log(`  ✅ ${testPath} already fixed`);
+    logger.info(`  ✅ ${testPath} already fixed`);
     return;
   }
 
   // Generic fix template for component tests
   const fixedTest = `import React from 'react';
 import { render, waitFor, fireEvent } from '../test-utils';
+import { logger } from '@mintenance/shared';
 import { ${componentName} } from '../${componentName}';
 
 // Mock any hooks the component uses
@@ -174,9 +175,9 @@ describe('${componentName}', () => {
   if (currentContent.includes('expect(') && currentContent.includes('(\'input\')')) {
     // This is a broken test calling component as function
     fs.writeFileSync(fullPath, fixedTest, 'utf8');
-    console.log(`  ✅ Rewrote ${testPath}`);
+    logger.info(`  ✅ Rewrote ${testPath}`);
   }
 });
 
-console.log('\n✨ Test fixes complete! Run npm test to see improvements.');
-console.log('Note: Some tests may still need manual adjustments for specific props and mocks.');
+logger.info('\n✨ Test fixes complete! Run npm test to see improvements.');
+logger.info('Note: Some tests may still need manual adjustments for specific props and mocks.');

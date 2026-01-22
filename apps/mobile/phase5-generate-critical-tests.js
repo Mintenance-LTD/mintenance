@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Phase 5: Generating Critical Path Test Suites\n');
+logger.info('🚀 Phase 5: Generating Critical Path Test Suites\n');
 
 // Ensure test directories exist
 const testDirs = [
@@ -31,6 +31,7 @@ const authTests = [
     name: 'LoginFlow.test.tsx',
     content: `import React from 'react';
 import { render, fireEvent, waitFor } from '../../test-utils';
+import { logger } from '@mintenance/shared';
 import { AuthService } from '../../../services/AuthService';
 import { LoginScreen } from '../../../screens/LoginScreen';
 
@@ -558,7 +559,7 @@ authTests.forEach(test => {
   const filePath = path.join(__dirname, 'src/__tests__/critical-paths/auth', test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -879,7 +880,7 @@ paymentTests.forEach(test => {
   const filePath = path.join(__dirname, 'src/__tests__/critical-paths/payment', test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -1301,7 +1302,7 @@ jobTests.forEach(test => {
   const filePath = path.join(__dirname, 'src/__tests__/critical-paths/jobs', test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -1589,7 +1590,7 @@ serviceTests.forEach(test => {
   const filePath = path.join(__dirname, 'src/__tests__/services/comprehensive', test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -1809,19 +1810,19 @@ snapshotTests.forEach(test => {
   const filePath = path.join(__dirname, 'src/__tests__/components/snapshot', test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
-console.log(`\n📊 Phase 5 Summary:`);
-console.log(`  Total test files created: ${filesCreated}`);
-console.log(`  - Auth flow tests: ${authTests.length}`);
-console.log(`  - Payment flow tests: ${paymentTests.length}`);
-console.log(`  - Job management tests: ${jobTests.length}`);
-console.log(`  - Service comprehensive tests: ${serviceTests.length}`);
-console.log(`  - Component snapshot tests: ${snapshotTests.length}`);
-console.log('\n✨ Critical path test suites generated successfully!');
-console.log('\n🚀 Next steps:');
-console.log('  1. Run tests to verify they work');
-console.log('  2. Fix any import or mock issues');
-console.log('  3. Check coverage improvement');
-console.log('  4. Add more test cases as needed');
+logger.info(`\n📊 Phase 5 Summary:`);
+logger.info(`  Total test files created: ${filesCreated}`);
+logger.info(`  - Auth flow tests: ${authTests.length}`);
+logger.info(`  - Payment flow tests: ${paymentTests.length}`);
+logger.info(`  - Job management tests: ${jobTests.length}`);
+logger.info(`  - Service comprehensive tests: ${serviceTests.length}`);
+logger.info(`  - Component snapshot tests: ${snapshotTests.length}`);
+logger.info('\n✨ Critical path test suites generated successfully!');
+logger.info('\n🚀 Next steps:');
+logger.info('  1. Run tests to verify they work');
+logger.info('  2. Fix any import or mock issues');
+logger.info('  3. Check coverage improvement');
+logger.info('  4. Add more test cases as needed');

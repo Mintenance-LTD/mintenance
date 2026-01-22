@@ -6,6 +6,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { logger } from '@mintenance/shared';
 import AxeBuilder from '@axe-core/playwright';
 
 // ============================================
@@ -299,7 +300,7 @@ test.describe('Accessibility Tests', () => {
 
     // Log small touch targets but don't fail (warning level)
     if (touchTargets.length > 0) {
-      console.warn('Small touch targets found:', touchTargets);
+      logger.warn('Small touch targets found:', touchTargets);
     }
   });
 });

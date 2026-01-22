@@ -74,11 +74,11 @@ export function ChunkRetryHandler() {
 
       // Calculate exponential backoff delay
       const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-      console.info(`[ChunkRetry] Retry ${retryCountRef.current}/${MAX_RETRIES} in ${delay}ms...`);
+      logger.info(`[ChunkRetry] Retry ${retryCountRef.current}/${MAX_RETRIES} in ${delay}ms...`);
 
       // Retry with exponential backoff
       setTimeout(() => {
-        console.info('[ChunkRetry] Attempting page reload...');
+        logger.info('[ChunkRetry] Attempting page reload...');
         window.location.reload();
       }, delay);
     };
@@ -111,7 +111,7 @@ export function ChunkRetryHandler() {
     // Reset retry count on successful navigation
     const resetRetryCount = () => {
       if (retryCountRef.current > 0) {
-        console.info('[ChunkRetry] Navigation successful, resetting retry count');
+        logger.info('[ChunkRetry] Navigation successful, resetting retry count');
         retryCountRef.current = 0;
         hasReloadedRef.current = false;
       }
@@ -123,7 +123,7 @@ export function ChunkRetryHandler() {
     // Listen for service worker messages
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'CACHE_CLEARED') {
-        console.info('[ChunkRetry] Service worker cache cleared:', event.data.message);
+        logger.info('[ChunkRetry] Service worker cache cleared:', event.data.message);
       }
     };
 

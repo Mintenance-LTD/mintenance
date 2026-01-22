@@ -1,8 +1,10 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Adding comprehensive React Native platform mocks...\n');
+logger.info('🔧 Adding comprehensive React Native platform mocks...\n');
 
 // Create comprehensive platform mocks in __mocks__ directory
 const mocksDir = path.join(__dirname, '__mocks__');
@@ -348,7 +350,7 @@ module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'react-native.js'), reactNativeMock);
-console.log('  ✅ Created react-native.js mock');
+logger.info('  ✅ Created react-native.js mock');
 
 // 2. Create NetInfo mock
 const netInfoMock = `module.exports = {
@@ -371,7 +373,7 @@ const netInfoMock = `module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, '@react-native-community', 'netinfo.js'), netInfoMock);
-console.log('  ✅ Created netinfo.js mock');
+logger.info('  ✅ Created netinfo.js mock');
 
 // 3. Create react-native-gesture-handler mock
 const gestureHandlerMock = `const React = require('react');
@@ -418,7 +420,7 @@ module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'react-native-gesture-handler.js'), gestureHandlerMock);
-console.log('  ✅ Created react-native-gesture-handler.js mock');
+logger.info('  ✅ Created react-native-gesture-handler.js mock');
 
 // 4. Create react-native-reanimated mock
 const reanimatedMock = `module.exports = {
@@ -470,7 +472,7 @@ const reanimatedMock = `module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'react-native-reanimated.js'), reanimatedMock);
-console.log('  ✅ Created react-native-reanimated.js mock');
+logger.info('  ✅ Created react-native-reanimated.js mock');
 
 // 5. Create react-native-screens mock
 const screensMock = `const React = require('react');
@@ -497,7 +499,7 @@ module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'react-native-screens.js'), screensMock);
-console.log('  ✅ Created react-native-screens.js mock');
+logger.info('  ✅ Created react-native-screens.js mock');
 
 // 6. Update jest-setup.js to use these mocks
 const jestSetupPath = path.join(__dirname, 'jest-setup.js');
@@ -520,7 +522,7 @@ global.cancelAnimationFrame = jest.fn((id) => clearTimeout(id));
 if (!jestSetup.includes('Platform Mocks')) {
   jestSetup = platformMocks + '\n' + jestSetup;
   fs.writeFileSync(jestSetupPath, jestSetup);
-  console.log('  ✅ Updated jest-setup.js with platform mocks');
+  logger.info('  ✅ Updated jest-setup.js with platform mocks');
 }
 
 // 7. Create additional commonly needed mocks
@@ -540,7 +542,7 @@ const vectorIconsMock = `module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'react-native-vector-icons.js'), vectorIconsMock);
-console.log('  ✅ Created react-native-vector-icons.js mock');
+logger.info('  ✅ Created react-native-vector-icons.js mock');
 
 // 8. Create expo mocks if needed
 const expoConstantsMock = `module.exports = {
@@ -572,10 +574,10 @@ const expoConstantsMock = `module.exports = {
 `;
 
 fs.writeFileSync(path.join(mocksDir, 'expo-constants.js'), expoConstantsMock);
-console.log('  ✅ Created expo-constants.js mock');
+logger.info('  ✅ Created expo-constants.js mock');
 
-console.log('\n✨ React Native platform mocks successfully added!');
-console.log('\n📝 Next steps:');
-console.log('  1. Run tests to verify mock compatibility');
-console.log('  2. Add any project-specific mocks as needed');
-console.log('  3. Update individual test files to use proper async patterns');
+logger.info('\n✨ React Native platform mocks successfully added!');
+logger.info('\n📝 Next steps:');
+logger.info('  1. Run tests to verify mock compatibility');
+logger.info('  2. Add any project-specific mocks as needed');
+logger.info('  3. Update individual test files to use proper async patterns');

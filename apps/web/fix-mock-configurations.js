@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 /**
  * Fix Common Mock Configuration Issues
@@ -70,7 +72,7 @@ function fixMockConfigurations(filePath) {
       if (!content.includes(config.replacement.substring(0, 50))) {
         content = content.replace(config.pattern, config.replacement);
         modified = true;
-        console.log(`  ✅ Fixed ${name} mock`);
+        logger.info(`  ✅ Fixed ${name} mock`);
       }
     }
   });
@@ -87,8 +89,8 @@ function fixMockConfigurations(filePath) {
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error('Usage: node fix-mock-configurations.js <file1> <file2> ...');
-  console.error('   or: find . -name "*.test.ts*" | xargs node fix-mock-configurations.js');
+  logger.error('Usage: node fix-mock-configurations.js <file1> <file2> ...');
+  logger.error('   or: find . -name "*.test.ts*" | xargs node fix-mock-configurations.js');
   process.exit(1);
 }
 
@@ -97,16 +99,16 @@ let skippedCount = 0;
 
 args.forEach(filePath => {
   try {
-    console.log(`\nChecking: ${filePath}`);
+    logger.info(`\nChecking: ${filePath}`);
     if (fixMockConfigurations(filePath)) {
       fixedCount++;
     } else {
-      console.log(`  ⏭️  No fixes needed`);
+      logger.info(`  ⏭️  No fixes needed`);
       skippedCount++;
     }
   } catch (error) {
-    console.error(`  ❌ Error: ${error.message}`);
+    logger.error(`  ❌ Error: ${error.message}`);
   }
 });
 
-console.log(`\n✅ Fixed ${fixedCount} files, ${skippedCount} files already correct`);
+logger.info(`\n✅ Fixed ${fixedCount} files, ${skippedCount} files already correct`);

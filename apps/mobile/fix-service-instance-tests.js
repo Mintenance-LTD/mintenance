@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing service instance test patterns...\n');
+logger.info('🔧 Fixing service instance test patterns...\n');
 
 // Map of services that export instances, not classes
 const instanceServices = {
@@ -104,7 +106,7 @@ describe('LocalDatabase', () => {
   });
 });`;
     modified = true;
-    console.log(`  ✅ Rewrote ${fileName}.test.ts for singleton pattern`);
+    logger.info(`  ✅ Rewrote ${fileName}.test.ts for singleton pattern`);
   } else if (serviceType === 'check-exports') {
     // Generic service that might export class or instance
     const servicePath = `../${fileName}`;
@@ -179,7 +181,7 @@ describe('${fileName}', () => {
   });
 });`;
     modified = true;
-    console.log(`  ✅ Created safe generic test for ${fileName}.test.ts`);
+    logger.info(`  ✅ Created safe generic test for ${fileName}.test.ts`);
   }
 
   if (modified && content !== original) {
@@ -190,7 +192,7 @@ describe('${fileName}', () => {
 });
 
 // Also fix any remaining "is not a constructor" errors in other service tests
-console.log('\n📝 Checking for remaining constructor issues in service tests...');
+logger.info('\n📝 Checking for remaining constructor issues in service tests...');
 
 serviceTests.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
@@ -223,7 +225,7 @@ serviceTests.forEach(file => {
         );
 
         modified = true;
-        console.log(`  Fixed constructor pattern in ${fileName}`);
+        logger.info(`  Fixed constructor pattern in ${fileName}`);
       }
     }
   }
@@ -234,7 +236,7 @@ serviceTests.forEach(file => {
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total service tests fixed: ${totalFixes}`);
-console.log(`  Services updated: ${fixedFiles.join(', ')}`);
-console.log('\n✨ Service instance test fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total service tests fixed: ${totalFixes}`);
+logger.info(`  Services updated: ${fixedFiles.join(', ')}`);
+logger.info('\n✨ Service instance test fixes complete!');

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing service test failures...\n');
+logger.info('🔧 Fixing service test failures...\n');
 
 // Find all service test files
 const serviceTests = glob.sync('src/**/__tests__/**/*(Service|Manager|Engine|Repository|Coordinator)*.test.{ts,tsx}', {
@@ -11,7 +11,7 @@ const serviceTests = glob.sync('src/**/__tests__/**/*(Service|Manager|Engine|Rep
   absolute: true,
 });
 
-console.log(`Found ${serviceTests.length} service test files to fix\n`);
+logger.info(`Found ${serviceTests.length} service test files to fix\n`);
 
 let totalFixes = 0;
 
@@ -19,6 +19,7 @@ let totalFixes = 0;
 const serviceTestTemplate = (serviceName, modulePath) => `import { ${serviceName} } from '${modulePath}';
 import { supabase } from '../../config/supabase';
 
+import { logger } from '@mintenance/shared';
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({
   supabase: {
@@ -150,14 +151,14 @@ serviceTests.forEach(testFile => {
 
     // Write the fixed test
     fs.writeFileSync(testFile, newContent, 'utf8');
-    console.log(`✅ Fixed ${fileName}`);
+    logger.info(`✅ Fixed ${fileName}`);
     fixedFiles.push(fileName);
     totalFixes++;
   }
 });
 
 // Fix specific common issues in service tests
-console.log('\n📝 Fixing common service test issues...');
+logger.info('\n📝 Fixing common service test issues...');
 
 const allServiceTests = glob.sync('src/services/**/*.test.{ts,tsx}', {
   cwd: __dirname,
@@ -197,20 +198,20 @@ global.fetch = jest.fn(() =>
 ) as jest.Mock;
 
 ${content}`;
-    console.log(`  ✅ Added fetch mock to ${path.basename(testFile)}`);
+    logger.info(`  ✅ Added fetch mock to ${path.basename(testFile)}`);
   }
 
   if (content !== original) {
     fs.writeFileSync(testFile, content, 'utf8');
     if (!fixedFiles.includes(path.basename(testFile))) {
-      console.log(`  ✅ Fixed imports in ${path.basename(testFile)}`);
+      logger.info(`  ✅ Fixed imports in ${path.basename(testFile)}`);
       totalFixes++;
     }
   }
 });
 
 // Create missing service mocks
-console.log('\n📝 Creating missing service mocks...');
+logger.info('\n📝 Creating missing service mocks...');
 
 const servicesToMock = [
   'NotificationService',
@@ -263,12 +264,12 @@ export class ${serviceName} {
 export default ${serviceName};
 `;
     fs.writeFileSync(mockPath, mockContent, 'utf8');
-    console.log(`  ✅ Created mock for ${serviceName}`);
+    logger.info(`  ✅ Created mock for ${serviceName}`);
     totalFixes++;
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total fixes applied: ${totalFixes}`);
-console.log('\n✨ Service test fixes complete!');
-console.log('Run npm test to see improvements.');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total fixes applied: ${totalFixes}`);
+logger.info('\n✨ Service test fixes complete!');
+logger.info('Run npm test to see improvements.');

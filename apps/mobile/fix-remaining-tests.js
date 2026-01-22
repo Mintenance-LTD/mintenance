@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing remaining test issues...\n');
+logger.info('🔧 Fixing remaining test issues...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -15,7 +17,7 @@ let filesFixed = 0;
 let totalFixes = 0;
 
 // Fix 1: Components being called as functions
-console.log('📝 Fixing components called as functions...');
+logger.info('📝 Fixing components called as functions...');
 testFiles.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
   const original = content;
@@ -43,10 +45,10 @@ testFiles.forEach(file => {
   }
 });
 
-console.log(`✅ Fixed ${filesFixed} files with component function calls\n`);
+logger.info(`✅ Fixed ${filesFixed} files with component function calls\n`);
 
 // Fix 2: Missing React imports
-console.log('📝 Adding missing React imports...');
+logger.info('📝 Adding missing React imports...');
 filesFixed = 0;
 testFiles.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
@@ -60,10 +62,10 @@ testFiles.forEach(file => {
   }
 });
 
-console.log(`✅ Added React imports to ${filesFixed} files\n`);
+logger.info(`✅ Added React imports to ${filesFixed} files\n`);
 
 // Fix 3: Fix test-utils imports
-console.log('📝 Fixing test-utils imports...');
+logger.info('📝 Fixing test-utils imports...');
 filesFixed = 0;
 const testUtilsFiles = glob.sync('src/**/__tests__/**/*.test.{ts,tsx}', {
   cwd: __dirname,
@@ -93,10 +95,10 @@ testUtilsFiles.forEach(file => {
   }
 });
 
-console.log(`✅ Fixed test-utils imports in ${filesFixed} files\n`);
+logger.info(`✅ Fixed test-utils imports in ${filesFixed} files\n`);
 
 // Fix 4: Mock missing services/hooks
-console.log('📝 Creating service and hook mocks...');
+logger.info('📝 Creating service and hook mocks...');
 
 const servicesToMock = [
   'MutualConnectionsService',
@@ -126,13 +128,13 @@ export const ${serviceName} = {
 export default ${serviceName};
 `;
     fs.writeFileSync(mockPath, mockContent, 'utf8');
-    console.log(`  ✅ Created mock for ${serviceName}`);
+    logger.info(`  ✅ Created mock for ${serviceName}`);
     totalFixes++;
   }
 });
 
 // Fix 5: Fix empty test files
-console.log('\n📝 Fixing empty test files...');
+logger.info('\n📝 Fixing empty test files...');
 filesFixed = 0;
 
 const emptyTestFiles = [
@@ -155,13 +157,13 @@ export {};
       fs.writeFileSync(fullPath, newContent, 'utf8');
       filesFixed++;
       totalFixes++;
-      console.log(`  ✅ Fixed empty test file: ${file}`);
+      logger.info(`  ✅ Fixed empty test file: ${file}`);
     }
   }
 });
 
 // Summary
-console.log('\n📊 Summary:');
-console.log(`  Total fixes applied: ${totalFixes}`);
-console.log('\n✨ Test fixes complete!');
-console.log('Run npm test to see improvements.');
+logger.info('\n📊 Summary:');
+logger.info(`  Total fixes applied: ${totalFixes}`);
+logger.info('\n✨ Test fixes complete!');
+logger.info('Run npm test to see improvements.');

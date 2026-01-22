@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -100,7 +101,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       } catch {}
       // #endregion
 
-      console.error('[getFeaturedContractors] Error fetching contractors:', {
+      logger.error('[getFeaturedContractors] Error fetching contractors:', {
         message: contractorsError.message,
         details: contractorsError.details,
         hint: contractorsError.hint,
@@ -126,7 +127,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .in('user_id', contractorIds);
 
     if (skillsError) {
-      console.error('[getFeaturedContractors] Error fetching skills:', skillsError);
+      logger.error('[getFeaturedContractors] Error fetching skills:', skillsError);
     }
 
     // Group skills by contractor (using user_id)
@@ -145,7 +146,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .in('reviewed_id', contractorIds);
 
     if (reviewsError) {
-      console.error('[getFeaturedContractors] Error fetching reviews:', reviewsError);
+      logger.error('[getFeaturedContractors] Error fetching reviews:', reviewsError);
     }
 
     // Aggregate ratings
@@ -166,7 +167,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .eq('status', 'completed');
 
     if (jobsError) {
-      console.error('[getFeaturedContractors] Error fetching jobs:', jobsError);
+      logger.error('[getFeaturedContractors] Error fetching jobs:', jobsError);
     }
 
     const jobsMap = new Map<string, number>();
@@ -211,7 +212,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
 
     return profiles;
   } catch (error) {
-    console.error('[getFeaturedContractors] Unexpected error:', error);
+    logger.error('[getFeaturedContractors] Unexpected error:', error);
     return [];
   }
 }
@@ -248,7 +249,7 @@ export async function searchContractors(params: {
     const { data: contractors, error } = await query.limit(limit * 2);
 
     if (error) {
-      console.error('[searchContractors] Error:', error);
+      logger.error('[searchContractors] Error:', error);
       return [];
     }
 
@@ -330,7 +331,7 @@ export async function searchContractors(params: {
 
     return profiles;
   } catch (error) {
-    console.error('[searchContractors] Unexpected error:', error);
+    logger.error('[searchContractors] Unexpected error:', error);
     return [];
   }
 }
@@ -352,7 +353,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
       .limit(limit);
 
     if (error) {
-      console.error('[getAvailableJobs] Error:', error);
+      logger.error('[getAvailableJobs] Error:', error);
       return [];
     }
 
@@ -385,7 +386,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
 
     return jobListings;
   } catch (error) {
-    console.error('[getAvailableJobs] Unexpected error:', error);
+    logger.error('[getAvailableJobs] Unexpected error:', error);
     return [];
   }
 }
@@ -422,7 +423,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       averageRating: Math.round(averageRating * 10) / 10
     };
   } catch (error) {
-    console.error('[getPlatformStats] Unexpected error:', error);
+    logger.error('[getPlatformStats] Unexpected error:', error);
     return {
       totalContractors: 0,
       totalJobs: 0,
@@ -447,7 +448,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       .single();
 
     if (error || !contractor) {
-      console.error('[getContractorProfile] Error:', error);
+      logger.error('[getContractorProfile] Error:', error);
       return null;
     }
 
@@ -493,7 +494,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       response_time: '< 1 hour'
     };
   } catch (error) {
-    console.error('[getContractorProfile] Unexpected error:', error);
+    logger.error('[getContractorProfile] Unexpected error:', error);
     return null;
   }
 }

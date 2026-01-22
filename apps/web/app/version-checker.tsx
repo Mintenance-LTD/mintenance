@@ -102,7 +102,7 @@ export function VersionChecker({
           if (newBuildId && currentBuildId && newBuildId !== currentBuildId) {
             // Version change detected - silently handle unless debugging
             // Uncomment for debugging version changes:
-            // console.debug('[VersionChecker] New version detected:', {
+            // logger.debug('[VersionChecker] New version detected:', {
             //   current: currentBuildId,
             //   new: newBuildId,
             // });
@@ -112,7 +112,7 @@ export function VersionChecker({
 
             // Auto-refresh or show prompt
             if (autoRefresh) {
-              console.info(`[VersionChecker] Auto-refreshing in ${autoRefreshDelay}ms...`);
+              logger.info(`[VersionChecker] Auto-refreshing in ${autoRefreshDelay}ms...`);
               setTimeout(() => {
                 window.location.reload();
               }, autoRefreshDelay);
@@ -124,7 +124,7 @@ export function VersionChecker({
       } catch (error) {
         // Silently fail - version endpoint might not exist
         // Uncomment for debugging:
-        // console.debug('[VersionChecker] Version check failed:', error);
+        // logger.debug('[VersionChecker] Version check failed:', error);
       }
     };
 
@@ -151,12 +151,12 @@ export function VersionChecker({
   }, [currentBuildId, onNewVersion, autoRefresh, autoRefreshDelay]);
 
   const handleRefresh = () => {
-    console.info('[VersionChecker] User triggered refresh');
+    logger.info('[VersionChecker] User triggered refresh');
     window.location.reload();
   };
 
   const handleDismiss = () => {
-    console.info('[VersionChecker] User dismissed update prompt');
+    logger.info('[VersionChecker] User dismissed update prompt');
     setShowUpdatePrompt(false);
   };
 

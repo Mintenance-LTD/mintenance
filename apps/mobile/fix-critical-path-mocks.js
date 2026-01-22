@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Adding mocks to critical path tests...\n');
+logger.info('🔧 Adding mocks to critical path tests...\n');
 
 // Find all critical path test files
 const testFiles = glob.sync('src/__tests__/critical-paths/**/*.test.{ts,tsx}', {
@@ -232,10 +234,10 @@ testFiles.forEach(file => {
   if (modified && content !== original) {
     fs.writeFileSync(file, content, 'utf8');
     totalFixes++;
-    console.log(`  Fixed ${fileName}`);
+    logger.info(`  Fixed ${fileName}`);
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ Critical path mock fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ Critical path mock fixes complete!');

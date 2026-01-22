@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing default import issues...\n');
+logger.info('🔧 Fixing default import issues...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -55,7 +57,7 @@ testFiles.forEach(file => {
     const importPattern = new RegExp(`import\\s+${serviceName}\\s+from\\s+['"]([^'"]+)['"]`, 'g');
     content = content.replace(importPattern, (match, importPath) => {
       modified = true;
-      console.log(`  Fixing import for ${serviceName} in ${fileName}`);
+      logger.info(`  Fixing import for ${serviceName} in ${fileName}`);
       return `import { ${serviceName} } from '${importPath}'`;
     });
 
@@ -63,7 +65,7 @@ testFiles.forEach(file => {
     const defaultImportPattern = new RegExp(`import\\s+\\{\\s*default\\s+as\\s+${serviceName}\\s*\\}\\s+from`, 'g');
     content = content.replace(defaultImportPattern, (match) => {
       modified = true;
-      console.log(`  Fixing default import for ${serviceName} in ${fileName}`);
+      logger.info(`  Fixing default import for ${serviceName} in ${fileName}`);
       return `import { ${serviceName} } from`;
     });
   });
@@ -81,7 +83,7 @@ testFiles.forEach(file => {
   staticServices.forEach(serviceName => {
     // Check if this service is likely static (has methods called directly on it elsewhere)
     if (content.includes(`${serviceName}.`) && !content.includes(`const ${serviceName} =`)) {
-      console.log(`  ${serviceName} appears to be static in ${fileName}`);
+      logger.info(`  ${serviceName} appears to be static in ${fileName}`);
 
       // Replace constructor calls with a note
       const constructorRegex = new RegExp(`new\\s+${serviceName}\\(\\)`, 'g');
@@ -102,7 +104,7 @@ testFiles.forEach(file => {
     content = content.replace(/_OfflineManager\.default/g, 'OfflineManager');
     content = content.replace(/import OfflineManager from/g, 'import { OfflineManager } from');
     modified = true;
-    console.log(`  Fixed OfflineManager imports in ${fileName}`);
+    logger.info(`  Fixed OfflineManager imports in ${fileName}`);
   }
 
   if (modified && content !== original) {
@@ -181,11 +183,11 @@ describe('OfflineManager', () => {
 });`;
 
   fs.writeFileSync(offlineManagerTest, content, 'utf8');
-  console.log('  ✅ Rewrote OfflineManager.test.ts');
+  logger.info('  ✅ Rewrote OfflineManager.test.ts');
   totalFixes++;
 }
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log(`  Files modified: ${fixedFiles.slice(0, 10).join(', ')}${fixedFiles.length > 10 ? '...' : ''}`);
-console.log('\n✨ Default import fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info(`  Files modified: ${fixedFiles.slice(0, 10).join(', ')}${fixedFiles.length > 10 ? '...' : ''}`);
+logger.info('\n✨ Default import fixes complete!');

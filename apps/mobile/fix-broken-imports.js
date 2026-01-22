@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔧 Fixing broken imports from undefined...\n');
+logger.info('🔧 Fixing broken imports from undefined...\n');
 
 // Find all files with broken imports
 const command = `grep -r "from 'undefined'" src --include="*.test.ts" --include="*.test.tsx" -l`;
@@ -13,11 +15,11 @@ try {
   const result = execSync(command, { cwd: __dirname, encoding: 'utf8' });
   brokenFiles = result.trim().split('\n').filter(f => f);
 } catch (e) {
-  console.log('No broken imports found or grep failed');
+  logger.info('No broken imports found or grep failed');
   process.exit(0);
 }
 
-console.log(`Found ${brokenFiles.length} files with broken imports\n`);
+logger.info(`Found ${brokenFiles.length} files with broken imports\n`);
 
 let totalFixes = 0;
 
@@ -33,7 +35,7 @@ brokenFiles.forEach(filePath => {
   const brokenImportPattern = /import\s+{\s*(\w+)\s*}\s+from\s+'undefined'\s*\n\/\/[^;]+from\s+'([^']+)';/g;
 
   content = content.replace(brokenImportPattern, (match, importName, actualPath) => {
-    console.log(`  Fixing: ${importName} from ${actualPath}`);
+    logger.info(`  Fixing: ${importName} from ${actualPath}`);
     return `import { ${importName} } from '${actualPath}';`;
   });
 
@@ -58,7 +60,7 @@ brokenFiles.forEach(filePath => {
         guessedPath = `../../${importName.toLowerCase()}`;
       }
 
-      console.log(`  Guessing path for ${importName}: ${guessedPath}`);
+      logger.info(`  Guessing path for ${importName}: ${guessedPath}`);
       return `import { ${importName} } from '${guessedPath}';`;
     }
   );
@@ -71,17 +73,17 @@ brokenFiles.forEach(filePath => {
 
   if (content !== original) {
     fs.writeFileSync(fullPath, content, 'utf8');
-    console.log(`✅ Fixed ${path.basename(filePath)}`);
+    logger.info(`✅ Fixed ${path.basename(filePath)}`);
     totalFixes++;
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ Import fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ Import fixes complete!');
 
 // Now let's also fix any remaining undefined imports with a more aggressive approach
-console.log('\n🔍 Looking for any remaining undefined imports...');
+logger.info('\n🔍 Looking for any remaining undefined imports...');
 
 const allTestFiles = require('glob').sync('src/**/*.test.{ts,tsx}', {
   cwd: __dirname,
@@ -104,14 +106,14 @@ allTestFiles.forEach(file => {
 
     if (content !== original) {
       fs.writeFileSync(file, content, 'utf8');
-      console.log(`  🗑️  Removed undefined imports from ${path.basename(file)}`);
+      logger.info(`  🗑️  Removed undefined imports from ${path.basename(file)}`);
       additionalFixes++;
     }
   }
 });
 
 if (additionalFixes > 0) {
-  console.log(`\n  Removed undefined imports from ${additionalFixes} additional files`);
+  logger.info(`\n  Removed undefined imports from ${additionalFixes} additional files`);
 }
 
-console.log('\nRun npm test to verify the fixes.');
+logger.info('\nRun npm test to verify the fixes.');

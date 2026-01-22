@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 // Logger implementation - uses console directly to avoid circular dependencies
 /**
  * Production-Safe Logger
@@ -119,19 +121,19 @@ class Logger {
     switch (level) {
       case 'debug':
         if (this.isDevelopment) {
-          console.debug(formattedMessage);
+          logger.debug(formattedMessage);
         }
         break;
       case 'info':
-        console.info('[INFO]', formattedMessage);
+        logger.info('[INFO]', formattedMessage);
         break;
       case 'warn':
-        console.warn('[WARN]', formattedMessage);
+        logger.warn('[WARN]', formattedMessage);
         break;
       case 'error':
-        console.error('[ERROR]', formattedMessage);
+        logger.error('[ERROR]', formattedMessage);
         if (error) {
-          console.error('[ERROR] Details:', error);
+          logger.error('[ERROR] Details:', error);
         }
         break;
     }

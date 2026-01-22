@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing ALL Phase 5 test import paths...\n');
+logger.info('🔧 Fixing ALL Phase 5 test import paths...\n');
 
 // Fix patterns for different test locations
 const fixPatterns = [
@@ -159,12 +161,12 @@ fixPatterns.forEach(({ pattern, fixes }) => {
     if (content !== original) {
       fs.writeFileSync(file, content, 'utf8');
       totalFixes++;
-      console.log(`  Fixed ${fileName}`);
+      logger.info(`  Fixed ${fileName}`);
       modified = true;
     }
   });
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ Phase 5 import fixes complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ Phase 5 import fixes complete!');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ export default function AdminBuildingAssessmentsError({
   const router = useRouter();
 
   useEffect(() => {
-    console.error('Admin building assessments error:', error);
+    logger.error('Admin building assessments error:', error);
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

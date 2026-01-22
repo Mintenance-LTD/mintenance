@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Adding PixelRatio mock to all critical path tests...\n');
+logger.info('🔧 Adding PixelRatio mock to all critical path tests...\n');
 
 // Find all critical path test files
 const testFiles = glob.sync('src/__tests__/critical-paths/**/*.test.tsx', {
@@ -41,10 +43,10 @@ testFiles.forEach(file => {
   if (modified) {
     fs.writeFileSync(file, content, 'utf8');
     totalFixes++;
-    console.log(`  Fixed ${fileName}`);
+    logger.info(`  Fixed ${fileName}`);
   }
 });
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log('\n✨ PixelRatio mock addition complete!');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info('\n✨ PixelRatio mock addition complete!');

@@ -1,3 +1,5 @@
+import { logger } from '@mintenance/shared';
+
 /**
  * Comprehensive fix for ALL logger syntax errors
  * Patterns to fix:
@@ -10,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔍 Searching for all logger error patterns...\n');
+logger.info('🔍 Searching for all logger error patterns...\n');
 
 // Find all files with the error', pattern
 const findCommand = `cd "${__dirname}" && grep -rl "error',\\s*{\\s*service:" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=.next`;
@@ -20,7 +22,7 @@ try {
   const output = execSync(findCommand, { encoding: 'utf-8' });
   files = output.trim().split('\n').filter(f => f && !f.includes('.md'));
 } catch (e) {
-  console.log('No files found with error pattern');
+  logger.info('No files found with error pattern');
 }
 
 // Also find err', and e', patterns
@@ -41,7 +43,7 @@ patterns.forEach(pattern => {
   }
 });
 
-console.log(`📝 Found ${files.length} files to fix\n`);
+logger.info(`📝 Found ${files.length} files to fix\n`);
 
 let totalFixed = 0;
 let totalFiles = 0;
@@ -79,10 +81,10 @@ files.forEach(relPath => {
 
   if (content !== originalContent) {
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`✅ Fixed ${fileFixed} issues in: ${relPath}`);
+    logger.info(`✅ Fixed ${fileFixed} issues in: ${relPath}`);
     totalFixed += fileFixed;
     totalFiles++;
   }
 });
 
-console.log(`\n🎉 Total: Fixed ${totalFixed} logger errors across ${totalFiles} files`);
+logger.info(`\n🎉 Total: Fixed ${totalFixed} logger errors across ${totalFiles} files`);

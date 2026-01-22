@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 9: Selective revert of problematic changes...\n');
+logger.info('🔧 Phase 9: Selective revert of problematic changes...\n');
 
 // Find all test files
 const tsTestFiles = glob.sync('src/**/*.test.ts', {
@@ -24,10 +26,10 @@ const revertCategories = {
   unnecessaryMocks: 0,
 };
 
-console.log(`Found ${tsTestFiles.length} .ts test files and ${tsxTestFiles.length} .tsx test files\n`);
+logger.info(`Found ${tsTestFiles.length} .ts test files and ${tsxTestFiles.length} .tsx test files\n`);
 
 // Phase 1: Remove React-related imports from .ts files
-console.log('📋 Phase 1: Removing React imports from .ts files...');
+logger.info('📋 Phase 1: Removing React imports from .ts files...');
 
 tsTestFiles.forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
@@ -70,11 +72,11 @@ tsTestFiles.forEach(file => {
   }
 });
 
-console.log(`  Cleaned ${revertCategories.reactFromTs} React imports from .ts files`);
-console.log(`  Removed ${revertCategories.rnMockFromTs} React Native mocks from .ts files\n`);
+logger.info(`  Cleaned ${revertCategories.reactFromTs} React imports from .ts files`);
+logger.info(`  Removed ${revertCategories.rnMockFromTs} React Native mocks from .ts files\n`);
 
 // Phase 2: Fix duplicate mock declarations
-console.log('📋 Phase 2: Removing duplicate mock declarations...');
+logger.info('📋 Phase 2: Removing duplicate mock declarations...');
 
 [...tsTestFiles, ...tsxTestFiles].forEach(file => {
   let content = fs.readFileSync(file, 'utf8');
@@ -144,10 +146,10 @@ console.log('📋 Phase 2: Removing duplicate mock declarations...');
   }
 });
 
-console.log(`  Removed ${revertCategories.duplicateMocks} duplicate mock declarations\n`);
+logger.info(`  Removed ${revertCategories.duplicateMocks} duplicate mock declarations\n`);
 
 // Phase 3: Fix specific broken imports
-console.log('📋 Phase 3: Fixing specific import issues...');
+logger.info('📋 Phase 3: Fixing specific import issues...');
 
 let importFixes = 0;
 
@@ -195,10 +197,10 @@ let importFixes = 0;
   }
 });
 
-console.log(`  Fixed ${importFixes} import paths\n`);
+logger.info(`  Fixed ${importFixes} import paths\n`);
 
 // Phase 4: Ensure critical mocks are present
-console.log('📋 Phase 4: Ensuring critical mocks are present...');
+logger.info('📋 Phase 4: Ensuring critical mocks are present...');
 
 let mockAdditions = 0;
 
@@ -228,15 +230,15 @@ serviceTests.forEach(file => {
   }
 });
 
-console.log(`  Added ${mockAdditions} critical mocks\n`);
+logger.info(`  Added ${mockAdditions} critical mocks\n`);
 
 // Summary
-console.log('📊 Summary:');
-console.log(`  Total files reverted/fixed: ${revertCount}`);
-console.log(`  React imports removed from .ts: ${revertCategories.reactFromTs}`);
-console.log(`  React Native mocks removed from .ts: ${revertCategories.rnMockFromTs}`);
-console.log(`  Duplicate mocks removed: ${revertCategories.duplicateMocks}`);
-console.log(`  Unnecessary mocks removed: ${revertCategories.unnecessaryMocks}`);
-console.log(`  Import paths fixed: ${importFixes}`);
-console.log(`  Critical mocks added: ${mockAdditions}`);
-console.log('\n✨ Phase 9 selective revert complete!');
+logger.info('📊 Summary:');
+logger.info(`  Total files reverted/fixed: ${revertCount}`);
+logger.info(`  React imports removed from .ts: ${revertCategories.reactFromTs}`);
+logger.info(`  React Native mocks removed from .ts: ${revertCategories.rnMockFromTs}`);
+logger.info(`  Duplicate mocks removed: ${revertCategories.duplicateMocks}`);
+logger.info(`  Unnecessary mocks removed: ${revertCategories.unnecessaryMocks}`);
+logger.info(`  Import paths fixed: ${importFixes}`);
+logger.info(`  Critical mocks added: ${mockAdditions}`);
+logger.info('\n✨ Phase 9 selective revert complete!');

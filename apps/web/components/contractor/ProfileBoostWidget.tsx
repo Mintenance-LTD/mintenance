@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { TrendingUp, Lock, Zap, AlertCircle, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ProfileBoostMeter } from './ProfileBoostMeter';
@@ -54,7 +55,7 @@ export function ProfileBoostWidget() {
       setBoostData(data.boost);
       setMissingVerifications(data.missingVerifications || []);
     } catch (error) {
-      console.error('Error fetching boost data:', error);
+      logger.error('Error fetching boost data:', error);
     } finally {
       setLoading(false);
     }

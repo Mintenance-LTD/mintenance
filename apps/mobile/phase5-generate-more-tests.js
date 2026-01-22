@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Phase 5: Generating Additional Test Suites for Coverage\n');
+logger.info('🚀 Phase 5: Generating Additional Test Suites for Coverage\n');
 
 let filesCreated = 0;
 
@@ -298,6 +298,7 @@ describe('Formatter Utilities - Comprehensive', () => {
     content: `import { ErrorHandler } from '../../../utils/errorHandler';
 import { logger } from '../../../utils/logger';
 
+import { logger } from '@mintenance/shared';
 jest.mock('../../../utils/logger');
 
 describe('Error Handler - Comprehensive', () => {
@@ -871,7 +872,7 @@ utilityTests.forEach(test => {
   const filePath = path.join(__dirname, test.dir, test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -1140,7 +1141,7 @@ hookTests.forEach(test => {
   const filePath = path.join(__dirname, test.dir, test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
 // ============================================
@@ -1399,15 +1400,15 @@ screenTests.forEach(test => {
   const filePath = path.join(__dirname, test.dir, test.name);
   fs.writeFileSync(filePath, test.content);
   filesCreated++;
-  console.log(`  ✅ Created ${test.name}`);
+  logger.info(`  ✅ Created ${test.name}`);
 });
 
-console.log(`\n📊 Phase 5 Additional Tests Summary:`);
-console.log(`  Total test files created: ${filesCreated}`);
-console.log(`  - Utility tests: ${utilityTests.length}`);
-console.log(`  - Hook tests: ${hookTests.length}`);
-console.log(`  - Screen integration tests: ${screenTests.length}`);
-console.log('\n✨ Additional test suites generated successfully!');
-console.log('\nTotal Phase 5 test files: ${filesCreated + 16} (previous + new)');
-console.log('\n🎯 Coverage target: 30%');
-console.log('📈 Expected coverage improvement: +5-8%');
+logger.info(`\n📊 Phase 5 Additional Tests Summary:`);
+logger.info(`  Total test files created: ${filesCreated}`);
+logger.info(`  - Utility tests: ${utilityTests.length}`);
+logger.info(`  - Hook tests: ${hookTests.length}`);
+logger.info(`  - Screen integration tests: ${screenTests.length}`);
+logger.info('\n✨ Additional test suites generated successfully!');
+logger.info('\nTotal Phase 5 test files: ${filesCreated + 16} (previous + new)');
+logger.info('\n🎯 Coverage target: 30%');
+logger.info('📈 Expected coverage improvement: +5-8%');

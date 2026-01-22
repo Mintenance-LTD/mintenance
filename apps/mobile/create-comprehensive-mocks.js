@@ -1,8 +1,10 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Creating comprehensive mock library...\n');
+logger.info('🔧 Creating comprehensive mock library...\n');
 
 // Create comprehensive React Native mock
 const reactNativeMock = `module.exports = {
@@ -505,18 +507,18 @@ const mocksDir = path.join(__dirname, '__mocks__');
 
 // Update react-native mock
 fs.writeFileSync(path.join(mocksDir, 'react-native.js'), reactNativeMock);
-console.log('  ✅ Updated __mocks__/react-native.js');
+logger.info('  ✅ Updated __mocks__/react-native.js');
 
 // Update expo-constants mock
 fs.writeFileSync(path.join(mocksDir, 'expo-constants.js'), expoConstantsMock);
-console.log('  ✅ Updated __mocks__/expo-constants.js');
+logger.info('  ✅ Updated __mocks__/expo-constants.js');
 
 // Update expo-notifications mock
 fs.writeFileSync(path.join(mocksDir, 'expo-notifications.js'), expoNotificationsMock);
-console.log('  ✅ Updated __mocks__/expo-notifications.js');
+logger.info('  ✅ Updated __mocks__/expo-notifications.js');
 
 // Update react-native-gesture-handler mock
 fs.writeFileSync(path.join(mocksDir, 'react-native-gesture-handler.js'), gestureHandlerMock);
-console.log('  ✅ Updated __mocks__/react-native-gesture-handler.js');
+logger.info('  ✅ Updated __mocks__/react-native-gesture-handler.js');
 
-console.log('\n✨ Comprehensive mock library created successfully!');
+logger.info('\n✨ Comprehensive mock library created successfully!');

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import { logger } from '@mintenance/shared';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -265,7 +266,7 @@ function ContactPageContent() {
         }
       }
     } catch (error) {
-      console.error('Contact form submission error:', error);
+      logger.error('Contact form submission error:', error);
       toast.error('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

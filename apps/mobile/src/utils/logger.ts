@@ -90,7 +90,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.debug(
+      logger.debug(
         this.formatMessage('debug', message, this.toContext(context))
       );
     }
@@ -110,7 +110,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.info(
+      logger.info(
         this.formatMessage('info', message, this.toContext(context))
       );
     }
@@ -131,7 +131,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      console.warn(this.formatMessage('warn', message, this.toContext(context, { service: 'mobile' })));
+      logger.warn(this.formatMessage('warn', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -199,7 +199,7 @@ class Logger {
     );
 
     if (this.isDevelopment) {
-      console.error(formattedMessage, err, { service: 'mobile' });
+      logger.error(formattedMessage, err, { service: 'mobile' });
     }
 
     sentryFunctions.addBreadcrumb({
@@ -227,7 +227,7 @@ class Logger {
     const message = `${operation} completed in ${duration}ms`;
 
     if (this.isDevelopment) {
-      console.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      logger.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -288,7 +288,7 @@ class Logger {
     const message = `User action: ${action}`;
 
     if (this.isDevelopment) {
-      console.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      logger.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -304,7 +304,7 @@ class Logger {
     const message = `Navigation: ${from} -> ${to}`;
 
     if (this.isDevelopment) {
-      console.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      logger.info(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({

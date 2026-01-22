@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Recovery: Fixing service tests for coverage gain...\n');
+logger.info('🔧 Recovery: Fixing service tests for coverage gain...\n');
 
 // Find all service test files
 const serviceTests = glob.sync('src/__tests__/services/**/*.test.ts', {
@@ -19,7 +21,7 @@ const additionalServiceTests = glob.sync('src/services/**/__tests__/*.test.ts', 
 
 const allServiceTests = [...new Set([...serviceTests, ...additionalServiceTests])];
 
-console.log(`Found ${allServiceTests.length} service test files\n`);
+logger.info(`Found ${allServiceTests.length} service test files\n`);
 
 let fixedCount = 0;
 const fixes = {
@@ -148,7 +150,7 @@ jest.mock('expo-location', () => ({
 }));`,
 };
 
-console.log('📋 Processing service tests...\n');
+logger.info('📋 Processing service tests...\n');
 
 allServiceTests.forEach(testFile => {
   const fileName = path.basename(testFile);
@@ -253,14 +255,14 @@ jest.mock('${mockPath}', () => {
   if (modified && content !== original) {
     fs.writeFileSync(testFile, content, 'utf8');
     fixedCount++;
-    console.log(`  ✅ Fixed ${fileName}`);
+    logger.info(`  ✅ Fixed ${fileName}`);
   }
 });
 
-console.log('\n📊 Summary:');
-console.log(`  Service tests fixed: ${fixedCount}/${allServiceTests.length}`);
-console.log(`  AsyncStorage mocks added: ${fixes.asyncStorage}`);
-console.log(`  Supabase mocks added: ${fixes.supabase}`);
-console.log(`  Import paths fixed: ${fixes.imports}`);
-console.log(`  Other mocks added: ${fixes.mocks}`);
-console.log('\n✨ Service test recovery complete!');
+logger.info('\n📊 Summary:');
+logger.info(`  Service tests fixed: ${fixedCount}/${allServiceTests.length}`);
+logger.info(`  AsyncStorage mocks added: ${fixes.asyncStorage}`);
+logger.info(`  Supabase mocks added: ${fixes.supabase}`);
+logger.info(`  Import paths fixed: ${fixes.imports}`);
+logger.info(`  Other mocks added: ${fixes.mocks}`);
+logger.info('\n✨ Service test recovery complete!');

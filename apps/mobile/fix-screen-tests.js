@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Fixing screen test failures...\n');
+logger.info('🔧 Fixing screen test failures...\n');
 
 // Find all screen test files
 const screenTests = glob.sync('src/screens/**/*.test.{ts,tsx}', {
@@ -11,13 +11,14 @@ const screenTests = glob.sync('src/screens/**/*.test.{ts,tsx}', {
   absolute: true,
 });
 
-console.log(`Found ${screenTests.length} screen test files to fix\n`);
+logger.info(`Found ${screenTests.length} screen test files to fix\n`);
 
 let totalFixes = 0;
 
 // Template for a properly structured screen test
 const screenTestTemplate = (screenName, fileName) => `import React from 'react';
 import { render, waitFor, fireEvent } from '../../test-utils';
+import { logger } from '@mintenance/shared';
 import { ${screenName} } from '../${fileName}';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -142,13 +143,13 @@ screenTests.forEach(testFile => {
 
     // Write the fixed test
     fs.writeFileSync(testFile, newContent, 'utf8');
-    console.log(`✅ Fixed ${fileName}`);
+    logger.info(`✅ Fixed ${fileName}`);
     totalFixes++;
   }
 });
 
 // Fix specific import issues
-console.log('\n📝 Fixing import issues in screen tests...');
+logger.info('\n📝 Fixing import issues in screen tests...');
 
 screenTests.forEach(testFile => {
   let content = fs.readFileSync(testFile, 'utf8');
@@ -172,13 +173,13 @@ screenTests.forEach(testFile => {
 
   if (content !== original) {
     fs.writeFileSync(testFile, content, 'utf8');
-    console.log(`  ✅ Fixed imports in ${path.basename(testFile)}`);
+    logger.info(`  ✅ Fixed imports in ${path.basename(testFile)}`);
     totalFixes++;
   }
 });
 
 // Create mock for react-native-safe-area-context if missing
-console.log('\n📝 Creating safe-area-context mock...');
+logger.info('\n📝 Creating safe-area-context mock...');
 
 const safeAreaMockPath = path.join(__dirname, '__mocks__', 'react-native-safe-area-context.js');
 const safeAreaMockContent = `module.exports = {
@@ -197,7 +198,7 @@ const safeAreaMockContent = `module.exports = {
 
 if (!fs.existsSync(safeAreaMockPath)) {
   fs.writeFileSync(safeAreaMockPath, safeAreaMockContent, 'utf8');
-  console.log('  ✅ Created safe-area-context mock');
+  logger.info('  ✅ Created safe-area-context mock');
   totalFixes++;
 }
 
@@ -210,11 +211,11 @@ if (!jestSetup.includes('react-native-safe-area-context')) {
 jest.mock('react-native-safe-area-context', () => require('./__mocks__/react-native-safe-area-context.js'));
 `;
   fs.writeFileSync(jestSetupPath, jestSetup, 'utf8');
-  console.log('  ✅ Added safe-area-context to jest setup');
+  logger.info('  ✅ Added safe-area-context to jest setup');
   totalFixes++;
 }
 
-console.log(`\n📊 Summary:`);
-console.log(`  Total fixes applied: ${totalFixes}`);
-console.log('\n✨ Screen test fixes complete!');
-console.log('Run npm test to see improvements.');
+logger.info(`\n📊 Summary:`);
+logger.info(`  Total fixes applied: ${totalFixes}`);
+logger.info('\n✨ Screen test fixes complete!');
+logger.info('Run npm test to see improvements.');

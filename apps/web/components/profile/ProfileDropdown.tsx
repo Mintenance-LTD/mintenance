@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '@mintenance/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
@@ -53,7 +54,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
   }, [isOpen]);
 
   const handleMenuItemClick = (href: string) => {
-    // console.log('ProfileDropdown: Menu item clicked, navigating to:', href);
+    // logger.info('ProfileDropdown: Menu item clicked, navigating to:', href);
     setIsOpen(false);
     router.push(href);
   };
@@ -64,7 +65,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       router.push('/login');
     }
   };
@@ -72,7 +73,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
   const toggleDropdown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // console.log('ProfileDropdown: Toggle clicked, current state:', isOpen);
+    // logger.info('ProfileDropdown: Toggle clicked, current state:', isOpen);
     setIsOpen(!isOpen);
   };
 

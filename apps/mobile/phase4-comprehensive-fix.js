@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🚀 Phase 4 Comprehensive Test Fix\n');
+logger.info('🚀 Phase 4 Comprehensive Test Fix\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -94,6 +94,7 @@ function fixHookTest(filePath, content) {
 
   return `import { renderHook, act } from '@testing-library/react-native';
 import { ${hookName} } from '../${hookName}';
+import { logger } from '@mintenance/shared';
 import React from 'react';
 
 // Mock dependencies
@@ -408,19 +409,19 @@ describe('${serviceName.replace('.test', '')}', () => {
     stats.fixedFiles++;
 
     if (stats.fixedFiles % 50 === 0) {
-      console.log(`  Progress: ${stats.fixedFiles} files fixed...`);
+      logger.info(`  Progress: ${stats.fixedFiles} files fixed...`);
     }
   }
 });
 
-console.log('\n📊 Phase 4 Fix Summary:');
-console.log(`  Total test files: ${stats.totalFiles}`);
-console.log(`  Files fixed: ${stats.fixedFiles}`);
-console.log(`  - Hooks: ${stats.hooksFixed}`);
-console.log(`  - Screens: ${stats.screensFixed}`);
-console.log(`  - Utils: ${stats.utilsFixed}`);
-console.log(`  - Components: ${stats.componentsFixed}`);
-console.log(`  - Services: ${stats.servicesFixed}`);
-console.log(`  - Integration: ${stats.integrationFixed}`);
-console.log('\n✨ Phase 4 comprehensive fix complete!');
-console.log('🔄 Run npm test to verify improvements');
+logger.info('\n📊 Phase 4 Fix Summary:');
+logger.info(`  Total test files: ${stats.totalFiles}`);
+logger.info(`  Files fixed: ${stats.fixedFiles}`);
+logger.info(`  - Hooks: ${stats.hooksFixed}`);
+logger.info(`  - Screens: ${stats.screensFixed}`);
+logger.info(`  - Utils: ${stats.utilsFixed}`);
+logger.info(`  - Components: ${stats.componentsFixed}`);
+logger.info(`  - Services: ${stats.servicesFixed}`);
+logger.info(`  - Integration: ${stats.integrationFixed}`);
+logger.info('\n✨ Phase 4 comprehensive fix complete!');
+logger.info('🔄 Run npm test to verify improvements');

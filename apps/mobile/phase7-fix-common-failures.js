@@ -1,9 +1,11 @@
+import { logger } from '@mintenance/shared';
+
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 
-console.log('🔧 Phase 7: Fixing common test failures...\n');
+logger.info('🔧 Phase 7: Fixing common test failures...\n');
 
 // Find all test files
 const testFiles = glob.sync('src/**/*.test.{ts,tsx}', {
@@ -237,12 +239,12 @@ jest.mock('${servicePath}', () => ({
   }
 });
 
-console.log('\n📊 Summary:');
-console.log(`  Total files fixed: ${totalFixes}`);
-console.log(`  Navigation mocks added: ${fixes.navigation}`);
-console.log(`  AsyncStorage mocks added: ${fixes.asyncStorage}`);
-console.log(`  Supabase mocks added: ${fixes.supabase}`);
-console.log(`  Expo module mocks added: ${fixes.expoModules}`);
-console.log(`  React Native mock fixes: ${fixes.reactNative}`);
-console.log(`  Service mocks added: ${fixes.services}`);
-console.log('\n✨ Phase 7 common failure fixes complete!');
+logger.info('\n📊 Summary:');
+logger.info(`  Total files fixed: ${totalFixes}`);
+logger.info(`  Navigation mocks added: ${fixes.navigation}`);
+logger.info(`  AsyncStorage mocks added: ${fixes.asyncStorage}`);
+logger.info(`  Supabase mocks added: ${fixes.supabase}`);
+logger.info(`  Expo module mocks added: ${fixes.expoModules}`);
+logger.info(`  React Native mock fixes: ${fixes.reactNative}`);
+logger.info(`  Service mocks added: ${fixes.services}`);
+logger.info('\n✨ Phase 7 common failure fixes complete!');

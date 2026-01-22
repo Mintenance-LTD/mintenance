@@ -15,6 +15,7 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
+import { logger } from '@mintenance/shared';
 // ==========================================================
 // FEATURE FLAG DEFINITIONS
 // ==========================================================
@@ -83,7 +84,7 @@ export async function isFeatureEnabled(
   const config = FEATURE_FLAGS[flagName];
   
   if (!config) {
-    console.warn(`[FeatureFlags] Unknown feature flag: ${flagName}`);
+    logger.warn(`[FeatureFlags] Unknown feature flag: ${flagName}`);
     return false;
   }
 
@@ -102,7 +103,7 @@ export async function isFeatureEnabled(
       }
     } catch (error) {
       // Table might not exist yet, continue with other checks
-      console.debug(`[FeatureFlags] Could not check database override: ${error}`);
+      logger.debug(`[FeatureFlags] Could not check database override: ${error}`);
     }
   }
 
