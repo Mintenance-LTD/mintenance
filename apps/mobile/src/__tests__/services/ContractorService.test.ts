@@ -9,24 +9,16 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import { ContractorService } from '../../services/ContractorService';
-
-jest.mock('../../services/ContractorService', () => ({
-  ContractorService: {
-    getContractors: jest.fn(),
-    getContractorById: jest.fn(),
-    searchContractors: jest.fn(),
-    getContractorsByCategory: jest.fn(),
-    updateContractorProfile: jest.fn(),
-    getContractorRatings: jest.fn(),
-  }
-}));
+// Import supabase and types BEFORE ContractorService so mocks are in place
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
 
 // Use global Supabase mock from jest-setup.js
 jest.mock('../../config/supabase');
+
+// Import the REAL ContractorService (not mocked) - we want to test the actual implementation
+import { ContractorService } from '../../services/ContractorService';
 
 // Logger is not mocked - using real implementation
 

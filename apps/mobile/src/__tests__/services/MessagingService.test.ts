@@ -9,19 +9,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import { MessagingService, Message, MessageThread } from '../../services/MessagingService';
-
-jest.mock('../../services/MessagingService', () => ({
-  MessagingService: {
-    sendMessage: jest.fn(),
-    getMessages: jest.fn(),
-    getConversations: jest.fn(),
-    markAsRead: jest.fn(),
-    deleteMessage: jest.fn(),
-    deleteConversation: jest.fn(),
-  }
-}));
-
 // Mock external dependencies only
 jest.mock('../../config/supabase', () => ({
   supabase: {
@@ -58,12 +45,14 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
 }));
 
 const { ServiceErrorHandler } = require('../../utils/serviceErrorHandler');
+const { supabase } = require('../../config/supabase');
+
+// Import the REAL MessagingService (not mocked) - we want to test the actual implementation
+import { MessagingService, Message, MessageThread } from '../../services/MessagingService';
 
 // Mock createMessageNotification to avoid implementation complexity
 const mockCreateMessageNotification = jest.fn().mockResolvedValue(undefined);
 (MessagingService as any).createMessageNotification = mockCreateMessageNotification;
-
-const { supabase } = require('../../config/supabase');
 
 describe('MessagingService', () => {
   beforeEach(() => {
