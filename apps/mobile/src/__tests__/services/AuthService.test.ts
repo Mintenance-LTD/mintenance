@@ -16,6 +16,7 @@ jest.mock('../../config/supabase', () => ({
       getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
       getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
       signIn: jest.fn(),
+      signInWithPassword: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
       onAuthStateChange: jest.fn(() => ({
@@ -58,23 +59,13 @@ jest.mock('../../config/supabase', () => ({
     },
   },
 }));
-import { AuthService } from '../../services/AuthService';
 
-jest.mock('../../services/AuthService', () => ({
-  AuthService: {
-    signIn: jest.fn(),
-    signUp: jest.fn(),
-    signOut: jest.fn(),
-    getCurrentSession: jest.fn(),
-    getCurrentUser: jest.fn(),
-    updateProfile: jest.fn(),
-    resetPassword: jest.fn(),
-    verifyEmail: jest.fn(),
-    onAuthStateChange: jest.fn(),
-  }
-}));
+// Import supabase BEFORE AuthService so the mock is in place
 import { supabase } from '../../config/supabase';
 import { User } from '../../types';
+
+// Import the REAL AuthService (not mocked) - we want to test the actual implementation
+import { AuthService } from '../../services/AuthService';
 
 // Get mocked modules from jest-setup.js
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
