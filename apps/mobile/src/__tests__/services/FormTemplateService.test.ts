@@ -64,7 +64,7 @@ jest.mock('../../utils/serviceHealthMonitor', () => ({
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
 
 // Import the REAL FormTemplateService (not mocked) - we want to test the actual implementation
-import { FormTemplateService, FormTemplate, CreateFormTemplateData } from '../../services/FormTemplateService';
+import { FormTemplateService, FormTemplate, CreateFormTemplateData } from '../../services/form-management/FormTemplateService';
 
 describe('FormTemplateService', () => {
   beforeEach(() => {

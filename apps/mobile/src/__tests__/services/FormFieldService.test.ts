@@ -15,7 +15,7 @@ import { supabase } from '../../config/supabase';
 jest.mock('../../config/supabase');
 
 // Import the REAL FormFieldService (not mocked) - we want to test the actual implementation
-import { FormFieldService, FormField } from '../../services/FormFieldService';
+import { FormFieldService, FormField } from '../../services/form-management/FormFieldService';
 
 // Mock serviceHelper
 jest.mock('../../utils/serviceHelper', () => ({
