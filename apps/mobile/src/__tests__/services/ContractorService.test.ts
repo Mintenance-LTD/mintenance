@@ -430,6 +430,7 @@ describe('ContractorService', () => {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
+        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
         ilike: jest.fn(() => ({
           data: [mockContractor],
           error: null,
@@ -444,10 +445,8 @@ describe('ContractorService', () => {
       });
 
       expect(result).toHaveLength(1);
-      expect(mockSupabaseChain.ilike).toHaveBeenCalledWith(
-        'first_name',
-        '%John%'
-      );
+      expect(result[0]).toEqual(mockContractor);
+      expect(mockSupabaseChain.or).toHaveBeenCalled(); // Verify .or() was used for multi-field search
     });
 
     it('should handle empty search results', async () => {
@@ -455,6 +454,7 @@ describe('ContractorService', () => {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
+        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
         ilike: jest.fn(() => ({
           data: [],
           error: null,
