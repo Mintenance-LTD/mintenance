@@ -20,7 +20,14 @@ vi.mock('next/navigation');
 vi.mock('@/hooks/useCurrentUser');
 vi.mock('@/lib/hooks/useCSRF');
 vi.mock('@/app/jobs/create/utils/submitJob');
-vi.mock('react-hot-toast');
+vi.mock('react-hot-toast', () => ({
+  default: {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  },
+}));
 
 const mockRouter = {
   push: vi.fn(),

@@ -5,8 +5,12 @@ import toast from 'react-hot-toast';
 
 // Mock react-hot-toast
 vi.mock('react-hot-toast', () => ({
-  error: vi.fn(),
-  success: vi.fn(),
+  default: {
+    error: vi.fn(),
+    success: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  },
 }));
 
 // Mock MotionDiv
